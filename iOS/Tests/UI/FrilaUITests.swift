@@ -614,8 +614,9 @@ final class AutenticacaoUITests: XCTestCase {
         funcao.tap()
         let ponto = app.textFields["campo-ponto-base"]
         ponto.tap()
-        ponto.typeText("Guará II")
-        app.buttons["botao-buscar-endereco"].tap()
+        // Com o teclado aberto, um toque fora do campo só o fecha (decisão do teclado, 02/11); a busca
+        // pelo teclado (tecla Buscar) não passa por esse toque.
+        ponto.typeText("Guará II\n")
         let sugestao = app.buttons["sugestao-endereco-0"]
         XCTAssertTrue(sugestao.waitForExistence(timeout: 10))
         sugestao.tap()

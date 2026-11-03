@@ -275,7 +275,9 @@ public struct CatalogoDesignSystem: View {
             Text(verbatim: amostraCorpo).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto)
             Text(verbatim: amostraMeta).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
             Text(verbatim: amostraMicro).font(FrilaTipo.microRotulo).textCase(.uppercase).tracking(0.8).foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: FrilaMoney.rate(160, per: .hour)).font(FrilaTypography.metric).foregroundStyle(FrilaCor.texto)
+            FrilaPriceTag(texto: "R$ 1.250,00", leitura: FrilaMoney.spoken(reais: 1250), tamanho: 26, isDark: escuro)
+            FrilaPriceTag(texto: "R$ 45,50", leitura: FrilaMoney.spoken(cents: 4550), tamanho: 22, isDark: escuro)
+            FrilaPriceTag(amount: 280, unit: nil, isDark: escuro)
         }
         .accessibilityIdentifier("secao-tipografia")
     }

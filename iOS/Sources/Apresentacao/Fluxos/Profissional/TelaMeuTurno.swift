@@ -156,10 +156,11 @@ public struct TelaMeuTurno: View {
             }
 
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: "\(formatador.intervalo(viewModel.turno.vaga.periodo)) · \(formatador.dinheiro(viewModel.turno.valorAcordado))")
-                    .font(FrilaTipo.meta)
-                    .monospacedDigit()
-                    .foregroundStyle(FrilaCor.texto)
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: formatador.intervalo(viewModel.turno.vaga.periodo)).font(FrilaTipo.meta)
+                    FrilaPriceTag(texto: formatador.dinheiro(viewModel.turno.valorAcordado),
+                                  leitura: formatador.dinheiroFalado(viewModel.turno.valorAcordado), tamanho: 18)
+                }
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: FrilaEspaco.minimo) {

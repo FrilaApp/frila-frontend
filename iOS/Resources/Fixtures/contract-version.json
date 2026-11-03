@@ -1,5 +1,5 @@
 {
-  "version": "0.2.45",
+  "version": "0.2.47",
   "source": "FrilaApp/frila-docs api/openapi.yaml, espelhado em iOS/Contrato/openapi.yaml",
-  "commit": "5b9ba8587970769c103aee7cf5c743afb17a1a03"
+  "commit": "47686d79"
 }

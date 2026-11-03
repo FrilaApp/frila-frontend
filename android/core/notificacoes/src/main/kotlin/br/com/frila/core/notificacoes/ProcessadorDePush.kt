@@ -81,9 +81,42 @@ class ProcessadorDePush(
         )
     }
 
+    /**
+     * Mapeamento canonico tipo -> canal conforme Contrato 0.2.46 (frila-docs #98, api/openapi.yaml:114-132).
+     *
+     * 16 tipos canonicos mapeados:
+     * - canal_urgencia: vaga, vagas_agrupadas
+     * - canal_turnos: confirmacao, lembrete_24h, lembrete_3h, inicio_sem_checkin, atraso_15min,
+     *                 fim_sem_checkout, checkin, checkin_manual_pendente, cancelamento, avaliacao_disponivel
+     * - canal_sistema: vaga_vazia, candidatura_recusada, suspensao, reativacao
+     * - fallback (demais / futuro): canal_sistema
+     */
     private fun canalParaTipo(tipo: String?): String = when (tipo) {
-        "vaga_urgente", "confirmacao" -> GerenciadorDeCanais.CANAL_URGENCIA
-        "turno", "checkin", "checkout", "atraso" -> GerenciadorDeCanais.CANAL_TURNOS
+        // canal_urgencia (Alta importancia)
+        "vaga",
+        "vagas_agrupadas",
+        "vaga_urgente" -> GerenciadorDeCanais.CANAL_URGENCIA // alias legado de transicao
+
+        // canal_turnos (Importancia padrao)
+        "confirmacao",
+        "lembrete_24h",
+        "lembrete_3h",
+        "inicio_sem_checkin",
+        "atraso_15min",
+        "fim_sem_checkout",
+        "checkin",
+        "checkin_manual_pendente",
+        "cancelamento",
+        "avaliacao_disponivel",
+        "turno", "checkout", "atraso" -> GerenciadorDeCanais.CANAL_TURNOS // aliases legados de transicao
+
+        // canal_sistema (Importancia padrao)
+        "vaga_vazia",
+        "candidatura_recusada",
+        "suspensao",
+        "reativacao" -> GerenciadorDeCanais.CANAL_SISTEMA
+
+        // Fallback para tipos futuros ou administrativos (ex: vaga_sem_elegiveis, selecao_encerrada, selecao_lembrete)
         else -> GerenciadorDeCanais.CANAL_SISTEMA
     }
 }

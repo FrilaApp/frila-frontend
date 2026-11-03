@@ -6,6 +6,7 @@ import SwiftUI
 /// "MeuPerfil", "Disponibilidade" e "EditarDisponibilidade" do MidFi do Fabrício.
 public struct TelaPerfilProfissional: View {
     @State private var viewModel: PerfilProfissionalViewModel
+    @FocusState private var pontoBaseEmFoco: Bool
     private let aoSalvar: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
@@ -59,6 +60,7 @@ public struct TelaPerfilProfissional: View {
         .barraInferiorFixa(ativa: temFormulario) {
             barraInferiorConteudo
         }
+        .frilaKeyboardDismissScope()
         .onAppear {
             #if DEBUG
             aplicarEstadoCapturaSeNecessario()
@@ -249,6 +251,8 @@ public struct TelaPerfilProfissional: View {
                 .font(FrilaTipo.valorDoCampo)
                 .foregroundStyle(FrilaCor.texto)
                 .submitLabel(.search)
+                .focused($pontoBaseEmFoco)
+                .frilaFormField(id: "perfil-profissional-ponto-base", isFocused: pontoBaseEmFoco, onDismiss: { pontoBaseEmFoco = false })
                 .onSubmit {
                     Task { await viewModel.buscarEndereco() }
                 }

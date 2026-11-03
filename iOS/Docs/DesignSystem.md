@@ -43,7 +43,7 @@ ficam em `Docs/Enxertos/FrilaLowPhase/` (`DESIGN.md`, `REGRAS-DE-DESIGN.md`, `de
 - Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`, `FrilaGeometry.hitboxMinimum`).
 - Tipografia (`FrilaTipo` ↔ `FrilaTypography`/`FrilaFormType`): SF Pro pelos estilos semânticos, com Dynamic Type.
   Bricolage Grotesque só nas perguntas e respostas dos formulários (`pergunta`, `respostaEscolhida`,
-  `contextoDaResposta`); números e dinheiro sempre em SF Pro (`FrilaTypography.metric`). Rótulo do botão
+  `contextoDaResposta`); valores monetários em Jost 600 pelo `FrilaPriceTag` (LOG-016); demais números em SF Pro. Rótulo do botão
   grande: SF Pro Bold 18 (`botao`); padrão e chips: Semibold 15 (`botaoPadrao`).
 - Movimento (`FrilaMovimento` ↔ `FrilaMotion`): compressão 0,96 (botão) e 0,94 (chip), molas 350/25 e 380/24;
   tudo passa por `FrilaMovimento.animacao(_:reduzir:)` (Reduzir Movimento).

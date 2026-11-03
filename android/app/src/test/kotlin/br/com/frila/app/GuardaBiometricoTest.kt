@@ -82,4 +82,29 @@ class GuardaBiometricoTest {
 
         assertNull(guarda.aoMudarDestino(null))
     }
+
+    @Test
+    fun `liberarAposLimparSessao libera sessao e descarta destino pendente`() {
+        val guarda = GuardaBiometrico(sessaoDesbloqueadaInicial = false)
+        guarda.aoMudarDestino(Rotas.MEUS_TURNOS)
+        assertEquals(false, guarda.desbloqueada)
+
+        guarda.liberarAposLimparSessao()
+
+        assertTrue(guarda.desbloqueada)
+        // Destino pendente foi limpo, portanto aoDesbloquearComSucesso volta ao fallback FEED
+        assertEquals(Rotas.FEED, guarda.aoDesbloquearComSucesso())
+    }
+
+    @Test
+    fun `liberarAposLimparSessao permite navegacao subsequente para rotas autenticadas sem interceptacao`() {
+        val guarda = GuardaBiometrico(sessaoDesbloqueadaInicial = false)
+        assertEquals(Rotas.DESBLOQUEIO, guarda.aoMudarDestino(Rotas.FEED))
+
+        guarda.liberarAposLimparSessao()
+
+        assertTrue(guarda.desbloqueada)
+        assertNull(guarda.aoMudarDestino(Rotas.FEED))
+        assertNull(guarda.aoMudarDestino(Rotas.PERFIL))
+    }
 }

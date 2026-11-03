@@ -44,19 +44,16 @@ public struct AreaDeCandidatura: View {
                 }
 
                 if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    VStack(spacing: FrilaEspaco.medio) {
                         precoView
                         botaoView
                             .frame(maxWidth: .infinity)
                     }
                 } else {
-                    HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                    VStack(spacing: FrilaEspaco.compacto) {
                         precoView
-                            .layoutPriority(0)
-                        Spacer(minLength: FrilaEspaco.pequeno)
                         botaoView
-                            .frame(minWidth: 160)
-                            .layoutPriority(1)
+                            .frame(maxWidth: .infinity)
                     }
                 }
 
@@ -72,59 +69,22 @@ public struct AreaDeCandidatura: View {
 
     private var precoView: some View {
         let formatador = FormatadorFrila()
-        return VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: formatador.dinheiro(viewModel.vaga.valor))
-                .font(FrilaTipo.preco)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(1)
-                .layoutPriority(1)
+        return VStack(spacing: FrilaEspaco.fio) {
+            FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
+                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 52)
+                .accessibilityIdentifier("candidatura-valor")
             Text(verbatim: apoioPreco)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.8)
-                .layoutPriority(0)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
     }
 
-    private var calendarioSp: Calendar {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "America/Sao_Paulo") ?? .current
-        cal.locale = Locale(identifier: "pt_BR")
-        return cal
-    }
-
     private var apoioPreco: String {
-        let inicio = viewModel.vaga.periodo.inicio
-        let cal = calendarioSp
-        let dia: String
-        if cal.isDateInToday(inicio) {
-            dia = TextosDoProfissional.Lista.hoje.lowercased()
-        } else if cal.isDateInTomorrow(inicio) {
-            dia = TextosDoProfissional.Lista.amanha.lowercased()
-        } else {
-            let df = DateFormatter()
-            df.calendar = cal
-            df.timeZone = cal.timeZone
-            df.locale = Locale(identifier: "pt_BR")
-            df.dateFormat = "EEE dd/MM"
-            dia = df.string(from: inicio).replacingOccurrences(of: ".", with: "").lowercased()
-        }
-        let minutos = cal.component(.minute, from: inicio)
-        let dfHora = DateFormatter()
-        dfHora.calendar = cal
-        dfHora.timeZone = cal.timeZone
-        dfHora.locale = Locale(identifier: "pt_BR")
-        if minutos == 0 {
-            dfHora.dateFormat = "HH'h'"
-        } else {
-            dfHora.dateFormat = "HH'h'mm"
-        }
-        let hora = dfHora.string(from: inicio)
-        return TextosDoProfissional.Detalhe.apoioPreco(dia: dia, hora: hora)
+        FormatoDataVaga.apoioPreco(viewModel.vaga.periodo.inicio)
     }
 
     private var botaoView: some View {
@@ -139,11 +99,12 @@ public struct AreaDeCandidatura: View {
                         .tint(FrilaCor.textoSecundario)
                 }
                 Text(verbatim: tituloDoBotao)
-                    .font(FrilaTipo.botao)
-                    .lineLimit(1)
+                    .font(FrilaTypography.sans(size: 20, weight: .bold))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .multilineTextAlignment(.center)
             }
             .padding(.horizontal, FrilaEspaco.grande)
-            .frame(minHeight: FrilaMetrica.alturaDoCampo)
+            .frame(maxWidth: .infinity, minHeight: 56)
             .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : (usaCorMarca ? FrilaCor.sobreSelecao : FrilaCor.sobrePrimaria))
             .background(desabilitado ? FrilaCor.controle : (usaCorMarca ? FrilaCor.marca : FrilaCor.primaria), in: Capsule())
             .contentShape(Capsule())
@@ -394,8 +355,7 @@ public struct TelaResultadoDaCandidatura: View {
                 }
 
                 HStack(spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: formatador.dinheiro(vaga.valor))
-                        .monospacedDigit()
+                    FrilaPriceTag(texto: formatador.dinheiro(vaga.valor), leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
                     Text(verbatim: TextosDoProfissional.Detalhe.porPessoa)
                 }
                 .font(FrilaTipo.meta)
@@ -414,10 +374,11 @@ public struct TelaResultadoDaCandidatura: View {
             Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
-            Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
-                .font(FrilaTipo.meta)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.textoSecundario)
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: formatador.intervalo(vaga.periodo)).font(FrilaTipo.meta)
+                    FrilaPriceTag(texto: formatador.dinheiro(vaga.valor),
+                                  leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
+                }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -505,10 +466,11 @@ private struct TurnoConfirmado: View {
             Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
-            Text(verbatim: "\(formatador.intervalo(vaga.periodo)) · \(formatador.dinheiro(vaga.valor))")
-                .font(FrilaTipo.meta)
-                .monospacedDigit()
-                .foregroundStyle(FrilaCor.texto)
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: formatador.intervalo(vaga.periodo)).font(FrilaTipo.meta)
+                    FrilaPriceTag(texto: formatador.dinheiro(vaga.valor),
+                                  leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
+                }
             Text(verbatim: "\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
                 .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }

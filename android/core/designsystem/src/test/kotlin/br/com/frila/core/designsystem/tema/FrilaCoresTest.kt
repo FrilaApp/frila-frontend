@@ -124,4 +124,34 @@ class FrilaCoresTest {
         assertTrue(FrilaCores.dangerDark != FrilaCores.successDark)
         assertTrue(FrilaCores.dangerDark != FrilaCores.warningDark)
     }
+
+    @Test
+    fun `todos os pares de texto sobre SurfaceElevated atendem contraste WCAG AA`() {
+        val razaoClaroPrimario = contraste(FrilaCores.textPrimaryLight, FrilaCores.surfaceElevatedLight)
+        val razaoClaroSecundario = contraste(FrilaCores.textSecondaryLight, FrilaCores.surfaceElevatedLight)
+        val razaoEscuroPrimario = contraste(FrilaCores.textPrimaryDark, FrilaCores.surfaceElevatedDark)
+        val razaoEscuroSecundario = contraste(FrilaCores.textSecondaryDark, FrilaCores.surfaceElevatedDark)
+
+        assertTrue(razaoClaroPrimario >= 7.0, "Texto primário sobre SurfaceElevated claro atende AAA (>= 7.0), medido: $razaoClaroPrimario")
+        assertTrue(razaoClaroSecundario >= 4.5, "Texto secundário sobre SurfaceElevated claro atende AA (>= 4.5), medido: $razaoClaroSecundario")
+        assertTrue(razaoEscuroPrimario >= 7.0, "Texto primário sobre SurfaceElevated escuro atende AAA (>= 7.0), medido: $razaoEscuroPrimario")
+        assertTrue(razaoEscuroSecundario >= 4.5, "Texto secundário sobre SurfaceElevated escuro atende AA (>= 4.5), medido: $razaoEscuroSecundario")
+    }
+
+    @Test
+    fun `cores semanticas atendem contraste de texto grande ou elemento de destaque sobre Surface`() {
+        val dangerClaro = contraste(FrilaCores.dangerLight, FrilaCores.surfaceLight)
+        val dangerEscuro = contraste(FrilaCores.dangerDark, FrilaCores.surfaceDark)
+        val successClaro = contraste(FrilaCores.successLight, FrilaCores.surfaceLight)
+        val successEscuro = contraste(FrilaCores.successDark, FrilaCores.surfaceDark)
+        val warningClaro = contraste(FrilaCores.warningLight, FrilaCores.surfaceLight)
+        val warningEscuro = contraste(FrilaCores.warningDark, FrilaCores.surfaceDark)
+
+        assertTrue(dangerClaro >= 4.5, "Danger claro sobre SurfaceLight: $dangerClaro")
+        assertTrue(dangerEscuro >= 4.5, "Danger escuro sobre SurfaceDark: $dangerEscuro")
+        assertTrue(successClaro >= 4.5, "Success claro sobre SurfaceLight: $successClaro")
+        assertTrue(successEscuro >= 4.5, "Success escuro sobre SurfaceDark: $successEscuro")
+        assertTrue(warningClaro >= 4.5, "Warning claro sobre SurfaceLight: $warningClaro")
+        assertTrue(warningEscuro >= 4.5, "Warning escuro sobre SurfaceDark: $warningEscuro")
+    }
 }
