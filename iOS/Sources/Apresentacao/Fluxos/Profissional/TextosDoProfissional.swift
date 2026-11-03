@@ -11,6 +11,7 @@ enum TextosDoProfissional {
         static let titulo = String(localized: "Vagas no DF", bundle: bundleApresentacao)
         static let filtroFuncao = String(localized: "Função", bundle: bundleApresentacao)
         static let qualquerFuncao = String(localized: "Qualquer função", bundle: bundleApresentacao)
+        static let filtroData = String(localized: "Data", bundle: bundleApresentacao)
         static let qualquerData = String(localized: "Qualquer data", bundle: bundleApresentacao)
         static let hoje = String(localized: "Hoje", bundle: bundleApresentacao)
         static let amanha = String(localized: "Amanhã", bundle: bundleApresentacao)
@@ -260,6 +261,8 @@ enum TextosDoProfissional {
         public static let horarioConcluir = String(localized: "Concluir", bundle: bundleApresentacao)
         public static let horarioCancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
         public static let horarioTerminaNoDiaSeguinte = String(localized: "Termina no dia seguinte", bundle: bundleApresentacao)
+        public static let horas = String(localized: "Horas", bundle: bundleApresentacao)
+        public static let minutos = String(localized: "Minutos", bundle: bundleApresentacao)
         public static let horarioConclua = String(localized: "Conclua ou cancele o horário para salvar.", bundle: bundleApresentacao)
         public static func horarioDeAte(inicio: String, fim: String) -> String {
             String(localized: "\(inicio) até \(fim)", bundle: bundleApresentacao)

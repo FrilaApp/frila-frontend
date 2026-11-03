@@ -16,6 +16,15 @@ public struct OpcaoDeHorario: Identifiable, Equatable, Sendable {
 /// no lugar certo, para a precisão de minutos nunca se perder.
 public enum OpcoesDeHorario {
     public static let passoEmMinutos = 30
+    /// Granularidade dos minutos na roleta em duas colunas.
+    public static let passoDeMinutos = 15
+
+    /// 00, 15, 30, 45, e o minuto já salvo quando não cai num passo, no lugar certo.
+    public static func minutos(incluindo atual: Int) -> [Int] {
+        var todos = Set(stride(from: 0, to: 60, by: passoDeMinutos))
+        todos.insert(atual)
+        return todos.sorted()
+    }
 
     /// 00:00, 00:30 ... 23:30.
     public static func passos() -> [HoraDoDia] {
@@ -93,6 +102,12 @@ struct EdicaoDeHorario: Equatable {
 
     static func sugestaoDeFim(apos inicio: HoraDoDia) -> HoraDoDia {
         (try? HoraDoDia(hora: (inicio.hora + 6) % 24, minuto: inicio.minuto)) ?? inicio
+    }
+
+    /// O fim a `minutos` do início, virando a hora e a meia-noite quando precisa.
+    static func sugestaoDeFim(apos inicio: HoraDoDia, minutos: Int) -> HoraDoDia {
+        let total = (inicio.hora * 60 + inicio.minuto + minutos) % (24 * 60)
+        return (try? HoraDoDia(hora: total / 60, minuto: total % 60)) ?? inicio
     }
 }
 
@@ -204,6 +219,7 @@ struct SecaoDeHorarios: View {
                 if edicao?.origem == .existente(janela) {
                     editor
                         .transition(transicaoDeLinha)
+                    rodapeDoEditor
                 } else {
                     linhaDeJanela(janela)
                         .transition(transicaoDeLinha)
@@ -213,13 +229,7 @@ struct SecaoDeHorarios: View {
             if case .nova(dia) = edicao?.origem {
                 editor
                     .transition(transicaoDeLinha)
-                if avisoDeRascunho {
-                    Text(verbatim: TextosDoProfissional.Perfil.horarioConclua)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.perigo)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("aviso-rascunho-horario")
-                }
+                rodapeDoEditor
             } else if selecionado, edicao == nil {
                 if janelasDoDia.isEmpty {
                     linhaEscolherHorario
@@ -237,6 +247,18 @@ struct SecaoDeHorarios: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Abaixo do editor, no dia em edição (novo ou existente): a pendência ao salvar.
+    @ViewBuilder
+    private var rodapeDoEditor: some View {
+        if avisoDeRascunho {
+            Text(verbatim: TextosDoProfissional.Perfil.horarioConclua)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.perigo)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("aviso-rascunho-horario")
+        }
     }
 
     // MARK: Linhas
@@ -357,38 +379,73 @@ struct SecaoDeHorarios: View {
         }
     }
 
-    /// A roleta nativa da etapa, com a tipografia tabular do Estúdio. O início não oferece o fim já escolhido;
-    /// o fim vai do resto do dia à virada da meia-noite, e nunca oferece o próprio início.
+    /// A roleta da etapa em duas colunas: horas (00 a 23) à esquerda e minutos de 15 em 15 à direita, as duas nativas, com a
+    /// tipografia tabular do Estúdio. Um horário salvo fora do passo (18:10, por exemplo) continua na coluna dos minutos.
+    /// Início e fim nunca coincidem: se a escolha igualaria os dois, o outro lado se ajusta.
     private func roda(_ e: EdicaoDeHorario, campo: CampoDeHorario) -> some View {
-        let opcoes: [HoraDoDia]
-        let selecao: Binding<HoraDoDia>
+        let atual = campo == .inicio ? e.inicio : e.fim
+        let horas = Array(0...23)
+        let minutos = OpcoesDeHorario.minutos(incluindo: atual.minuto)
+        let selecaoDaHora = Binding<Int>(
+            get: { (campo == .inicio ? edicao?.inicio : edicao?.fim)?.hora ?? atual.hora },
+            set: { definir(campo, hora: $0, minuto: nil) }
+        )
+        let selecaoDoMinuto = Binding<Int>(
+            get: { (campo == .inicio ? edicao?.inicio : edicao?.fim)?.minuto ?? atual.minuto },
+            set: { definir(campo, hora: nil, minuto: $0) }
+        )
+        return HStack(spacing: 0) {
+            Picker(selection: selecaoDaHora) {
+                ForEach(horas, id: \.self) { hora in
+                    Text(verbatim: String(format: "%02d", hora))
+                        .font(FrilaTypography.metricTabular(size: 22, weight: .medium))
+                        .tag(hora)
+                }
+            } label: {
+                Text(verbatim: TextosDoProfissional.Perfil.horas)
+            }
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            .accessibilityIdentifier("roda-horario-\(campo.id)-hora")
+
+            Picker(selection: selecaoDoMinuto) {
+                ForEach(minutos, id: \.self) { minuto in
+                    Text(verbatim: String(format: "%02d", minuto))
+                        .font(FrilaTypography.metricTabular(size: 22, weight: .medium))
+                        .tag(minuto)
+                }
+            } label: {
+                Text(verbatim: TextosDoProfissional.Perfil.minutos)
+            }
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            .accessibilityIdentifier("roda-horario-\(campo.id)-minuto")
+        }
+        .overlay {
+            // Os dois pontos entre as colunas: é a notação da hora, não um separador de rótulos.
+            Text(verbatim: ":")
+                .font(FrilaTypography.metricTabular(size: 22, weight: .medium))
+                .foregroundStyle(FrilaCor.texto)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .frame(height: Self.alturaDaRoda)
+    }
+
+    /// Aplica a hora ou o minuto escolhido numa das duas etapas e mantém início e fim diferentes.
+    private func definir(_ campo: CampoDeHorario, hora: Int?, minuto: Int?) {
+        guard var e = edicao else { return }
+        let base = campo == .inicio ? e.inicio : e.fim
+        guard let novo = try? HoraDoDia(hora: hora ?? base.hora, minuto: minuto ?? base.minuto) else { return }
         switch campo {
         case .inicio:
-            opcoes = OpcoesDeHorario.inicio(atual: e.inicio, excluindo: e.fimVisitado ? e.fim : nil).map(\.hora)
-            selecao = Binding(
-                get: { edicao?.inicio ?? e.inicio },
-                set: { novo in
-                    edicao?.inicio = novo
-                    if edicao?.fim == novo { edicao?.fim = EdicaoDeHorario.sugestaoDeFim(apos: novo) }
-                }
-            )
+            e.inicio = novo
+            if e.fim == novo { e.fim = EdicaoDeHorario.sugestaoDeFim(apos: novo) }
         case .fim:
-            opcoes = OpcoesDeHorario.fim(apos: e.inicio, atual: e.fim).map(\.hora)
-            selecao = Binding(get: { edicao?.fim ?? e.fim }, set: { edicao?.fim = $0 })
+            // O fim nunca é igual ao início: empurra 15 minutos, para a roleta não parecer presa.
+            e.fim = novo == e.inicio ? EdicaoDeHorario.sugestaoDeFim(apos: novo, minutos: OpcoesDeHorario.passoDeMinutos) : novo
         }
-        return Picker(selection: selecao) {
-            ForEach(opcoes, id: \.self) { hora in
-                Text(verbatim: hora.contrato)
-                    .font(FrilaTypography.metricTabular(size: 22, weight: .medium))
-                    .tag(hora)
-            }
-        } label: {
-            Text(verbatim: campo == .inicio ? TextosDoProfissional.Perfil.inicio : TextosDoProfissional.Perfil.fim)
-        }
-        .pickerStyle(.wheel)
-        .labelsHidden()
-        .frame(height: Self.alturaDaRoda)
-        .accessibilityIdentifier("roda-horario-\(campo.id)")
+        edicao = e
     }
 
     /// Seta Quente que avança do início para o fim e vira o visto na última etapa.
@@ -432,7 +489,8 @@ struct SecaoDeHorarios: View {
         animar {
             diaSelecionado = dia
             avisoDeRascunho = false
-            if case .nova(let diaEmEdicao) = edicao?.origem, diaEmEdicao == dia { return }
+            // Tocar o dia que já está em edição (horário novo ou existente) não descarta o rascunho.
+            if edicao?.dia == dia { return }
             if janelas(do: dia).isEmpty {
                 edicao = .nova(dia: dia)
             } else {
