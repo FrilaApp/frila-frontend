@@ -64,12 +64,12 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
         XCTAssertTrue(continuar.waitForExistence(timeout: 10))
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         // 3. Cadastro do Estabelecimento (pré-preenchido pelo -FRILA_CADASTRO_UI_TEST)
         let continuarCadastro = app.buttons["continuar-cadastro"]

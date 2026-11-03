@@ -541,11 +541,11 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         preencherPerfil(app)
         tocar(app.buttons["botao-salvar-perfil"])
@@ -810,7 +810,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         XCTAssertTrue(app.staticTexts["cadastro-menor-idade-erro"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.staticTexts["O Frila é exclusivo para maiores de 18 anos."].exists)
@@ -862,11 +862,11 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         // O sinal Declared Age Range diz que é menor de 18: recusa com a mensagem da RN20
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
@@ -913,13 +913,13 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve estar habilitado para maior de idade")
 
         // Toca Continuar sem marcar termos: exibe erro destacando os termos
-        btnContinuar.tap()
+        tocarFechandoTeclado(btnContinuar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["cadastro-erro"].waitForExistence(timeout: Espera.aparecer))
 
         // Marca termos e confere que continua habilitado
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
         rolarAte(btnContinuar, app: app)
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve continuar habilitado com os termos aceitos")
     }
@@ -975,7 +975,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let termos = appPadrao.buttons["cadastro-termos"]
         rolarAte(termos, app: appPadrao)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: appPadrao)
 
         salvar(appPadrao, nome: "01-cadastro-padrao.png")
 

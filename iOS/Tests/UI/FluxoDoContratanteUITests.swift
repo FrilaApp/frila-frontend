@@ -101,11 +101,11 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         XCTAssertTrue(app.buttons["continuar-cadastro"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Responsável do Café"].exists)
@@ -167,11 +167,11 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         rolarAte(termos, app: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         rolarAte(continuar, app: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         // 1. Tela de Cadastro do Estabelecimento
         let continuarCadastro = app.buttons["continuar-cadastro"]
@@ -245,11 +245,11 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let termos = app.buttons["cadastro-termos"]
         trazerParaATela(termos, em: app)
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
 
         let continuar = app.buttons["cadastro-continuar"]
         trazerParaATela(continuar, em: app)
-        continuar.tap()
+        tocarFechandoTeclado(continuar, em: app)
 
         let continuarCadastro = app.buttons["continuar-cadastro"]
         XCTAssertTrue(continuarCadastro.waitForExistence(timeout: 10))

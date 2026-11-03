@@ -42,7 +42,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(termos.isHittable)
 
         // Alterna opcao pelo toque
-        termos.tap()
+        tocarFechandoTeclado(termos, em: app)
         XCTAssertTrue(termos.isSelected)
     }
 
