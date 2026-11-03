@@ -109,7 +109,6 @@ public struct FrilaSearchBar: View {
                 aoEnviar?()
                 foco.wrappedValue = false
             }
-            .frilaFormField(id: idDoCampo, isFocused: foco.wrappedValue, onDismiss: { foco.wrappedValue = false })
             .accessibilityIdentifier(identificador)
 
             if let limpar, emUso {
@@ -124,6 +123,12 @@ public struct FrilaSearchBar: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .highPriorityGesture(
+                    TapGesture().onEnded {
+                        texto = ""
+                        foco.wrappedValue = false
+                    }
+                )
                 .transition(.opacity)
                 .accessibilityLabel(Text(verbatim: limpar.rotulo))
                 .accessibilityIdentifier(limpar.identificador)
@@ -158,6 +163,7 @@ public struct FrilaSearchBar: View {
         )
         .contentShape(Rectangle())
         .onTapGesture { foco.wrappedValue = true }
+        .frilaFormField(id: idDoCampo, isFocused: foco.wrappedValue, onDismiss: { foco.wrappedValue = false })
         .animation(FrilaMovimento.animacao(.easeOut(duration: 0.16), reduzir: reduzirMovimento), value: emUso)
     }
 }
