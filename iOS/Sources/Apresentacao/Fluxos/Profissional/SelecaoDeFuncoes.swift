@@ -213,22 +213,23 @@ struct SecaoDeFuncoes: View {
         } label: {
             HStack(spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: funcao.nome)
-                    .font(FrilaTipo.corpo)
+                    .font(marcada ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
                 Spacer(minLength: FrilaEspaco.pequeno)
                 Image(systemName: "checkmark")
                     .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.selecao)
+                    .foregroundStyle(FrilaCor.texto)
                     .opacity(marcada ? 1 : 0)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, FrilaEspaco.pequeno)
             .padding(.vertical, FrilaEspaco.compacto)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // A seleção é um preenchimento suave na cor de seleção: não muda a geometria da linha.
+            // A seleção é neutra: fundo de campo, texto em semibold e visto em tinta. O Quente fica para foco e ação,
+            // nunca para marcar escolha (nada de tom alaranjado esmaecido em contêiner). Não muda a geometria da linha.
             .background(
                 RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .fill(FrilaCor.selecao.opacity(marcada ? 0.12 : 0))
+                    .fill(FrilaCor.superficieDoCampo.opacity(marcada ? 1 : 0))
             )
             .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: marcada)
             .contentShape(Rectangle())
