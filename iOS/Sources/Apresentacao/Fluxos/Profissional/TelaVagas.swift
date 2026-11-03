@@ -6,6 +6,7 @@ public struct TelaVagas: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var viewModel: FeedVagasViewModel
     private let abrir: (UUID) -> Void
+    @State private var filtroAberto: FiltroDoFeed?
 
     public init(viewModel: FeedVagasViewModel, abrir: @escaping (UUID) -> Void) {
         self.viewModel = viewModel
@@ -28,6 +29,7 @@ public struct TelaVagas: View {
         .refreshable { await medirAbertura(.listaDeVagas, carregar: viewModel.atualizar, pronto: listaNaTela) }
         .task { if viewModel.estado == .ociosa { await medirAbertura(.listaDeVagas, carregar: viewModel.carregar, pronto: listaNaTela) } }
         .accessibilityIdentifier("tela-vagas")
+        .sheet(item: $filtroAberto) { filtro in folhaDeFiltro(filtro) }
         .modifier(BarraInferiorDeAcessibilidade(
             ativo: dynamicTypeSize.isAccessibilitySize && viewModel.estado == .falha(.semConexao),
             rodape: {
@@ -65,46 +67,58 @@ public struct TelaVagas: View {
         }
     }
 
+    /// Cada filtro abre a própria folha (sem `Menu` nativo): tocar numa opção aplica na hora e fecha.
     private var filtroFuncao: some View {
-        Menu {
-            Button { selecionar { await $0.selecionar(funcao: nil) } } label: {
-                Text(verbatim: TextosDoProfissional.Lista.qualquerFuncao)
-            }
-            ForEach(viewModel.funcoes) { funcao in
-                Button { selecionar { await $0.selecionar(funcao: funcao.id) } } label: {
-                    Text(verbatim: funcao.nome)
-                }
-            }
-        } label: {
-            PilulaDeFiltro(titulo: rotuloFuncao, ativo: viewModel.funcaoID != nil)
-        }
-        .accessibilityIdentifier("filtro-funcao")
+        pilula(.funcao, titulo: rotuloFuncao, ativo: viewModel.funcaoID != nil, identificador: "filtro-funcao")
     }
 
     private var filtroData: some View {
-        Menu {
-            ForEach(FiltroDeData.allCases, id: \.self) { opcao in
-                Button { selecionar { await $0.selecionar(data: opcao) } } label: {
-                    Text(verbatim: Self.tituloMenu(opcao))
-                }
-            }
-        } label: {
-            PilulaDeFiltro(titulo: rotuloData, ativo: viewModel.data != .qualquer)
-        }
-        .accessibilityIdentifier("filtro-data")
+        pilula(.data, titulo: rotuloData, ativo: viewModel.data != .qualquer, identificador: "filtro-data")
     }
 
     private var filtroDistancia: some View {
-        Menu {
-            ForEach(FiltroDeDistancia.opcoes, id: \.self) { opcao in
-                Button { selecionar { await $0.selecionar(distancia: opcao) } } label: {
-                    Text(verbatim: Self.tituloMenu(opcao))
+        pilula(.distancia, titulo: rotuloDistancia, ativo: viewModel.distancia != .qualquer, identificador: "filtro-distancia")
+    }
+
+    private func pilula(_ filtro: FiltroDoFeed, titulo: String, ativo: Bool, identificador: String) -> some View {
+        Button { filtroAberto = filtro } label: {
+            PilulaDeFiltro(titulo: titulo, ativo: ativo)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identificador)
+    }
+
+    private func folhaDeFiltro(_ filtro: FiltroDoFeed) -> some View {
+        let opcoes: [OpcaoDeFiltro]
+        let titulo: String
+        switch filtro {
+        case .funcao:
+            titulo = TextosDoProfissional.Lista.filtroFuncao
+            opcoes = [OpcaoDeFiltro(id: "qualquer", titulo: TextosDoProfissional.Lista.qualquerFuncao, marcada: viewModel.funcaoID == nil) {
+                selecionar { await $0.selecionar(funcao: nil) }
+            }] + viewModel.funcoes.map { funcao in
+                OpcaoDeFiltro(id: funcao.id.uuidString, titulo: funcao.nome, marcada: viewModel.funcaoID == funcao.id) {
+                    selecionar { await $0.selecionar(funcao: funcao.id) }
                 }
             }
-        } label: {
-            PilulaDeFiltro(titulo: rotuloDistancia, ativo: viewModel.distancia != .qualquer)
+        case .data:
+            titulo = TextosDoProfissional.Lista.filtroData
+            opcoes = FiltroDeData.allCases.map { opcao in
+                OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.data == opcao) {
+                    selecionar { await $0.selecionar(data: opcao) }
+                }
+            }
+        case .distancia:
+            titulo = TextosDoProfissional.Lista.filtroDistancia
+            opcoes = FiltroDeDistancia.opcoes.map { opcao in
+                OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.distancia == opcao) {
+                    selecionar { await $0.selecionar(distancia: opcao) }
+                }
+            }
         }
-        .accessibilityIdentifier("filtro-distancia")
+        return FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
+            .presentationDetents(filtro == .funcao ? [.medium, .large] : [.height(CGFloat(opcoes.count) * 52 + 96)])
+            .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder
@@ -362,8 +376,8 @@ public struct TelaVagas: View {
     }
 }
 
-/// Chip de filtro que abre um menu: ativo na terracota de seleção da origem (`FrilaFilterChip`), inativo sobre a superfície com fio.
-/// O estado ativo não depende só de cor: ganha um ícone. Altura visual 36 pt num alvo de 44 pt.
+/// Chip de filtro que abre a folha do filtro: ativo em fundo neutro de campo, semibold e visto; inativo sobre a superfície com fio.
+/// O Quente fica fora da seleção. O estado ativo não depende só de cor: ganha um ícone. Altura visual 36 pt num alvo de 44 pt.
 private struct PilulaDeFiltro: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let titulo: String
@@ -387,9 +401,9 @@ private struct PilulaDeFiltro: View {
         .padding(.horizontal, FrilaEspaco.compacto)
         .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
         .frame(minHeight: Self.alturaVisual)
-        .foregroundStyle(ativo ? FrilaCor.sobreSelecao : FrilaCor.texto)
-        .background(ativo ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
-        .overlay(Capsule().strokeBorder(ativo ? Color.clear : FrilaCor.borda, lineWidth: 1))
+        .foregroundStyle(FrilaCor.texto)
+        .background(ativo ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
+        .overlay(Capsule().strokeBorder(ativo ? FrilaCor.texto : FrilaCor.borda, lineWidth: ativo ? 1.5 : 1))
         .frame(minHeight: FrilaMetrica.alvoMinimo)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -416,5 +430,76 @@ private struct BarraInferiorDeAcessibilidade<Rodape: View>: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+// MARK: - Folha de filtro
+
+/// Qual filtro do feed está aberto na folha.
+private enum FiltroDoFeed: Identifiable {
+    case funcao, data, distancia
+    var id: Self { self }
+}
+
+private struct OpcaoDeFiltro: Identifiable {
+    let id: String
+    let titulo: String
+    let marcada: Bool
+    let aoTocar: () -> Void
+}
+
+/// Folha de um filtro: título e lista de opções. A marcada usa a seleção neutra do app (fundo de campo, semibold e visto).
+/// Tocar aplica na hora e fecha a folha.
+private struct FolhaDeFiltro: View {
+    let titulo: String
+    let opcoes: [OpcaoDeFiltro]
+    let fechar: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.corpo.weight(.semibold))
+                .foregroundStyle(FrilaCor.texto)
+                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.top, FrilaEspaco.medio)
+                .accessibilityAddTraits(.isHeader)
+            ScrollView {
+                VStack(spacing: FrilaEspaco.minimo) {
+                    ForEach(opcoes) { opcao in
+                        Button {
+                            opcao.aoTocar()
+                            fechar()
+                        } label: {
+                            HStack(spacing: FrilaEspaco.pequeno) {
+                                Text(verbatim: opcao.titulo)
+                                    .font(opcao.marcada ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
+                                    .foregroundStyle(FrilaCor.texto)
+                                Spacer(minLength: FrilaEspaco.pequeno)
+                                Image(systemName: "checkmark")
+                                    .font(FrilaTipo.meta.weight(.semibold))
+                                    .foregroundStyle(FrilaCor.texto)
+                                    .opacity(opcao.marcada ? 1 : 0)
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(.horizontal, FrilaEspaco.pequeno)
+                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                                    .fill(FrilaCor.superficieDoCampo.opacity(opcao.marcada ? 1 : 0))
+                            )
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .sensoryFeedback(.selection, trigger: opcao.marcada)
+                        .accessibilityAddTraits(opcao.marcada ? .isSelected : [])
+                        .accessibilityIdentifier("opcao-filtro-\(opcao.id)")
+                    }
+                }
+                .padding(.horizontal, FrilaEspaco.pequeno)
+                .padding(.bottom, FrilaEspaco.medio)
+            }
+        }
+        .background(FrilaCor.superficie)
+        .accessibilityIdentifier("folha-filtro")
     }
 }
