@@ -26,6 +26,7 @@ O requisito não funcional **RNF04** estabelece a linha de base para que o aplic
 | **Resolução de Tela** | 720 x 1280 (720p HD) | Resolução predominante na faixa de entrada |
 | **Densidade** | 320 dpi (xhdpi) | Densidade de referência para cálculo de densidade de pixels |
 | **Heap da JVM** | 256 MB (`vm.heapSize`) | Limite de memória por processo para evitar `OutOfMemoryError` |
+| **Teto Total PSS** | <= 192 MB | Teto operacional para prevenir encerramento por Low Memory Killer (LMK) |
 
 ---
 
@@ -53,6 +54,9 @@ O script `android/scripts/dispositivo-referencia.sh` automatiza o provisionament
 
 # Mede a perda de quadros (jank frames) durante rolagem via dumpsys gfxinfo
 ./android/scripts/dispositivo-referencia.sh medir-jank
+
+# Mede o consumo de memória (PSS, Native e Dalvik Heap) via dumpsys meminfo
+./android/scripts/dispositivo-referencia.sh medir-memoria
 
 # Exibe o status do SDK, AVDs instalados e dispositivos ADB conectados
 ./android/scripts/dispositivo-referencia.sh status
@@ -83,6 +87,16 @@ O script `android/scripts/dispositivo-referencia.sh` automatiza o provisionament
   - Percentis de latência de quadro (50th, 90th, 95th e 99th percentile).
 - **Critério de Aceite (RNF04):** Taxa de quadros com jank inferior a 5% em rolagem contínua.
 
+### 3.3 Consumo de Memória (Total PSS, Native Heap e Dalvik Heap)
+- **Mecanismo:** Coleta via `adb shell dumpsys meminfo br.com.frila.app` com o aplicativo ativo em primeiro plano.
+- **Métricas avaliadas:**
+  - `Total PSS`: Proportional Set Size consolidado (consumo real de memória RAM pelo processo, incluindo bibliotecas compartilhadas proporcionalmente).
+  - `Native Heap`: Memória alocada em runtime nativo/C++ (buffers gráficos, pipeline Skia/OpenGL, runtime SQLite e subsistemas do sistema operacional).
+  - `Dalvik Heap`: Memória alocada pela máquina virtual ART/JVM para instâncias de objetos Kotlin/Java.
+- **Critério de Aceite e Metas Normativas (RNF04):**
+  - **Teto Dalvik Heap:** `<= 256 MB` (`vm.heapSize`), limite normativo da máquina virtual para prevenir `OutOfMemoryError`. Meta operacional em repouso e rolagem típica: `< 128 MB`.
+  - **Teto Total PSS:** `<= 192 MB` em rolagem e navegação típica. Em dispositivos de referência com 2048 MB (2 GB) de RAM física, manter o processo do Frila abaixo de 192 MB previne o encerramento arbitrário do processo pelo *Low Memory Killer* (LMK) sob contenção de memória com múltiplos serviços em segundo plano.
+
 ---
 
 ## 4. Roteiro de Homologação em Aparelho Físico (Épico E6 - Humano)
@@ -98,5 +112,6 @@ Para a medição oficial em hardware físico, o operador humano deve seguir os p
    ```bash
    ./android/scripts/dispositivo-referencia.sh medir-cold-start
    ./android/scripts/dispositivo-referencia.sh medir-jank
+   ./android/scripts/dispositivo-referencia.sh medir-memoria
    ```
 5. Registrar as métricas no cartão de homologação com foto/evidência do aparelho físico.

@@ -17,39 +17,61 @@ PACOTE_APP="br.com.frila.app"
 ACTIVITY_PRINCIPAL="br.com.frila.app/.MainActivity"
 RAM_SIZE_MB=2048
 HEAP_SIZE_MB=256
+TETO_PSS_MB=192
 API_LEVEL=28
 
-# 1. Localização do Android SDK
-SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
-if [ ! -d "$SDK_DIR" ]; then
-    if [ -d "$HOME/Android/Sdk" ]; then
-        SDK_DIR="$HOME/Android/Sdk"
-    else
-        echo "ERRO: Android SDK não encontrado em ANDROID_HOME nem em caminhos padrão." >&2
-        echo "Defina a variável ANDROID_HOME apontando para o SDK." >&2
-        exit 1
+SDK_DIR=""
+ADB="${ADB:-}"
+EMULATOR="${EMULATOR:-}"
+CMDLINE_TOOLS_BIN=""
+AVDMANAGER="${AVDMANAGER:-}"
+SDKMANAGER="${SDKMANAGER:-}"
+SDK_CONFIGURADO=""
+
+garantir_sdk() {
+    if [ -n "$SDK_CONFIGURADO" ]; then
+        return 0
     fi
-fi
 
-ADB="$SDK_DIR/platform-tools/adb"
-EMULATOR="$SDK_DIR/emulator/emulator"
-CMDLINE_TOOLS_BIN="$SDK_DIR/cmdline-tools/latest/bin"
-AVDMANAGER="$CMDLINE_TOOLS_BIN/avdmanager"
-SDKMANAGER="$CMDLINE_TOOLS_BIN/sdkmanager"
+    # Se ADB já foi configurado/injetado (ex: mock em teste), reutiliza
+    if [ -n "$ADB" ] && [ -x "$ADB" ] && [ -z "$SDK_DIR" ]; then
+        SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+        SDK_CONFIGURADO=1
+        return 0
+    fi
 
-# Fallback se cmdline-tools/latest não existir diretamente
-if [ ! -x "$AVDMANAGER" ]; then
-    AVDMANAGER="$(command -v avdmanager || true)"
-fi
-if [ ! -x "$SDKMANAGER" ]; then
-    SDKMANAGER="$(command -v sdkmanager || true)"
-fi
-if [ ! -x "$ADB" ]; then
-    ADB="$(command -v adb || true)"
-fi
-if [ ! -x "$EMULATOR" ]; then
-    EMULATOR="$(command -v emulator || true)"
-fi
+    SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+    if [ ! -d "$SDK_DIR" ]; then
+        if [ -d "$HOME/Android/Sdk" ]; then
+            SDK_DIR="$HOME/Android/Sdk"
+        else
+            echo "ERRO: Android SDK não encontrado em ANDROID_HOME nem em caminhos padrão." >&2
+            echo "Defina a variável ANDROID_HOME apontando para o SDK." >&2
+            exit 1
+        fi
+    fi
+
+    ADB="${ADB:-$SDK_DIR/platform-tools/adb}"
+    EMULATOR="${EMULATOR:-$SDK_DIR/emulator/emulator}"
+    CMDLINE_TOOLS_BIN="$SDK_DIR/cmdline-tools/latest/bin"
+    AVDMANAGER="${AVDMANAGER:-$CMDLINE_TOOLS_BIN/avdmanager}"
+    SDKMANAGER="${SDKMANAGER:-$CMDLINE_TOOLS_BIN/sdkmanager}"
+
+    # Fallback se cmdline-tools/latest não existir diretamente
+    if [ ! -x "$AVDMANAGER" ]; then
+        AVDMANAGER="$(command -v avdmanager 2>/dev/null || true)"
+    fi
+    if [ ! -x "$SDKMANAGER" ]; then
+        SDKMANAGER="$(command -v sdkmanager 2>/dev/null || true)"
+    fi
+    if [ ! -x "$ADB" ]; then
+        ADB="$(command -v adb 2>/dev/null || true)"
+    fi
+    if [ ! -x "$EMULATOR" ]; then
+        EMULATOR="$(command -v emulator 2>/dev/null || true)"
+    fi
+    SDK_CONFIGURADO=1
+}
 
 exibir_aviso_normativo() {
     cat <<'EOF'
@@ -76,6 +98,7 @@ ajuda() {
     echo "  aguardar-boot        Aguarda a inicialização completa do sistema no emulador"
     echo "  medir-cold-start     Mede o tempo de inicialização a frio (cold start)"
     echo "  medir-jank           Mede quadros perdidos (jank frames) via dumpsys gfxinfo"
+    echo "  medir-memoria        Mede consumo de memória (PSS, Native e Dalvik) via dumpsys meminfo"
     echo "  status               Verifica se o AVD existe e se há emulador ativo"
     echo "  parar                Encerra o emulador de referência"
     echo "  tudo                 Fluxo completo: verificar, iniciar, aguardar e medir"
@@ -93,6 +116,7 @@ obter_arquitetura_host() {
 }
 
 criar_avd() {
+    garantir_sdk
     exibir_aviso_normativo
     local arch
     arch="$(obter_arquitetura_host)"
@@ -147,6 +171,7 @@ EOF
 }
 
 iniciar_emulador() {
+    garantir_sdk
     exibir_aviso_normativo
     echo "==> Iniciando emulador $AVD_NAME..."
     if [ ! -x "$EMULATOR" ]; then
@@ -166,6 +191,7 @@ iniciar_emulador() {
 }
 
 aguardar_boot() {
+    garantir_sdk
     echo "==> Aguardando emulador inicializar (sys.boot_completed=1)..."
     local tentativas=0
     local max_tentativas=60
@@ -179,7 +205,7 @@ aguardar_boot() {
     while [ "$tentativas" -lt "$max_tentativas" ]; do
         local pronto
         pronto="$("$ADB" shell getprop sys.boot_completed 2>/dev/null || true)"
-        pronto="$(echo "$pronto" | tr -d '\r\n')"
+        pronto="$(echo "$pronto" | tr -d rn)"
         if [ "$pronto" = "1" ]; then
             echo "Emulador pronto para teste!"
             return 0
@@ -193,6 +219,7 @@ aguardar_boot() {
 }
 
 medir_cold_start() {
+    garantir_sdk
     exibir_aviso_normativo
     echo "==> Medindo Cold Start (App: $PACOTE_APP)..."
     if [ ! -x "$ADB" ]; then
@@ -201,7 +228,7 @@ medir_cold_start() {
     fi
 
     # Garante encerramento completo de qualquer processo anterior
-    "$ADB" shell am force-stop "$PACOTE_APP"
+    "$ADB" shell am force-stop "$PACOTE_APP" || true
     sleep 2
 
     echo "Disparando inicialização a frio..."
@@ -210,9 +237,9 @@ medir_cold_start() {
     echo "$resultado"
 
     local total_time
-    total_time="$(echo "$resultado" | grep -i "TotalTime:" | awk '{print $2}' | tr -d '\r\n' || true)"
+    total_time="$(echo "$resultado" | grep -i "TotalTime:" | awk '{print $2}' | tr -d rn || true)"
     local wait_time
-    wait_time="$(echo "$resultado" | grep -i "WaitTime:" | awk '{print $2}' | tr -d '\r\n' || true)"
+    wait_time="$(echo "$resultado" | grep -i "WaitTime:" | awk '{print $2}' | tr -d rn || true)"
 
     echo "--------------------------------------------------------------------------------"
     echo "Resultado Cold Start (EMULADOR API 28, 2 GB RAM):"
@@ -227,6 +254,7 @@ medir_cold_start() {
 }
 
 medir_jank() {
+    garantir_sdk
     exibir_aviso_normativo
     echo "==> Medindo Jank (Perda de Quadros) via gfxinfo..."
     if [ ! -x "$ADB" ]; then
@@ -258,9 +286,83 @@ medir_jank() {
     echo "Nota: Em aparelho real (RNF04), a taxa esperada é < 5% de quadros com jank."
 }
 
+extrair_metricas_memoria() {
+    awk '
+        /^ *Native Heap +[0-9]+/ { if (!native_heap) native_heap = $3 }
+        /Native Heap: +[0-9]+/ { for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+$/) { if (!native_heap) native_heap=$i } }
+        /^ *Dalvik Heap +[0-9]+/ { if (!dalvik_heap) dalvik_heap = $3 }
+        /Java Heap: +[0-9]+/ { for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+$/) { if (!dalvik_heap) dalvik_heap=$i } }
+        /TOTAL PSS: +[0-9]+/ { for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+$/) { if (!total_pss) total_pss=$i } }
+        /^ *TOTAL +[0-9]+/ { if (!total_pss) total_pss = $2 }
+        END {
+            print (total_pss ? total_pss : 0)
+            print (native_heap ? native_heap : 0)
+            print (dalvik_heap ? dalvik_heap : 0)
+        }
+    '
+}
+
+medir_memoria() {
+    garantir_sdk
+    exibir_aviso_normativo
+    echo "==> Medindo Consumo de Memória (App: $PACOTE_APP) via dumpsys meminfo..."
+    if [ ! -x "$ADB" ]; then
+        echo "ERRO: adb não encontrado." >&2
+        exit 1
+    fi
+
+    local mem_out
+    mem_out="$("$ADB" shell dumpsys meminfo "$PACOTE_APP" 2>&1 || true)"
+
+    if echo "$mem_out" | grep -qi "No process found"; then
+        echo "AVISO: Processo '$PACOTE_APP' não encontrado em execução." >&2
+        echo "Iniciando aplicativo para coleta de métricas..."
+        "$ADB" shell am start -n "$ACTIVITY_PRINCIPAL" >/dev/null 2>&1 || true
+        sleep 2
+        mem_out="$("$ADB" shell dumpsys meminfo "$PACOTE_APP" 2>&1 || true)"
+    fi
+
+    local parsing
+    parsing="$(echo "$mem_out" | extrair_metricas_memoria)"
+
+    local total_pss_kb native_heap_kb dalvik_heap_kb
+    total_pss_kb="$(echo "$parsing" | sed -n '1p')"
+    native_heap_kb="$(echo "$parsing" | sed -n '2p')"
+    dalvik_heap_kb="$(echo "$parsing" | sed -n '3p')"
+
+    local total_pss_mb native_heap_mb dalvik_heap_mb
+    total_pss_mb=$((total_pss_kb / 1024))
+    native_heap_mb=$((native_heap_kb / 1024))
+    dalvik_heap_mb=$((dalvik_heap_kb / 1024))
+
+    echo "--------------------------------------------------------------------------------"
+    echo "Resultado Memória (EMULADOR API 28, 2 GB RAM):"
+    if [ "$total_pss_kb" -gt 0 ]; then
+        echo "  - Total PSS:   ${total_pss_kb} KB (~${total_pss_mb} MB) [Teto RNF04: ${TETO_PSS_MB} MB]"
+        echo "  - Native Heap: ${native_heap_kb} KB (~${native_heap_mb} MB)"
+        echo "  - Dalvik Heap: ${dalvik_heap_kb} KB (~${dalvik_heap_mb} MB) [Teto Heap JVM: ${HEAP_SIZE_MB} MB]"
+        
+        if [ "$total_pss_mb" -le "$TETO_PSS_MB" ] && [ "$dalvik_heap_mb" -le "$HEAP_SIZE_MB" ]; then
+            echo "  Status: CONFORME (Consumo dentro dos limites normativos do RNF04)"
+        else
+            echo "  Status: ALERTA (Consumo excede teto normativo do RNF04)"
+        fi
+    else
+        echo "  - Não foi possível extrair métricas de memória. Verifique se o app está instalado e rodando."
+        echo "Dados brutos do dumpsys meminfo:"
+        echo "$mem_out" | head -n 30
+    fi
+    echo "--------------------------------------------------------------------------------"
+    echo "Nota: O limite aceitável de memória para o RNF04 é Total PSS <= ${TETO_PSS_MB} MB e Dalvik Heap <= ${HEAP_SIZE_MB} MB."
+}
+
 status_ambiente() {
     exibir_aviso_normativo
     echo "==> Verificando status do ambiente:"
+    if ! garantir_sdk 2>/dev/null; then
+        echo "  - Android SDK: NÃO CONFIGURADO (defina ANDROID_HOME)"
+        return 0
+    fi
     echo "  - Android SDK: $SDK_DIR"
     if [ -x "$AVDMANAGER" ]; then
         echo "  - AVDs instalados:"
@@ -274,7 +376,8 @@ status_ambiente() {
 
 parar_emulador() {
     echo "==> Encerrando emulador..."
-    if [ -x "$ADB" ]; then
+    garantir_sdk 2>/dev/null || true
+    if [ -n "$ADB" ] && [ -x "$ADB" ]; then
         "$ADB" emu kill 2>/dev/null || true
     fi
     echo "Comando de encerramento enviado."
@@ -288,6 +391,7 @@ fluxo_completo() {
     aguardar_boot
     medir_cold_start
     medir_jank
+    medir_memoria
     echo "Fluxo concluído."
 }
 
@@ -309,6 +413,12 @@ case "${1:-ajuda}" in
         ;;
     medir-jank)
         medir_jank
+        ;;
+    medir-memoria)
+        medir_memoria
+        ;;
+    extrair-memoria)
+        extrair_metricas_memoria
         ;;
     status)
         status_ambiente
