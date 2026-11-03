@@ -234,52 +234,9 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         for _ in 0..<8 where !btnFuncoes.isHittable { app.swipeUp() }
         btnFuncoes.tap()
 
-        let pickerDia = app.descendants(matching: .any)["picker-dia-semana"]
-        XCTAssertTrue(pickerDia.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(pickerDia.frame.height)
-        XCTAssertAlvoMinimo(pickerDia.frame.width)
-        XCTAssertEqual(pickerDia.label, "Dia da semana")
-        XCTAssertEqual(pickerDia.value as? String, "Sexta-feira")
-
-        let botaoAdicionar = app.buttons["botao-adicionar-janela"]
-        XCTAssertTrue(botaoAdicionar.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(botaoAdicionar.frame.height)
-        XCTAssertAlvoMinimo(botaoAdicionar.frame.width)
-        XCTAssertEqual(botaoAdicionar.label, "Adicionar horário")
-
-        let remover = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
-        if remover.waitForExistence(timeout: 5) {
-            XCTAssertAlvoMinimo(remover.frame.width)
-            XCTAssertAlvoMinimo(remover.frame.height)
-        }
-
-        let seletorInicio = app.datePickers["campo-hora-inicio"]
-        let horasAntesDaRolagem = seletorInicio.pickerWheels.allElementsBoundByIndex.map { $0.value as? String }
-        for _ in 0..<12 {
-            let quadro = pickerDia.frame.union(seletorInicio.frame)
-            if quadro.minY > 130, quadro.maxY < app.frame.maxY - 140 { break }
-            let subir = quadro.maxY >= app.frame.maxY - 140
-            let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: subir ? 0.75 : 0.40))
-            let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: subir ? 0.50 : 0.55))
-            inicio.press(forDuration: 0.05, thenDragTo: fim)
-        }
-        XCTAssertTrue(pickerDia.isHittable)
-        XCTAssertEqual(seletorInicio.pickerWheels.allElementsBoundByIndex.map { $0.value as? String }, horasAntesDaRolagem)
+        let faixa = app.descendants(matching: .any)["faixa-semanal"]
+        XCTAssertTrue(faixa.waitForExistence(timeout: 10), "A faixa semanal substituiu o seletor de dia e a roleta de hora.")
         capturarDisponibilidade(app, nome: ax5 ? "horarios-ax5" : "horarios-padrao")
-        for (id, rotulo) in [("campo-hora-inicio", "Início"), ("campo-hora-fim", "Fim")] {
-            let seletor = app.datePickers[id]
-            XCTAssertTrue(seletor.exists, "A hora deve usar um seletor nativo")
-            XCTAssertEqual(seletor.label, rotulo)
-            XCTAssertAlvoMinimo(seletor.frame.height)
-            XCTAssertAlvoMinimo(seletor.frame.width)
-            XCTAssertTrue(seletor.isHittable)
-            XCTAssertFalse(app.textFields[id].exists)
-        }
-        pickerDia.tap()
-        let domingo = app.buttons["Domingo"]
-        XCTAssertTrue(domingo.waitForExistence(timeout: 5))
-        domingo.tap()
-        XCTAssertEqual(pickerDia.value as? String, "Domingo")
     }
 
     private func capturarDisponibilidade(_ app: XCUIApplication, nome: String) {

@@ -445,6 +445,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["voltar-para-lista"].exists)
         tocar(ajustar)
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         tocar(funcao)
         let salvar = app.buttons["botao-salvar-perfil"]
@@ -609,6 +610,7 @@ final class AutenticacaoUITests: XCTestCase {
     private func preencherPerfil(_ app: XCUIApplication) {
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
         funcao.tap()
@@ -621,9 +623,18 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(sugestao.waitForExistence(timeout: 10))
         sugestao.tap()
         fecharTecladoSeVisivel(app: app)
-        rolarAte(app.buttons["botao-adicionar-janela"], app: app)
-        app.buttons["botao-adicionar-janela"].tap()
+        adicionarHorarioDeTeste(app)
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
+    }
+
+    /// O domingo abre com "Escolher horário": a seta leva do início ao fim e o visto conclui (a roleta abre em 18:00 e o fim sugerido é seis horas depois).
+    private func adicionarHorarioDeTeste(_ app: XCUIApplication) {
+        let escolher = app.buttons["escolher-horario"]
+        rolarAte(escolher, app: app)
+        escolher.tap()
+        tocar(app.buttons["horario-avancar"])
+        tocar(app.buttons["horario-avancar"])
+        XCTAssertTrue(app.buttons["remover-janela-0-18:00"].waitForExistence(timeout: 5), "O horário deveria ter sido confirmado no visto.")
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
@@ -1072,6 +1083,7 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
         funcoesEHorarios.tap()
 
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         let horario = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
@@ -1419,3 +1431,10 @@ final class TrazerParaATelaCalculoTests: XCTestCase {
     }
 }
 
+/// A lista de funções começa fechada quando a pessoa já tem função escolhida (edição): abre o cartão
+/// antes de tocar numa linha.
+private func abrirFuncoesSeFechado(_ app: XCUIApplication) {
+    let expandir = app.buttons["botao-expandir-funcoes"]
+    guard expandir.waitForExistence(timeout: 10) else { return }
+    if !app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"].exists { expandir.tap() }
+}

@@ -363,7 +363,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         auditar(app, tela: "perfil-profissional")
 
         tocar(app.buttons["perfil-funcoes-horarios"], em: app)
-        guard esperar(elemento("picker-dia-semana", em: app), "Funções e horários deve abrir") else { return }
+        guard esperar(elemento("faixa-semanal", em: app), "Funções e horários deve abrir") else { return }
         auditar(app, tela: "perfil-funcoes-e-horarios")
         app.navigationBars.buttons.element(boundBy: 0).tap()
 

@@ -10467,6 +10467,256 @@
           }
         }
       }
+    },
+    "Sáb": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sáb"
+          }
+        }
+      }
+    },
+    "Sobre os horários": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobre os horários"
+          }
+        }
+      }
+    },
+    "Termina no dia seguinte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina no dia seguinte"
+          }
+        }
+      }
+    },
+    "Para calcular a distância até as vagas. Não é sua localização em tempo real.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para calcular a distância até as vagas. Não é sua localização em tempo real."
+          }
+        }
+      }
+    },
+    "%@ e mais %lld": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ e mais %lld"
+          }
+        }
+      }
+    },
+    "dia seguinte": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dia seguinte"
+          }
+        }
+      }
+    },
+    "Outras funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outras funções"
+          }
+        }
+      }
+    },
+    "Limpar busca": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpar busca"
+          }
+        }
+      }
+    },
+    "Qui": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui"
+          }
+        }
+      }
+    },
+    "Qua": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qua"
+          }
+        }
+      }
+    },
+    "Dom": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dom"
+          }
+        }
+      }
+    },
+    "Seg": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seg"
+          }
+        }
+      }
+    },
+    "Você só recebe avisos nos horários que marcar, para vagas da sua função e a até 15 km de você. A lista mostra todas as vagas do DF.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você só recebe avisos nos horários que marcar, para vagas da sua função e a até 15 km de você. A lista mostra todas as vagas do DF."
+          }
+        }
+      }
+    },
+    "1 função selecionada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 função selecionada"
+          }
+        }
+      }
+    },
+    "Escolher horário": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher horário"
+          }
+        }
+      }
+    },
+    "%@ até %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ até %@"
+          }
+        }
+      }
+    },
+    "Conclua ou cancele o horário para salvar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conclua ou cancele o horário para salvar."
+          }
+        }
+      }
+    },
+    "%lld funções selecionadas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld funções selecionadas"
+          }
+        }
+      }
+    },
+    "Nenhuma função encontrada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma função encontrada"
+          }
+        }
+      }
+    },
+    "Sex": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sex"
+          }
+        }
+      }
+    },
+    "Fechar busca": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar busca"
+          }
+        }
+      }
+    },
+    "Buscar função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar função"
+          }
+        }
+      }
+    },
+    "Ter": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ter"
+          }
+        }
+      }
+    },
+    "Escolher funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher funções"
+          }
+        }
+      }
+    },
+    "Próximo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

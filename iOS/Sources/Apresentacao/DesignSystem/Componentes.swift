@@ -285,26 +285,39 @@ public struct FiltroPill: View {
         selecionado ? String(localized: "filtro ativo", bundle: bundleApresentacao) : ""
     }
 
+    /// Duração do pop de seleção antes de a mola devolver o chip ao tamanho normal.
+    private static let duracaoDoPop: TimeInterval = 0.12
+
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @State private var emPop = false
+
+    /// O chip não muda de largura nem de altura entre os dois estados: o mesmo peso de fonte, sem
+    /// glifo extra, e o mesmo fio de 1 pt (transparente quando ativo). Só a cor troca, com uma
+    /// transição curta, e o pop de mola acontece apenas ao selecionar.
     public var body: some View {
         Button(action: acao) {
-            HStack(spacing: FrilaEspaco.minimo) {
-                if selecionado {
-                    Image(systemName: "checkmark")
-                        .accessibilityHidden(true)
-                }
-                titulo.font(selecionado ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
-            }
-            .padding(.horizontal, FrilaEspaco.faixa)
-            .frame(minHeight: FrilaMetrica.alturaDoChip)
-            // Filtro ativo na terracota de seleção da origem (`FrilaFilterChip`); inativo sobre a superfície com fio.
-            .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
-            .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
-            .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-            // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .contentShape(Rectangle())
+            titulo
+                .font(FrilaTipo.meta.weight(.medium))
+                .padding(.horizontal, FrilaEspaco.faixa)
+                .frame(minHeight: FrilaMetrica.alturaDoChip)
+                // Filtro ativo na terracota de seleção da origem (`FrilaFilterChip`); inativo sobre a superfície com fio.
+                .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: selecionado)
+                .scaleEffect(emPop ? FrilaMotion.chipOvershootScale : 1)
+                .animation(FrilaMovimento.animacao(FrilaMotion.chipActivationSpring, reduzir: reduzirMovimento), value: emPop)
+                // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.chipTatil)
+        .buttonStyle(.plain)
+        .onChange(of: selecionado) { antes, agora in
+            guard agora, !antes, !reduzirMovimento else { return }
+            emPop = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.duracaoDoPop) { emPop = false }
+        }
+        .sensoryFeedback(.selection, trigger: selecionado)
         .accessibilityAddTraits(selecionado ? .isSelected : [])
         .accessibilityValue(Self.valorAcessibilidade(selecionado: selecionado))
     }

@@ -29,6 +29,12 @@ public enum FrilaCor {
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
     /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`).
     public static let superficieDoCampo = Color("FieldSurface", bundle: recursos)
+    /// Fundo do dia com horário na faixa semanal: um passo acima do campo, para ler de relance sobre o cartão.
+    /// Escuro #2E2E2E, claro #E6E6E4.
+    public static let semanaDiaComHorario = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark ? UIColor(red: 0x2E / 255, green: 0x2E / 255, blue: 0x2E / 255, alpha: 1)
+                                           : UIColor(red: 0xE6 / 255, green: 0xE6 / 255, blue: 0xE4 / 255, alpha: 1)
+    })
     /// Fio de 1 pt dos campos (`dynamicFormFieldBorder`): 3:1 sobre a tela e sobre o cartão.
     public static let bordaDoCampo = Color("FieldBorder", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
@@ -42,6 +48,8 @@ public enum FrilaCor {
     public static let perigo = Color("Danger", bundle: recursos)
     /// Terracota da marca (`dynamicBrandAccent`, #EA5A36). Acento e botão de destaque do Estúdio (texto grande); nunca texto corrido.
     public static let marca = Color("BrandAccent", bundle: recursos)
+    /// Quente da identidade (`statement/identidade.md`, 500, #F16A00), o mesmo nos dois modos. A identidade o decide como cor da marca; o app ainda usa `marca` (#EA5A36) e `selecao` (#C9470F) nos demais lugares. Hoje só o estado vazio das funções o usa.
+    public static let quente = Color("BrandQuente", bundle: recursos)
     /// Preenchimento de controle e de aviso neutro (`dynamicInputBg`).
     public static let controle = Color("ControlFill", bundle: recursos)
     /// Fio de 1 pt de cartões e divisórias (`dynamicHairline`).
@@ -143,6 +151,8 @@ public enum FrilaTipo {
     public static let botao = FrilaTypography.sans(size: FrilaTypeScaleStep.placard.pointSize, weight: .bold)
     /// Rótulo do botão padrão (44 pt) e dos chips: SF Pro Semibold 15 (`FrilaTypography.button`).
     public static let botaoPadrao = FrilaTypography.button
+    /// Rótulo sobre o laranja: branco em negrito de pelo menos 19 (`statement/identidade.md`, regras do botão).
+    public static let botaoSobreQuente = FrilaTypography.sans(size: 19, weight: .bold)
 
     /// Pergunta do formulário: Bricolage Bold 26 (`FrilaFormType.question`), acompanha `.title`.
     public static var pergunta: Font { FrilaFormType.question.dynamicFont }
