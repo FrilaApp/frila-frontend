@@ -73,6 +73,7 @@ object Rotas {
     const val AJUDA = "ajuda"
     const val LICENCAS = "licencas"
     const val VAGA_INDISPONIVEL = "vaga_indisponivel"
+    const val ATUALIZACAO_OBRIGATORIA = "atualizacao_obrigatoria"
     const val TURNO_NAO_ENCONTRADO = "turno_nao_encontrado"
     const val TURNO_AVISO = "meus_turnos/{turnoId}"
 
@@ -440,6 +441,30 @@ fun AppNavegacao(
                         aoVoltar = { navController.popBackStack() },
                     )
                 }
+            }
+
+            composable(Rotas.ATUALIZACAO_OBRIGATORIA) {
+                val contexto = androidx.compose.ui.platform.LocalContext.current
+                br.com.frila.core.designsystem.componentes.TelaAtualizacaoObrigatoria(
+                    aoAtualizar = {
+                        val uriLoja = android.net.Uri.parse("market://details?id=${contexto.packageName}")
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uriLoja).apply {
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        try {
+                            contexto.startActivity(intent)
+                        } catch (e: Exception) {
+                            contexto.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=${contexto.packageName}"),
+                                ).apply {
+                                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                },
+                            )
+                        }
+                    },
+                )
             }
         }
 
