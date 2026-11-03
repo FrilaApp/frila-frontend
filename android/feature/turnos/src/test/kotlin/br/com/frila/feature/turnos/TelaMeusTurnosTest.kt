@@ -247,7 +247,7 @@ class TelaMeusTurnosTest {
     }
 
     @Test
-    fun `quando cancelamento e solicitado exibe dialogo com motivo e confirmacao`() {
+    fun `quando cancelamento e solicitado exibe dialogo com regra de antecedencia e confirmacao sem campo de motivo`() {
         runBlocking {
             val json = "[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]"
             val viewModel = criarViewModel(json)
@@ -268,9 +268,10 @@ class TelaMeusTurnosTest {
             viewModel.abrirCancelamento(turno)
             compose.waitForIdle()
 
-            compose.onNodeWithText("Qual é o motivo?").assertIsDisplayed()
+            compose.onNodeWithText("Faltam menos de 24 horas. Este cancelamento conta como falta e pode afetar sua reputação.").assertIsDisplayed()
             compose.onNodeWithText("Confirmar cancelamento").assertIsDisplayed()
             compose.onNodeWithText("Voltar").assertIsDisplayed()
+            compose.onNodeWithText("Qual é o motivo?").assertDoesNotExist()
         }
     }
 
