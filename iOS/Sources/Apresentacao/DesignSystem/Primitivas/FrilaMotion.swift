@@ -180,27 +180,26 @@ public enum FrilaMotion {
     // existe no vão e a margem tem um retorno orgânico. Valores propostos pelos dois Codex e escolhidos pelo
     // usuário (opção A, 03/11/2026); ainda a validar no aparelho.
 
-    /// Duração total e marcos da trajetória (segundos). A frente vai ao destino mais o excesso até 220 ms, recua
-    /// para dentro até 320 ms e assenta em 420 ms. A de trás parte em 30 ms, fica atrás do destino aos 220 ms e
-    /// chega ao destino aos 290 ms.
-    public static let segmentoToqueDuracao: Double = 0.42
-    public static let segmentoToquePicoDaFrente: Double = 0.22
-    public static let segmentoToqueFimDoRecuo: Double = 0.32
+    /// Duração total e marcos da trajetória (segundos). A frente vai ao destino e para na parede, sem passar dela (até
+    /// 220 ms). Quem faz o bounce é a borda de trás, do lado oposto à colisão: parte em 30 ms, fica atrás do destino
+    /// quando a frente chega (o corpo alonga), passa do destino aos 310 ms (o corpo comprime), volta um pouco aos
+    /// 380 ms (dilata) e assenta aos 440 ms. É uma mola horizontal: compressão, dilatação e estabilização.
+    public static let segmentoToqueDuracao: Double = 0.44
+    public static let segmentoToqueChegadaDaFrente: Double = 0.22
     public static let segmentoToqueSaidaDeTras: Double = 0.03
-    public static let segmentoToqueChegadaDeTras: Double = 0.29
-    /// A bolha acompanha o transporte nominal do centro, que termina em 180 ms, antes do pico da frente.
+    public static let segmentoToqueCompressaoEm: Double = 0.31
+    public static let segmentoToqueDilataEm: Double = 0.38
+    /// A bolha acompanha o transporte nominal do centro, que termina em 180 ms, antes da chegada da frente.
     public static let segmentoToqueTransporte: Double = 0.18
 
-    /// Amplitudes: cada uma é o menor entre o teto em pt e a fração da distância entre os centros.
-    /// Excesso da frente para fora do destino: 4 pt, que é o recuo da trilha (o cursor não sai dela).
-    public static let segmentoToqueExcesso: CGFloat = 4
-    public static let segmentoToqueExcessoFracao: CGFloat = 0.05
-    /// Quanto a borda de trás fica atrás do destino no pico (alonga o corpo).
-    public static let segmentoToqueAtrasoDeTras: CGFloat = 6
-    public static let segmentoToqueAtrasoFracao: CGFloat = 0.06
-    /// Recuo interno da frente depois do excesso (comprime o corpo): é a "vida" da margem.
-    public static let segmentoToqueRecuo: CGFloat = 5
-    public static let segmentoToqueRecuoFracao: CGFloat = 0.05
+    /// Amplitudes da borda de trás: cada uma é o menor entre o teto em pt e a fração da distância entre os centros.
+    /// Alongamento quando a frente chega, compressão logo depois e dilatação final. A frente não sai da trilha.
+    public static let segmentoToqueAlongamento: CGFloat = 8
+    public static let segmentoToqueAlongamentoFracao: CGFloat = 0.07
+    public static let segmentoToqueCompressao: CGFloat = 8
+    public static let segmentoToqueCompressaoFracao: CGFloat = 0.07
+    public static let segmentoToqueDilatacao: CGFloat = 3
+    public static let segmentoToqueDilatacaoFracao: CGFloat = 0.025
 
     /// A bolha do vão vale 0 com o cursor num centro de célula e cresce até 1 no meio do vão (começa a 10% do passo,
     /// com suavização S). Cresce 8 por 5 pt além do cursor (no arraste são 28 por 14). Sem vidro e sem véu:
@@ -209,8 +208,18 @@ public enum FrilaMotion {
     public static let segmentoToqueCresceX: CGFloat = 8
     public static let segmentoToqueCresceY: CGFloat = 5
 
-    /// O segundo háptico do toque toca no pico da frente.
+    /// O segundo háptico do toque toca quando a frente chega à parede.
     public static let segmentoToqueHapticApos: Double = 0.22
+
+    // Soltar o dedo depois de um arraste: o assentamento da bolha ganha uma mola em escala proporcional.
+
+    /// A bolha se comprime a 95,5% (uniforme nos dois eixos) e volta numa mola com bounce, passando um pouco de 100%.
+    public static let segmentoSoltarEscala: CGFloat = 0.955
+    public static let segmentoSoltarCompressao: Animation = .easeOut(duration: 0.09)
+    public static let segmentoSoltarMola: Animation = .spring(duration: 0.34, bounce: 0.42)
+    public static let segmentoSoltarCompressaoDuracao: Double = 0.09
+    /// Háptico do assentamento depois de arrastar: mais leve que o do toque, no momento em que a bolha volta.
+    public static let segmentoHapticSoltar: Double = 0.42
 
     /// Háptico 1, a troca de lado: pulso rígido (`copyLatchHapticIntensity`).
     public static let segmentoHapticTroca: Double = 0.45

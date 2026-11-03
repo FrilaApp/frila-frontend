@@ -29,11 +29,13 @@ public struct FrilaStepSegment: Identifiable, Hashable {
 ///   crescente (no máximo 12% de um segmento) e ela afina na altura; soltar devolve com um elástico firme.
 /// - **Zona medial:** o cursor só vira de lado depois de passar de 65% do caminho (e só volta ao passar de 35%), então um
 ///   empurrão curto não troca de segmento. Soltar escolhe o segmento que está valendo.
-/// - **Toque simples:** uma trajetória única de 420 ms para as duas bordas (`TrajetoriaDoToque`), desenhada à mão e
+/// - **Toque simples:** uma trajetória única de 440 ms para as duas bordas (`TrajetoriaDoToque`), desenhada à mão e
 ///   renderizada por relógio (`TimelineView`), sem mola. A bolha só existe no vão (0 com o cursor assentado, 1 no meio
-///   do vão; sem vidro, o preenchimento fica em 100%) e termina antes do pico. A frente passa até 4 pt do destino,
-///   recua até 5 pt para dentro e assenta; a de trás fica até 6 pt atrás e chega primeiro: o corpo se alonga (+10 pt) e
-///   depois comprime (−5 pt). Press e arrasto mantêm o movimento completo.
+///   do vão; sem vidro, o preenchimento fica em 100%) e termina antes da chegada. A frente para na parede; o bounce vem
+///   da borda de trás, do lado oposto à colisão: o corpo alonga (+8 pt), comprime (−8 pt) e dilata (+3 pt) até assentar,
+///   como uma mola horizontal.
+/// - **Soltar depois de arrastar:** a lente assenta e a bolha ganha uma mola em escala proporcional (comprime a 95,5% e
+///   volta passando um pouco de 100%), com um háptico leve no momento em que ela volta.
 /// - **Dois hápticos:** um pulso rígido quando o cursor vira de lado (na metade do arrasto, ou no toque) e um
 ///   toque suave quando a lente assenta, confirmando o estado.
 public struct FrilaStepSegments: View {
@@ -61,6 +63,9 @@ public struct FrilaStepSegments: View {
     @State private var tarefaDeAssentamento: Task<Void, Never>?
     @State private var gatilhoDeTroca = 0
     @State private var gatilhoDeAssentamento = 0
+    @State private var gatilhoDeSoltar = 0
+    /// Escala proporcional da bolha no assentamento depois de arrastar (1 em repouso).
+    @State private var escalaDoAssentamento: CGFloat = 1
     /// A troca veio de um arraste (o háptico de troca já tocou na metade): o toque não repete.
     @State private var trocaVeioDoArraste = false
     /// Toque simples em curso: a trajetória das duas bordas, calculada pelo relógio. `nil` fora do toque; as bordas de
@@ -115,6 +120,7 @@ public struct FrilaStepSegments: View {
     /// `padding` próprio, então anima com a mola dela. No toque, as bordas vêm do relógio (`extra` é a bolha do vão).
     private func entreAsBordas<V: View>(_ conteudo: V, esquerda e: CGFloat, direita d: CGFloat, extra: CGSize = .zero) -> some View {
         conteudo
+            .scaleEffect(escalaDoAssentamento)
             .padding(.horizontal, -(crescimentoDaLente.x + extra.width) / 2)
             .padding(.vertical, margemVertical - extra.height / 2)
             .padding(.leading, e)
@@ -151,6 +157,7 @@ public struct FrilaStepSegments: View {
         // Háptico 1, a troca de lado; háptico 2, o assentamento.
         .sensoryFeedback(.impact(flexibility: .rigid, intensity: FrilaMotion.segmentoHapticTroca), trigger: gatilhoDeTroca)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: FrilaMotion.segmentoHapticAssentamento), trigger: gatilhoDeAssentamento)
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: FrilaMotion.segmentoHapticSoltar), trigger: gatilhoDeSoltar)
         .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: segmentos)
         .onChange(of: ativo) { _, _ in
             // No arraste o háptico de troca já tocou na metade; no toque ele toca aqui.
@@ -265,6 +272,7 @@ public struct FrilaStepSegments: View {
     private func iniciarArraste() {
         tarefaDeAssentamento?.cancel()
         encerrarViagem()
+        escalaDoAssentamento = 1
         arrastando = true
         arrastouAgora = true
         alvoDoArraste = indiceAtivo
@@ -414,13 +422,20 @@ public struct FrilaStepSegments: View {
         assentarDepois()
     }
 
+    /// Depois de arrastar: a lente assenta e a bolha comprime a 95,5% e volta numa mola com bounce, em escala
+    /// proporcional. O háptico leve toca quando ela começa a voltar.
     private func assentarDepois() {
         tarefaDeAssentamento?.cancel()
         tarefaDeAssentamento = Task { @MainActor in
             try? await Task.sleep(for: .seconds(FrilaMotion.segmentoLenteHold))
             guard !Task.isCancelled, !arrastando else { return }
             withAnimation(FrilaMovimento.animacao(FrilaMotion.segmentoLenteAssenta, reduzir: reduzirMovimento)) { lente = false }
-            gatilhoDeAssentamento += 1
+            guard !reduzirMovimento else { gatilhoDeAssentamento += 1; return }
+            withAnimation(FrilaMotion.segmentoSoltarCompressao) { escalaDoAssentamento = FrilaMotion.segmentoSoltarEscala }
+            try? await Task.sleep(for: .seconds(FrilaMotion.segmentoSoltarCompressaoDuracao))
+            guard !Task.isCancelled, !arrastando else { escalaDoAssentamento = 1; return }
+            gatilhoDeSoltar += 1
+            withAnimation(FrilaMotion.segmentoSoltarMola) { escalaDoAssentamento = 1 }
         }
     }
 }
@@ -434,15 +449,16 @@ struct ViagemDoToque: Equatable {
 /// A trajetória das duas bordas do cursor num toque simples, em função do tempo (sem mola nem `delay`).
 ///
 /// Posições absolutas na trilha, em pt, com `s` o sentido (+1 direita, −1 esquerda) e D a distância entre centros:
-/// - **Frente** (a borda na direção do movimento): origem → destino + sE (0 a 220 ms) → destino − sR (até 320 ms) →
-///   destino (até 420 ms), cada trecho em cúbica 3u² − 2u³ (velocidade zero nas junções).
-/// - **Trás:** parada até 30 ms; depois, cúbica monotônica (Hermite) por origem (30 ms), destino − sL (220 ms) e
-///   destino (290 ms), com velocidade contínua no ponto do meio (média harmônica das secantes) e zero nas pontas.
+/// - **Frente** (a borda na direção do movimento): origem → destino em 220 ms, cúbica 3u² − 2u³ (chega com velocidade
+///   zero). Nunca passa do destino: o bounce não acontece contra a parede.
+/// - **Trás** (o lado oposto à colisão, onde o bounce acontece): parada até 30 ms; depois uma spline cúbica de Hermite
+///   (Catmull-Rom, velocidade zero nas pontas) por origem (30 ms), destino − sA (220 ms, alongado), destino + sC
+///   (310 ms, comprimido), destino − sU (380 ms, dilatado) e destino (440 ms).
 /// - **Bolha:** o centro nominal (origem → destino em 180 ms, cúbica) atravessa o vão: 0 sobre um centro de célula,
-///   1 no meio do vão. Termina antes do pico, então não renasce com o recuo. Parte da posição apresentada, então
+///   1 no meio do vão. Termina antes da chegada, então não renasce com a mola. Parte da posição apresentada, então
 ///   uma interrupção no meio do vão continua do ponto certo.
 ///
-/// E, L e R são o menor entre o teto em pt e a fração de D (`FrilaMotion.segmentoToque*`).
+/// A, C e U são o menor entre o teto em pt e a fração de D (`FrilaMotion.segmentoToque*`).
 struct TrajetoriaDoToque: Equatable {
     let origem: (esquerda: CGFloat, direita: CGFloat)
     let destino: (esquerda: CGFloat, direita: CGFloat)
@@ -477,46 +493,42 @@ struct TrajetoriaDoToque: Equatable {
         let t = max(tempo, 0)
         let s = sentido
         let d = distancia
-        let excesso = min(FrilaMotion.segmentoToqueExcesso, FrilaMotion.segmentoToqueExcessoFracao * d)
-        let atraso = min(FrilaMotion.segmentoToqueAtrasoDeTras, FrilaMotion.segmentoToqueAtrasoFracao * d)
-        let recuo = min(FrilaMotion.segmentoToqueRecuo, FrilaMotion.segmentoToqueRecuoFracao * d)
+        let alongamento = min(FrilaMotion.segmentoToqueAlongamento, FrilaMotion.segmentoToqueAlongamentoFracao * d)
+        let compressao = min(FrilaMotion.segmentoToqueCompressao, FrilaMotion.segmentoToqueCompressaoFracao * d)
+        let dilatacao = min(FrilaMotion.segmentoToqueDilatacao, FrilaMotion.segmentoToqueDilatacaoFracao * d)
 
         let origemDaFrente = s > 0 ? origem.direita : origem.esquerda
         let destinoDaFrente = s > 0 ? destino.direita : destino.esquerda
         let origemDeTras = s > 0 ? origem.esquerda : origem.direita
         let destinoDeTras = s > 0 ? destino.esquerda : destino.direita
 
-        let pico = FrilaMotion.segmentoToquePicoDaFrente
-        let fimDoRecuo = FrilaMotion.segmentoToqueFimDoRecuo
+        let chegada = FrilaMotion.segmentoToqueChegadaDaFrente
         let duracao = FrilaMotion.segmentoToqueDuracao
 
-        let frente: CGFloat
-        if t >= duracao {
-            frente = destinoDaFrente
-        } else if t <= pico {
-            frente = de(origemDaFrente, para: destinoDaFrente + s * excesso, em: t / pico)
-        } else if t <= fimDoRecuo {
-            frente = de(destinoDaFrente + s * excesso, para: destinoDaFrente - s * recuo, em: (t - pico) / (fimDoRecuo - pico))
-        } else {
-            frente = de(destinoDaFrente - s * recuo, para: destinoDaFrente, em: (t - fimDoRecuo) / (duracao - fimDoRecuo))
-        }
+        // A frente chega e para na parede.
+        let frente = t >= chegada ? destinoDaFrente : de(origemDaFrente, para: destinoDaFrente, em: t / chegada)
 
+        // A de trás faz a mola: pontos (tempo, posição) e tangentes de Catmull-Rom, com zero nas pontas.
         let saida = FrilaMotion.segmentoToqueSaidaDeTras
-        let chegada = FrilaMotion.segmentoToqueChegadaDeTras
-        let picoDeTras = destinoDeTras - s * atraso
+        let pontos: [(t: Double, p: CGFloat)] = [
+            (saida, origemDeTras),
+            (chegada, destinoDeTras - s * alongamento),
+            (FrilaMotion.segmentoToqueCompressaoEm, destinoDeTras + s * compressao),
+            (FrilaMotion.segmentoToqueDilataEm, destinoDeTras - s * dilatacao),
+            (duracao, destinoDeTras)
+        ]
         let tras: CGFloat
         if t <= saida {
             tras = origemDeTras
-        } else if t >= chegada {
+        } else if t >= duracao {
             tras = destinoDeTras
         } else {
-            let m1 = (picoDeTras - origemDeTras) / CGFloat(pico - saida)
-            let m2 = (destinoDeTras - picoDeTras) / CGFloat(chegada - pico)
-            let soma = m1 + m2
-            let meio: CGFloat = (m1 * m2 > 0 && abs(soma) > 0.0001) ? 2 * m1 * m2 / soma : 0
-            tras = t <= pico
-                ? hermite(t, saida, origemDeTras, 0, pico, picoDeTras, meio)
-                : hermite(t, pico, picoDeTras, meio, chegada, destinoDeTras, 0)
+            func tangente(_ k: Int) -> CGFloat {
+                guard k > 0, k < pontos.count - 1 else { return 0 }
+                return (pontos[k + 1].p - pontos[k - 1].p) / CGFloat(pontos[k + 1].t - pontos[k - 1].t)
+            }
+            let k = (0..<pontos.count - 1).first { t <= pontos[$0 + 1].t } ?? pontos.count - 2
+            tras = hermite(t, pontos[k].t, pontos[k].p, tangente(k), pontos[k + 1].t, pontos[k + 1].p, tangente(k + 1))
         }
 
         let esquerdaAgora = s > 0 ? tras : frente
