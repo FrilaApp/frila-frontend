@@ -27,6 +27,7 @@ Fontes de origem desta documentação:
 | 03 | [Contrato e API](03-contrato-e-api.md) | Cliente Ktor + Kotlinx Serialization, DTOs contra `openapi.yaml`, enum `CodigoErroAPI`, gate `contrato-android-confere` |
 | 04 | [Segurança e Sessão](04-seguranca-e-sessao.md) | Android Keystore + `EncryptedSharedPreferences`, regras de bloqueio de exportação (LGPD/RN15), modo demo Play Store |
 | 05 | [Pipeline de CI](05-ci-pipeline.md) | GitHub Actions em `ubuntu-latest`, JDK 17, ktlint, detekt, gate de contrato, orçamento de 3 minutos |
+| 06 | [Dispositivo de Referência](06-dispositivo-referencia.md) | Emulador API 28 (2 GB RAM, 720p), medição de cold start e jank, aviso normativo de emulador vs aparelho real |
 
 ## Escopo do cartão `XTijdYVk` e roteiro de épicos
 
