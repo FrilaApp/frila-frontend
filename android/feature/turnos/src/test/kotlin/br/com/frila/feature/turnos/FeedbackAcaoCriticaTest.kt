@@ -13,7 +13,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import br.com.frila.core.designsystem.tema.FrilaTheme
-import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -70,16 +69,20 @@ class FeedbackAcaoCriticaTest {
     }
 
     @Test fun `confirmar cancelamento chama fake e preserva progresso visual`() {
-        val estado = mutableStateOf(EstadoCancelamentoTurno(turno, false, MotivoCancelamento.SAUDE))
+        val estado = mutableStateOf(EstadoCancelamentoTurno(turno, contaComoFalta = false))
         var confirmacoes = 0
         compose.setContent {
             Settings.System.putInt(LocalContext.current.contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1)
             CompositionLocalProvider(LocalHapticFeedback provides feedback) {
                 FrilaTheme {
-                    DialogoCancelamentoTurno(estado.value, {}, {}, {
-                        confirmacoes++
-                        estado.value = estado.value.copy(enviando = true)
-                    }, {})
+                    DialogoCancelamentoTurno(
+                        estado = estado.value,
+                        aoConfirmar = {
+                            confirmacoes++
+                            estado.value = estado.value.copy(enviando = true)
+                        },
+                        aoVoltar = {},
+                    )
                 }
             }
         }
@@ -100,8 +103,11 @@ class FeedbackAcaoCriticaTest {
             desativar = { Settings.System.putInt(resolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 0) }
             CompositionLocalProvider(LocalHapticFeedback provides feedback) {
                 FrilaTheme {
-                    DialogoCancelamentoTurno(EstadoCancelamentoTurno(turno, false, MotivoCancelamento.SAUDE),
-                        {}, {}, { confirmacoes++ }, {})
+                    DialogoCancelamentoTurno(
+                        estado = EstadoCancelamentoTurno(turno, contaComoFalta = false),
+                        aoConfirmar = { confirmacoes++ },
+                        aoVoltar = {},
+                    )
                 }
             }
         }
@@ -122,8 +128,11 @@ class FeedbackAcaoCriticaTest {
             Settings.System.putInt(LocalContext.current.contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1)
             CompositionLocalProvider(LocalHapticFeedback provides semHaptico) {
                 FrilaTheme {
-                    DialogoCancelamentoTurno(EstadoCancelamentoTurno(turno, false, MotivoCancelamento.SAUDE),
-                        {}, {}, { confirmacoes++ }, {})
+                    DialogoCancelamentoTurno(
+                        estado = EstadoCancelamentoTurno(turno, contaComoFalta = false),
+                        aoConfirmar = { confirmacoes++ },
+                        aoVoltar = {},
+                    )
                 }
             }
         }
@@ -131,16 +140,21 @@ class FeedbackAcaoCriticaTest {
         compose.runOnIdle { assertEquals(1, confirmacoes) }
     }
 
-    @Test fun `cancelamento sem motivo nao aciona haptico nem callback`() {
+    @Test fun `cancelamento enviando nao aciona haptico nem callback`() {
         var confirmacoes = 0
         compose.setContent {
             Settings.System.putInt(LocalContext.current.contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1)
             CompositionLocalProvider(LocalHapticFeedback provides feedback) {
-                FrilaTheme { DialogoCancelamentoTurno(EstadoCancelamentoTurno(turno, false),
-                    {}, {}, { confirmacoes++ }, {}) }
+                FrilaTheme {
+                    DialogoCancelamentoTurno(
+                        estado = EstadoCancelamentoTurno(turno, contaComoFalta = false, enviando = true),
+                        aoConfirmar = { confirmacoes++ },
+                        aoVoltar = {},
+                    )
+                }
             }
         }
-        compose.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled().performClick()
+        compose.onNodeWithText("Cancelando…").assertIsNotEnabled().performClick()
         compose.runOnIdle {
             assertEquals(0, confirmacoes)
             assertEquals(emptyList<HapticFeedbackType>(), chamadas)
