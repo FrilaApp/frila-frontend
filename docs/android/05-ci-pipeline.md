@@ -146,9 +146,22 @@ rápidos, nesse tipo de setup.
 
 ## 6. O que fica fora deste documento
 
-- Pipeline de distribuição (Play Console / internal testing track): não faz parte do escopo do
-  cartão `XTijdYVk` (Épicos E1/E2); fica para o Épico E6 (Homologação e Performance), junto da
-  prova em aparelho de referência.
-- Testes de instrumentação/Robolectric em emulador real: citados na stack (`docs/proposta-android.md`
-  §2) mas não especificados como job de CI aqui — decisão de quando introduzi-los cabe a quem
-  planejar os épicos de feature (E3-E5), que são onde a superfície de UI testável realmente existe.
+- Pipeline de distribuição direta (Play Console / internal testing track): publicação automática via Google Play API fica para o Épico E6.
+
+## 7. Geração de Artefatos (APK/AAB) e Assinatura de Release (Cartão 59)
+
+A esteira Android (`.github/workflows/android.yml`) gera o APK de depuração (`app-debug.apk`) e o Android App Bundle de produção (`app-release.aab`), publicando ambos como artefatos da execução com retenção de 7 dias.
+
+### Modo Não Assinado (Padrão em PRs)
+Na ausência dos segredos de release no GitHub Secrets, o Gradle (`android/app/build.gradle.kts:51`) compila o AAB no modo release com minificação R8 e redução de recursos, mas **sem signingConfig**, gerando o AAB não assinado. Isso permite validação contínua da compilação e empacotamento em PRs públicos sem expor credenciais.
+
+### Configuração Pendente de Pessoa (Keystore Oficial)
+A assinatura oficial do bundle para envio à Google Play Store depende da criação e configuração manual dos seguintes segredos no GitHub Repository Secrets (ação humana exclusiva do Cauê/sócios):
+
+1. **`FRILA_RELEASE_KEYSTORE_BASE64`**: Conteúdo do arquivo de keystore (`.jks` ou `.keystore`) codificado em base64 (`base64 -i frila-release.jks`).
+2. **`FRILA_RELEASE_KEYSTORE_PASSWORD`**: Senha do armazenamento de chaves.
+3. **`FRILA_RELEASE_KEY_ALIAS`**: Alias da chave de release (ex.: `frila-release-key`).
+4. **`FRILA_RELEASE_KEY_PASSWORD`**: Senha da chave privada de release.
+
+Quando esses quatro segredos forem cadastrados, o workflow os decodificará temporariamente em tempo de execução para assinar o bundle antes do upload. **Nenhum segredo foi criado ou manipulado por agentes de IA.**
+

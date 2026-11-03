@@ -9,6 +9,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     paths:
       - "android/**"
       - "iOS/Contrato/openapi.yaml"
@@ -59,5 +61,41 @@ jobs:
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
 
-      - name: Compilar e executar testes unitários
-        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - name: Executar testes unitários
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Gerar APK (debug) e AAB (release)
+        env:
+          FRILA_RELEASE_KEYSTORE_BASE64: ${{ secrets.FRILA_RELEASE_KEYSTORE_BASE64 }}
+          FRILA_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.FRILA_RELEASE_KEYSTORE_PASSWORD }}
+          FRILA_RELEASE_KEY_ALIAS: ${{ secrets.FRILA_RELEASE_KEY_ALIAS }}
+          FRILA_RELEASE_KEY_PASSWORD: ${{ secrets.FRILA_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$FRILA_RELEASE_KEYSTORE_BASE64" ]; then
+            echo "Keystore de release configurado via segredos. Decodificando..."
+            echo "$FRILA_RELEASE_KEYSTORE_BASE64" | base64 --decode > /tmp/release.keystore
+            trap "rm -f /tmp/release.keystore" EXIT
+            export FRILA_RELEASE_KEYSTORE_PATH="/tmp/release.keystore"
+          else
+            echo "Segredos de release ausentes (pendente de configuração por pessoa). Gerando artefato sem assinar."
+          fi
+          ./gradlew --no-daemon assembleDebug bundleRelease
+          if [ -f "/tmp/release.keystore" ]; then
+            rm -f /tmp/release.keystore
+          fi
+
+      - name: Publicar APK de debug
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frila-android-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publicar AAB de release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frila-android-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
