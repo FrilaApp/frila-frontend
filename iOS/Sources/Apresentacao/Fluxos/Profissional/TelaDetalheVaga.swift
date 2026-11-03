@@ -395,11 +395,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
         let preenchidas = max(0, min(totalPosicoes, totalPosicoes - vaga.posicoesAbertas))
         let inicio = vaga.periodo.inicio
         let fim = vaga.periodo.fim
-        let cruzaDia = !calendarioSp.isDate(inicio, inSameDayAs: fim)
-        let intervalo = TextosDoProfissional.Detalhe.intervaloHorario(inicio: formatarHora(inicio), fim: formatarHora(fim))
-        let horarioTexto = cruzaDia
-            ? "\(intervalo)\n\(TextosDoProfissional.Detalhe.horarioTermina(formatarDiaMesCurto(fim)))"
-            : intervalo
+        let horarioTexto = FormatoDataVaga.janela(vaga.periodo, quebraDeLinha: true)
 
         let valorFormatado = formatador.dinheiro(vaga.valor)
         let valorFalado = formatador.dinheiroFalado(vaga.valor, por: "pessoa")
@@ -408,7 +404,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
         }
 
         return FrilaResumoVaga(
-            quando: formatarQuando(inicio),
+            quando: FormatoDataVaga.quando(inicio),
             horario: horarioTexto,
             valor: valorFormatado,
             valorAcessibilidade: valorFalado,
@@ -577,54 +573,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
             RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
                 .strokeBorder(aviso.tom == .erro ? FrilaCor.texto : Color.clear, lineWidth: 2)
         )
-    }
-
-    private var calendarioSp: Calendar {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "America/Sao_Paulo") ?? .current
-        cal.locale = Locale(identifier: "pt_BR")
-        return cal
-    }
-
-    private func formatarQuando(_ data: Date) -> String {
-        let cal = calendarioSp
-        let df = DateFormatter()
-        df.calendar = cal
-        df.timeZone = cal.timeZone
-        df.locale = Locale(identifier: "pt_BR")
-        df.dateFormat = "EEE, dd/MM"
-        let formatada = df.string(from: data).replacingOccurrences(of: ".", with: "")
-        if cal.isDateInToday(data) {
-            return String(format: String(localized: "Hoje, %@", bundle: bundleApresentacao), formatada)
-        } else if cal.isDateInTomorrow(data) {
-            return String(format: String(localized: "Amanhã, %@", bundle: bundleApresentacao), formatada)
-        } else {
-            return formatada.prefix(1).capitalized + formatada.dropFirst()
-        }
-    }
-
-    private func formatarHora(_ data: Date) -> String {
-        let cal = calendarioSp
-        let minutos = cal.component(.minute, from: data)
-        let df = DateFormatter()
-        df.calendar = cal
-        df.timeZone = cal.timeZone
-        df.locale = Locale(identifier: "pt_BR")
-        if minutos == 0 {
-            df.dateFormat = "HH'h'"
-        } else {
-            df.dateFormat = "HH'h'mm"
-        }
-        return df.string(from: data)
-    }
-
-    private func formatarDiaMesCurto(_ data: Date) -> String {
-        let df = DateFormatter()
-        df.calendar = calendarioSp
-        df.timeZone = calendarioSp.timeZone
-        df.locale = Locale(identifier: "pt_BR")
-        df.dateFormat = "EEE dd/MM"
-        return df.string(from: data).replacingOccurrences(of: ".", with: "")
     }
 
     /// Na vaga de seleção o contato só é mostrado se a casa escolher a candidatura (RN10).

@@ -255,6 +255,11 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional
     func meuPerfilProfissional() async throws -> PerfilProfissional
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional
+    /// Troca telefone e/ou e-mail da conta. O backend ainda não oferece a operação (ver o handoff em
+    /// `operacao/conta-editar-contato-handoff-backend.md`): `suportaEdicaoDeContato` diz se este cliente a
+    /// atende, e a interface só oferece Editar quando diz que sim. O padrão é não suportar.
+    var suportaEdicaoDeContato: Bool { get }
+    func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta
 
     // Por que recebo vagas (RF27)
     /// Os critérios em vigor para quem chama. Conta de contratante é `perfilIncompativel`; sem
@@ -390,6 +395,11 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 }
 
 public extension ApiCliente {
+    var suportaEdicaoDeContato: Bool { false }
+    func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
     func vagasAbertas() async throws -> [VagaNaLista] { try await vagasAbertas(.todas) }
     func minhasCandidaturas() async throws -> [Candidatura] { try await minhasCandidaturas(estado: nil) }
 

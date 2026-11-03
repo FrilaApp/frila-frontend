@@ -13,13 +13,15 @@ final class SaidaDaContaUITests: XCTestCase {
         let email = app.descendants(matching: .any)["perfil-email-valor"]
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         let emailAntes = email.label
+        abrirSairOuExcluir(app)
         conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional")
-        XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
-        app.swipeDown()
+        XCTAssertTrue(app.navigationBars["Sair ou excluir conta"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(email.label, emailAntes)
         XCTAssertFalse(app.textFields["entrada-email"].exists)
 
-        rolarAte(app.buttons["perfil-sair"], app: app)
+        abrirSairOuExcluir(app)
         tocar(app.buttons["perfil-sair"])
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
@@ -46,8 +48,9 @@ final class SaidaDaContaUITests: XCTestCase {
     func testCancelarSaidaDoPerfilEmAX4() {
         let app = abrir("success", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXL"])
         tocar(app.tabBars.buttons["Conta"])
+        abrirSairOuExcluir(app)
         conferirCancelamento(app, botao: app.buttons["perfil-sair"], nome: "perfil-profissional-ax4")
-        XCTAssertTrue(app.navigationBars["Meu perfil"].exists)
+        XCTAssertTrue(app.navigationBars["Sair ou excluir conta"].exists)
     }
 
     func testCancelarSaidaDaCriacaoDoPerfil() {
@@ -134,6 +137,14 @@ final class SaidaDaContaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"] + argumentos
         app.launch()
         return app
+    }
+
+    /// Sair e Excluir conta ficam um passo adiante da raiz da Conta, na tela "Sair ou excluir conta".
+    private func abrirSairOuExcluir(_ app: XCUIApplication) {
+        let caminho = app.buttons["perfil-sair-ou-excluir"]
+        rolarAte(caminho, app: app)
+        tocar(caminho)
+        XCTAssertTrue(app.buttons["perfil-sair"].waitForExistence(timeout: Espera.aparecer))
     }
 
     private func conferirCancelamento(_ app: XCUIApplication, botao: XCUIElement, nome: String) {
@@ -434,6 +445,7 @@ final class CandidaturaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["voltar-para-lista"].exists)
         tocar(ajustar)
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         tocar(funcao)
         let salvar = app.buttons["botao-salvar-perfil"]
@@ -598,20 +610,31 @@ final class AutenticacaoUITests: XCTestCase {
     private func preencherPerfil(_ app: XCUIApplication) {
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["criacao-perfil-sair"].isHittable)
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
         funcao.tap()
         let ponto = app.textFields["campo-ponto-base"]
         ponto.tap()
-        ponto.typeText("Guará II")
-        app.buttons["botao-buscar-endereco"].tap()
+        // Com o teclado aberto, um toque fora do campo só o fecha (decisão do teclado, 02/11); a busca
+        // pelo teclado (tecla Buscar) não passa por esse toque.
+        ponto.typeText("Guará II\n")
         let sugestao = app.buttons["sugestao-endereco-0"]
         XCTAssertTrue(sugestao.waitForExistence(timeout: 10))
         sugestao.tap()
         fecharTecladoSeVisivel(app: app)
-        rolarAte(app.buttons["botao-adicionar-janela"], app: app)
-        app.buttons["botao-adicionar-janela"].tap()
+        adicionarHorarioDeTeste(app)
         rolarAte(app.buttons["botao-salvar-perfil"], app: app)
+    }
+
+    /// O domingo abre com "Escolher horário": a seta leva do início ao fim e o visto conclui (a roleta abre em 18:00 e o fim sugerido é seis horas depois).
+    private func adicionarHorarioDeTeste(_ app: XCUIApplication) {
+        let escolher = app.buttons["escolher-horario"]
+        rolarAte(escolher, app: app)
+        escolher.tap()
+        tocar(app.buttons["horario-avancar"])
+        tocar(app.buttons["horario-avancar"])
+        XCTAssertTrue(app.buttons["remover-janela-0-18:00"].waitForExistence(timeout: 5), "O horário deveria ter sido confirmado no visto.")
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {
@@ -719,6 +742,9 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(botaoPerfil.waitForExistence(timeout: 10), "o botão para abrir o perfil deve aparecer na barra")
         botaoPerfil.tap()
         XCTAssertTrue(app.navigationBars["Meu perfil"].waitForExistence(timeout: 10))
+        let caminhoParaEncerrar = app.buttons["perfil-sair-ou-excluir"]
+        for _ in 0..<5 where !caminhoParaEncerrar.isHittable { app.swipeUp() }
+        caminhoParaEncerrar.tap()
         app.buttons["Sair"].tap()
 
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
@@ -1057,6 +1083,7 @@ final class PerfilUITests: XCTestCase {
         XCTAssertTrue(funcoesEHorarios.waitForExistence(timeout: 10))
         funcoesEHorarios.tap()
 
+        abrirFuncoesSeFechado(app)
         let funcao = app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"]
         let horario = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'remover-janela-'")).firstMatch
         XCTAssertTrue(funcao.waitForExistence(timeout: 10))
@@ -1405,3 +1432,10 @@ final class TrazerParaATelaCalculoTests: XCTestCase {
     }
 }
 
+/// A lista de funções começa fechada quando a pessoa já tem função escolhida (edição): abre o cartão
+/// antes de tocar numa linha.
+private func abrirFuncoesSeFechado(_ app: XCUIApplication) {
+    let expandir = app.buttons["botao-expandir-funcoes"]
+    guard expandir.waitForExistence(timeout: 10) else { return }
+    if !app.buttons["pill-funcao-20000000-0000-0000-0000-000000000001"].exists { expandir.tap() }
+}

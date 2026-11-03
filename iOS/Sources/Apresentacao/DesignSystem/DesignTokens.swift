@@ -29,11 +29,18 @@ public enum FrilaCor {
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
     /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`).
     public static let superficieDoCampo = Color("FieldSurface", bundle: recursos)
+    /// Fundo do dia com horário na faixa semanal: um passo acima do campo, para ler de relance sobre o cartão.
+    /// Escuro #2E2E2E, claro #E6E6E4.
+    public static let semanaDiaComHorario = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark ? UIColor(red: 0x2E / 255, green: 0x2E / 255, blue: 0x2E / 255, alpha: 1)
+                                           : UIColor(red: 0xE6 / 255, green: 0xE6 / 255, blue: 0xE4 / 255, alpha: 1)
+    })
     /// Fio de 1 pt dos campos (`dynamicFormFieldBorder`): 3:1 sobre a tela e sobre o cartão.
     public static let bordaDoCampo = Color("FieldBorder", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
     /// O mesmo token para o UIKit, pelo catálogo: segue claro e escuro sozinho.
     static let textoUIKit = UIColor(named: "TextPrimary", in: recursos, compatibleWith: nil) ?? .label
+    static let marcaUIKit = UIColor(named: "BrandAccent", in: recursos, compatibleWith: nil) ?? .systemOrange
     /// Texto de apoio (`dynamicFormTextMuted`, #6B6B6B): 5,1:1 sobre o cartão; o `dynamicTextMuted` da origem (#767571) ficava em 4,4:1.
     public static let textoSecundario = Color("TextSecondary", bundle: recursos)
     public static let sucesso = Color("Success", bundle: recursos)
@@ -41,6 +48,8 @@ public enum FrilaCor {
     public static let perigo = Color("Danger", bundle: recursos)
     /// Terracota da marca (`dynamicBrandAccent`, #EA5A36). Acento e botão de destaque do Estúdio (texto grande); nunca texto corrido.
     public static let marca = Color("BrandAccent", bundle: recursos)
+    /// Quente da identidade (`statement/identidade.md`, 500, #F16A00), o mesmo nos dois modos. A identidade o decide como cor da marca; o app ainda usa `marca` (#EA5A36) e `selecao` (#C9470F) nos demais lugares. Hoje só o estado vazio das funções o usa.
+    public static let quente = Color("BrandQuente", bundle: recursos)
     /// Preenchimento de controle e de aviso neutro (`dynamicInputBg`).
     public static let controle = Color("ControlFill", bundle: recursos)
     /// Fio de 1 pt de cartões e divisórias (`dynamicHairline`).
@@ -95,8 +104,14 @@ public enum FrilaMetrica {
 /// Tipografia. Os papéis das telas leem a escala Minor Third da origem (`FrilaTypeScaleStep`: 11/13/15/18/22/26/32)
 /// e as specs do paradigma Swiss (`FrilaTypography`: display, title, placard, entity, body, caption, micro, metric),
 /// sempre com Dynamic Type (`FrilaFonteDoSistema.fonte` mede pelo estilo mais próximo). A Bricolage Grotesque é a voz
-/// das perguntas e respostas dos formulários (`FrilaFormType`); números e dinheiro ficam sempre em SF Pro.
+/// das perguntas e respostas dos formulários (`FrilaFormType`); valores monetários usam Jost 600 (LOG-016).
 public enum FrilaTipo {
+    /// LOG-016: Jost 600; preserva a curva de tamanho de texto dos papéis nativos.
+    public static func fonteValor(tamanho: CGFloat) -> Font {
+        FontesFrila.registrar()
+        return Font.custom("JostRoman-SemiBold", size: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
+    }
+
     /// Título da tela fora da barra: display 32 heavy, tracking −0.8 (`FrilaTypography.display`).
     public static let tituloGrande = FrilaTypography.display
     /// Cabeçalho de seção ("Abertas", "Seus dados"): title 22 bold (`FrilaTypography.title`).
@@ -136,6 +151,8 @@ public enum FrilaTipo {
     public static let botao = FrilaTypography.sans(size: FrilaTypeScaleStep.placard.pointSize, weight: .bold)
     /// Rótulo do botão padrão (44 pt) e dos chips: SF Pro Semibold 15 (`FrilaTypography.button`).
     public static let botaoPadrao = FrilaTypography.button
+    /// Rótulo sobre o laranja: branco em negrito de pelo menos 19 (`statement/identidade.md`, regras do botão).
+    public static let botaoSobreQuente = FrilaTypography.sans(size: 19, weight: .bold)
 
     /// Pergunta do formulário: Bricolage Bold 26 (`FrilaFormType.question`), acompanha `.title`.
     public static var pergunta: Font { FrilaFormType.question.dynamicFont }
@@ -153,7 +170,7 @@ public enum FontesFrila {
     public static let nomes = ["BricolageGrotesque-Regular", "BricolageGrotesque-Medium", "BricolageGrotesque-Bold", "BricolageGrotesque-ExtraBold"]
 
     static let registradas: Void = {
-        for nome in nomes {
+        for nome in nomes + ["Jost"] {
             guard let url = bundleApresentacao.url(forResource: nome, withExtension: "ttf") else { continue }
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }
@@ -176,8 +193,9 @@ public enum FrilaMovimento {
     /// Mola dos chips (380/24): `FrilaMotion.chipPressSpring`.
     public static let molaTatilChip: Animation = FrilaMotion.chipPressSpring
 
-    public static func animacao(_ animacao: Animation = .default, reduzir: Bool) -> Animation? {
-        reduzir ? nil : animacao
+    /// `somenteOpacidade` é para quem garante que, sob Reduzir Movimento, a transação só muda opacidade.
+    public static func animacao(_ animacao: Animation = .default, reduzir: Bool, somenteOpacidade: Bool = false) -> Animation? {
+        reduzir && !somenteOpacidade ? nil : animacao
     }
 }
 
