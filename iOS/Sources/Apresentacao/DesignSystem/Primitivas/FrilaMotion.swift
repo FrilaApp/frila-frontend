@@ -176,19 +176,30 @@ public enum FrilaMotion {
     /// partir do segmento que está valendo.
     public static let segmentoZonaMedial: CGFloat = 0.30
 
-    // Toque simples: a bolha continua existindo, mas quase do tamanho do cursor ativo e sem bounce.
+    // Toque simples: a bolha só existe no vão entre as células e vira célula antes de assentar.
 
-    /// No toque, a lente cresce só 6 por 4 pt além do cursor (no arraste são 28 por 14).
-    public static let segmentoToqueCresceX: CGFloat = 6
-    public static let segmentoToqueCresceY: CGFloat = 4
-    /// No toque o preenchimento só cai para 80% e o vidro aparece a 60%.
-    public static let segmentoToquePreenchimento: Double = 0.80
-    public static let segmentoToqueVidro: Double = 0.60
-    /// As duas bordas viajam em molas sem bounce, quase juntas (15 ms de diferença): translação linear e calma.
-    public static let segmentoToqueBordaDaFrente: Animation = .spring(duration: 0.30, bounce: 0)
-    public static let segmentoToqueBordaDeTras: Animation = Animation.spring(duration: 0.34, bounce: 0).delay(0.015)
-    public static let segmentoToqueCresce: Animation = .spring(duration: 0.24, bounce: 0)
-    public static let segmentoToqueAssenta: Animation = .spring(duration: 0.28, bounce: 0.02)
+    /// A bolha do toque é função da posição, não do tempo: vale 0 com o cursor assentado numa célula e cresce até 1
+    /// no meio do vão entre duas. Começa a crescer depois de 10% do passo (distância da célula mais próxima, em
+    /// fração da largura de um segmento) e usa uma suavização S (smoothstep) até o meio do vão.
+    public static let segmentoToqueVaoInicio: CGFloat = 0.10
+    /// No meio do vão a bolha cresce 8 por 5 pt além do cursor (no arraste são 28 por 14).
+    public static let segmentoToqueCresceX: CGFloat = 8
+    public static let segmentoToqueCresceY: CGFloat = 5
+    /// No meio do vão o preenchimento cai para 75% e o vidro aparece a 70%; fora do vão, volta a ser a célula.
+    public static let segmentoToquePreenchimento: Double = 0.75
+    public static let segmentoToqueVidro: Double = 0.70
+    /// A borda da frente se acopla direto ao destino, passa dele 5 pt (pouco além do recuo de 4 pt da trilha, sem chegar ao
+    /// cartão) e volta para o lado de onde veio. Sem pausa no destino e sem segunda animação de assentamento.
+    public static let segmentoToqueExcesso: CGFloat = 5
+    public static let segmentoToqueIda: Animation = .spring(duration: 0.24, bounce: 0)
+    public static let segmentoToqueVolta: Animation = .spring(duration: 0.30, bounce: 0)
+    /// A volta começa 150 ms depois do toque, já com a borda quase no fim da ida.
+    public static let segmentoToqueQuandoVolta: Int = 150
+    /// A borda de trás só acompanha, suave e sem bounce, 20 ms depois e numa atualização própria.
+    public static let segmentoToqueBordaDeTras: Animation = .spring(duration: 0.42, bounce: 0)
+    public static let segmentoToqueAtrasoDeTras: Int = 20
+    /// O segundo háptico do toque toca quando a borda da frente chega (não há mais "hold" para esperar).
+    public static let segmentoToqueHapticApos: Double = 0.18
 
     /// Háptico 1, a troca de lado: pulso rígido (`copyLatchHapticIntensity`).
     public static let segmentoHapticTroca: Double = 0.45
