@@ -4,7 +4,7 @@ import SwiftUI
 /// se a página nova viesse de outra seção. A janela recorta o que passa das bordas e esmaece a entrada e a saída com
 /// uma máscara progressiva (um degradê de opacidade nas duas pontas), então nada corta seco.
 ///
-/// É o par natural de um seletor de etapas (`FrilaStepSegments`): o seletor muda, e a página que ele controla anda no
+/// É o par natural de um seletor de etapas (`FrilaLensSegments`): o seletor muda, e a página que ele controla anda no
 /// mesmo sentido da decisão, em direção oposta ao cursor. Serve para qualquer conteúdo de mesma altura (a altura vem
 /// do contêiner de fora).
 ///

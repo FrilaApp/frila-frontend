@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Um segmento de etapa: o nome e o valor vivo daquela etapa.
-public struct FrilaStepSegment: Identifiable, Hashable {
+public struct FrilaLensSegment: Identifiable, Hashable {
     public let id: String
     public let titulo: String
     public let valor: String
@@ -38,8 +38,8 @@ public struct FrilaStepSegment: Identifiable, Hashable {
 ///   volta passando de leve de 100%), com um háptico leve no momento em que ela volta.
 /// - **Dois hápticos:** um pulso rígido quando o cursor vira de lado (na metade do arrasto, ou no toque) e um
 ///   toque suave quando a lente assenta, confirmando o estado.
-public struct FrilaStepSegments: View {
-    private let segmentos: [FrilaStepSegment]
+public struct FrilaLensSegments: View {
+    private let segmentos: [FrilaLensSegment]
     private let ativo: String
     private let aoSelecionar: (String) -> Void
 
@@ -75,7 +75,7 @@ public struct FrilaStepSegments: View {
     /// dedo começou desfaz a troca que o arraste acabou de fazer).
     @State private var arrastouAgora = false
 
-    public init(segmentos: [FrilaStepSegment], ativo: String, aoSelecionar: @escaping (String) -> Void) {
+    public init(segmentos: [FrilaLensSegment], ativo: String, aoSelecionar: @escaping (String) -> Void) {
         self.segmentos = segmentos
         self.ativo = ativo
         self.aoSelecionar = aoSelecionar
@@ -166,7 +166,7 @@ public struct FrilaStepSegments: View {
         }
     }
 
-    private func rotulo(_ segmento: FrilaStepSegment) -> some View {
+    private func rotulo(_ segmento: FrilaLensSegment) -> some View {
         let selecionado = segmento.id == ativo
         return Button {
             guard !arrastouAgora else { return }

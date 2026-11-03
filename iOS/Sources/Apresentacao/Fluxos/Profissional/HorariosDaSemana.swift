@@ -308,10 +308,10 @@ struct SecaoDeHorarios: View {
     private var editor: some View {
         if let e = edicao {
             VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                FrilaStepSegments(
+                FrilaLensSegments(
                     segmentos: [
-                        FrilaStepSegment(id: CampoDeHorario.inicio.id, titulo: TextosDoProfissional.Perfil.inicio, valor: e.inicio.contrato),
-                        FrilaStepSegment(
+                        FrilaLensSegment(id: CampoDeHorario.inicio.id, titulo: TextosDoProfissional.Perfil.inicio, valor: e.inicio.contrato),
+                        FrilaLensSegment(
                             id: CampoDeHorario.fim.id,
                             titulo: TextosDoProfissional.Perfil.fim,
                             valor: e.fimVisitado ? e.fim.contrato : TextosDoProfissional.Perfil.horarioSelecionar
