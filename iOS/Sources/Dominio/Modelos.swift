@@ -20,6 +20,17 @@ public struct SessaoUsuario: Codable, Equatable, Sendable {
     }
 }
 
+/// Troca de contato da conta. O que vem nulo não muda.
+public struct AlteracaoDeContato: Equatable, Sendable {
+    public let telefone: String?
+    public let email: String?
+
+    public init(telefone: String? = nil, email: String? = nil) {
+        self.telefone = telefone
+        self.email = email
+    }
+}
+
 /// A conta no produto (`Usuario` do contrato). Existe sessão sem conta: é o primeiro acesso.
 public struct Conta: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID

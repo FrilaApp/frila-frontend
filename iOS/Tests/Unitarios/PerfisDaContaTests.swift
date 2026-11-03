@@ -7,6 +7,93 @@ import Testing
 @MainActor
 @Suite("Perfis e reputação (#54)")
 struct PerfisDaContaTests {
+    @Test("Cada cópia de contato escreve uma vez, e repetição rápida não repete o haptic")
+    func copiaDeContatoEscreveUmaVez() {
+        var escritos: [String] = []
+        let copia = CopiaDeContato(escrever: { escritos.append($0) })
+        let agora = Date()
+
+        copia.copiar(.telefone, valor: "+5561988887777", agora: agora)
+        copia.copiar(.telefone, valor: "+5561988887777", agora: agora.addingTimeInterval(0.05))
+        copia.copiar(.email, valor: "ana@frila.app", agora: agora.addingTimeInterval(0.5))
+
+        #expect(escritos == ["+5561988887777", "+5561988887777", "ana@frila.app"])
+        #expect(copia.copias == 2)
+        #expect(copia.tipVisivel == .email)
+    }
+
+    @Test("Valor vazio não copia, e abrir a pílula não conta como cópia")
+    func copiaDeContatoIgnoraVazioEAbertura() {
+        var escritos: [String] = []
+        let copia = CopiaDeContato(escrever: { escritos.append($0) })
+
+        copia.copiar(.email, valor: "  ")
+        copia.abrir(.telefone)
+
+        #expect(escritos.isEmpty)
+        #expect(copia.copias == 0)
+        #expect(copia.aberturas == 1)
+        #expect(copia.pilulaAberta == .telefone)
+    }
+
+    @Test("Cada travessia pulsa uma vez, a faixa de histerese não pulsa e nada é escrito até soltar")
+    func alternanciaDaTrava() {
+        var escritos: [String] = []
+        var pulsos: [Bool] = []
+        let copia = CopiaDeContato(escrever: { escritos.append($0) }, pulsarTrava: { pulsos.append($0) })
+        let zonas = ZonasDasParadas(alvos: [200], curso: 200, ganho: 1)
+        var travado: Int?
+        for posicao: CGFloat in [10, 100, 125, 150, 200, 105, 99, 110, 120, 100, 90] {
+            let novo = zonas.escolher(progresso: posicao, anterior: travado)
+            if novo != travado {
+                if novo != nil {
+                    copia.registrarAlternanciaDeTrava(ativa: true)
+                } else if travado != nil {
+                    copia.registrarAlternanciaDeTrava(ativa: false)
+                }
+                travado = novo
+            }
+        }
+        #expect(pulsos == [true, false, true, false])
+        #expect(escritos.isEmpty)
+    }
+
+    @Test("Com ganho 3, destravar ainda pede 20 pt reais de dedo")
+    func histereseEmPontosDeDedo() {
+        let zonas = ZonasDasParadas(alvos: [180], curso: 180, ganho: 3)
+        let raio = zonas.raios[0]
+        let retencao = raio + zonas.histereses[0]
+        #expect(zonas.histereses[0] == ContatoCopiavel.copyLatchHysteresis * 3)
+        #expect(zonas.escolher(progresso: 180 - raio, anterior: nil) == 0)
+        #expect(zonas.escolher(progresso: 180 - retencao, anterior: 0) == 0)
+        #expect(zonas.escolher(progresso: 180 - retencao - 1, anterior: 0) == nil)
+    }
+
+    @Test("Com duas paradas, a captura é a mais próxima, a troca é direta e as zonas não se sobrepõem")
+    func zonasComDuasParadas() {
+        let zonas = ZonasDasParadas(alvos: [100, 190], curso: 190, ganho: 1)
+        #expect(zonas.histereses[0] < zonas.raios[0] / 4)
+        #expect(zonas.escolher(progresso: 100, anterior: nil) == 0)
+        #expect(zonas.escolher(progresso: 145, anterior: nil) == nil)
+        #expect(zonas.escolher(progresso: 140, anterior: 0) == 0)
+        #expect(zonas.escolher(progresso: 146, anterior: 0) == nil)
+        #expect(zonas.escolher(progresso: 190, anterior: nil) == 1)
+        #expect(zonas.escolher(progresso: 160, anterior: 1) == 1)
+        #expect(zonas.escolher(progresso: 120, anterior: 1) == 0)
+    }
+
+    @Test("Sem curso físico à direita não há mapeamento, e o ganho fica entre 1 e 3")
+    func mapeamentoDoArrasto() throws {
+        #expect(ContatoCopiavel.MapeamentoDoArrasto(curso: 180, folgaDireita: 59) == nil)
+        let limite = try #require(ContatoCopiavel.MapeamentoDoArrasto(curso: 180, folgaDireita: 60))
+        #expect(limite.ganho == 3)
+        #expect(limite.progresso(dx: 60, curso: 180) == 180)
+        let folgado = try #require(ContatoCopiavel.MapeamentoDoArrasto(curso: 180, folgaDireita: 300))
+        #expect(folgado.ganho == 1)
+        #expect(folgado.progresso(dx: -10, curso: 180) == 0)
+        #expect(folgado.progresso(dx: 90, curso: 180) == 90)
+    }
+
     @Test("Meu perfil combina os dados da conta e do perfil profissional com a reputação pública")
     func meuPerfil() async {
         let api = ApiClienteEmMemoria()

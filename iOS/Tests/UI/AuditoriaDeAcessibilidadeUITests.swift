@@ -359,7 +359,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         let perfil = app.tabBars.buttons["Conta"]
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
-        guard esperar(app.buttons["perfil-excluir-conta"], "O perfil deve abrir") else { return }
+        guard esperar(app.buttons["perfil-sair-ou-excluir"], "O perfil deve abrir") else { return }
         auditar(app, tela: "perfil-profissional")
 
         tocar(app.buttons["perfil-funcoes-horarios"], em: app)
@@ -367,6 +367,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         auditar(app, tela: "perfil-funcoes-e-horarios")
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
+        tocar(app.buttons["perfil-sair-ou-excluir"], em: app)
         tocar(app.buttons["perfil-excluir-conta"], em: app)
         guard esperar(elemento("tela-exclusao-de-conta", em: app), "A exclusão deve abrir") else { return }
         auditar(app, tela: "exclusao-de-conta")
@@ -407,6 +408,9 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(perfil, "O botão do perfil deve existir") else { return }
         perfil.tap()
 
+        let caminhoParaEncerrar = app.buttons["perfil-sair-ou-excluir"]
+        guard esperar(caminhoParaEncerrar, "O caminho para sair ou excluir deve existir") else { return }
+        tocar(caminhoParaEncerrar, em: app)
         let irParaExclusao = app.buttons["perfil-excluir-conta"]
         guard esperar(irParaExclusao, "O item de exclusão de conta deve existir") else { return }
         tocar(irParaExclusao, em: app)
