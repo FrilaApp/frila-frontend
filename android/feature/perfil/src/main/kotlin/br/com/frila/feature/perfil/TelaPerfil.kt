@@ -27,6 +27,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -36,6 +37,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -102,6 +104,7 @@ fun TelaPerfil(
     viewModel: PerfilViewModel,
     modifier: Modifier = Modifier,
     aoDeslogar: () -> Unit = {},
+    aoAbrirAjuda: () -> Unit = {},
     /**
      * Injetáveis para teste (RN15) — sem sensor físico/emulador não há como simular o hardware
      * real, e o host do `createComposeRule()` não é um `FragmentActivity` (por isso o cast fica
@@ -161,6 +164,22 @@ fun TelaPerfil(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Meu Perfil", modifier = Modifier.semantics { heading() }) },
+                actions = {
+                    IconButton(
+                        onClick = aoAbrirAjuda,
+                        modifier = Modifier
+                            .sizeIn(
+                                minWidth = FrilaMetricas.alvoMinimo,
+                                minHeight = FrilaMetricas.alvoMinimo,
+                            )
+                            .testTag("botao-ajuda-barra"),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Ajuda",
+                        )
+                    }
+                },
             )
         },
     ) { paddingInterno ->
@@ -233,6 +252,7 @@ fun TelaPerfil(
                 aoAlternarNotificacao = viewModel::definirNotificacaoAtivada,
                 notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
                 paddingValues = paddingInterno,
+                aoAbrirAjuda = aoAbrirAjuda,
             )
         }
 
@@ -284,6 +304,7 @@ private fun ConteudoDoPerfil(
     aoAlternarNotificacao: (canal: String, ativado: Boolean) -> Unit,
     notificacoesDoSistemaAtivadas: Boolean,
     paddingValues: PaddingValues,
+    aoAbrirAjuda: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -331,6 +352,7 @@ private fun ConteudoDoPerfil(
             disponibilidadeBiometrica = disponibilidadeBiometrica,
             mensagemErroBiometria = mensagemErroBiometria,
             aoAlternarBiometria = aoAlternarBiometria,
+            aoAbrirAjuda = aoAbrirAjuda,
         )
     }
 }
@@ -799,6 +821,7 @@ private fun BlocoDeConta(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    aoAbrirAjuda: () -> Unit = {},
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -850,6 +873,14 @@ private fun BlocoDeConta(
                 },
             )
         }
+        BotaoSecundario(
+            texto = "Ajuda",
+            aoClicar = aoAbrirAjuda,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = FrilaEspacamento.pequeno)
+                .testTag("perfil-ajuda"),
+        )
         BotaoSecundario(
             texto = "Sair da conta",
             aoClicar = aoDeslogar,

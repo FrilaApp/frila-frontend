@@ -9,7 +9,12 @@ import io.ktor.http.contentType
  * Fluxo OTP por e-mail (`docs/android/04-seguranca-e-sessao.md` §1):
  * solicitação em `/auth/v1/otp`, verificação em `/auth/v1/verify` (type: email).
  */
-class ServicoAutenticacao(private val cliente: ClienteSupabase) {
+class ServicoAutenticacao(private val provedorDeCliente: () -> ClienteSupabase) {
+    constructor(cliente: ClienteSupabase) : this({ cliente })
+
+    /** Lido a cada chamada: após `GestorClienteKtor.recriar()` o cliente anterior está fechado. */
+    private val cliente: ClienteSupabase get() = provedorDeCliente()
+
 
     suspend fun solicitarOtp(email: String) {
         val resposta = cliente.http.post(cliente.urlCompleta("/auth/v1/otp")) {

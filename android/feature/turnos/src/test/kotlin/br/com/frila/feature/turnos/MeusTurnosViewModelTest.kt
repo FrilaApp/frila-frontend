@@ -263,6 +263,40 @@ class MeusTurnosViewModelTest {
     }
 
     @Test
+    fun `confirmar cancelamento direto sem preencher motivo envia motivo padrao e cancela com sucesso (contrato sem motivo)`() = runBlocking {
+        var corpoCancelamento: String? = null
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("meus_turnos")) {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")} ]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            } else {
+                corpoCancelamento = (request.body as io.ktor.http.content.TextContent).text
+                respond(
+                    content = """{"posicao_id":"posicao-a","falta":false,"reaberta":true,"nova_posicao_id":"nova-a"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.carregar().join()
+        viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+
+        // Confirmação direta sem selecionar motivo (modal sem campos de motivo)
+        viewModel.confirmarCancelamento()!!.join()
+
+        assertTrue(corpoCancelamento!!.contains("\"posicao_id\":\"posicao-a\""))
+        assertTrue(corpoCancelamento!!.contains("\"motivo\":\"Cancelamento pelo profissional\""))
+        assertTrue(viewModel.estado.value.agendados.isEmpty())
+        assertEquals("cancelada", viewModel.estado.value.historicoCompleto.first().estado)
+        assertEquals("Turno cancelado sem penalidade de reputação.", viewModel.estado.value.mensagemFeedback)
+        assertEquals(null, viewModel.estado.value.cancelamento)
+    }
+
+    @Test
     fun `cancelamento bem sucedido remove o alerta de aproximacao do turno (RNF04)`() = runBlocking {
         val engine = MockEngine { request ->
             if (request.url.encodedPath.endsWith("meus_turnos")) {
