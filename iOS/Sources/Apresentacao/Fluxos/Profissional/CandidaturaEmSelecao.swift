@@ -588,10 +588,8 @@ struct CartaoDaCandidatura: View {
     }
 
     private var valor: some View {
-        Text(verbatim: formatador.dinheiro(candidatura.vaga.valor))
-            .font(FrilaTipo.preco)
-            .monospacedDigit()
-            .foregroundStyle(FrilaCor.texto)
+        FrilaPriceTag(texto: formatador.dinheiro(candidatura.vaga.valor),
+                      leitura: formatador.dinheiroFalado(candidatura.vaga.valor), tamanho: 18)
     }
 
     private var icone: String {

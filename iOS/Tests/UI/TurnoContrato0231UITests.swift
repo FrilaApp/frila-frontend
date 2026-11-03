@@ -156,6 +156,9 @@ final class TurnoContrato0231UITests: XCTestCase {
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)
         tocar(app.tabBars.buttons["Vagas no DF"])
         tocar(app.tabBars.buttons["Conta"])
+        let caminhoParaEncerrar = app.buttons["perfil-sair-ou-excluir"]
+        for _ in 0..<5 where !caminhoParaEncerrar.isHittable { app.swipeUp() }
+        tocar(caminhoParaEncerrar)
         let sair = app.buttons["Sair"]
         for _ in 0..<5 where !sair.isHittable { app.swipeUp() }
         XCTAssertTrue(sair.waitForExistence(timeout: Espera.aparecer))

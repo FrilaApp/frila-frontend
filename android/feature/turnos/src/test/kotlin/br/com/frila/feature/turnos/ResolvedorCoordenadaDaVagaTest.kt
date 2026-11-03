@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.rede.CoordenadaDto
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.TurnoDto
@@ -19,7 +20,11 @@ import org.junit.jupiter.api.Test
  */
 class ResolvedorCoordenadaDaVagaTest {
 
-    private fun turnoComVaga(local: String, regiaoAdministrativa: String) = TurnoDto(
+    private fun turnoComVaga(
+        local: String,
+        regiaoAdministrativa: String,
+        ponto: CoordenadaDto? = null,
+    ) = TurnoDto(
         id = "turno-1",
         posicaoId = "posicao-1",
         vaga = VagaResumoDto(
@@ -30,6 +35,7 @@ class ResolvedorCoordenadaDaVagaTest {
             inicioEm = "2026-11-01T20:30:00Z",
             fimEm = "2026-11-02T03:00:00Z",
             valorCentavos = 16_000,
+            ponto = ponto,
         ),
         contraparte = PerfilPublicoDto(
             id = "e1",
@@ -68,5 +74,32 @@ class ResolvedorCoordenadaDaVagaTest {
     fun `degrada graciosamente para null quando nada casa`() {
         val turno = turnoComVaga(local = "endereço sem bairro reconhecivel", regiaoAdministrativa = "regiao inexistente")
         assertNull(ResolvedorCoordenadaDaVaga.resolver(turno))
+    }
+
+    @Test
+    fun `resolve para coordenada exata da vaga quando ponto esta presente, tendo prioridade sobre polo e regiao`() {
+        val pontoExato = CoordenadaDto(latitude = -15.7500, longitude = -47.8900)
+        val turno = turnoComVaga(
+            local = "SQN 108, Asa Norte",
+            regiaoAdministrativa = "Gama",
+            ponto = pontoExato,
+        )
+        val resolvida = ResolvedorCoordenadaDaVaga.resolver(turno)
+        assertEquals(-15.7500, resolvida?.coordenada?.latitude)
+        assertEquals(-47.8900, resolvida?.coordenada?.longitude)
+        assertEquals("SQN 108, Asa Norte", resolvida?.rotulo)
+    }
+
+    @Test
+    fun `quando ponto e nulo preserva resolucao anterior por polo urbano`() {
+        val turno = turnoComVaga(
+            local = "SQN 108, Asa Norte",
+            regiaoAdministrativa = "Gama",
+            ponto = null,
+        )
+        val resolvida = ResolvedorCoordenadaDaVaga.resolver(turno)
+        assertEquals(-15.7600, resolvida?.coordenada?.latitude)
+        assertEquals(-47.8850, resolvida?.coordenada?.longitude)
+        assertEquals("Asa Norte", resolvida?.rotulo)
     }
 }

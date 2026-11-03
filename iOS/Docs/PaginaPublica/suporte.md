@@ -74,4 +74,4 @@ Imprevistos acontecem, mas compromisso é fundamental. Caso não possa comparece
 Após a conclusão do turno, ambas as partes podem avaliar mutuamente a experiência de forma simples (Sim ou Não). As avaliações ajudam a manter a comunidade qualificada e justa para todos.
 
 ### Como posso exportar ou apagar meus dados?
-Você pode solicitar a exportação de todos os seus dados cadastrais ou a exclusão completa da sua conta a qualquer momento diretamente no aplicativo (em **Perfil** → **Exportar meus dados** ou **Excluir conta**) ou enviando um e-mail para `privacidade@frilabr.com`.
+Você pode solicitar a exportação de todos os seus dados cadastrais ou a exclusão completa da sua conta a qualquer momento diretamente no aplicativo (em **Perfil** → **Exportar meus dados** ou **Excluir conta**) ou enviando um e-mail para `suporte@frilabr.com`.

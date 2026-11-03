@@ -202,7 +202,7 @@ sai da central de notificações (na abertura, a cada mudança do vínculo e ao 
   Ele também **sai da central** no descarte: quem entra perde os próprios avisos desse primeiro
   minuto, e só os vê pelas telas do app.
 
-### Extensão de serviço de notificação (`FrilaNotificationService`, #253, h6RoObK6)
+### Extensão de serviço de notificação (`FrilaNotificationService`, #253, Cartão 57 / h6RoObK6)
 
 Para fechar a janela da tela bloqueada e do app fechado, o backend manda `mutable-content: 1` e o
 `vinculo_id` opaco em `data` (backend #178, contrato 0.2.30). Antes de o sistema exibir o aviso na

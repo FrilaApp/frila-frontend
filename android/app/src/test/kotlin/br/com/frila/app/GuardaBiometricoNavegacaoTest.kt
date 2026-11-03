@@ -4,11 +4,13 @@ import android.app.Application
 import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,13 +42,46 @@ class GuardaBiometricoNavegacaoTest {
                 onDispose { navController.removeOnDestinationChangedListener(listener) }
             }
             NavHost(navController = navController, startDestination = destinoInicial) {
-                composable(ROTA_PROTEGIDA) { Text("Protegida") }
+                composable(ROTA_PROTEGIDA) {
+                    RotaProtegida(guarda) {
+                        Text("Protegida")
+                    }
+                }
                 composable(Rotas.DESBLOQUEIO) { Text("Desbloqueio") }
                 composable(Rotas.ENTRADA) { Text("Entrada") }
             }
         }
         rule.waitForIdle()
         return navController
+    }
+
+    @Test
+    fun `deep link a frio em rota protegida nao compoe conteudo protegido nem por 1 frame`() {
+        val guarda = GuardaBiometrico(sessaoDesbloqueadaInicial = false)
+        var composConteudoProtegido = false
+
+        rule.setContent {
+            val navController = rememberNavController()
+            DisposableEffect(navController) {
+                val listener = instalarGuardaBiometrico(navController, guarda)
+                onDispose { navController.removeOnDestinationChangedListener(listener) }
+            }
+            NavHost(navController = navController, startDestination = ROTA_PROTEGIDA) {
+                composable(ROTA_PROTEGIDA) {
+                    RotaProtegida(guarda) {
+                        composConteudoProtegido = true
+                        Text("Dados confidenciais")
+                    }
+                }
+                composable(Rotas.DESBLOQUEIO) { Text("Desbloqueio") }
+            }
+        }
+        rule.waitForIdle()
+
+        // RN15 / Cartão 69: O conteúdo protegido NÃO foi composto nem por 1 frame
+        assertFalse("Conteúdo protegido foi composto antes da autenticação biométrica!", composConteudoProtegido)
+        rule.onNodeWithText("Dados confidenciais").assertDoesNotExist()
+        rule.onNodeWithText("Desbloqueio").assertExists()
     }
 
     @Test

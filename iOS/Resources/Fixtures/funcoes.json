@@ -8,5 +8,145 @@
     "id": "20000000-0000-0000-0000-000000000002",
     "nome": "Bartender",
     "categoria": "Bar"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000003",
+    "nome": "Cumim",
+    "categoria": "Salão"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000004",
+    "nome": "Maître",
+    "categoria": "Salão"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000005",
+    "nome": "Hostess",
+    "categoria": "Salão"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000006",
+    "nome": "Auxiliar de salão",
+    "categoria": "Salão"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000007",
+    "nome": "Barback",
+    "categoria": "Bar"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000008",
+    "nome": "Barista",
+    "categoria": "Bar"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000009",
+    "nome": "Atendente de bar",
+    "categoria": "Bar"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000010",
+    "nome": "Sommelier",
+    "categoria": "Bar"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000011",
+    "nome": "Cozinheiro",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000012",
+    "nome": "Auxiliar de cozinha",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000013",
+    "nome": "Chapeiro",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000014",
+    "nome": "Pizzaiolo",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000015",
+    "nome": "Confeiteiro",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000016",
+    "nome": "Copeiro",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000017",
+    "nome": "Churrasqueiro",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000018",
+    "nome": "Sushiman",
+    "categoria": "Cozinha"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000019",
+    "nome": "Cerimonialista",
+    "categoria": "Eventos"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000020",
+    "nome": "Montador de eventos",
+    "categoria": "Eventos"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000021",
+    "nome": "Promotor de eventos",
+    "categoria": "Eventos"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000022",
+    "nome": "Atendente de buffet",
+    "categoria": "Eventos"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000023",
+    "nome": "Auxiliar de limpeza",
+    "categoria": "Limpeza"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000024",
+    "nome": "Zelador",
+    "categoria": "Limpeza"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000025",
+    "nome": "Camareira",
+    "categoria": "Limpeza"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000026",
+    "nome": "Recepcionista",
+    "categoria": "Recepção e apoio"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000027",
+    "nome": "Caixa",
+    "categoria": "Recepção e apoio"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000028",
+    "nome": "Porteiro",
+    "categoria": "Recepção e apoio"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000029",
+    "nome": "Manobrista",
+    "categoria": "Recepção e apoio"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000030",
+    "nome": "Entregador",
+    "categoria": "Recepção e apoio"
   }
 ]

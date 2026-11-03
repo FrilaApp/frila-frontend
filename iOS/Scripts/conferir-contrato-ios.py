@@ -369,6 +369,12 @@ def conferir_dtos(
 
     # 5.2 Exceções documentadas para campos opcionais não mapeados no app (P6)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+        "VagaResumo": {
+            "ponto": (
+                "Coordenadas exatas do estabelecimento introduzidas no contrato 0.2.47 (v1.1, Cartão 72); "
+                "mapeadas no Android para geofencing passivo e pendentes de adoção no cliente iOS."
+            )
+        },
         "Sessao": {
             "user": (
                 "Objeto de usuário do Supabase Auth ignorado pelo app: "

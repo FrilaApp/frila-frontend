@@ -1,3 +1,5 @@
+Revisado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/2026, com pendências operacionais e de comprovação documental registradas. Não é parecer de advogado.
+
 # Dossiê de Privacidade da App Store — App Privacy (Cartão iWfyZwdu)
 
 Documento normativo e laudo técnico para o preenchimento das informações de privacidade do aplicativo (**App Privacy / Nutrition Labels**) no App Store Connect, em estrita conformidade com as Diretrizes da Apple (**Diretrizes 5.1.1 e 5.1.2**), com a LGPD (Lei nº 13.709/2018), com o manifesto de privacidade (`iOS/Resources/PrivacyInfo.xcprivacy`) e com o contrato e modelagem do banco de dados do Frila.

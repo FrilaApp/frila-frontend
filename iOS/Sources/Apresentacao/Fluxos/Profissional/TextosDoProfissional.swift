@@ -8,9 +8,24 @@ import FrilaDominio
 
 enum TextosDoProfissional {
     enum Lista {
+        static func dataEJanela(_ data: String, _ janela: String) -> String {
+            String(localized: "\(data), \(janela)", bundle: bundleApresentacao)
+        }
+        static func posicoes(_ quantidade: Int, modo: ModoPreenchimento) -> String {
+            if modo == .urgencia {
+                return quantidade == 1
+                    ? String(localized: "1 posição aberta, confirmação imediata se elegível", bundle: bundleApresentacao)
+                    : String(localized: "\(quantidade) posições abertas, confirmação imediata se elegível", bundle: bundleApresentacao)
+            }
+            return quantidade == 1
+                ? String(localized: "1 posição aberta, a casa escolhe", bundle: bundleApresentacao)
+                : String(localized: "\(quantidade) posições abertas, a casa escolhe", bundle: bundleApresentacao)
+        }
+
         static let titulo = String(localized: "Vagas no DF", bundle: bundleApresentacao)
         static let filtroFuncao = String(localized: "Função", bundle: bundleApresentacao)
         static let qualquerFuncao = String(localized: "Qualquer função", bundle: bundleApresentacao)
+        static let filtroData = String(localized: "Data", bundle: bundleApresentacao)
         static let qualquerData = String(localized: "Qualquer data", bundle: bundleApresentacao)
         static let hoje = String(localized: "Hoje", bundle: bundleApresentacao)
         static let amanha = String(localized: "Amanhã", bundle: bundleApresentacao)
@@ -230,14 +245,56 @@ enum TextosDoProfissional {
         public static let titulo = String(localized: "Funções e horários", bundle: bundleApresentacao)
         public static let cabecalho = String(localized: "Seu perfil de profissional", bundle: bundleApresentacao)
         public static let secaoFuncoes = String(localized: "Funções", bundle: bundleApresentacao)
+        public static let escolherFuncoes = String(localized: "Escolher funções", bundle: bundleApresentacao)
+        public static let buscarFuncao = String(localized: "Buscar função", bundle: bundleApresentacao)
+        public static let fecharBuscaDeFuncao = String(localized: "Fechar busca", bundle: bundleApresentacao)
+        public static let nenhumaFuncaoEncontrada = String(localized: "Nenhuma função encontrada", bundle: bundleApresentacao)
+        public static let limparBusca = String(localized: "Limpar busca", bundle: bundleApresentacao)
+        public static let outrasFuncoes = String(localized: "Outras funções", bundle: bundleApresentacao)
+
+        public static func funcoesSelecionadas(_ total: Int) -> String {
+            total == 1
+                ? String(localized: "1 função selecionada", bundle: bundleApresentacao)
+                : String(localized: "\(total) funções selecionadas", bundle: bundleApresentacao)
+        }
+
+        /// As duas primeiras funções escolhidas, em ordem alfabética, e quantas ficam de fora.
+        public static func resumoDeFuncoes(nomes: [String], restantes: Int) -> String {
+            let lista = nomes.joined(separator: ", ")
+            guard restantes > 0 else { return lista }
+            return String(localized: "\(lista) e mais \(restantes)", bundle: bundleApresentacao)
+        }
         public static let pontoBase = String(localized: "Ponto base", bundle: bundleApresentacao)
         public static let pontoBaseSalvo = String(localized: "Ponto base salvo", bundle: bundleApresentacao)
-        public static let dicaPontoBase = String(localized: "Serve para calcular a distância até as vagas. Não é a sua localização em tempo real.", bundle: bundleApresentacao)
+        public static let dicaPontoBase = String(localized: "Para calcular a distância até as vagas. Não é sua localização em tempo real.", bundle: bundleApresentacao)
         public static let buscarPontoBase = String(localized: "Buscar endereço ou bairro", bundle: bundleApresentacao)
-        public static let secaoHorarios = String(localized: "Horários em que você pode trabalhar", bundle: bundleApresentacao)
+        public static let secaoHorarios = String(localized: "Seus horários", bundle: bundleApresentacao)
+        public static let sobreOsHorarios = String(localized: "Sobre os horários", bundle: bundleApresentacao)
+        public static let horarioEscolher = String(localized: "Escolher horário", bundle: bundleApresentacao)
+        public static let horarioProximo = String(localized: "Próximo", bundle: bundleApresentacao)
+        public static let horarioConcluir = String(localized: "Concluir", bundle: bundleApresentacao)
+        public static let horarioCancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+        public static let horarioTerminaNoDiaSeguinte = String(localized: "Termina no dia seguinte", bundle: bundleApresentacao)
+        public static let horas = String(localized: "Horas", bundle: bundleApresentacao)
+        public static let minutos = String(localized: "Minutos", bundle: bundleApresentacao)
+        public static let horarioConclua = String(localized: "Conclua ou cancele o horário para salvar.", bundle: bundleApresentacao)
+        public static func horarioDeAte(inicio: String, fim: String) -> String {
+            String(localized: "\(inicio) até \(fim)", bundle: bundleApresentacao)
+        }
+        public static let horarioSelecionar = String(localized: "Selecionar", bundle: bundleApresentacao)
+        public static let horarioDiaSeguinte = String(localized: "dia seguinte", bundle: bundleApresentacao)
+        public static let diasAbreviados: [String] = [
+            String(localized: "Dom", bundle: bundleApresentacao),
+            String(localized: "Seg", bundle: bundleApresentacao),
+            String(localized: "Ter", bundle: bundleApresentacao),
+            String(localized: "Qua", bundle: bundleApresentacao),
+            String(localized: "Qui", bundle: bundleApresentacao),
+            String(localized: "Sex", bundle: bundleApresentacao),
+            String(localized: "Sáb", bundle: bundleApresentacao)
+        ]
         public static let adicionarHorario = String(localized: "Adicionar horário", bundle: bundleApresentacao)
         public static let diaSeguinte = String(localized: "(dia seguinte)", bundle: bundleApresentacao)
-        public static let avisoFixo = String(localized: "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista.", bundle: bundleApresentacao)
+        public static let avisoFixo = String(localized: "Você só recebe avisos nos horários que marcar, para vagas da sua função e a até 15 km de você. A lista mostra todas as vagas do DF.", bundle: bundleApresentacao)
         public static let erroCarregarTela = String(localized: "Não foi possível carregar as funções e horários.", bundle: bundleApresentacao)
         public static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
         public static let diasCurtos: [String] = [

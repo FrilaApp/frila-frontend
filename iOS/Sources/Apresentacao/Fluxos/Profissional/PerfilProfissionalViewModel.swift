@@ -147,6 +147,27 @@ public final class PerfilProfissionalViewModel {
         mensagemDeErro = nil
     }
 
+    /// Troca uma janela por outra, sem remover a antiga antes de saber que a nova é válida: se a nova
+    /// for inválida (início igual ao fim) ou a antiga não existir, nada muda. Se a nova já existir, a antiga
+    /// some e as duas viram uma só.
+    @discardableResult
+    public func substituirJanela(_ antiga: JanelaDeDisponibilidade, por nova: JanelaDeDisponibilidade) -> Bool {
+        guard nova.inicio != nova.fim, disponibilidades.contains(antiga) else { return false }
+        guard nova != antiga else { return true }
+        disponibilidades.removeAll { $0 == antiga }
+        if !disponibilidades.contains(nova) {
+            disponibilidades.append(nova)
+        }
+        disponibilidades.sort {
+            if $0.diaDaSemana != $1.diaDaSemana {
+                return $0.diaDaSemana < $1.diaDaSemana
+            }
+            return $0.inicio < $1.inicio
+        }
+        mensagemDeErro = nil
+        return true
+    }
+
     @discardableResult
     public func adicionarJanelaDoFormulario() -> Bool {
         let calendario = Calendar.current

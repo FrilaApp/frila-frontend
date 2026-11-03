@@ -285,26 +285,39 @@ public struct FiltroPill: View {
         selecionado ? String(localized: "filtro ativo", bundle: bundleApresentacao) : ""
     }
 
+    /// Duração do pop de seleção antes de a mola devolver o chip ao tamanho normal.
+    private static let duracaoDoPop: TimeInterval = 0.12
+
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @State private var emPop = false
+
+    /// O chip não muda de largura nem de altura entre os dois estados: o mesmo peso de fonte, sem
+    /// glifo extra, e o mesmo fio de 1 pt (transparente quando ativo). Só a cor troca, com uma
+    /// transição curta, e o pop de mola acontece apenas ao selecionar.
     public var body: some View {
         Button(action: acao) {
-            HStack(spacing: FrilaEspaco.minimo) {
-                if selecionado {
-                    Image(systemName: "checkmark")
-                        .accessibilityHidden(true)
-                }
-                titulo.font(selecionado ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
-            }
-            .padding(.horizontal, FrilaEspaco.faixa)
-            .frame(minHeight: FrilaMetrica.alturaDoChip)
-            // Filtro ativo na terracota de seleção da origem (`FrilaFilterChip`); inativo sobre a superfície com fio.
-            .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
-            .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
-            .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-            // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .contentShape(Rectangle())
+            titulo
+                .font(FrilaTipo.meta.weight(.medium))
+                .padding(.horizontal, FrilaEspaco.faixa)
+                .frame(minHeight: FrilaMetrica.alturaDoChip)
+                // Filtro ativo na terracota de seleção da origem (`FrilaFilterChip`); inativo sobre a superfície com fio.
+                .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: selecionado)
+                .scaleEffect(emPop ? FrilaMotion.chipOvershootScale : 1)
+                .animation(FrilaMovimento.animacao(FrilaMotion.chipActivationSpring, reduzir: reduzirMovimento), value: emPop)
+                // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.chipTatil)
+        .buttonStyle(.plain)
+        .onChange(of: selecionado) { antes, agora in
+            guard agora, !antes, !reduzirMovimento else { return }
+            emPop = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.duracaoDoPop) { emPop = false }
+        }
+        .sensoryFeedback(.selection, trigger: selecionado)
         .accessibilityAddTraits(selecionado ? .isSelected : [])
         .accessibilityValue(Self.valorAcessibilidade(selecionado: selecionado))
     }
@@ -431,8 +444,12 @@ public struct AvisoFrila: View {
 public struct CartaoVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let vaga: VagaNaLista
+    private let agora: Date
     private let formatador = FormatadorFrila()
-    public init(_ vaga: VagaNaLista) { self.vaga = vaga }
+    public init(_ vaga: VagaNaLista, agora: Date = .now) {
+        self.vaga = vaga
+        self.agora = agora
+    }
 
     public var body: some View {
         // Placa de museu da origem (`FrilaOpportunityCard`): entidade em caixa alta, título, grade de
@@ -449,7 +466,7 @@ public struct CartaoVaga: View {
                 }
             }
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                linha("clock") { Text(verbatim: formatador.intervalo(vaga.periodo)) }
+                linha("clock") { Text(verbatim: FormatoDataVaga.cartao(vaga.periodo, agora: agora)) }
                 linha("mappin") { Text(verbatim: localizacao) }
                 linha("checkmark") { Text(verbatim: textoBeneficios) }
                 linha("person") { Text(verbatim: posicoesTexto) }
@@ -486,7 +503,7 @@ public struct CartaoVaga: View {
 
     private var valor: some View {
         VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: FrilaEspaco.fio) {
-            Text(verbatim: formatador.dinheiro(vaga.valor)).font(FrilaTipo.preco).monospacedDigit()
+            FrilaPriceTag(texto: formatador.dinheiro(vaga.valor), leitura: rotuloAcessibilidadeValor, tamanho: 18)
             Text("por pessoa", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
         }
         .accessibilityElement(children: .combine)
@@ -532,11 +549,9 @@ public struct CartaoVaga: View {
     }
 
     private var posicoesTexto: String {
-        if vaga.posicoesAbertas == 1 {
-            return String(localized: "1 posição aberta", bundle: bundleApresentacao)
-        } else {
-            return String(localized: "\(vaga.posicoesAbertas) posições abertas", bundle: bundleApresentacao)
-        }
+        let modo = FormatoDataVaga.modoEfetivo(modo: vaga.modo, posicoesAbertas: vaga.posicoesAbertas,
+                                             inicio: vaga.periodo.inicio, agora: agora)
+        return TextosDoProfissional.Lista.posicoes(vaga.posicoesAbertas, modo: modo)
     }
 
     @ViewBuilder
@@ -587,7 +602,7 @@ public struct CartaoVaga: View {
         let partes = [
             String(localized: "Vaga de \(vaga.funcao.nome)", bundle: bundleApresentacao),
             vaga.estabelecimento.nome,
-            formatador.intervalo(vaga.periodo),
+            FormatoDataVaga.cartao(vaga.periodo, agora: agora),
             rotuloAcessibilidadeValor,
             "a \(localizacao)",
             textoBeneficios,

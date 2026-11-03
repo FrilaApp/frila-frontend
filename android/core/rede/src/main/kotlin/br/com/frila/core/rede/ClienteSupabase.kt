@@ -32,8 +32,10 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import java.io.Closeable
 import java.io.IOException
 import java.net.UnknownHostException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CancellationException
@@ -65,11 +67,20 @@ class ClienteSupabase(
     private val monitorDeConectividade: MonitorDeConectividade? = null,
     engine: HttpClientEngine? = null,
     json: Json = jsonFrila,
-) {
+) : Closeable {
+    private val _fechado = AtomicBoolean(false)
+    val estaFechado: Boolean get() = _fechado.get()
+
     val http: HttpClient = if (engine != null) {
         HttpClient(engine) { configurar(json) }
     } else {
         HttpClient { configurar(json) }
+    }
+
+    override fun close() {
+        if (_fechado.compareAndSet(false, true)) {
+            http.close()
+        }
     }
 
     private fun HttpClientConfig<*>.configurar(json: Json) {

@@ -59,4 +59,14 @@ class AppNavegacaoTest {
     fun `rota de atualizacao obrigatoria existe no contrato de navegacao`() {
         assertEquals("atualizacao_obrigatoria", Rotas.ATUALIZACAO_OBRIGATORIA)
     }
+
+    @Test
+    fun `rota de turno nao encontrado existe no contrato de navegacao`() {
+        assertEquals("turno_nao_encontrado", Rotas.TURNO_NAO_ENCONTRADO)
+    }
+
+    @Test
+    fun `rota de turno do aviso embute o id do turno`() {
+        assertEquals("meus_turnos/turno-456", Rotas.turnoAviso("turno-456"))
+    }
 }
