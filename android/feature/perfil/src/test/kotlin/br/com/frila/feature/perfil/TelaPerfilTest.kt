@@ -655,4 +655,58 @@ class TelaPerfilTest {
             rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").assertDoesNotExist()
         }
     }
+
+    @Test
+    fun botaoAjudaEmBlocoDeContaAcionaCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var ajudaClicada = false
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = vm,
+                        aoDeslogar = {},
+                        aoAbrirAjuda = { ajudaClicada = true },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            val botaoAjuda = rule.onNodeWithTag("perfil-ajuda").performScrollTo()
+            botaoAjuda.assertIsDisplayed()
+            botaoAjuda.performClick()
+            rule.waitForIdle()
+
+            assertTrue(ajudaClicada)
+        }
+    }
+
+    @Test
+    fun iconeAjudaNaBarraSuperiorAcionaCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var ajudaClicada = false
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = vm,
+                        aoDeslogar = {},
+                        aoAbrirAjuda = { ajudaClicada = true },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            val iconeAjuda = rule.onNodeWithTag("botao-ajuda-barra")
+            iconeAjuda.assertIsDisplayed()
+            iconeAjuda.performClick()
+            rule.waitForIdle()
+
+            assertTrue(ajudaClicada)
+        }
+    }
 }

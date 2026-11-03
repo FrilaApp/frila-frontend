@@ -55,7 +55,10 @@ class TelaLicencasTest {
             }
         }
 
-        rule.onNodeWithText("Kotlin Standard Library & Coroutines")
+        rule.onNodeWithText("Kotlin Standard Library")
+            .assertIsDisplayed()
+
+        rule.onNodeWithText("Kotlinx Coroutines")
             .assertIsDisplayed()
 
         rule.onNodeWithText("AndroidX Jetpack Compose")
@@ -73,8 +76,8 @@ class TelaLicencasTest {
             }
         }
 
-        // Clica no item de Kotlin
-        rule.onNodeWithText("Kotlin Standard Library & Coroutines")
+        // Clica no item de Kotlin Standard Library
+        rule.onNodeWithText("Kotlin Standard Library")
             .performClick()
 
         // Detalhe exibido com metadados
@@ -98,6 +101,24 @@ class TelaLicencasTest {
 
         // Volta para a lista principal
         rule.onNodeWithText("Licenças de código aberto")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun aoClicarEmCoroutinesExibeVersaoEspecifica181() {
+        rule.setContent {
+            FrilaTheme {
+                TelaLicencas(aoVoltar = {})
+            }
+        }
+
+        rule.onNodeWithText("Kotlinx Coroutines")
+            .performClick()
+
+        rule.onNodeWithText("Versão: 1.8.1")
+            .assertIsDisplayed()
+
+        rule.onNodeWithText("Licença: Apache-2.0")
             .assertIsDisplayed()
     }
 }
