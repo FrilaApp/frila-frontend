@@ -112,12 +112,12 @@ class ProcessadorDePushTest {
     }
 
     @Test
-    fun `tipo confirmacao tambem usa o canal de urgencia`() {
+    fun `tipo confirmacao usa o canal de turnos conforme contrato 0_2_46`() {
         val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
 
         val resultado = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to "confirmacao"))
 
-        assertEquals(GerenciadorDeCanais.CANAL_URGENCIA, resultado.canal)
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, resultado.canal)
     }
 
     @Test
@@ -156,5 +156,43 @@ class ProcessadorDePushTest {
         val resultado = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to "vaga_urgente"))
 
         assertFalse(resultado.silenciada)
+    }
+
+    @Test
+    fun `mapeamento canonico de canais conforme contrato 0_2_46`() {
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
+
+        fun canalPara(tipo: String): String {
+            val resultado = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to tipo))
+            return resultado.canal
+        }
+
+        // canal_urgencia (2 tipos)
+        assertEquals(GerenciadorDeCanais.CANAL_URGENCIA, canalPara("vaga"))
+        assertEquals(GerenciadorDeCanais.CANAL_URGENCIA, canalPara("vagas_agrupadas"))
+
+        // canal_turnos (10 tipos)
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("confirmacao"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("lembrete_24h"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("lembrete_3h"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("inicio_sem_checkin"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("atraso_15min"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("fim_sem_checkout"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("checkin"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("checkin_manual_pendente"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("cancelamento"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("avaliacao_disponivel"))
+
+        // canal_sistema (4 tipos)
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("vaga_vazia"))
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("candidatura_recusada"))
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("suspensao"))
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("reativacao"))
+
+        // fallback / futuro
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("vaga_sem_elegiveis"))
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("selecao_encerrada"))
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("selecao_lembrete"))
+        assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("tipo_desconhecido_qualquer"))
     }
 }
