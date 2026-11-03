@@ -253,4 +253,49 @@ class FrilaSkeletonTest {
         Settings.Global.putString(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, null)
         assertTrue(animacoesAtivadasNoSistema(resolver))
     }
+
+    private fun deslocamentoDoOsso(): Float =
+        rule.onNodeWithTag("osso-medido").fetchSemanticsNode().config[FrilaSkeletonDeslocamento]()
+
+    @Test
+    fun `composable anima linearmente em 1500ms e reinicia ao fim do ciclo`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            FrilaTheme {
+                FrilaSkeleton(modifier = Modifier.testTag("osso-medido").width(100.dp).height(20.dp))
+            }
+        }
+        rule.mainClock.advanceTimeBy(200)
+        val inicio = deslocamentoDoOsso()
+
+        rule.mainClock.advanceTimeBy(375)
+        val umQuarto = deslocamentoDoOsso()
+        rule.mainClock.advanceTimeBy(375)
+        val meio = deslocamentoDoOsso()
+        // Curso total -1f..2f (3f) em 1500ms: 375ms percorrem 0.75f; linear, os dois passos são iguais.
+        assertEquals(0.75f, umQuarto - inicio, 0.05f)
+        assertEquals(0.75f, meio - umQuarto, 0.05f)
+
+        rule.mainClock.advanceTimeBy(FrilaSkeletonShimmer.DURACAO_MS.toLong() - 750)
+        // Restart: um ciclo inteiro (1500ms) depois do ponto de partida volta ao mesmo valor.
+        assertEquals(inicio, deslocamentoDoOsso(), 0.05f)
+        rule.mainClock.advanceTimeBy(750)
+        assertEquals(meio, deslocamentoDoOsso(), 0.05f)
+    }
+
+    @Test
+    fun `composable estatico nao expoe deslocamento de shimmer`() {
+        val resolver = RuntimeEnvironment.getApplication().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        rule.setContent {
+            FrilaTheme {
+                FrilaSkeleton(modifier = Modifier.testTag("osso-medido").width(100.dp).height(20.dp))
+            }
+        }
+        rule.waitForIdle()
+
+        assertFalse(rule.onNodeWithTag("osso-medido").fetchSemanticsNode().config.contains(FrilaSkeletonDeslocamento))
+    }
 }

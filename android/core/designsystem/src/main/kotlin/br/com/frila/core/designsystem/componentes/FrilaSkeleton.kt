@@ -47,6 +47,13 @@ import br.com.frila.core.designsystem.tema.FrilaRaios
 val FrilaSkeletonAnimado = SemanticsPropertyKey<Boolean>("FrilaSkeletonAnimado")
 private var SemanticsPropertyReceiver.skeletonAnimado by FrilaSkeletonAnimado
 
+/**
+ * Leitor preguiçoso do deslocamento corrente do shimmer, só no modo animado. É um lambda para que
+ * a leitura do estado animado aconteça quando o teste chama, e não a cada quadro na árvore semântica.
+ */
+internal val FrilaSkeletonDeslocamento = SemanticsPropertyKey<() -> Float>("FrilaSkeletonDeslocamento")
+private var SemanticsPropertyReceiver.skeletonDeslocamento by FrilaSkeletonDeslocamento
+
 /** Parâmetros do shimmer, expostos ao módulo para que os testes travem duração e curva. */
 internal object FrilaSkeletonShimmer {
     const val DURACAO_MS = 1500
@@ -151,6 +158,7 @@ fun FrilaSkeleton(
             }
             .clearAndSetSemantics {
                 skeletonAnimado = true
+                skeletonDeslocamento = { deslocamento }
             },
     )
 }
