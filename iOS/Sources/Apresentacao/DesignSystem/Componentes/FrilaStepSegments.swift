@@ -21,7 +21,6 @@ public struct FrilaStepSegments: View {
     private let ativo: String
     private let aoSelecionar: (String) -> Void
 
-    @Namespace private var cursor
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     public init(segmentos: [FrilaStepSegment], ativo: String, aoSelecionar: @escaping (String) -> Void) {
@@ -39,26 +38,39 @@ public struct FrilaStepSegments: View {
                         Text(verbatim: segmento.titulo)
                             .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
-                        Text(verbatim: segmento.valor)
-                            .font(FrilaTipo.corpo.weight(.semibold))
-                            .foregroundStyle(FrilaCor.texto)
-                            .monospacedDigit()
-                            .contentTransition(reduzirMovimento ? .identity : .numericText())
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background {
-                        if selecionado {
-                            Capsule()
-                                .fill(FrilaCor.superficie)
-                                .overlay(Capsule().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
-                                .matchedGeometryEffect(id: "cursor", in: cursor)
+                        // Palavra ("Selecionar") que vira hora troca por fade; hora que muda de dígito rola.
+                        // Misturar os dois na mesma transição numérica embaralhava as letras.
+                        ZStack {
+                            Text(verbatim: segmento.valor)
+                                .font(FrilaTipo.corpo.weight(.semibold))
+                                .foregroundStyle(FrilaCor.texto)
+                                .monospacedDigit()
+                                .contentTransition(reduzirMovimento ? .identity : .numericText())
+                                .id(segmento.valor.contains(":") ? "hora" : segmento.valor)
+                                .transition(reduzirMovimento ? .identity : .asymmetric(
+                                    insertion: .opacity.animation(FrilaMovimento.animacao(FrilaMotion.contentFadeIn, reduzir: reduzirMovimento)),
+                                    removal: .opacity.animation(FrilaMovimento.animacao(FrilaMotion.contentFadeOut, reduzir: reduzirMovimento))
+                                ))
                         }
                     }
+                    .frame(maxWidth: .infinity, minHeight: 52)
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selecionado ? .isSelected : [])
                 .accessibilityIdentifier("segmento-\(segmento.id)")
+            }
+        }
+        // Um cursor só, que desliza por deslocamento: a cápsula nunca aparece duplicada no meio da troca.
+        .background {
+            GeometryReader { geo in
+                let largura = geo.size.width / CGFloat(max(segmentos.count, 1))
+                let indice = segmentos.firstIndex { $0.id == ativo } ?? 0
+                Capsule()
+                    .fill(FrilaCor.superficie)
+                    .overlay(Capsule().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                    .frame(width: largura, height: geo.size.height)
+                    .offset(x: CGFloat(indice) * largura)
             }
         }
         .padding(FrilaEspaco.minimo)

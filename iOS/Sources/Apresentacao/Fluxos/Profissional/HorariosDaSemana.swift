@@ -120,6 +120,7 @@ struct SecaoDeHorarios: View {
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     static let idDoEditor = "editor-horario"
+    static let alturaDaRoda: CGFloat = 150
 
     // MARK: Dados derivados
 
@@ -317,15 +318,26 @@ struct SecaoDeHorarios: View {
                     aoSelecionar: { id in ir(para: id == CampoDeHorario.inicio.id ? .inicio : .fim) }
                 )
 
-                roda(e)
-                    .id(e.etapa)
-                    .transition(.opacity.animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento)))
-
-                if e.etapa == .fim, e.fim < e.inicio {
-                    Text(verbatim: TextosDoProfissional.Perfil.horarioTerminaNoDiaSeguinte)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.textoSecundario)
+                // Moldura de altura fixa: durante a troca existem as duas roletas, e a altura nunca dobra.
+                // A troca é escalonada, como no Estúdio: a antiga sai (90 ms) e só então a nova entra.
+                ZStack {
+                    roda(e)
+                        .id(e.etapa)
+                        .transition(reduzirMovimento ? .identity : .asymmetric(
+                            insertion: .opacity.animation(FrilaMovimento.animacao(FrilaMotion.coreSwapFadeIn, reduzir: reduzirMovimento)),
+                            removal: .opacity.animation(FrilaMovimento.animacao(FrilaMotion.contentFadeOut, reduzir: reduzirMovimento))
+                        ))
                 }
+                .frame(height: Self.alturaDaRoda)
+                .clipped()
+
+                // A linha da nota sempre ocupa o lugar dela: aparecer e sumir não empurra o rodapé.
+                Text(verbatim: TextosDoProfissional.Perfil.horarioTerminaNoDiaSeguinte)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .opacity(e.etapa == .fim && e.fim < e.inicio ? 1 : 0)
+                    .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: e.etapa == .fim && e.fim < e.inicio)
+                    .accessibilityHidden(!(e.etapa == .fim && e.fim < e.inicio))
 
                 HStack {
                     Button(action: cancelar) {
@@ -377,20 +389,26 @@ struct SecaoDeHorarios: View {
         }
         .pickerStyle(.wheel)
         .labelsHidden()
-        .frame(height: 150)
+        .frame(height: Self.alturaDaRoda)
         .accessibilityIdentifier("roda-horario-\(e.etapa.id)")
     }
 
     /// Seta Quente que avança do início para o fim e vira o visto na última etapa.
     private func botaoDeSeta(ultima: Bool) -> some View {
         Button(action: avancar) {
-            Image(systemName: ultima ? "checkmark" : "arrow.right")
-                .font(FrilaTipo.corpo.weight(.bold))
-                .foregroundStyle(FrilaCor.sobreSelecao)
-                .frame(width: 52, height: 52)
-                .background(Circle().fill(FrilaCor.quente))
-                .contentTransition(reduzirMovimento ? .identity : .symbolEffect(.replace))
-                .contentShape(Circle())
+            // Os dois ícones ficam no mesmo lugar e trocam por opacidade: o glifo não salta nem muda de posição.
+            ZStack {
+                Image(systemName: "arrow.right")
+                    .opacity(ultima ? 0 : 1)
+                Image(systemName: "checkmark")
+                    .opacity(ultima ? 1 : 0)
+            }
+            .font(FrilaTipo.corpo.weight(.bold))
+            .foregroundStyle(FrilaCor.sobreSelecao)
+            .frame(width: 52, height: 52)
+            .background(Circle().fill(FrilaCor.quente))
+            .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: ultima)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(verbatim: ultima ? TextosDoProfissional.Perfil.horarioConcluir : TextosDoProfissional.Perfil.horarioProximo))
