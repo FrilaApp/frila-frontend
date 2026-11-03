@@ -1,6 +1,8 @@
 package br.com.frila.core.designsystem.componentes
 
 import android.provider.Settings
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -44,6 +46,16 @@ import br.com.frila.core.designsystem.tema.FrilaRaios
  */
 val FrilaSkeletonAnimado = SemanticsPropertyKey<Boolean>("FrilaSkeletonAnimado")
 private var SemanticsPropertyReceiver.skeletonAnimado by FrilaSkeletonAnimado
+
+/** Parâmetros do shimmer, expostos ao módulo para que os testes travem duração e curva. */
+internal object FrilaSkeletonShimmer {
+    const val DURACAO_MS = 1500
+    val curva: Easing = LinearEasing
+    val especificacao: InfiniteRepeatableSpec<Float> = infiniteRepeatable(
+        animation = tween(durationMillis = DURACAO_MS, easing = curva),
+        repeatMode = RepeatMode.Restart,
+    )
+}
 
 /**
  * `true` quando o sistema permite animação (padrão), `false` quando o usuário desligou
@@ -102,10 +114,7 @@ fun FrilaSkeleton(
     val deslocamento by transicao.animateFloat(
         initialValue = -1f,
         targetValue = 2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
+        animationSpec = FrilaSkeletonShimmer.especificacao,
         label = "FrilaSkeletonOffset",
     )
 
