@@ -862,7 +862,7 @@ struct AutenticacaoTests {
         try await local.salvar(turnos: [turno], em: instante)
         try await local.salvar(funcoes: [Funcao(id: UUID(), nome: "Garçom", categoria: "Restaurante")])
         try await local.enfileirar(AcaoPendente(tipo: .checkin, turnoID: turno.id, instanteDoToque: instante, chave: UUID(), distanciaMetros: 20))
-        #expect(try await local.turnosValidos(em: instante).first?.contato?.telefone == "+5561999990000")
+        #expect(try await local.turnosValidos(em: instante).count == 1)
         #expect(try await local.pendentes().count == 1)
         let saida = SaidaDaConta(
             api: api,

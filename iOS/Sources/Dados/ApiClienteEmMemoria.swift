@@ -1311,7 +1311,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if vaga.modo == .selecao, !bloqueada(vaga), let minha = candidaturaDaConta(na: vagaID), minha.estado == .aceita,
            let turno = turnos.first(where: { $0.vaga.id == vagaID && profissionaisEscolhidos[$0.id] == nil }) {
             return ResultadoCandidatura(
-                estado: .confirmada, candidaturaID: minha.id, posicaoID: turno.posicaoID, turnoID: turno.id, contato: contatos[turno.id]
+                estado: .confirmada, candidaturaID: minha.id, posicaoID: turno.posicaoID, turnoID: turno.id
             )
         }
         // Contrato 0.2.23: candidatura nova em vaga ocultada responde 404, como a escondida por bloqueio.
@@ -1348,7 +1348,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     id: candidaturaID, vagaID: vagaID, profissional: perfilPublicoDeExemplo, daConta: true, estado: .pendente, criadaEm: agora
                 ))
             }
-            return ResultadoCandidatura(estado: .pendente, candidaturaID: candidaturaID, posicaoID: nil, turnoID: nil, contato: nil)
+            return ResultadoCandidatura(estado: .pendente, candidaturaID: candidaturaID, posicaoID: nil, turnoID: nil)
         }
 
         let visivelAte = vaga.periodo.fim.addingTimeInterval(7 * 24 * 60 * 60)
@@ -1368,7 +1368,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             id: candidaturaID, vagaID: vagaID, profissional: perfilPublicoDeExemplo, daConta: true, estado: .aceita, criadaEm: agora,
             turnoID: turno.id
         ))
-        return ResultadoCandidatura(estado: .confirmada, candidaturaID: candidaturaID, posicaoID: turno.posicaoID, turnoID: turno.id, contato: contato)
+        return ResultadoCandidatura(estado: .confirmada, candidaturaID: candidaturaID, posicaoID: turno.posicaoID, turnoID: turno.id)
     }
 
     public func perfilPublico(id: UUID) async throws -> PerfilPublico {
@@ -2129,7 +2129,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 candidaturas[outra].estado = .recusada
             }
         }
-        return ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turno.id, contato: contatoDoProfissional)
+        return ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turno.id)
     }
 
     /// As posições abertas da vaga, primeiro as que um cancelamento abriu. Gera e guarda os ids

@@ -101,8 +101,9 @@ struct TrocaDeContaTests {
         #expect(guardadoPush.ler()?.vinculo?.contaID == contaA_ID)
         #expect(try await !local.pendentes().isEmpty)
         #expect(try await !local.recusadas().isEmpty)
-        #expect(try await !local.turnosValidos(em: instante).isEmpty)
+        // O contato guardado por uma versão antiga ainda está no disco, até a primeira leitura dos turnos.
         #expect(try await local.contato(doTurno: turnoA.id, em: instante) != nil)
+        #expect(try await !local.turnosValidos(em: instante).isEmpty)
         #expect(try await !local.eventosPendentes().isEmpty)
 
         // 2. Agora entra a Conta B (fluxo real de login: verificarCodigo + DestinoDaConta + IdentidadeDaAvaliacao)
