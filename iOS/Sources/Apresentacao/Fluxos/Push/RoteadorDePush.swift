@@ -8,7 +8,7 @@ public enum DestinoDoProfissional: Equatable, Sendable {
     case vaga(UUID)
     /// A lista de vagas.
     case vagas
-    /// O turno, com o contato e o registro de presença.
+    /// O turno e o registro de presença.
     case turno(UUID)
     case meusTurnos
     case avaliacao(turnoID: UUID)

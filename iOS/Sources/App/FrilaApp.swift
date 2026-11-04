@@ -1056,8 +1056,7 @@ private struct TelaMeuTurnoParaTeste: View {
                 let vaga = VagaResumo(id: UUID(), funcao: "Garçom", local: "Bar do Lago", regiaoAdministrativa: "Plano Piloto", periodo: periodo, valor: Dinheiro(centavos: 15000))
                 let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
                 let contraparte = PerfilPublico(id: UUID(), tipo: .estabelecimento, nome: "Bar do Lago", reputacao: reputacao)
-                let contato = Contato(nome: "Gerente Marcos", telefone: "(61) 98888-0000", whatsappURL: URL(string: "https://wa.me/5561988880000")!, visivelAte: fim.addingTimeInterval(86400))
-                let turno = Turno(id: UUID(), posicaoID: UUID(), vaga: vaga, contraparte: contraparte, contatoVisivelAte: fim.addingTimeInterval(86400), verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false, contato: contato)
+                let turno = Turno(id: UUID(), posicaoID: UUID(), vaga: vaga, contraparte: contraparte, contatoVisivelAte: fim.addingTimeInterval(86400), verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false)
                 viewModel = MeuTurnoViewModel(turno: turno, api: api)
             }
         }

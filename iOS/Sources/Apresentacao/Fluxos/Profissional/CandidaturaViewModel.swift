@@ -13,9 +13,9 @@ public enum MotivoInelegivel: Hashable, Sendable {
 
 /// O que a candidatura deu. Tudo vem do código do erro e dos `details`, nunca do texto da mensagem.
 public enum ResultadoDaCandidatura: Equatable, Sendable {
-    case confirmada(turnoID: UUID?, contato: Contato?)
+    case confirmada(turnoID: UUID?)
     /// Vaga de seleção (contrato 0.2.24): a candidatura foi enviada e espera a escolha da casa. Não
-    /// há posição, turno nem contato; o id é o que `retirar_candidatura` pede.
+    /// há posição nem turno; o id é o que `retirar_candidatura` pede.
     case pendente(candidaturaID: UUID)
     /// `409 posicao_ja_preenchida`: alguém chegou antes (RN19). É resultado normal, não erro.
     case vagaPreenchida
@@ -44,7 +44,7 @@ public enum ResultadoDaCandidatura: Equatable, Sendable {
 extension ResultadoDaCandidatura: Hashable {
     public func hash(into hasher: inout Hasher) {
         switch self {
-        case let .confirmada(turnoID, contato): hasher.combine(0); hasher.combine(turnoID); hasher.combine(contato)
+        case let .confirmada(turnoID): hasher.combine(0); hasher.combine(turnoID)
         case .vagaPreenchida: hasher.combine(1)
         case .vagaEncerrada: hasher.combine(2)
         case let .inelegivel(motivo): hasher.combine(3); hasher.combine(motivo)
@@ -126,7 +126,7 @@ public final class CandidaturaViewModel {
     /// A retirada aconteceu nesta tela: a leitura que saiu antes dela não traz a candidatura de volta.
     private var retirouAgora = false
 
-    public func candidatar(cache: (any CacheLocal)? = nil) async {
+    public func candidatar() async {
         // A troca para `enviando` acontece no MainActor antes do primeiro await: um segundo toque que
         // chegue enquanto a chamada está em voo já vê `enviando` e para aqui.
         guard !enviando else { return }
@@ -137,9 +137,6 @@ public final class CandidaturaViewModel {
             if (resposta.estado == .confirmada || resposta.estado == .pendente), !jaEmitiuEnvio {
                 jaEmitiuEnvio = true
                 await telemetria?.registrar(.candidaturaEnviada, vagaID: vaga.id)
-            }
-            if resposta.estado == .confirmada, let turnoID = resposta.turnoID, let contato = resposta.contato {
-                try? await cache?.salvar(contato: contato, doTurno: turnoID)
             }
             resultado = Self.resultado(resposta)
         } catch let erro as ErroDaApi {
@@ -169,7 +166,7 @@ public final class CandidaturaViewModel {
     static func resultado(_ resposta: ResultadoCandidatura) -> ResultadoDaCandidatura {
         switch resposta.estado {
         case .confirmada:
-            .confirmada(turnoID: resposta.turnoID, contato: resposta.contato)
+            .confirmada(turnoID: resposta.turnoID)
         case .pendente:
             .pendente(candidaturaID: resposta.candidaturaID)
         }

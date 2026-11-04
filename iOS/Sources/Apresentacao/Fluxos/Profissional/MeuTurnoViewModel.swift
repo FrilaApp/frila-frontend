@@ -6,17 +6,19 @@ import Observation
 public final class MeuTurnoViewModel {
     public let turno: Turno
     public private(set) var recusasDaFila: [AcaoRecusada] = []
-    public private(set) var contato: Contato?
-    public private(set) var contatoExpirado: Bool
     public private(set) var responsavelLocal: String?
-    public private(set) var carregandoContato: Bool = false
+    /// O que a casa escreveu nas observações da vaga (entrada, ponto de referência). Vem do detalhe
+    /// da vaga, sem campo novo no servidor, e alimenta o "Como chegar".
+    public private(set) var observacoesDaVaga: String?
+    /// A carga do detalhe da vaga terminou (com ou sem sucesso): fim da medição de abertura (#73).
+    public private(set) var detalheCarregado: Bool = false
     /// Check-in e check-out (#17). `nil` onde não há leitor de localização, como nas prévias.
     public let presenca: PresencaDoTurnoViewModel?
 
     private var avaliacaoEnviada: Avaliacao?
     private var respostaPendente: Bool?
     /// Um só view model da avaliação por turno. O destino do `NavigationLink` é reavaliado a cada
-    /// redesenho desta tela (contato que chega, fila que muda), e um view model novo a cada redesenho
+    /// redesenho desta tela (detalhe que chega, fila que muda), e um view model novo a cada redesenho
     /// perdia a resposta escolhida e desabilitava o "Enviar" enquanto a pessoa ainda estava na tela.
     private var avaliacaoViewModel: AvaliacaoTurnoViewModel?
     /// UserDefaults não participa de Observation: a releitura invalida os derivados da reserva.
@@ -117,7 +119,6 @@ public final class MeuTurnoViewModel {
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private let relogio: any Relogio
     private let telemetria: RegistradorDeTelemetria?
-    private var ultimoRegistroContato: Date?
     private var cacheLocal: (any CacheLocal)? { filaDeAcoes as? any CacheLocal }
 
     private let cache: CacheDeLeituras?
@@ -146,19 +147,6 @@ public final class MeuTurnoViewModel {
         self.relogio = relogio
         self.presenca = turno.cancelado ? nil : presenca
         self.telemetria = telemetria ?? RegistradorDeTelemetria(api: api)
-
-        if turno.cancelado {
-            self.contato = nil
-            self.contatoExpirado = false
-        } else if let c = turno.contato {
-            let visivel = c.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora)
-            self.contato = visivel ? c : nil
-            self.contatoExpirado = !visivel
-        } else {
-            let visivel = turno.contatoVisivel(em: relogio.agora)
-            self.contato = nil
-            self.contatoExpirado = !visivel
-        }
     }
 
     public var podeAvaliar: Bool {
@@ -239,33 +227,7 @@ public final class MeuTurnoViewModel {
         if let resp = responsavelLocal, !resp.isEmpty {
             return resp
         }
-        if let nome = contato?.nome, !nome.isEmpty {
-            return nome
-        }
         return turno.contraparte.nome
-    }
-
-    public var urlWhatsApp: URL? {
-        guard permiteAcoesDoTurno, let contato = contato, !contatoExpirado else { return nil }
-        let formatador = FormatadorFrila()
-        let dataFormatada = formatador.intervalo(turno.vaga.periodo)
-        let mensagem = String(
-            localized: "Olá! Sou o profissional do turno de \(turno.vaga.funcao) em \(dataFormatada) no \(turno.vaga.local).",
-            bundle: bundleApresentacao
-        )
-        var componentes = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)
-        componentes?.queryItems = [URLQueryItem(name: "text", value: mensagem)]
-        return componentes?.url ?? contato.whatsappURL
-    }
-
-    /// Registra telemetria de abertura do WhatsApp com a contraparte (apenas ID do turno, RN15).
-    public func registrarContatoAberto() async {
-        let agora = relogio.agora
-        if let ultimo = ultimoRegistroContato, agora.timeIntervalSince(ultimo) < 5.0 {
-            return
-        }
-        ultimoRegistroContato = agora
-        await telemetria?.registrar(.contatoAberto, turnoID: turno.id)
     }
 
     public var urlMapas: URL? {
@@ -304,16 +266,11 @@ public final class MeuTurnoViewModel {
         if await CancelamentoViewModel.pendenteNaFila(filaDeAcoes, alvo: .posicao(id: turno.posicaoID, turnoID: turno.id)) {
             cancelamentoNaFila = true
         }
-        if !turno.contatoVisivel(em: relogio.agora) {
-            contato = nil
-            contatoExpirado = true
-            return
-        }
+        // O app não chama mais `contato_do_turno` nem lê o contato: o que o servidor ainda guardou de
+        // aberturas antigas sai do aparelho (Fase 1 do contato fora do app).
+        try? await cacheLocal?.removerContato(doTurno: turno.id)
 
-        carregandoContato = true
-        defer { carregandoContato = false }
-
-        // O detalhe da vaga não depende do contato: os dois pedidos saem juntos.
+        // O detalhe da vaga traz o responsável, o ponto e as observações do "Como chegar".
         let api = self.api
         let cache = self.cache
         let vagaID = turno.vaga.id
@@ -324,44 +281,15 @@ public final class MeuTurnoViewModel {
             }
             : nil
 
-        do {
-            let novoContato = try await api.contatoDoTurno(id: turno.id)
-            if novoContato.estaVisivel(em: relogio.agora) && turno.contatoVisivel(em: relogio.agora) {
-                self.contato = novoContato
-                self.contatoExpirado = false
-                try? await cacheLocal?.salvar(contato: novoContato, doTurno: turno.id)
-            } else {
-                self.contato = nil
-                self.contatoExpirado = true
-            }
-        } catch let erro as ErroDaApi where erro.codigo == .contatoExpirado {
-            self.contato = nil
-            self.contatoExpirado = true
-            try? await cacheLocal?.removerContato(doTurno: turno.id)
-        } catch let erro as ErroDaApi where erro.codigo == .semRede {
-            // Em modo avião, mantém o contato se ainda estiver dentro do prazo (RN10 / RNF06).
-            let guardado = try? await cacheLocal?.contato(doTurno: turno.id, em: relogio.agora)
-            if let c = self.contato ?? guardado ?? turno.contato, c.estaVisivel(em: relogio.agora), turno.contatoVisivel(em: relogio.agora) {
-                self.contato = c
-                self.contatoExpirado = false
-            } else {
-                self.contato = nil
-                self.contatoExpirado = true
-            }
-        } catch {
-            // Se houver outro erro, preserva o contato atual se ainda visível
-            if let c = self.contato ?? turno.contato, !c.estaVisivel(em: relogio.agora) || !turno.contatoVisivel(em: relogio.agora) {
-                self.contato = nil
-                self.contatoExpirado = true
-            }
-        }
-
         // Tenta obter o responsável local detalhado da vaga
         if responsavelLocal == nil {
             if let vagaDetalhe = await buscarDetalhe?.value {
                 self.responsavelLocal = vagaDetalhe.responsavelLocal
+                let texto = vagaDetalhe.observacoes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                self.observacoesDaVaga = texto.isEmpty ? nil : texto
                 presenca?.definir(pontoDaVaga: vagaDetalhe.ponto)
             }
         }
+        detalheCarregado = true
     }
 }

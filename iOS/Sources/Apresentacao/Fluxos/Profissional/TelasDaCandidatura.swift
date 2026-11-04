@@ -246,8 +246,8 @@ public struct TelaResultadoDaCandidatura: View {
     @ViewBuilder
     private var conteudo: some View {
         switch resultado {
-        case let .confirmada(_, contato):
-            TurnoConfirmado(vaga: vaga, contato: contato)
+        case .confirmada:
+            TurnoConfirmado(vaga: vaga)
             voltar
         case let .pendente(candidaturaID):
             CandidaturaEnviada(candidaturaID: candidaturaID, api: api)
@@ -367,7 +367,7 @@ public struct TelaResultadoDaCandidatura: View {
         }
     }
 
-    /// A vaga a que a candidatura pendente se refere. Sem contato: ele só existe depois da escolha (RN10).
+    /// A vaga a que a candidatura pendente se refere.
     private var resumoDaVaga: some View {
         let formatador = FormatadorFrila()
         return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
@@ -447,11 +447,11 @@ private struct BarraInferiorDoResultado<Rodape: View>: ViewModifier {
     }
 }
 
-/// "Meu turno" logo depois da confirmação: stub do #109, só com os dados da vaga e o contato que a
-/// confirmação devolveu (RN10). Check-in, cancelamento e avaliação são de outros cartões.
+/// "Meu turno" logo depois da confirmação: stub do #109, só com os dados da vaga. O que a resposta
+/// da confirmação traz de contato não é lido nem mostrado. Check-in, cancelamento e avaliação são
+/// de outros cartões.
 private struct TurnoConfirmado: View {
     let vaga: Vaga
-    let contato: Contato?
 
     var body: some View {
         let formatador = FormatadorFrila()
@@ -477,33 +477,5 @@ private struct TurnoConfirmado: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
-
-        if let contato {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: Textos.contato)
-                    .font(FrilaTipo.microRotulo)
-                    .textCase(.uppercase)
-                    .tracking(0.8)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityAddTraits(.isHeader)
-                Text(verbatim: "\(contato.nome) · \(contato.telefone)")
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.texto)
-                Link(destination: contato.whatsappURL) {
-                    Text(verbatim: Textos.abrirWhatsApp)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
-                }
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
-                .accessibilityIdentifier("contato-do-turno")
-
-                Text(verbatim: Textos.contatoLiberado).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cartaoFrila()
-        }
     }
 }
