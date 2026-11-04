@@ -366,6 +366,10 @@ enum TextosDoProfissional {
         public static let botaoAvaliar = String(localized: "Avaliar turno", bundle: bundleApresentacao)
         public static let botaoVerAvaliacao = String(localized: "Ver avaliação", bundle: bundleApresentacao)
         public static let statusAvaliado = String(localized: "Turno avaliado", bundle: bundleApresentacao)
+        /// Espera da avaliação (RN07): o cartão só abre depois do fim previsto do turno.
+        public static func liberaAs(_ hora: String) -> String {
+            String(localized: "A avaliação libera às \(hora)", bundle: bundleApresentacao)
+        }
         public static func statusResposta(_ resposta: Bool) -> String {
             resposta
                 ? String(localized: "Turno avaliado · Resposta: Sim", bundle: bundleApresentacao)

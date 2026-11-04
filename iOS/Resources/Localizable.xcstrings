@@ -522,6 +522,16 @@
         }
       }
     },
+    "A avaliação libera às %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A avaliação libera às %@"
+          }
+        }
+      }
+    },
     "A avaliação só fica disponível após o término do turno e com presença confirmada.": {
       "localizations": {
         "pt-BR": {

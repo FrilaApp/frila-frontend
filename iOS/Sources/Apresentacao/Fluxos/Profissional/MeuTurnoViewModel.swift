@@ -4,7 +4,9 @@ import Observation
 
 @MainActor @Observable
 public final class MeuTurnoViewModel {
-    public let turno: Turno
+    /// A leitura de `meus_turnos` de quando a tela abriu; relida quando o fim previsto passa com a
+    /// tela aberta (ver `aguardarLiberacaoDaAvaliacao`).
+    public private(set) var turno: Turno
     public private(set) var recusasDaFila: [AcaoRecusada] = []
     public private(set) var responsavelLocal: String?
     /// O que a casa escreveu nas observações da vaga (entrada, ponto de referência). Vem do detalhe
@@ -23,6 +25,9 @@ public final class MeuTurnoViewModel {
     private var avaliacaoViewModel: AvaliacaoTurnoViewModel?
     /// UserDefaults não participa de Observation: a releitura invalida os derivados da reserva.
     private var revisaoDaReserva = 0
+    /// O relógio não participa de Observation: quem espera o fim previsto muda este número para a
+    /// tela reavaliar `podeAvaliar` e o aviso de espera.
+    private var revisaoDoRelogio = 0
     private let aoAvaliar: (() -> Void)?
     private let aoCancelar: (() -> Void)?
 
@@ -150,11 +155,55 @@ public final class MeuTurnoViewModel {
     }
 
     public var podeAvaliar: Bool {
+        _ = revisaoDoRelogio
         // Critério 1: a avaliação só aparece depois do fim previsto e com presença verificada (RN07).
         guard permiteAcoesDoTurno, contaID != nil else { return false }
-        guard turno.verificacao == .verificado else { return false }
+        guard verificacaoDaPresenca == .verificado else { return false }
         guard turno.vaga.periodo.fim <= relogio.agora else { return false }
         return !turno.servidorInformaAvaliacao || turno.podeAvaliar || jaAvaliado
+    }
+
+    /// A presença como a tela a vê agora: o check-in feito aqui vale antes de o turno ser relido.
+    private var verificacaoDaPresenca: Verificacao { presenca?.verificacao ?? turno.verificacao }
+
+    private var checkoutFeito: Bool {
+        if let presenca { return presenca.checkout != .naoFeito || turno.checkout != nil }
+        return turno.checkout != nil
+    }
+
+    /// Quando a avaliação libera (o `fim` previsto), enquanto isso ainda está no futuro: presença
+    /// verificada, check-out feito e nada avaliado por este lado. Sem presença verificada é `nil`,
+    /// para não prometer o que não vai abrir. A tela mostra "A avaliação libera às HH:mm" no lugar
+    /// do cartão.
+    public var liberacaoDaAvaliacao: Date? {
+        _ = revisaoDoRelogio
+        guard permiteAcoesDoTurno, contaID != nil else { return nil }
+        guard verificacaoDaPresenca == .verificado, checkoutFeito else { return nil }
+        guard turno.avaliacao == nil, avaliacaoEnviada == nil, respostaPendente == nil else { return nil }
+        let fim = turno.vaga.periodo.fim
+        return fim > relogio.agora ? fim : nil
+    }
+
+    /// Espera o `fim` previsto com a tela aberta e então reavalia `podeAvaliar` e relê o turno, para
+    /// o servidor confirmar `pode_avaliar`: o cartão aparece sem reabrir a tela. Cancelada com a tela
+    /// (`.task`). `dormir` existe para o teste não esperar de verdade.
+    public func aguardarLiberacaoDaAvaliacao(
+        dormir: @Sendable (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+    ) async {
+        guard permiteAcoesDoTurno, contaID != nil else { return }
+        let espera = turno.vaga.periodo.fim.timeIntervalSince(relogio.agora)
+        guard espera > 0 else { return }
+        await dormir(espera)
+        guard !Task.isCancelled else { return }
+        revisaoDoRelogio += 1
+        await reler()
+    }
+
+    /// Troca o turno pela leitura mais nova. Sem rede ou sem o turno na resposta, fica o que havia.
+    private func reler() async {
+        guard let lidos = try? await api.meusTurnos(), let atualizado = lidos.first(where: { $0.id == turno.id }) else { return }
+        turno = atualizado
+        revisaoDoRelogio += 1
     }
 
     public var respostaAvaliacao: Bool? {
