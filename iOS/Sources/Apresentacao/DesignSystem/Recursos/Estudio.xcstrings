@@ -121,16 +121,6 @@
         }
       }
     },
-    "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
-          }
-        }
-      }
-    },
     "Autonomous Agent Orchestrator for Distributed Compilers": {
       "localizations": {
         "pt-BR": {

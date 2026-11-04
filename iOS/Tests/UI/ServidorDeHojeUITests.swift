@@ -44,9 +44,9 @@ final class ServidorDeHojeUITests: XCTestCase {
         XCTAssertEqual(cabecalho.label, "Você está confirmado")
 
         // Ações de sempre de um turno confirmado
-        XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Abrir no WhatsApp"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Ver no Mapas"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["como-chegar-do-turno"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Abrir no mapa"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Abrir no WhatsApp"].exists)
         XCTAssertTrue(app.buttons["Fazer check-in"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["cancelamento-do-turno"].exists)
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)

@@ -19,11 +19,11 @@ enum TextosDosCandidatos {
     static let escolher = String(localized: "Escolher", bundle: bundleApresentacao)
     static let escolherNome = String(localized: "Escolher %@", bundle: bundleApresentacao)
     static let perguntaDaEscolha = String(localized: "Confirmar a escolha?", bundle: bundleApresentacao)
-    static let avisoDaEscolha = String(localized: "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro.", bundle: bundleApresentacao)
-    static let avisoDaUltimaPosicao = String(localized: "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro. É a última posição: os outros candidatos serão avisados de que não foram escolhidos.", bundle: bundleApresentacao)
+    static let avisoDaEscolha = String(localized: "%@ será confirmado nesta vaga.", bundle: bundleApresentacao)
+    static let avisoDaUltimaPosicao = String(localized: "%@ será confirmado nesta vaga. É a última posição: os outros candidatos serão avisados de que não foram escolhidos.", bundle: bundleApresentacao)
     static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
-    static let confirmado = String(localized: "%@ foi confirmado. O contato está em Posições.", bundle: bundleApresentacao)
-    static let confirmadoEVagaPreenchida = String(localized: "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados. O contato está em Posições.", bundle: bundleApresentacao)
+    static let confirmado = String(localized: "%@ foi confirmado.", bundle: bundleApresentacao)
+    static let confirmadoEVagaPreenchida = String(localized: "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados.", bundle: bundleApresentacao)
     static let posicaoJaPreenchida = String(localized: "Outra pessoa da sua equipe preencheu a última posição antes. Atualizamos a lista.", bundle: bundleApresentacao)
     static let posicaoJaPreenchidaSemAtualizar = String(localized: "Outra pessoa da sua equipe preencheu a última posição antes.", bundle: bundleApresentacao)
     static let candidaturaIndisponivel = String(localized: "A candidatura de %@ não está mais disponível: foi retirada ou expirou. Atualizamos a lista.", bundle: bundleApresentacao)
@@ -228,7 +228,7 @@ public final class CandidatosDaVagaViewModel {
 
     // MARK: Escolha
 
-    /// A escolha confirma o profissional e libera o contato: a tela pergunta antes.
+    /// A escolha confirma o profissional: a tela pergunta antes.
     public func pedirEscolha(_ candidato: Candidato) {
         guard escolhendo == nil, candidatos.contains(where: { $0.id == candidato.id }) else { return }
         escolhaEmConfirmacao = candidato
@@ -559,7 +559,7 @@ public struct SecaoDeCandidatos: View {
     }
 }
 
-/// Escolher confirma o profissional, libera o contato e, na última posição, dispensa os outros
+/// Escolher confirma o profissional e, na última posição, dispensa os outros
 /// candidatos: a pergunta vem antes da chamada.
 private struct ConfirmacaoDaEscolha: ViewModifier {
     let viewModel: CandidatosDaVagaViewModel

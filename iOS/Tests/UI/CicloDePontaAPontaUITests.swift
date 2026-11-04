@@ -136,15 +136,13 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10), "Tela Meu turno deve abrir")
 
-        // 5. Contato liberado da casa visível
-        let cartaoContato = app.descendants(matching: .any)["contato-do-turno"].firstMatch
-        XCTAssertTrue(cartaoContato.waitForExistence(timeout: 10), "Cartão de contato deve aparecer no turno confirmado")
-        trazerParaATela(cartaoContato, em: app)
-        let contatoLiberado = app.descendants(matching: .any)["contato-telefone"].firstMatch.waitForExistence(timeout: 2)
-            || cartaoContato.label.contains("Bistrô")
-            || cartaoContato.label.contains("+55")
-            || cartaoContato.exists
-        XCTAssertTrue(contatoLiberado, "Contato liberado do contratante deve estar visível")
+        // 5. Como chegar visível, sem contato
+        let comoChegar = app.descendants(matching: .any)["como-chegar-do-turno"].firstMatch
+        XCTAssertTrue(comoChegar.waitForExistence(timeout: 10), "Como chegar deve aparecer no turno confirmado")
+        trazerParaATela(comoChegar, em: app)
+        XCTAssertTrue(app.buttons["botao-abrir-no-mapa"].exists, "Abrir no mapa deve estar no Como chegar")
+        XCTAssertFalse(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.buttons["botao-whatsapp"].exists)
 
         // 6. Check-in manual (localização negada pelo dublê)
         let fazerCheckin = app.buttons["fazer-checkin"]

@@ -158,9 +158,9 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '#219' OR label CONTAINS '#50'")).firstMatch.exists)
     }
 
-    // MARK: - 5. Minhas Vagas: Títulos Acessíveis e Link Ligar (3.1 a 3.4)
+    // MARK: - 5. Minhas Vagas: Títulos Acessíveis e sem contato (3.2 a 3.4)
 
-    func testMinhasVagasAcessibilidadeTitulosELinkLigar() {
+    func testMinhasVagasAcessibilidadeTitulosESemContato() {
         let app = abrir(argumentos: [
             "-FRILA_ABRIR_MINHAS_VAGAS",
             "-FRILA_SCENARIO", "painel-contratante",
@@ -191,24 +191,10 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
-        // 3.1 Link Ligar com Label acessível e alvo de toque >= 44 pt
-        let contato = app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(contato.waitForExistence(timeout: Espera.aparecer))
-        trazerParaATela(contato, em: app)
-        contato.tap()
-
-        let linkLigar = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Ligar'")).firstMatch
-        XCTAssertTrue(linkLigar.waitForExistence(timeout: Espera.aparecer))
-        trazerParaATela(linkLigar, em: app)
-        XCTAssertAlvoMinimo(linkLigar.frame.height, "Link Ligar deve ter altura mínima de 44 pt")
-        XCTAssertTrue(linkLigar.isHittable)
-
-        // Verifica que o WhatsApp também mantém alvo de toque
-        let linkWhatsApp = app.buttons.matching(NSPredicate(format: "label CONTAINS 'WhatsApp'")).firstMatch
-        XCTAssertTrue(linkWhatsApp.waitForExistence(timeout: Espera.aparecer))
-        trazerParaATela(linkWhatsApp, em: app)
-        XCTAssertAlvoMinimo(linkWhatsApp.frame.height, "Link WhatsApp deve ter altura mínima de 44 pt")
-        XCTAssertTrue(linkWhatsApp.isHittable)
+        // Contato fora do app: nem "Ver contato", nem Ligar, nem WhatsApp.
+        XCTAssertTrue(app.buttons["acompanhar-turno-82000000-0000-0000-0000-000000000001"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"].exists)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Ligar' OR label CONTAINS 'WhatsApp'")).firstMatch.exists)
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 12) {
