@@ -10,8 +10,6 @@ enum TextosDaCandidaturaEmSelecao {
     // Candidatura enviada e retirada
     static let enviadaTitulo = String(localized: "Candidatura enviada", bundle: bundleApresentacao)
     static let enviadaMensagem = String(localized: "O estabelecimento escolhe entre os candidatos, até 24 horas antes do início do turno. O Frila avisa você quando houver resposta.", bundle: bundleApresentacao)
-    static let enviadaContato = String(localized: "Seu telefone e WhatsApp só são mostrados ao estabelecimento se a sua candidatura for escolhida.", bundle: bundleApresentacao)
-    static let avisoRN10 = String(localized: "Se a sua candidatura for escolhida, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.", bundle: bundleApresentacao)
     static let retirar = String(localized: "Retirar candidatura", bundle: bundleApresentacao)
     static let retirando = String(localized: "Retirando candidatura…", bundle: bundleApresentacao)
     static let perguntaDaRetirada = String(localized: "Retirar a candidatura?", bundle: bundleApresentacao)
@@ -267,7 +265,7 @@ struct CandidaturaEnviada: View {
     }
 
     private var explicacao: [String] {
-        compacta && dynamicTypeSize.isAccessibilitySize ? [] : [Textos.enviadaMensagem, Textos.enviadaContato]
+        compacta && dynamicTypeSize.isAccessibilitySize ? [] : [Textos.enviadaMensagem]
     }
 
     private func situacao(_ titulo: String, _ paragrafos: [String], id: String) -> some View {
