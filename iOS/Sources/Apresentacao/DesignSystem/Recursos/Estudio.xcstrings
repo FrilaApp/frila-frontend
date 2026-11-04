@@ -1,1010 +1,1109 @@
 {
-  "sourceLanguage": "pt-BR",
-  "strings": {
-    "%@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@"
+  "sourceLanguage" : "pt-BR",
+  "strings" : {
+    "," : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ","
           }
         }
       }
     },
-    "%@ %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ %@"
+    "%@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
           }
         }
       }
     },
-    "%@ de %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ de %@"
+    "%@ %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@"
           }
         }
       }
     },
-    "%@ já existe no catálogo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ já existe no catálogo."
+    "%@ de %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ de %@"
           }
         }
       }
     },
-    "%@ vagas": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ vagas"
+    "%@ já existe no catálogo." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ já existe no catálogo."
           }
         }
       }
     },
-    "%@, %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, %@"
+    "%@ vagas" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vagas"
           }
         }
       }
     },
-    "%@, %@, %@, %@. Toque para ver detalhes.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, %@, %@, %@. Toque para ver detalhes."
+    "%@, %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
           }
         }
       }
     },
-    "%@, etapa final": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, etapa final"
+    "%@, %@, %@, %@. Toque para ver detalhes." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@, %@, %@. Toque para ver detalhes."
           }
         }
       }
     },
-    "%@, próxima etapa": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, próxima etapa"
+    "%@, etapa final" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, etapa final"
           }
         }
       }
     },
-    "%@:": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@:"
+    "%@, próxima etapa" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, próxima etapa"
           }
         }
       }
     },
-    ",": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ","
+    "%@:" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@:"
           }
         }
       }
     },
-    "Adicionar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adicionar"
+    "Adicionar" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar"
           }
         }
       }
     },
-    "Autonomous Agent Orchestrator for Distributed Compilers": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autonomous Agent Orchestrator for Distributed Compilers"
+    "Autonomous Agent Orchestrator for Distributed Compilers" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autonomous Agent Orchestrator for Distributed Compilers"
           }
         }
       }
     },
-    "Bar da Quadra": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bar da Quadra"
+    "Bar da Quadra" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bar da Quadra"
           }
         }
       }
     },
-    "Bloquear": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bloquear"
+    "Bloquear" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloquear"
           }
         }
       }
     },
-    "CLN 408, Bloco B, Asa Norte": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CLN 408, Bloco B, Asa Norte"
+    "Camisa preta, calça escura" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camisa preta, calça escura"
           }
         }
       }
     },
-    "COMPETÊNCIAS VERIFICADAS": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "COMPETÊNCIAS VERIFICADAS"
+    "Cancelar" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
           }
         }
       }
     },
-    "Camisa preta, calça escura": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Camisa preta, calça escura"
+    "Candidatar-me" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidatar-me"
           }
         }
       }
     },
-    "Cancelar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar"
+    "Candidatar-me à vaga de %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidatar-me à vaga de %@"
           }
         }
       }
     },
-    "Candidatar-me": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Candidatar-me"
+    "Candidatar-me para a vaga" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidatar-me para a vaga"
           }
         }
       }
     },
-    "Candidatar-me para a vaga": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Candidatar-me para a vaga"
+    "Candidatar-me para a vaga de %@ no %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidatar-me para a vaga de %@ no %@"
           }
         }
       }
     },
-    "Candidatar-me para a vaga de %@ no %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Candidatar-me para a vaga de %@ no %@"
+    "Candidatar-se" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidatar-se"
           }
         }
       }
     },
-    "Candidatar-me à vaga de %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Candidatar-me à vaga de %@"
+    "Candidatar-se à oportunidade de %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Candidatar-se à oportunidade de %@"
           }
         }
       }
     },
-    "Candidatar-se": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Candidatar-se"
+    "Carregando: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando: %@"
           }
         }
       }
     },
-    "Candidatar-se à oportunidade de %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Candidatar-se à oportunidade de %@"
+    "Categoria %@, função %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categoria %@, função %@"
           }
         }
       }
     },
-    "Carregando: %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Carregando: %@"
+    "CLN 408, Bloco B, Asa Norte" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLN 408, Bloco B, Asa Norte"
           }
         }
       }
     },
-    "Categoria %@, função %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Categoria %@, função %@"
+    "COMPETÊNCIAS VERIFICADAS" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COMPETÊNCIAS VERIFICADAS"
           }
         }
       }
     },
-    "Concluir": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Concluir"
+    "Concluir" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concluir"
           }
         }
       }
     },
-    "Confirmado. Toque para revisar a escolha.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirmado. Toque para revisar a escolha."
+    "Confirmado. Toque para revisar a escolha." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmado. Toque para revisar a escolha."
           }
         }
       }
     },
-    "Contrato curado de alta complexidade técnica e design institucional. Requer proficiência sênior em sistemas escaláveis, conformidade estrita com tokens tipográficos e renderização de alta fidelidade.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contrato curado de alta complexidade técnica e design institucional. Requer proficiência sênior em sistemas escaláveis, conformidade estrita com tokens tipográficos e renderização de alta fidelidade."
+    "Contrato curado de alta complexidade técnica e design institucional. Requer proficiência sênior em sistemas escaláveis, conformidade estrita com tokens tipográficos e renderização de alta fidelidade." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrato curado de alta complexidade técnica e design institucional. Requer proficiência sênior em sistemas escaláveis, conformidade estrita com tokens tipográficos e renderização de alta fidelidade."
           }
         }
       }
     },
-    "DETALHES E ATIVIDADES": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DETALHES E ATIVIDADES"
+    "Denunciar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denunciar"
           }
         }
       }
     },
-    "Denunciar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Denunciar"
+    "DETALHES E ATIVIDADES" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DETALHES E ATIVIDADES"
           }
         }
       }
     },
-    "ESPECIFICAÇÃO DO CONTRATO // REGISTRO DE ARQUIVO": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ESPECIFICAÇÃO DO CONTRATO // REGISTRO DE ARQUIVO"
+    "Enviar Proposta" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar Proposta"
           }
         }
       }
     },
-    "ETAPAS DA OPORTUNIDADE": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ETAPAS DA OPORTUNIDADE"
+    "Escolha a data e os horários do turno." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha a data e os horários do turno."
           }
         }
       }
     },
-    "Enviar Proposta": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enviar Proposta"
+    "Escolha o início e o fim" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha o início e o fim"
           }
         }
       }
     },
-    "Escolha a data e os horários do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolha a data e os horários do turno."
+    "Escolha um valor" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha um valor"
           }
         }
       }
     },
-    "Escolha o início e o fim": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolha o início e o fim"
+    "Escolher %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher %@"
           }
         }
       }
     },
-    "Escolha um valor": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolha um valor"
+    "ESPECIFICAÇÃO DO CONTRATO // REGISTRO DE ARQUIVO" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ESPECIFICAÇÃO DO CONTRATO // REGISTRO DE ARQUIVO"
           }
         }
       }
     },
-    "Escolher %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolher %@"
+    "ETAPAS DA OPORTUNIDADE" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ETAPAS DA OPORTUNIDADE"
           }
         }
       }
     },
-    "Etapas do turno": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Etapas do turno"
+    "Etapas do turno" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etapas do turno"
           }
         }
       }
     },
-    "Experiência desejada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Experiência desejada"
+    "Experiência desejada" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Experiência desejada"
           }
         }
       }
     },
-    "Experiência desejada: %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Experiência desejada: %@"
+    "Experiência desejada: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Experiência desejada: %@"
           }
         }
       }
     },
-    "F": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "F"
+    "F" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "F"
           }
         }
       }
     },
-    "Falta preencher %@. Toque duas vezes para ir até a seção.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Falta preencher %@. Toque duas vezes para ir até a seção."
+    "Falta preencher %@. Toque duas vezes para ir até a seção." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falta preencher %@. Toque duas vezes para ir até a seção."
           }
         }
       }
     },
-    "Fechar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fechar"
+    "Fechar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar"
           }
         }
       }
     },
-    "Fechar detalhes do placard": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fechar detalhes do placard"
+    "Fechar detalhes do placard" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar detalhes do placard"
           }
         }
       }
     },
-    "Fechar estúdio de criação": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fechar estúdio de criação"
+    "Fechar estúdio de criação" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar estúdio de criação"
           }
         }
       }
     },
-    "Fechar notificação": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fechar notificação"
+    "Fechar notificação" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar notificação"
           }
         }
       }
     },
-    "Função criada pelo contratante": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Função criada pelo contratante"
+    "Função criada pelo contratante" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Função criada pelo contratante"
           }
         }
       }
     },
-    "Horas contratadas": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Horas contratadas"
+    "Horário" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horário"
           }
         }
       }
     },
-    "Horas contratadas: %@%@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Horas contratadas: %@%@"
+    "Horas contratadas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horas contratadas"
           }
         }
       }
     },
-    "Horas contratadas: escolha o início e o fim": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Horas contratadas: escolha o início e o fim"
+    "Horas contratadas: %@%@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horas contratadas: %@%@"
           }
         }
       }
     },
-    "Horário": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Horário"
+    "Horas contratadas: escolha o início e o fim" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horas contratadas: escolha o início e o fim"
           }
         }
       }
     },
-    "Imagem de apresentação da oportunidade para %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Imagem de apresentação da oportunidade para %@"
+    "Imagem de apresentação da oportunidade para %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imagem de apresentação da oportunidade para %@"
           }
         }
       }
     },
-    "Limpar texto": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Limpar texto"
+    "Limpar texto" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limpar texto"
           }
         }
       }
     },
-    "Local a definir": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Local a definir"
+    "Local a definir" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local a definir"
           }
         }
       }
     },
-    "NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS"
+    "não definido" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "não definido"
           }
         }
       }
     },
-    "Não deu para publicar": {},
-    "Não deu para publicar a vaga. Tente de novo.": {},
-    "Não selecionado": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não selecionado"
+    "Não deu para publicar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para publicar"
           }
         }
       }
     },
-    "O QUE ESTÁ INCLUSO": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O QUE ESTÁ INCLUSO"
+    "Não deu para publicar a vaga. Tente de novo." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para publicar a vaga. Tente de novo."
           }
         }
       }
     },
-    "O app publica o valor por turno. Troque Por hora por Por turno.": {},
-    "O que está incluso": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O que está incluso"
+    "Não selecionado" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não selecionado"
           }
         }
       }
     },
-    "O valor é integral: o Frila não desconta taxa do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O valor é integral: o Frila não desconta taxa do turno."
+    "NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS"
           }
         }
       }
     },
-    "OK": {},
-    "Oportunidade": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oportunidade"
+    "O app publica o valor por turno. Troque Por hora por Por turno." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O app publica o valor por turno. Troque Por hora por Por turno."
           }
         }
       }
     },
-    "Posições": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Posições"
+    "O que está incluso" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que está incluso"
           }
         }
       }
     },
-    "Profissionais necessários para o turno": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Profissionais necessários para o turno"
+    "O QUE ESTÁ INCLUSO" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O QUE ESTÁ INCLUSO"
           }
         }
       }
     },
-    "Progresso: etapa %@ de %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Progresso: etapa %@ de %@"
+    "O valor é integral: o Frila não desconta taxa do turno." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O valor é integral: o Frila não desconta taxa do turno."
           }
         }
       }
     },
-    "Prévia": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prévia"
+    "obrigatório, não definido" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "obrigatório, não definido"
           }
         }
       }
     },
-    "Publicar vaga": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publicar vaga"
+    "OK" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         }
       }
     },
-    "Publicar vaga de %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publicar vaga de %@"
+    "Oportunidade" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oportunidade"
           }
         }
       }
     },
-    "Publicar vaga, etapa %@ de %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publicar vaga, etapa %@ de %@"
+    "Posições" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posições"
           }
         }
       }
     },
-    "Quando": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quando"
+    "Prévia" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prévia"
           }
         }
       }
     },
-    "Recolhe a lista e libera espaço": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recolhe a lista e libera espaço"
+    "Profissionais necessários para o turno" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profissionais necessários para o turno"
           }
         }
       }
     },
-    "Recolher %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recolher %@"
+    "Progresso: etapa %@ de %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresso: etapa %@ de %@"
           }
         }
       }
     },
-    "Recolher seleção": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recolher seleção"
+    "Publicar vaga" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar vaga"
           }
         }
       }
     },
-    "Remover dos salvos": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remover dos salvos"
+    "Publicar vaga de %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar vaga de %@"
           }
         }
       }
     },
-    "Renata, no balcão": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Renata, no balcão"
+    "Publicar vaga, etapa %@ de %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar vaga, etapa %@ de %@"
           }
         }
       }
     },
-    "Salva este contrato no catálogo pessoal": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Salva este contrato no catálogo pessoal"
+    "Quando" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando"
           }
         }
       }
     },
-    "Salvar oportunidade": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Salvar oportunidade"
+    "Recolhe a lista e libera espaço" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recolhe a lista e libera espaço"
           }
         }
       }
     },
-    "Selecionado": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selecionado"
+    "Recolher %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recolher %@"
           }
         }
       }
     },
-    "Sem taxa: o profissional recebe o valor integral.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sem taxa: o profissional recebe o valor integral."
+    "Recolher seleção" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recolher seleção"
           }
         }
       }
     },
-    "Sua vaga já está visível para profissionais perto de você no Frila.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua vaga já está visível para profissionais perto de você no Frila."
+    "Remover dos salvos" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover dos salvos"
           }
         }
       }
     },
-    "TAGS E REQUISITOS": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TAGS E REQUISITOS"
+    "Renata, no balcão" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renata, no balcão"
           }
         }
       }
     },
-    "Termina no dia seguinte": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Termina no dia seguinte"
+    "Salva este contrato no catálogo pessoal" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva este contrato no catálogo pessoal"
           }
         }
       }
     },
-    "Toque duas vezes para selecionar o passo %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toque duas vezes para selecionar o passo %@"
+    "Salvar oportunidade" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvar oportunidade"
           }
         }
       }
     },
-    "Toque para editar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toque para editar"
+    "Selecionado" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecionado"
           }
         }
       }
     },
-    "Toque para escolher": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toque para escolher"
+    "Sem taxa: o profissional recebe o valor integral." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem taxa: o profissional recebe o valor integral."
           }
         }
       }
     },
-    "Toque para ver os níveis": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toque para ver os níveis"
+    "Sua vaga já está visível para profissionais perto de você no Frila." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua vaga já está visível para profissionais perto de você no Frila."
           }
         }
       }
     },
-    "Urgência": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Urgência"
+    "TAGS E REQUISITOS" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TAGS E REQUISITOS"
           }
         }
       }
     },
-    "Usar %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usar %@"
+    "Termina no dia seguinte" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina no dia seguinte"
           }
         }
       }
     },
-    "VAGA DISPONÍVEL // FRILA BRASIL": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "VAGA DISPONÍVEL // FRILA BRASIL"
+    "Toque duas vezes para selecionar o passo %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque duas vezes para selecionar o passo %@"
           }
         }
       }
     },
-    "Vaga": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vaga"
+    "Toque para editar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque para editar"
           }
         }
       }
     },
-    "Vaga Publicada!": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vaga Publicada!"
+    "Toque para escolher" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque para escolher"
           }
         }
       }
     },
-    "Vagas abertas": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vagas abertas"
+    "Toque para ver os níveis" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque para ver os níveis"
           }
         }
       }
     },
-    "Valor": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valor"
+    "Urgência" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urgência"
           }
         }
       }
     },
-    "Valor por hora": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valor por hora"
+    "Usar %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar %@"
           }
         }
       }
     },
-    "Valor por turno": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valor por turno"
+    "Vaga" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaga"
           }
         }
       }
     },
-    "Valor total das vagas": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Valor total das vagas"
+    "VAGA DISPONÍVEL // FRILA BRASIL" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VAGA DISPONÍVEL // FRILA BRASIL"
           }
         }
       }
     },
-    "Ver Detalhes da Vaga": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ver Detalhes da Vaga"
+    "Vaga Publicada!" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaga Publicada!"
           }
         }
       }
     },
-    "Voltar para etapa anterior": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voltar para etapa anterior"
+    "Vagas abertas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vagas abertas"
           }
         }
       }
     },
-    "não definido": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "não definido"
+    "Valor" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor"
           }
         }
       }
     },
-    "obrigatório, não definido": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "obrigatório, não definido"
+    "Valor por hora" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor por hora"
+          }
+        }
+      }
+    },
+    "Valor por turno" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor por turno"
+          }
+        }
+      }
+    },
+    "Valor total das vagas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor total das vagas"
+          }
+        }
+      }
+    },
+    "Ver Detalhes da Vaga" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver Detalhes da Vaga"
+          }
+        }
+      }
+    },
+    "Voltar para etapa anterior" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltar para etapa anterior"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }
