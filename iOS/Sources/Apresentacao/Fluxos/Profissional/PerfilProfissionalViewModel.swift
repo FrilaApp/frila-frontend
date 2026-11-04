@@ -231,10 +231,22 @@ public final class PerfilProfissionalViewModel {
     public func salvar() async -> Bool {
         guard !salvando else { return false }
 
-        guard !funcoesSelecionadas.isEmpty else {
+        // Conta só as funções do catálogo ativo, como o contador da tela: um ID salvo que ficou
+        // inativo continua no conjunto, mas não vale como "ao menos uma função". Sem catálogo
+        // carregado, não há como distinguir, e vale o conjunto inteiro.
+        let catalogoAtivo = Set(funcoesDisponiveis.map(\.id))
+        let temFuncaoValida = catalogoAtivo.isEmpty
+            ? !funcoesSelecionadas.isEmpty
+            : !funcoesSelecionadas.isDisjoint(with: catalogoAtivo)
+        guard temFuncaoValida else {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemFuncao
             return false
         }
+        // O servidor recusa função inativa com 422 (privado.gravar_funcoes conta só as ativas), então o
+        // envio leva só as do catálogo ativo. O conjunto local fica como está.
+        let funcoesParaEnviar = catalogoAtivo.isEmpty
+            ? Array(funcoesSelecionadas)
+            : Array(funcoesSelecionadas.intersection(catalogoAtivo))
 
         guard let pontoBase = pontoBase else {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemPontoBase
@@ -251,7 +263,7 @@ public final class PerfilProfissionalViewModel {
             switch modo {
             case .criacao:
                 let dados = DadosPerfilProfissional(
-                    funcoes: Array(funcoesSelecionadas),
+                    funcoes: funcoesParaEnviar,
                     pontoBase: pontoBase,
                     disponibilidades: disponibilidades
                 )
@@ -270,7 +282,7 @@ public final class PerfilProfissionalViewModel {
 
             case .edicao:
                 let alteracao = AlteracaoPerfilProfissional(
-                    funcoes: Array(funcoesSelecionadas),
+                    funcoes: funcoesParaEnviar,
                     pontoBase: pontoBase,
                     disponibilidades: disponibilidades
                 )
