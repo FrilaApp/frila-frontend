@@ -46,6 +46,7 @@ struct BarraAceitarTurnoTamanhoTests {
             .environment(\.colorScheme, .light)
         let alturaBarra = UIHostingController(rootView: barra).sizeThatFits(in: CGSize(width: 375, height: 800)).height
         print("LOG-019 rodada3b barra1250 SE altura=\(alturaBarra)")
+        #expect((105...118).contains(alturaBarra), "A barra com o respiro de 8 pt mede \(alturaBarra) pt; o alvo é cerca de 111 pt (105 a 118)")
         let renderizador = ImageRenderer(content: barra)
         renderizador.scale = 2
         let imagem = try #require(renderizador.uiImage)

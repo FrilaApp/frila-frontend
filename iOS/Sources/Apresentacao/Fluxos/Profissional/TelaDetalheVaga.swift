@@ -313,11 +313,12 @@ public struct TelaDetalheVaga<Acao: View>: View {
 
         notasResumo(vaga)
 
+        // A consequência do aceite fica junto da nota do modo, perto do resumo, e não no fim da rolagem.
+        avisoRN10View(vaga)
+
         cartaoInclusos(vaga)
 
         cartaoReputacao(vaga.estabelecimento.reputacao)
-
-        avisoRN10View(vaga)
 
         if !avisosDaAcao.avisos.isEmpty {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
