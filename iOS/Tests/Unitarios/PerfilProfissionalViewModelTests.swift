@@ -371,6 +371,33 @@ struct PerfilProfissionalViewModelTests {
         #expect(api.dadosPerfilCriado == nil)
     }
 
+    @Test("Função salva que ficou inativa no catálogo não conta como ao menos uma função")
+    func funcaoInativaNaoContaParaSalvar() async throws {
+        let inativa = Funcao(id: UUID(uuidString: "20000000-0000-0000-0000-0000000000FF")!, nome: "Recepcionista", categoria: "Eventos")
+        let perfilExistente = PerfilProfissional(
+            id: UUID(),
+            usuarioID: UUID(),
+            funcoes: [inativa],
+            pontoBase: try Coordenada(latitude: -15.8267, longitude: -47.9218),
+            disponibilidades: [JanelaDeDisponibilidade(diaDaSemana: 5, inicio: try HoraDoDia("18:00"), fim: try HoraDoDia("02:00"))],
+            reputacao: Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+        )
+        let api = criarDubleApi(perfilExistente: perfilExistente)
+        let vm = PerfilProfissionalViewModel(api: api, modo: .edicao)
+
+        await vm.carregar()
+        #expect(vm.funcoesSelecionadas == [inativa.id])
+
+        let sucesso = await vm.salvar()
+        #expect(!sucesso)
+        #expect(vm.mensagemDeErro == TextosDoProfissional.Perfil.erroSemFuncao)
+
+        // Escolher uma função ativa libera o salvamento; o ID inativo continua no conjunto.
+        vm.alternarFuncao(vm.funcoesDisponiveis[0].id)
+        #expect(await vm.salvar())
+        #expect(vm.funcoesSelecionadas.contains(inativa.id))
+    }
+
     @Test("Edição posterior pelo perfil funciona sem novo login e usa meuPerfilProfissional (#98)")
     func edicaoPosteriorCarregaPerfil() async throws {
         let funcao1 = Funcao(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, nome: "Garçom", categoria: "Restaurante")

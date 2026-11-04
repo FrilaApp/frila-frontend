@@ -10717,6 +10717,36 @@
           }
         }
       }
+    },
+    "Data": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        }
+      }
+    },
+    "Horas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horas"
+          }
+        }
+      }
+    },
+    "Minutos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minutos"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

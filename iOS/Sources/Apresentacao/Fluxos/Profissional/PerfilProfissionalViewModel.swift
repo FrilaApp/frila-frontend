@@ -231,7 +231,14 @@ public final class PerfilProfissionalViewModel {
     public func salvar() async -> Bool {
         guard !salvando else { return false }
 
-        guard !funcoesSelecionadas.isEmpty else {
+        // Conta só as funções do catálogo ativo, como o contador da tela: um ID salvo que ficou
+        // inativo continua no conjunto, mas não vale como "ao menos uma função". Sem catálogo
+        // carregado, não há como distinguir, e vale o conjunto inteiro.
+        let catalogoAtivo = Set(funcoesDisponiveis.map(\.id))
+        let temFuncaoValida = catalogoAtivo.isEmpty
+            ? !funcoesSelecionadas.isEmpty
+            : !funcoesSelecionadas.isDisjoint(with: catalogoAtivo)
+        guard temFuncaoValida else {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemFuncao
             return false
         }
