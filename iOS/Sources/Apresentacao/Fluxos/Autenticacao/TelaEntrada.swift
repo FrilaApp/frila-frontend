@@ -6,13 +6,8 @@ public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
 
-    @FocusState private var campoFocado: Bool
     @State private var erroLocal: String?
-
-    /// O endereço de exemplo é sintaxe técnica de placeholder, não texto traduzível de produto.
-    /// É mantido como constante para preservar o contrato do conferir-textos.sh e alimentar
-    /// CampoFrila(verbatim:), impedindo que o SwiftUI interprete o e-mail como link azul.
-    private let exemploDeEmail = "nome@exemplo.com"
+    @State private var controleDoCampo = ControleDoCampoEmail()
 
     public init(viewModel: EntradaViewModel, aoAvancarParaCodigo: @escaping (String) -> Void) {
         self.viewModel = viewModel
@@ -56,22 +51,17 @@ public struct TelaEntrada: View {
 
                         // Formulário de e-mail
                         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                            Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
+                                .font(FrilaTipo.contextoDaResposta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+
                             Text("E-mail", bundle: bundleApresentacao)
                                 .font(FrilaTipo.rotuloDoCampo)
                                 .foregroundStyle(FrilaCor.texto)
 
-                            CampoFrila(verbatim: exemploDeEmail, texto: $viewModel.email)
-                                .keyboardType(.emailAddress)
-                                .textContentType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .submitLabel(.send)
-                                .focused($campoFocado)
-                                .frilaFormField(id: "entrada-email", isFocused: campoFocado, onDismiss: { campoFocado = false })
-                                .disabled(viewModel.carregando)
-                                .onSubmit {
-                                    executarEnvio()
-                                }
+                            CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio, controle: controleDoCampo)
+                                .frame(height: FrilaMetrica.alturaDoCampo)
+                                .zIndex(1)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: FrilaRaio.entrada)
                                         .strokeBorder(erroLocal != nil ? FrilaCor.perigo : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
@@ -92,10 +82,6 @@ public struct TelaEntrada: View {
                                         .foregroundStyle(FrilaCor.perigo)
                                 }
                             }
-
-                            Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
-                                .font(FrilaTipo.contextoDaResposta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
                         }
                     }
 
@@ -125,6 +111,7 @@ public struct TelaEntrada: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationBarBackButtonHidden(true)
         .onChange(of: viewModel.email) { _, _ in
@@ -137,6 +124,8 @@ public struct TelaEntrada: View {
         }
         .barraInferiorFixa {
             BotaoPrimario("Receber código", carregando: viewModel.carregando) {
+                // Com ghost, o primeiro toque completa e o segundo envia, como no Return.
+                if controleDoCampo.completarAntesDeEnviar?() == true { return }
                 executarEnvio()
             }
             .disabled(viewModel.carregando)
