@@ -39,6 +39,10 @@ settings:
     SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
     SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # Os catálogos .xcstrings entram no repositório já no formato do Xcode. A extração automática
+    # de textos fica desligada de propósito: ligada, o Xcode (a janela, não o xcodebuild) acrescenta ao
+    # catálogo chaves que o código só monta em tempo de execução e reescreve o arquivo a cada build.
+    SWIFT_EMIT_LOC_STRINGS: NO
     CLANG_ENABLE_MODULES: YES
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: 8B7F7G3Y2U
