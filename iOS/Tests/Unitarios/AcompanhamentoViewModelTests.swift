@@ -1261,3 +1261,115 @@ private final class FilaDeTesteAcompanhamento: FilaDeAcoes, @unchecked Sendable 
     }
 }
 
+
+@MainActor
+@Suite("Avaliação libera no horário do lado do contratante (#672)")
+struct AvaliacaoLiberaNoHorarioDoContratanteTests {
+    private let contaID = UUID()
+    /// 05:00 em São Paulo (1_800_000_000 é 08:00 UTC); o fim previsto é 07:00.
+    private let agora = agoraDoTeste
+
+    private func turno(verificacao: Verificacao = .verificado, estado: EstadoPosicao = .confirmada) throws -> TurnoAcompanhado {
+        let resumo = VagaResumo(
+            id: UUID(), funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
+            periodo: try Periodo(inicio: agora.addingTimeInterval(-hora), fim: agora.addingTimeInterval(2 * hora)),
+            valor: Dinheiro(centavos: 12000)
+        )
+        let posicao = PosicaoNoPainel(id: UUID(), estado: estado, profissional: PainelDeTeste.ana, turnoID: UUID(), verificacao: verificacao, emAtraso: false)
+        return TurnoAcompanhado(vaga: resumo, posicao: posicao)
+    }
+
+    private func viewModel(
+        relogio: RelogioDeTeste,
+        armazenamento: any ArmazenamentoAvaliacoes = ArmazenamentoAvaliacoesEmMemoria(),
+        buscarPainel: @escaping @Sendable () async throws -> Painel = { Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [], checkinsPendentes: []) }
+    ) -> AcompanhamentoViewModel {
+        AcompanhamentoViewModel(
+            buscarPainel: buscarPainel,
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { relogio.agora },
+            contaID: contaID,
+            armazenamentoAvaliacoes: armazenamento
+        )
+    }
+
+    @Test("Antes do fim, com presença verificada: mostra a hora do fim e não abre o cartão")
+    func antesDoFim() throws {
+        let turno = try turno()
+        let vm = viewModel(relogio: RelogioDeTeste(agora))
+        #expect(vm.podeAvaliar(turno) == false)
+        #expect(vm.liberacaoDaAvaliacao(turno) == turno.vaga.periodo.fim)
+        #expect(TextosDoProfissional.Avaliacao.liberaAs(FormatadorFrila().hora(turno.vaga.periodo.fim)) == "A avaliação libera às 07:00")
+    }
+
+    @Test("No instante do fim e depois dele: o cartão abre e o aviso some")
+    func noFimEDepois() throws {
+        let turno = try turno()
+        let relogio = RelogioDeTeste(turno.vaga.periodo.fim)
+        let vm = viewModel(relogio: relogio)
+        #expect(vm.podeAvaliar(turno))
+        #expect(vm.liberacaoDaAvaliacao(turno) == nil)
+        relogio.avancar(para: turno.vaga.periodo.fim.addingTimeInterval(1_800))
+        #expect(vm.podeAvaliar(turno))
+        #expect(vm.liberacaoDaAvaliacao(turno) == nil)
+    }
+
+    @Test("Presença pendente ou não verificada, e posição cancelada: nem hora nem cartão")
+    func semPresencaVerificada() throws {
+        let relogio = RelogioDeTeste(agora)
+        let vm = viewModel(relogio: relogio)
+        for turno in [try turno(verificacao: .pendente), try turno(verificacao: .naoVerificado), try turno(estado: .cancelada)] {
+            #expect(vm.podeAvaliar(turno) == false)
+            #expect(vm.liberacaoDaAvaliacao(turno) == nil)
+        }
+        relogio.avancar(para: agora.addingTimeInterval(3 * hora))
+        for turno in [try turno(verificacao: .pendente), try turno(verificacao: .naoVerificado), try turno(estado: .cancelada)] {
+            #expect(vm.podeAvaliar(turno) == false)
+        }
+    }
+
+    @Test("Turno já avaliado por este lado não mostra o aviso de espera")
+    func jaAvaliado() throws {
+        let turno = try turno()
+        let armazenamento = ArmazenamentoAvaliacoesEmMemoria()
+        armazenamento.salvar(resposta: true, para: try #require(turno.posicao.turnoID), contaID: contaID)
+        let vm = viewModel(relogio: RelogioDeTeste(agora), armazenamento: armazenamento)
+        #expect(vm.liberacaoDaAvaliacao(turno) == nil)
+    }
+
+    @Test("Com a tela aberta, quando o fim passa o cartão aparece sozinho: o painel é relido")
+    func cartaoApareceNoFim() async throws {
+        let turno = try turno()
+        let fim = turno.vaga.periodo.fim
+        let relogio = RelogioDeTeste(agora)
+        let leituras = Contador()
+        let vm = viewModel(relogio: relogio, buscarPainel: {
+            await leituras.somar()
+            return Painel(estabelecimentoID: PainelDeTeste.casa, vagas: [], checkinsPendentes: [])
+        })
+        #expect(vm.podeAvaliar(turno) == false)
+
+        let esperas = Contador()
+        await vm.aguardarLiberacaoDaAvaliacao(turno) { espera in
+            #expect(espera == 2 * hora)
+            await esperas.somar()
+            relogio.avancar(para: fim)
+        }
+
+        #expect(await esperas.valor == 1)
+        #expect(await leituras.valor == 1)
+        #expect(vm.podeAvaliar(turno))
+        #expect(vm.liberacaoDaAvaliacao(turno) == nil)
+    }
+
+    @Test("Se o fim já passou ao abrir a tela, não há espera nenhuma")
+    func fimJaPassou() async throws {
+        let turno = try turno()
+        let vm = viewModel(relogio: RelogioDeTeste(turno.vaga.periodo.fim.addingTimeInterval(60)))
+        let esperas = Contador()
+        await vm.aguardarLiberacaoDaAvaliacao(turno) { _ in await esperas.somar() }
+        #expect(await esperas.valor == 0)
+        #expect(vm.podeAvaliar(turno))
+    }
+}

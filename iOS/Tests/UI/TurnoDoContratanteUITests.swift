@@ -109,6 +109,22 @@ final class TurnoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-confirmacao-\(turnoID)"].exists)
     }
 
+    /// RN07: com a presença verificada e o turno ainda por terminar, a casa lê quando a avaliação
+    /// libera, no lugar do cartão. O painel não traz o check-out; vale a presença verificada.
+    func testTurnoEmAndamentoComPresencaVerificadaAvisaQuandoAAvaliacaoLibera() {
+        let app = abrir([
+            "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "checkin-confirmado",
+            "-FRILA_AVISO", "checkin", "-FRILA_AVISO_ID", turnoID,
+        ])
+
+        XCTAssertTrue(app.descendants(matching: .any)["turno-do-contratante"].waitForExistence(timeout: 15))
+        let aviso = app.descendants(matching: .any)["aviso-avaliacao-libera"]
+        for _ in 0..<5 where !aviso.exists { app.swipeUp() }
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(aviso.label.contains("A avaliação libera às "), aviso.label)
+        XCTAssertFalse(app.descendants(matching: .any)["cartao-avaliacao-turno"].exists)
+    }
+
     func testTurnoComPosicaoCanceladaComMotivoMostraCausaFaltaEMotivo() {
         let app = abrir([
             "-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "posicao-cancelada-com-motivo",

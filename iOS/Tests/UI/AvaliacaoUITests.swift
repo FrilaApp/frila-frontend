@@ -122,6 +122,20 @@ final class AvaliacaoUITests: XCTestCase {
         XCTAssertTrue(confirmacao.waitForExistence(timeout: Espera.aparecer), "a tela deve exibir a confirmação após enviar a avaliação")
     }
 
+    /// Depois do fim previsto, com presença verificada, o cartão aparece e o aviso de espera não. O
+    /// contrário (antes do fim) está em `PresencaUITests`, no turno do `success`.
+    func testTurnoEncerradoMostraOCartaoENaoOAvisoDeEspera() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-encerrado", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: Espera.aparecer)
+        tocar(app.tabBars.buttons["Meus turnos"])
+        tocar(app.buttons["meu-turno-22000000-0000-0000-0000-000000000001"])
+        XCTAssertTrue(app.navigationBars["Meu turno"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.descendants(matching: .any)["cartao-avaliacao-turno"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-avaliacao-libera"].exists)
+    }
+
     func testPerguntaSimNaoEmOrdemComRotuloValorESelecao() {
         let app = abrir()
         defer {

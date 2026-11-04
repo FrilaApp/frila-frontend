@@ -51,6 +51,9 @@ public struct TelaMeuTurno: View {
                 }
                 if viewModel.podeAvaliar {
                     cartaoAvaliacao
+                } else if let liberacao = viewModel.liberacaoDaAvaliacao {
+                    AvisoFrila(verbatim: TextosDoProfissional.Avaliacao.liberaAs(formatador.hora(liberacao)), tom: .informativo)
+                        .accessibilityIdentifier("aviso-avaliacao-libera")
                 }
                 if viewModel.podeCancelar {
                     botaoCancelar
@@ -63,6 +66,7 @@ public struct TelaMeuTurno: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
         .task { await medirAbertura(.meuTurno, carregar: viewModel.carregar, pronto: detalheNaTela) }
+        .task { await viewModel.aguardarLiberacaoDaAvaliacao() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await viewModel.carregarRecusasDaFila() }
         }

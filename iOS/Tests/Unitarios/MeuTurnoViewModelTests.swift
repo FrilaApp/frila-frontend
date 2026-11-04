@@ -454,3 +454,169 @@ struct MeuTurnoViewModelTests {
         #expect(vm.aCaminhoEm == gravadoEm)
     }
 }
+
+/// Quanto o `dormir` do teste recebeu: a espera até o fim previsto.
+private final class EsperaRegistrada: @unchecked Sendable {
+    private let trava = NSLock()
+    private var _valores: [TimeInterval] = []
+    var valores: [TimeInterval] { trava.withLock { _valores } }
+    func registrar(_ valor: TimeInterval) { trava.withLock { _valores.append(valor) } }
+}
+
+private actor LeiturasContadas {
+    private(set) var valor = 0
+    func somar() { valor += 1 }
+}
+
+@MainActor
+@Suite("Avaliação libera no horário: aviso de espera e cartão no fim previsto (#672)")
+struct AvaliacaoLiberaNoHorarioDoProfissionalTests {
+    /// 05:00 em São Paulo (1_800_000_000 é 08:00 UTC); o fim previsto é 07:00.
+    private let agora = dataReferencia()
+
+    private func turno(
+        verificacao: Verificacao = .verificado,
+        comCheckout: Bool = true,
+        servidorLibera: Bool? = nil
+    ) throws -> Turno {
+        let base = try criarTurnoExemplo(
+            inicio: agora.addingTimeInterval(-3_600), fim: agora.addingTimeInterval(2 * 3_600), contatoVisivelAte: agora.addingTimeInterval(86_400)
+        )
+        return Turno(
+            id: base.id, posicaoID: base.posicaoID, vaga: base.vaga, contraparte: base.contraparte, contatoVisivelAte: base.contatoVisivelAte,
+            checkin: Presenca(instante: agora.addingTimeInterval(-3_000), tipo: .geolocalizado, distanciaMetros: 20),
+            checkout: comCheckout ? Presenca(instante: agora.addingTimeInterval(-60), tipo: .geolocalizado, distanciaMetros: 20) : nil,
+            verificacao: verificacao, valorAcordado: base.valorAcordado,
+            podeAvaliar: servidorLibera ?? false, avaliacaoInformada: servidorLibera == nil ? nil : true
+        )
+    }
+
+    private func viewModel(_ turno: Turno, relogio: RelogioSimulado, api: any ApiCliente = ApiClienteEmMemoria()) -> MeuTurnoViewModel {
+        MeuTurnoViewModel(
+            turno: turno, api: api, contaID: UUID(),
+            armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria(), relogio: relogio
+        )
+    }
+
+    @Test("Antes do fim, com presença verificada e check-out feito: mostra a hora do fim e não abre o cartão")
+    func antesDoFim() throws {
+        let vm = viewModel(try turno(), relogio: RelogioSimulado(agora))
+        let fim = agora.addingTimeInterval(2 * 3_600)
+        #expect(vm.podeAvaliar == false)
+        #expect(vm.liberacaoDaAvaliacao == fim)
+        #expect(TextosDoProfissional.Avaliacao.liberaAs(FormatadorFrila().hora(fim)) == "A avaliação libera às 07:00")
+    }
+
+    @Test("No instante do fim e depois dele: o cartão abre e o aviso some")
+    func noFimEDepois() throws {
+        let fim = agora.addingTimeInterval(2 * 3_600)
+        let relogio = RelogioSimulado(fim)
+        let vm = viewModel(try turno(), relogio: relogio)
+        #expect(vm.podeAvaliar)
+        #expect(vm.liberacaoDaAvaliacao == nil)
+        relogio.agora = fim.addingTimeInterval(1_800)
+        #expect(vm.podeAvaliar)
+        #expect(vm.liberacaoDaAvaliacao == nil)
+    }
+
+    @Test("Um segundo antes do fim ainda espera")
+    func umSegundoAntes() throws {
+        let fim = agora.addingTimeInterval(2 * 3_600)
+        let vm = viewModel(try turno(), relogio: RelogioSimulado(fim.addingTimeInterval(-1)))
+        #expect(vm.podeAvaliar == false)
+        #expect(vm.liberacaoDaAvaliacao == fim)
+    }
+
+    @Test("Presença não verificada (check-in manual sem confirmação): nem hora nem cartão")
+    func presencaNaoVerificada() throws {
+        let relogio = RelogioSimulado(agora)
+        let vm = viewModel(try turno(verificacao: .pendente), relogio: relogio)
+        #expect(vm.podeAvaliar == false)
+        #expect(vm.liberacaoDaAvaliacao == nil)
+        relogio.agora = agora.addingTimeInterval(3 * 3_600)
+        #expect(vm.podeAvaliar == false)
+        #expect(vm.liberacaoDaAvaliacao == nil)
+    }
+
+    @Test("Sem check-out ainda: o turno segue em andamento e não mostra o aviso")
+    func semCheckout() throws {
+        let vm = viewModel(try turno(comCheckout: false), relogio: RelogioSimulado(agora))
+        #expect(vm.liberacaoDaAvaliacao == nil)
+    }
+
+    @Test("Turno cancelado não mostra aviso")
+    func cancelado() throws {
+        let base = try turno()
+        let cancelado = Turno(
+            id: base.id, posicaoID: base.posicaoID, vaga: base.vaga, contraparte: base.contraparte, contatoVisivelAte: base.contatoVisivelAte,
+            checkin: base.checkin, checkout: base.checkout, verificacao: .verificado, valorAcordado: base.valorAcordado,
+            podeAvaliar: false, estado: .cancelada
+        )
+        let vm = viewModel(cancelado, relogio: RelogioSimulado(agora))
+        #expect(vm.liberacaoDaAvaliacao == nil)
+    }
+
+    @Test("Turno já avaliado por este lado mostra a resposta, e não o aviso de espera")
+    func jaAvaliado() throws {
+        let base = try turno()
+        let avaliado = base.com(avaliacao: Avaliacao(turnoID: base.id, resposta: true, criadaEm: agora))
+        let vm = viewModel(avaliado, relogio: RelogioSimulado(agora))
+        #expect(vm.liberacaoDaAvaliacao == nil)
+    }
+
+    @Test("Com a tela aberta, quando o fim passa o cartão aparece sozinho: o turno é relido e o servidor confirma")
+    func cartaoApareceNoFim() async throws {
+        let fim = agora.addingTimeInterval(2 * 3_600)
+        let relogio = RelogioSimulado(agora)
+        let inicial = try turno(servidorLibera: false)
+        // O servidor só diz `pode_avaliar` depois do fim previsto.
+        let liberado = Turno(
+            id: inicial.id, posicaoID: inicial.posicaoID, vaga: inicial.vaga, contraparte: inicial.contraparte,
+            contatoVisivelAte: inicial.contatoVisivelAte, checkin: inicial.checkin, checkout: inicial.checkout,
+            verificacao: .verificado, valorAcordado: inicial.valorAcordado, podeAvaliar: true, avaliacaoInformada: true
+        )
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { [liberado] in [liberado] }
+        let vm = viewModel(inicial, relogio: relogio, api: api)
+        #expect(vm.podeAvaliar == false)
+        #expect(vm.liberacaoDaAvaliacao == fim)
+
+        let esperas = EsperaRegistrada()
+        await vm.aguardarLiberacaoDaAvaliacao { espera in
+            esperas.registrar(espera)
+            relogio.agora = fim
+        }
+
+        #expect(esperas.valores == [2 * 3_600])
+        #expect(vm.turno.podeAvaliar)
+        #expect(vm.podeAvaliar)
+        #expect(vm.liberacaoDaAvaliacao == nil)
+    }
+
+    @Test("Se o fim já passou ao abrir a tela, não há espera nenhuma")
+    func fimJaPassou() async throws {
+        let relogio = RelogioSimulado(agora.addingTimeInterval(3 * 3_600))
+        let vm = viewModel(try turno(), relogio: relogio)
+        let esperas = EsperaRegistrada()
+        await vm.aguardarLiberacaoDaAvaliacao { esperas.registrar($0) }
+        #expect(esperas.valores.isEmpty)
+        #expect(vm.podeAvaliar)
+    }
+
+    @Test("Tela fechada antes do fim: a espera cancelada não reavalia nem relê")
+    func esperaCancelada() async throws {
+        let relogio = RelogioSimulado(agora)
+        let leituras = LeiturasContadas()
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { await leituras.somar(); return [] }
+        let vm = viewModel(try turno(), relogio: relogio, api: api)
+        let tarefa = Task { @MainActor in
+            await vm.aguardarLiberacaoDaAvaliacao { _ in
+                withUnsafeCurrentTask { $0?.cancel() }
+            }
+        }
+        await tarefa.value
+        #expect(await leituras.valor == 0)
+        #expect(vm.podeAvaliar == false)
+    }
+}

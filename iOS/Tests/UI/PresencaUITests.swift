@@ -51,6 +51,24 @@ final class PresencaUITests: XCTestCase {
         XCTAssertFalse(app.buttons["fazer-checkout"].exists)
     }
 
+    /// RN07: com presença verificada e check-out feito antes do fim previsto, a tela diz quando a
+    /// avaliação libera e não mostra o cartão. O relógio do dublê é o do aparelho: a vaga do cenário
+    /// `success` termina no futuro, então este é o caso "antes do fim". O caso "depois do fim" está em
+    /// `AvaliacaoUITests.testTurnoEncerradoMostraOCartaoENaoOAvisoDeEspera`.
+    func testCheckoutAntesDoFimAvisaQuandoAAvaliacaoLiberaESemCartao() {
+        let app = abrirMeuTurno(localizacao: "perto")
+        fazerCheckinComPermissao(app)
+        tocar(app.buttons["fazer-checkout"])
+        let checkout = app.descendants(matching: .any)["checkout-situacao"]
+        XCTAssertTrue(checkout.waitForExistence(timeout: Espera.aparecer))
+
+        let aviso = app.descendants(matching: .any)["aviso-avaliacao-libera"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer), "antes do fim, o aviso de espera ocupa o lugar do cartão")
+        XCTAssertTrue(aviso.label.contains("A avaliação libera às "), aviso.label)
+        XCTAssertFalse(app.descendants(matching: .any)["cartao-avaliacao-turno"].exists)
+        XCTAssertFalse(app.buttons["Avaliar turno"].exists)
+    }
+
     func testCheckoutA150MetrosRegistraASaidaComADistancia() {
         let app = abrirMeuTurno(localizacao: "perto")
         fazerCheckinComPermissao(app)

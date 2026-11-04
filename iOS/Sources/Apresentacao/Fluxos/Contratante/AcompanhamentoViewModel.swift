@@ -82,6 +82,9 @@ public final class AcompanhamentoViewModel {
     private let fila: (any FilaDeAcoes)?
     private let armazenamentoAvaliacoes: any ArmazenamentoAvaliacoes
     private var avaliacoesLocais: [UUID: Bool] = [:]
+    /// O relógio não participa de Observation: quem espera o fim previsto muda este número para a
+    /// tela reavaliar `podeAvaliar` e o aviso de espera.
+    private var revisaoDoRelogio = 0
     /// Um só view model da avaliação por turno (ver `MeuTurnoViewModel.avaliacaoViewModel`): o
     /// painel é relido com frequência, e cada releitura redesenha a tela do turno.
     private var avaliacoesViewModels: [UUID: AvaliacaoTurnoViewModel] = [:]
@@ -430,14 +433,41 @@ public final class AcompanhamentoViewModel {
     /// A posição vem `confirmada` até o agendador passá-la a `cumprida`, minutos depois do fim
     /// (contrato, `Turno.estado`): as duas valem, senão a avaliação só existiria nesses minutos.
     public func podeAvaliar(_ turno: TurnoAcompanhado) -> Bool {
-        guard turno.posicao.turnoID != nil,
-              turno.posicao.estado == .confirmada || turno.posicao.estado == .cumprida,
-              turno.posicao.cancelamento == nil,
-              turno.posicao.verificacao == .verificado,
-              turno.vaga.periodo.fim <= agora() else {
-            return false
-        }
-        return true
+        _ = revisaoDoRelogio
+        return elegivelParaAvaliar(turno) && turno.vaga.periodo.fim <= agora()
+    }
+
+    /// Tudo o que a avaliação exige, menos o fim previsto.
+    private func elegivelParaAvaliar(_ turno: TurnoAcompanhado) -> Bool {
+        turno.posicao.turnoID != nil
+            && (turno.posicao.estado == .confirmada || turno.posicao.estado == .cumprida)
+            && turno.posicao.cancelamento == nil
+            && turno.posicao.verificacao == .verificado
+    }
+
+    /// Quando a avaliação libera (o `fim` previsto), enquanto isso ainda está no futuro e a presença
+    /// já está verificada. O painel não traz o check-out, então vale a presença verificada. A tela
+    /// mostra "A avaliação libera às HH:mm" no lugar do cartão.
+    public func liberacaoDaAvaliacao(_ turno: TurnoAcompanhado) -> Date? {
+        _ = revisaoDoRelogio
+        guard elegivelParaAvaliar(turno), !jaAvaliado(turno) else { return nil }
+        let fim = turno.vaga.periodo.fim
+        return fim > agora() ? fim : nil
+    }
+
+    /// Espera o `fim` previsto com a tela aberta e então reavalia `podeAvaliar` e relê o painel, para
+    /// o cartão aparecer sem reabrir o turno. Cancelada com a tela (`.task`). `dormir` existe para o
+    /// teste não esperar de verdade.
+    public func aguardarLiberacaoDaAvaliacao(
+        _ turno: TurnoAcompanhado,
+        dormir: @Sendable (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+    ) async {
+        let espera = turno.vaga.periodo.fim.timeIntervalSince(agora())
+        guard espera > 0 else { return }
+        await dormir(espera)
+        guard !Task.isCancelled else { return }
+        revisaoDoRelogio += 1
+        _ = await lerPainel(registrandoFalha: false)
     }
 
     public func jaAvaliado(_ turno: TurnoAcompanhado) -> Bool {

@@ -150,6 +150,9 @@ struct TelaTurnoDoContratante: View {
         .navigationTitle(TextosDoAcompanhamento.titulo)
         .navigationBarTitleDisplayMode(.inline)
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
+        .task(id: viewModel.turno(turnoID: turnoID)?.vaga.periodo.fim) {
+            if let turno = viewModel.turno(turnoID: turnoID) { await viewModel.aguardarLiberacaoDaAvaliacao(turno) }
+        }
         .refreshable { await viewModel.carregar() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await viewModel.carregarDaFila(para: turnoID) }
@@ -296,6 +299,9 @@ struct TelaTurnoDoContratante: View {
             .cartaoFrila()
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("cartao-avaliacao-turno")
+        } else if let liberacao = viewModel.liberacaoDaAvaliacao(turno) {
+            AvisoFrila(verbatim: TextosDoProfissional.Avaliacao.liberaAs(formatador.hora(liberacao)), tom: .informativo)
+                .accessibilityIdentifier("aviso-avaliacao-libera")
         }
     }
 
