@@ -822,16 +822,6 @@
         }
       }
     },
-    "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
-          }
-        }
-      }
-    },
     "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.": {
       "localizations": {
         "pt-BR": {
