@@ -20,7 +20,7 @@ struct CandidaturaViewModelTests {
     func ajusteDeFuncoesSomenteParaFuncaoIncompativel() {
         let vagaID = UUID()
         let resultados: [ResultadoDaCandidatura] = [
-            .confirmada(turnoID: nil, contato: nil), .pendente(candidaturaID: UUID()),
+            .confirmada(turnoID: nil), .pendente(candidaturaID: UUID()),
             .vagaPreenchida, .vagaEncerrada, .inelegivel(.turnoSobreposto),
             .inelegivel(.funcaoIncompativel), .inelegivel(.outro(detalhes: nil)),
             .contaSuspensa, .naoEncontrada, .falha(ErroDaApi(codigo: .semRede)), .outraEmAndamento
@@ -55,17 +55,16 @@ struct CandidaturaViewModelTests {
         }
     }
 
-    @Test("Confirmada: devolve o turno e o contato da confirmação")
+    @Test("Confirmada: devolve o turno da confirmação, sem contato")
     func confirmada() async throws {
         let api = ApiClienteEmMemoria()
         let vm = CandidaturaViewModel(vaga: try await vagaDoDuble(api), api: api)
         #expect(vm.estado == .ocioso)
         await vm.candidatar()
-        guard case let .concluida(.confirmada(turnoID, contato)) = vm.estado else {
+        guard case let .concluida(.confirmada(turnoID)) = vm.estado else {
             Issue.record("esperado confirmada: \(vm.estado)"); return
         }
         #expect(turnoID != nil)
-        #expect(contato != nil)
     }
 
     @Test("Os cenários do dublê chegam como resultados tipados distintos",
@@ -125,7 +124,7 @@ struct CandidaturaViewModelTests {
         let candidaturaID = UUID()
         let vm = CandidaturaViewModel(
             vaga: vaga,
-            candidatar: { _ in ResultadoCandidatura(estado: .pendente, candidaturaID: candidaturaID, posicaoID: nil, turnoID: nil, contato: nil) }
+            candidatar: { _ in ResultadoCandidatura(estado: .pendente, candidaturaID: candidaturaID, posicaoID: nil, turnoID: nil) }
         )
         await vm.candidatar()
         #expect(vm.estado == .concluida(.pendente(candidaturaID: candidaturaID)))

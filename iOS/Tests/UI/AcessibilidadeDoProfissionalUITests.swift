@@ -106,18 +106,14 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
     // MARK: - 4. Detalhe da Vaga
 
-    func testDetalheDaVagaAlvosEDenunciarBloquear() {
+    func testDetalheDaVagaAlvosSemDenunciarBloquear() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_VAGA_ID", "40000000-0000-0000-0000-000000000001"]
         app.launch()
 
-        let denunciar = app.buttons["denunciar"]
-        XCTAssertTrue(denunciar.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(denunciar.frame.height)
-
-        let bloquear = app.buttons["bloquear"]
-        XCTAssertTrue(bloquear.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(bloquear.frame.height)
+        // Denunciar e Bloquear moram só no perfil do estabelecimento (decisão de 30/10/2026).
+        XCTAssertFalse(app.buttons["denunciar"].exists)
+        XCTAssertFalse(app.buttons["bloquear"].exists)
 
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
@@ -248,7 +244,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
 
     // MARK: - 6. Candidatura e Contato do Turno
 
-    func testResultadoCandidaturaContatoDoTurnoAlvoMinimo() {
+    func testResultadoCandidaturaConfirmadaNaoTemContato() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_VAGA_ID", "40000000-0000-0000-0000-000000000001"]
         app.launch()
@@ -257,9 +253,9 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(candidatar.waitForExistence(timeout: 10))
         candidatar.tap()
 
-        let contato = app.descendants(matching: .any)["contato-do-turno"]
-        XCTAssertTrue(contato.waitForExistence(timeout: 10))
-        XCTAssertAlvoMinimo(contato.frame.height)
+        XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.buttons["botao-whatsapp"].exists)
     }
 
     // MARK: - 7. Meu turno: WhatsApp, Avaliar turno e Ver avaliação (#20, QA do Loki)
@@ -268,7 +264,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
     /// texto (20 pt) recebia o toque. Os cartões contêm os filhos sem encobrir seus identificadores.
     func testMeuTurnoLinksTemAlvoMinimo() {
         let turnoID = "22000000-0000-0000-0000-000000000001"
-        for (cenario, botoes) in [("turno-encerrado", ["botao-whatsapp", "botao-abrir-avaliacao"]), ("turno-avaliado", ["botao-ver-avaliacao"])] {
+        for (cenario, botoes) in [("turno-encerrado", ["botao-abrir-no-mapa", "botao-abrir-avaliacao"]), ("turno-avaliado", ["botao-ver-avaliacao"])] {
             let app = XCUIApplication()
             app.launchArguments = ["-FRILA_SCENARIO", cenario, "-FRILA_CACHE_VAZIO_UI_TEST"]
             app.launch()

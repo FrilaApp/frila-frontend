@@ -153,7 +153,7 @@ struct RegrasDeVagaEmMemoriaTests {
 
         let candidatura = try await api.candidatar(vagaID: vagaID)
         #expect(candidatura.estado == .pendente)
-        #expect(candidatura.posicaoID == nil && candidatura.turnoID == nil && candidatura.contato == nil)
+        #expect(candidatura.posicaoID == nil && candidatura.turnoID == nil)
         #expect(try await api.meusTurnos().isEmpty)
         // Reenviar devolve a mesma candidatura pendente, e a casa a vê no painel.
         #expect(try await api.candidatar(vagaID: vagaID) == candidatura)

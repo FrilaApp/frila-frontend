@@ -65,8 +65,23 @@ final class SegurancaUITests: XCTestCase {
         }
     }
 
-    func testDenunciaNoDetalheMostraEmergenciaProtocoloEPrazo() {
+    private func abrirPerfil(_ app: XCUIApplication) {
+        // O bloco do header é um só elemento de acessibilidade (cabeçalho), não um botão solto.
+        let abrir = app.descendants(matching: .any)["abrir-perfil-estabelecimento"].firstMatch
+        trazerParaATela(abrir, em: app)
+        abrir.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-estabelecimento"].waitForExistence(timeout: Espera.aparecer))
+    }
+
+    func testDetalheNaoTemDenunciarNemBloquear() {
         let app = abrirVaga()
+        XCTAssertFalse(app.buttons["denunciar"].exists)
+        XCTAssertFalse(app.buttons["bloquear"].exists)
+    }
+
+    func testDenunciaNoPerfilMostraEmergenciaProtocoloEPrazo() {
+        let app = abrirVaga()
+        abrirPerfil(app)
         conferirAcoes(app)
         tocar(app.buttons["denunciar"])
         let enviar = app.buttons["enviar-denuncia"]
@@ -94,8 +109,9 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
     }
 
-    func testBloqueioNoDetalheRemoveVagaSemReiniciar() {
+    func testBloqueioNoPerfilRemoveVagaSemReiniciar() {
         let app = abrirVaga()
+        abrirPerfil(app)
         let bloquear = app.buttons["bloquear"]
         trazerParaATela(bloquear, em: app)
         bloquear.tap()
@@ -104,6 +120,8 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(bloquear.exists)
         bloquear.tap()
         app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: Espera.aparecer))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-nao-encontrada"].waitForExistence(timeout: Espera.aparecer))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertFalse(app.buttons["vaga-40000000-0000-0000-0000-000000000001"].exists)
@@ -111,10 +129,7 @@ final class SegurancaUITests: XCTestCase {
 
     func testPerfilDoEstabelecimentoTemAcoesEViraIndisponivel() {
         let app = abrirVaga()
-        let abrir = app.buttons["abrir-perfil-estabelecimento"]
-        trazerParaATela(abrir, em: app)
-        abrir.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-estabelecimento"].waitForExistence(timeout: Espera.aparecer))
+        abrirPerfil(app)
         conferirAcoes(app)
         app.buttons["denunciar"].tap()
         let enviar = app.buttons["enviar-denuncia"]

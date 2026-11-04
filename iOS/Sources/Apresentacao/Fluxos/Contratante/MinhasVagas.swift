@@ -32,11 +32,6 @@ private enum TextosMinhasVagas {
     static let posicaoAberta = String(localized: "Posição aberta", bundle: bundleMinhasVagas)
     static let perfil = String(localized: "Ver perfil público", bundle: bundleMinhasVagas)
     static let perfilTitulo = String(localized: "Perfil público", bundle: bundleMinhasVagas)
-    static let verContato = String(localized: "Ver contato liberado", bundle: bundleMinhasVagas)
-    static let contatoExpirado = String(localized: "O prazo para ver este contato terminou.", bundle: bundleMinhasVagas)
-    static let contatoFalhou = String(localized: "Não foi possível carregar o contato. Tente novamente.", bundle: bundleMinhasVagas)
-    static let ligar = String(localized: "Ligar", bundle: bundleMinhasVagas)
-    static let whatsApp = String(localized: "WhatsApp", bundle: bundleMinhasVagas)
     static let periodo = String(localized: "%@ – %@", bundle: bundleMinhasVagas)
     static let periodoMesmoDia = String(localized: "%@, %@ – %@", bundle: bundleMinhasVagas)
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleMinhasVagas)
@@ -986,14 +981,10 @@ private struct TelaDetalheVagaContratante: View {
     private var roteadorEfetivo: RoteadorDoContratante? {
         roteador ?? roteadorDoAmbiente
     }
-    @State private var contatos: [UUID: Contato] = [:]
-    @State private var carregandoContato: Set<UUID> = []
-    @State private var errosContato: [UUID: String] = [:]
     @State private var perfilSelecionado: PerfilPublico?
     @State private var vagaParaRepublicar: VagaNoPainel?
     @State private var republicacaoConcluida = false
     @State private var cancelamento: CancelamentoViewModel?
-    @State private var ultimoContatoAberto: [UUID: Date] = [:]
     private let formatador = FormatadorFrila()
 
     var body: some View {
@@ -1174,62 +1165,6 @@ private struct TelaDetalheVagaContratante: View {
                     .foregroundStyle(FrilaCor.texto)
                     .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
                 }
-                if let contato = contatos[posicao.id], contato.estaVisivel(em: .now), let turnoID = posicao.turnoID {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        Text(verbatim: "\(contato.nome) · \(contato.telefone)")
-                            .font(FrilaTipo.meta)
-                            .fixedSize(horizontal: false, vertical: true)
-                        let telefone = contato.telefone.filter { $0.isNumber || $0 == "+" }
-                        if let telefoneURL = URL(string: "tel:\(telefone)") {
-                            Link(destination: telefoneURL) {
-                                Label { Text(verbatim: TextosMinhasVagas.ligar) } icon: { Image(systemName: "phone") }
-                            }
-                            .buttonStyle(.tatil)
-                            .frame(minHeight: FrilaMetrica.alvoMinimo)
-                            .contentShape(Rectangle())
-                            .accessibilityAddTraits(.isButton)
-                        }
-                        if let whatsappURL = URLComponents(url: contato.whatsappURL, resolvingAgainstBaseURL: false)?.url {
-                            Link(destination: whatsappURL) {
-                                Label { Text(verbatim: TextosMinhasVagas.whatsApp) } icon: { Image(systemName: "message") }
-                            }
-                            .buttonStyle(.tatil)
-                            .frame(minHeight: FrilaMetrica.alvoMinimo)
-                            .contentShape(Rectangle())
-                            .accessibilityAddTraits(.isButton)
-                            .simultaneousGesture(TapGesture().onEnded {
-                                let agora = Date()
-                                if let ultimo = ultimoContatoAberto[turnoID], agora.timeIntervalSince(ultimo) < 5.0 {
-                                    return
-                                }
-                                ultimoContatoAberto[turnoID] = agora
-                                Task { _ = await RegistradorDeTelemetria(api: api).registrar(.contatoAberto, turnoID: turnoID) }
-                            })
-                        }
-                    }
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("contato-liberado-\(turnoID)")
-                } else if contatos[posicao.id] != nil {
-                    AvisoFrila(verbatim: TextosMinhasVagas.contatoExpirado, tom: .informativo)
-                } else if let erro = errosContato[posicao.id] {
-                    AvisoFrila(verbatim: erro, tom: .erro)
-                } else if posicao.turnoID != nil {
-                    Button {
-                        Task { await carregarContato(posicao) }
-                    } label: {
-                        if carregandoContato.contains(posicao.id) {
-                            ProgressView().frame(minHeight: FrilaMetrica.alvoMinimo)
-                        } else {
-                            Text(verbatim: TextosMinhasVagas.verContato).frame(minHeight: FrilaMetrica.alvoMinimo)
-                        }
-                    }
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .buttonStyle(.tatil)
-                    .disabled(carregandoContato.contains(posicao.id))
-                    .accessibilityIdentifier("ver-contato-\(posicao.id)")
-                }
                 let turno = TurnoAcompanhado(vaga: vaga.vaga, posicao: posicao)
                 if let acompanhamento, acompanhamento.podeCancelar(turno) {
                     BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = acompanhamento.criarCancelamento(de: turno) }
@@ -1272,25 +1207,6 @@ private struct TelaDetalheVagaContratante: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .contain)
-    }
-
-    @MainActor private func carregarContato(_ posicao: PosicaoNoPainel) async {
-        guard let turnoID = posicao.turnoID else { return }
-        carregandoContato.insert(posicao.id)
-        defer { carregandoContato.remove(posicao.id) }
-        do {
-            let contato = try await api.contatoDoTurno(id: turnoID)
-            guard contato.estaVisivel(em: .now) else {
-                contatos[posicao.id] = contato
-                return
-            }
-            contatos[posicao.id] = contato
-            errosContato[posicao.id] = nil
-        } catch let erro as ErroDaApi where erro.codigo == .contatoExpirado {
-            errosContato[posicao.id] = TextosMinhasVagas.contatoExpirado
-        } catch {
-            errosContato[posicao.id] = TextosMinhasVagas.contatoFalhou
-        }
     }
 
     private func periodo(_ periodo: Periodo) -> String {

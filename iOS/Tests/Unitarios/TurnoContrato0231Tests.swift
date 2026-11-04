@@ -14,7 +14,7 @@ struct TurnoContrato0231Tests {
         try #require(try FixturesDoContrato.carregar(fixture, como: [ContratoAPI.TurnoDTO].self).first).dominio()
     }
 
-    @Test("Turno cancelado não oferece avaliação nem contato, mesmo com presença verificada")
+    @Test("Turno cancelado não oferece avaliação nem ações, e não pede o contato, mesmo com presença verificada")
     func canceladoSemAcoes() async throws {
         let contato = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
         let cancelado = try turno("turnos-cancelados").com(contato: contato)
@@ -28,10 +28,7 @@ struct TurnoContrato0231Tests {
         #expect(!vm.permiteAcoesDoTurno)
         #expect(!vm.podeAvaliar)
         #expect(vm.criarAvaliacaoViewModel() == nil)
-        #expect(vm.contato == nil)
-        #expect(vm.urlWhatsApp == nil)
         await vm.carregar()
-        #expect(vm.contato == nil)
         #expect(api.chamadasContato == 0)
         #expect(await leitor.leituras == 0)
     }

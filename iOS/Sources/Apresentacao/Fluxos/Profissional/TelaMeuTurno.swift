@@ -5,7 +5,7 @@ import Observation
 #endif
 
 /// Tela do turno, nos quadros "TurnoHoje", "TurnoProximo" e "MeuTurno" do MidFi do Fabrício: cartão
-/// de dados do turno, seção de chegada, contato e avaliação em cartões brancos sobre o fundo cinza.
+/// de dados do turno, seção de chegada, "Como chegar" e avaliação em cartões brancos sobre o fundo cinza.
 public struct TelaMeuTurno: View {
     @Bindable private var viewModel: MeuTurnoViewModel
     @State private var cancelamento: CancelamentoViewModel?
@@ -47,7 +47,7 @@ public struct TelaMeuTurno: View {
                     } else if viewModel.podeAvisarACaminho || viewModel.aCaminhoEm != nil {
                         cartaoACaminhoSemPresenca
                     }
-                    cartaoContato
+                    cartaoComoChegar
                 }
                 if viewModel.podeAvaliar {
                     cartaoAvaliacao
@@ -62,7 +62,7 @@ public struct TelaMeuTurno: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
-        .task { await medirAbertura(.meuTurno, carregar: viewModel.carregar, pronto: contatoNaTela) }
+        .task { await medirAbertura(.meuTurno, carregar: viewModel.carregar, pronto: detalheNaTela) }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await viewModel.carregarRecusasDaFila() }
         }
@@ -75,11 +75,11 @@ public struct TelaMeuTurno: View {
         .accessibilityIdentifier("tela-meu-turno")
     }
 
-    /// Fim da medição de abertura (#73): a carga da API encerrada (contato e responsável local), com
-    /// o contato na tela.
-    private var contatoNaTela: @MainActor @Sendable () -> Bool {
+    /// Fim da medição de abertura (#73): a carga da API encerrada (responsável local e observações
+    /// da vaga), com o "Como chegar" completo na tela.
+    private var detalheNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
-        return { !viewModel.carregandoContato && viewModel.contato != nil }
+        return { viewModel.detalheCarregado }
     }
 
     // MARK: - Ações de suporte e segurança (#21, #39)
@@ -162,18 +162,13 @@ public struct TelaMeuTurno: View {
                                   leitura: formatador.dinheiroFalado(viewModel.turno.valorAcordado), tamanho: 18)
                 }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: FrilaEspaco.minimo) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    // Com o turno em andamento, o endereço mora no "Como chegar"; cancelado, não há
+                    // esse cartão e o endereço, com o atalho do mapa, fica aqui.
+                    if !viewModel.permiteAcoesDoTurno {
                         enderecoEMapa
-                        Text(verbatim: "·")
-                            .accessibilityHidden(true)
-                        quemRecebe
                     }
-                    .fixedSize(horizontal: true, vertical: false)
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        enderecoEMapa
-                        quemRecebe
-                    }
+                    quemRecebe
                 }
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
@@ -191,11 +186,15 @@ public struct TelaMeuTurno: View {
         Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
     }
 
+    private var enderecoDoTurno: some View {
+        Text(verbatim: viewModel.turno.vaga.local)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("endereco-do-turno")
+    }
+
     private var enderecoEMapa: some View {
         HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: viewModel.turno.vaga.local)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("endereco-do-turno")
+            enderecoDoTurno
             if let urlMapas = viewModel.urlMapas {
                 Link(destination: urlMapas) {
                     Image(systemName: "map")
@@ -309,59 +308,63 @@ public struct TelaMeuTurno: View {
         .accessibilityIdentifier("presenca-do-turno")
     }
 
-    private var cartaoContato: some View {
+    /// "Como chegar" no lugar do cartão de contato: o endereço da vaga, o atalho para o mapa e, quando
+    /// a casa escreveu, as observações (entrada, ponto de referência). Só dados que a vaga já tem.
+    private var cartaoComoChegar: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosDoProfissional.Candidatura.contato)
+            Text(verbatim: TextosDoProfissional.Turnos.comoChegar)
                 .font(FrilaTipo.secao)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
-            if viewModel.contatoExpirado {
-                Text(verbatim: TextosDoProfissional.Turnos.contatoEncerrado)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityIdentifier("contato-expirado-aviso")
-            } else if let contato = viewModel.contato {
-                Text(verbatim: "\(contato.nome) · \(contato.telefone)")
-                    .font(FrilaTipo.chip)
-                    .accessibilityIdentifier("contato-telefone")
+            enderecoDoTurno
+                .font(FrilaTipo.chip)
+                .foregroundStyle(FrilaCor.texto)
 
-                if let urlWhatsApp = viewModel.urlWhatsApp {
-                    // O alvo de 44 pt fica no rótulo, dentro do link: fora dele, só o texto recebia o toque.
-                    Link(destination: urlWhatsApp) {
-                        HStack(spacing: FrilaEspaco.pequeno) {
-                            Image(systemName: "message.fill")
-                                .foregroundStyle(FrilaCor.marca)
-                                .accessibilityHidden(true)
-                            Text(verbatim: TextosDoProfissional.Candidatura.abrirWhatsApp)
-                        }
-                        .font(FrilaTipo.meta.weight(.semibold))
+            if let observacoes = viewModel.observacoesDaVaga {
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: TextosDoProfissional.Detalhe.observacoes)
+                        .font(FrilaTipo.nota.weight(.semibold))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                    Text(verbatim: observacoes)
+                        .font(FrilaTipo.meta)
                         .foregroundStyle(FrilaCor.texto)
-                        .frame(minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
-                    }
-                    .simultaneousGesture(TapGesture().onEnded {
-                        Task { await viewModel.registrarContatoAberto() }
-                    })
-                    .accessibilityIdentifier("botao-whatsapp")
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityHint(String(localized: "Abre a conversa no WhatsApp com mensagem pré-formatada", bundle: bundleApresentacao))
-                    #if DEBUG
-                    .modifier(CapturaDeAberturaDeURLParaTeste())
-                    #endif
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Text(verbatim: TextosDoProfissional.Turnos.lembretesEVisibilidade)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            } else if viewModel.carregandoContato {
-                ProgressView()
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("observacoes-do-turno")
             }
+
+            if let urlMapas = viewModel.urlMapas {
+                // O alvo fica no rótulo, dentro do link: fora dele, só o texto recebia o toque.
+                Link(destination: urlMapas) {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        Image(systemName: "map")
+                            .accessibilityHidden(true)
+                        Text(verbatim: TextosDoProfissional.Detalhe.abrirNoMapa)
+                            .font(FrilaTipo.botaoPadrao)
+                    }
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .contentShape(Capsule())
+                }
+                #if DEBUG
+                .modifier(CapturaDeAberturaDeURLParaTeste())
+                #endif
+                .accessibilityIdentifier("botao-abrir-no-mapa")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
+            }
+
+            Text(verbatim: TextosDoProfissional.Turnos.lembretes)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("contato-do-turno")
+        .accessibilityIdentifier("como-chegar-do-turno")
     }
 
     private var cartaoAvaliacao: some View {

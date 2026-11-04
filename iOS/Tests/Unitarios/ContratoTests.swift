@@ -81,9 +81,9 @@ struct ContratoTests {
         #expect(publicada.posicoes.count == vaga.posicoes)
 
         let urgencia = try FixturesDoContrato.carregar("candidatura-urgencia", como: ContratoAPI.CandidaturaDTO.self).dominio()
-        #expect(urgencia.estado == .confirmada && urgencia.contato != nil)
+        #expect(urgencia.estado == .confirmada && urgencia.turnoID != nil)
         let selecao = try FixturesDoContrato.carregar("candidatura-selecao", como: ContratoAPI.CandidaturaDTO.self).dominio()
-        #expect(selecao.estado == .pendente && selecao.turnoID == nil && selecao.contato == nil)
+        #expect(selecao.estado == .pendente && selecao.turnoID == nil)
 
         let turno = try #require(try FixturesDoContrato.carregar("turnos", como: [ContratoAPI.TurnoDTO].self).first?.dominio())
         #expect(turno.checkin?.tipo == .geolocalizado)

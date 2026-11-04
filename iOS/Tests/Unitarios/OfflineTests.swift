@@ -67,7 +67,7 @@ private func turno(fim: Date) throws -> Turno {
 
 @Suite("Cache e fila offline (#111)")
 struct OfflineTests {
-    @Test("Modo avião: Meus turnos devolve os turnos da última leitura com rede, com o contato")
+    @Test("Modo avião: Meus turnos devolve os turnos da última leitura com rede, sem o contato")
     func modoAviao() async throws {
         let agora = Date(timeIntervalSince1970: 1_800_000_000)
         let confirmado = try turno(fim: agora.addingTimeInterval(3 * 3_600))
@@ -81,7 +81,7 @@ struct OfflineTests {
         let semRede = try await repositorio.ler()
         #expect(semRede.origem == .cache)
         #expect(semRede.turnos.map(\.id) == [confirmado.id])
-        #expect(semRede.turnos.first?.contato != nil)
+        #expect(semRede.turnos.first?.contato == nil)
     }
 
     @Test("Sem rede e com o relógio 8 dias depois do fim, o contato não aparece")

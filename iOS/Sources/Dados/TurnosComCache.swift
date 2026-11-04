@@ -3,9 +3,8 @@ import FrilaDominio
 
 
 /// Meus turnos que abrem em modo avião (RNF06). Cada leitura com rede substitui o cache; sem rede,
-/// devolve o que ficou guardado. O `CacheLocal` já aplica as duas regras de prazo: o turno sai 24 h
-/// depois do fim e o contato some depois de `visivel_ate` (RN10), as duas pelo relógio do aparelho,
-/// porque sem rede não há outro.
+/// devolve o que ficou guardado. O `CacheLocal` já aplica o prazo: o turno sai 24 h
+/// depois do fim, pelo relógio do aparelho, porque sem rede não há outro. O contato não é guardado.
 ///
 /// Só `sem_rede` cai no cache. Qualquer outro erro sobe: um 401 com o cache aberto mostraria os
 /// turnos de uma conta que acabou de ser encerrada.

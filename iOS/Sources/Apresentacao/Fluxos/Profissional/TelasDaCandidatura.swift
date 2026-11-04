@@ -43,18 +43,9 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(spacing: FrilaEspaco.medio) {
-                        precoView
-                        botaoView
-                            .frame(maxWidth: .infinity)
-                    }
-                } else {
-                    VStack(spacing: FrilaEspaco.compacto) {
-                        precoView
-                        botaoView
-                            .frame(maxWidth: .infinity)
-                    }
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    precoView
+                    botaoView.frame(maxWidth: .infinity)
                 }
 
                 if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {
@@ -67,19 +58,45 @@ public struct AreaDeCandidatura: View {
         .onDisappear { quadro?.publicar(nil, de: Self.donoDosAvisos) }
     }
 
+    @ViewBuilder
     private var precoView: some View {
-        let formatador = FormatadorFrila()
-        return VStack(spacing: FrilaEspaco.fio) {
-            FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
-                          leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: 52)
-                .accessibilityIdentifier("candidatura-valor")
-            Text(verbatim: apoioPreco)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+        if dynamicTypeSize.isAccessibilitySize {
+            precoEmColuna
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.compacto) {
+                    valorDoRodape
+                    Spacer(minLength: 0)
+                    apoioDoRodape
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: true, vertical: true)
+                }
+                precoEmColuna
+            }
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private var valorDoRodape: some View {
+        let formatador = FormatadorFrila()
+        return FrilaPriceTag(texto: formatador.dinheiro(viewModel.vaga.valor),
+                             leitura: formatador.dinheiroFalado(viewModel.vaga.valor), tamanho: FrilaTypeScaleStep.display.pointSize,
+                             peso: .bold, compactarAltura: true)
+            .accessibilityIdentifier("candidatura-valor")
+    }
+
+    private var apoioDoRodape: some View {
+        Text(verbatim: apoioPreco)
+            .font(FrilaTipo.nota)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var precoEmColuna: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+            valorDoRodape
+            apoioDoRodape.multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 
@@ -99,7 +116,7 @@ public struct AreaDeCandidatura: View {
                         .tint(FrilaCor.textoSecundario)
                 }
                 Text(verbatim: tituloDoBotao)
-                    .font(FrilaTypography.sans(size: 20, weight: .bold))
+                    .font(FrilaTipo.botao)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .multilineTextAlignment(.center)
             }
@@ -246,8 +263,8 @@ public struct TelaResultadoDaCandidatura: View {
     @ViewBuilder
     private var conteudo: some View {
         switch resultado {
-        case let .confirmada(_, contato):
-            TurnoConfirmado(vaga: vaga, contato: contato)
+        case .confirmada:
+            TurnoConfirmado(vaga: vaga)
             voltar
         case let .pendente(candidaturaID):
             CandidaturaEnviada(candidaturaID: candidaturaID, api: api)
@@ -367,11 +384,11 @@ public struct TelaResultadoDaCandidatura: View {
         }
     }
 
-    /// A vaga a que a candidatura pendente se refere. Sem contato: ele só existe depois da escolha (RN10).
+    /// A vaga a que a candidatura pendente se refere.
     private var resumoDaVaga: some View {
         let formatador = FormatadorFrila()
         return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
+            Text(verbatim: "\(vaga.funcao.nome), \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
@@ -447,11 +464,11 @@ private struct BarraInferiorDoResultado<Rodape: View>: ViewModifier {
     }
 }
 
-/// "Meu turno" logo depois da confirmação: stub do #109, só com os dados da vaga e o contato que a
-/// confirmação devolveu (RN10). Check-in, cancelamento e avaliação são de outros cartões.
+/// "Meu turno" logo depois da confirmação: stub do #109, só com os dados da vaga. O que a resposta
+/// da confirmação traz de contato não é lido nem mostrado. Check-in, cancelamento e avaliação são
+/// de outros cartões.
 private struct TurnoConfirmado: View {
     let vaga: Vaga
-    let contato: Contato?
 
     var body: some View {
         let formatador = FormatadorFrila()
@@ -463,7 +480,7 @@ private struct TurnoConfirmado: View {
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("resultado-confirmada")
         VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
+            Text(verbatim: "\(vaga.funcao.nome), \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
@@ -471,39 +488,14 @@ private struct TurnoConfirmado: View {
                     FrilaPriceTag(texto: formatador.dinheiro(vaga.valor),
                                   leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
                 }
-            Text(verbatim: "\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
-                .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                Text(verbatim: vaga.local)
+                Text(verbatim: "\(TextosDoProfissional.Detalhe.quemRecebe): \(vaga.responsavelLocal)")
+            }
+            .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
-
-        if let contato {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: Textos.contato)
-                    .font(FrilaTipo.microRotulo)
-                    .textCase(.uppercase)
-                    .tracking(0.8)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityAddTraits(.isHeader)
-                Text(verbatim: "\(contato.nome) · \(contato.telefone)")
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.texto)
-                Link(destination: contato.whatsappURL) {
-                    Text(verbatim: Textos.abrirWhatsApp)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
-                }
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
-                .accessibilityIdentifier("contato-do-turno")
-
-                Text(verbatim: Textos.contatoLiberado).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cartaoFrila()
-        }
     }
 }

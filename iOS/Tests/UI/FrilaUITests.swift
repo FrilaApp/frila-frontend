@@ -257,7 +257,7 @@ final class FrilaUITests: XCTestCase {
 /// Fluxo real do profissional (#104): o esquema Local abre na lista, sem argumento especial.
 @MainActor
 final class VagasUITests: XCTestCase {
-    func testLocalAbreNaListaEODetalheTemOAvisoDaRN10SemTelefone() {
+    func testLocalAbreNaListaEODetalheNaoTemAvisoDeContatoNemTelefone() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
         app.launch()
@@ -268,9 +268,10 @@ final class VagasUITests: XCTestCase {
         primeira.tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-vaga"].waitForExistence(timeout: 10))
-        let aviso = app.descendants(matching: .any)["aviso-rn10"]
-        XCTAssertTrue(aviso.waitForExistence(timeout: 10))
-        XCTAssertTrue(aviso.label.contains("seu telefone e WhatsApp ficam disponíveis"))
+        // Decisão de 04/11/2026: o detalhe não tem nenhuma menção a telefone, contato ou WhatsApp.
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-reputacao"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-rn10"].exists)
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] 'telefone' OR label CONTAINS[c] 'whatsapp'")).firstMatch.exists)
         // O detalhe não mostra telefone nem documento do estabelecimento.
         let comTelefone = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", ".*\\(?\\d{2}\\)? ?9? ?\\d{4}-?\\d{4}.*"))
         XCTAssertEqual(comTelefone.count, 0)
@@ -396,18 +397,19 @@ final class CandidaturaUITests: XCTestCase {
 
         let candidatar = app.buttons["candidatar"]
         XCTAssertTrue(candidatar.waitForExistence(timeout: 15))
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-rn10"].waitForExistence(timeout: 10), "o aviso da RN10 vem antes de Candidatar-me")
         tocar(candidatar)
         return app
     }
 
-    func testConfirmadaAbreMeuTurnoComOContato() {
+    func testConfirmadaNaoMostraContato() {
         let app = abrirDetalheECandidatar("success")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.buttons["botao-whatsapp"].exists)
         tocar(app.buttons["voltar-para-lista"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["1 posição aberta"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
+        let umaAberta = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "1 posição aberta")).firstMatch
+        XCTAssertTrue(umaAberta.waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
     }
 
     func testVagaPreenchidaTemTelaPropriaEVoltaParaALista() {

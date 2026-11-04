@@ -641,9 +641,9 @@ struct DetalheVagaViewModelTests {
     }
 
     @Test("Nome do contratante com [x](https://y) e *z* entra como texto literal (verbatim) no AvisoFrila")
-    func avisoRN10Literal() {
+    func avisoComNomeMaldosoEhLiteral() {
         let nomeMaldoso = "[x](https://y) e *z*"
-        let mensagem = TextosDoProfissional.Detalhe.avisoRN10(nomeMaldoso)
+        let mensagem = "Aviso sobre \(nomeMaldoso) no detalhe."
         let aviso = AvisoFrila(verbatim: mensagem, tom: .alerta)
         let descricao = String(describing: aviso.body)
         #expect(descricao.contains("verbatim(\"\(mensagem)\")"))

@@ -172,12 +172,10 @@ struct ContratoDoModoSelecaoTests {
         #expect(try FixturesDoContrato.carregar("candidatura-selecao", como: ContratoAPI.CandidaturaDTO.self).candidaturaID == retirada.id)
     }
 
-    @Test("escolher_candidato devolve a posição, o turno e o contato do profissional")
+    @Test("escolher_candidato devolve a posição e o turno; o contato que o servidor ainda manda não entra no modelo")
     func confirmacao() throws {
         let confirmacao = try FixturesDoContrato.carregar("resultado-confirmacao", como: ContratoAPI.ResultadoConfirmacaoDTO.self).dominio()
         #expect(confirmacao.posicaoID == IDs.posicao && confirmacao.turnoID == IDs.turno)
-        #expect(confirmacao.contato.nome == "Ana Cunha" && confirmacao.contato.telefone == "+5561988887777")
-        #expect(confirmacao.contato.visivelAte == (try Self.instante("2026-10-17T01:00:00Z")))
     }
 
     @Test("Resposta fora do contrato é recusada, e não lida pela metade", arguments: [
@@ -211,7 +209,7 @@ struct ContratoDoModoSelecaoTests {
         #expect(BackendDaSelecao.corpo(host: host, rota: "candidatos_da_vaga") == ["vaga_id": IDs.vaga.uuidString])
 
         let confirmacao = try await cliente.escolherCandidato(candidaturaID: IDs.candidaturaDaAna)
-        #expect(confirmacao.turnoID == IDs.turno && confirmacao.contato.nome == "Ana Cunha")
+        #expect(confirmacao.turnoID == IDs.turno && confirmacao.posicaoID == IDs.posicao)
         #expect(BackendDaSelecao.corpo(host: host, rota: "escolher_candidato") == (try ContratoTests.fixture("requisicao-escolher-candidato")))
 
         let retirada = try await cliente.retirarCandidatura(id: IDs.minhaCandidatura)
@@ -225,7 +223,7 @@ struct ContratoDoModoSelecaoTests {
         #expect(BackendDaSelecao.corpo(host: host, rota: "minhas_candidaturas") == [:])
 
         let candidatura = try await cliente.candidatar(vagaID: IDs.vaga)
-        #expect(candidatura == ResultadoCandidatura(estado: .pendente, candidaturaID: IDs.minhaCandidatura, posicaoID: nil, turnoID: nil, contato: nil))
+        #expect(candidatura == ResultadoCandidatura(estado: .pendente, candidaturaID: IDs.minhaCandidatura, posicaoID: nil, turnoID: nil))
     }
 
     @Test("As recusas da escolha chegam tipadas: corrida perdida, vaga fechada, candidatura indisponível e vaga oculta", arguments: [

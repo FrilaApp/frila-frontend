@@ -103,7 +103,7 @@ struct MaisOpcoesDoEstudio: View {
     private var observacoes: some View {
         VStack(alignment: .leading, spacing: FrilaGeometry.space8) {
             FrilaJobFormLabeledField(label: TextosPublicarVaga.observacoes, isDark: isDark, support: TextosPublicarVaga.observacoesAjuda) {
-                TextField(TextosPublicarVaga.observacoes, text: $vaga.observacoes, axis: .vertical)
+                TextField(TextosPublicarVaga.observacoesExemplo, text: $vaga.observacoes, axis: .vertical)
                     .lineLimit(3...6)
                     .focused($observacoesEmFoco)
                     .accessibilityIdentifier("observacoes-vaga-campo")

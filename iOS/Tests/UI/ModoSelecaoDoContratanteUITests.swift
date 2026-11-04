@@ -123,7 +123,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["dados-do-candidato-\(carla)"].exists)
         XCTAssertTrue(app.staticTexts["Vaga preenchida"].exists)
         XCTAssertTrue(app.staticTexts["Bruno Tavares"].exists)
-        XCTAssertTrue(app.buttons["Ver contato liberado"].exists)
+        XCTAssertFalse(app.buttons["Ver contato liberado"].exists)
 
         // De volta à lista, o cartão mostra o confirmado e que a seleção terminou.
         app.navigationBars.buttons.element(boundBy: 0).tap()

@@ -69,7 +69,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(cancelamento.label.contains("Você cancelou este turno."))
         XCTAssertTrue(cancelamento.label.contains("Este cancelamento contou como falta."))
         XCTAssertFalse(app.buttons["cancelar-turno"].exists)
-        XCTAssertFalse(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["como-chegar-do-turno"].exists)
 
         // Critério 2: a lista mostra o cancelamento sem reiniciar o app.
         tocar(app.navigationBars["Meu turno"].buttons.firstMatch)

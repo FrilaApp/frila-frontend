@@ -557,9 +557,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(elemento("detalhe-vaga-contratante", em: app), "O detalhe deve abrir") else { return }
         auditar(app, tela: "detalhe-vaga-contratante")
 
-        tocar(app.buttons["ver-contato-\(posicaoDoContratanteID)"], em: app)
-        guard esperar(elemento("contato-liberado-\(turnoDoContratanteID)", em: app), "O contato deve aparecer") else { return }
-        auditar(app, tela: "detalhe-vaga-contratante-com-contato")
+        XCTAssertFalse(app.buttons["ver-contato-\(posicaoDoContratanteID)"].exists, "a posição confirmada não oferece contato")
 
         tocar(app.buttons["perfil-publico-\(posicaoDoContratanteID)"], em: app)
         guard esperar(app.navigationBars["Perfil público"], "O perfil público deve abrir") else { return }
@@ -741,6 +739,8 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         guard esperar(vaga, "A vaga deve estar na lista") else { return }
         tocar(vaga, em: app)
         guard esperar(elemento("tela-detalhe-vaga", em: app), "O detalhe deve abrir") else { return }
+        tocar(app.buttons["abrir-perfil-estabelecimento"], em: app)
+        guard esperar(elemento("perfil-publico-estabelecimento", em: app), "O perfil deve abrir") else { return }
         tocar(app.buttons["denunciar"], em: app)
         guard esperar(app.buttons["motivo-denuncia"], "A folha de denúncia deve abrir") else { return }
         auditar(app, tela: "folha-de-denuncia", pendente: Self.folhaDeDenunciaBotaoBarra, estrito: true)

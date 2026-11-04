@@ -56,6 +56,10 @@ public enum FrilaColor {
     
     /// Cor da superfície drywall no modo claro (#FFFFFF)
     public static let canvasLight = Color(red: 255/255, green: 255/255, blue: 255/255)
+
+    /// Ação integrada à prévia de mapa: tinta quase preta nos dois modos.
+    public static let mapActionBackground = Color(red: 9/255, green: 9/255, blue: 8/255)
+    public static let mapActionForeground = canvasLight
     
     /// Dynamic canvas color supporting light and dark mode adaptively
     public static func dynamicCanvas(isDark: Bool) -> Color {

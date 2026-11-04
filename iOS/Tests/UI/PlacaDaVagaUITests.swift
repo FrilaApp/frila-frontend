@@ -38,9 +38,12 @@ final class PlacaDaVagaUITests: XCTestCase {
         }
     }
 
-    // MARK: - 2. Detalhe: placa aberta
+    // MARK: - 2. Detalhe: header do estabelecimento
 
-    func testDetalheEhPlacaAberta() {
+    /// Desde o LOG-019 (04/11/2026) o detalhe não tem mais a placa "casa / função": o nome da casa é o título do
+    /// header e "Vaga de <função>, <bairro>" é a informação secundária. O bloco todo é um só elemento de
+    /// acessibilidade ("abrir-perfil-estabelecimento"), com o nome original, sem caixa alta, e a casa antes da função.
+    func testDetalheTemHeaderDoEstabelecimentoComCasaAntesDaFuncao() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_VAGA_ID", "40000000-0000-0000-0000-000000000001"]
         app.launch()
@@ -48,23 +51,21 @@ final class PlacaDaVagaUITests: XCTestCase {
         let detalhe = app.descendants(matching: .any)["tela-detalhe-vaga"]
         XCTAssertTrue(detalhe.waitForExistence(timeout: Espera.aparecer))
 
-        let todosTextos = detalhe.staticTexts
-        let casa = todosTextos.matching(NSPredicate(format: "label == %@", "Bistrô Ipê")).firstMatch
-        XCTAssertTrue(casa.waitForExistence(timeout: Espera.aparecer),
-                      "O estabelecimento deve estar no detalhe com label original 'Bistrô Ipê'")
-        XCTAssertFalse(todosTextos["BISTRÔ IPÊ"].exists,
-                      "O estabelecimento não deve expor label em caixa alta para acessibilidade")
+        let header = app.descendants(matching: .any)["abrir-perfil-estabelecimento"].firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: Espera.aparecer), "O header do estabelecimento deve existir no detalhe")
+        let rotulo = header.label
+        XCTAssertTrue(rotulo.hasPrefix("Bistrô Ipê"), "A casa vem primeiro no header, com o nome original. Rótulo: \(rotulo)")
+        XCTAssertFalse(rotulo.contains("BISTRÔ IPÊ"), "O header não expõe caixa alta para acessibilidade. Rótulo: \(rotulo)")
+        let casa = rotulo.range(of: "Bistrô Ipê")
+        let funcao = rotulo.range(of: "Vaga de garçom", options: .caseInsensitive)
+        XCTAssertNotNil(funcao, "A função vem como informação secundária do header. Rótulo: \(rotulo)")
+        if let casa, let funcao {
+            XCTAssertLessThan(casa.lowerBound, funcao.lowerBound, "A casa vem antes da função")
+        }
 
-        let funcao = todosTextos["Garçom"].firstMatch
-        XCTAssertTrue(funcao.waitForExistence(timeout: Espera.aparecer),
-                      "A função deve estar no detalhe")
-
-        esperarEstabilizacaoDeFrame(casa)
-        XCTAssertLessThan(casa.frame.minY, funcao.frame.minY,
-                          "No detalhe, a casa (estabelecimento) deve estar acima da função")
-
-        // NOTA: XCUITest no iOS não expõe o traço .isHeader em XCUIElement público de SwiftUI Text.
-        // A ordem e o rótulo original estão comprovados; o traço .isHeader está declarado em TelaDetalheVaga.swift:279.
+        // A placa antiga some: nem o nome em caixa alta nem a função solta como título.
+        XCTAssertFalse(detalhe.staticTexts["BISTRÔ IPÊ"].exists)
+        XCTAssertFalse(detalhe.staticTexts["Garçom"].firstMatch.exists, "A função não aparece mais como título solto")
     }
 
     // MARK: - 3. Vaga original na candidatura em seleção

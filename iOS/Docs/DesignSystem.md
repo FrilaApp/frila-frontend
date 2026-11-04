@@ -40,6 +40,19 @@ ficam em `Docs/Enxertos/FrilaLowPhase/` (`DESIGN.md`, `REGRAS-DE-DESIGN.md`, `de
 - Espaçamento (`FrilaEspaco`): 2, 4, 8, 12, 14, 16, 24 e 32 pt (`FrilaGeometry.space…`).
 - Raios (`FrilaRaio` ↔ `FrilaGeometry`): 8 aninhado, 14 campo (`entrada`), 16 cartão e aviso (`cartao`),
   24 folha. Botões, chips e pílulas são sempre `Capsule` (G6), com 32/44/52 pt de altura.
+- Exceção decidida em 30/10/2026 e refeita em 04/11/2026 (iteração 5): `FrilaMapaComAcao` é uma peça só, com
+  prévia real do mapa e botão "Abrir no mapa" sob um contorno contínuo de 16 pt (`FrilaRaio.cartao`, contorno
+  `FrilaCor.divisoria`, sem sombra externa; a junção é reta e sem fresta). Prévia de 102 pt: `MKMapSnapshotter`
+  centrado em `Vaga.ponto`, norte para cima, câmera de 400 m com inclinação de 30° (cerca de 770 m de largura
+  na linha do ponto), configuração padrão suavizada (`muted`), sem pontos de interesse, claro e escuro nativos
+  pela `traitCollection` (nunca película sobre imagem clara). Pino próprio de 26 pt (20 de largura) em
+  `FrilaCor.quente` (#F16A00) com núcleo branco de 8 pt e sombra curta, sem halo, composto na posição de
+  `Snapshot.point(for:)`; a atribuição da Apple fica na imagem. Cache só em memória (vaga, aparência, tamanho e
+  escala), nunca em disco. Carregando: fundo `FrilaCor.controle`, mesmas dimensões. Falha: "Prévia indisponível"
+  no mesmo fundo, sem desenho inventado. Botão de 30 pt de altura total (`EstiloBotaoTatil(alturaMinima: 30)`,
+  escala 1), fundo `mapActionBackground` (#090908), ícone `map` branco de 14 pt e rótulo semibold 15 pt branco.
+  Só o botão é tocável; ele abre o Apple Maps na coordenada da prévia, com nome e endereço como rótulo
+  (`DestinoDoMapaDaVaga`). Bloco de 132 pt.
 - Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`, `FrilaGeometry.hitboxMinimum`).
 - Tipografia (`FrilaTipo` ↔ `FrilaTypography`/`FrilaFormType`): SF Pro pelos estilos semânticos, com Dynamic Type.
   Bricolage Grotesque só nas perguntas e respostas dos formulários (`pergunta`, `respostaEscolhida`,

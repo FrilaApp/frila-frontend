@@ -6,12 +6,19 @@ import SwiftUI
 public struct EstiloBotaoTatil: ButtonStyle {
     public let reduceMotion: Bool
     public let scale: CGFloat
+    /// Altura mínima do rótulo. O padrão é o alvo de 44 pt; só o botão do mapa, de 30 pt por decisão do usuário, a reduz.
+    public let alturaMinima: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var envReduceMotion
 
-    public init(reduceMotion: Bool = false, scale: CGFloat = FrilaMovimento.pressScaleBotao) {
+    public init(
+        reduceMotion: Bool = false,
+        scale: CGFloat = FrilaMovimento.pressScaleBotao,
+        alturaMinima: CGFloat = FrilaMetrica.alvoMinimo
+    ) {
         self.reduceMotion = reduceMotion
         self.scale = scale
+        self.alturaMinima = alturaMinima
     }
 
     public func makeBody(configuration: Configuration) -> some View {
@@ -23,7 +30,7 @@ public struct EstiloBotaoTatil: ButtonStyle {
                 FrilaMovimento.animacao(FrilaMovimento.molaTatil, reduzir: isReduceActive),
                 value: configuration.isPressed
             )
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
+            .frame(minHeight: alturaMinima)
             .contentShape(Rectangle())
             .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, isPressed in
                 isPressed
@@ -64,8 +71,12 @@ public struct EstiloChipTatil: ButtonStyle {
 
 public extension ButtonStyle where Self == EstiloBotaoTatil {
     static var tatil: EstiloBotaoTatil { EstiloBotaoTatil() }
-    static func tatil(reduceMotion: Bool = false, scale: CGFloat = FrilaMovimento.pressScaleBotao) -> EstiloBotaoTatil {
-        EstiloBotaoTatil(reduceMotion: reduceMotion, scale: scale)
+    static func tatil(
+        reduceMotion: Bool = false,
+        scale: CGFloat = FrilaMovimento.pressScaleBotao,
+        alturaMinima: CGFloat = FrilaMetrica.alvoMinimo
+    ) -> EstiloBotaoTatil {
+        EstiloBotaoTatil(reduceMotion: reduceMotion, scale: scale, alturaMinima: alturaMinima)
     }
 }
 

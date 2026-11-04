@@ -13,7 +13,7 @@ final class MinhasVagasUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Publique uma vaga e avisamos os profissionais da função perto do local."].exists)
     }
 
-    func testVagaConfirmadaAbrePerfilPublicoEContatoLiberado() {
+    func testVagaConfirmadaAbrePerfilPublicoSemContato() {
         let app = XCUIApplication()
         app.launchArguments += [
             "-FRILA_ABRIR_MINHAS_VAGAS",
@@ -37,10 +37,11 @@ final class MinhasVagasUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10), "deve retornar ao detalhe da vaga")
 
-        let contato = app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"]
-        XCTAssertTrue(contato.waitForExistence(timeout: Espera.aparecer))
-        contato.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["contato-liberado-82000000-0000-0000-0000-000000000001"].waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "+5561999990000")).firstMatch.exists)
+        // Contato fora do app: a posição confirmada não oferece ver contato, ligar nem WhatsApp.
+        XCTAssertTrue(app.buttons["acompanhar-turno-82000000-0000-0000-0000-000000000001"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(app.buttons["ver-contato-82000000-0000-0000-0000-000000000002"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["contato-liberado-82000000-0000-0000-0000-000000000001"].exists)
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "+5561999990000")).firstMatch.exists)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS 'WhatsApp' OR label CONTAINS 'Ligar'")).firstMatch.exists)
     }
 }

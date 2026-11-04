@@ -1,4 +1,5 @@
 @testable import FrilaApresentacao
+import CoreLocation
 import Testing
 import CoreText
 import UIKit
@@ -57,7 +58,8 @@ struct ComposicaoValorTests {
             let conteudo = VStack(alignment: .leading, spacing: 24) {
                 FrilaResumoVaga(quando: "Amanhã", horario: "21h56 às 01h56", valor: texto,
                                 valorAcessibilidade: leitura, local: "Local sintético", distancia: nil,
-                                preenchidas: 0, total: 2, inicio: nil, fim: nil, abrirMapa: {})
+                                preenchidas: 0, total: 2, inicio: nil, fim: nil,
+                                ponto: CLLocationCoordinate2D(latitude: -15.8267, longitude: -47.9218), abrirMapa: {})
                 AreaDeCandidatura(viewModel: CandidaturaViewModel(vaga: vaga, api: api), candidatar: { _ in })
                     .environment(AvisosDoDetalhe())
             }

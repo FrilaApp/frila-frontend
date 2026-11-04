@@ -1,6 +1,7 @@
 // O catálogo é ferramenta de desenvolvimento: fica fora do Release (#96).
 #if DEBUG
 import FrilaDominio
+import CoreLocation
 import SwiftUI
 
 public struct CatalogoDesignSystem: View {
@@ -65,6 +66,7 @@ public struct CatalogoDesignSystem: View {
     private let amostraValorDiferenciadoFalado = "220 reais"
     private let amostraEnderecoCompleto = "CLS 405, Asa Sul, Brasília - DF"
     private let amostraDistanciaPontoBase = "2,4 km do seu ponto base"
+    private let amostraPontoDaVaga = CLLocationCoordinate2D(latitude: -15.8267, longitude: -47.9218)
 
     private let amostraRotuloAlimentacao = "Alimentação"
     private let amostraValorAlimentacao = "Almoço e lanche no local"
@@ -400,6 +402,7 @@ public struct CatalogoDesignSystem: View {
                     total: 4,
                     inicio: Date.now.addingTimeInterval(7200),
                     fim: Date.now.addingTimeInterval(21600),
+                    ponto: amostraPontoDaVaga,
                     abrirMapa: {}
                 )
             }
@@ -419,6 +422,7 @@ public struct CatalogoDesignSystem: View {
                     total: 6,
                     inicio: Date.now.addingTimeInterval(-3600),
                     fim: Date.now.addingTimeInterval(14400),
+                    ponto: amostraPontoDaVaga,
                     abrirMapa: {}
                 )
             }
@@ -438,6 +442,7 @@ public struct CatalogoDesignSystem: View {
                     total: 8,
                     inicio: Date.now.addingTimeInterval(-28800),
                     fim: Date.now.addingTimeInterval(-14400),
+                    ponto: amostraPontoDaVaga,
                     abrirMapa: {}
                 )
             }
@@ -457,6 +462,7 @@ public struct CatalogoDesignSystem: View {
                     total: 5,
                     inicio: nil,
                     fim: nil,
+                    ponto: amostraPontoDaVaga,
                     abrirMapa: {}
                 )
             }

@@ -2,41 +2,44 @@ import XCTest
 
 /// Modo avião (#73, RNF06): o turno confirmado com rede fica no cache do aparelho; aberto de novo sem
 /// rede (o dublê `sem-rede` recusa toda chamada), Meus turnos e o turno continuam na tela, e o
-/// check-in vai para a fila. O contato continua visível dentro do prazo do contrato, e o WhatsApp
-/// conserva o destino do telefone do dublê (#109).
+/// check-in vai para a fila. O "Como chegar" (endereço e Abrir no mapa) continua na tela, e nada de
+/// contato aparece, com ou sem rede (contato fora do app).
 @MainActor
 final class ModoAviaoUITests: XCTestCase {
-    /// O telefone do exemplo do contrato (`Resources/Fixtures/contato.json`), que o dublê entrega como
-    /// contato do turno. O cartão do contato põe o identificador dele nos filhos, então a busca é
-    /// pelo texto.
+    /// O telefone do exemplo do contrato (`Resources/Fixtures/contato.json`), que o dublê ainda entrega
+    /// como contato do turno: o app não pode mostrá-lo.
     private static let telefoneDoDuble = "+5561999990000"
 
     private func telefone(_ app: XCUIApplication) -> XCUIElement {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", Self.telefoneDoDuble)).firstMatch
     }
 
-    private func destinoDoWhatsApp(_ app: XCUIApplication) throws -> URL {
-        let whatsapp = app.buttons["botao-whatsapp"]
-        XCTAssertTrue(whatsapp.waitForExistence(timeout: Espera.aparecer))
-        for _ in 0..<3 where !whatsapp.isHittable {
+    private func conferirSemContato(_ app: XCUIApplication) {
+        XCTAssertFalse(telefone(app).exists, "o telefone do dublê não deve aparecer")
+        XCTAssertFalse(app.buttons["botao-whatsapp"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["contato-do-turno"].exists)
+    }
+
+    private func destinoDoMapa(_ app: XCUIApplication) throws -> URL {
+        let mapa = app.buttons["botao-abrir-no-mapa"]
+        XCTAssertTrue(mapa.waitForExistence(timeout: Espera.aparecer))
+        for _ in 0..<3 where !mapa.isHittable {
             app.swipeUp()
         }
-        XCTAssertTrue(whatsapp.isHittable)
-        whatsapp.tap()
+        XCTAssertTrue(mapa.isHittable)
+        mapa.tap()
         let abertura = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "value BEGINSWITH %@", "https://wa.me/"), object: whatsapp
+            predicate: NSPredicate(format: "value BEGINSWITH %@", "https://maps.apple.com/"), object: mapa
         )
-        XCTAssertEqual(XCTWaiter.wait(for: [abertura], timeout: Espera.aparecer), .completed, "o toque deve abrir a conversa no WhatsApp")
-        let valor = try XCTUnwrap(whatsapp.value as? String, "o abridor deve registrar o destino acionado pelo Link")
+        XCTAssertEqual(XCTWaiter.wait(for: [abertura], timeout: Espera.aparecer), .completed, "o toque deve abrir o endereço no mapa")
+        let valor = try XCTUnwrap(mapa.value as? String, "o abridor deve registrar o destino acionado pelo Link")
         let url = try XCTUnwrap(URL(string: valor), "destino capturado: \(valor)")
-        XCTAssertEqual(url.scheme, "https")
-        XCTAssertEqual(url.host, "wa.me")
-        XCTAssertEqual(url.path, "/" + Self.telefoneDoDuble.filter(\.isNumber))
+        XCTAssertEqual(url.host, "maps.apple.com")
         return url
     }
 
     func testTurnoConfirmadoContinuaLegivelSemRedeEOCheckinVaiParaAFila() throws {
-        // Com rede: candidata-se e abre Meus turnos, que guarda o turno no cache, e o turno, com o contato.
+        // Com rede: candidata-se e abre Meus turnos, que guarda o turno no cache, e o turno, com o Como chegar.
         let comRede = XCUIApplication()
         // Sem `-FRILA_CACHE_VAZIO_UI_TEST`, que troca o cache por um em memória: o turno tem de ir ao
         // disco para o segundo lançamento ler.
@@ -58,8 +61,9 @@ final class ModoAviaoUITests: XCTestCase {
         // O id do turno novo: o cache em disco pode ter turnos de outros testes, e a fila, ações deles.
         let idDoTurno = turnoComRede.identifier
         turnoComRede.tap()
-        XCTAssertTrue(telefone(comRede).waitForExistence(timeout: 10), "com rede o contato aparece")
-        let destinoComRede = try destinoDoWhatsApp(comRede)
+        XCTAssertTrue(comRede.descendants(matching: .any)["como-chegar-do-turno"].waitForExistence(timeout: 10), "com rede o Como chegar aparece")
+        conferirSemContato(comRede)
+        let destinoComRede = try destinoDoMapa(comRede)
         comRede.terminate()
 
         // Sem rede, com o mesmo cache.
@@ -79,8 +83,9 @@ final class ModoAviaoUITests: XCTestCase {
         XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer), "o turno confirmado com rede está no cache")
         turno.tap()
         XCTAssertTrue(semRede.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
-        XCTAssertTrue(telefone(semRede).waitForExistence(timeout: Espera.aparecer), "o contato do turno confirmado continua visível sem rede")
-        XCTAssertEqual(try destinoDoWhatsApp(semRede), destinoComRede, "o cache conserva o número e a mensagem do WhatsApp")
+        XCTAssertTrue(semRede.descendants(matching: .any)["como-chegar-do-turno"].waitForExistence(timeout: Espera.aparecer), "o Como chegar do turno confirmado continua na tela sem rede")
+        conferirSemContato(semRede)
+        XCTAssertEqual(try destinoDoMapa(semRede), destinoComRede, "o cache conserva o endereço do mapa")
 
         // Sem rede não há o ponto da vaga para medir a distância: o check-in sai manual e vai para a fila.
         let fazerCheckin = semRede.buttons["fazer-checkin"]

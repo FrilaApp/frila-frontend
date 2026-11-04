@@ -3,7 +3,7 @@ import XCTest
 /// Mede a composição renderizada, sem depender das constantes da implementação.
 @MainActor
 final class BarraAceitarTurnoUITests: XCTestCase {
-    func testValorDominanteEBotaoDeLarguraTotal() {
+    func testRodapeCompactoComValorApoioEBotaoDeLarguraTotal() {
         let app = XCUIApplication()
         app.launchArguments = [
             "-FRILA_SCENARIO", "success",
@@ -22,26 +22,21 @@ final class BarraAceitarTurnoUITests: XCTestCase {
             format: "label CONTAINS %@ AND label CONTAINS %@", "por pessoa", "23h30"
         )).firstMatch
         XCTAssertTrue(apoio.exists)
-        let titulos = app.staticTexts.matching(NSPredicate(format: "label == %@", "Garçom")).allElementsBoundByIndex
-        guard let titulo = titulos.max(by: { $0.frame.height < $1.frame.height }) else {
-            return XCTFail("O título da vaga deve aparecer")
-        }
 
         let tela = app.windows.firstMatch.frame
+        let margem: CGFloat = 16
         XCTAssertGreaterThanOrEqual(botao.frame.height, 56)
-        XCTAssertEqual(botao.frame.width, tela.width - 32, accuracy: 1)
+        XCTAssertEqual(botao.frame.width, tela.width - 2 * margem, accuracy: 1)
         XCTAssertEqual(botao.frame.midX, tela.midX, accuracy: 1)
-        XCTAssertLessThan(preco.frame.minY, apoio.frame.minY)
+        // Rodapé de duas linhas (LOG-021): valor à esquerda, apoio à direita, botão inteiro embaixo.
+        XCTAssertEqual(preco.frame.minX, margem, accuracy: 2, "o valor fica na margem esquerda do corpo")
+        XCTAssertEqual(apoio.frame.maxX, tela.width - margem, accuracy: 2, "o apoio fica na margem direita do corpo")
+        XCTAssertLessThan(preco.frame.maxX, apoio.frame.minX, "valor e apoio ficam lado a lado")
         XCTAssertLessThanOrEqual(preco.frame.maxY, botao.frame.minY)
         XCTAssertLessThanOrEqual(apoio.frame.maxY, botao.frame.minY)
-        XCTAssertEqual(preco.frame.midX, tela.midX, accuracy: 1)
-        XCTAssertEqual(apoio.frame.midX, tela.midX, accuracy: 1)
-        // O grupo combina valor e apoio. Desconta a linha de apoio para
-        // medir o espaço reservado ao valor; Jost de 26 pt fica abaixo do piso.
-        let alturaDoValor = preco.frame.height - apoio.frame.height
-        XCTAssertGreaterThan(alturaDoValor, 45)
-        XCTAssertGreaterThan(alturaDoValor, titulo.frame.height + 8)
-        print("LOG-018 composição: tela=\(tela), preço=\(preco.frame), valor sem apoio=\(alturaDoValor), título=\(titulo.frame), botão=\(botao.frame)")
-        print("LOG-018 área útil: navegação=\(app.navigationBars.firstMatch.frame), rolagem=\(app.scrollViews.firstMatch.frame)")
+        // A altura da barra é medida no teste unitário (BarraAceitarTurnoTamanhoTests): o quadro de acessibilidade do
+        // valor é maior que a caixa compacta desenhada e não serve de régua.
+        let conteudo = botao.frame.maxY - min(preco.frame.minY, apoio.frame.minY)
+        print("LOG-021 composição: tela=\(tela), valor=\(preco.frame), apoio=\(apoio.frame), botão=\(botao.frame), conteúdo=\(conteudo)")
     }
 }

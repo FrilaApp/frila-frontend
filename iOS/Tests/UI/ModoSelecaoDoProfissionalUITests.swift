@@ -63,7 +63,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(enviada.label.contains("Candidatura enviada"), enviada.label)
         XCTAssertTrue(enviada.label.contains("O estabelecimento escolhe entre os candidatos"), enviada.label)
         XCTAssertFalse(elemento("resultado-confirmada", em: app).exists)
-        XCTAssertFalse(elemento("contato-do-turno", em: app).exists, "sem escolha não há contato (RN10)")
+        XCTAssertFalse(elemento("como-chegar-do-turno", em: app).exists, "sem escolha não há turno nem Como chegar")
 
         // Retirar pede confirmação: Cancelar não retira nada.
         retirar(em: app, responder: "Cancelar")
@@ -149,7 +149,8 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
 
         XCTAssertTrue(elemento("tela-meu-turno", em: app).waitForExistence(timeout: 15))
         XCTAssertTrue(app.staticTexts["Você está confirmado"].exists)
-        XCTAssertTrue(elemento("contato-do-turno", em: app).waitForExistence(timeout: 10), "a escolha libera o contato da casa (RN10)")
+        XCTAssertTrue(elemento("como-chegar-do-turno", em: app).waitForExistence(timeout: 10), "a escolha leva ao Como chegar do turno")
+        XCTAssertFalse(elemento("contato-do-turno", em: app).exists)
     }
 
     func testCandidaturaEscolhidaApareceConfirmadaNaAbaELevaAosMeusTurnos() {
@@ -183,7 +184,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno cancelado")
         XCTAssertTrue(elemento("cancelamento-do-turno", em: app).waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["fazer-checkin"].exists)
-        XCTAssertFalse(elemento("contato-do-turno", em: app).exists)
+        XCTAssertFalse(elemento("como-chegar-do-turno", em: app).exists)
         XCTAssertFalse(elemento("presenca-do-turno", em: app).exists)
 
         app.navigationBars.buttons["Candidaturas"].tap()
