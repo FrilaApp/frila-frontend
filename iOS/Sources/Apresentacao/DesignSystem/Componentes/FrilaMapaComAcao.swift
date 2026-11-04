@@ -61,8 +61,11 @@ public struct FrilaMapaComAcao: View {
 enum CameraDaPreviaDoMapa {
     /// Inclinação da câmera, em graus. Norte sempre para cima.
     static let inclinacao: CGFloat = 30
-    /// Distância da câmera ao ponto, em metros. Define a largura visível (cerca de 600 a 900 m).
-    static let distancia: CLLocationDistance = 400
+    /// Distância da câmera ao ponto, em metros. Define a largura visível (cerca de 250 a 400 m).
+    /// Com 400 m, o rótulo de rua que passa junto ao ponto (ex.: "W1 SUL") caía sob o pino e saía
+    /// cortado ("W1 S"). O MapKit não deixa esconder rótulos de rua no mapa padrão; mais perto, o
+    /// rótulo cabe no trecho de rua à esquerda do pino. Conferido em seis pontos do DF, claro e escuro.
+    static let distancia: CLLocationDistance = 170
 }
 
 /// Imagem do snapshot e a posição do ponto da vaga dentro dela.
