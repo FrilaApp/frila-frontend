@@ -156,3 +156,48 @@ camadas compostas manualmente, replicando os valores de opacidade/raio/offset do
 `FrilaMovimento.animacao(reduzir:)` faz no iOS — retorna `tween(durationMillis = 0)` em vez de
 `null`, já que `AnimationSpec` do Compose não aceita ausência de animação, mas o efeito prático
 (sem deslocamento) é o mesmo.
+
+## 7. Matriz de contraste WCAG 2.1 AA (medida)
+
+Os valores abaixo foram calculados por luminância relativa sRGB segundo a especificação WCAG 2.1
+(W3C) a partir dos valores literais de `FrilaCores` em
+`android/core/designsystem/src/main/kotlin/br/com/frila/core/designsystem/tema/FrilaCores.kt`.
+A suíte `MatrizContrasteWCAGTest` (`:core:designsystem:testDebugUnitTest`) é o guardião destes
+números: ela falha se qualquer par cair abaixo do piso da coluna "Mínimo exigido".
+
+| Primeiro plano | Fundo | Razão medida | Mínimo exigido | Nível |
+|---|---|---:|---:|---|
+| `textPrimaryLight` | `surfaceLight` | 16,86:1 | 4,5:1 | AAA |
+| `textPrimaryLight` | `surfaceElevatedLight` | 18,89:1 | 4,5:1 | AAA |
+| `textSecondaryLight` | `surfaceLight` | 6,06:1 | 4,5:1 | AA |
+| `textSecondaryLight` | `surfaceElevatedLight` | 6,80:1 | 4,5:1 | AA |
+| `brandOnPrimaryLight` | `brandPrimaryLight` | 18,89:1 | 4,5:1 | AAA |
+| `successLight` | `surfaceElevatedLight` | 5,48:1 | 4,5:1 | AA |
+| `warningLight` | `surfaceElevatedLight` | 5,27:1 | 4,5:1 | AA |
+| `dangerLight` | `surfaceElevatedLight` | 5,38:1 | 4,5:1 | AA |
+| `textPrimaryDark` | `surfaceDark` | 17,89:1 | 4,5:1 | AAA |
+| `textPrimaryDark` | `surfaceElevatedDark` | 15,51:1 | 4,5:1 | AAA |
+| `textSecondaryDark` | `surfaceDark` | 7,69:1 | 4,5:1 | AAA |
+| `textSecondaryDark` | `surfaceElevatedDark` | 6,67:1 | 4,5:1 | AA |
+| `brandOnPrimaryDark` | `brandPrimaryDark` | 17,17:1 | 4,5:1 | AAA |
+| `successDark` | `surfaceElevatedDark` | 9,79:1 | 4,5:1 | AAA |
+| `warningDark` | `surfaceElevatedDark` | 10,22:1 | 4,5:1 | AAA |
+| `dangerDark` | `surfaceElevatedDark` | 6,05:1 | 4,5:1 | AA |
+| `textPrimaryDark` | `surfaceOled` | 19,08:1 | 7,0:1 | AAA |
+| `textSecondaryDark` | `surfaceOled` | 8,21:1 | 7,0:1 | AAA |
+
+Menor razão da matriz: 5,27:1 (`warningLight` sobre `surfaceElevatedLight`), acima do piso AA de
+4,5:1 para texto normal. O modo OLED (`surfaceOled`, preto puro) é exigido no nível AAA (7,0:1)
+porque é o fundo de leitura prolongada em aparelhos com tela OLED.
+
+Notas de uso:
+
+- `brandAccent` (`#EA5A36`) não entra na matriz como cor de texto: ele é acento de ícone e
+  destaque gráfico, sujeito ao piso de 3,0:1 de componentes gráficos, nunca fundo de tela ou de
+  cartão (ver seção 1).
+- Alterar qualquer valor literal de `FrilaCores` exige rodar
+  `./gradlew :core:designsystem:testDebugUnitTest` e atualizar esta tabela no mesmo PR.
+
+As anotações de TalkBack, nós semânticos e ordem de foco das telas Entrada, Cadastro e Feed estão
+em [`06-anotacoes-talkback-telas.md`](06-anotacoes-talkback-telas.md); contraste e semântica são
+os dois lados do critério de acessibilidade do cartão `Q84ogJUr`.
