@@ -36,8 +36,7 @@ public struct TelaCodigo: View {
 
                             (Text("Enviamos um código para", bundle: bundleApresentacao).font(FrilaTipo.contextoDaResposta).foregroundStyle(FrilaCor.textoSecundario)
                              + Text(verbatim: " ")
-                             + Text(verbatim: viewModel.email).font(FrilaTipo.respostaEscolhida).foregroundStyle(FrilaCor.texto)
-                             + Text(verbatim: ".").font(FrilaTipo.contextoDaResposta).foregroundStyle(FrilaCor.textoSecundario))
+                             + Text(verbatim: viewModel.email).font(FrilaTipo.respostaEscolhida).foregroundStyle(FrilaCor.texto))
                             .fixedSize(horizontal: false, vertical: true)
 
                             Button(action: aoVoltar) {
