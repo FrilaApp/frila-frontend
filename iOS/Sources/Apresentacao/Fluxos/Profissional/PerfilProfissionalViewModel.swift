@@ -16,6 +16,10 @@ public final class PerfilProfissionalViewModel {
     public var enderecoTexto: String = ""
     public private(set) var pontoBase: Coordenada?
     public private(set) var descricaoPontoBase: String?
+    /// Unidade federativa e país que o geocodificador deu ao endereço escolhido na busca. Sem eles
+    /// (ponto vindo do perfil salvo ou definido por coordenada), a conferência usa só a coordenada.
+    private var areaDoPontoBase: String?
+    private var paisDoPontoBase: String?
     public private(set) var sugestoes: [MKMapItem] = []
     public private(set) var carregandoBusca: Bool = false
     public private(set) var disponibilidades: [JanelaDeDisponibilidade] = []
@@ -80,8 +84,17 @@ public final class PerfilProfissionalViewModel {
         mensagemDeErro = nil
     }
 
+    /// O ponto base está fora do Distrito Federal (cobertura atual do Frila, decisão A6 da PO). Só avisa:
+    /// salvar continua permitido.
+    public var pontoBaseForaDoDF: Bool {
+        guard let pontoBase else { return false }
+        return CoberturaDoDF.estaForaDoDF(pontoBase, area: areaDoPontoBase, codigoDoPais: paisDoPontoBase)
+    }
+
     public func definirPontoBase(_ coordenada: Coordenada, nome: String? = nil) {
         pontoBase = coordenada
+        areaDoPontoBase = nil
+        paisDoPontoBase = nil
         if let nome {
             enderecoTexto = nome
             descricaoPontoBase = nome
@@ -118,6 +131,8 @@ public final class PerfilProfissionalViewModel {
         let coord = item.placemark.coordinate
         do {
             pontoBase = try Coordenada(latitude: coord.latitude, longitude: coord.longitude)
+            areaDoPontoBase = item.placemark.administrativeArea
+            paisDoPontoBase = item.placemark.isoCountryCode
             let titulo = item.name.map { "\($0), \(item.placemark.title ?? "")" } ?? (item.placemark.title ?? enderecoTexto)
             enderecoTexto = titulo
             descricaoPontoBase = titulo
@@ -303,6 +318,8 @@ public final class PerfilProfissionalViewModel {
     private func aplicarPerfil(_ perfil: PerfilProfissional) {
         self.funcoesSelecionadas = Set(perfil.funcoes.map(\.id))
         self.pontoBase = perfil.pontoBase
+        self.areaDoPontoBase = nil
+        self.paisDoPontoBase = nil
         self.disponibilidades = perfil.disponibilidades
         self.enderecoTexto = ""
         self.descricaoPontoBase = TextosDoProfissional.Perfil.pontoBaseSalvo

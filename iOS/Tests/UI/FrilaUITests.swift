@@ -778,6 +778,39 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertEqual(aviso.label, "Alerta: Código incorreto. Confira os números e tente novamente.")
     }
 
+    /// A5: a maioridade é conferida só pela data de nascimento; a única caixa do cadastro é a dos termos.
+    func testCadastroConfereMaioridadePelaDataESemCaixaDeMaioridade() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("adulto@frila.app")
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
+
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
+        let nascimento = app.textFields["cadastro-nascimento"]
+        rolarAte(nascimento, app: app)
+        XCTAssertTrue(app.staticTexts["cadastro-nascimento-ajuda"].waitForExistence(timeout: Espera.aparecer), "a ajuda explica que a idade sai da data")
+
+        let termos = app.buttons["cadastro-termos"]
+        rolarAte(termos, app: app)
+        XCTAssertTrue(termos.exists)
+        let caixaDeMaioridade = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'maior de idade' OR label CONTAINS[c] 'tenho 18'"))
+        XCTAssertEqual(caixaDeMaioridade.count, 0, "não há caixa de autodeclaração de maioridade")
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cadastro-' AND identifier != 'cadastro-voltar' AND identifier != 'cadastro-continuar' AND identifier != 'cadastro-termos' AND NOT identifier BEGINSWITH 'cadastro-perfil-'")).count, 0, "o termos é a única caixa do cadastro")
+    }
+
     func testMenorDeIdadeExibeRecusa() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
