@@ -2,19 +2,49 @@
   "sourceLanguage" : "pt-BR",
   "strings" : {
     "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
       "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Frila" } }
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frila"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Frila"
+          }
+        }
       }
     },
     "CheckIn" : {
       "comment" : "Texto do pedido de localização precisa (NSLocationTemporaryUsageDescriptionDictionary).",
+      "extractionState" : "stale",
       "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "A localização precisa confirma que você está no endereço da vaga neste check-in ou check-out." } }
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A localização precisa confirma que você está no endereço da vaga neste check-in ou check-out."
+          }
+        }
       }
     },
     "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Privacy - Location When In Use Usage Description",
       "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Frila usa sua localização só quando você toca em fazer check-in ou check-out, para medir a distância até o endereço da vaga. Só a distância é enviada." } }
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Frila usa sua localização só quando você toca em fazer check-in ou check-out, para medir a distância até o endereço da vaga. Só a distância é enviada."
+          }
+        }
       }
     }
   },

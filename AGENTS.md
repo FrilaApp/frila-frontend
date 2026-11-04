@@ -99,7 +99,7 @@ Também existem `conferir-movimento.sh`, `conferir-datas-fixas.sh` e `conferir-r
 Não se repetem aqui: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/DesignSystem.md` e, para telas, `iOS/Docs/HiFi/REFERENCIA.md` e `iOS/Docs/HiFi/ESTADO.md`. Android: `docs/android/README.md`.
 
 ### Regras que o agente erra sem ler
-- **Textos só pelo catálogo.** `Resources/Localizable.xcstrings` é um arquivo único: acrescente **só entradas novas**, preservando a ordem e a indentação do JSON; nunca renomeie nem apague entradas existentes. O Xcode reformata o arquivo sozinho, então não commite um catálogo reescrito por acidente.
+- **Textos só pelo catálogo.** `Resources/Localizable.xcstrings` é um arquivo único: acrescente **só entradas novas**, preservando a ordem e a indentação do JSON; nunca renomeie nem apague entradas existentes. Os três catálogos (`Localizable`, `InfoPlist` e `Estudio`) já estão no formato do Xcode (chaves em ordem alfabética, `"chave" : valor`) e o `project.yml` desliga a extração automática, então compilar não os reescreve mais. Se o Xcode reposicionar a entrada que você acrescentou, tudo bem; se reescrever o arquivo inteiro, não commite.
 - **Contrato:** `iOS/Contrato/` é espelho de `frila-docs/api/openapi.yaml`. Não edite; `Scripts/contrato-em-dia.sh` confere.
 - **Todo `await` de API do sistema** dentro de um fluxo com `carregando` leva prazo e fallback explícito (loading sem fim quase sempre é um `await` sem prazo).
 - **Bug visto no aparelho:** traga o trecho do log do aparelho e a causa confirmada ou descartada. O teste de regressão vem **antes** do fix.

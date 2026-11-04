@@ -183,6 +183,15 @@
     "aviso": "                            The Swift HTTP Types Project\n                            ====================================\n\nPlease visit the Swift HTTP Types web site for more information:\n\n  * https://github.com/apple/swift-http-types\n\nCopyright 2023 The Swift HTTP Types Project\n\nThe Swift HTTP Types Project licenses this file to you under the Apache License,\nversion 2.0 (the \"License\"); you may not use this file except in compliance\nwith the License. You may obtain a copy of the License at:\n\n  https://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT\nWARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the\nLicense for the specific language governing permissions and limitations\nunder the License.\n\nAlso, please refer to each LICENSE.<component>.txt file, which is located in\nthe 'license' directory of the distribution file, for the license terms of the\ncomponents that this product depends on.\n\n-------------------------------------------------------------------------------\n\nThis product contains a derivation of various scripts from SwiftNIO.\n\n  * LICENSE (Apache License 2.0):\n    * https://www.apache.org/licenses/LICENSE-2.0\n  * HOMEPAGE:\n    * https://github.com/apple/swift-nio"
   },
   {
+    "id": "swift-issue-reporting",
+    "nome": "swift-issue-reporting",
+    "versao": "2.1.2",
+    "revisao": "b23bb4493c439d3e05152bc167014235ba3d47fc",
+    "url": "https://github.com/pointfreeco/swift-issue-reporting",
+    "tipo": "MIT",
+    "texto": "MIT License\n\nCopyright (c) 2021 Point-Free, Inc.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+  },
+  {
     "id": "xctest-dynamic-overlay",
     "nome": "xctest-dynamic-overlay",
     "versao": "1.13.1",
