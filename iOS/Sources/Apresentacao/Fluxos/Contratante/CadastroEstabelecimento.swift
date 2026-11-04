@@ -43,6 +43,7 @@ private enum TextosCadastro {
     static let logistica = String(localized: "Logística", bundle: bundleApresentacao)
     static let servicoDomestico = String(localized: "Serviço doméstico", bundle: bundleApresentacao)
     static let outro = String(localized: "Outro", bundle: bundleApresentacao)
+    static let foraDoDF = TextosDeCobertura.regiaoForaDoDF
 }
 
 @MainActor @Observable
@@ -54,6 +55,9 @@ public final class CadastroEstabelecimentoViewModel {
     /// Região Administrativa do DF, obrigatória desde o contrato 0.2.20. Texto livre: quem informa é a casa.
     public var regiaoAdministrativa = ""
     public var ponto: CLLocationCoordinate2D?
+    /// O que o geocodificador disse sobre o endereço escolhido na busca. Só vale enquanto o marcador
+    /// continua no ponto da busca: arrastado, a conferência do DF passa a usar só a coordenada.
+    private var enderecoEscolhido: EnderecoEscolhido?
     public private(set) var alvoDaCamera: CLLocationCoordinate2D?
     public var sugestoes: [MKMapItem] = []
     public var carregandoBusca = false
@@ -217,7 +221,31 @@ public final class CadastroEstabelecimentoViewModel {
         return nil
     }
 
+    private struct EnderecoEscolhido {
+        let coordenada: CLLocationCoordinate2D
+        let area: String?
+        let codigoDoPais: String?
+        let cidade: String?
+    }
+
+    /// O endereço está fora do Distrito Federal (cobertura atual do Frila, decisão A6 da PO). O cadastro
+    /// continua permitido: a tela só avisa.
+    public var foraDoDF: Bool {
+        guard let ponto, let coordenada = try? Coordenada(latitude: ponto.latitude, longitude: ponto.longitude) else { return false }
+        let escolhido = enderecoEscolhido.flatMap { $0.coordenada.latitude == ponto.latitude && $0.coordenada.longitude == ponto.longitude ? $0 : nil }
+        return CoberturaDoDF.estaForaDoDF(coordenada, area: escolhido?.area, codigoDoPais: escolhido?.codigoDoPais)
+    }
+
+    /// Fora do DF não há Região Administrativa para escolher; o contrato pede o campo, então vai a
+    /// cidade que o geocodificador deu (ou a unidade federativa, ou um texto fixo).
+    private var regiaoParaForaDoDF: String {
+        let candidatos = [enderecoEscolhido?.cidade, enderecoEscolhido?.area, TextosCadastro.foraDoDF]
+        return candidatos.lazy.compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.first { !$0.isEmpty } ?? TextosCadastro.foraDoDF
+    }
+
     public func selecionar(_ item: MKMapItem) {
+        let marca = item.placemark
+        enderecoEscolhido = EnderecoEscolhido(coordenada: marca.coordinate, area: marca.administrativeArea, codigoDoPais: marca.isoCountryCode, cidade: marca.locality)
         endereco = item.name.map { "\($0), \(item.placemark.title ?? "")" } ?? (item.placemark.title ?? endereco)
         ponto = item.placemark.coordinate
         alvoDaCamera = item.placemark.coordinate
@@ -236,7 +264,7 @@ public final class CadastroEstabelecimentoViewModel {
         guard documento.count == 11 || documento.count == 14 else { erro = .campo(.documento, .invalido); return }
         guard !endereco.isEmpty, let ponto else { erro = .campo(.endereco, .obrigatorio); return }
         guard let coordenada = try? Coordenada(latitude: ponto.latitude, longitude: ponto.longitude) else { erro = .campo(.endereco, .invalido); return }
-        let regiao = regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        let regiao = foraDoDF ? regiaoParaForaDoDF : regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !regiao.isEmpty else { erro = .campo(.regiaoAdministrativa, .obrigatorio); return }
         enviando = true
         defer { enviando = false }
@@ -376,8 +404,12 @@ public struct TelaCadastroEstabelecimento: View {
                         .id(IDScroll.documento)
                     secaoEndereco
                         .id(IDScroll.endereco)
-                    secaoRegiaoAdministrativa
-                        .id(IDScroll.regiaoAdministrativa)
+                    if model.foraDoDF {
+                        AvisoForaDoDF(texto: TextosDeCobertura.estabelecimento, identificador: "aviso-fora-do-df")
+                    } else {
+                        secaoRegiaoAdministrativa
+                            .id(IDScroll.regiaoAdministrativa)
+                    }
                     secaoDoMapa
                     secaoResponsavel
                         .id(IDScroll.responsavel)

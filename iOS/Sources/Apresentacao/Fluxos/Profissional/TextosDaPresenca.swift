@@ -16,6 +16,16 @@ extension TextosDoProfissional {
             localized: "O Frila lê sua localização só quando você toca no botão, para medir a distância até o endereço da vaga. Só a distância é enviada: sua posição não sai do aparelho e nada é lido em segundo plano.",
             bundle: bundleApresentacao
         )
+        /// Segundo parágrafo da explicação: pede a localização precisa já na pergunta do sistema (A11).
+        static let explicacaoPrecisao = String(
+            localized: "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.",
+            bundle: bundleApresentacao
+        )
+        /// Aviso antes do toque, quando só a localização aproximada foi concedida (A11).
+        static let avisoPrecisaoDesligada = String(
+            localized: "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.",
+            bundle: bundleApresentacao
+        )
         static let continuar = String(localized: "Continuar", bundle: bundleApresentacao)
         static let agoraNao = String(localized: "Agora não", bundle: bundleApresentacao)
 
@@ -24,7 +34,7 @@ extension TextosDoProfissional {
 
         static let semGPSTitulo = String(localized: "Localização não confirmada", bundle: bundleApresentacao)
         static let motivoPermissaoNegada = String(localized: "O Frila está sem permissão para usar a localização. Você pode liberar nos Ajustes.", bundle: bundleApresentacao)
-        static let motivoAproximada = String(localized: "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço.", bundle: bundleApresentacao)
+        static let motivoAproximada = String(localized: "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.", bundle: bundleApresentacao)
         static let motivoSemSinal = String(localized: "O GPS não respondeu em 10 segundos.", bundle: bundleApresentacao)
         static let motivoImprecisa = String(localized: "O sinal do GPS está fraco demais para confirmar que você está no endereço.", bundle: bundleApresentacao)
         static func motivoLonge(_ metros: Int) -> String {

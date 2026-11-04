@@ -300,6 +300,55 @@ struct PresencaDoTurnoViewModelTests {
         #expect(await leitor.leituras == 0)
     }
 
+    @Test("Só com a aproximada, o aviso de precisão aparece antes do toque; com a precisa, não (A11)")
+    func avisoDePrecisaoAntesDoToque() async throws {
+        let cena = try await Cena.montar()
+        let aproximada = cena.viewModel(cena.leitor(permissao: .aoUsarAproximada))
+        #expect(!aproximada.pedePrecisaoAntes)
+        await aproximada.atualizarPermissaoDaLocalizacao()
+        #expect(aproximada.pedePrecisaoAntes)
+
+        let precisa = cena.viewModel(cena.leitor(permissao: .aoUsarPrecisa))
+        await precisa.atualizarPermissaoDaLocalizacao()
+        #expect(!precisa.pedePrecisaoAntes)
+
+        let naoDecidida = cena.viewModel(cena.leitor(permissao: .naoDeterminada))
+        await naoDecidida.atualizarPermissaoDaLocalizacao()
+        #expect(!naoDecidida.pedePrecisaoAntes)
+    }
+
+    @Test("O aviso de precisão some quando a precisa é concedida no toque e depois do check-out feito (A11)")
+    func avisoDePrecisaoSomeComAConcessao() async throws {
+        let cena = try await Cena.montar()
+        let leitor = cena.leitor(permissao: .aoUsarAproximada, respostaAPrecisaoTemporaria: .aoUsarPrecisa)
+        let vm = cena.viewModel(leitor)
+        await vm.atualizarPermissaoDaLocalizacao()
+        #expect(vm.pedePrecisaoAntes)
+
+        await vm.iniciar(.checkin)
+
+        #expect(vm.permissaoDaLocalizacao == .aoUsarPrecisa)
+        #expect(!vm.pedePrecisaoAntes)
+    }
+
+    @Test("Se a precisa for recusada no toque, o aviso continua e o manual é oferecido (A11)")
+    func avisoDePrecisaoContinuaSeRecusada() async throws {
+        let cena = try await Cena.montar()
+        let leitor = cena.leitor(permissao: .aoUsarAproximada)
+        let vm = cena.viewModel(leitor)
+
+        await vm.iniciar(.checkin)
+        #expect(vm.etapa == .semGPS(.checkin, .localizacaoAproximada))
+        #expect(vm.permissaoDaLocalizacao == .aoUsarAproximada)
+
+        // Tentar de novo pede a precisa de novo, com a mesma chave.
+        await vm.tentarGPSDeNovo()
+        #expect(await leitor.chavesDePrecisaoTemporaria == ["CheckIn", "CheckIn"])
+
+        vm.cancelar()
+        #expect(vm.pedePrecisaoAntes)
+    }
+
     @Test("Sem o ponto da vaga, busca o detalhe no toque; se nem ele vem, oferece o manual sem ligar o GPS")
     func pontoDaVaga() async throws {
         let cena = try await Cena.montar()
