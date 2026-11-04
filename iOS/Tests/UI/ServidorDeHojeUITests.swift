@@ -138,6 +138,6 @@ final class ServidorDeHojeUITests: XCTestCase {
         let cabecalho = app.staticTexts["estado-do-turno"]
         XCTAssertTrue(cabecalho.waitForExistence(timeout: 10))
         XCTAssertEqual(cabecalho.label, "Você está confirmado")
-        XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["como-chegar-do-turno"].waitForExistence(timeout: 10))
     }
 }
