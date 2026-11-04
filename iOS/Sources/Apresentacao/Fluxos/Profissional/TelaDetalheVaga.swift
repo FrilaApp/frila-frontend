@@ -542,21 +542,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
         .accessibilityIdentifier("detalhe-reputacao")
     }
 
-    private func avisoRN10View(_ vaga: Vaga) -> some View {
-        HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-            Image(systemName: "phone")
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.texto)
-                .frame(width: 16, height: 16, alignment: .top)
-                .accessibilityHidden(true)
-            Text(verbatim: avisoRN10(vaga))
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.texto)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("aviso-rn10")
-    }
-
     private func avisoLocal(_ aviso: AvisosDoDetalhe.Aviso) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -573,13 +558,6 @@ public struct TelaDetalheVaga<Acao: View>: View {
             RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
                 .strokeBorder(aviso.tom == .erro ? FrilaCor.texto : Color.clear, lineWidth: 2)
         )
-    }
-
-    /// Na vaga de seleção o contato só é mostrado se a casa escolher a candidatura (RN10).
-    private func avisoRN10(_ vaga: Vaga) -> String {
-        vaga.modoEfetivo(em: .now) == .selecao
-            ? TextosDoProfissional.Detalhe.avisoRN10Selecao(vaga.estabelecimento.nome)
-            : TextosDoProfissional.Detalhe.avisoRN10Urgencia(vaga.estabelecimento.nome)
     }
 
     #if DEBUG

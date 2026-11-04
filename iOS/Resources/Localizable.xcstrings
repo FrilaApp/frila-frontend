@@ -1712,32 +1712,12 @@
         }
       }
     },
-    "Se a sua candidatura for escolhida, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se a sua candidatura for escolhida, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
-          }
-        }
-      }
-    },
     "Sem conexão. A candidatura não foi retirada; tente de novo quando a internet voltar.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Sem conexão. A candidatura não foi retirada; tente de novo quando a internet voltar."
-          }
-        }
-      }
-    },
-    "Seu telefone e WhatsApp só são mostrados ao estabelecimento se a sua candidatura for escolhida.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seu telefone e WhatsApp só são mostrados ao estabelecimento se a sua candidatura for escolhida."
           }
         }
       }
@@ -9764,26 +9744,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "avaliações indicam que trabalhariam lá de novo"
-          }
-        }
-      }
-    },
-    "Após a confirmação, seu telefone e WhatsApp ficam disponíveis para %@ até 7 dias depois do fim do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Após a confirmação, seu telefone e WhatsApp ficam disponíveis para %@ até 7 dias depois do fim do turno."
-          }
-        }
-      }
-    },
-    "Se o estabelecimento escolher sua candidatura e o turno for confirmado, seu telefone e WhatsApp ficam disponíveis para %@ até 7 dias depois do fim do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se o estabelecimento escolher sua candidatura e o turno for confirmado, seu telefone e WhatsApp ficam disponíveis para %@ até 7 dias depois do fim do turno."
           }
         }
       }

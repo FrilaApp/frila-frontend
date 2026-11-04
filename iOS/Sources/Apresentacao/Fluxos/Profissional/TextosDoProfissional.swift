@@ -117,15 +117,6 @@ enum TextosDoProfissional {
         static let urgenciaDetalhe = String(localized: "quem aceitar primeiro fica com a vaga", bundle: bundleApresentacao)
         static let selecao = String(localized: "Seleção", bundle: bundleApresentacao)
         static let selecaoDetalhe = String(localized: "o estabelecimento escolhe entre os candidatos", bundle: bundleApresentacao)
-        static func avisoRN10Urgencia(_ estabelecimento: String) -> String {
-            String(localized: "Após a confirmação, seu telefone e WhatsApp ficam disponíveis para \(estabelecimento) até 7 dias depois do fim do turno.", bundle: bundleApresentacao)
-        }
-        static func avisoRN10Selecao(_ estabelecimento: String) -> String {
-            String(localized: "Se o estabelecimento escolher sua candidatura e o turno for confirmado, seu telefone e WhatsApp ficam disponíveis para \(estabelecimento) até 7 dias depois do fim do turno.", bundle: bundleApresentacao)
-        }
-        static func avisoRN10(_ estabelecimento: String) -> String {
-            avisoRN10Urgencia(estabelecimento)
-        }
         static let aceitarTurno = String(localized: "Aceitar turno", bundle: bundleApresentacao)
         static let confirmando = String(localized: "Confirmando", bundle: bundleApresentacao)
         static let candidatar = String(localized: "Candidatar-me", bundle: bundleApresentacao)
