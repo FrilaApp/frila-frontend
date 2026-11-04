@@ -182,20 +182,26 @@ public struct FrilaOpportunityDetailView: View {
             .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
             .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : item.client.isEmpty ? String(localized: "Candidatar-me para a vaga", table: "Estudio", bundle: bundleApresentacao) : String(localized: "Candidatar-me para a vaga de \(item.role) no \(item.client)", table: "Estudio", bundle: bundleApresentacao))
 
-            // Ações Secundárias no Rodapé
-            HStack(spacing: 24) {
-                Button(String(localized: "Denunciar", table: "Estudio", bundle: bundleApresentacao)) {}
-                    .font(FrilaTypography.captionMedium)
-                    .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                    .underline()
+            // Ações Secundárias no Rodapé. Na prévia do contratante o anúncio é dele mesmo e os dois
+            // botões não têm ação (denúncia e bloqueio moram no perfil do estabelecimento): botão
+            // sem efeito na revisão da App Store é recusa por app incompleto (diretriz 2.1).
+            if !isPublisherPreview {
+                HStack(spacing: 24) {
+                    Button(String(localized: "Denunciar", table: "Estudio", bundle: bundleApresentacao)) {}
+                        .font(FrilaTypography.captionMedium)
+                        .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+                        .underline()
 
-                Button(String(localized: "Bloquear", table: "Estudio", bundle: bundleApresentacao)) {}
-                    .font(FrilaTypography.captionMedium)
-                    .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                    .underline()
+                    Button(String(localized: "Bloquear", table: "Estudio", bundle: bundleApresentacao)) {}
+                        .font(FrilaTypography.captionMedium)
+                        .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+                        .underline()
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 24)
+            } else {
+                Spacer().frame(height: 24)
             }
-            .padding(.top, 4)
-            .padding(.bottom, 24)
         }
     }
 
