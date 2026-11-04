@@ -242,6 +242,11 @@ public final class PerfilProfissionalViewModel {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemFuncao
             return false
         }
+        // O servidor recusa função inativa com 422 (privado.gravar_funcoes conta só as ativas), então o
+        // envio leva só as do catálogo ativo. O conjunto local fica como está.
+        let funcoesParaEnviar = catalogoAtivo.isEmpty
+            ? Array(funcoesSelecionadas)
+            : Array(funcoesSelecionadas.intersection(catalogoAtivo))
 
         guard let pontoBase = pontoBase else {
             mensagemDeErro = TextosDoProfissional.Perfil.erroSemPontoBase
@@ -258,7 +263,7 @@ public final class PerfilProfissionalViewModel {
             switch modo {
             case .criacao:
                 let dados = DadosPerfilProfissional(
-                    funcoes: Array(funcoesSelecionadas),
+                    funcoes: funcoesParaEnviar,
                     pontoBase: pontoBase,
                     disponibilidades: disponibilidades
                 )
@@ -277,7 +282,7 @@ public final class PerfilProfissionalViewModel {
 
             case .edicao:
                 let alteracao = AlteracaoPerfilProfissional(
-                    funcoes: Array(funcoesSelecionadas),
+                    funcoes: funcoesParaEnviar,
                     pontoBase: pontoBase,
                     disponibilidades: disponibilidades
                 )

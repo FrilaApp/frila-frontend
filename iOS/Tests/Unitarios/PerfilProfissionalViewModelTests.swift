@@ -392,10 +392,13 @@ struct PerfilProfissionalViewModelTests {
         #expect(!sucesso)
         #expect(vm.mensagemDeErro == TextosDoProfissional.Perfil.erroSemFuncao)
 
-        // Escolher uma função ativa libera o salvamento; o ID inativo continua no conjunto.
-        vm.alternarFuncao(vm.funcoesDisponiveis[0].id)
+        // Escolher uma função ativa libera o salvamento; o ID inativo continua no conjunto local,
+        // mas não vai ao servidor, que recusaria com 422.
+        let ativa = vm.funcoesDisponiveis[0].id
+        vm.alternarFuncao(ativa)
         #expect(await vm.salvar())
         #expect(vm.funcoesSelecionadas.contains(inativa.id))
+        #expect(api.alteracaoPerfilEnviada?.funcoes == [ativa])
     }
 
     @Test("Edição posterior pelo perfil funciona sem novo login e usa meuPerfilProfissional (#98)")
