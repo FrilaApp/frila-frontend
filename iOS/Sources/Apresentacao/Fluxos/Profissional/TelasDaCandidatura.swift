@@ -371,7 +371,7 @@ public struct TelaResultadoDaCandidatura: View {
     private var resumoDaVaga: some View {
         let formatador = FormatadorFrila()
         return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
+            Text(verbatim: "\(vaga.funcao.nome), \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
@@ -463,7 +463,7 @@ private struct TurnoConfirmado: View {
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("resultado-confirmada")
         VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: "\(vaga.funcao.nome) · \(vaga.estabelecimento.nome)")
+            Text(verbatim: "\(vaga.funcao.nome), \(vaga.estabelecimento.nome)")
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.texto)
             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
@@ -471,8 +471,11 @@ private struct TurnoConfirmado: View {
                     FrilaPriceTag(texto: formatador.dinheiro(vaga.valor),
                                   leitura: formatador.dinheiroFalado(vaga.valor), tamanho: 18)
                 }
-            Text(verbatim: "\(vaga.local) · \(TextosDoProfissional.Detalhe.quemRecebe.lowercased()): \(vaga.responsavelLocal)")
-                .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                Text(verbatim: vaga.local)
+                Text(verbatim: "\(TextosDoProfissional.Detalhe.quemRecebe): \(vaga.responsavelLocal)")
+            }
+            .font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()

@@ -2732,16 +2732,6 @@
         }
       }
     },
-    "Olá! Sou o profissional do turno de %@ em %@ no %@.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
-          }
-        }
-      }
-    },
     "Outro": {
       "localizations": {
         "pt-BR": {

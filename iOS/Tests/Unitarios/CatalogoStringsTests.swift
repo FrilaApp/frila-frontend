@@ -234,11 +234,9 @@ struct CatalogoStringsTests {
         // Padrões com interpolação
         let padroesInterpolados = [
             "Até %lld km",
-            "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.",
             "Trabalhariam lá de novo: %lld de %lld",
             "Remover horário de %@",
             "%@ às %@",
-            "Olá! Sou o profissional do turno de %@ em %@ no %@.",
             "%lld caracteres",
         ]
         for padrao in padroesInterpolados {
