@@ -153,6 +153,11 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         conferirContatosDoPerfil(ax5: true)
     }
 
+    /// A raiz da Conta (#652) empilha o rótulo acima do valor nos dois contatos, em qualquer tamanho de
+    /// texto, e o valor quebra de linha em vez de rolar na horizontal (`ContatoCopiavel`, `quebraLinha`).
+    /// Funções e horários viraram uma linha só, "Funções e horários", com os dois valores dentro e sem
+    /// rótulo próprio. O teste confere o que o usuário vê agora: ordem, alinhamento, texto inteiro, nada
+    /// fora da tela e fonte que cresce com o Dynamic Type.
     private func conferirContatosDoPerfil(ax5: Bool) {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success"]
@@ -165,9 +170,10 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         XCTAssertTrue(app.buttons["perfil-funcoes-horarios"].waitForExistence(timeout: 10))
         capturarDisponibilidade(app, nome: ax5 ? "perfil-ax5" : "perfil-padrao")
 
-        let categoria: UIContentSizeCategory = ax5 ? .accessibilityExtraExtraExtraLarge : .large
-        let fonte = UIFont.preferredFont(forTextStyle: .subheadline, compatibleWith: UITraitCollection(preferredContentSizeCategory: categoria))
-        for id in ["perfil-telefone", "perfil-email", "perfil-funcoes", "perfil-horarios"] {
+        // O corpo tem 15 pt de base; no tamanho padrão uma linha mede cerca de 18 pt. Em AX5 a mesma linha
+        // precisa ter pelo menos o dobro da altura de uma linha de corpo do tamanho padrão.
+        let fontePadrao = UIFont.preferredFont(forTextStyle: .body, compatibleWith: UITraitCollection(preferredContentSizeCategory: .large))
+        for (id, esperado) in [("perfil-telefone", "+5561988887777"), ("perfil-email", "ana.cunha@frila.app")] {
             let rotulo = app.staticTexts["\(id)-rotulo"]
             let valor = app.staticTexts["\(id)-valor"]
             guard rotulo.exists && valor.exists else {
@@ -176,34 +182,28 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             }
             if ax5 {
                 for _ in 0..<10 where !valor.isHittable { app.swipeUp() }
-                XCTAssertGreaterThanOrEqual(valor.frame.minY, rotulo.frame.maxY, "\(id): rótulo acima do valor")
                 XCTAssertTrue(valor.isHittable, id)
-            } else {
-                XCTAssertLessThan(abs(rotulo.frame.midY - valor.frame.midY), 2, "\(id): aparência horizontal preservada")
+                XCTAssertGreaterThanOrEqual(valor.frame.height, fontePadrao.lineHeight * 2, "\(id): a fonte acompanha Dynamic Type sem encolher")
             }
-            if id == "perfil-telefone" || id == "perfil-email" {
-                XCTAssertEqual(valor.label, id == "perfil-telefone" ? "+5561988887777" : "ana.cunha@frila.app")
-                XCTAssertGreaterThanOrEqual(valor.frame.height, fonte.lineHeight - 2, "A fonte acompanha Dynamic Type sem encolher")
-                XCTAssertLessThan(valor.frame.height, fonte.lineHeight * 1.5, "Contato inteiro em uma linha, sem hifenização")
-                if ax5 {
-                    let rolagem = app.scrollViews["\(id)-rolagem"]
-                    XCTAssertTrue(rolagem.exists)
-                    XCTAssertAlvoMinimo(rolagem.frame.height)
-                    XCTAssertLessThanOrEqual(rolagem.frame.maxX, app.frame.maxX)
-                    if valor.frame.width > rolagem.frame.width {
-                        let xAntes = valor.frame.minX
-                        rolagem.swipeLeft()
-                        XCTAssertLessThan(valor.frame.minX, xAntes, "O fim do contato fica acessível por rolagem")
-                        XCTAssertLessThanOrEqual(valor.frame.maxX, rolagem.frame.maxX + 2)
-                    }
-                }
-            }
+            XCTAssertGreaterThanOrEqual(valor.frame.minY, rotulo.frame.maxY - 1, "\(id): rótulo acima do valor")
+            XCTAssertLessThan(abs(valor.frame.minX - rotulo.frame.minX), 2, "\(id): rótulo e valor alinhados à esquerda")
+            XCTAssertEqual(valor.label, esperado, "\(id): o contato inteiro, sem corte")
+            XCTAssertGreaterThanOrEqual(valor.frame.minX, app.frame.minX, "\(id): valor dentro da tela")
+            XCTAssertLessThanOrEqual(valor.frame.maxX, app.frame.maxX, "\(id): valor dentro da tela")
             if ax5 && id == "perfil-email" {
                 capturarDisponibilidade(app, nome: "perfil-ax5-contatos-fim")
             }
         }
+
+        let funcoes = app.staticTexts["perfil-funcoes-valor"]
+        let horarios = app.staticTexts["perfil-horarios-valor"]
+        XCTAssertTrue(funcoes.exists && horarios.exists, "Funções e horários: valores identificáveis")
+        XCTAssertEqual(funcoes.label, "Garçom")
+        XCTAssertEqual(horarios.label, "2 horários cadastrados")
         if ax5 {
-            let funcoes = app.staticTexts["perfil-funcoes-rotulo"]
+            for _ in 0..<10 where !horarios.isHittable { app.swipeUp() }
+            XCTAssertTrue(funcoes.isHittable && horarios.isHittable)
+            XCTAssertGreaterThanOrEqual(horarios.frame.minY, funcoes.frame.maxY - 1, "horários abaixo das funções")
             for _ in 0..<4 where funcoes.frame.minY < 130 {
                 let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.30))
                 let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.43))
@@ -211,6 +211,9 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
             }
             XCTAssertGreaterThanOrEqual(funcoes.frame.minY, 130)
             capturarDisponibilidade(app, nome: "perfil-ax5-funcoes-horarios")
+        } else {
+            XCTAssertGreaterThanOrEqual(horarios.frame.minY, funcoes.frame.maxY - 1, "horários abaixo das funções")
+            XCTAssertLessThan(abs(horarios.frame.minX - funcoes.frame.minX), 2, "funções e horários alinhados")
         }
     }
 

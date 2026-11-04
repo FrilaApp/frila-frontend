@@ -90,8 +90,13 @@ func ajustarValorPorTurno(_ app: XCUIApplication, para valor: Int, file: StaticS
     XCTAssertTrue(atalho.waitForExistence(timeout: Espera.aparecer), "o atalho R$ \(valor) deve existir", file: file, line: line)
     trazerParaAJanela(atalho, em: app)
     atalho.tap()
-    let mostrado = app.staticTexts.matching(textoDeDinheiro(valor)).firstMatch
+    let mostrado = app.descendants(matching: .any).matching(textoDoPreco(valor)).firstMatch
     XCTAssertTrue(mostrado.waitForExistence(timeout: Espera.aparecer), "o estúdio deveria mostrar R$ \(valor)", file: file, line: line)
+    // O preço é um elemento só, lido em bloco; a régua confirma que o valor mudou de fato.
+    let regua = app.sliders["valor-vaga-campo"]
+    if regua.exists {
+        XCTAssertEqual(regua.value as? String, "\(valor)", "a régua do estúdio deveria estar em \(valor)", file: file, line: line)
+    }
 }
 
 /// Fecha o teclado se ele estiver aberto: Return encerra a edição do campo de texto focado; se o
@@ -143,9 +148,16 @@ func textoDeDinheiro(_ valor: Int) -> NSPredicate {
     )
 }
 
-/// Verdadeiro se há um texto na tela com o valor em reais.
+/// O preço composto (`FrilaPriceTag`: moeda na marca, Jost, leitura em bloco) chega ao XCUITest como um
+/// elemento só, de tipo "outro" e rótulo "R$ 160" (espaço inseparável depois de "R$"), e não como
+/// `StaticText`. O atalho (botão) tem outro rótulo ("160 reais por turno"), então não entra aqui.
+func textoDoPreco(_ valor: Int) -> NSPredicate {
+    NSPredicate(format: "label == %@ OR label == %@", "R$\u{00A0}\(valor)", "R$ \(valor)")
+}
+
+/// Verdadeiro se há um preço na tela com o valor em reais.
 func mostraDinheiro(_ app: XCUIApplication, _ valor: Int) -> Bool {
-    app.staticTexts.matching(textoDeDinheiro(valor)).firstMatch.exists
+    app.descendants(matching: .any).matching(textoDoPreco(valor)).firstMatch.exists
 }
 
 /// Substitui o texto de um campo: foca (até três toques, pois o estúdio reorganiza o formulário quando o
