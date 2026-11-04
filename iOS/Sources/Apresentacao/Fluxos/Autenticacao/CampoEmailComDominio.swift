@@ -732,7 +732,6 @@ private final class VistaDeGestos: UIView, UIGestureRecognizerDelegate {
     private lazy var vertical = IntencaoVerticalDoDominio(target: self, action: #selector(arrastou(_:)))
     private var cancelamentoDaSessao: (() -> Void)?
     private weak var rolagemDaTela: UIScrollView?
-    private var avisouAusenciaDeRolagem = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -779,12 +778,6 @@ private final class VistaDeGestos: UIView, UIGestureRecognizerDelegate {
               campo.compare(selecao.start, to: campo.endOfDocument) == .orderedSame,
               bounds.contains(touch.location(in: self)) else { return false }
         resolverRolagem()
-        if rolagemDaTela == nil, !avisouAusenciaDeRolagem {
-            avisouAusenciaDeRolagem = true
-            #if DEBUG
-            NSLog("Roda de domínio: ScrollView ancestral ausente; prioridade vertical indisponível.")
-            #endif
-        }
         vertical.campo = campo
         return true
     }
