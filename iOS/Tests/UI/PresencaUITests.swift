@@ -109,6 +109,22 @@ final class PresencaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["fazer-checkin"].waitForExistence(timeout: Espera.aparecer), "desistir devolve o botão de check-in")
     }
 
+    /// A11: quem só concedeu a localização aproximada é avisado de que a precisa mede os 200 m.
+    func testLocalizacaoAproximadaPedeAPrecisaEAvisaAntesDoProximoToque() {
+        let app = abrirMeuTurno(localizacao: "aproximada")
+        XCTAssertFalse(app.descendants(matching: .any)["aviso-precisao-desligada"].exists, "sem permissão decidida, não há o que avisar")
+        fazerCheckinComPermissao(app)
+
+        XCTAssertTrue(app.descendants(matching: .any)["sem-gps"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.descendants(matching: .any)["abrir-ajustes"].exists)
+        XCTAssertTrue(app.buttons["registro-manual"].exists)
+        tocar(app.buttons["cancelar-presenca"])
+
+        XCTAssertTrue(app.buttons["fazer-checkin"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-precisao-desligada"].waitForExistence(timeout: Espera.aparecer), "com a aproximada, o aviso vem antes do toque")
+        XCTAssertTrue(app.descendants(matching: .any)["abrir-ajustes"].exists)
+    }
+
     func testBotaoEstouACaminhoApareceTocaEMostraAviso() {
         let app = abrirMeuTurno(cenario: "a-caminho")
         let botaoACaminho = app.buttons["botao-a-caminho"]

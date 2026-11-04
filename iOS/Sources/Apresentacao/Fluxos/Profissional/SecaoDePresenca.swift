@@ -12,6 +12,7 @@ public struct SecaoDePresenca: View {
     @Bindable private var viewModel: PresencaDoTurnoViewModel
     private var turno: MeuTurnoViewModel?
     @AccessibilityFocusState private var focoNoAviso: Bool
+    @Environment(\.scenePhase) private var fase
     private let formatador = FormatadorFrila()
 
     public init(viewModel: PresencaDoTurnoViewModel, turno: MeuTurnoViewModel? = nil) {
@@ -63,6 +64,11 @@ public struct SecaoDePresenca: View {
             case .parada, .lendo, .enviando: break
             }
         }
+        .task { await viewModel.atualizarPermissaoDaLocalizacao() }
+        // Voltando dos Ajustes, a permissão pode ter mudado.
+        .onChange(of: fase) { _, nova in
+            if nova == .active { Task { await viewModel.atualizarPermissaoDaLocalizacao() } }
+        }
         .onChange(of: turno?.aCaminhoEm) { _, _ in anunciar(situacaoACaminho?.texto) }
         .onChange(of: viewModel.checkin) { _, _ in anunciar(situacaoDoCheckin?.texto) }
         .onChange(of: viewModel.checkout) { _, _ in anunciar(situacaoDoCheckout?.texto) }
@@ -74,6 +80,11 @@ public struct SecaoDePresenca: View {
     private var acoes: some View {
         switch viewModel.etapa {
         case .parada:
+            if viewModel.pedePrecisaoAntes {
+                AvisoFrila(verbatim: Textos.avisoPrecisaoDesligada, tom: .alerta)
+                    .accessibilityIdentifier("aviso-precisao-desligada")
+                linkParaAjustes
+            }
             if turno?.podeExibirBotaoACaminho == true {
                 botaoPresencaInativo(
                     verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
@@ -99,7 +110,7 @@ public struct SecaoDePresenca: View {
                 }
             }
         case .explicando:
-            aviso(titulo: Textos.explicacaoTitulo, textos: [Textos.explicacao], identificador: "explicacao-localizacao")
+            aviso(titulo: Textos.explicacaoTitulo, textos: [Textos.explicacao, Textos.explicacaoPrecisao], identificador: "explicacao-localizacao")
             botaoPresencaAtivo(
                 verbatim: Textos.continuar,
                 identificador: "permitir-localizacao"
@@ -134,16 +145,8 @@ public struct SecaoDePresenca: View {
             ) {
                 Task { await viewModel.tentarGPSDeNovo() }
             }
-            if motivo == .permissaoNegada || motivo == .localizacaoAproximada,
-               let ajustes = URL(string: UIApplication.openSettingsURLString) {
-                Link(destination: ajustes) {
-                    Text(verbatim: Textos.abrirAjustes)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                }
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
-                .accessibilityIdentifier("abrir-ajustes")
+            if motivo == .permissaoNegada || motivo == .localizacaoAproximada {
+                linkParaAjustes
             }
             botaoPresencaInativo(
                 verbatim: Textos.agoraNao,
@@ -151,6 +154,20 @@ public struct SecaoDePresenca: View {
             ) {
                 viewModel.cancelar()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var linkParaAjustes: some View {
+        if let ajustes = URL(string: UIApplication.openSettingsURLString) {
+            Link(destination: ajustes) {
+                Text(verbatim: Textos.abrirAjustes)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+            }
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+            .contentShape(Rectangle())
+            .accessibilityIdentifier("abrir-ajustes")
         }
     }
 
