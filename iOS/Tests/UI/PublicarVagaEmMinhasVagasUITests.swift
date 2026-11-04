@@ -198,6 +198,7 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
 
         // A régua do Estúdio mostra o valor restaurado da fila.
         XCTAssertTrue(app.sliders["valor-vaga-campo"].exists)
+        XCTAssertEqual(app.sliders["valor-vaga-campo"].value as? String, "160", "a régua restaura o valor da fila")
         XCTAssertTrue(mostraDinheiro(app, 160))
     }
 
@@ -278,7 +279,8 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         XCTAssertTrue(contador.label.hasPrefix("2"), contador.label)
 
         // O bloco do total combina os textos: o primeiro elemento com o identificador é o bloco inteiro.
-        let totalCalculado = app.staticTexts.matching(identifier: "total-vaga-calculado").firstMatch
+        // O preço composto (`FrilaPriceTag`) chega como elemento "outro", e não como `StaticText`.
+        let totalCalculado = app.descendants(matching: .any).matching(identifier: "total-vaga-calculado").firstMatch
         rolarAte(totalCalculado, em: app)
         XCTAssertTrue(totalCalculado.waitForExistence(timeout: 5))
         XCTAssertTrue(totalCalculado.label.contains("320"), totalCalculado.label)
