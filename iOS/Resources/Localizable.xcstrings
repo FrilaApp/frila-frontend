@@ -632,16 +632,6 @@
         }
       }
     },
-    "Abre a conversa no WhatsApp com mensagem pré-formatada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abre a conversa no WhatsApp com mensagem pré-formatada"
-          }
-        }
-      }
-    },
     "Abre a vaga": {
       "localizations": {
         "pt-BR": {
@@ -708,16 +698,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abre o texto da licença"
-          }
-        }
-      }
-    },
-    "Abrir no WhatsApp": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abrir no WhatsApp"
           }
         }
       }
@@ -842,32 +822,12 @@
         }
       }
     },
-    "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno."
-          }
-        }
-      }
-    },
     "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."
-          }
-        }
-      }
-    },
-    "Após a confirmação, o telefone do responsável será mostrado ao profissional para combinar o turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Após a confirmação, o telefone do responsável será mostrado ao profissional para combinar o turno."
           }
         }
       }
@@ -1398,26 +1358,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conta de teste"
-          }
-        }
-      }
-    },
-    "Contato": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contato"
-          }
-        }
-      }
-    },
-    "Contato encerrado. O contato fica disponível até 7 dias depois do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contato encerrado. O contato fica disponível até 7 dias depois do turno."
           }
         }
       }
@@ -2222,26 +2162,6 @@
         }
       }
     },
-    "Liberado com a confirmação. Fica visível até 7 dias depois do turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liberado com a confirmação. Fica visível até 7 dias depois do turno."
-          }
-        }
-      }
-    },
-    "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes."
-          }
-        }
-      }
-    },
     "Licença": {
       "localizations": {
         "pt-BR": {
@@ -2808,16 +2728,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Observações"
-          }
-        }
-      }
-    },
-    "Olá! Sou o profissional do turno de %@ em %@ no %@.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Olá! Sou o profissional do turno de %@ em %@ no %@."
           }
         }
       }
@@ -3772,16 +3682,6 @@
         }
       }
     },
-    "Ver no Mapas": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ver no Mapas"
-          }
-        }
-      }
-    },
     "Ver outras vagas perto de você": {
       "localizations": {
         "pt-BR": {
@@ -4192,62 +4092,12 @@
         }
       }
     },
-    "Ver contato liberado": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ver contato liberado"
-          }
-        }
-      }
-    },
-    "O prazo para ver este contato terminou.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O prazo para ver este contato terminou."
-          }
-        }
-      }
-    },
-    "Não foi possível carregar o contato. Tente novamente.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível carregar o contato. Tente novamente."
-          }
-        }
-      }
-    },
-    "Ligar": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ligar"
-          }
-        }
-      }
-    },
     "Voltar para Minhas vagas": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Voltar para Minhas vagas"
-          }
-        }
-      }
-    },
-    "WhatsApp": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "WhatsApp"
           }
         }
       }
@@ -5138,46 +4988,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Confirmar a escolha?"
-          }
-        }
-      }
-    },
-    "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro."
-          }
-        }
-      }
-    },
-    "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro. É a última posição: os outros candidatos serão avisados de que não foram escolhidos.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ será confirmado nesta vaga, e vocês passam a ver o contato um do outro. É a última posição: os outros candidatos serão avisados de que não foram escolhidos."
-          }
-        }
-      }
-    },
-    "%@ foi confirmado. O contato está em Posições.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ foi confirmado. O contato está em Posições."
-          }
-        }
-      }
-    },
-    "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados. O contato está em Posições.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados. O contato está em Posições."
           }
         }
       }
@@ -9198,16 +9008,6 @@
         }
       }
     },
-    "Telefone do responsável": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Telefone do responsável"
-          }
-        }
-      }
-    },
     "Começa em menos de 3 horas.": {
       "localizations": {
         "pt-BR": {
@@ -10338,16 +10138,6 @@
         }
       }
     },
-    "Aparece no detalhe da vaga, antes do aceite.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aparece no detalhe da vaga, antes do aceite."
-          }
-        }
-      }
-    },
     "Em andamento": {
       "localizations": {
         "pt-BR": {
@@ -10744,6 +10534,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "Minutos"
+          }
+        }
+      }
+    },
+    "%@ será confirmado nesta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ será confirmado nesta vaga."
+          }
+        }
+      }
+    },
+    "%@ será confirmado nesta vaga. É a última posição: os outros candidatos serão avisados de que não foram escolhidos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ será confirmado nesta vaga. É a última posição: os outros candidatos serão avisados de que não foram escolhidos."
+          }
+        }
+      }
+    },
+    "%@ foi confirmado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ foi confirmado."
+          }
+        }
+      }
+    },
+    "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ foi confirmado, e a vaga está preenchida. Os outros candidatos foram avisados."
+          }
+        }
+      }
+    },
+    "Como chegar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como chegar"
+          }
+        }
+      }
+    },
+    "Você recebe lembretes 24 h e 3 h antes do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você recebe lembretes 24 h e 3 h antes do turno."
+          }
+        }
+      }
+    },
+    "Diga como chegar: a entrada, a portaria ou um ponto de referência. Aparece no detalhe da vaga e no Como chegar do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diga como chegar: a entrada, a portaria ou um ponto de referência. Aparece no detalhe da vaga e no Como chegar do turno."
+          }
+        }
+      }
+    },
+    "Ex.: entrada pela portaria lateral, em frente à padaria": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ex.: entrada pela portaria lateral, em frente à padaria"
+          }
+        }
+      }
+    },
+    "Ver no Mapas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver no Mapas"
           }
         }
       }

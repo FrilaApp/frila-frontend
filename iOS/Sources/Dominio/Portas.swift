@@ -174,28 +174,25 @@ public struct ResultadoCandidatura: Codable, Equatable, Sendable {
     public let candidaturaID: UUID
     public let posicaoID: UUID?
     public let turnoID: UUID?
-    public let contato: Contato?
 
-    public init(estado: Estado, candidaturaID: UUID, posicaoID: UUID?, turnoID: UUID?, contato: Contato?) {
+    public init(estado: Estado, candidaturaID: UUID, posicaoID: UUID?, turnoID: UUID?) {
         self.estado = estado
         self.candidaturaID = candidaturaID
         self.posicaoID = posicaoID
         self.turnoID = turnoID
-        self.contato = contato
     }
 }
 
 /// Resposta de `escolher_candidato` (`ResultadoConfirmacao` do contrato): a posição e o turno que a
-/// escolha confirmou, com o contato do profissional, liberado a partir daí (RN10).
+/// escolha confirmou. O contato que o servidor ainda possa devolver junto não faz parte do modelo: o app
+/// não o lê.
 public struct ResultadoConfirmacao: Codable, Equatable, Sendable {
     public let posicaoID: UUID
     public let turnoID: UUID
-    public let contato: Contato
 
-    public init(posicaoID: UUID, turnoID: UUID, contato: Contato) {
+    public init(posicaoID: UUID, turnoID: UUID) {
         self.posicaoID = posicaoID
         self.turnoID = turnoID
-        self.contato = contato
     }
 }
 

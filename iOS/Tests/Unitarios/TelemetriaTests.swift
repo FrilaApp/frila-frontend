@@ -564,25 +564,6 @@ struct TelemetriaTests {
         #expect(sucessoErro == true)
     }
 
-    @Test("Evento 12: contato_aberto é emitido ao acionar abertura de contato com contraparte")
-    @MainActor
-    func eventoContatoAberto() async throws {
-        let api = ApiClienteEmMemoria()
-        let turno = try await prepararTurno(api: api)
-        let vm = MeuTurnoViewModel(turno: turno, api: api)
-
-        await vm.registrarContatoAberto()
-        let eventos = await api.eventosRegistrados
-        let ev = eventos.first { $0.evento == .contatoAberto }
-        #expect(ev != nil)
-        #expect(ev?.turnoID == turno.id)
-
-        // Falha na telemetria não quebra
-        let apiErro = ApiClienteEmMemoria(cenario: .entrada)
-        let vmErro = MeuTurnoViewModel(turno: turno, api: api, telemetria: RegistradorDeTelemetria(api: apiErro))
-        await vmErro.registrarContatoAberto()
-    }
-
     @Test("Evento 13: acao_enfileirada_offline é emitido ao enfileirar no modo offline")
     @MainActor
     func eventoAcaoEnfileiradaOffline() async throws {

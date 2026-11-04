@@ -166,22 +166,6 @@ public struct FrilaOpportunityDetailView: View {
             // Card 3 & 4: Métricas de Reputação e Urgência
             metricsSectionView
 
-            // Aviso de Privacidade & Contato
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(FrilaFonteDoSistema.fonte(size: 15, weight: .medium))
-                    .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                    .padding(.top, 2)
-
-                Text("Ao confirmar, seu telefone e WhatsApp serão mostrados ao \(item.client.isEmpty ? "contratante" : item.client) para combinar o turno.", tableName: "Estudio", bundle: bundleApresentacao)
-                    .font(FrilaTypography.caption)
-                    .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
-                    .lineSpacing(3)
-            }
-            .padding(FrilaGeometry.space14)
-            .background(FrilaColor.dynamicSurfaceSubtle(isDark: isDark).opacity(0.7))
-            .clipShape(RoundedRectangle(cornerRadius: FrilaGeometry.radiusCard, style: .continuous))
-
             // Botão Principal de Candidatura (100% Capsule)
             Button(action: {
                 if let onApply = onApply {

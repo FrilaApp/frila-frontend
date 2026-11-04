@@ -401,13 +401,15 @@ final class CandidaturaUITests: XCTestCase {
         return app
     }
 
-    func testConfirmadaAbreMeuTurnoComOContato() {
+    func testConfirmadaNaoMostraContato() {
         let app = abrirDetalheECandidatar("success")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-confirmada"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["contato-do-turno"].exists)
+        XCTAssertFalse(app.buttons["botao-whatsapp"].exists)
         tocar(app.buttons["voltar-para-lista"])
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["1 posição aberta"].waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
+        let umaAberta = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "1 posição aberta")).firstMatch
+        XCTAssertTrue(umaAberta.waitForExistence(timeout: 10), "a lista é atualizada após a confirmação")
     }
 
     func testVagaPreenchidaTemTelaPropriaEVoltaParaALista() {

@@ -186,7 +186,9 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
     public func salvar(turnos: [Turno], em instante: Date) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        for turno in turnos {
+        for lido in turnos {
+            // O contato não é guardado no aparelho (contato fora do app): o turno entra sem ele.
+            let turno = lido.com(contato: nil)
             let id = turno.id
             let descritor = FetchDescriptor<TurnoPersistido>(predicate: #Predicate { $0.id == id })
             if let existente = try modelContext.fetch(descritor).first {
@@ -211,29 +213,20 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
         let limite = instante.addingTimeInterval(-24 * 60 * 60)
         let todos = try modelContext.fetch(FetchDescriptor<TurnoPersistido>())
         let vencidos = todos.filter { $0.fim <= limite }
-        let idsValidos = Set(todos.filter { $0.fim > limite }.map(\.id))
         vencidos.forEach(modelContext.delete)
 
+        // Contatos guardados por versões anteriores saem do aparelho na primeira leitura: o app não os lê mais.
         let contatosGuardados = try modelContext.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
-        let contatosParaRemover = contatosGuardados.filter { registro in
-            guard idsValidos.contains(registro.turnoID) else { return true }
-            guard let contato = try? JSONDecoder().decode(Contato.self, from: registro.conteudo) else { return true }
-            return !contato.estaVisivel(em: instante)
-        }
-        contatosParaRemover.forEach(modelContext.delete)
+        contatosGuardados.forEach(modelContext.delete)
 
-        if !vencidos.isEmpty || !contatosParaRemover.isEmpty {
+        if !vencidos.isEmpty || !contatosGuardados.isEmpty {
             try modelContext.save()
         }
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let turnos: [Turno] = try legiveis(todos.filter { $0.fim > limite }, decoder, origem: "turnos")
-        return try turnos.map { turno in
-            guard !turno.cancelado, turno.contatoVisivel(em: instante) else { return turno.com(contato: nil) }
-            let guardado = try contato(doTurno: turno.id, em: instante) ?? turno.contato
-            return turno.com(contato: guardado?.estaVisivel(em: instante) == true ? guardado : nil)
-        }
+        return turnos.map { $0.com(contato: nil) }
     }
 
     public func salvar(contato: Contato, doTurno turnoID: UUID) throws {

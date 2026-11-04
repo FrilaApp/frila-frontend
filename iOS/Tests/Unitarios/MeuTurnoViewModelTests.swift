@@ -43,6 +43,29 @@ private func criarTurnoExemplo(
     )
 }
 
+private func criarVagaCompleta(de turno: Turno, observacoes: String?) throws -> Vaga {
+    Vaga(
+        id: turno.vaga.id,
+        estabelecimento: turno.contraparte,
+        funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "SALA"),
+        periodo: turno.vaga.periodo,
+        local: turno.vaga.local,
+        regiaoAdministrativa: turno.vaga.regiaoAdministrativa,
+        ponto: try Coordenada(latitude: -15.7, longitude: -47.8),
+        valor: turno.valorAcordado,
+        posicoes: 1,
+        posicoesAbertas: 0,
+        inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
+        responsavelLocal: "Renata",
+        traje: nil,
+        participaRateio: false,
+        observacoes: observacoes,
+        modo: .urgencia,
+        estado: .preenchida,
+        publicadoEm: turno.vaga.periodo.inicio
+    )
+}
+
 private final class RelogioSimulado: Relogio, @unchecked Sendable {
     var agora: Date
     init(_ agora: Date) { self.agora = agora }
@@ -92,180 +115,96 @@ private final class ApiClienteDuble: ApiClienteEncaminhador, @unchecked Sendable
 }
 
 @MainActor
-@Suite("Meu turno do profissional (#109): detalhe, contato e modo avião")
+@Suite("Meu turno do profissional (#109): detalhe, Como chegar e modo avião")
 struct MeuTurnoViewModelTests {
 
-    @Test("Contato aparece após confirmação e fica visível até 7 dias")
-    func contatoVisivelAposConfirmacao() async throws {
+    @Test("O app não chama contato_do_turno nem usa o contato que o turno ainda traga de uma versão antiga")
+    func naoChamaContatoDoTurno() async throws {
         let agora = dataReferencia()
         let fim = agora.addingTimeInterval(4 * 3_600)
         let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let contato = try criarContatoExemplo(visivelAte: visivelAte)
-        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: visivelAte, contato: contato)
+        let legado = try criarContatoExemplo(visivelAte: visivelAte)
+        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: visivelAte, contato: legado)
         let api = ApiClienteDuble()
-        api.onContatoDoTurno = { _ in contato }
+        api.onContatoDoTurno = { _ in
+            Issue.record("contato_do_turno não deve ser chamado")
+            return legado
+        }
 
         let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(agora))
-        #expect(vm.contato != nil)
-        #expect(!vm.contatoExpirado)
-        #expect(vm.urlWhatsApp != nil)
-
         await vm.carregar()
-        #expect(vm.contato?.nome == "Marcos Lima")
-        #expect(!vm.contatoExpirado)
+
+        // Nem o nome do contato legado serve de "quem recebe": vale a contraparte.
+        #expect(vm.quemRecebeExibicao == "Bar da Quadra")
+        #expect(vm.detalheCarregado)
     }
 
-    @Test("Contato expira e some 7 dias depois do turno")
-    func contatoExpiraApos7Dias() async throws {
-        let inicio = dataReferencia()
-        let fim = inicio.addingTimeInterval(4 * 3_600)
-        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let contato = try criarContatoExemplo(visivelAte: visivelAte)
-        let turno = try criarTurnoExemplo(inicio: inicio, fim: fim, contatoVisivelAte: visivelAte, contato: contato)
-
-        let relogioAposExpiracao = RelogioSimulado(fim.addingTimeInterval(8 * 24 * 3_600))
-        let api = ApiClienteDuble()
-        api.onContatoDoTurno = { _ in contato }
-
-        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogioAposExpiracao)
-        #expect(vm.contato == nil)
-        #expect(vm.contatoExpirado)
-        #expect(vm.urlWhatsApp == nil)
-
-        await vm.carregar()
-        #expect(vm.contato == nil)
-        #expect(vm.contatoExpirado)
-    }
-
-    @Test("403 contato_expirado esconde o contato com explicação")
-    func contatoExpirado403() async throws {
+    @Test("Com o prazo do contato vencido ou com erro de rede, Meu turno segue igual e sem nada de contato")
+    func prazoVencidoOuSemRedeNaoMudaOTurno() async throws {
         let agora = dataReferencia()
         let fim = agora.addingTimeInterval(4 * 3_600)
         let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: visivelAte, contato: nil)
-
-        let api = ApiClienteDuble()
-        api.onContatoDoTurno = { _ in throw ErroDaApi(codigo: .contatoExpirado) }
-
-        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(agora))
-        #expect(!vm.contatoExpirado)
-
-        await vm.carregar()
-        #expect(vm.contato == nil)
-        #expect(vm.contatoExpirado)
-        #expect(vm.urlWhatsApp == nil)
-    }
-
-    @Test("Botão do WhatsApp abre a conversa com o número certo e mensagem pronta")
-    func botaoWhatsAppComMensagemPronta() async throws {
-        let agora = dataReferencia()
-        let fim = agora.addingTimeInterval(8 * 3_600)
-        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let contato = try criarContatoExemplo(visivelAte: visivelAte)
         let turno = try criarTurnoExemplo(
-            funcao: "Garçom",
-            local: "Bar da Quadra",
-            inicio: agora,
-            fim: fim,
-            contatoVisivelAte: visivelAte,
-            contato: contato
+            funcao: "Cozinheiro", local: "CLN 408 Bloco B", inicio: agora, fim: fim,
+            valor: Dinheiro(centavos: 20000), contatoVisivelAte: visivelAte
         )
-        let vm = MeuTurnoViewModel(turno: turno, api: ApiClienteDuble(), relogio: RelogioSimulado(agora))
-
-        let url = try #require(vm.urlWhatsApp)
-        #expect(url.host() == "wa.me")
-        #expect(url.path().contains("5561999990000"))
-
-        let componentes = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        let textoMensagem = componentes.queryItems?.first(where: { $0.name == "text" })?.value ?? ""
-        #expect(textoMensagem.contains("Garçom"))
-        #expect(textoMensagem.contains("Bar da Quadra"))
-        #expect(textoMensagem.contains("Olá! Sou o profissional do turno"))
-    }
-
-    @Test("Em modo avião, o turno confirmado continua legível com endereço, horário, função, valor e contato")
-    func modoAviaoPreservaTurnoEContato() async throws {
-        let agora = dataReferencia()
-        let fim = agora.addingTimeInterval(4 * 3_600)
-        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let contato = try criarContatoExemplo(visivelAte: visivelAte)
-        let turno = try criarTurnoExemplo(
-            funcao: "Cozinheiro",
-            local: "CLN 408 Bloco B",
-            inicio: agora,
-            fim: fim,
-            valor: Dinheiro(centavos: 20000),
-            contatoVisivelAte: visivelAte,
-            contato: contato
-        )
-
         let api = ApiClienteDuble()
-        api.onContatoDoTurno = { _ in throw ErroDaApi(codigo: .semRede) }
+        api.onDetalheDaVaga = { _ in throw ErroDaApi(codigo: .semRede) }
 
-        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(agora))
+        // Oito dias depois do fim: antes, o contato "expirava" e a tela dizia isso.
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(fim.addingTimeInterval(8 * 24 * 3_600)))
         await vm.carregar()
 
         #expect(vm.turno.vaga.funcao == "Cozinheiro")
         #expect(vm.turno.vaga.local == "CLN 408 Bloco B")
         #expect(vm.turno.valorAcordado == Dinheiro(centavos: 20000))
-        #expect(vm.turno.vaga.periodo.inicio == agora)
-        #expect(vm.turno.vaga.periodo.fim == fim)
-        #expect(vm.contato?.telefone == "+5561999990000")
-        #expect(!vm.contatoExpirado)
+        #expect(vm.observacoesDaVaga == nil)
+        #expect(vm.urlMapas != nil)
+        #expect(vm.detalheCarregado)
     }
 
-    @Test("Em modo avião, contato expira se o relógio passar de 7 dias")
-    func modoAviaoContatoExpiraSeDataPassou() async throws {
+    @Test("Como chegar: as observações da vaga vêm do detalhe, sem espaços nas pontas")
+    func observacoesDoComoChegar() async throws {
         let agora = dataReferencia()
         let fim = agora.addingTimeInterval(4 * 3_600)
-        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let contato = try criarContatoExemplo(visivelAte: visivelAte)
-        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: visivelAte, contato: contato)
-
-        let relogioAposExpiracao = RelogioSimulado(fim.addingTimeInterval(8 * 24 * 3_600))
+        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: fim)
         let api = ApiClienteDuble()
-        api.onContatoDoTurno = { _ in throw ErroDaApi(codigo: .semRede) }
+        api.onDetalheDaVaga = { _ in try criarVagaCompleta(de: turno, observacoes: "  Entrada pela portaria lateral.\n") }
 
-        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: relogioAposExpiracao)
+        let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(agora))
+        #expect(vm.observacoesDaVaga == nil)
+        #expect(!vm.detalheCarregado)
+
         await vm.carregar()
-
-        #expect(vm.contato == nil)
-        #expect(vm.contatoExpirado)
+        #expect(vm.observacoesDaVaga == "Entrada pela portaria lateral.")
+        #expect(vm.detalheCarregado)
     }
 
-    @Test("Quem recebe prioriza responsável local, depois contato e depois contraparte")
+    @Test("Como chegar: observações em branco ou ausentes não aparecem")
+    func observacoesEmBrancoSomem() async throws {
+        let agora = dataReferencia()
+        let fim = agora.addingTimeInterval(4 * 3_600)
+        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: fim)
+
+        for observacoes in [nil, "", "   \n "] as [String?] {
+            let api = ApiClienteDuble()
+            api.onDetalheDaVaga = { _ in try criarVagaCompleta(de: turno, observacoes: observacoes) }
+            let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(agora))
+            await vm.carregar()
+            #expect(vm.observacoesDaVaga == nil)
+        }
+    }
+
+    @Test("Quem recebe prioriza o responsável local e depois a contraparte")
     func quemRecebePrioridade() async throws {
         let agora = dataReferencia()
         let fim = agora.addingTimeInterval(4 * 3_600)
-        let visivelAte = fim.addingTimeInterval(7 * 24 * 3_600)
-        let contato = try criarContatoExemplo(visivelAte: visivelAte)
-        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: visivelAte, contato: contato)
-
+        let turno = try criarTurnoExemplo(inicio: agora, fim: fim, contatoVisivelAte: fim)
         let api = ApiClienteDuble()
-        let vagaCompleta = Vaga(
-            id: turno.vaga.id,
-            estabelecimento: turno.contraparte,
-            funcao: Funcao(id: UUID(), nome: "Garçom", categoria: "SALA"),
-            periodo: turno.vaga.periodo,
-            local: turno.vaga.local,
-            regiaoAdministrativa: turno.vaga.regiaoAdministrativa,
-            ponto: try Coordenada(latitude: -15.7, longitude: -47.8),
-            valor: turno.valorAcordado,
-            posicoes: 1,
-            posicoesAbertas: 0,
-            inclusos: Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false),
-            responsavelLocal: "Renata",
-            traje: nil,
-            participaRateio: false,
-            observacoes: nil,
-            modo: .urgencia,
-            estado: .preenchida,
-            publicadoEm: agora
-        )
-        api.onDetalheDaVaga = { _ in vagaCompleta }
+        api.onDetalheDaVaga = { _ in try criarVagaCompleta(de: turno, observacoes: nil) }
 
         let vm = MeuTurnoViewModel(turno: turno, api: api, relogio: RelogioSimulado(agora))
-        #expect(vm.quemRecebeExibicao == "Marcos Lima") // Antes de carregar detalhe da vaga
+        #expect(vm.quemRecebeExibicao == "Bar da Quadra") // Antes de carregar detalhe da vaga
 
         await vm.carregar()
         #expect(vm.quemRecebeExibicao == "Renata") // Após carregar detalhe da vaga
@@ -345,7 +284,7 @@ struct MeuTurnoViewModelTests {
         #expect(vm.turnos.count == 1)
     }
 
-    @Test("O view model da avaliação é um só por turno: o redesenho da tela (contato que chega, fila que muda) não apaga a resposta escolhida")
+    @Test("O view model da avaliação é um só por turno: o redesenho da tela (detalhe que chega, fila que muda) não apaga a resposta escolhida")
     func avaliacaoViewModelEstavel() async throws {
         let agora = dataReferencia()
         let base = try criarTurnoExemplo(inicio: agora.addingTimeInterval(-6 * 3600), fim: agora.addingTimeInterval(-3600), contatoVisivelAte: agora.addingTimeInterval(86_400))

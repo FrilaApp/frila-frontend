@@ -151,10 +151,11 @@ struct ModoSelecaoEmMemoriaTests {
 
         let confirmacao = try await cena.api.escolherCandidato(candidaturaID: escolhida)
 
-        // A casa recebe o contato do profissional escolhido, liberado até 7 dias depois do fim (RN10).
-        #expect(confirmacao.contato.nome == Cena.bruno.nome)
-        #expect(confirmacao.contato.visivelAte == cena.inicio.addingTimeInterval(4 * hora + 7 * 24 * hora))
-        #expect(try await cena.api.contatoDoTurno(id: confirmacao.turnoID) == confirmacao.contato)
+        // A confirmação não leva contato ao app. O servidor simulado ainda guarda o do profissional
+        // escolhido, até 7 dias depois do fim; a Fase 2 do contato fora do app o retira.
+        let contato = try await cena.api.contatoDoTurno(id: confirmacao.turnoID)
+        #expect(contato.nome == Cena.bruno.nome)
+        #expect(contato.visivelAte == cena.inicio.addingTimeInterval(4 * hora + 7 * 24 * hora))
 
         let vaga = try await cena.vagaNoPainel()
         #expect(vaga.estado == .preenchida)
@@ -396,9 +397,9 @@ struct ModoSelecaoEmMemoriaTests {
         // Não há escolha: a candidatura de quem ainda esperava (Bruno) já foi recusada ao encher a
         // vaga, e escolher dentro das 24 h é vaga_encerrada.
         await #expect(throws: ErroDaApi.self) { try await cena.api.escolherCandidato(candidaturaID: cena.candidaturas[1]) }
-        // O primeiro elegível que se candidata é confirmado na hora, na posição reposta, com contato.
+        // O primeiro elegível que se candidata é confirmado na hora, na posição reposta.
         let urgencia = try await cena.api.candidatar(vagaID: cena.vagaID)
-        #expect(urgencia.estado == .confirmada && urgencia.posicaoID == cancelamento.novaPosicaoID && urgencia.turnoID != nil && urgencia.contato != nil)
+        #expect(urgencia.estado == .confirmada && urgencia.posicaoID == cancelamento.novaPosicaoID && urgencia.turnoID != nil)
         vaga = try await cena.vagaNoPainel()
         #expect(vaga.estado == .preenchida)
         #expect(vaga.posicoes.contains { $0.id == cancelamento.novaPosicaoID && $0.estado == .confirmada })
@@ -490,7 +491,6 @@ struct ModoSelecaoEmMemoriaTests {
         // Reenviar a candidatura devolve o turno já confirmado, mesmo com a vaga cheia.
         let reenvio = try await cena.api.candidatar(vagaID: cena.vagaID)
         #expect(reenvio.estado == .confirmada && reenvio.candidaturaID == minha && reenvio.turnoID == turno.id)
-        #expect(reenvio.contato?.nome == turno.contraparte.nome)
     }
 
     @Test("Não escolhido: quando a casa enche a vaga com outra pessoa, a candidatura fica recusada, sem turno")
@@ -541,7 +541,7 @@ struct ModoSelecaoEmMemoriaTests {
         #expect(candidatos.map(\.criadaEm) == candidatos.map(\.criadaEm).sorted())
 
         let confirmacao = try await api.escolherCandidato(candidaturaID: candidatos[2].candidaturaID)
-        #expect(confirmacao.contato.nome == "Carla Menezes")
+        #expect(try await api.contatoDoTurno(id: confirmacao.turnoID).nome == "Carla Menezes")
         #expect(try await api.candidatosDaVaga(id: vaga.id).isEmpty)
     }
 

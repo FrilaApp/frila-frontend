@@ -101,7 +101,7 @@ struct SwiftDataTests {
         #expect(validos.first?.contato == nil)
     }
 
-    @Test("Turno vencido há mais de 24 h apaga o ContatoDoTurnoPersistido e limpa contatos órfãos")
+    @Test("Ler os turnos apaga todo ContatoDoTurnoPersistido que uma versão antiga deixou: vencido, órfão ou no prazo")
     func contatoDoTurnoVencidoEApagado() async throws {
         let container = try PersistenciaFrila.criarContainer(emMemoria: true)
         let armazenamento = ArmazenamentoSwiftData(modelContainer: container)
@@ -123,7 +123,7 @@ struct SwiftDataTests {
         try await armazenamento.salvar(turnos: [turnoValido], em: agora)
         try await armazenamento.salvar(contato: turnoValido.contato!, doTurno: turnoValido.id)
 
-        // Controle positivo: turno ativo com contato visível DEVE permanecer
+        // Turno ativo com contato visível: antes permanecia; agora também sai, porque o app não lê contato
         let turnoAtivo = try turno(fim: agora.addingTimeInterval(7200), contatoVisivelAte: agora.addingTimeInterval(3600))
         try await armazenamento.salvar(turnos: [turnoAtivo], em: agora)
         try await armazenamento.salvar(contato: turnoAtivo.contato!, doTurno: turnoAtivo.id)
@@ -131,16 +131,15 @@ struct SwiftDataTests {
         let contexto = ModelContext(container)
         #expect(try contexto.fetchCount(FetchDescriptor<ContatoDoTurnoPersistido>()) == 4)
 
-        // Ao ler turnos válidos, deve apagar o TurnoPersistido vencido E os contatos vencidos/órfãos/expirados,
-        // preservando o contato do turno ativo
+        // Ao ler turnos válidos, apaga o TurnoPersistido vencido e todos os contatos guardados
         let validos = try await armazenamento.turnosValidos(em: agora)
         #expect(Set(validos.map(\.id)) == Set([turnoValido.id, turnoAtivo.id]))
 
-        // Apenas o contato do turno ativo deve restar no banco
+        // Nenhum contato deve restar no banco
         let contatosRestantes = try contexto.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
-        #expect(contatosRestantes.count == 1)
-        #expect(contatosRestantes.first?.turnoID == turnoAtivo.id)
-        #expect(try await armazenamento.contato(doTurno: turnoAtivo.id, em: agora) == turnoAtivo.contato)
+        #expect(contatosRestantes.isEmpty)
+        #expect(validos.allSatisfy { $0.contato == nil })
+        #expect(try await armazenamento.contato(doTurno: turnoAtivo.id, em: agora) == nil)
         #expect(try await armazenamento.contato(doTurno: turnoVencido.id, em: agora) == nil)
         #expect(try await armazenamento.contato(doTurno: orfaoID, em: agora) == nil)
     }
@@ -171,7 +170,7 @@ struct SwiftDataTests {
         #expect(lidos.map(\.id) == [atual.id])
         #expect(lidos.first?.vaga.local == atual.vaga.local)
         #expect(lidos.first?.vaga.regiaoAdministrativa == "")
-        #expect(lidos.first?.contato == atual.contato)
+        #expect(lidos.first?.contato == nil)
     }
 
     private func turno(fim: Date, contatoVisivelAte: Date) throws -> Turno {
@@ -260,7 +259,7 @@ struct SwiftDataTests {
         #expect(try restante.fetchCount(FetchDescriptor<AcaoRecusadaPersistida>()) == 0)
     }
 
-    @Test("Banco V3 migra para V4 conservando turnos, contato, pendentes, recusadas, funções e sessão")
+    @Test("Banco V3 migra para V4 conservando turnos, pendentes, recusadas, funções e sessão; o contato antigo sai na primeira leitura")
     func migracaoEsquemaV3ParaV4ConservaDadosEContato() async throws {
         let diretorio = FileManager.default.temporaryDirectory.appending(path: "frila-migracao-v3-v4-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
@@ -311,15 +310,19 @@ struct SwiftDataTests {
             let containerV4 = try ModelContainer(for: esquemaV4, migrationPlan: MigracaoFrila.self, configurations: [configV4])
             let cache = ArmazenamentoSwiftData(modelContainer: containerV4)
 
+            // A migração conserva a linha do contato; é a leitura dos turnos que a apaga.
+            let antesDaLeitura = try ModelContext(containerV4).fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
+            #expect(antesDaLeitura.count == 1)
+            #expect(antesDaLeitura.first?.conteudo == dadosContato)
+
             let turnos = try await cache.turnosValidos(em: agora)
             #expect(turnos.count == 1)
             #expect(turnos.first?.id == turnoID)
             #expect(turnos.first?.vaga.funcao == "Barista")
-            #expect(turnos.first?.contato?.telefone == "+5561988887777")
+            #expect(turnos.first?.contato == nil)
 
             let lidoContato = try await cache.contato(doTurno: turnoID, em: agora)
-            #expect(lidoContato?.telefone == "+5561988887777")
-            #expect(lidoContato?.nome == "Gerente Café")
+            #expect(lidoContato == nil)
 
             let pendentes = try await cache.pendentes()
             #expect(pendentes.count == 1)
@@ -352,10 +355,7 @@ struct SwiftDataTests {
             #expect(turnoPersistido.conteudo == dadosTurno)
 
             let contatosPersistidos = try contextoV4.fetch(FetchDescriptor<ContatoDoTurnoPersistido>())
-            #expect(contatosPersistidos.count == 1)
-            let contatoPersistido = try #require(contatosPersistidos.first)
-            #expect(contatoPersistido.turnoID == turnoID)
-            #expect(contatoPersistido.conteudo == dadosContato)
+            #expect(contatosPersistidos.isEmpty)
 
             let pendentesPersistidas = try contextoV4.fetch(FetchDescriptor<AcaoPendentePersistida>())
             #expect(pendentesPersistidas.count == 1)
@@ -416,7 +416,7 @@ struct SwiftDataTests {
         #expect(turnos.count == 1)
         #expect(turnos.first?.id == UUID(uuidString: "11111111-2222-3333-4444-555555555555"))
         #expect(turnos.first?.vaga.funcao == "Barista")
-        #expect(turnos.first?.contato?.telefone == "+5561988887777")
+        #expect(turnos.first?.contato == nil)
 
         let pendentes = try await cache.pendentes()
         #expect(pendentes.count == 1)

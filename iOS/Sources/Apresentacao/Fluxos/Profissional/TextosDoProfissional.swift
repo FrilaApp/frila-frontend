@@ -157,9 +157,6 @@ enum TextosDoProfissional {
         static let voltarParaLista = String(localized: "Ver outras vagas perto de você", bundle: bundleApresentacao)
 
         static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
-        static let contato = String(localized: "Contato", bundle: bundleApresentacao)
-        static let contatoLiberado = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno.", bundle: bundleApresentacao)
-        static let abrirWhatsApp = String(localized: "Abrir no WhatsApp", bundle: bundleApresentacao)
 
         static let preenchidaTitulo = String(localized: "Vaga preenchida", bundle: bundleApresentacao)
         static let estaVagaJaFoiPreenchida = String(localized: "Esta vaga já foi preenchida", bundle: bundleApresentacao)
@@ -217,9 +214,9 @@ enum TextosDoProfissional {
         static let vazioTitulo = String(localized: "Nenhum turno confirmado", bundle: bundleApresentacao)
         static let vazioMensagem = String(localized: "Quando você tiver turnos confirmados, eles aparecerão aqui.", bundle: bundleApresentacao)
         static let erroAoCarregar = String(localized: "Não foi possível carregar os turnos.", bundle: bundleApresentacao)
-        static let contatoEncerrado = String(localized: "Contato encerrado. O contato fica disponível até 7 dias depois do turno.", bundle: bundleApresentacao)
-        static let lembretesEVisibilidade = String(localized: "Liberado com a confirmação. Fica visível até 7 dias depois do turno. Você recebe lembretes 24 h e 3 h antes.", bundle: bundleApresentacao)
         static let verNoMapas = String(localized: "Ver no Mapas", bundle: bundleApresentacao)
+        static let comoChegar = String(localized: "Como chegar", bundle: bundleApresentacao)
+        static let lembretes = String(localized: "Você recebe lembretes 24 h e 3 h antes do turno.", bundle: bundleApresentacao)
         static let quemRecebe = String(localized: "quem recebe", bundle: bundleApresentacao)
         static let botaoEstouACaminho = String(localized: "Estou a caminho", bundle: bundleApresentacao)
         static func avisouACaminho(_ hora: String) -> String {

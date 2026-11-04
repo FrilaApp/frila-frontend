@@ -33,8 +33,8 @@ final class AvisosDoDetalhe {
     }
 }
 
-/// Detalhe da vaga (#104), no quadro "Vaga" do MidFi do Fabrício. Nunca mostra telefone nem documento: o contrato não os devolve aqui, e o
-/// contato só aparece depois da confirmação (RN10). O aviso da RN10 vem no rodapé fixo antes de Aceitar turno / Candidatar-me.
+/// Detalhe da vaga (#104), no quadro "Vaga" do MidFi do Fabrício. Nunca mostra telefone nem documento
+/// do estabelecimento. O rodapé fixo traz os avisos da ação antes de Aceitar turno / Candidatar-me.
 public struct TelaDetalheVaga<Acao: View>: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
@@ -704,13 +704,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
         switch estado {
         case "confirmada":
             let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
-            let contato = Contato(
-                nome: "Marina",
-                telefone: "(61) 98888-0000",
-                whatsappURL: URL(string: "https://wa.me/5561988880000")!,
-                visivelAte: Date().addingTimeInterval(7 * 24 * 60 * 60)
-            )
-            return .confirmada(turnoID: turnoID, contato: contato)
+            return .confirmada(turnoID: turnoID)
         case "pendente":
             return .pendente(candidaturaID: UUID(uuidString: "23000000-0000-0000-0000-000000000001")!)
         case "preenchida":

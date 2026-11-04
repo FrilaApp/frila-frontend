@@ -10,8 +10,7 @@ public enum EstadoDoDetalhe: Equatable, Sendable {
     case falha(FalhaDaLista)
 }
 
-/// Detalhe da vaga (#104). O contrato não devolve telefone nem documento do estabelecimento aqui;
-/// o contato só aparece depois da confirmação (RN10).
+/// Detalhe da vaga (#104). O contrato não devolve telefone nem documento do estabelecimento aqui.
 @MainActor @Observable
 public final class DetalheVagaViewModel {
     public let vagaID: UUID

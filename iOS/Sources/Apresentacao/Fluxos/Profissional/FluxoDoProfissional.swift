@@ -75,7 +75,7 @@ public final class RoteadorDoProfissional {
         caminho.append(.ajustarFuncoes(vagaID: vagaID))
     }
 
-    public func candidatar(viewModel: CandidaturaViewModel, cache: (any CacheLocal)? = nil) async {
+    public func candidatar(viewModel: CandidaturaViewModel) async {
         if let candidaturaEmAndamento, candidaturaEmAndamento !== viewModel, candidaturaEmAndamento.enviando {
             viewModel.indicarOutroEnvioEmAndamento()
             return
@@ -87,7 +87,7 @@ public final class RoteadorDoProfissional {
                 candidaturaEmAndamento = nil
             }
         }
-        await viewModel.candidatar(cache: cache)
+        await viewModel.candidatar()
         guard candidaturaEmAndamento === viewModel,
               case let .concluida(resultado) = viewModel.estado,
               resultado.abreTelaPropria else { return }
@@ -278,7 +278,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
 
 extension FluxoDoProfissional {
     private func candidatar(_ viewModel: CandidaturaViewModel) async {
-        await roteador.candidatar(viewModel: viewModel, cache: fila as? any CacheLocal)
+        await roteador.candidatar(viewModel: viewModel)
     }
 
     private func recuperarIdentidade() async {

@@ -46,7 +46,7 @@ struct ApiEmMemoriaTests {
         #expect(turno.vaga.id == publicada.vagaID)
         #expect(turno.contraparte.id == casa.id)
         #expect(turno.contato == nil)
-        #expect(try await api.contatoDoTurno(id: turnoID) == candidatura.contato)
+        #expect(try await api.contatoDoTurno(id: turnoID).nome == casa.nome)
 
         await #expect(throws: ErroDaApi(codigo: .posicaoJaPreenchida)) { try await api.candidatar(vagaID: publicada.vagaID) }
         #expect(try await api.vagasAbertas().contains { $0.id == publicada.vagaID } == false)

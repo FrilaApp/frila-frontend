@@ -87,10 +87,10 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(cancelamento.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(cancelamento.label.contains("Você cancelou este turno."))
         XCTAssertTrue(cancelamento.label.contains("Este cancelamento não contou como falta."))
-        for id in ["presenca-do-turno", "contato-do-turno", "cartao-avaliacao-turno"] {
+        for id in ["presenca-do-turno", "como-chegar-do-turno", "cartao-avaliacao-turno"] {
             XCTAssertFalse(app.descendants(matching: .any)[id].exists)
         }
-        for id in ["botao-whatsapp", "Avaliar turno", "Ver avaliação"] {
+        for id in ["botao-abrir-no-mapa", "Avaliar turno", "Ver avaliação"] {
             XCTAssertFalse(app.buttons[id].exists)
         }
     }

@@ -121,9 +121,6 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Candidatura.enviando,
             TextosDoProfissional.Candidatura.voltarParaLista,
             TextosDoProfissional.Candidatura.confirmadoTitulo,
-            TextosDoProfissional.Candidatura.contato,
-            TextosDoProfissional.Candidatura.contatoLiberado,
-            TextosDoProfissional.Candidatura.abrirWhatsApp,
             TextosDoProfissional.Candidatura.preenchidaTitulo,
             TextosDoProfissional.Candidatura.preenchidaMensagem,
             TextosDoProfissional.Candidatura.encerradaTitulo,
@@ -151,9 +148,9 @@ struct CatalogoStringsTests {
             TextosDoProfissional.Turnos.vazioTitulo,
             TextosDoProfissional.Turnos.vazioMensagem,
             TextosDoProfissional.Turnos.erroAoCarregar,
-            TextosDoProfissional.Turnos.contatoEncerrado,
-            TextosDoProfissional.Turnos.lembretesEVisibilidade,
             TextosDoProfissional.Turnos.verNoMapas,
+            TextosDoProfissional.Turnos.comoChegar,
+            TextosDoProfissional.Turnos.lembretes,
             TextosDoProfissional.Turnos.quemRecebe,
         ]
 
@@ -237,11 +234,9 @@ struct CatalogoStringsTests {
         // Padrões com interpolação
         let padroesInterpolados = [
             "Até %lld km",
-            "Ao confirmar, seu telefone e WhatsApp serão mostrados ao %@ para combinar o turno.",
             "Trabalhariam lá de novo: %lld de %lld",
             "Remover horário de %@",
             "%@ às %@",
-            "Olá! Sou o profissional do turno de %@ em %@ no %@.",
             "%lld caracteres",
         ]
         for padrao in padroesInterpolados {
@@ -341,7 +336,6 @@ struct CatalogoStringsTests {
             "Funções e horários",
             "Início do contratante",
             "Abre o endereço no Apple Maps",
-            "Abre a conversa no WhatsApp com mensagem pré-formatada",
             "Abre o detalhe do turno",
             "Minhas vagas",
             "Precisa de atenção",
@@ -368,11 +362,6 @@ struct CatalogoStringsTests {
             "Ver perfil público",
             "Perfil público",
             "Sem histórico",
-            "Ver contato liberado",
-            "O prazo para ver este contato terminou.",
-            "Não foi possível carregar o contato. Tente novamente.",
-            "Ligar",
-            "WhatsApp",
             "%@ – %@",
             "Região Administrativa",
             "Selecione a Região Administrativa",

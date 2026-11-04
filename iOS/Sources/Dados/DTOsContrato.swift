@@ -642,9 +642,10 @@ enum ContratoAPI {
         let candidaturaID: UUID
         let posicaoID: UUID?
         let turnoID: UUID?
-        let contato: ContatoDTO?
+        // O `contato` que o servidor ainda devolve de `candidatar` não é decodificado: ausente, nulo ou
+        // de qualquer forma, a candidatura segue (o contato fica fora do app).
         enum CodingKeys: String, CodingKey {
-            case estado, contato
+            case estado
             case candidaturaID = "candidatura_id"
             case posicaoID = "posicao_id"
             case turnoID = "turno_id"
@@ -654,8 +655,7 @@ enum ContratoAPI {
                 estado: estado,
                 candidaturaID: candidaturaID,
                 posicaoID: posicaoID,
-                turnoID: turnoID,
-                contato: contato?.dominio()
+                turnoID: turnoID
             )
         }
     }
@@ -739,14 +739,14 @@ enum ContratoAPI {
         let estado: Estado
         let posicaoID: UUID
         let turnoID: UUID
-        let contato: ContatoDTO
+        // O `contato` de `escolher_candidato` não é decodificado, como em `CandidaturaDTO`.
         enum CodingKeys: String, CodingKey {
-            case estado, contato
+            case estado
             case posicaoID = "posicao_id"
             case turnoID = "turno_id"
         }
         func dominio() -> ResultadoConfirmacao {
-            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID, contato: contato.dominio())
+            ResultadoConfirmacao(posicaoID: posicaoID, turnoID: turnoID)
         }
     }
 
@@ -812,7 +812,8 @@ enum ContratoAPI {
             posicaoID = try container.decode(UUID.self, forKey: .posicaoID)
             vaga = try container.decode(VagaResumoDTO.self, forKey: .vaga)
             contraparte = try container.decode(PerfilPublicoDTO.self, forKey: .contraparte)
-            contatoVisivelAte = try container.decode(Date.self, forKey: .contatoVisivelAte)
+            // Ausente ou nulo (o servidor deixa de mandar o prazo do contato): sem prazo, o turno segue.
+            contatoVisivelAte = try container.decodeIfPresent(Date.self, forKey: .contatoVisivelAte) ?? .distantFuture
             aCaminhoEm = try container.decodeIfPresent(Date.self, forKey: .aCaminhoEm)
             checkinEm = try container.decodeIfPresent(Date.self, forKey: .checkinEm)
             // Como no painel: um tipo de check-in novo fica sem valor, e o turno segue.
