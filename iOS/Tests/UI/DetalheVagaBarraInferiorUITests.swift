@@ -40,6 +40,14 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         return app
     }
 
+    func testBotaoAbrirNoMapaTem30PtColadoNaPrevia() {
+        let app = abrirDetalhe(horario: "amanha-23h30", modoEscuro: false)
+        let botao = app.buttons["abrir-no-mapa"]
+        XCTAssertTrue(botao.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertEqual(botao.frame.height, 30, accuracy: 1, "o botão do mapa mede 30 pt")
+        XCTAssertGreaterThan(botao.frame.width, 300)
+    }
+
     private func abrirFeed(modoEscuro: Bool) -> XCUIApplication {
         let app = XCUIApplication()
         var args = ["-FRILA_SCENARIO", "success"]

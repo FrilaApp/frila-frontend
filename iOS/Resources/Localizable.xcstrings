@@ -9708,6 +9708,16 @@
         }
       }
     },
+    "Prévia indisponível": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prévia indisponível"
+          }
+        }
+      }
+    },
     "Material": {
       "localizations": {
         "pt-BR": {

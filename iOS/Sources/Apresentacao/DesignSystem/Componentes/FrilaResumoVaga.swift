@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 import SwiftUI
 
 /// Título de navegação contextual para a tela Detalhe da vaga (LOG-010, refino r2).
@@ -62,6 +63,7 @@ public struct FrilaResumoVaga: View {
     public let total: Int
     public let inicio: Date?
     public let fim: Date?
+    public let ponto: CLLocationCoordinate2D
     public let abrirMapa: () -> Void
 
     public init(
@@ -75,6 +77,7 @@ public struct FrilaResumoVaga: View {
         total: Int,
         inicio: Date?,
         fim: Date?,
+        ponto: CLLocationCoordinate2D,
         abrirMapa: @escaping () -> Void
     ) {
         self.quando = quando
@@ -87,6 +90,7 @@ public struct FrilaResumoVaga: View {
         self.total = total
         self.inicio = inicio
         self.fim = fim
+        self.ponto = ponto
         self.abrirMapa = abrirMapa
     }
 
@@ -179,7 +183,7 @@ public struct FrilaResumoVaga: View {
             }
             .accessibilityElement(children: .combine)
 
-            FrilaMapaComAcao(abrirMapa: abrirMapa)
+            FrilaMapaComAcao(ponto: ponto, abrirMapa: abrirMapa)
         }
     }
 
