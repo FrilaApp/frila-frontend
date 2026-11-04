@@ -1,4 +1,5 @@
 import CoreLocation
+import FrilaDominio
 import MapKit
 import SwiftUI
 
@@ -232,5 +233,23 @@ private struct FormaDoPino: Shape {
         )
         caminho.closeSubpath()
         return caminho
+    }
+}
+
+/// Destino do botão "Abrir no mapa": o Apple Maps na coordenada da prévia, com o nome do estabelecimento e o
+/// endereço como rótulo do ponto. Prévia e destino usam o mesmo ponto.
+enum DestinoDoMapaDaVaga {
+    static func url(_ vaga: Vaga) -> URL? {
+        url(nome: vaga.estabelecimento.nome, endereco: vaga.local, latitude: vaga.ponto.latitude, longitude: vaga.ponto.longitude)
+    }
+
+    static func url(nome: String, endereco: String, latitude: Double, longitude: Double) -> URL? {
+        let coordenada = String(format: "%.6f,%.6f", locale: Locale(identifier: "en_US_POSIX"), latitude, longitude)
+        var componentes = URLComponents(string: "https://maps.apple.com/")
+        componentes?.queryItems = [
+            URLQueryItem(name: "ll", value: coordenada),
+            URLQueryItem(name: "q", value: "\(nome), \(endereco)")
+        ]
+        return componentes?.url
     }
 }
