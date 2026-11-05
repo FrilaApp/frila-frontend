@@ -97,7 +97,7 @@ final class ContatoCopiavelUITests: XCTestCase {
         let campo = app.textFields["perfil-telefone-editar"]
         XCTAssertTrue(campo.waitForExistence(timeout: 5))
         campo.typeText("1")
-        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.04)).tap()
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.20)).tap()
         XCTAssertTrue(app.staticTexts["perfil-telefone-valor"].waitForExistence(timeout: 3))
         XCTAssertFalse(campo.exists)
         XCTAssertEqual(app.staticTexts["perfil-telefone-valor"].label, "+5561988887777")
