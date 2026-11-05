@@ -391,6 +391,6 @@ Conforme cronograma oficial do projeto, os testes de usabilidade com usuários e
 
 - [ ] **Pendente:** Redação de ajustes nas tarefas de primeira viagem do profissional (candidatura em urgência e filtros de vaga) caso os testes com usuários não habituados a apps profissionais apontem fricção de entendimento (RNF09).
 - [ ] **Pendente:** Ajuste nas instruções de publicação de vaga pelo contratante caso as sessões moderadas indiquem dúvida na distinção entre modo urgência e modo seleção.
-- [ ] **Pendente:** Textos explicativos e rótulos de contingência para check-in/check-out manual caso ocorram dúvidas sobre geolocalização e raio de 250 metros.
+- [ ] **Pendente:** Textos explicativos e rótulos de contingência para check-in/check-out manual caso ocorram dúvidas sobre geolocalização e raio de 200 metros.
 - [ ] **Pendente:** Mensagem de orientação pós-confirmação bilateral sobre comunicação via WhatsApp e responsabilidade mútua de contato.
 - [ ] **Pendente:** Textos de remediação para eventuais defeitos bloqueantes ou graves catalogados até 29/10 para os frames de redesenho da Sprint 3.

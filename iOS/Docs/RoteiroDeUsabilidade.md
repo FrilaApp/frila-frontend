@@ -51,7 +51,7 @@ O profissional participante simula sua primeira experiência com o aplicativo Fr
   - **Sem ajuda (Sucesso RNF09):** O participante examina a listagem em `TelaVagas`, toca no cartão da vaga, lê os detalhes em `TelaDetalheVaga` (horário, local no DF e valor fechado do turno sem descontos) e aciona o botão principal de candidatura (`candidatar`).
   - **Com ajuda (Falha RNF09):** O participante não identifica onde tocar para ver os detalhes, confunde o modo de urgência com o modo seleção, ou solicita ajuda para saber se a candidatura foi realmente registrada.
   - **Não concluiu:** Abandono da tarefa, toque repetido sem resposta ou fechamento inesperado do aplicativo.
-- **Caminho Esperado na Interface:** `TelaVagas` $\to$ `TelaDetalheVaga` $\to$ Toque em "Candidatar-me" (`candidatar`) $\to$ `TelaResultadoDaCandidatura` (`resultado-confirmada`).
+- **Caminho Esperado na Interface:** `TelaVagas` $\to$ `TelaDetalheVaga` $\to$ Toque em "Aceitar turno" (`candidatar`) $\to$ `TelaResultadoDaCandidatura` (`resultado-confirmada`).
 
 #### Tarefa P3: Visualização do Turno e Contato Liberado — RN10 (Build 0.4)
 - **Objetivo Operacional:** Consultar o turno confirmado na aba `Meus turnos` e identificar o canal direto de comunicação com o estabelecimento contratante.

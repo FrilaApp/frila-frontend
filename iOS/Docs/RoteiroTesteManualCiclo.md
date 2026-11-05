@@ -48,9 +48,9 @@ Antes de iniciar a execução do roteiro, ambos os aparelhos devem atender aos s
 | **02** | App em repouso. | Autenticação e cadastro com perfil Profissional, funções (Garçom) e ponto base no DF. | `TelaEntrada.swift:40,61`<br>`TelaCodigo.swift:95,117`<br>`TelaCadastro.swift:78,89,175`<br>`TelaPerfilProfissional.swift:69,112,127` | Perfil configurado com sucesso; redirecionamento para o feed principal de vagas. | `[ ]` |
 | **03** | Configura vaga de urgência (data de hoje, horário, 1 vaga, valor da diária) e publica. | Permanece no feed de vagas do DF. | `PublicarVaga.swift:671`<br>`MinhasVagas.swift:367` | Vaga gravada no backend; Aparelho A exibe vaga ativa em "Minhas vagas" (0/1 ocupada). | `[ ]` |
 | **04** | Aguarda candidatura em "Minhas vagas". | Atualiza o feed de vagas, localiza a vaga da casa e abre os detalhes. | `TelaVagas.swift:31,119`<br>`TelaDetalheVaga.swift:94` | Aparelho B visualiza a vaga no feed e exibe horário, remuneração sem desconto e local em detalhes. | `[ ]` |
-| **05** | Mantém tela de acompanhamento aberta. | Toca no botão "Candidatar-me" (`candidatar`). | `TelasDaCandidatura.swift:51`<br>`TelasDaCandidatura.swift:260` | Modo Urgência confirma vaga de imediato sem triagem; Aparelho B exibe tela de sucesso e confirmação. | `[ ]` |
+| **05** | Mantém tela de acompanhamento aberta. | Toca no botão "Aceitar turno" (`candidatar`). | `TelasDaCandidatura.swift:51`<br>`TelasDaCandidatura.swift:260` | Modo Urgência confirma vaga de imediato sem triagem; Aparelho B exibe tela de sucesso e confirmação. | `[ ]` |
 | **06** | Atualiza "Minhas vagas": vaga agora exibe "1/1 ocupada" e abre o detalhe do turno. | Abre a aba "Meus turnos" e acessa o turno confirmado. | `MinhasVagas.swift:659`<br>`TelaTurnoDoContratante.swift:155`<br>`TelaMeusTurnos.swift:71,92`<br>`TelaMeuTurno.swift:71,223,235` | **Liberação bilateral de contatos (RN10):** Aparelho A visualiza dados do profissional; Aparelho B visualiza contato da casa. | `[ ]` |
-| **07** | Acompanha turno: status indica "Aguardando check-in". | No turno, aciona "Fazer check-in" (via GPS ou registro manual de contingência). | `SecaoDePresenca.swift:42,63,87`<br>`TelaMeuTurno.swift:71,133` | Presença registrada. Se via GPS ($\le 250$m), presença é verificada de imediato; se manual, exibe "Aguardando confirmação". | `[ ]` |
+| **07** | Acompanha turno: status indica "Aguardando check-in". | No turno, aciona "Fazer check-in" (via GPS ou registro manual de contingência). | `SecaoDePresenca.swift:42,63,87`<br>`TelaMeuTurno.swift:71,133` | Presença registrada. Se via GPS ($\le 200$m), presença é verificada de imediato; se manual, exibe "Aguardando confirmação". | `[ ]` |
 | **08** | Na tela do turno, localiza pendência de check-in manual e toca em "Confirmar presença". *(Pular se GPS)* | Atualiza a tela Meu Turno. | `TelaTurnoDoContratante.swift:457`<br>`TelaMeuTurno.swift:133` | Presença do turno passa para status "Presença verificada" em ambos os aparelhos com registro de horário. | `[ ]` |
 | **09** | Acompanha andamento do turno. | Ao término do horário de expediente, toca em "Fazer check-out". | `SecaoDePresenca.swift:32,66`<br>`TelaMeuTurno.swift:133` | Check-out registrado; status do turno passa para "Concluído" / "Encerrado", liberando formulário de avaliação. | `[ ]` |
 | **10** | Aguarda avaliação do profissional. | Toca em "Avaliar turno", responde "Você trabalharia nesse local de novo?" (Sim) e envia. | `TelaMeuTurno.swift:303`<br>`TelaAvaliacao.swift:60,127` | Avaliação registrada com sucesso; botão de avaliação passa para inativo/enviado no Aparelho B. | `[ ]` |
@@ -121,7 +121,7 @@ Antes de iniciar a execução do roteiro, ambos os aparelhos devem atender aos s
   2. Localizar o cartão correspondente à vaga publicada pelo Aparelho A (exibindo função, valor integral sem descontos e distância/região).
   3. Tocar no cartão da vaga para abrir `TelaDetalheVaga`.
   4. Conferir as informações da tela: valor total garantido, horário, endereço/ponto de referência e orientações de vestimenta/requisitos.
-- **Resultado Esperado:** A vaga é exibida corretamente no feed do DF e a tela de detalhe exibe o botão principal "Candidatar-me" (`candidatar`) ativo e visível.
+- **Resultado Esperado:** A vaga é exibida corretamente no feed do DF e a tela de detalhe exibe o botão principal "Aceitar turno" (`candidatar`) ativo e visível.
 
 ---
 
@@ -131,7 +131,7 @@ Antes de iniciar a execução do roteiro, ambos os aparelhos devem atender aos s
   - `AreaDeCandidatura` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelasDaCandidatura.swift:51` para botão `candidatar`)
   - `TelaResultadoDaCandidatura` (`iOS/Sources/Apresentacao/Fluxos/Profissional/TelasDaCandidatura.swift:260` para `resultado-confirmada`, `:283` para `contato-do-turno`)
 - **Ações a Executar:**
-  1. Na `TelaDetalheVaga`, tocar no botão "Candidatar-me" (`candidatar`).
+  1. Na `TelaDetalheVaga`, tocar no botão "Aceitar turno" (`candidatar`).
 - **Resultado Esperado (RN02 e RN21):** Como a vaga opera em regime de Urgência (início em menos de 24 horas), a posição é confirmada imediatamente no ato do aceite sem depender de triagem pelo contratante. O app apresenta `TelaResultadoDaCandidatura` com o identificador `resultado-confirmada`, orientações sobre chegada e atalho "Ver meu turno".
 
 ---
