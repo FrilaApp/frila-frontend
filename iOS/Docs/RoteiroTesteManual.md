@@ -101,7 +101,7 @@ Cada passo descreve estritamente: **quem faz**, **o que toca** e **o que deve ap
 
 #### Passo 06 — Candidatura em Modo Urgência
 - **Quem faz:** Profissional (Aparelho 2).
-- **O que toca:** Na tela de detalhe da vaga, toca no botão "Candidatar-me" (`candidatar`).
+- **O que toca:** Na tela de detalhe da vaga, toca no botão "Aceitar turno" (`candidatar`).
 - **O que deve aparecer:**
   - Como a vaga é em regime de Urgência (início < 24h), a confirmação ocorre imediatamente sem triagem (RN02).
   - A tela transita para `resultado-confirmada`, com mensagem confirmando o preenchimento da vaga e orientações de pontualidade.
@@ -133,8 +133,8 @@ Cada passo descreve estritamente: **quem faz**, **o que toca** e **o que deve ap
 - **O que toca:**
   1. Na tela `tela-meu-turno`, localiza a seção de presença (`presenca-do-turno`).
   2. Toca no botão "Fazer check-in" (`fazer-checkin`).
-  3. **Cenário A (com GPS a até 250m do local do turno):** O app obtém a coordenada precisa e valida a geolocalização automaticamente.
-  4. **Cenário B (sem sinal de GPS ou distância > 250m - contingência):** O app exibe aviso `sem-gps`; toca no botão "Registro manual" (`registro-manual`).
+  3. **Cenário A (com GPS a até 200m do local do turno):** O app obtém a coordenada precisa e valida a geolocalização automaticamente.
+  4. **Cenário B (sem sinal de GPS ou distância > 200m - contingência):** O app exibe aviso `sem-gps`; toca no botão "Registro manual" (`registro-manual`).
 - **O que deve aparecer:**
   - No Cenário A: O status na tela do profissional atualiza imediatamente para "Presença verificada" com carimbo de horário.
   - No Cenário B: O status exibe "Aguardando confirmação do contratante" (`checkin-situacao`).
@@ -213,7 +213,7 @@ Cada passo descreve estritamente: **quem faz**, **o que toca** e **o que deve ap
 | **03** | Publicação | Aparelho 1 (Contratante) | Preenche turno de urgência e toca "Publicar vaga" | Vaga listada como "0/1 ocupada" em Minhas vagas | `[ ]` |
 | **04** | Notificação | Aparelho 2 (Profissional) | Em repouso / tela bloqueada | Push APNs/FCM recebido em até 30 s com dados do turno | `[ ]` |
 | **05** | Abertura | Aparelho 2 (Profissional) | Toca na notificação push | Abertura direta na tela de detalhe da vaga | `[ ]` |
-| **06** | Candidatura | Aparelho 2 (Profissional) | Toca no botão "Candidatar-me" | Vaga confirmada imediatamente (Urgência) | `[ ]` |
+| **06** | Candidatura | Aparelho 2 (Profissional) | Toca no botão "Aceitar turno" | Vaga confirmada imediatamente (Urgência) | `[ ]` |
 | **07** | Confirmação | Aparelho 1 (Contratante) | Toca no push ou atualiza "Minhas vagas" | Vaga passa para "1/1 ocupada"; "Acompanhar turno" disponível | `[ ]` |
 | **08** | Contato | Ambos os aparelhos | Acessam o turno confirmado | Contato telefônico/WhatsApp liberado bilateralmente | `[ ]` |
 | **09** | Check-in | Aparelho 2 (Profissional) | Toca "Fazer check-in" (GPS ou manual) | Presença registrada (verificada ou pendente de aceite) | `[ ]` |

@@ -68,7 +68,7 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
    URL sai do payload. Extensão (#253): compara `vinculo_id` com o App Group e neutraliza o aviso de
    outra conta, inclusive quando o tempo acaba (`NotificationService.swift:38-43`). Links que o app abre:
    `tel:` com o telefone filtrado a dígitos (`MinhasVagas.swift:583-585`), Apple Maps com o endereço em
-   query (`MeuTurnoViewModel.swift:132-136`), `https://frila.app/...` fixos; `whatsapp_url`: ver A5.
+   query (`MeuTurnoViewModel.swift:132-136`), `https://frila.netlify.app/...` fixos; `whatsapp_url`: ver A5.
 5. **Tela.** Código de e-mail com `.textContentType(.oneTimeCode)` (`TelaCodigo.swift:59`,
    `Componentes.swift:101`). Nada vai sozinho à área de transferência: o único `UIPasteboard` é o
    relatório de medições, dentro de `#if DEBUG || FRILA_MEDICAO` (`RelatorioDeMedicoes.swift:63`), que o
