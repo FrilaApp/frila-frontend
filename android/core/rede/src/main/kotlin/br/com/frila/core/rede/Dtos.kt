@@ -332,3 +332,69 @@ data class ProtocoloDto(
     @SerialName("criada_em") val criadaEm: String,
     @SerialName("prazo_resposta_ate") val prazoRespostaAte: String,
 )
+
+/**
+ * Corpo de `POST /rest/v1/rpc/desbloquear` (contrato 0.2.51, decisão A8, RF26). O par é o mesmo
+ * que `/rpc/bloquear` recebe: `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
+ */
+@Serializable
+data class DesbloquearDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+)
+
+/**
+ * Resposta de `/rpc/desbloquear` (schema `Bloqueio`). Devolve o par recebido e o `criado_em` do
+ * bloqueio que deixou de valer; na chamada repetida, o instante da chamada.
+ */
+@Serializable
+data class BloqueioDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+    @SerialName("criado_em") val criadoEm: String,
+)
+
+/** Item de `/rpc/listar_bloqueios` (schema `ItemBloqueio`, contrato 0.2.51). Sem id de conta (RN10). */
+@Serializable
+data class ItemBloqueioDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("criado_em") val criadoEm: String,
+)
+
+/**
+ * Resposta de `/rpc/minha_identidade_status` e de `/rpc/confirmar_envio_verificacao` (schema
+ * `StatusVerificacao`, RN14, contrato 0.2.50). `motivo` e `prazo_envio_ate` são nulos sem exigência
+ * aberta; o cliente não decide nada a partir do prazo (VP-72).
+ */
+@Serializable
+data class StatusVerificacaoDto(
+    @SerialName("status_verificacao") val statusVerificacao: String,
+    @SerialName("motivo") val motivo: String? = null,
+    @SerialName("prazo_envio_ate") val prazoEnvioAte: String? = null,
+    @SerialName("identidade_verificada") val identidadeVerificada: Boolean,
+)
+
+/** Corpo de `POST /rest/v1/rpc/solicitar_upload_verificacao` (RN14): `rg` ou `cnh`. */
+@Serializable
+data class SolicitarUploadVerificacaoDto(
+    @SerialName("documento_tipo") val documentoTipo: String,
+)
+
+/** Uma URL assinada de upload, por parte do documento (`frente`, `verso` ou `selfie`). */
+@Serializable
+data class ParteUploadDto(
+    @SerialName("parte") val parte: String,
+    @SerialName("url") val url: String,
+)
+
+/**
+ * Resposta de `/rpc/solicitar_upload_verificacao` (schema `UploadVerificacao`, RN14): URLs
+ * assinadas válidas por 2 horas (`expira_em`). A URL é opaca para o cliente (VP-71).
+ */
+@Serializable
+data class UploadVerificacaoDto(
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("partes") val partes: List<ParteUploadDto>,
+)
