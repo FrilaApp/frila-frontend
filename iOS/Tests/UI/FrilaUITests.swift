@@ -995,6 +995,7 @@ final class AutenticacaoUITests: XCTestCase {
 
         let emailAX5 = appAX5.textFields["entrada-email"]
         XCTAssertTrue(emailAX5.waitForExistence(timeout: 10))
+        appAX5.swipeUp()
         emailAX5.tap()
         emailAX5.digitarEEsperar("novo@frila.app")
         tocarFechandoTeclado(appAX5.buttons["entrada-receber-codigo"], em: appAX5)
@@ -1098,6 +1099,7 @@ final class PerfilUITests: XCTestCase {
         app.tabBars.buttons["Conta"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: 10))
+        abrirFuncoesSeFechado(app)
         XCTAssertTrue(funcao.waitForExistence(timeout: Espera.aparecer), "as funções carregadas continuam no formulário")
         XCTAssertTrue(horario.exists, "os horários carregados continuam no formulário")
     }
