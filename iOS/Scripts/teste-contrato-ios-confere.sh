@@ -199,5 +199,46 @@ esperar_reprovacao "Campo opcional novo no contrato sem exceção documentada" \
   --contrato "$TMPDIR_TESTE/Contrato/openapi-opcional-sem-excecao.yaml" \
   --sources "$TMPDIR_TESTE/Sources"
 
-echo "OK: autoteste de contrato-ios-confere.sh (13 verificações completas com aprovação e reprovação controlada)."
+# 14. RPC descontinuada (deprecated: true) ausente no app é tolerada sem quebrar o gate
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-rpc-deprecated.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-rpc-deprecated.yaml'
+texto = open(caminho).read().replace('/rpc/abrir_suporte:', '/rpc/operacao_legada:\n    post:\n      summary: Legada\n      deprecated: true\n  /rpc/abrir_suporte:')
+open(caminho, 'w').write(texto)
+"
+
+esperar_aprovacao --contrato "$TMPDIR_TESTE/Contrato/openapi-rpc-deprecated.yaml" --sources "$TMPDIR_TESTE/Sources"
+
+# 15. RPC nova no contrato registrada como pendente de adoção é tolerada
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-rpc-pendente.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-rpc-pendente.yaml'
+texto = open(caminho).read().replace('/rpc/abrir_suporte:', '/rpc/minha_identidade_status:\n    post:\n      summary: Status\n  /rpc/abrir_suporte:')
+open(caminho, 'w').write(texto)
+"
+
+esperar_aprovacao --contrato "$TMPDIR_TESTE/Contrato/openapi-rpc-pendente.yaml" --sources "$TMPDIR_TESTE/Sources"
+
+# 16. Schema de objeto pendente de adoção registrado no script é tolerado
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-schema-pendente.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-schema-pendente.yaml'
+bloco = '\n    StatusVerificacao:\n      type: object\n      properties:\n        status: { type: string }\n'
+texto = open(caminho).read().replace('  schemas:', '  schemas:' + bloco)
+open(caminho, 'w').write(texto)
+"
+
+esperar_aprovacao --contrato "$TMPDIR_TESTE/Contrato/openapi-schema-pendente.yaml" --sources "$TMPDIR_TESTE/Sources"
+
+# 17. Código de erro estável novo registrado como pendente de adoção é tolerado
+cp "$TMPDIR_TESTE/Contrato/openapi.yaml" "$TMPDIR_TESTE/Contrato/openapi-erro-pendente.yaml"
+python3 -c "
+caminho = '$TMPDIR_TESTE/Contrato/openapi-erro-pendente.yaml'
+texto = open(caminho).read().replace('    | 429 | \`limite_excedido\` |', '    | 409 | \`verificacao_indisponivel\` | Verificacao |\n    | 429 | \`limite_excedido\` |')
+open(caminho, 'w').write(texto)
+"
+
+esperar_aprovacao --contrato "$TMPDIR_TESTE/Contrato/openapi-erro-pendente.yaml" --sources "$TMPDIR_TESTE/Sources"
+
+echo "OK: autoteste de contrato-ios-confere.sh (17 verificações completas com aprovação e reprovação controlada)."
 

@@ -197,8 +197,11 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
     return swift_enums
 
 
-def conferir_rpcs(doc: dict, sources_dir: pathlib.Path) -> list[str]:
+def conferir_rpcs(
+    doc: dict, sources_dir: pathlib.Path
+) -> tuple[list[str], list[str], int, int]:
     erros: list[str] = []
+    avisos: list[str] = []
     openapi_rpcs = {
         p.replace("/rpc/", "")
         for p in doc.get("paths", {}).keys()
@@ -207,7 +210,7 @@ def conferir_rpcs(doc: dict, sources_dir: pathlib.Path) -> list[str]:
 
     supabase_cliente = sources_dir / "Dados" / "SupabaseApiCliente.swift"
     if not supabase_cliente.is_file():
-        return [f"Arquivo {supabase_cliente} não encontrado para auditoria de RPCs"]
+        return [f"Arquivo {supabase_cliente} não encontrado para auditoria de RPCs"], [], 0, 0
 
     with open(supabase_cliente, encoding="utf-8") as f:
         texto = f.read()
@@ -216,14 +219,54 @@ def conferir_rpcs(doc: dict, sources_dir: pathlib.Path) -> list[str]:
     swift_rpcs.update(re.findall(r'lista\(\s*"([^"]+)"', texto))
     swift_rpcs.update(re.findall(r'registrarPresenca\(\s*"([^"]+)"', texto))
 
+    # Operações do contrato ainda não consumidas pelo app iOS (e.g. novas RPCs da RN14
+    # pendentes de adoção no cliente iOS).
+    RPCS_NAO_CONSUMIDAS_PELO_APP = {
+        "minha_identidade_status": (
+            "Verificação de identidade (RN14, contrato 0.2.50); "
+            "fluxo de upload de documento pendente de adoção no app iOS."
+        ),
+        "solicitar_upload_verificacao": (
+            "Verificação de identidade (RN14, contrato 0.2.50); "
+            "fluxo de upload de documento pendente de adoção no app iOS."
+        ),
+        "confirmar_envio_verificacao": (
+            "Verificação de identidade (RN14, contrato 0.2.50); "
+            "fluxo de upload de documento pendente de adoção no app iOS."
+        ),
+    }
+
     faltando = openapi_rpcs - swift_rpcs
     extras = swift_rpcs - openapi_rpcs
 
-    if faltando:
-        erros.append(f"RPCs do contrato faltando no SupabaseApiCliente: {sorted(faltando)}")
+    faltando_reais: set[str] = set()
+    for rpc in faltando:
+        if rpc in RPCS_NAO_CONSUMIDAS_PELO_APP:
+            avisos.append(
+                f"RPC '{rpc}' do contrato pendente de adoção no app iOS ({RPCS_NAO_CONSUMIDAS_PELO_APP[rpc]})"
+            )
+        else:
+            path_item = doc.get("paths", {}).get(f"/rpc/{rpc}", {})
+            is_deprecated = bool(
+                path_item.get("deprecated")
+                or path_item.get("post", {}).get("deprecated")
+                or path_item.get("get", {}).get("deprecated")
+            )
+            if is_deprecated:
+                avisos.append(
+                    f"RPC '{rpc}' do contrato está descontinuada (deprecated) e não é consumida pelo app iOS"
+                )
+            else:
+                faltando_reais.add(rpc)
+
+    if faltando_reais:
+        erros.append(f"RPCs do contrato faltando no SupabaseApiCliente: {sorted(faltando_reais)}")
     if extras:
         erros.append(f"RPCs extras no SupabaseApiCliente inexistentes no contrato: {sorted(extras)}")
-    return erros
+
+    consumidas = len(swift_rpcs & openapi_rpcs)
+    total_contrato = len(openapi_rpcs)
+    return erros, avisos, consumidas, total_contrato
 
 
 def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
@@ -261,12 +304,15 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
     return erros
 
 
-def conferir_erros(doc: dict, sources_dir: pathlib.Path) -> list[str]:
+def conferir_erros(
+    doc: dict, sources_dir: pathlib.Path
+) -> tuple[list[str], list[str]]:
     erros: list[str] = []
+    avisos: list[str] = []
     info_desc = doc.get("info", {}).get("description", "")
     tabela_match = re.search(r"## Erros.*?\n(\|.*?)(?:\n\n## |\Z)", info_desc, re.DOTALL)
     if not tabela_match:
-        return ["Tabela de erros estáveis '## Erros' não encontrada no openapi.yaml"]
+        return ["Tabela de erros estáveis '## Erros' não encontrada no openapi.yaml"], []
 
     linhas_tabela = tabela_match.group(1).strip().split("\n")
     codigos_contrato: set[str] = set()
@@ -280,14 +326,14 @@ def conferir_erros(doc: dict, sources_dir: pathlib.Path) -> list[str]:
 
     erros_swift_path = sources_dir / "Dominio" / "ErrosDaAPI.swift"
     if not erros_swift_path.is_file():
-        return [f"Arquivo {erros_swift_path} não encontrado"]
+        return [f"Arquivo {erros_swift_path} não encontrado"], []
 
     with open(erros_swift_path, encoding="utf-8") as f:
         texto = f.read()
 
     enum_match = re.search(r"enum\s+CodigoErroAPI\s*:[^{]*\{([^}]+)\}", texto)
     if not enum_match:
-        return ["enum CodigoErroAPI não encontrado em ErrosDaAPI.swift"]
+        return ["enum CodigoErroAPI não encontrado em ErrosDaAPI.swift"], []
 
     codigos_swift: set[str] = set()
     for line in enum_match.group(1).split("\n"):
@@ -300,17 +346,38 @@ def conferir_erros(doc: dict, sources_dir: pathlib.Path) -> list[str]:
                 snake = re.sub(r"(?<!^)(?=[A-Z])", "_", m.group(1)).lower()
                 codigos_swift.add(snake)
 
+    # Códigos de erro estáveis do contrato de operações ainda não consumidas pelo app iOS
+    CODIGOS_ERRO_NAO_CONSUMIDOS_PELO_APP = {
+        "verificacao_indisponivel": (
+            "Erro de verificação de identidade (RN14, contrato 0.2.50); "
+            "fluxo pendente de adoção no cliente iOS."
+        ),
+        "evidencia_incompleta": (
+            "Erro de verificação de identidade (RN14, contrato 0.2.50); "
+            "fluxo pendente de adoção no cliente iOS."
+        ),
+    }
+
     faltando = codigos_contrato - codigos_swift
-    if faltando:
+    faltando_reais: set[str] = set()
+    for cod in faltando:
+        if cod in CODIGOS_ERRO_NAO_CONSUMIDOS_PELO_APP:
+            avisos.append(
+                f"Código de erro '{cod}' do contrato pendente de adoção ({CODIGOS_ERRO_NAO_CONSUMIDOS_PELO_APP[cod]})"
+            )
+        else:
+            faltando_reais.add(cod)
+
+    if faltando_reais:
         erros.append(
-            f"Códigos de recusa do catálogo OpenAPI ausentes em CodigoErroAPI: {sorted(faltando)}"
+            f"Códigos de recusa do catálogo OpenAPI ausentes em CodigoErroAPI: {sorted(faltando_reais)}"
         )
-    return erros
+    return erros, avisos
 
 
 def conferir_dtos(
     doc: dict, sources_dir: pathlib.Path
-) -> tuple[list[str], list[str], int]:
+) -> tuple[list[str], list[str], int, int]:
     erros: list[str] = []
     avisos: list[str] = []
     schemas = doc.get("components", {}).get("schemas", {})
@@ -367,7 +434,19 @@ def conferir_dtos(
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
     }
 
-    # 5.2 Exceções documentadas para campos opcionais não mapeados no app (P6)
+    # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
+    SCHEMAS_NAO_CONSUMIDOS_PELO_APP = {
+        "StatusVerificacao": (
+            "Payload de minha_identidade_status (RN14, contrato 0.2.50); "
+            "pendente de adoção no cliente iOS."
+        ),
+        "UploadVerificacao": (
+            "Payload de solicitar_upload_verificacao (RN14, contrato 0.2.50); "
+            "pendente de adoção no cliente iOS."
+        ),
+    }
+
+    # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
         "VagaResumo": {
             "ponto": (
@@ -380,7 +459,19 @@ def conferir_dtos(
                 "Objeto de usuário do Supabase Auth ignorado pelo app: "
                 "a sessão salva tokens no Keychain e os dados da conta são lidos via /rpc/minha_conta."
             )
-        }
+        },
+        "ResultadoCandidatura": {
+            "contato": (
+                "Descontinuado no contrato 0.2.49 (decisão de produto de 04/11/2026: contato fora do app); "
+                "o app iOS deixou de ler e armazenar contatos em conformidade com a Fase 2 (issue #396)."
+            )
+        },
+        "ResultadoConfirmacao": {
+            "contato": (
+                "Descontinuado no contrato 0.2.49 (decisão de produto de 04/11/2026: contato fora do app); "
+                "o app iOS deixou de ler e armazenar contatos em conformidade com a Fase 2 (issue #396)."
+            )
+        },
     }
 
     alias_reverso = {v: k for k, v in ALIAS_DTO.items()}
@@ -404,6 +495,11 @@ def conferir_dtos(
         ]
         dto_name = next((c for c in candidates if c and c in struct_props), None)
         if not dto_name:
+            if schema_name in SCHEMAS_NAO_CONSUMIDOS_PELO_APP:
+                avisos.append(
+                    f"Schema de objeto {schema_name} do contrato OpenAPI pendente de adoção ({SCHEMAS_NAO_CONSUMIDOS_PELO_APP[schema_name]})"
+                )
+                continue
             erros.append(
                 f"Schema de objeto {schema_name} do contrato OpenAPI não possui struct/DTO correspondente no app Swift"
             )
@@ -415,9 +511,21 @@ def conferir_dtos(
 
         faltando = required_props - dto_fields
         if faltando:
-            erros.append(
-                f"DTO {dto_name} (schema {schema_name}) tem campos obrigatórios faltando: {sorted(faltando)}"
-            )
+            faltando_reais = set()
+            for campo in faltando:
+                if (
+                    schema_name in EXCECOES_OPCIONAIS_DOCUMENTADAS
+                    and campo in EXCECOES_OPCIONAIS_DOCUMENTADAS[schema_name]
+                ):
+                    avisos.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo '{campo}' não mapeado por exceção documentada ({EXCECOES_OPCIONAIS_DOCUMENTADAS[schema_name][campo]})"
+                    )
+                else:
+                    faltando_reais.add(campo)
+            if faltando_reais:
+                erros.append(
+                    f"DTO {dto_name} (schema {schema_name}) tem campos obrigatórios faltando: {sorted(faltando_reais)}"
+                )
 
         extras = dto_fields - all_props
         if extras:
@@ -437,7 +545,9 @@ def conferir_dtos(
                         f"DTO {dto_name} (schema {schema_name}): campo opcional '{campo}' não mapeado no DTO nem documentado como exceção"
                     )
 
-    return erros, avisos, len(openapi_objects)
+    schemas_nao_consumidos_encontrados = set(openapi_objects.keys()) & set(SCHEMAS_NAO_CONSUMIDOS_PELO_APP.keys())
+    qtd_cobertos = len(openapi_objects) - len(schemas_nao_consumidos_encontrados)
+    return erros, avisos, qtd_cobertos, len(openapi_objects)
 
 
 def main() -> None:
@@ -480,10 +590,11 @@ def main() -> None:
                 print(f"OK: espelho local sincronizado com backend ({versao_backend}).")
 
     # 2. RPCs
-    erros_rpc = conferir_rpcs(doc, sources_dir)
+    erros_rpc, avisos_rpc, consumidas_rpc, total_rpc = conferir_rpcs(doc, sources_dir)
     todos_erros.extend(erros_rpc)
+    todos_avisos.extend(avisos_rpc)
     if not erros_rpc and not args.silencioso:
-        print("OK: 44/44 RPCs do contrato implementadas em conformidade.")
+        print(f"OK: {consumidas_rpc}/{total_rpc} RPCs do contrato implementadas em conformidade.")
 
     # 3. Enums
     swift_enums = extrair_enums_swift(sources_dir)
@@ -493,21 +604,22 @@ def main() -> None:
         print("OK: 17/17 enums do contrato verificados caso a caso.")
 
     # 4. Códigos de recusa
-    erros_recusas = conferir_erros(doc, sources_dir)
+    erros_recusas, avisos_recusas = conferir_erros(doc, sources_dir)
     todos_erros.extend(erros_recusas)
+    todos_avisos.extend(avisos_recusas)
     if not erros_recusas and not args.silencioso:
         print("OK: códigos estáveis de recusa de regra tratados em CodigoErroAPI.")
 
     # 5. DTOs
-    erros_dtos, avisos_dtos, qtd_dtos = conferir_dtos(doc, sources_dir)
+    erros_dtos, avisos_dtos, qtd_cobertos, qtd_dtos = conferir_dtos(doc, sources_dir)
     todos_erros.extend(erros_dtos)
     todos_avisos.extend(avisos_dtos)
     if not erros_dtos and not args.silencioso:
-        print(f"OK: {qtd_dtos}/{qtd_dtos} DTOs do contrato cobrem todos os campos obrigatórios.")
+        print(f"OK: {qtd_cobertos}/{qtd_dtos} DTOs do contrato cobrem todos os campos obrigatórios.")
 
     if todos_avisos and not args.silencioso:
         s = "exceção documentada" if len(todos_avisos) == 1 else "exceções documentadas"
-        print(f"OK: {len(todos_avisos)} {s} de campos opcionais não mapeados no app.")
+        print(f"OK: {len(todos_avisos)} {s} de campos ou operações não mapeados no app.")
 
     if todos_erros:
         print("\nFALHA: divergências de contrato encontradas:", file=sys.stderr)
