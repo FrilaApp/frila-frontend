@@ -57,14 +57,16 @@ o SDK ou incluir outro produto Firebase.
 
 ## App Privacy e manifesto
 
-`Resources/PrivacyInfo.xcprivacy` declara, para finalidade **App Functionality**, sem
-rastreamento e sem vínculo à pessoa, o que vem do Crashlytics:
+`Resources/PrivacyInfo.xcprivacy` declara, sem rastreamento e sem vínculo à pessoa, o que vem
+do Crashlytics:
 
-- **Crash Data**: pilhas e estado de falhas.
-- **Other Diagnostic Data**: versão do app, aparelho e sistema operacional usados no diagnóstico.
+- **Crash Data** (finalidade **App Functionality**): pilhas e estado de falhas.
+- **Other Diagnostic Data** (finalidades **App Functionality** e **Analytics**, esta por decisão
+  do Cauê de 05/11/2026, porque os SDKs do Google embutidos a declaram neste tipo): versão do
+  app, aparelho e sistema operacional usados no diagnóstico.
 
 No App Store Connect, registrar esses dois tipos em *App Privacy* como coletados, não
-vinculados à identidade, sem uso para tracking e com a finalidade *App Functionality*. Reavaliar
+vinculados à identidade, sem uso para tracking e com as finalidades acima. Reavaliar
 essa declaração antes de adicionar Analytics, logs/breadcrumbs ou chaves customizadas.
 
 O **Device ID** é declarado **vinculado à pessoa**, também só para *App Functionality* e sem

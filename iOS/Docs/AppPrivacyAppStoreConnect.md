@@ -100,7 +100,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Verificação de maioridade 18+ (ECA Digital / regra de proteção de menores) e cálculo civil de corte no cadastro.
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Verificação de maioridade 18+ (ECA Digital / regra de proteção de menores) e cálculo civil de corte no cadastro. Também **Análise** (*Analytics*), porque os SDKs do Google embutidos (Firebase Messaging, Installations, GoogleDataTransport) declaram essa finalidade neste tipo (decisão do Cauê de 05/11/2026; `frila-docs`, `juridico/matriz-app-privacy.md`, Seção 8.2).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Portas.swift` (`CadastroConta`). Declarado como `NSPrivacyCollectedDataTypeOtherDataTypes`.
 
 ---
@@ -119,8 +119,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** **Não**
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Funcionalidade do App (*App Functionality*) no manifesto atual da `main` (`iOS/Resources/PrivacyInfo.xcprivacy`).
-     > **[DONO / Decisão de Privacidade]:** Medição anônima de latência e tempo de resposta de RPCs para observabilidade de desempenho. A alteração de finalidade para `Analytics` é uma decisão estratégica reservada ao proprietário (`[DONO]`).
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) e **Análise** (*Analytics*) no manifesto (`iOS/Resources/PrivacyInfo.xcprivacy`). Medição anônima de latência e tempo de resposta de RPCs para observabilidade de desempenho; a Análise acompanha a ficha publicada em 05/11/2026, porque os SDKs do Google embutidos declaram essa finalidade neste tipo (decisão do Cauê, `frila-docs`, `juridico/matriz-app-privacy.md`, Seção 8.2).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift`, `iOS/Resources/PrivacyInfo.xcprivacy`.
 
 ---
@@ -186,9 +185,9 @@ Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTP
 | Localização Precisa | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypePreciseLocation`) | Sim (Seção 2.2) | Ponto base (`PerfilProfissionalViewModel.swift`), ponto do estabelecimento (`CadastroEstabelecimento.swift`), publicação de vaga (`PublicarVaga.swift`, `NovaVaga.ponto`) e `Dados/DTOsContrato.swift` (check-in envia apenas distância em metros; `FiltroVagasDTO` envia `nil`) |
 | Identificadores (UUID, FCM) | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeUserID`, `DeviceID`) | Sim (Seção 2.4) | `Dados/SessaoNoKeychainDoAparelho.swift`, `Dados/AparelhoDePush.swift` |
 | Conteúdo do Usuário | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherUserContent`) | Sim (Seção 2.5) | `Apresentacao/Fluxos/Contratante/PublicarVaga.swift`, `Apresentacao/Fluxos/Profissional/TelaAvaliacao.swift` |
-| Data de Nascimento | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDataTypes`) | Sim (Seção 2.1 / Maioridade 18+) | `Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift` |
+| Data de Nascimento | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDataTypes`, AppFunctionality e Analytics) | Sim (Seção 2.1 / Maioridade 18+) | `Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift` |
 | Relatórios de Falha | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeCrashData`, AppFunctionality [main] / Decisão [DONO]) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
-| Diagnósticos de Rede | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDiagnosticData`, AppFunctionality [main] / Decisão [DONO]) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
+| Diagnósticos de Rede | Sim (Não Vinculado) | Sim (`NSPrivacyCollectedDataTypeOtherDiagnosticData`, AppFunctionality e Analytics) | Sim (Seção 2.6) | Firebase Crashlytics (`Infraestrutura/TelemetriaCrashlytics.swift`) |
 | Interação com o Produto | Sim (Vinculado) | Sim (`NSPrivacyCollectedDataTypeProductInteraction`, Analytics) | Sim (Seção 2.6) | `Dominio/Telemetria.swift`, RPC `registrar_evento` |
 | Rastreamento de Terceiros | **Não** | **Não (`NSPrivacyTracking = false`)** | **Não** (Sem rastreadores) | Nenhum SDK de ads |
 | Exclusão In-App de Conta | Declarado | Conformidade com Diretriz 5.1.1 | Seção 5 (Direitos do Titular) | `Apresentacao/Fluxos/Perfil/PerfisDaConta.swift`, `Apresentacao/Fluxos/Conta/TelaExclusaoDeConta.swift` |

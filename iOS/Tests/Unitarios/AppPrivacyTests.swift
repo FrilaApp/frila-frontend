@@ -13,6 +13,12 @@ struct AppPrivacyTests {
             .deletingLastPathComponent() // iOS
     }()
 
+    /// Finalidades declaradas na ficha App Privacy para os tipos que os SDKs do Google também declaram com Análise.
+    private static let finalidadesDeFuncionalidadeEAnalise: Set<String> = [
+        "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+        "NSPrivacyCollectedDataTypePurposeAnalytics",
+    ]
+
     @Test("Manifesto de privacidade principal declara ausência de rastreamento (NSPrivacyTracking = false)")
     func manifestoSemRastreamento() throws {
         let caminhoManifesto = Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy")
@@ -69,9 +75,15 @@ struct AppPrivacyTests {
             if tipo == "NSPrivacyCollectedDataTypeProductInteraction" {
                 #expect(linked == true, "ProductInteraction deve ser vinculado ao usuário (usuario_id)")
                 #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAnalytics"), "ProductInteraction deve ter finalidade Analytics")
-            } else if tipo == "NSPrivacyCollectedDataTypeCrashData" || tipo == "NSPrivacyCollectedDataTypeOtherDiagnosticData" {
-                #expect(linked == false, "\(tipo ?? "") não deve ser vinculado ao usuário")
-                #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"), "\(tipo ?? "") deve ter finalidade AppFunctionality na main atual")
+            } else if tipo == "NSPrivacyCollectedDataTypeCrashData" {
+                #expect(linked == false, "CrashData não deve ser vinculado ao usuário")
+                #expect(purposes == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"], "CrashData deve ter só a finalidade AppFunctionality")
+            } else if tipo == "NSPrivacyCollectedDataTypeOtherDiagnosticData" {
+                #expect(linked == false, "OtherDiagnosticData não deve ser vinculado ao usuário")
+                #expect(Set(purposes) == Self.finalidadesDeFuncionalidadeEAnalise, "OtherDiagnosticData deve ter AppFunctionality e Analytics (ficha de 05/11/2026; SDKs do Google declaram Analytics)")
+            } else if tipo == "NSPrivacyCollectedDataTypeOtherDataTypes" {
+                #expect(linked == true, "OtherDataTypes deve ser vinculado ao usuário (data de nascimento e documento)")
+                #expect(Set(purposes) == Self.finalidadesDeFuncionalidadeEAnalise, "OtherDataTypes deve ter AppFunctionality e Analytics (ficha de 05/11/2026; SDKs do Google declaram Analytics)")
             } else {
                 #expect(linked == true, "\(tipo ?? "") deve ser vinculado ao usuário (finalidade funcional)")
                 #expect(purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"), "\(tipo ?? "") deve ter finalidade AppFunctionality")
