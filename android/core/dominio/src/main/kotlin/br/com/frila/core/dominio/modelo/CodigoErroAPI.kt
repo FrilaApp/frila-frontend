@@ -49,6 +49,8 @@ enum class CodigoErroAPI {
     @SerialName("limite_excedido") LIMITE_EXCEDIDO,
     @SerialName("republicacao_indisponivel") REPUBLICACAO_INDISPONIVEL,
     @SerialName("conta_suspensa") CONTA_SUSPENSA,
+    @SerialName("verificacao_indisponivel") VERIFICACAO_INDISPONIVEL,
+    @SerialName("evidencia_incompleta") EVIDENCIA_INCOMPLETA,
     @SerialName("sem_rede") SEM_REDE,
     @SerialName("resposta_invalida") RESPOSTA_INVALIDA,
     @SerialName("desconhecido") DESCONHECIDO,

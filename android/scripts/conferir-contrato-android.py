@@ -132,6 +132,13 @@ def main() -> None:
         "CancelarPosicaoDto": "/rpc/cancelar_posicao",
         "AbrirSuporteDto": "/rpc/abrir_suporte",
         "CandidatarDto": "/rpc/candidatar",
+        "DesbloquearDto": "/rpc/desbloquear",
+        "SolicitarUploadVerificacaoDto": "/rpc/solicitar_upload_verificacao",
+    }
+
+    # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
+    ITENS_ANINHADOS = {
+        "ParteUploadDto": ("UploadVerificacao", "partes"),
     }
 
     # Request body de Edge Function
@@ -167,6 +174,37 @@ def main() -> None:
                 verificados += 1
                 if not args.silencioso:
                     print(f"  [OK] {dto_name} <-> Edge Function (campos: {sorted(dto_props)})")
+            continue
+
+        if dto_name in ITENS_ANINHADOS:
+            pai, propriedade = ITENS_ANINHADOS[dto_name]
+            item = (
+                schemas.get(pai, {})
+                .get("properties", {})
+                .get(propriedade, {})
+                .get("items", {})
+            )
+            item_props = set(item.get("properties", {}).keys())
+            if not item_props:
+                erros.append(
+                    f"DTO '{dto_name}' referencia '{pai}.{propriedade}', mas o schema não declara items.properties no OpenAPI"
+                )
+                continue
+
+            faltando_required = set(item.get("required", [])) - dto_props
+            if faltando_required:
+                erros.append(
+                    f"DTO '{dto_name}' não mapeia campos obrigatórios (required) de '{pai}.{propriedade}': {sorted(faltando_required)}"
+                )
+            extras = dto_props - item_props
+            if extras:
+                erros.append(
+                    f"DTO '{dto_name}' possui campos inventados ausentes em '{pai}.{propriedade}': {sorted(extras)}"
+                )
+
+            verificados += 1
+            if not args.silencioso:
+                print(f"  [OK] {dto_name} <-> {pai}.{propriedade} ({len(dto_props)} campos)")
             continue
 
         if dto_name in RPCS_REQUEST_BODY:

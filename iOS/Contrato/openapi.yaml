@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.47
+  version: 0.2.51
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -71,12 +71,13 @@ info:
     | 409 | `vaga_encerrada` | A vaga fechou, já começou ou foi cancelada por outro autor. Reenvio pelo mesmo contratante autor do cancelamento devolve 200 (0.2.35). Posição reaberta por atraso: a partir de `fim_em - 1 h` |
     | 409 | `checkin_pendente` | Check-out ou confirmação de um turno que ainda não teve check-in. O código diz qual é o passo que falta |
     | 409 | `checkin_ja_confirmado` | Confirmação de um check-in geolocalizado, que já nasceu verificado |
-    | 409 | `posicao_nao_cancelavel` | A posição não está confirmada: aberta não tem o que cancelar, turno já em andamento ou cumprido não volta atrás, ou posição cancelada pela outra parte. Reenvio pelo mesmo autor devolve 200 (0.2.35) |
+    | 409 | `posicao_nao_cancelavel` | A posição não está confirmada: aberta não tem o que cancelar, cumprida não volta atrás, ou posição cancelada pela outra parte. Passar do horário de início não basta: a posição confirmada continua cancelável (0.2.48). Reenvio pelo mesmo autor devolve 200 (0.2.35) |
     | 409 | `candidatura_indisponivel` | A candidatura foi retirada, expirou ou já foi escolhida |
     | 409 | `avaliacao_ja_registrada` | Já existe avaliação **deste lado** do turno, com outra resposta — de quem chama ou de outro membro do mesmo estabelecimento |
     | 409 | `conta_existente`, `documento_ja_cadastrado` | Cadastro repetido |
     | 409 | `administrador_unico` | Exclusão de conta de quem é o único administrador (UC16) |
     | 409 | `perfil_ja_existe` | `criar_perfil_profissional` numa conta que já tem perfil. Conflito, e não sobrescrita: sobrescrever apagaria a grade de quem tocasse duas vezes no botão |
+    | 409 | `verificacao_indisponivel` | A verificação de identidade não aceita a ação agora; `details`: `em_analise` ou `aprovada` (pedir upload), `aprovada` ou `sem_envio_solicitado` (confirmar envio) (RN14) |
     | 409 | `contestacao_ja_aberta` | Já existe contestação para a suspensão em vigor ou para o despacho, em análise ou já respondida (RF24, RF27) |
     | 422 | `campo_obrigatorio` | Falta campo exigido; `details` diz qual (na vaga, RN02) |
     | 422 | `campo_invalido` | O campo veio, e o valor é recusado pela regra; `details` diz qual campo. Distinto de `campo_obrigatorio`, que é ausência — a tela destaca o mesmo campo, com texto diferente |
@@ -94,9 +95,88 @@ info:
     | 422 | `registro_no_futuro` | Instante de check-in ou check-out adiante do relógio do servidor. O relógio que vale é o do servidor, nunca o do aparelho |
     | 422 | `reabertura_antes_da_tolerancia` | Reabrir por atraso antes dos 15 minutos (D06) |
     | 422 | `sem_suspensao_ativa` | Contestação sem suspensão em vigor (RF24) |
+    | 422 | `evidencia_incompleta` | `confirmar_envio_verificacao` sem todas as partes no bucket; `details`: `frente`, `verso` ou `selfie`, a primeira que falta (RN14) |
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.51, de 05/11/2026.** Desbloquear e listar bloqueios (decisão A8 da PO, RF26, RN10).
+    Adição compatível: duas operações novas e um schema novo; nenhuma operação existente muda e
+    nenhum cliente publicado é afetado.
+
+    - **`GET /rpc/listar_bloqueios`** (`listarBloqueios`): devolve um array de `ItemBloqueio`
+      (`alvo_tipo`, `alvo_id`, `nome` e `criado_em`). Nunca expõe o `usuario_id` da outra parte
+      (RN10). Só lista os bloqueios criados pelo chamador.
+    - **`POST /rpc/desbloquear`** (`desbloquear`): recebe `alvo_tipo` e `alvo_id` e devolve
+      `Bloqueio`. Idempotente. Quando o chamador é membro de estabelecimento, desfaz o bloqueio para
+      a casa inteira.
+    - **Erros:** `401`, `403 sem_permissao` com `details: conta_suspensa`, `404 nao_encontrado` e
+      `422` (`campo_obrigatorio`, `campo_invalido`) nas condições descritas em cada operação. Nenhum
+      código novo.
+
+    **Versão 0.2.50, de 04/11/2026.** Verificação de identidade (RN14), as três operações que o
+    profissional chama sob exigência formal da moderação em apuração de denúncia grave (RN13).
+    Adição compatível: nenhuma operação existente muda e nenhum cliente publicado é afetado. O
+    desenho está em `arquitetura/desenho-verificacao-progressiva-rn14.md` e os requisitos em
+    `requisitos/verificacao-progressiva-rn14.md` (seção 7.1).
+
+    - **`GET /rpc/minha_identidade_status`** (`minhaIdentidadeStatus`): devolve
+      `StatusVerificacao` (`status_verificacao`, `motivo`, `prazo_envio_ate`,
+      `identidade_verificada`). Toda conta tem resposta; `nao_exigida` é o estado inicial.
+    - **`POST /rpc/solicitar_upload_verificacao`** (`solicitarUploadVerificacao`): devolve
+      `UploadVerificacao`, URLs assinadas de upload para o bucket privado `documentos-identidade`,
+      **válidas por 2 horas**.
+    - **`POST /rpc/confirmar_envio_verificacao`** (`confirmarEnvioVerificacao`): confirma o upload e
+      move a verificação para `em_analise`. Idempotente.
+    - **Erros novos:** `409 verificacao_indisponivel` e `422 evidencia_incompleta`, com os
+      `details` descritos na tabela de erros. `401` e `403 sem_permissao` seguem o padrão.
+    - **O que o contrato não expõe:** `documento_hmac`, caminho de arquivo no Storage e score
+      biométrico (VP-71).
+    - **Fica para versão própria:** `identidade_verificada` em `PerfilPublicoProfissional` e
+      `PerfilProfissional` (selo no perfil e na lista de candidatos), e as operações do outro
+      lado, que a moderação usa (`exigir_verificacao`), por não serem chamadas pelo app.
+    - **Pendência de produto e jurídico:** os requisitos condicionam a implementação dos níveis N2
+      e N3 a respostas ainda abertas (itens 1, 2 e 4 da seção 6). O contrato descreve a forma da
+      API e não substitui essa liberação.
+
+    **Versão 0.2.49, de 04/11/2026.** Contato fora do app, Fase 2 (issue #396 do backend), lado do
+    contrato. Decisão de produto de 04/11/2026: a troca de contatos entre contratante e contratado
+    não deve ser praticada nem explicitada no app, o que sobrescreve a US13 e a RN10 e deixa a RN15
+    sem objeto. Mudança compatível: nenhum servidor muda nesta versão, e o app já publicado continua
+    lendo o que lê hoje.
+
+    - **`contato` passa a opcional e nulável em `ResultadoConfirmacao`**, e a opcional em
+      `ResultadoCandidatura` (que já o aceitava nulo no modo seleção). Os dois ficam marcados como
+      `deprecated`. O servidor atual segue preenchendo; o servidor que parar de entregar o contato
+      omite o campo ou manda `null`, e o cliente trata os dois do mesmo jeito.
+    - **`Turno.contato_visivel_ate` passa a opcional e nulável**, também `deprecated`. O prazo de
+      7 dias da RN10 perde o sentido.
+    - **`/rpc/contato_do_turno` fica `deprecated`.** Segue respondendo como na 0.2.48 até a Fase 2
+      do backend. O app novo deixa de chamá-la. O comportamento da resposta depois da desativação
+      (ausência de contato, `404` ou outro) **ainda não está decidido** e será declarado numa
+      versão própria, junto com a implementação.
+    - **O que fica:** o schema `Contato`, o erro `contato_expirado` e as regras de conta
+      encerrada continuam no contrato enquanto o servidor responder como hoje. O telefone
+      obrigatório no cadastro e a migração dos números já gravados são Fase 2 do backend e não
+      mudam o contrato nesta versão.
+
+    **Versão 0.2.48, de 01/11/2026.** Só texto: esclarecimento de duas leituras do contrato de cancelamento
+    e de protocolo (conteúdo resgatado do PR #73 e renumerado de 0.2.47 para 0.2.48 para acomodar as
+    coordenadas exatas do PR #118 em 0.2.47). Nenhum comportamento de servidor muda e nenhum
+    schema muda:
+
+    - **`cancelar_posicao`: passar do horário de início não impede o cancelamento.** O servidor
+      recusa com `409 posicao_nao_cancelavel` pelo **estado** da posição (`aberta`, `cumprida`, ou
+      `cancelada` por outro autor), e não pelo relógio. Uma posição `confirmada` continua
+      cancelável depois de `inicio_em`: a diferença é que não há posição nova nem despacho novo, e o
+      turno fica descoberto. "Turno em andamento", na 0.2.35, não queria dizer "turno cujo horário
+      chegou"; o texto da operação `/rpc/cancelar_posicao` e a linha de `posicao_nao_cancelavel` na
+      tabela de erros passam a declarar isso explicitamente.
+    - **`Protocolo` não diz se a contestação já foi respondida.** A 0.2.36 citava `resolvido_em`, que
+      é coluna da ocorrência e aparece em `/rpc/meus_dados`, mas não faz parte de `Protocolo`. Em
+      `situacaoDaConta`, o app recebe o mesmo objeto esteja a contestação em análise ou respondida,
+      e não tem como distinguir os dois casos: a tela mostra o protocolo e o prazo, e depois de
+      `prazo_resposta_ate` orienta o titular a procurar a resposta no e-mail.
 
     **Versão 0.2.47, de 01/11/2026.** Coordenadas exatas do estabelecimento em `meus_turnos` (RN06, RN22, Cartão 72):
 
@@ -304,7 +384,8 @@ info:
       por e-mail e não aparece na interface do aplicativo.
     - **`situacaoDaConta` devolve o `Protocolo` em análise ou já respondido:** O campo `contestacao`
       em `SituacaoDaConta.suspensao` devolve o `Protocolo` da contestação vinculada à suspensão em
-      vigor, quer ela esteja em análise (`resolvido_em` nulo) ou já respondida pela Equipe Frila. O
+      vigor, quer ela esteja em análise ou já respondida pela Equipe Frila (o `Protocolo` não traz
+      campo que diga qual dos dois; veja a 0.2.48). O
       resultado da análise de suporte não é exposto no app (RN07, RF24) e a tela mantém a exibição do
       protocolo original para acompanhamento. O campo só é nulo se nenhuma contestação foi enviada para
       a suspensão em vigor.
@@ -1202,7 +1283,7 @@ tags:
   - name: Painel do gestor
     description: Acompanhamento de vagas e turnos pelo estabelecimento, no app e na web (RF20, UC07).
   - name: Confiança e direitos
-    description: Denúncia, bloqueio, suspensão e contestação (RF24, RF26, RN13).
+    description: Denúncia, bloqueio, suspensão, contestação e verificação de identidade (RF24, RF26, RN13, RN14).
   - name: Dispositivos
     description: Registro do token de push (FCM) de cada aparelho.
   - name: Exportação e conta
@@ -2575,10 +2656,24 @@ paths:
       tags: [Turno]
       operationId: contatoDoTurno
       summary: Contato da outra parte do turno
+      deprecated: true
       description: |
-        Só existe depois da confirmação e só até 7 dias depois do fim do turno (RN10). A base legal é
-        a execução do contrato (LGPD, art. 7º, V). Depois do prazo, `403 contato_expirado`, para os
-        dois lados; o sétimo dia conta inteiro.
+        **Descontinuada na 0.2.49.** Decisão de produto de 04/11/2026: a troca de contatos entre
+        contratante e contratado não deve ser praticada nem explicitada no app. Isso sobrescreve a
+        US13 e a RN10 (contato liberado até 7 dias depois do turno) e deixa a RN15 (telemetria de
+        abertura do WhatsApp) sem objeto. A coordenação do turno passa a ser só pelos sinais que já
+        existem: instruções de chegada, "Estou a caminho", alerta de atraso, check-in, check-out,
+        cancelamento e suporte.
+
+        O app deixa de chamar esta operação. Enquanto o servidor não for alterado (Fase 2, issue
+        #396 do backend), ela segue respondendo como descrito abaixo, para os apps já publicados.
+        Quando a Fase 2 chegar, o servidor deixa de devolver o contato ou desativa a função, e o
+        comportamento exato dessa resposta será declarado numa versão própria do contrato, junto
+        com a implementação. Não gere cliente novo contra esta operação.
+
+        Comportamento vigente até lá: só existe depois da confirmação e só até 7 dias depois do
+        fim do turno (RN10). A base legal é a execução do contrato (LGPD, art. 7º, V). Depois do
+        prazo, `403 contato_expirado`, para os dois lados; o sétimo dia conta inteiro.
 
         Token de conta encerrada/anonimizada não lê contatos (RF25, RNF08): a verificação de conta
         ativa roda antes de qualquer leitura e recusa com `401 nao_autenticado`.
@@ -2810,8 +2905,9 @@ paths:
         cancelamento (o próprio profissional, ou o mesmo membro da casa) devolve `200` com o
         objeto `ResultadoCancelamento`, sem duplicar penalidade na taxa de comparecimento, ocorrências,
         notificações ou abertura de posições substitutas. Continua sendo `409 posicao_nao_cancelavel`
-        se a posição está aberta sem confirmação, se o turno já está em andamento ou cumprido, ou
-        se foi cancelada pela outra parte.
+        se a posição está aberta sem confirmação, se já foi cumprida, ou se foi cancelada pela outra
+        parte. O que decide é o estado da posição, e não o relógio: depois de `inicio_em`, a posição
+        `confirmada` ainda pode ser cancelada, sem posição nova e sem despacho novo (0.2.48).
 
         Motivo com menos de 3 caracteres é `422 campo_obrigatorio`, e motivo que o filtro da
         diretriz 1.2 recusa é `422 campo_invalido`, os dois com `details: motivo`: a tela pede para
@@ -3197,6 +3293,97 @@ paths:
         '422':
           $ref: '#/components/responses/RegraRecusou'
 
+  /rpc/listar_bloqueios:
+    get:
+      tags: [Confiança e direitos]
+      operationId: listarBloqueios
+      summary: Listar os bloqueios que o chamador criou
+      description: |
+        Devolve os bloqueios criados por quem chama, para que a tela de bloqueados possa mostrá-los e
+        oferecer o desbloqueio (decisão A8 da PO, RF26). Cada item traz o par `alvo_tipo` + `alvo_id`
+        que `/rpc/desbloquear` recebe, o nome público da outra parte e o instante do bloqueio. Do mais
+        recente para o mais antigo. Sem nenhum bloqueio, `200` com lista vazia, e não erro.
+
+        Nunca traz o `usuario_id` da outra parte (RN10): o `alvo_id` é o `id` do `PerfilPublico`, como
+        em `/rpc/bloquear`. Só aparecem bloqueios criados pelo chamador; bloqueio que a outra parte
+        criou contra ele não é listado, para não revelar quem o bloqueou.
+      x-requisitos: [RF26, RN10, UC17]
+      responses:
+        '200':
+          description: Bloqueios do chamador.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemBloqueio'
+              examples:
+                dois_bloqueios:
+                  value:
+                    - alvo_tipo: profissional
+                      alvo_id: 7c1d2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d
+                      nome: Carlos Mendes
+                      criado_em: '2026-11-03T14:20:00Z'
+                    - alvo_tipo: estabelecimento
+                      alvo_id: 0b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d
+                      nome: Bar do Zé
+                      criado_em: '2026-10-28T22:05:00Z'
+                lista_vazia:
+                  value: []
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/ContaSuspensa'
+
+  /rpc/desbloquear:
+    post:
+      tags: [Confiança e direitos]
+      operationId: desbloquear
+      summary: Desfazer um bloqueio
+      description: |
+        Desfaz o bloqueio que o chamador criou contra a outra parte (decisão A8 da PO, RF26). A volta
+        é imediata e automática, como o bloqueio: as partes voltam a poder se cruzar em notificação,
+        lista e candidatura. Quando o chamador é membro de estabelecimento, desfaz o bloqueio para a
+        casa inteira, do mesmo jeito que `/rpc/bloquear` vale para as vagas do estabelecimento inteiro.
+
+        Idempotente: desbloquear quem já não está bloqueado devolve `200`, e não `404`.
+
+        Recusas: campo obrigatório ausente (`campo_obrigatorio`, com o nome do campo em `details`:
+        `alvo_tipo` ou `alvo_id`); valor recusado pela regra (`campo_invalido`, com o campo em
+        `details`: `alvo_tipo` fora do enum ou `alvo_id` não UUID). `404 nao_encontrado` quando o alvo
+        não existe ou não é visível para quem pede.
+      x-requisitos: [RF26, RN10, UC17]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alvo_tipo, alvo_id]
+              properties:
+                alvo_tipo:
+                  $ref: '#/components/schemas/TipoDeAlvo'
+                alvo_id:
+                  description: O `id` do `PerfilPublico` da outra parte, como veio em `/rpc/listar_bloqueios`.
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: |
+            Bloqueio desfeito. Devolve o par recebido e o `criado_em` do bloqueio que deixou de valer.
+            Se já não havia bloqueio, a chamada repetida devolve o mesmo par com o instante da chamada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bloqueio'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/ContaSuspensa'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
   /rpc/situacao_da_conta:
     get:
       tags: [Confiança e direitos]
@@ -3256,6 +3443,156 @@ paths:
                 $ref: '#/components/schemas/Protocolo'
         '401':
           $ref: '#/components/responses/NaoAutenticado'
+        '409':
+          $ref: '#/components/responses/Conflito'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/minha_identidade_status:
+    get:
+      tags: [Confiança e direitos]
+      operationId: minhaIdentidadeStatus
+      summary: Estado da verificação de identidade do profissional autenticado
+      description: |
+        Devolve o estado da verificação de identidade (RN14) do profissional que chama: se há
+        exigência aberta, com que motivo, até quando, e se o selo está ativo. É leitura e não tem
+        efeito colateral; por isso é `GET`, como as demais leituras por função do contrato.
+
+        Só olha para a conta de quem chama. Conta que não é de profissional recebe
+        `403 sem_permissao` (RF21). Conta encerrada ou anonimizada recebe `401 nao_autenticado`
+        (RF25).
+
+        Toda conta tem uma resposta: `nao_exigida` é o estado inicial, com `motivo` e
+        `prazo_envio_ate` nulos.
+      x-requisitos: [RN13, RN14, RN15]
+      responses:
+        '200':
+          description: Estado atual da verificação.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusVerificacao'
+              examples:
+                nao_exigida:
+                  summary: Estado inicial, sem exigência
+                  value:
+                    status_verificacao: nao_exigida
+                    motivo: null
+                    prazo_envio_ate: null
+                    identidade_verificada: false
+                pendente:
+                  summary: Exigência aberta pela moderação
+                  value:
+                    status_verificacao: pendente
+                    motivo: Apuração de denúncia grave
+                    prazo_envio_ate: '2026-11-18T23:59:59Z'
+                    identidade_verificada: false
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+
+  /rpc/solicitar_upload_verificacao:
+    post:
+      tags: [Confiança e direitos]
+      operationId: solicitarUploadVerificacao
+      summary: Pedir as URLs assinadas para enviar as evidências da verificação
+      description: |
+        Começa o envio das evidências da verificação de identidade (RN14), voluntário (selo) ou em
+        atendimento a uma exigência formal. Devolve uma URL assinada de upload por parte do
+        documento, para o bucket privado `documentos-identidade`, **válidas por 2 horas**
+        (`expira_em`). Passado esse prazo, o cliente pede de novo.
+
+        O bucket é privado e o app só escreve: leitura é exclusiva da moderação. O aplicativo nunca
+        fala direto com o fornecedor de verificação; se houver um, a integração passa por uma
+        função interna do servidor.
+
+        Só o profissional que chama pode pedir, para a própria conta (`403 sem_permissao` para
+        qualquer outro perfil, RF21). Aceita `nao_exigida`, `pendente` e `rejeitada` (novo envio).
+        Com a análise em curso ou a verificação já aprovada, `409 verificacao_indisponivel`, com
+        `details` `em_analise` ou `aprovada`. Pedir de novo antes de confirmar o envio é permitido e
+        devolve URLs novas.
+
+        Nenhum dado de verificação entra em log, fixture ou captura de tela (RN15).
+      x-requisitos: [RN13, RN14, RN15]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documento_tipo]
+              properties:
+                documento_tipo:
+                  type: string
+                  enum: [rg, cnh]
+                  description: Tipo do documento que será enviado.
+      responses:
+        '200':
+          description: URLs assinadas emitidas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadVerificacao'
+              examples:
+                rg:
+                  value:
+                    expira_em: '2026-11-05T14:00:00Z'
+                    partes:
+                      - parte: frente
+                        url: https://frila.supabase.co/storage/v1/object/upload/sign/documentos-identidade/exemplo-frente?token=exemplo
+                      - parte: verso
+                        url: https://frila.supabase.co/storage/v1/object/upload/sign/documentos-identidade/exemplo-verso?token=exemplo
+                      - parte: selfie
+                        url: https://frila.supabase.co/storage/v1/object/upload/sign/documentos-identidade/exemplo-selfie?token=exemplo
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '409':
+          $ref: '#/components/responses/Conflito'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/confirmar_envio_verificacao:
+    post:
+      tags: [Confiança e direitos]
+      operationId: confirmarEnvioVerificacao
+      summary: Avisar que as evidências subiram e a análise pode começar
+      description: |
+        Confirma que o upload das evidências terminou (RN14) e move a verificação para
+        `em_analise`. A partir daí a análise é da moderação humana; não há decisão automática
+        sobre a conta (RN13).
+
+        O servidor confere que todas as partes pedidas em `solicitar_upload_verificacao` chegaram
+        ao bucket. Se alguma faltar, `422 evidencia_incompleta`, com `details` dizendo a parte
+        (`frente`, `verso` ou `selfie`). Sem ter pedido o upload antes, `409
+        verificacao_indisponivel` com `details: sem_envio_solicitado`; com a verificação já
+        `aprovada`, o mesmo código com `details: aprovada`.
+
+        Idempotente: confirmar de novo com a verificação já em `em_analise` devolve o mesmo
+        estado, sem reabrir a análise.
+
+        Só o profissional que chama, para a própria conta (`403 sem_permissao`, RF21).
+      x-requisitos: [RN13, RN14, RN15]
+      responses:
+        '200':
+          description: Envio confirmado; a verificação está em análise.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusVerificacao'
+              examples:
+                em_analise:
+                  value:
+                    status_verificacao: em_analise
+                    motivo: Apuração de denúncia grave
+                    prazo_envio_ate: '2026-11-18T23:59:59Z'
+                    identidade_verificada: false
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
         '409':
           $ref: '#/components/responses/Conflito'
         '422':
@@ -3769,6 +4106,12 @@ components:
                 message: checkin_pendente
                 details: null
                 hint: null
+            verificacao_indisponivel:
+              value:
+                code: verificacao_indisponivel
+                message: verificacao_indisponivel
+                details: em_analise
+                hint: null
     RegraRecusou:
       description: Uma regra de negócio recusou a operação.
       content:
@@ -3776,6 +4119,12 @@ components:
           schema:
             $ref: '#/components/schemas/Erro'
           examples:
+            evidencia_incompleta:
+              value:
+                code: evidencia_incompleta
+                message: evidencia_incompleta
+                details: verso
+                hint: null
             inelegivel:
               value:
                 code: inelegivel
@@ -4582,7 +4931,7 @@ components:
           $ref: '#/components/schemas/Instante'
     ResultadoCandidatura:
       type: object
-      required: [estado, candidatura_id, posicao_id, turno_id, contato]
+      required: [estado, candidatura_id, posicao_id, turno_id]
       properties:
         estado:
           type: string
@@ -4599,12 +4948,19 @@ components:
             - $ref: '#/components/schemas/Uuid'
             - type: 'null'
         contato:
+          deprecated: true
+          description: |
+            Descontinuado na 0.2.49 (decisão de produto de 04/11/2026: o contato não é trocado
+            pelo app). **Opcional e nulável:** o servidor atual ainda o preenche na confirmação em
+            modo urgência; o servidor que parar de entregá-lo omite o campo ou manda `null`. O
+            cliente trata ausente e nulo do mesmo jeito: não há contato a mostrar. Nulo já era o
+            valor no modo seleção, antes da escolha.
           oneOf:
             - $ref: '#/components/schemas/Contato'
             - type: 'null'
     ResultadoConfirmacao:
       type: object
-      required: [estado, posicao_id, turno_id, contato]
+      required: [estado, posicao_id, turno_id]
       properties:
         estado:
           type: string
@@ -4614,7 +4970,15 @@ components:
         turno_id:
           $ref: '#/components/schemas/Uuid'
         contato:
-          $ref: '#/components/schemas/Contato'
+          deprecated: true
+          description: |
+            Descontinuado na 0.2.49 (decisão de produto de 04/11/2026: o contato não é trocado
+            pelo app). **Opcional e nulável:** o servidor atual ainda o preenche; o servidor que
+            parar de entregá-lo omite o campo ou manda `null`. O cliente trata ausente e nulo do
+            mesmo jeito: não há contato a mostrar.
+          oneOf:
+            - $ref: '#/components/schemas/Contato'
+            - type: 'null'
     Candidatura:
       type: object
       required: [id, vaga, estado, criada_em]
@@ -4703,7 +5067,7 @@ components:
           $ref: '#/components/schemas/Instante'
     Turno:
       type: object
-      required: [id, posicao_id, vaga, contraparte, contato_visivel_ate, a_caminho_em, checkin_em, checkin_tipo, checkin_distancia_m, checkin_confirmado_em, checkout_em, checkout_distancia_m, verificacao, valor_acordado_centavos, pode_avaliar]
+      required: [id, posicao_id, vaga, contraparte, a_caminho_em, checkin_em, checkin_tipo, checkin_distancia_m, checkin_confirmado_em, checkout_em, checkout_distancia_m, verificacao, valor_acordado_centavos, pode_avaliar]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -4714,13 +5078,16 @@ components:
         contraparte:
           $ref: '#/components/schemas/PerfilPublico'
         contato_visivel_ate:
+          deprecated: true
           description: |
-            Fim previsto do turno mais 7 dias (RN10). Depois disso `contato_do_turno` responde
-            `403 contato_expirado`, e a tela precisa saber disso **antes** de oferecer o botão —
-            senão o profissional toca em "falar com o contratante" e recebe um erro que ele não
-            tem como prever. É o mesmo instante que `Contato.visivel_ate` carrega; aparece aqui
-            para que a tela do turno não precise pedir o contato só para descobrir se pode.
-          $ref: '#/components/schemas/Instante'
+            Descontinuado na 0.2.49 (decisão de produto de 04/11/2026: o contato não é trocado
+            pelo app, e o prazo de 7 dias da RN10 perde o sentido). **Opcional e nulável:** o
+            servidor atual ainda manda o fim previsto do turno mais 7 dias; o servidor que parar de
+            entregar o contato omite o campo ou manda `null`. O cliente trata ausente e nulo do
+            mesmo jeito: não há prazo a mostrar nem botão de contato a oferecer.
+          oneOf:
+            - $ref: '#/components/schemas/Instante'
+            - type: 'null'
         a_caminho_em:
           oneOf:
             - $ref: '#/components/schemas/Instante'
@@ -5009,11 +5376,76 @@ components:
 
     # ── Confiança e direitos
 
+    StatusVerificacao:
+      type: object
+      required: [status_verificacao, motivo, prazo_envio_ate, identidade_verificada]
+      description: |
+        Estado da verificação de identidade da conta (RN14). O cliente vê estado e motivo, nunca
+        evidência: o contrato não expõe `documento_hmac`, caminho de arquivo no Storage nem score
+        biométrico.
+      properties:
+        status_verificacao:
+          type: string
+          enum: [nao_exigida, pendente, em_analise, aprovada, rejeitada]
+          description: |
+            `nao_exigida` é o estado inicial de toda conta; nenhuma conta nasce `pendente`.
+            `pendente` é exigência formal aberta pela moderação em apuração de denúncia grave
+            (RN13). `em_analise` vale depois de `confirmar_envio_verificacao`. `aprovada` e
+            `rejeitada` são o desfecho. Nenhum dos cinco estados é "suspensa": suspensão de conta
+            é assunto da RN13 e continua em `situacao_da_conta`.
+        motivo:
+          description: |
+            Motivo da exigência, quando houver. Nulo em `nao_exigida`. O cliente mostra o motivo,
+            mas não decide nada a partir dele.
+          oneOf:
+            - type: string
+            - type: 'null'
+        prazo_envio_ate:
+          description: |
+            Até quando o envio das evidências é esperado. **Informativo:** o cliente não decide
+            nada a partir dele, porque vencer o prazo não tem consequência automática. Nulo
+            quando não há exigência aberta.
+          oneOf:
+            - $ref: '#/components/schemas/Instante'
+            - type: 'null'
+        identidade_verificada:
+          type: boolean
+          description: Verdadeiro quando o selo "Identidade Verificada" está ativo para esta conta.
+          example: false
+    UploadVerificacao:
+      type: object
+      required: [expira_em, partes]
+      description: |
+        URLs assinadas de **upload** para as evidências da verificação de identidade (RN14), no
+        bucket privado `documentos-identidade`. Cada URL é opaca para o cliente: o contrato não
+        expõe o caminho do arquivo no Storage.
+      properties:
+        expira_em:
+          description: Instante em que as URLs deixam de valer, duas horas depois de emitidas.
+          $ref: '#/components/schemas/Instante'
+        partes:
+          type: array
+          description: |
+            Uma URL por parte a enviar: `frente`, `verso` e `selfie`. O cliente envia a imagem
+            na URL da parte, até 5 MB por arquivo. A escrita só é aceita dentro da URL assinada,
+            no caminho da própria conta.
+          items:
+            type: object
+            required: [parte, url]
+            properties:
+              parte:
+                type: string
+                enum: [frente, verso, selfie]
+              url:
+                type: string
+                format: uri
     Protocolo:
       type: object
       required: [ocorrencia_id, tipo, criada_em, prazo_resposta_ate]
       description: |
-        Registro de algo que a Equipe Frila responde por e-mail em até 5 dias úteis.
+        Registro de algo que a Equipe Frila responde por e-mail em até 5 dias úteis. Não traz o
+        desfecho nem a data da resposta: quem recebe um `Protocolo` não sabe por ele se o caso já foi
+        respondido (0.2.48).
 
         O **protocolo curto** é o que a pessoa vê e cita: os 8 primeiros caracteres hexadecimais de
         `ocorrencia_id`, sem hifens, em maiúsculas (`6f1c2a4e-…` vira `6F1C2A4E`). O app o calcula
@@ -5041,6 +5473,24 @@ components:
           $ref: '#/components/schemas/TipoDeAlvo'
         alvo_id:
           $ref: '#/components/schemas/Uuid'
+        criado_em:
+          $ref: '#/components/schemas/Instante'
+    ItemBloqueio:
+      type: object
+      required: [alvo_tipo, alvo_id, nome, criado_em]
+      description: |
+        Um bloqueio criado pelo chamador, como `/rpc/listar_bloqueios` o mostra. O par
+        `alvo_tipo` + `alvo_id` é o mesmo que `/rpc/bloquear` e `/rpc/desbloquear` recebem. Não traz o
+        id de conta da outra parte (RN10).
+      properties:
+        alvo_tipo:
+          $ref: '#/components/schemas/TipoDeAlvo'
+        alvo_id:
+          description: O `id` do `PerfilPublico` da outra parte.
+          $ref: '#/components/schemas/Uuid'
+        nome:
+          type: string
+          description: Nome público da outra parte, o mesmo de `PerfilPublico.nome`.
         criado_em:
           $ref: '#/components/schemas/Instante'
     SituacaoDaConta:

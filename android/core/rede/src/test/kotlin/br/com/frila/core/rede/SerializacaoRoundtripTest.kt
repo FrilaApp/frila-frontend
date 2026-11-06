@@ -250,4 +250,89 @@ class SerializacaoRoundtripTest {
         assertEquals("vaga-legada", decodedLegado.id)
         assertNull(decodedLegado.ponto)
     }
+
+    // Payloads copiados dos exemplos do contrato 0.2.51 (`iOS/Contrato/openapi.yaml`), e não
+    // montados à mão no formato que o DTO espera.
+
+    @Test
+    fun `listar_bloqueios decodifica o exemplo do contrato e o roundtrip preserva os nomes`() {
+        val exemplo = """
+            [
+              {"alvo_tipo": "profissional", "alvo_id": "7c1d2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+               "nome": "Carlos Mendes", "criado_em": "2026-11-03T14:20:00Z"},
+              {"alvo_tipo": "estabelecimento", "alvo_id": "0b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+               "nome": "Bar do Zé", "criado_em": "2026-10-28T22:05:00Z"}
+            ]
+        """.trimIndent()
+
+        val itens = json.decodeFromString<List<ItemBloqueioDto>>(exemplo)
+        assertEquals(2, itens.size)
+        assertEquals("estabelecimento", itens[1].alvoTipo)
+        assertEquals("Bar do Zé", itens[1].nome)
+        assertEquals(itens, json.decodeFromString<List<ItemBloqueioDto>>(json.encodeToString(itens)))
+        assertEquals("[]", json.encodeToString(emptyList<ItemBloqueioDto>()))
+    }
+
+    @Test
+    fun `desbloquear serializa o par com os nomes do contrato`() {
+        val corpo = json.encodeToString(
+            DesbloquearDto(alvoTipo = "profissional", alvoId = "7c1d2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d"),
+        )
+        assertEquals(
+            """{"alvo_tipo":"profissional","alvo_id":"7c1d2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d"}""",
+            corpo,
+        )
+
+        val resposta = json.decodeFromString<BloqueioDto>(
+            """{"alvo_tipo":"profissional","alvo_id":"7c1d2b3a","criado_em":"2026-11-05T12:00:00Z"}""",
+        )
+        assertEquals("2026-11-05T12:00:00Z", resposta.criadoEm)
+    }
+
+    @Test
+    fun `minha_identidade_status decodifica nao_exigida com nulos e pendente com prazo`() {
+        val naoExigida = json.decodeFromString<StatusVerificacaoDto>(
+            """{"status_verificacao":"nao_exigida","motivo":null,"prazo_envio_ate":null,"identidade_verificada":false}""",
+        )
+        assertEquals("nao_exigida", naoExigida.statusVerificacao)
+        assertNull(naoExigida.motivo)
+        assertNull(naoExigida.prazoEnvioAte)
+
+        val pendente = json.decodeFromString<StatusVerificacaoDto>(
+            """
+            {"status_verificacao":"pendente","motivo":"Apuração de denúncia grave",
+             "prazo_envio_ate":"2026-11-18T23:59:59Z","identidade_verificada":false}
+            """.trimIndent(),
+        )
+        assertEquals("pendente", pendente.statusVerificacao)
+        assertEquals("2026-11-18T23:59:59Z", pendente.prazoEnvioAte)
+        assertEquals(pendente, json.decodeFromString<StatusVerificacaoDto>(json.encodeToString(pendente)))
+
+        // Servidor que omite os campos nuláveis em vez de mandar null.
+        val omitidos = json.decodeFromString<StatusVerificacaoDto>(
+            """{"status_verificacao":"nao_exigida","identidade_verificada":false}""",
+        )
+        assertNull(omitidos.motivo)
+    }
+
+    @Test
+    fun `solicitar_upload_verificacao decodifica as partes e serializa o corpo`() {
+        val exemplo = """
+            {"expira_em":"2026-11-05T14:00:00Z","partes":[
+              {"parte":"frente","url":"https://frila.supabase.co/storage/v1/object/upload/sign/documentos-identidade/exemplo-frente?token=exemplo"},
+              {"parte":"verso","url":"https://frila.supabase.co/storage/v1/object/upload/sign/documentos-identidade/exemplo-verso?token=exemplo"},
+              {"parte":"selfie","url":"https://frila.supabase.co/storage/v1/object/upload/sign/documentos-identidade/exemplo-selfie?token=exemplo"}
+            ]}
+        """.trimIndent()
+
+        val upload = json.decodeFromString<UploadVerificacaoDto>(exemplo)
+        assertEquals("2026-11-05T14:00:00Z", upload.expiraEm)
+        assertEquals(listOf("frente", "verso", "selfie"), upload.partes.map { it.parte })
+        assertEquals(upload, json.decodeFromString<UploadVerificacaoDto>(json.encodeToString(upload)))
+
+        assertEquals(
+            """{"documento_tipo":"rg"}""",
+            json.encodeToString(SolicitarUploadVerificacaoDto(documentoTipo = "rg")),
+        )
+    }
 }
