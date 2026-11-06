@@ -89,6 +89,8 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     }
     func denunciar(_ denuncia: Denuncia) async throws -> Protocolo { try await base.denunciar(denuncia) }
     func bloquear(_ alvo: Alvo) async throws -> Bloqueio { try await base.bloquear(alvo) }
+    func bloqueios() async throws -> [ItemBloqueio] { try await base.bloqueios() }
+    func desbloquear(_ alvo: Alvo) async throws -> Bloqueio { try await base.desbloquear(alvo) }
     func situacaoDaConta() async throws -> SituacaoDaConta { try await base.situacaoDaConta() }
     func contestarSuspensao(relato: String) async throws -> Protocolo { try await base.contestarSuspensao(relato: relato) }
     func exportarMeusDados() async throws -> Data { try await base.exportarMeusDados() }

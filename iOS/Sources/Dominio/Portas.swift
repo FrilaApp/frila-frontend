@@ -360,6 +360,14 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// do outro perfil (profissional bloqueia estabelecimento, e contratante, profissional); alvo do
     /// mesmo perfil é `campoInvalido`, com `alvo_tipo` no detalhe.
     func bloquear(_ alvo: Alvo) async throws -> Bloqueio
+    /// Lista os bloqueios ativos criados pelo chamador (decisão A8 da PO, RF26, RN10).
+    /// Devolve do mais recente para o mais antigo, sem expor o id de conta da outra parte.
+    /// Lista vazia quando não houver bloqueios ativos.
+    func bloqueios() async throws -> [ItemBloqueio]
+    /// Desfaz o bloqueio criado contra a outra parte (decisão A8 da PO, RF26).
+    /// Idempotente: desbloquear quem já não está bloqueado devolve o bloqueio desfeito com 200.
+    /// Para contratante, desfaz o bloqueio para todo o estabelecimento.
+    func desbloquear(_ alvo: Alvo) async throws -> Bloqueio
     func situacaoDaConta() async throws -> SituacaoDaConta
     /// Relato de pelo menos 10 caracteres. Sem suspensão em vigor é `semSuspensaoAtiva`. Se já
     /// houve contestação desta suspensão, em análise ou resolvida, é `contestacaoJaAberta`: a tela

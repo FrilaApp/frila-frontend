@@ -11673,6 +11673,138 @@
           }
         }
       }
+    },
+    "Ao desbloquear %@, vocês voltam a se cruzar em notificações, listas e candidaturas." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ao desbloquear %@, vocês voltam a se cruzar em notificações, listas e candidaturas."
+          }
+        }
+      }
+    },
+    "Desbloquear" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear"
+          }
+        }
+      }
+    },
+    "Desbloquear este perfil?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear este perfil?"
+          }
+        }
+      }
+    },
+    "Não foi possível carregar os bloqueios. Tente novamente." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os bloqueios. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível desfazer o bloqueio. Tente novamente." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível desfazer o bloqueio. Tente novamente."
+          }
+        }
+      }
+    },
+    "Nenhum bloqueio ativo" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum bloqueio ativo"
+          }
+        }
+      }
+    },
+    "Pessoas e estabelecimentos que você bloqueou. Ao desbloquear, vocês voltam a se cruzar em vagas, notificações e candidaturas." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pessoas e estabelecimentos que você bloqueou. Ao desbloquear, vocês voltam a se cruzar em vagas, notificações e candidaturas."
+          }
+        }
+      }
+    },
+    "Pessoas e locais bloqueados" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pessoas e locais bloqueados"
+          }
+        }
+      }
+    },
+    "Quando você bloquear uma pessoa ou um estabelecimento, eles aparecerão aqui." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando você bloquear uma pessoa ou um estabelecimento, eles aparecerão aqui."
+          }
+        }
+      }
+    },
+    "Sem conexão. Mostrando os bloqueios salvos neste aparelho." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conexão. Mostrando os bloqueios salvos neste aparelho."
+          }
+        }
+      }
+    },
+    "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser no seu perfil." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser no seu perfil."
+          }
+        }
+      }
+    },
+    "Vocês voltam a se cruzar em notificações, listas e candidaturas." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocês voltam a se cruzar em notificações, listas e candidaturas."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

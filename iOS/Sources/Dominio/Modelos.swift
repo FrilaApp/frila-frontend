@@ -992,6 +992,21 @@ public struct Bloqueio: Codable, Hashable, Sendable {
     }
 }
 
+/// Item de bloqueio retornado por `listar_bloqueios` (decisão A8 da PO, RF26, RN10).
+/// Traz o par `alvo_tipo` + `alvo_id`, o nome público e a data de criação.
+public struct ItemBloqueio: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID { alvo.id }
+    public let alvo: Alvo
+    public let nome: String
+    public let criadoEm: Date
+
+    public init(alvo: Alvo, nome: String, criadoEm: Date) {
+        self.alvo = alvo
+        self.nome = nome
+        self.criadoEm = criadoEm
+    }
+}
+
 public struct Suspensao: Codable, Hashable, Sendable {
     public let motivo: String
     public let desde: Date

@@ -1190,6 +1190,21 @@ enum ContratoAPI {
         }
     }
 
+    struct Desbloquear: Encodable {
+        let alvoTipo: TipoPerfilPublico
+        let alvoID: UUID
+
+        init(_ alvo: Alvo) {
+            alvoTipo = alvo.tipo
+            alvoID = alvo.id
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case alvoTipo = "alvo_tipo"
+            case alvoID = "alvo_id"
+        }
+    }
+
     struct ContestarSuspensao: Encodable {
         let relato: String
     }
@@ -1285,6 +1300,24 @@ enum ContratoAPI {
 
         func dominio() -> Bloqueio {
             Bloqueio(alvo: Alvo(tipo: alvoTipo, id: alvoID), criadoEm: criadoEm)
+        }
+    }
+
+    struct ItemBloqueioDTO: Decodable {
+        let alvoTipo: TipoPerfilPublico
+        let alvoID: UUID
+        let nome: String
+        let criadoEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case alvoTipo = "alvo_tipo"
+            case alvoID = "alvo_id"
+            case nome
+            case criadoEm = "criado_em"
+        }
+
+        func dominio() -> ItemBloqueio {
+            ItemBloqueio(alvo: Alvo(tipo: alvoTipo, id: alvoID), nome: nome, criadoEm: criadoEm)
         }
     }
 

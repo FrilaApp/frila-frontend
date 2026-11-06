@@ -1830,6 +1830,32 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return bloqueio
     }
 
+    /// Segue `listar_bloqueios` do backend (`20261105150000_listar_bloqueios_e_desbloquear.sql`):
+    /// devolve os bloqueios que o chamador criou, ordenados do mais recente para o mais antigo,
+    /// com o nome de exibição público e sem expor id de conta (RN10). Lista vazia quando não há bloqueios.
+    public func bloqueios() async throws -> [ItemBloqueio] {
+        try verificarFalhaGeral()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        return bloqueios.values
+            .sorted { $0.criadoEm > $1.criadoEm }
+            .map { ItemBloqueio(alvo: $0.alvo, nome: nomeDoAlvo($0.alvo), criadoEm: $0.criadoEm) }
+    }
+
+    /// Segue `desbloquear` do backend (`20261105150000_listar_bloqueios_e_desbloquear.sql`):
+    /// desfaz o bloqueio imediatamente nos dois sentidos e para a casa inteira (RF26).
+    /// Idempotente: desbloquear quem já não está bloqueado devolve 200 com a data atual.
+    public func desbloquear(_ alvo: Alvo) async throws -> Bloqueio {
+        try verificarFalhaGeral()
+        guard conta != nil else { throw erro("nao_autenticado") }
+        guard let perfil = conta?.perfil, (perfil == .profissional) == (alvo.tipo == .estabelecimento) else {
+            throw erro("campo_invalido", detalhes: "alvo_tipo")
+        }
+        guard existe(alvo) else { throw erro("nao_encontrado") }
+        let removido = bloqueios.removeValue(forKey: alvo)
+        let agora = relogio.agora
+        return Bloqueio(alvo: alvo, criadoEm: removido?.criadoEm ?? agora)
+    }
+
     /// Segue `situacao_da_conta` do backend (`20261001100000_suspensao_da_conta.sql`): responde
     /// também para a conta suspensa, que as outras operações recusam; sem conta é `401`.
     public func situacaoDaConta() async throws -> SituacaoDaConta {
@@ -2269,6 +2295,21 @@ public actor ApiClienteEmMemoria: ApiCliente {
         switch alvo.tipo {
         case .profissional: alvo.id == perfilPublicoDeExemplo.id || candidaturas.contains { $0.profissional.id == alvo.id }
         case .estabelecimento: estabelecimentos.contains { $0.id == alvo.id } || vagas.contains { $0.estabelecimento.id == alvo.id }
+        }
+    }
+
+    private func nomeDoAlvo(_ alvo: Alvo) -> String {
+        switch alvo.tipo {
+        case .profissional:
+            if alvo.id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo.nome }
+            if let c = candidaturas.first(where: { $0.profissional.id == alvo.id }) { return c.profissional.nome }
+            if let t = turnos.first(where: { $0.contraparte.id == alvo.id }) { return t.contraparte.nome }
+            return "Profissional"
+        case .estabelecimento:
+            if let e = estabelecimentos.first(where: { $0.id == alvo.id }) { return e.nome }
+            if let v = vagas.first(where: { $0.estabelecimento.id == alvo.id }) { return v.estabelecimento.nome }
+            if let t = turnos.first(where: { $0.contraparte.id == alvo.id }) { return t.contraparte.nome }
+            return "Estabelecimento"
         }
     }
 
