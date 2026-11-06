@@ -45,14 +45,21 @@ class RegraSeloConfiancaTest {
     }
 
     @Test
-    fun `confirmar envio vale so nos estados que aceitam envio`() {
+    fun `confirmar envio vale nos estados que aceitam envio e em analise`() {
+        val aceitos = statusQueAceitamEnvio + StatusVerificacaoIdentidade.EM_ANALISE
         StatusVerificacaoIdentidade.entries.forEach { status ->
             assertEquals(
-                status in statusQueAceitamEnvio,
+                status in aceitos,
                 RegraSeloConfianca.podeConfirmarEnvio(status),
                 "status=$status",
             )
         }
+    }
+
+    @Test
+    fun `confirmar envio e idempotente em analise e recusado apenas quando aprovada`() {
+        assertTrue(RegraSeloConfianca.podeConfirmarEnvio(StatusVerificacaoIdentidade.EM_ANALISE))
+        assertFalse(RegraSeloConfianca.podeConfirmarEnvio(StatusVerificacaoIdentidade.APROVADA))
     }
 
     @Test

@@ -49,13 +49,14 @@ class ServicoVerificacaoIdentidade(private val provedorDeCliente: () -> ClienteS
     }
 
     /**
-     * `PUT` direto na URL assinada do Storage (opaca para o cliente, até 5 MB por arquivo). A
+     * `PUT` direto na URL assinada do Storage (opaca para o cliente, até 5 MB por arquivo), por um
+     * cliente sem `apikey` nem `Authorization`: o token da URL é a única credencial. A
      * resposta do Storage não usa o envelope PostgREST: qualquer não-2xx vira [ErroDaApi] só com o
      * status, nunca com o corpo, que pode citar o caminho do arquivo (RN15). URL vencida: pedir de
      * novo com [solicitarUploadVerificacao]. Sem retry automático (PUT não é idempotente para o cliente).
      */
     suspend fun enviarEvidencia(urlUploadAssinada: String, bytes: ByteArray, mimeType: String = "image/jpeg") {
-        val resposta = cliente.http.put(urlUploadAssinada) {
+        val resposta = cliente.httpSemCredenciais.put(urlUploadAssinada) {
             contentType(ContentType.parse(mimeType))
             setBody(bytes)
         }

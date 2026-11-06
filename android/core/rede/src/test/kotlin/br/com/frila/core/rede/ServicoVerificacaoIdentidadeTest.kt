@@ -153,6 +153,51 @@ class ServicoVerificacaoIdentidadeTest {
     }
 
     @Test
+    fun `enviarEvidencia nao envia Authorization nem apikey ao Storage`() = runTest {
+        var cabecalhos: Map<String, List<String>>? = null
+        val engine = MockEngine { request ->
+            cabecalhos = request.headers.entries().associate { it.key.lowercase() to it.value }
+            respond(content = "{}", status = HttpStatusCode.OK, headers = json)
+        }
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            provedorDeToken = ProvedorDeToken { "token-do-usuario" },
+            engine = engine,
+        )
+
+        ServicoVerificacaoIdentidade(cliente)
+            .enviarEvidencia("https://frila.supabase.co/storage/v1/object/upload/sign/b/frente?token=t1", byteArrayOf(1))
+
+        assertFalse(cabecalhos!!.containsKey("authorization"), "Authorization vazou no PUT")
+        assertFalse(cabecalhos!!.containsKey("apikey"), "apikey vazou no PUT")
+    }
+
+    @Test
+    fun `RPCs seguem enviando Authorization e apikey`() = runTest {
+        var cabecalhos: Map<String, List<String>>? = null
+        val engine = MockEngine { request ->
+            cabecalhos = request.headers.entries().associate { it.key.lowercase() to it.value }
+            respond(
+                content = """{"status_verificacao":"nao_exigida","motivo":null,"prazo_envio_ate":null,"identidade_verificada":false}""",
+                status = HttpStatusCode.OK,
+                headers = json,
+            )
+        }
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            provedorDeToken = ProvedorDeToken { "token-do-usuario" },
+            engine = engine,
+        )
+
+        ServicoVerificacaoIdentidade(cliente).obterMinhaIdentidadeStatus()
+
+        assertEquals(listOf("chave-teste"), cabecalhos!!["apikey"])
+        assertEquals(listOf("Bearer token-do-usuario"), cabecalhos!!["authorization"])
+    }
+
+    @Test
     fun `enviarEvidencia respeita o mime type informado`() = runTest {
         var tipoConteudo: String? = null
         val engine = MockEngine { request ->

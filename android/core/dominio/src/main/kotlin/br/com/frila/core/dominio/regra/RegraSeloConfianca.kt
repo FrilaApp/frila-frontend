@@ -21,13 +21,16 @@ object RegraSeloConfianca {
     fun podeSolicitarVerificacao(status: StatusVerificacaoIdentidade, idade: Int): Boolean =
         idade >= ValidadorMaioridade.IDADE_MINIMA_ANOS && status in STATUS_QUE_ACEITAM_ENVIO
 
+    /** Estados em que `confirmar_envio_verificacao` é aceito: os do envio, mais `em_analise` (idempotente). */
+    private val STATUS_QUE_ACEITAM_CONFIRMACAO = STATUS_QUE_ACEITAM_ENVIO + StatusVerificacaoIdentidade.EM_ANALISE
+
     /**
-     * Confirmar o envio só faz sentido em estado que aceita envio. Com a análise em curso ou a
-     * verificação aprovada o servidor devolve `409 verificacao_indisponivel`. Quem chama garante
-     * que as URLs de upload já foram pedidas e usadas nesta sessão.
+     * Confirmar de novo com a análise em curso devolve o mesmo estado, sem reabrir a análise
+     * (contrato 0.2.50). Com a verificação aprovada o servidor devolve `409 verificacao_indisponivel`.
+     * Quem chama garante que as URLs de upload já foram pedidas e usadas nesta sessão.
      */
     fun podeConfirmarEnvio(status: StatusVerificacaoIdentidade): Boolean =
-        status in STATUS_QUE_ACEITAM_ENVIO
+        status in STATUS_QUE_ACEITAM_CONFIRMACAO
 
     /** Sem registro, recusado ou sem versão do termo: a coleta de biometria não pode começar. */
     fun precisaConsentimentoLgpd(consentimento: ConsentimentoBiometriaLGPD?): Boolean =
