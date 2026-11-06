@@ -11,6 +11,8 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -708,5 +710,78 @@ class TelaPerfilTest {
 
             assertTrue(ajudaClicada)
         }
+    }
+
+    private fun mostrarPerfilComSelo(
+        status: br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade?,
+        podeSolicitar: Boolean = false,
+        aoAbrirSelo: () -> Unit = {},
+    ) {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificacaoIdentidade = status?.let {
+                            br.com.frila.core.dominio.modelo.VerificacaoIdentidade(
+                                status = it,
+                                identidadeVerificada = it == br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.APROVADA,
+                            )
+                        },
+                        podeSolicitarSelo = podeSolicitar,
+                        aoAbrirSelo = aoAbrirSelo,
+                    )
+                }
+            }
+            rule.waitForIdle()
+        }
+    }
+
+    @Test
+    fun seloAprovadoMostraBadgeDiscretoESemConvite() {
+        mostrarPerfilComSelo(br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.APROVADA)
+
+        rule.onNodeWithTag("selo-identidade-verificada").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Identidade Verificada").assertIsDisplayed()
+        rule.onAllNodesWithTag("selo-obter").assertCountEquals(0)
+    }
+
+    @Test
+    fun seloElegivelMostraConviteQueAbreOFluxo() {
+        var abriu = false
+        mostrarPerfilComSelo(
+            br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.NAO_EXIGIDA,
+            podeSolicitar = true,
+            aoAbrirSelo = { abriu = true },
+        )
+
+        rule.onNodeWithTag("selo-obter").performScrollTo().assertIsDisplayed()
+            .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+            .performClick()
+
+        assertTrue(abriu)
+        rule.onAllNodesWithTag("selo-identidade-verificada").assertCountEquals(0)
+    }
+
+    @Test
+    fun seloEmAnaliseMostraAvisoSemConviteNemBadge() {
+        mostrarPerfilComSelo(br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.EM_ANALISE)
+
+        rule.onNodeWithTag("selo-em-analise").performScrollTo().assertIsDisplayed()
+        rule.onAllNodesWithTag("selo-obter").assertCountEquals(0)
+        rule.onAllNodesWithTag("selo-identidade-verificada").assertCountEquals(0)
+    }
+
+    @Test
+    fun semEstadoDoSeloOPerfilNaoMostraNada() {
+        mostrarPerfilComSelo(status = null)
+
+        rule.onAllNodesWithTag("selo-obter").assertCountEquals(0)
+        rule.onAllNodesWithTag("selo-identidade-verificada").assertCountEquals(0)
+        rule.onAllNodesWithTag("selo-em-analise").assertCountEquals(0)
+        rule.onNodeWithText("Reputação").assertIsDisplayed()
     }
 }

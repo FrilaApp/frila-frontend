@@ -27,6 +27,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -87,6 +88,8 @@ import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import androidx.core.content.FileProvider
+import br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade
+import br.com.frila.core.dominio.modelo.VerificacaoIdentidade
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.ReputacaoDto
 import kotlin.math.roundToInt
@@ -105,6 +108,10 @@ fun TelaPerfil(
     modifier: Modifier = Modifier,
     aoDeslogar: () -> Unit = {},
     aoAbrirAjuda: () -> Unit = {},
+    /** Selo "Identidade Verificada" (RN14): estado já lido pelo chamador; nulo esconde o bloco. */
+    verificacaoIdentidade: VerificacaoIdentidade? = null,
+    podeSolicitarSelo: Boolean = false,
+    aoAbrirSelo: () -> Unit = {},
     /**
      * Injetáveis para teste (RN15) — sem sensor físico/emulador não há como simular o hardware
      * real, e o host do `createComposeRule()` não é um `FragmentActivity` (por isso o cast fica
@@ -253,6 +260,9 @@ fun TelaPerfil(
                 notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
                 paddingValues = paddingInterno,
                 aoAbrirAjuda = aoAbrirAjuda,
+                verificacaoIdentidade = verificacaoIdentidade,
+                podeSolicitarSelo = podeSolicitarSelo,
+                aoAbrirSelo = aoAbrirSelo,
             )
         }
 
@@ -305,6 +315,9 @@ private fun ConteudoDoPerfil(
     notificacoesDoSistemaAtivadas: Boolean,
     paddingValues: PaddingValues,
     aoAbrirAjuda: () -> Unit = {},
+    verificacaoIdentidade: VerificacaoIdentidade? = null,
+    podeSolicitarSelo: Boolean = false,
+    aoAbrirSelo: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -321,6 +334,7 @@ private fun ConteudoDoPerfil(
             aoSelecionarFoto = aoSelecionarFoto,
         )
         BlocoDeReputacao(reputacao)
+        BlocoDeSeloConfianca(verificacaoIdentidade, podeSolicitarSelo, aoAbrirSelo)
         BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
         BlocoDeBioProfissional(
             bio = bio,
@@ -580,6 +594,60 @@ private fun BlocoDeReputacao(reputacao: ReputacaoDto?) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Selo voluntário "Identidade Verificada" (RN14). Aprovada: selo discreto. Em análise: só o aviso.
+ * Elegível (nunca verificou, exigência aberta ou rejeitada): convite para obter o selo. Sem estado
+ * (ainda não lido ou falhou): nada, o perfil não depende dele.
+ */
+@Composable
+private fun BlocoDeSeloConfianca(
+    verificacao: VerificacaoIdentidade?,
+    podeSolicitar: Boolean,
+    aoAbrirSelo: () -> Unit,
+) {
+    if (verificacao == null) return
+    when {
+        verificacao.status == StatusVerificacaoIdentidade.APROVADA -> Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.testTag("selo-identidade-verificada"),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = FrilaEspacamento.compacto, vertical = FrilaEspacamento.pequeno),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+            ) {
+                Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text(text = "Identidade Verificada", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        verificacao.status == StatusVerificacaoIdentidade.EM_ANALISE -> Text(
+            text = "Verificação de identidade em análise",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("selo-em-analise"),
+        )
+        podeSolicitar -> CartaoVaga(modifier = Modifier.fillMaxWidth().testTag("selo-convite")) {
+            Text(
+                text = "Selo de confiança",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                text = "Verifique sua identidade, se quiser, e mostre o selo \"Identidade Verificada\" no seu perfil.",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = FrilaEspacamento.pequeno),
+            )
+            BotaoSecundario(
+                texto = "Obter selo de confiança",
+                aoClicar = aoAbrirSelo,
+                modifier = Modifier.fillMaxWidth().testTag("selo-obter"),
+            )
         }
     }
 }
