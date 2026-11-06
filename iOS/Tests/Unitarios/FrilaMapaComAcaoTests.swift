@@ -18,6 +18,7 @@ struct FrilaMapaComAcaoTests {
         }
         #expect(FrilaMapaComAcao.alturaPrevia == 102)
         #expect(FrilaMapaComAcao.alturaBotao == 30)
+        #expect(FrilaMapaComAcao.alvoMinimoToque == 44)
     }
 
     @Test("O botão abre o Apple Maps na coordenada da vaga, com nome e endereço como rótulo")

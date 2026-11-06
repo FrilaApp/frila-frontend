@@ -103,9 +103,7 @@ final class AcessibilidadeDoCatalogoUITests: XCTestCase {
                 if label.isEmpty && controle.placeholderValue?.isEmpty != false {
                     problemas.append("sem rótulo: \(controle.elementType) \(controle.identifier)")
                 }
-                // FrilaMapaComAcao é exceção de design documentada em DesignSystem.md e LOG-001 (botão de 30 pt colado à prévia de 102 pt, bloco de 132 pt)
-                let isExcecaoMapa = controle.identifier == "abrir-no-mapa" || controle.label == "Abrir no mapa"
-                if !isExcecaoMapa && (!AlvoMinimo.atende(quadro.height) || !AlvoMinimo.atende(quadro.width)) {
+                if !AlvoMinimo.atende(quadro.height) || !AlvoMinimo.atende(quadro.width) {
                     problemas.append("alvo \(Int(quadro.width))×\(Int(quadro.height)) pt: \(controle.label)")
                 }
 
