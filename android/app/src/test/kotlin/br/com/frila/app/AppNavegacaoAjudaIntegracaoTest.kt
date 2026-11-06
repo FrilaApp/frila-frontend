@@ -20,6 +20,8 @@ import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.EstadoEntrada
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.perfil.EstadoVerificacaoIdentidade
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +55,9 @@ class AppNavegacaoAjudaIntegracaoTest {
         val perfil = mockk<PerfilViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoPerfil())
         }
+        val selo = mockk<VerificacaoIdentidadeViewModel>(relaxed = true) {
+            every { estado } returns MutableStateFlow(EstadoVerificacaoIdentidade())
+        }
 
         rule.setContent {
             val origem = LocalContext.current
@@ -69,6 +74,7 @@ class AppNavegacaoAjudaIntegracaoTest {
                     module {
                         viewModel { entrada }
                         viewModel { perfil }
+                        viewModel { selo }
                     },
                 )
             }) {

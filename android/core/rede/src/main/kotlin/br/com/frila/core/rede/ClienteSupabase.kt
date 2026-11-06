@@ -65,25 +65,40 @@ class ClienteSupabase(
     private val armazenamentoDeSessao: ArmazenamentoDeSessao? = null,
     /** RNF01/RNF04: fail-fast pré-voo e interrupção de retry quando a conectividade cai. */
     private val monitorDeConectividade: MonitorDeConectividade? = null,
-    engine: HttpClientEngine? = null,
-    json: Json = jsonFrila,
+    private val engine: HttpClientEngine? = null,
+    private val json: Json = jsonFrila,
 ) : Closeable {
     private val _fechado = AtomicBoolean(false)
     val estaFechado: Boolean get() = _fechado.get()
 
-    val http: HttpClient = if (engine != null) {
-        HttpClient(engine) { configurar(json) }
-    } else {
-        HttpClient { configurar(json) }
+    val http: HttpClient = criarHttp(comCredenciais = true)
+
+    /**
+     * Cliente para URLs assinadas do Storage: sem `apikey`, sem `Authorization`, sem refresh de
+     * token e sem log de URL. O token da própria URL é a única credencial que o Storage deve ver.
+     */
+    val httpSemCredenciais: HttpClient get() = synchronized(bloqueioSemCredenciais) {
+        _httpSemCredenciais ?: criarHttp(comCredenciais = false).also { _httpSemCredenciais = it }
     }
+
+    private val bloqueioSemCredenciais = Any()
+    private var _httpSemCredenciais: HttpClient? = null
 
     override fun close() {
         if (_fechado.compareAndSet(false, true)) {
             http.close()
+            synchronized(bloqueioSemCredenciais) { _httpSemCredenciais?.close() }
         }
     }
 
-    private fun HttpClientConfig<*>.configurar(json: Json) {
+    private fun criarHttp(comCredenciais: Boolean): HttpClient =
+        if (engine != null) {
+            HttpClient(engine) { configurar(json, comCredenciais) }
+        } else {
+            HttpClient { configurar(json, comCredenciais) }
+        }
+
+    private fun HttpClientConfig<*>.configurar(json: Json, comCredenciais: Boolean) {
         install(ContentNegotiation) { json(json) }
         // RNF01/RNF04: fail-fast pré-voo — se já sabemos que estamos offline, aborta em 0ms
         // sem tentar o engine, sem esperar timeout nem acionar retry. `onRequest` roda antes de
@@ -102,18 +117,20 @@ class ClienteSupabase(
                 }
             },
         )
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
-                        ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
-                }
-                refreshTokens {
-                    renovarTokens(this)
+        if (comCredenciais) {
+            install(Auth) {
+                bearer {
+                    loadTokens {
+                        armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
+                            ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
+                    }
+                    refreshTokens {
+                        renovarTokens(this)
+                    }
                 }
             }
+            install(Logging) { level = LogLevel.INFO }
         }
-        install(Logging) { level = LogLevel.INFO }
         install(HttpTimeout) {
             connectTimeoutMillis = TIMEOUT_CONEXAO_MS
             requestTimeoutMillis = TIMEOUT_REQUISICAO_MS
@@ -154,10 +171,12 @@ class ClienteSupabase(
                 }
             }
         }
-        defaultRequest {
-            header("apikey", apiKey)
-            tokenDeAcessoAtual()?.let { token ->
-                header("Authorization", "Bearer $token")
+        if (comCredenciais) {
+            defaultRequest {
+                header("apikey", apiKey)
+                tokenDeAcessoAtual()?.let { token ->
+                    header("Authorization", "Bearer $token")
+                }
             }
         }
     }

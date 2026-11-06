@@ -14,6 +14,8 @@ import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.perfil.EstadoVerificacaoIdentidade
 import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.vagas.feed.EstadoFeed
@@ -234,6 +236,8 @@ class AppNavegacaoWiringTest {
         every { feedViewModel.estado } returns MutableStateFlow(EstadoFeed(status = StatusFeed.SUCESSO))
         val perfilViewModel = mockk<PerfilViewModel>(relaxed = true)
         every { perfilViewModel.estado } returns MutableStateFlow(EstadoPerfil(status = StatusPerfil.SUCESSO))
+        val seloViewModel = mockk<VerificacaoIdentidadeViewModel>(relaxed = true)
+        every { seloViewModel.estado } returns MutableStateFlow(EstadoVerificacaoIdentidade())
 
         rule.setContent {
             navController = rememberNavController()
@@ -245,6 +249,7 @@ class AppNavegacaoWiringTest {
                         viewModel { EntradaViewModel(get()) }
                         viewModel { feedViewModel }
                         viewModel { perfilViewModel }
+                        viewModel { seloViewModel }
                     },
                 )
             }) {

@@ -46,6 +46,8 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
+import br.com.frila.feature.perfil.TelaVerificacaoDocumento
+import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
@@ -68,6 +70,7 @@ object Rotas {
     const val MEUS_TURNOS = "meus_turnos"
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
+    const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
     const val AJUDA = "ajuda"
@@ -388,8 +391,15 @@ fun AppNavegacao(
             composable(Rotas.PERFIL) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: PerfilViewModel = koinViewModel()
+                    val viewModelSelo: VerificacaoIdentidadeViewModel = koinViewModel()
+                    val estadoSelo by viewModelSelo.estado.collectAsStateWithLifecycle()
+                    // Ao voltar do fluxo do selo a rota entra de novo em composição e relê o estado.
+                    LaunchedEffect(Unit) { viewModelSelo.carregar() }
                     TelaPerfil(
                         viewModel = viewModel,
+                        verificacaoIdentidade = estadoSelo.verificacao,
+                        podeSolicitarSelo = estadoSelo.podeSolicitar,
+                        aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
                         aoDeslogar = {
                             guardaBiometrico.liberarAposLimparSessao()
                             navController.navigate(Rotas.ENTRADA) {
@@ -397,6 +407,16 @@ fun AppNavegacao(
                             }
                         },
                         aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
+                    )
+                }
+            }
+
+            composable(Rotas.SELO_CONFIANCA) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: VerificacaoIdentidadeViewModel = koinViewModel()
+                    TelaVerificacaoDocumento(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
                     )
                 }
             }
