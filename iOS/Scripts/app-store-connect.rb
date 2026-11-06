@@ -131,10 +131,15 @@ module AppStoreConnect
     ITENS_NAO = %w[advertising gambling healthOrWellnessTopics lootBox messagingAndChat parentalControls socialMedia socialMediaAgeRestricted unrestrictedWebAccess].freeze
     ITENS_NENHUM = %w[alcoholTobaccoOrDrugUseOrReferences contests gamblingSimulated gunsOrOtherWeapons medicalOrTreatmentInformation profanityOrCrudeHumor sexualContentGraphicAndNudity sexualContentOrNudity horrorOrFearThemes matureOrSuggestiveThemes violenceCartoonOrFantasy violenceRealisticProlongedGraphicOrSadistic violenceRealistic].freeze
 
-    def initialize(client:, log:, acao:, aplicar:, emails:, grupo:, sem_referencias_alcool:, verificacao_idade:, versao: '0.5.1', limite: '1000', beta_segredos: {})
+    def initialize(client:, log:, acao:, aplicar:, emails:, grupo:, sem_referencias_alcool:, verificacao_idade:, versao: '0.5.1', limite: '1000', beta_segredos: {},
+                   numero_build: nil, notas_arquivo: nil, espera: 1200, intervalo: 30,
+                   dormir: ->(segundos) { sleep(segundos) },
+                   leitor: ->(caminho) { File.read(caminho, mode: 'rb').force_encoding('UTF-8') })
       @client, @log, @acao, @aplicar = client, log, acao, aplicar
       @grupo, @alcool, @idade = grupo.strip, sem_referencias_alcool, verificacao_idade
       @versao, @limite, @beta_segredos = versao, limite, beta_segredos
+      # Só a ação notas-do-build usa estes: número do build, arquivo com o rótulo e espera pelo processamento.
+      @numero_build, @notas_arquivo, @espera, @intervalo, @dormir, @leitor = numero_build, notas_arquivo, espera, intervalo, dormir, leitor
       @beta_segredos.each_value { |value| @log.mask(value) }
       # Índices preservam a posição original, inclusive com entrada repetida.
       @emails = emails.to_s.split(/[\s,;]+/).reject(&:empty?).each_with_index.map do |email, i|
@@ -145,7 +150,7 @@ module AppStoreConnect
     end
 
     def run
-      raise Erro, 'Ação inválida.' unless %w[conferir grupo-interno classificacao grupo-externo revisao-beta].include?(@acao)
+      raise Erro, 'Ação inválida.' unless %w[conferir grupo-interno classificacao grupo-externo revisao-beta notas-do-build].include?(@acao)
       @log.info("Ação: #{@acao}; aplicar=#{@aplicar}")
       apps = @client.list('/v1/apps', 'filter[bundleId]'=>BUNDLE, 'fields[apps]'=>'name,bundleId')
       raise Erro, 'App com.frila.org.app não encontrado de forma única.' unless apps.size == 1 && apps[0].dig('attributes','bundleId') == BUNDLE
@@ -157,6 +162,7 @@ module AppStoreConnect
       when 'classificacao' then classificacao
       when 'grupo-externo' then grupo_externo
       when 'revisao-beta' then revisao_beta
+      when 'notas-do-build' then notas_do_build
       end
     end
 
@@ -333,13 +339,17 @@ module AppStoreConnect
         @log.info("FALTA: build iOS #{@versao} processado (VALID), não expirado e elegível para teste externo")
         return nil
       end
+      conferir_pre_release(build)
+      @log.info("Build selecionado: versão=#{@versao}; número=#{build.dig('attributes', 'version')}; id=#{id(build)}; processamento=VALID")
+      @log.info('Proveniência: a API não informa o esquema Xcode; confirme Frila-Beta/frila-dev no workflow TestFlight que enviou esse número de build.')
+      build
+    end
+
+    def conferir_pre_release(build)
       release = @client.request('GET', "/v1/builds/#{id(build)}/preReleaseVersion")['data']
       unless release && release.dig('attributes', 'version') == @versao && release.dig('attributes', 'platform') == 'IOS'
         raise Erro, 'A versão/plataforma do build retornado diverge da entrada; nenhuma escrita.'
       end
-      @log.info("Build selecionado: versão=#{@versao}; número=#{build.dig('attributes', 'version')}; id=#{id(build)}; processamento=VALID")
-      @log.info('Proveniência: a API não informa o esquema Xcode; confirme Frila-Beta/frila-dev no workflow TestFlight que enviou esse número de build.')
-      build
     end
 
     def grupo_externo
@@ -449,6 +459,99 @@ module AppStoreConnect
       end
     end
 
+    ROTULO_INICIAL = /\AFrila-(?:Beta|Prod) · /
+    ROTULO_BUILD = /\AFrila-(?:Beta|Prod) · [^\r\n]{1,200}\z/
+    LIMITE_O_QUE_TESTAR = 4000
+
+    # Grava o rótulo do esquema (arquivo o-que-testar.txt do enviar-testflight.sh) na primeira linha de
+    # "O que testar" do build recém-enviado. É a única parte que a ação reescreve: o texto que uma pessoa
+    # escreveu depois do rótulo fica como está, e rodar de novo não muda nada.
+    def notas_do_build
+      raise Erro, 'Informe uma versão no formato 0.5.1.' unless @versao.match?(/\A\d+\.\d+\.\d+\z/)
+      raise Erro, 'Informe o número do build (ASC_NUMERO_DO_BUILD), como 20261106.153012.' unless @numero_build.to_s.match?(/\A\d+(?:\.\d+){0,2}\z/)
+      raise Erro, 'A espera pelo processamento deve ser de 0 a 3600 segundos, com consulta a cada 1 a 600.' unless @espera.is_a?(Integer) && (0..3600).cover?(@espera) && @intervalo.is_a?(Integer) && (1..600).cover?(@intervalo)
+      rotulo = ler_rotulo
+      @log.info("Rótulo do esquema: #{rotulo}")
+      build = esperar_build_processado
+      conferir_pre_release(build)
+      @log.info("Build selecionado: versão=#{@versao}; número=#{@numero_build}; id=#{id(build)}; processamento=VALID")
+      locales = @client.list("/v1/builds/#{id(build)}/betaBuildLocalizations")
+      plans = TEXTOS_BETA.map do |locale, texts|
+        atual = locales.find { |r| r.dig('attributes', 'locale') == locale }
+        texto = texto_com_rotulo(atual && atual.dig('attributes', 'whatsNew'), rotulo, texts['whatsNew'])
+        raise Erro, "O que testar (#{locale}) passaria de #{LIMITE_O_QUE_TESTAR} caracteres; nenhuma escrita." if texto.length > LIMITE_O_QUE_TESTAR
+        plano_localizacao('betaBuildLocalizations', locales, locale, {'whatsNew'=>texto}, 'build', build, exatos: %w[whatsNew])
+      end.compact
+      if plans.empty?
+        @log.info('O que testar já traz o rótulo do esquema; nada a gravar')
+        return
+      end
+      @log.info("Plano: gravar o rótulo em #{plans.size} localização(ões) de O que testar")
+      return unless @aplicar
+      plans.each { |plan| @client.request(*plan) }
+      depois = @client.list("/v1/builds/#{id(build)}/betaBuildLocalizations")
+      TEXTOS_BETA.each_key do |locale|
+        gravado = depois.find { |r| r.dig('attributes', 'locale') == locale }
+        texto = (gravado && gravado.dig('attributes', 'whatsNew')).to_s
+        raise Erro, "A API não confirmou o rótulo em O que testar (#{locale})." unless texto.split(/\r?\n/, 2).first.to_s.strip == rotulo
+      end
+      @log.info("O que testar gravado pela API: #{rotulo}")
+    end
+
+    def ler_rotulo
+      caminho = @notas_arquivo.to_s
+      raise Erro, 'Texto do esquema ausente: informe o arquivo o-que-testar.txt em ASC_NOTAS_ARQUIVO.' if caminho.empty?
+      texto = begin
+        @leitor.call(caminho).to_s
+      rescue IOError, SystemCallError
+        raise Erro, 'Texto do esquema ausente: não foi possível ler o arquivo o-que-testar.txt.'
+      end
+      raise Erro, 'O arquivo o-que-testar.txt não está em UTF-8.' unless texto.valid_encoding?
+      linhas = texto.lines.map(&:strip).reject(&:empty?)
+      raise Erro, 'Texto do esquema ausente: o arquivo o-que-testar.txt está vazio.' if linhas.empty?
+      raise Erro, 'O arquivo o-que-testar.txt deve ter uma linha só, com o rótulo do esquema.' unless linhas.size == 1
+      raise Erro, 'O rótulo do esquema deve começar com "Frila-Beta · " ou "Frila-Prod · ".' unless linhas.first.match?(ROTULO_BUILD)
+      linhas.first
+    end
+
+    # Espera o build sair de PROCESSING. O build pode demorar a aparecer na API logo após o envio.
+    def esperar_build_processado
+      tentativas = @espera / @intervalo + 1
+      tentativas.times do |i|
+        build = buscar_build_por_numero
+        estado = build ? build.dig('attributes', 'processingState') : 'ainda não listado'
+        if build && estado == 'VALID'
+          raise Erro, 'O build está expirado; nenhuma escrita.' unless build.dig('attributes', 'expired') == false
+          return build
+        end
+        raise Erro, "O App Store Connect recusou o build #{@numero_build} (#{estado}); nenhuma escrita." if %w[FAILED INVALID].include?(estado)
+        estado = 'PROCESSING' unless estado == 'ainda não listado'
+        if i < tentativas - 1
+          @log.info("Build #{@numero_build}: #{estado}; nova consulta em #{@intervalo}s")
+          @dormir.call(@intervalo)
+        end
+      end
+      raise Erro, "O build #{@numero_build} não ficou processado (VALID) em #{@espera}s; nenhuma escrita."
+    end
+
+    def buscar_build_por_numero
+      builds = @client.list('/v1/builds', 'filter[app]'=>id(@app),
+        'filter[preReleaseVersion.version]'=>@versao, 'filter[preReleaseVersion.platform]'=>'IOS',
+        'filter[version]'=>@numero_build, 'fields[builds]'=>'version,uploadedDate,processingState,expired')
+      # Mesmo com filtro, confira o número: nunca escreva em outro build.
+      builds = builds.select { |b| b.dig('attributes', 'version') == @numero_build }
+      raise Erro, "Mais de um build com o número #{@numero_build}; nenhuma escrita." if builds.size > 1
+      builds.first
+    end
+
+    # Rótulo na primeira linha. Texto novo leva o texto padrão do beta; texto de pessoa é preservado.
+    def texto_com_rotulo(atual, rotulo, padrao)
+      atual = atual.to_s
+      return "#{rotulo}\n\n#{padrao}" if atual.strip.empty?
+      return atual.sub(/\A[^\r\n]*/) { rotulo } if atual.match?(ROTULO_INICIAL)
+      "#{rotulo}\n\n#{atual}"
+    end
+
     def submissao_beta(build)
       @client.request('GET', "/v1/builds/#{id(build)}/betaAppReviewSubmission")['data']
     rescue ErroAPI => error
@@ -457,14 +560,15 @@ module AppStoreConnect
       nil
     end
 
-    def plano_localizacao(type, resources, locale, attrs, relationship, parent)
+    def plano_localizacao(type, resources, locale, attrs, relationship, parent, exatos: %w[feedbackEmail])
       matches = resources.select { |r| r.dig('attributes', 'locale') == locale }
       raise Erro, "Localização #{type}.#{locale} duplicada; nenhuma escrita." if matches.size > 1
       resource = matches.first
       changes = attrs.reject do |field, expected|
         value = resource && resource.dig('attributes', field)
-        # Descrição e o que testar existentes são preservados; feedback é o endereço solicitado.
-        ok = field == 'feedbackEmail' ? value == expected : !value.to_s.strip.empty?
+        # Descrição e o que testar existentes são preservados; os campos em `exatos` (feedback, e o
+        # texto montado pela ação notas-do-build) precisam ser iguais ao esperado.
+        ok = exatos.include?(field) ? value == expected : !value.to_s.strip.empty?
         @log.info("#{ok ? 'OK' : 'FALTA'}: #{type}.#{locale}.#{field}")
         ok
       end
@@ -533,6 +637,12 @@ module AppStoreConnect
     raise Erro, 'Não foi possível ler as entradas do evento do GitHub.'
   end
 
+  def self.inteiro(env, name, default)
+    value = env.fetch(name, default)
+    raise Erro, "#{name} deve ser um número inteiro." unless value.to_s.match?(/\A\d{1,6}\z/)
+    value.to_i
+  end
+
   def self.main(env = ENV, out = $stdout)
     log = Log.new(out, github: env['GITHUB_ACTIONS'] == 'true')
     env = entradas(env)
@@ -546,7 +656,9 @@ module AppStoreConnect
       sem_referencias_alcool: boolean(env, 'ASC_SEM_REFERENCIAS_ALCOOL'),
       verificacao_idade: boolean(env, 'ASC_VERIFICACAO_IDADE', 'true'),
       versao: env.fetch('ASC_VERSAO', '0.5.1'), limite: env.fetch('ASC_LIMITE_TESTADORES', '1000'),
-      beta_segredos: Job::SEGREDOS_BETA.values.uniq.to_h { |name| [name, env[name]] }).run
+      beta_segredos: Job::SEGREDOS_BETA.values.uniq.to_h { |name| [name, env[name]] },
+      numero_build: env['ASC_NUMERO_DO_BUILD'], notas_arquivo: env['ASC_NOTAS_ARQUIVO'],
+      espera: inteiro(env, 'ASC_ESPERA_SEGUNDOS', '1200'), intervalo: inteiro(env, 'ASC_INTERVALO_SEGUNDOS', '30')).run
   rescue Erro => error
     log.info("ERRO: #{error.message}")
     raise

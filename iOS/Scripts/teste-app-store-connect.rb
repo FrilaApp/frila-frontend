@@ -539,3 +539,277 @@ class BetaAppStoreConnectTest < Minitest::Test
     AppStoreConnect::Job::SEGREDOS_BETA.values.uniq.each { |name| refute_includes inputs, name }
   end
 end
+
+# Ação notas-do-build: grava o rótulo do esquema em "O que testar" do build recém-enviado.
+# Tudo em memória: nenhuma chamada real ao App Store Connect, nenhum arquivo real, nenhuma chave.
+class NotasDoBuildTest < Minitest::Test
+  NUMERO = '20261106.153012'.freeze
+  ROTULO_PROD = 'Frila-Prod · frila-prod · LOJA'.freeze
+  ROTULO_BETA = 'Frila-Beta · frila-dev'.freeze
+
+  def setup
+    @api = APIBetaDeExemplo.new
+    @api.builds = [{'type'=>'builds', 'id'=>'build-ci', 'attributes'=>{'version'=>NUMERO, 'uploadedDate'=>'2026-11-06T15:30:12Z',
+      'processingState'=>'VALID', 'expired'=>false, 'buildAudienceType'=>'INTERNAL_ONLY'}}]
+    @out = StringIO.new
+    @log = AppStoreConnect::Log.new(@out, github: false)
+    @dormidas = []
+    @conteudo = "#{ROTULO_PROD}\n"
+  end
+
+  def estado_do_build=(estado)
+    @api.builds.first['attributes']['processingState'] = estado
+  end
+
+  # espera: 0 consulta uma única vez; com espera 2 e intervalo 1 há até três consultas.
+  def run_notas(apply: true, numero: NUMERO, arquivo: 'o-que-testar.txt', versao: '0.5.1', espera: 0, intervalo: 1,
+                transporte: nil, leitor: nil, &ao_dormir)
+    client = AppStoreConnect::Client.new(token: -> { 'jwt-falso' }, aplicar: apply, transport: transporte || @api.method(:call))
+    dormir = lambda do |segundos|
+      @dormidas << segundos
+      ao_dormir.call if ao_dormir
+    end
+    AppStoreConnect::Job.new(client: client, log: @log, acao: 'notas-do-build', aplicar: apply, emails: '', grupo: 'IGNORADO',
+      sem_referencias_alcool: false, verificacao_idade: true, versao: versao, numero_build: numero, notas_arquivo: arquivo,
+      espera: espera, intervalo: intervalo, dormir: dormir, leitor: leitor || ->(_) { @conteudo }).run
+  end
+
+  def whats_new(locale)
+    @api.build_locales.find { |r| r['attributes']['locale'] == locale }['attributes']['whatsNew']
+  end
+
+  def localizacao(locale, texto)
+    @api.build_locales << {'type'=>'betaBuildLocalizations', 'id'=>"existente-#{locale}", 'attributes'=>{'locale'=>locale, 'whatsNew'=>texto}}
+  end
+
+  def test_plano_nao_escreve_e_localiza_o_build_pelo_numero
+    run_notas(apply: false)
+    assert_empty @api.escritas
+    assert_includes @out.string, 'Plano: gravar o rótulo em 2 localização(ões)'
+    assert_includes @out.string, "número=#{NUMERO}"
+    assert_equal NUMERO, @api.build_query['filter[version]']
+    assert_equal '0.5.1', @api.build_query['filter[preReleaseVersion.version]']
+    assert_equal 'IOS', @api.build_query['filter[preReleaseVersion.platform]']
+    # Build de ensaio ou de medição é só interno: não filtra por público da loja.
+    refute @api.build_query.key?('filter[buildAudienceType]')
+  end
+
+  def test_cria_o_texto_com_o_rotulo_na_primeira_linha
+    run_notas
+    assert_equal 2, @api.escritas.size
+    assert(@api.escritas.all? { |metodo, caminho, _| metodo == 'POST' && caminho == '/v1/betaBuildLocalizations' })
+    assert_equal %w[en-US pt-BR], @api.build_locales.map { |r| r['attributes']['locale'] }.sort
+    %w[pt-BR en-US].each do |locale|
+      assert_equal "#{ROTULO_PROD}\n\n#{AppStoreConnect::Job::TEXTOS_BETA[locale]['whatsNew']}", whats_new(locale)
+    end
+    relacao = @api.escritas.first[2]['data']['relationships']['build']['data']
+    assert_equal({'type'=>'builds', 'id'=>'build-ci'}, relacao)
+    assert_includes @out.string, "O que testar gravado pela API: #{ROTULO_PROD}"
+  end
+
+  def test_atualiza_so_a_primeira_linha_e_preserva_o_que_a_pessoa_escreveu
+    localizacao('pt-BR', "Frila-Beta · frila-dev\n\nTeste o convite da vaga.\nRelate no TestFlight.")
+    localizacao('en-US', 'Texto de uma pessoa, sem rótulo')
+    run_notas
+    assert_equal ['PATCH', 'PATCH'], @api.escritas.map(&:first)
+    assert_equal "#{ROTULO_PROD}\n\nTeste o convite da vaga.\nRelate no TestFlight.", whats_new('pt-BR')
+    assert_equal "#{ROTULO_PROD}\n\nTexto de uma pessoa, sem rótulo", whats_new('en-US')
+    assert_equal ['whatsNew'], @api.escritas.first[2]['data']['attributes'].keys
+  end
+
+  def test_rotulo_de_ensaio_e_aceito_e_troca_o_rotulo_anterior_inteiro
+    @conteudo = "#{ROTULO_BETA} · ensaio de falha\n"
+    localizacao('pt-BR', "#{ROTULO_BETA}\nlinha de pessoa")
+    localizacao('en-US', "#{ROTULO_BETA}\r\nlinha de pessoa")
+    run_notas
+    assert_equal "#{ROTULO_BETA} · ensaio de falha\nlinha de pessoa", whats_new('pt-BR')
+    assert_equal "#{ROTULO_BETA} · ensaio de falha\r\nlinha de pessoa", whats_new('en-US')
+  end
+
+  def test_idempotente_nao_duplica_nem_apaga_texto_de_pessoa
+    localizacao('pt-BR', 'Texto de pessoa em pt-BR')
+    run_notas
+    antes = @api.escritas.size
+    esperado = @api.build_locales.map { |r| r['attributes'].dup }
+    2.times { run_notas }
+    assert_equal antes, @api.escritas.size
+    assert_equal esperado, @api.build_locales.map { |r| r['attributes'] }
+    assert_equal 2, @api.build_locales.size
+    assert_equal "#{ROTULO_PROD}\n\nTexto de pessoa em pt-BR", whats_new('pt-BR')
+    assert_includes @out.string, 'nada a gravar'
+  end
+
+  def test_pessoa_edita_depois_do_rotulo_e_o_proximo_envio_so_troca_o_rotulo
+    run_notas
+    @api.build_locales.each { |r| r['attributes']['whatsNew'] += "\n\nAcrescentado por uma pessoa" }
+    @conteudo = "#{ROTULO_BETA}\n"
+    run_notas
+    %w[pt-BR en-US].each do |locale|
+      assert_equal "#{ROTULO_BETA}\n\n#{AppStoreConnect::Job::TEXTOS_BETA[locale]['whatsNew']}\n\nAcrescentado por uma pessoa", whats_new(locale)
+    end
+  end
+
+  def test_espera_o_processamento_e_grava_quando_fica_valido
+    self.estado_do_build = 'PROCESSING'
+    run_notas(espera: 60, intervalo: 30) { self.estado_do_build = 'VALID' }
+    assert_equal [30], @dormidas
+    assert_includes @out.string, "Build #{NUMERO}: PROCESSING; nova consulta em 30s"
+    assert_equal 2, @api.escritas.size
+  end
+
+  def test_build_ainda_nao_processado_nao_escreve
+    self.estado_do_build = 'PROCESSING'
+    erro = assert_raises(AppStoreConnect::Erro) { run_notas(espera: 2, intervalo: 1) }
+    assert_includes erro.message, 'não ficou processado'
+    assert_equal [1, 1], @dormidas
+    assert_empty @api.escritas
+    assert_empty @api.build_locales
+  end
+
+  def test_build_que_ainda_nao_aparece_na_api_espera_e_nao_escreve
+    @api.builds = []
+    erro = assert_raises(AppStoreConnect::Erro) { run_notas(espera: 1, intervalo: 1) }
+    assert_includes erro.message, 'não ficou processado'
+    assert_equal [1], @dormidas
+    assert_includes @out.string, 'ainda não listado'
+    assert_empty @api.escritas
+  end
+
+  def test_outro_numero_de_build_nunca_recebe_o_texto
+    @api.builds.first['attributes']['version'] = '20261105.101010'
+    assert_raises(AppStoreConnect::Erro) { run_notas }
+    assert_empty @api.escritas
+    @api.builds = [@api.builds.first, @api.builds.first.merge('id'=>'build-gemeo', 'attributes'=>@api.builds.first['attributes'].merge('version'=>NUMERO)),
+      @api.builds.first.merge('id'=>'build-gemeo-2', 'attributes'=>@api.builds.first['attributes'].merge('version'=>NUMERO))]
+    erro = assert_raises(AppStoreConnect::Erro) { run_notas }
+    assert_includes erro.message, 'Mais de um build'
+    assert_empty @api.escritas
+  end
+
+  def test_build_recusado_ou_expirado_para_sem_esperar_e_sem_escrever
+    %w[FAILED INVALID].each do |estado|
+      self.estado_do_build = estado
+      erro = assert_raises(AppStoreConnect::Erro) { run_notas(espera: 60, intervalo: 30) }
+      assert_includes erro.message, estado
+    end
+    self.estado_do_build = 'VALID'
+    @api.builds.first['attributes']['expired'] = true
+    assert_raises(AppStoreConnect::Erro) { run_notas }
+    assert_empty @dormidas
+    assert_empty @api.escritas
+  end
+
+  def test_versao_do_build_diferente_da_entrada_nao_escreve
+    @api.release['attributes']['version'] = '0.5.0'
+    assert_raises(AppStoreConnect::Erro) { run_notas }
+    assert_empty @api.escritas
+  end
+
+  def test_api_recusando_a_escrita_vira_erro_sem_dado_sensivel
+    transporte = lambda do |req|
+      next @api.call(req) if req.method == 'GET'
+      Struct.new(:code, :body).new('403', JSON.generate({'errors'=>[{'detail'=>'segredo-da-api voce@example.invalid'}]}))
+    end
+    erro = assert_raises(AppStoreConnect::ErroAPI) { run_notas(transporte: transporte) }
+    assert_equal 403, erro.status
+    assert_empty @api.escritas
+    [@out.string, erro.message].each do |texto|
+      refute_includes texto, 'segredo-da-api'
+      refute_includes texto, 'jwt-falso'
+      refute_match(/\S+@\S+/, texto)
+    end
+  end
+
+  def test_api_fora_do_ar_durante_a_espera_falha_sem_escrever
+    transporte = ->(_) { Struct.new(:code, :body).new('503', '') }
+    erro = assert_raises(AppStoreConnect::ErroAPI) { run_notas(transporte: transporte) }
+    assert_equal 503, erro.status
+    assert_empty @api.escritas
+  end
+
+  def test_api_que_nao_confirma_o_rotulo_falha
+    transporte = lambda do |req|
+      resposta = @api.call(req)
+      next resposta unless req.method == 'GET' && req.uri.path.end_with?('/betaBuildLocalizations') && !@api.escritas.empty?
+      Struct.new(:code, :body).new('200', JSON.generate({'data'=>[{'id'=>'x', 'attributes'=>{'locale'=>'pt-BR', 'whatsNew'=>'outra coisa'}}]}))
+    end
+    erro = assert_raises(AppStoreConnect::Erro) { run_notas(transporte: transporte) }
+    assert_includes erro.message, 'não confirmou'
+  end
+
+  def test_texto_ausente_ou_invalido_nao_chama_a_api
+    entradas = [nil, '', '   ', "\n\n", ROTULO_PROD + "\nsegunda linha\n", 'Frila-Dev · frila-dev', 'Cole isto à mão', "\xff\xfe".dup.force_encoding('UTF-8'),
+      "Frila-Prod · #{'x' * 201}"]
+    entradas.each do |conteudo|
+      @conteudo = conteudo
+      assert_raises(AppStoreConnect::Erro, conteudo.inspect) { run_notas }
+    end
+    assert_raises(AppStoreConnect::Erro) { run_notas(arquivo: nil) }
+    assert_raises(AppStoreConnect::Erro) { run_notas(leitor: ->(_) { raise Errno::ENOENT }) }
+    # Só a busca do app (anterior à validação) pode ter acontecido: nenhuma consulta de build, nenhuma escrita.
+    assert_empty @api.chamadas.reject { |_, caminho, _| caminho == '/v1/apps' }
+    assert_empty @dormidas
+  end
+
+  def test_nao_passa_do_limite_de_4000_caracteres_da_apple
+    localizacao('pt-BR', 'a' * 4000)
+    erro = assert_raises(AppStoreConnect::Erro) { run_notas }
+    assert_includes erro.message, '4000'
+    assert_empty @api.escritas
+  end
+
+  def test_entradas_invalidas_nao_chegam_a_api
+    assert_raises(AppStoreConnect::Erro) { run_notas(numero: nil) }
+    assert_raises(AppStoreConnect::Erro) { run_notas(numero: '20261106;rm') }
+    assert_raises(AppStoreConnect::Erro) { run_notas(versao: 'incorreta') }
+    assert_raises(AppStoreConnect::Erro) { run_notas(intervalo: 0) }
+    assert_raises(AppStoreConnect::Erro) { run_notas(espera: 99999) }
+    assert_empty @api.escritas
+    refute @api.build_query
+  end
+
+  def test_leitor_padrao_le_utf8_mesmo_com_locale_c
+    require 'tmpdir'
+    Dir.mktmpdir do |pasta|
+      caminho = File.join(pasta, 'o-que-testar.txt')
+      File.write(caminho, "#{ROTULO_PROD}\n")
+      client = AppStoreConnect::Client.new(token: -> { 'jwt-falso' }, aplicar: true, transport: @api.method(:call))
+
+      AppStoreConnect::Job.new(client: client, log: @log, acao: 'notas-do-build', aplicar: true, emails: '', grupo: 'IGNORADO',
+        sem_referencias_alcool: false, verificacao_idade: true, numero_build: NUMERO, notas_arquivo: caminho, espera: 0, intervalo: 1).run
+    end
+    assert_equal ROTULO_PROD, whats_new('pt-BR').lines.first.strip
+  end
+
+  def test_inteiros_do_ambiente
+    assert_equal 1200, AppStoreConnect.inteiro({}, 'ASC_ESPERA_SEGUNDOS', '1200')
+    assert_equal 5, AppStoreConnect.inteiro({'ASC_INTERVALO_SEGUNDOS'=>'5'}, 'ASC_INTERVALO_SEGUNDOS', '30')
+    ['-1', 'abc', '1.5', ''].each do |valor|
+      assert_raises(AppStoreConnect::Erro) { AppStoreConnect.inteiro({'X'=>valor}, 'X', '1') }
+    end
+  end
+
+  def test_workflow_do_testflight_grava_depois_do_envio_sem_derrubar_o_envio
+    require 'yaml'
+    workflow = YAML.safe_load(File.read(File.join(__dir__, '../../.github/workflows/testflight.yml')))
+    passos = workflow['jobs']['testflight']['steps']
+    nomes = passos.map { |p| p['name'] }
+    envio = nomes.index('Archive, conferência, símbolos e envio')
+    gravar = nomes.index('Gravar o esquema em "O que testar"')
+    limpeza = nomes.index('Restaurar keychains e apagar identidade de distribuição')
+    refute_nil gravar
+    assert envio < gravar && gravar < limpeza, 'o passo novo vem depois do envio e antes da limpeza'
+    passo = passos[gravar]
+    assert_equal true, passo['continue-on-error']
+    assert_includes passo['if'], "FRILA_ENVIAR == '1'"
+    assert_equal '${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}', passo['env']['ASC_KEY_P8']
+    assert_equal 'notas-do-build', passo['env']['ASC_ACAO']
+    assert_equal 'true', passo['env']['ASC_APLICAR']
+    comando = passo['run']
+    assert_includes comando, 'ruby Scripts/app-store-connect.rb'
+    assert_includes comando, 'o-que-testar.txt'
+    assert_includes comando, 'GITHUB_STEP_SUMMARY'
+    assert_includes comando, 'exit 0', 'falha na gravação não derruba o envio já feito'
+    refute_match(/\$\{\{\s*inputs\./, comando)
+  end
+end
