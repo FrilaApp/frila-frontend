@@ -134,6 +134,7 @@ public struct TelaMeusTurnos: View {
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeusTurnos))
         .refreshable { await viewModel.atualizar() }
         .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
+        .atualizacaoAutomatica(.meusTurnos, recarregar: viewModel.atualizarEmSilencio)
         .accessibilityIdentifier("tela-meus-turnos")
     }
 

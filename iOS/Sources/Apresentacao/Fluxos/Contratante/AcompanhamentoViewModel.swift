@@ -250,6 +250,19 @@ public final class AcompanhamentoViewModel {
         } catch { /* Mantém o aviso se o reconhecimento não foi gravado. */ }
     }
 
+    /// Uma releitura automática por vez, fora de `carregando`: os botões do turno continuam
+    /// habilitados enquanto ela corre.
+    private var atualizandoEmSilencio = false
+
+    /// Atualização automática: só com o painel já lido. Não mexe em `carregando` e, se falhar, não
+    /// marca a tela como desatualizada; o painel fica como estava. Com uma carga em voo, não faz nada.
+    public func atualizarEmSilencio(para turnoID: UUID? = nil) async {
+        guard painel != nil, !carregando, !atualizandoEmSilencio else { return }
+        atualizandoEmSilencio = true
+        defer { atualizandoEmSilencio = false }
+        await carregarDaFila(para: turnoID)
+    }
+
     public func carregarDaFila(para turnoID: UUID? = nil) async {
         await lerCancelamentosNaFila()
         await carregarIdentidadeEEAvaliacoes()

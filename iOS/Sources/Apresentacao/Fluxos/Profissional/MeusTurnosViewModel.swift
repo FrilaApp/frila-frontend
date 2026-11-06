@@ -30,6 +30,16 @@ public final class MeusTurnosViewModel {
         await buscar()
     }
 
+    /// Atualização automática: só com a lista na tela, sem carregamento por cima, e a falha deixa
+    /// a lista como estava. Sem rede, `TurnosComCache` devolve o cache e a tela mostra o aviso dele.
+    public func atualizarEmSilencio() async {
+        guard case .carregada = estado, let leitura = try? await repositorio.ler(), !Task.isCancelled,
+              case .carregada = estado else { return }
+        turnos = leitura.turnos
+        origem = leitura.origem
+        estado = .carregada(turnos: leitura.turnos, origem: leitura.origem)
+    }
+
     private func buscar() async {
         do {
             let leitura = try await repositorio.ler()

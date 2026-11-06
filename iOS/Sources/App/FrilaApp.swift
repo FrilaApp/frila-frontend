@@ -274,6 +274,8 @@ private struct EntradaDoApp: View {
     @State private var roteadorDePush: RoteadorDePush
     /// A permissão de notificação, a tela de explicação e o aviso fixo de quem está sem ela (#8).
     @State private var permissaoDePush: PermissaoDePushModelo
+    /// A atualização automática das listas: desce para as telas pelo ambiente.
+    @State private var atualizacao: AtualizacaoAutomatica
     @State private var contaID: UUID?
     @State private var destinoAtual: DestinoDaConta?
     @State private var carregandoDestino: Bool = true
@@ -300,6 +302,7 @@ private struct EntradaDoApp: View {
         _roteador = State(initialValue: navegacao.profissional)
         _roteadorDoContratante = State(initialValue: navegacao.contratante)
         _roteadorDePush = State(initialValue: navegacao.push)
+        _atualizacao = State(initialValue: navegacao.atualizacao)
         #if DEBUG
         // Sem fila reproduz a indisponibilidade do armazenamento no fluxo real, somente no Local.
         // Deve preceder os fallbacks de cache para que nenhum banco de teste reponha a fila.
@@ -417,6 +420,13 @@ private struct EntradaDoApp: View {
         }
         #endif
         .environment(permissaoDePush)
+        .environment(atualizacao)
+        // A atualização automática só relê com uma conta dentro de um dos dois fluxos: na entrada,
+        // no cadastro e na conta suspensa nada é pedido. Saída, encerramento e troca de conta passam
+        // por `destinoAtual = nil`, e isso zera os intervalos da conta anterior.
+        .onChange(of: destinoAtual, initial: true) { _, destino in
+            atualizacao.mudarSessao(ativa: destino == .profissional || destino == .contratante)
+        }
         .sheet(isPresented: $permissaoDePush.explicacaoVisivel) {
             TelaExplicacaoDoPush(modelo: permissaoDePush, perfil: destinoAtual == .contratante ? .contratante : .profissional)
         }

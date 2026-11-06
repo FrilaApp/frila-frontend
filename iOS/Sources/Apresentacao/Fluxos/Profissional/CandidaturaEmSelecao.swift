@@ -411,10 +411,21 @@ public final class MinhasCandidaturasViewModel {
         }
     }
 
-    private func ler() async {
+    /// Atualização automática: como `atualizar`, mas só com a lista na tela e sem a marca de
+    /// desatualizada se falhar (a lista fica como estava, em silêncio). Com leitura em voo, não faz
+    /// nada: ela traz o que há.
+    public func atualizarEmSilencio() async {
+        guard case .carregadas = estado, !lendo else { return }
+        await ler(silenciosa: true)
+    }
+
+    private func ler(silenciosa: Bool = false) async {
         lendo = true
         defer { lendo = false }
+        // Só a primeira volta pode ser silenciosa: a repetição é sempre a pedido de `atualizar`.
+        var silenciosa = silenciosa
         repeat {
+            defer { silenciosa = false }
             releituraPedida = false
             if case .carregadas = estado {} else { estado = .carregando }
             do {
@@ -436,7 +447,7 @@ public final class MinhasCandidaturasViewModel {
                     return
                 }
                 if case .carregadas = estado {
-                    desatualizada = true
+                    if !silenciosa { desatualizada = true }
                 } else {
                     estado = (error as? ErroDaApi)?.codigo == .semRede ? .semConexao : .falha
                 }
@@ -466,6 +477,7 @@ public struct TelaMinhasCandidaturas: View {
         .navigationTitle(Text(verbatim: Textos.titulo))
         .refreshable { await viewModel.atualizar() }
         .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
+        .atualizacaoAutomatica(.minhasCandidaturas, recarregar: viewModel.atualizarEmSilencio)
         .accessibilityIdentifier("tela-minhas-candidaturas")
     }
 
