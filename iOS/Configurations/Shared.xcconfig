@@ -1,4 +1,6 @@
 FRILA_BUNDLE_ID = com.frila.org.app
+// Nome sob o ícone. O Beta sobrescreve para "Frila Beta" (Beta.xcconfig); o Prod fica "Frila".
+FRILA_BUNDLE_DISPLAY_NAME = Frila
 FRILA_APP_STORE_URL = https:/$()/apps.apple.com/app/id6815311991
 
 // App Group e Bundle ID da extensão de notificação (#253, h6RoObK6):

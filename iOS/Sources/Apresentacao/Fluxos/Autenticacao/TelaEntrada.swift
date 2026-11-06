@@ -100,6 +100,10 @@ public struct TelaEntrada: View {
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .multilineTextAlignment(.leading)
                             .accessibilityIdentifier("entrada-classificacao-indicativa")
+
+                        #if FRILA_BETA
+                        SeloBeta()
+                        #endif
                     }
                 }
                 .frame(minHeight: max(0, geometry.size.height - FrilaEspaco.grande * 2), alignment: .top)
@@ -133,7 +137,7 @@ public struct TelaEntrada: View {
             .padding(.vertical, FrilaEspaco.compacto)
         }
         .frilaKeyboardDismissScope()
-        #if FRILA_DESIGN
+        #if DEBUG || FRILA_BETA
         .exemploDebugEntrada()
         #endif
     }
