@@ -370,4 +370,52 @@ class VerificacaoIdentidadeViewModelTest {
 
         assertTrue(chamadas.isEmpty())
     }
+
+    private fun VerificacaoIdentidadeViewModel.chamarOnCleared() {
+        VerificacaoIdentidadeViewModel::class.java.getDeclaredMethod("onCleared")
+            .apply { isAccessible = true }
+            .invoke(this)
+    }
+
+    @Test
+    fun `bytes das evidencias ficam zerados em memoria depois do envio com sucesso`() = runBlocking {
+        val lidos = mutableListOf<ByteArray>()
+        val vm = viewModel(lerBytes = { _, _ -> byteArrayOf(1, 2, 3).also(lidos::add) }, manipulador = fluxoFeliz())
+        vm.prepararEnvio()
+        assertEquals(3, lidos.size)
+        assertTrue(lidos.all { arr -> arr.any { it != 0.toByte() } })
+
+        vm.enviar()!!.join()
+
+        assertEquals(StatusEnvioVerificacao.SUCESSO, vm.estado.value.envio)
+        assertTrue(lidos.all { arr -> arr.all { it == 0.toByte() } })
+    }
+
+    @Test
+    fun `bytes das evidencias ficam zerados quando a tela sai`() = runBlocking {
+        val lidos = mutableListOf<ByteArray>()
+        val vm = viewModel(lerBytes = { _, _ -> byteArrayOf(1, 2, 3).also(lidos::add) }, manipulador = fluxoFeliz())
+        vm.prepararEnvio()
+        assertTrue(lidos.all { arr -> arr.any { it != 0.toByte() } })
+
+        vm.chamarOnCleared()
+
+        assertEquals(3, lidos.size)
+        assertTrue(lidos.all { arr -> arr.all { it == 0.toByte() } })
+    }
+
+    @Test
+    fun `bytes sao mantidos apos erro de envio para a nova tentativa`() = runBlocking {
+        val lidos = mutableListOf<ByteArray>()
+        val vm = viewModel(lerBytes = { _, _ -> byteArrayOf(1, 2, 3).also(lidos::add) }) { request ->
+            if (request.url.encodedPath.endsWith("minha_identidade_status")) resposta(HttpStatusCode.OK, status("nao_exigida"))
+            else throw IOException("caiu")
+        }
+        vm.prepararEnvio()
+
+        vm.enviar()!!.join()
+
+        assertEquals(StatusEnvioVerificacao.ERRO, vm.estado.value.envio)
+        assertTrue(lidos.all { arr -> arr.any { it != 0.toByte() } })
+    }
 }

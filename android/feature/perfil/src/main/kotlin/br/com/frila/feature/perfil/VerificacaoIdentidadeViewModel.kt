@@ -43,8 +43,13 @@ class VerificacaoIdentidadeViewModel(
     private val _estado = MutableStateFlow(EstadoVerificacaoIdentidade())
     val estado: StateFlow<EstadoVerificacaoIdentidade> = _estado.asStateFlow()
 
-    /** RN15: bytes das imagens só em memória; zerados no envio com sucesso e em [onCleared]. */
+    /** RN15: bytes das imagens só em memória; descartados e zerados fisicamente no envio com sucesso e em [onCleared]. */
     private val evidencias = mutableMapOf<TipoParteEvidencia, ByteArray>()
+
+    private fun descartarEvidencias() {
+        evidencias.values.forEach { it.fill(0) }
+        evidencias.clear()
+    }
 
     /** Só lê o estado. Nada de biometria sai do aparelho antes do consentimento (ver [enviar]). */
     fun carregar(): Job {
@@ -121,7 +126,7 @@ class VerificacaoIdentidadeViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val verificacao = repositorio.enviarEvidencias(documento, partes, consentimento)
-                evidencias.clear()
+                descartarEvidencias()
                 _estado.update {
                     it.copy(
                         verificacao = verificacao,
@@ -145,7 +150,7 @@ class VerificacaoIdentidadeViewModel(
     }
 
     override fun onCleared() {
-        evidencias.clear()
+        descartarEvidencias()
     }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
