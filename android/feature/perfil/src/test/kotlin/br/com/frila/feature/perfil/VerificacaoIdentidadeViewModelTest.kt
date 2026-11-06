@@ -287,4 +287,87 @@ class VerificacaoIdentidadeViewModelTest {
         assertEquals(VerificacaoIdentidadeViewModel.MENSAGEM_IMAGEM_INVALIDA, vm.estado.value.mensagemErro)
         assertTrue(vm.estado.value.partesEscolhidas.isEmpty())
     }
+
+    @Test
+    fun `carregar com resposta nao JSON do gateway sai do carregando com mensagem generica`() = runBlocking {
+        val html = "<html><body>502 proxy interno 10.0.0.7</body></html>"
+        val vm = viewModel {
+            respond(html, HttpStatusCode.NotFound, headersOf(HttpHeaders.ContentType, "text/html"))
+        }
+
+        vm.carregar().join()
+
+        assertEquals(StatusCargaVerificacao.ERRO, vm.estado.value.carga)
+        val mensagem = vm.estado.value.mensagemErro
+        assertNotNull(mensagem)
+        assertFalse(mensagem!!.contains("proxy"))
+        assertFalse(mensagem.contains("<html"))
+    }
+
+    @Test
+    fun `enviar com JSON de campo ausente sai do enviando com mensagem generica e permite tentar de novo`() = runBlocking {
+        val vm = viewModel { request ->
+            val caminho = request.url.encodedPath
+            when {
+                caminho.endsWith("minha_identidade_status") -> resposta(HttpStatusCode.OK, status("nao_exigida"))
+                caminho.endsWith("solicitar_upload_verificacao") -> resposta(HttpStatusCode.OK, """{"expira_em":"2026-11-06T14:00:00Z"}""")
+                else -> resposta(HttpStatusCode.OK, "{}")
+            }
+        }
+        vm.prepararEnvio()
+
+        vm.enviar()!!.join()
+
+        assertEquals(StatusEnvioVerificacao.ERRO, vm.estado.value.envio)
+        assertEquals(
+            "Não foi possível concluir a verificação. Tente de novo em instantes.",
+            vm.estado.value.mensagemErro,
+        )
+        assertTrue(vm.estado.value.podeEnviar)
+    }
+
+    @Test
+    fun `enviar com resposta nao JSON na confirmacao sai do enviando`() = runBlocking {
+        val vm = viewModel { request ->
+            val caminho = request.url.encodedPath
+            when {
+                caminho.endsWith("minha_identidade_status") -> resposta(HttpStatusCode.OK, status("nao_exigida"))
+                caminho.endsWith("solicitar_upload_verificacao") -> resposta(HttpStatusCode.OK, uploadTresPartes)
+                caminho.endsWith("confirmar_envio_verificacao") ->
+                    respond("<html>erro</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html"))
+                else -> resposta(HttpStatusCode.OK, "{}")
+            }
+        }
+        vm.prepararEnvio()
+
+        vm.enviar()!!.join()
+
+        assertEquals(StatusEnvioVerificacao.ERRO, vm.estado.value.envio)
+        assertFalse(vm.estado.value.mensagemErro!!.contains("html"))
+    }
+
+    @Test
+    fun `depois de enviar com sucesso nao reenvia sem nova escolha das imagens`() = runBlocking {
+        val chamadas = mutableListOf<String>()
+        val vm = viewModel(chamadas) { request ->
+            val caminho = request.url.encodedPath
+            when {
+                caminho.endsWith("minha_identidade_status") -> resposta(HttpStatusCode.OK, status("nao_exigida"))
+                caminho.endsWith("solicitar_upload_verificacao") -> resposta(HttpStatusCode.OK, uploadTresPartes)
+                // Rejeitada reabre a elegibilidade: isola a guarda das imagens, não a do status.
+                caminho.endsWith("confirmar_envio_verificacao") -> resposta(HttpStatusCode.OK, status("rejeitada"))
+                else -> resposta(HttpStatusCode.OK, "{}")
+            }
+        }
+        vm.prepararEnvio()
+        vm.enviar()!!.join()
+        assertTrue(vm.estado.value.podeSolicitar)
+        chamadas.clear()
+
+        assertNull(vm.enviar())
+        vm.escolherParte(contexto, TipoParteEvidencia.SELFIE, uri).join()
+        assertNull(vm.enviar())
+
+        assertTrue(chamadas.isEmpty())
+    }
 }

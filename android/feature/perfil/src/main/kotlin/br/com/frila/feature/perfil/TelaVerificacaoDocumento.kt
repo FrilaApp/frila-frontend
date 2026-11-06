@@ -294,10 +294,14 @@ private fun LinhaDeParte(parte: TipoParteEvidencia, escolhida: Boolean, aoEscolh
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            val acao = if (escolhida) TextosVerificacaoDocumento.TROCAR else TextosVerificacaoDocumento.ESCOLHER
             BotaoSecundario(
-                texto = if (escolhida) TextosVerificacaoDocumento.TROCAR else TextosVerificacaoDocumento.ESCOLHER,
+                texto = acao,
                 aoClicar = aoEscolher,
-                modifier = Modifier.testTag("escolher-${parte.name.lowercase()}"),
+                modifier = Modifier
+                    // O texto visível é igual nas três linhas; o leitor de tela precisa saber a parte.
+                    .semantics { contentDescription = "$acao: ${TextosVerificacaoDocumento.rotuloParte(parte)}" }
+                    .testTag("escolher-${parte.name.lowercase()}"),
             )
         }
     }

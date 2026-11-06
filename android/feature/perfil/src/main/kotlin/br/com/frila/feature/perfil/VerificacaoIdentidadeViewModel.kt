@@ -59,6 +59,12 @@ class VerificacaoIdentidadeViewModel(
                 _estado.update {
                     it.copy(carga = StatusCargaVerificacao.ERRO, mensagemErro = mensagemDeErro(erro))
                 }
+            } catch (_: Exception) {
+                // Corpo não-JSON de gateway ou campo ausente escapam do ErroDaApi; sem isto a tela
+                // ficaria em CARREGANDO para sempre. A mensagem nunca carrega o corpo cru (RN15).
+                _estado.update {
+                    it.copy(carga = StatusCargaVerificacao.ERRO, mensagemErro = MENSAGEM_GENERICA_CARGA)
+                }
             }
         }
     }
@@ -129,6 +135,11 @@ class VerificacaoIdentidadeViewModel(
                 _estado.update {
                     it.copy(envio = StatusEnvioVerificacao.ERRO, mensagemErro = mensagemDeErro(erro))
                 }
+            } catch (_: Exception) {
+                // Mesma razão do `carregar`: sem isto o envio ficaria em ENVIANDO e o botão travado.
+                _estado.update {
+                    it.copy(envio = StatusEnvioVerificacao.ERRO, mensagemErro = MENSAGEM_GENERICA_ENVIO)
+                }
             }
         }
     }
@@ -150,7 +161,7 @@ class VerificacaoIdentidadeViewModel(
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
         CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre de novo."
         CodigoErroAPI.SEM_PERMISSAO -> "Esta conta não pode pedir a verificação."
-        else -> "Não foi possível concluir a verificação. Tente de novo em instantes."
+        else -> MENSAGEM_GENERICA_ENVIO
     }
 
     private fun rotuloDaParte(parte: String?): String = when (parte) {
@@ -163,6 +174,8 @@ class VerificacaoIdentidadeViewModel(
     companion object {
         /** Contrato `UploadVerificacao`: até 5 MB por arquivo. */
         const val LIMITE_BYTES = 5 * 1024 * 1024
+        const val MENSAGEM_GENERICA_CARGA = "Não foi possível carregar a verificação. Tente de novo em instantes."
+        const val MENSAGEM_GENERICA_ENVIO = "Não foi possível concluir a verificação. Tente de novo em instantes."
         const val MENSAGEM_IMAGEM_INVALIDA =
             "Não foi possível usar esta imagem. Escolha uma foto de até 5 MB."
     }

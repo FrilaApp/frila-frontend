@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -159,6 +160,28 @@ class TelaVerificacaoDocumentoTest {
 
         rule.onNodeWithText("Motivo: Foto ilegível", substring = true).assertIsDisplayed()
         rule.onNodeWithTag("verificacao-enviar").performScrollTo().assertIsDisplayed()
+        AuditoriaSemanticaAcessibilidade.assertSemanticaValida(rule.onRoot().fetchSemanticsNode())
+    }
+
+    @Test
+    fun `botoes de foto dizem a parte para o leitor de tela e mudam para trocar depois de escolher`() {
+        val vm = criarViewModel(corpo = statusJson("nao_exigida"))
+        vm.confirmarConsentimento()
+        mostrar(vm)
+        esperarTag("verificacao-enviar")
+
+        TipoParteEvidencia.entries.forEach { parte ->
+            rule.onNodeWithContentDescription(
+                "Escolher foto: ${TextosVerificacaoDocumento.rotuloParte(parte)}",
+            ).performScrollTo().assertIsDisplayed()
+        }
+
+        runBlocking { vm.escolherParte(contexto, TipoParteEvidencia.SELFIE, uri).join() }
+        rule.waitUntil(5_000) { TipoParteEvidencia.SELFIE in vm.estado.value.partesEscolhidas }
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Trocar foto: Selfie").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("Escolher foto: Frente do documento").assertIsDisplayed()
         AuditoriaSemanticaAcessibilidade.assertSemanticaValida(rule.onRoot().fetchSemanticsNode())
     }
 
