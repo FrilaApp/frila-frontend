@@ -315,4 +315,52 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(vaga.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(vaga.label.contains("Ana Cunha"))
     }
+
+    func testBloqueiosListaEDesbloqueiaPeloPerfil() {
+        let app = abrirVaga()
+        abrirPerfil(app)
+        let bloquear = app.buttons["bloquear"]
+        trazerParaATela(bloquear, em: app)
+        bloquear.tap()
+        app.alerts.buttons["confirmar-bloqueio"].firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: Espera.aparecer))
+
+        // Volta ao detalhe da vaga e à lista de vagas
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-nao-encontrada"].waitForExistence(timeout: Espera.aparecer))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertFalse(app.buttons["vaga-40000000-0000-0000-0000-000000000001"].exists)
+
+        // Abre a aba Conta e vai para a tela de bloqueios
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: Espera.aparecer))
+        abaConta.tap()
+
+        let linkBloqueios = app.buttons["perfil-bloqueios"]
+        trazerParaATela(linkBloqueios, em: app)
+        XCTAssertTrue(linkBloqueios.waitForExistence(timeout: Espera.aparecer))
+        linkBloqueios.tap()
+
+        // Confere que a tela de bloqueios abriu com o item bloqueado
+        XCTAssertTrue(app.descendants(matching: .any)["tela-bloqueios"].waitForExistence(timeout: Espera.aparecer))
+        let botaoDesbloquear = app.buttons["desbloquear-30000000-0000-0000-0000-000000000001"]
+        trazerParaATela(botaoDesbloquear, em: app)
+        XCTAssertTrue(botaoDesbloquear.waitForExistence(timeout: Espera.aparecer))
+
+        // Desbloqueia com confirmação
+        botaoDesbloquear.tap()
+        let confirmar = app.alerts.buttons["confirmar-desbloqueio"].firstMatch
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
+        confirmar.tap()
+
+        // Confere que agora está no estado vazio
+        XCTAssertTrue(app.descendants(matching: .any)["bloqueios-vazio"].waitForExistence(timeout: Espera.aparecer))
+
+        // Volta para Meu Perfil e para a aba de Vagas: a vaga reaparece no feed
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let abaVagas = app.tabBars.buttons["Vagas no DF"]
+        XCTAssertTrue(abaVagas.waitForExistence(timeout: Espera.aparecer))
+        abaVagas.tap()
+        XCTAssertTrue(app.buttons["vaga-40000000-0000-0000-0000-000000000001"].waitForExistence(timeout: Espera.aparecer))
+    }
 }
