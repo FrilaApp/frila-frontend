@@ -30,6 +30,7 @@ public struct FrilaMapaComAcao: View {
             PreviaMapaReal(ponto: ponto)
                 .frame(height: Self.alturaPrevia)
                 .frame(maxHeight: .infinity, alignment: .top)
+                .accessibilityIdentifier("previa-do-mapa")
 
             Button(action: abrirMapa) {
                 VStack(spacing: 0) {
@@ -55,6 +56,8 @@ public struct FrilaMapaComAcao: View {
             .accessibilityIdentifier("abrir-no-mapa")
         }
         .frame(height: Self.alturaPrevia + Self.alturaBotao)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("bloco-mapa-com-acao")
         .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)

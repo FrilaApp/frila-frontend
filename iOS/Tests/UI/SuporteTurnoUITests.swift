@@ -52,7 +52,7 @@ final class SuporteTurnoUITests: XCTestCase {
 
         let botaoCopiar = app.descendants(matching: .any)["botao-copiar-dados-suporte"]
         XCTAssertTrue(botaoCopiar.waitForExistence(timeout: Espera.aparecer), "Botão para copiar dados deve estar presente")
-        if !botaoCopiar.isHittable {
+        for _ in 0..<3 where !botaoCopiar.isHittable {
             app.swipeUp()
         }
         tocarFechandoTeclado(botaoCopiar, em: app)

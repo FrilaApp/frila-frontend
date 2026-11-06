@@ -51,7 +51,9 @@ ficam em `Docs/Enxertos/FrilaLowPhase/` (`DESIGN.md`, `REGRAS-DE-DESIGN.md`, `de
   escala), nunca em disco. Carregando: fundo `FrilaCor.controle`, mesmas dimensões. Falha: "Prévia indisponível"
   no mesmo fundo, sem desenho inventado. Botão de 30 pt de altura visual (`alturaBotao = 30`) com área de toque de 44 pt (`alvoMinimoToque = 44`, `EstiloBotaoTatil(alturaMinima: 44)` e escala 1), fundo `mapActionBackground` (#090908), ícone `map` branco de 14 pt e rótulo semibold 15 pt branco.
   Só o botão é tocável; ele abre o Apple Maps na coordenada da prévia, com nome e endereço como rótulo
-  (`DestinoDoMapaDaVaga`). Bloco de 132 pt.
+  (`DestinoDoMapaDaVaga`). Bloco de 132 pt. Em 06/11/2026, a calibração de 44 pt da área de toque (`alvoMinimoToque`)
+  atende a `AcessibilidadeDoCatalogoUITests` sem exceções de portão, enquanto `DetalheVagaBarraInferiorUITests` valida
+  a área de 44 pt e o bloco de 132 pt (altura visual de 30 pt).
 - Alvo interativo mínimo: 44 × 44 pt (`FrilaMetrica.alvoMinimo`, `FrilaGeometry.hitboxMinimum`).
 - Tipografia (`FrilaTipo` ↔ `FrilaTypography`/`FrilaFormType`): SF Pro pelos estilos semânticos, com Dynamic Type.
   Bricolage Grotesque só nas perguntas e respostas dos formulários (`pergunta`, `respostaEscolhida`,

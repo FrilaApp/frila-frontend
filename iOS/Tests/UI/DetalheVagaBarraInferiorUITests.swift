@@ -44,8 +44,15 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         let app = abrirDetalhe(horario: "amanha-23h30", modoEscuro: false)
         let botao = app.buttons["abrir-no-mapa"]
         XCTAssertTrue(botao.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(botao.frame.height, 30, accuracy: 1, "o botão do mapa mede 30 pt")
+        // Alvo de toque e frame de acessibilidade calibrado em 44 pt (Apple HIG / WCAG)
+        XCTAssertEqual(botao.frame.height, 44, accuracy: 1, "o alvo de toque do botão do mapa mede 44 pt")
         XCTAssertGreaterThan(botao.frame.width, 300)
+
+        // O bloco total mede 132 pt (prévia de 102 pt + botão visual de 30 pt colado embaixo)
+        let bloco = app.descendants(matching: .any)["bloco-mapa-com-acao"]
+        if bloco.waitForExistence(timeout: Espera.aparecer) {
+            XCTAssertEqual(bloco.frame.height, 132, accuracy: 2, "o bloco do mapa mede 132 pt (102 pt prévia + 30 pt botão visual)")
+        }
     }
 
     private func abrirFeed(modoEscuro: Bool) -> XCUIApplication {
