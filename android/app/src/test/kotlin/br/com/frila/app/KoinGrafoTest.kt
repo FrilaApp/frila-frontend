@@ -29,6 +29,7 @@ import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
@@ -119,6 +120,7 @@ class KoinGrafoTest : KoinTest {
         propriedadeCache.isAccessible = true
         assertInstanceOf(RepositorioVagas::class.java, propriedadeCache.get(feed))
         assertNotNull(get<PerfilViewModel>())
+        assertNotNull(get<VerificacaoIdentidadeViewModel>())
         assertNotNull(get<MonitorizadorDeTurnosProximos>())
         assertNotNull(get<MeusTurnosViewModel>())
         assertNotNull(get<CodigoViewModel> { parametersOf("profissional@exemplo.com") })

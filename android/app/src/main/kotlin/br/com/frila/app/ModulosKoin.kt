@@ -23,6 +23,8 @@ import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.ServicoVerificacaoIdentidade
+import br.com.frila.core.rede.RepositorioVerificacaoIdentidade
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
@@ -39,6 +41,7 @@ import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
@@ -118,6 +121,8 @@ val moduloRede = module {
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoVerificacaoIdentidade { get<GestorClienteKtor>().clienteAtual } }
+    single { RepositorioVerificacaoIdentidade(get()) }
 }
 
 val moduloNotificacoes = module {
@@ -163,6 +168,7 @@ val moduloFeatures = module {
     }
     viewModel { AvaliacaoViewModel(get()) }
     viewModel { PerfilViewModel(get(), get(), get(), preferenciasNotificacao = get()) }
+    viewModel { VerificacaoIdentidadeViewModel(get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
 }
 
