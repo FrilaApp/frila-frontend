@@ -1,6 +1,6 @@
 # Integração contínua
 
-O workflow `.github/workflows/ios.yml` roda em pull requests e pushes que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 90 minutos por job. Um push novo cancela a execução anterior do mesmo PR ou branch. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
+O workflow `.github/workflows/ios.yml` roda em pull requests e pushes que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 120 minutos por job. Um push novo cancela a execução anterior do mesmo PR ou branch. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
 
 ## Duas partes
 
@@ -28,7 +28,12 @@ Em 02/11/2026 (Cartão 344), após análise detalhada dos tempos por passo em ex
 Como a Parte 2 executa de 16 a 20 min de compilações de Release (Dev, Beta, Prod) em PRs com código, transferir mais de 7 min para ela aproximaria o job de Release dos 105 min. Portanto, transferiram-se 6,5 min de testes da Parte 1 para a Parte 2 (`CancelamentoDoProfissionalUITests` 3,6 min e `ModoSelecaoDoProfissionalUITests` 2,9 min). As projeções estimadas indicam:
 - No cenário com Release: Parte 1 estimada em ~81,5 min e Parte 2 em ~97,2 min (margem de ~7,8 min sob o teto de 105 min).
 - No Run 41322412132 (retries e latência): Parte 1 estimada em ~91,1 min e Parte 2 em ~92,1 min (margem de ~12,9 min sob o teto).
-Avaliação de capacidade: com a suíte somando >127 min de testes de UI e 1.322 testes unitários, o teto físico do particionamento em 2 jobs está próximo do limite nos runners macOS; caso novos fluxos sejam adicionados na v1.1, a elevação do timeout para 120 min ou a transição para 3 jobs paralelos será recomendada.
+Avaliação de capacidade: com a suíte somando >127 min de testes de UI e 1.322 testes unitários, o teto físico do particionamento em 2 jobs estava próximo do limite nos runners macOS. Em 06/11/2026, com o crescimento da suíte (>140 min de UI e novos fluxos de mapa/endereço), o timeout de ambos os jobs (`parte-1` e `parte-2`) foi elevado de 105 para 120 minutos.
+
+Em 06/11/2026, investigação dos cancelamentos por timeout (~1h46m) no agendado da `main` (run 42226970850) e nos PRs #682 e #685 revelou que a Parte 1 sofria um loop de retries de 53,6 minutos no teste `AcessibilidadeDoCatalogoUITests.testTodoControleTemRotuloEAlvoMinimoEmAX5`:
+- O componente `FrilaMapaComAcao` (introduzido no commit `8a4842a47`) usa um botão de 30 pt acoplado à prévia de 102 pt, constituindo exceção formal de design system (`DesignSystem.md:43`, `LOG-001:158`). O teste genérico de acessibilidade não possuía isenção para esse identificador/rótulo (`abrir-no-mapa`), falhando com "alvo 338×30 pt: Abrir no mapa" e forçando 3 iterações completas de 16 a 20 minutos cada;
+- O teste foi ajustado com a isenção documentada, eliminando as repetições e reduzindo a Parte 1 em mais de 50 minutos de execução espúria;
+- Em `FluxoDoContratanteUITests.testPrimeiroAcessoComFilaNulaSalvaEstabelecimentoEAbreMinhasVagasEmAX5`, foi adicionado `app.swipeUp()` em categoria AX5 para estabilizar o foco em `entrada-email` sob a barra inferior (mesmo padrão adotado no PR #683).
 
 Cada parte compila o seu `build-for-testing`. A alternativa medida foi compilar uma vez e repassar os produtos às partes como artefato:
 - os produtos têm 218 MB, ou 56 MB zipados (medido localmente);

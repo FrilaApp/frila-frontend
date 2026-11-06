@@ -211,6 +211,9 @@ final class FluxoDoContratanteUITests: XCTestCase {
 
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
+        if categoria == "UICTContentSizeCategoryAccessibilityXXXL" {
+            app.swipeUp()
+        }
         email.tap()
         email.digitarEEsperar("contratante@frila.app")
         tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
