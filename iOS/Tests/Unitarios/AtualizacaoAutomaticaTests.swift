@@ -49,6 +49,25 @@ private final class RecargaSegura {
     }
 }
 
+@MainActor
+private final class Contagem {
+    var vezes = 0
+}
+
+/// A pausa do intervalo curto do push, sem esperar de verdade: anota e avança o relógio.
+private final class Esperas: @unchecked Sendable {
+    private let trava = NSLock()
+    private var _pedidas: [TimeInterval] = []
+    private let relogio: RelogioAjustavel
+    init(relogio: RelogioAjustavel) { self.relogio = relogio }
+    var pedidas: [TimeInterval] { trava.withLock { _pedidas } }
+
+    func esperar(_ segundos: TimeInterval) async {
+        trava.withLock { _pedidas.append(segundos) }
+        relogio.avancar(segundos)
+    }
+}
+
 @Suite("Atualização automática das listas: a regra")
 struct ControleDaAtualizacaoTests {
     private func controleComSessao() -> ControleDaAtualizacao {
@@ -60,7 +79,7 @@ struct ControleDaAtualizacaoTests {
     @Test("Sem sessão nenhum pedido passa, e o aviso de push não conta")
     func semSessao() {
         var controle = ControleDaAtualizacao(intervaloMinimo: 30)
-        do { let passou = controle.pedir(.vagas, em: inicio); #expect(!passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou == .ignorar) }
         controle.avisoChegou()
         #expect(controle.avisos == 0)
         #expect(!controle.emVoo(.vagas))
@@ -69,38 +88,38 @@ struct ControleDaAtualizacaoTests {
     @Test("Intervalo mínimo entre recargas da mesma lista, contado do fim da anterior")
     func intervaloMinimo() {
         var controle = controleComSessao()
-        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou) }
-        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(2)); #expect(!passou) }
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(20)); #expect(!passou) }
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(31)); #expect(!passou) }
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(32)); #expect(passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou == .recarregar) }
+        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(2)); #expect(passou == .ignorar) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(20)); #expect(passou == .ignorar) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(31)); #expect(passou == .ignorar) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(32)); #expect(passou == .recarregar) }
     }
 
     @Test("A carga da própria tela conta como recarga para o intervalo")
     func cargaDaTela() {
         var controle = controleComSessao()
         controle.registrarCarga(.meusTurnos, em: inicio)
-        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(10)); #expect(!passou) }
-        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(30)); #expect(passou) }
+        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(10)); #expect(passou == .ignorar) }
+        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(30)); #expect(passou == .recarregar) }
     }
 
     @Test("Com uma recarga em voo, o segundo pedido da mesma lista não abre outra")
     func naoReentrante() {
         var controle = controleComSessao()
-        do { let passou = controle.pedir(.minhasVagas, em: inicio); #expect(passou) }
+        do { let passou = controle.pedir(.minhasVagas, em: inicio); #expect(passou == .recarregar) }
         #expect(controle.emVoo(.minhasVagas))
-        do { let passou = controle.pedir(.minhasVagas, em: inicio.addingTimeInterval(60)); #expect(!passou) }
-        do { let passou = controle.concluir(.minhasVagas, em: inicio.addingTimeInterval(61)); #expect(!passou) }
+        do { let passou = controle.pedir(.minhasVagas, em: inicio.addingTimeInterval(60)); #expect(passou == .ignorar) }
+        do { let passou = controle.concluir(.minhasVagas, em: inicio.addingTimeInterval(61)); #expect(passou == .ignorar) }
         #expect(!controle.emVoo(.minhasVagas))
     }
 
     @Test("Cada lista tem a própria vez e o próprio intervalo")
     func listasIndependentes() {
         var controle = controleComSessao()
-        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou) }
-        do { let passou = controle.pedir(.minhasCandidaturas, em: inicio); #expect(passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou == .recarregar) }
+        do { let passou = controle.pedir(.minhasCandidaturas, em: inicio); #expect(passou == .recarregar) }
         _ = controle.concluir(.vagas, em: inicio)
-        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(1)); #expect(passou) }
+        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(1)); #expect(passou == .recarregar) }
     }
 
     @Test("O aviso de push passa por cima do intervalo, uma vez por aviso")
@@ -108,24 +127,65 @@ struct ControleDaAtualizacaoTests {
         var controle = controleComSessao()
         controle.registrarCarga(.vagas, em: inicio)
         controle.avisoChegou()
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(5)); #expect(passou) }
-        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(6)); #expect(!passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(5)); #expect(passou == .recarregar) }
+        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(6)); #expect(passou == .ignorar) }
         // O mesmo aviso, já atendido, não fura de novo.
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(7)); #expect(!passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(7)); #expect(passou == .ignorar) }
     }
 
-    @Test("Aviso que chega com a recarga em voo faz a lista ser lida mais uma vez, e só uma")
+    @Test("Aviso que chega com a recarga em voo faz a lista ser lida mais uma vez, e só uma, depois dos 3 s")
     func avisoDuranteVoo() {
         var controle = controleComSessao()
-        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou == .recarregar) }
         controle.avisoChegou()
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(!passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(passou == .ignorar) }
         controle.avisoChegou()
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(!passou) }
-        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(2)); #expect(passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(passou == .ignorar) }
+        // A repetição não sai colada na recarga que acabou: espera o intervalo curto do push.
+        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(2)); #expect(passou == .esperar(3)) }
         #expect(controle.emVoo(.vagas))
-        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(3)); #expect(!passou) }
+        do { let passou = controle.retomar(.vagas, em: inicio.addingTimeInterval(5)); #expect(passou == .recarregar) }
+        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(6)); #expect(passou == .ignorar) }
         #expect(!controle.emVoo(.vagas))
+    }
+
+    @Test("Rajada de pushes logo depois de uma recarga: no máximo uma releitura a cada 3 s")
+    func rajadaDePushes() {
+        var controle = controleComSessao()
+        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou == .recarregar) }
+        do { let passou = controle.concluir(.vagas, em: inicio); #expect(passou == .ignorar) }
+
+        // Primeiro push, 1 s depois: passa por cima dos 30 s, mas espera o que falta dos 3 s.
+        controle.avisoChegou()
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(passou == .esperar(2)) }
+        #expect(controle.emVoo(.vagas))
+        // Mais pushes durante a espera: nenhum abre outra recarga nem outra espera.
+        for _ in 0..<4 {
+            controle.avisoChegou()
+            let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(2))
+            #expect(passou == .ignorar)
+        }
+        // Retomar cedo demais espera o resto.
+        do { let passou = controle.retomar(.vagas, em: inicio.addingTimeInterval(2.5)); #expect(passou == .esperar(0.5)) }
+        // A releitura que sai atende todos os avisos da rajada: ao concluir, nada de repetição.
+        do { let passou = controle.retomar(.vagas, em: inicio.addingTimeInterval(3)); #expect(passou == .recarregar) }
+        do { let passou = controle.concluir(.vagas, em: inicio.addingTimeInterval(4)); #expect(passou == .ignorar) }
+        #expect(!controle.emVoo(.vagas))
+        // Um push novo 1 s depois espera de novo os 3 s; não relê colado.
+        controle.avisoChegou()
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(5)); #expect(passou == .esperar(2)) }
+    }
+
+    @Test("Saída da tela durante a espera do push libera a vez")
+    func desistirNaEspera() {
+        var controle = controleComSessao()
+        controle.registrarCarga(.minhasVagas, em: inicio)
+        controle.avisoChegou()
+        do { let passou = controle.pedir(.minhasVagas, em: inicio.addingTimeInterval(1)); #expect(passou == .esperar(2)) }
+        controle.desistir(.minhasVagas)
+        #expect(!controle.emVoo(.minhasVagas))
+        // O aviso continua sem atender: na volta da tela, relê.
+        do { let passou = controle.pedir(.minhasVagas, em: inicio.addingTimeInterval(2)); #expect(passou == .recarregar) }
     }
 
     @Test("A lista escondida atende o aviso quando volta a pedir, mesmo dentro do intervalo")
@@ -134,27 +194,27 @@ struct ControleDaAtualizacaoTests {
         controle.registrarCarga(.meusTurnos, em: inicio)
         controle.avisoChegou()
         // Nenhum pedido enquanto escondida; ao reaparecer, 10 s depois:
-        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(10)); #expect(passou) }
+        do { let passou = controle.pedir(.meusTurnos, em: inicio.addingTimeInterval(10)); #expect(passou == .recarregar) }
     }
 
     @Test("Troca de conta esquece os intervalos da anterior; sair corta os pedidos")
     func trocaDeSessao() {
         var controle = controleComSessao()
-        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio); #expect(passou == .recarregar) }
         _ = controle.concluir(.vagas, em: inicio)
         controle.mudarSessao(ativa: false)
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(100)); #expect(!passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(100)); #expect(passou == .ignorar) }
         controle.mudarSessao(ativa: true)
-        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(passou) }
+        do { let passou = controle.pedir(.vagas, em: inicio.addingTimeInterval(1)); #expect(passou == .recarregar) }
     }
 
     @Test("Recarga cancelada libera a vez e não conta para o intervalo")
     func desistir() {
         var controle = controleComSessao()
-        do { let passou = controle.pedir(.equipeDeConfianca, em: inicio); #expect(passou) }
+        do { let passou = controle.pedir(.equipeDeConfianca, em: inicio); #expect(passou == .recarregar) }
         controle.desistir(.equipeDeConfianca)
         #expect(!controle.emVoo(.equipeDeConfianca))
-        do { let passou = controle.pedir(.equipeDeConfianca, em: inicio.addingTimeInterval(1)); #expect(passou) }
+        do { let passou = controle.pedir(.equipeDeConfianca, em: inicio.addingTimeInterval(1)); #expect(passou == .recarregar) }
     }
 }
 
@@ -200,9 +260,11 @@ struct AtualizacaoAutomaticaTests {
         #expect(depois == 1)
     }
 
-    @Test("Push com a recarga em voo: a lista é lida de novo quando ela volta")
+    @Test("Push com a recarga em voo: a lista é lida de novo quando ela volta, depois dos 3 s")
     func pushDuranteRecarga() async {
-        let atualizacao = AtualizacaoAutomatica(relogio: RelogioAjustavel(inicio))
+        let relogio = RelogioAjustavel(inicio)
+        let esperas = Esperas(relogio: relogio)
+        let atualizacao = AtualizacaoAutomatica(relogio: relogio, esperar: esperas.esperar)
         atualizacao.mudarSessao(ativa: true)
         let recarga = RecargaSegura()
 
@@ -218,7 +280,29 @@ struct AtualizacaoAutomaticaTests {
         recarga.soltar()
         await primeira.value
         #expect(recarga.vezes == 2)
+        #expect(esperas.pedidas == [3])
         #expect(!atualizacao.controle.emVoo(.minhasVagas))
+    }
+
+    @Test("Cinco pushes logo depois da carga da tela: uma espera e uma releitura só")
+    func rajadaNoPontoCentral() async {
+        let relogio = RelogioAjustavel(inicio)
+        let esperas = Esperas(relogio: relogio)
+        let atualizacao = AtualizacaoAutomatica(relogio: relogio, esperar: esperas.esperar)
+        atualizacao.mudarSessao(ativa: true)
+        atualizacao.registrarCarga(.vagas)
+        relogio.avancar(1)
+
+        let contagem = Contagem()
+        var pedidos: [Task<Void, Never>] = []
+        for _ in 0..<5 {
+            atualizacao.avisoChegou()
+            pedidos.append(Task { await atualizacao.pedir(.vagas) { contagem.vezes += 1 } })
+        }
+        for pedido in pedidos { await pedido.value }
+        #expect(contagem.vezes == 1)
+        #expect(esperas.pedidas == [2])
+        #expect(!atualizacao.controle.emVoo(.vagas))
     }
 
     @Test("Recarga cancelada (a tela saiu) não segura a próxima")
