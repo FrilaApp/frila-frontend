@@ -328,7 +328,27 @@ private struct EntradaDoApp: View {
         }
     }
 
+    // A cadeia de modificadores da entrada fica numa expressão própria (`conteudoComCicloDeVida`):
+    // juntas, as duas passavam do tempo de checagem de tipos do compilador da CI.
     var body: some View {
+        conteudoComCicloDeVida
+            .environment(atualizacao)
+            // A atualização automática só relê com uma conta dentro de um dos dois fluxos: na entrada,
+            // no cadastro e na conta suspensa nada é pedido. Saída, encerramento e troca de conta
+            // passam por `destinoAtual = nil`, e isso zera os intervalos da conta anterior.
+            .onChange(of: Self.temFluxo(destinoAtual), initial: true) { (_: Bool, ativa: Bool) in
+                atualizacao.mudarSessao(ativa: ativa)
+            }
+    }
+
+    private static func temFluxo(_ destino: DestinoDaConta?) -> Bool {
+        switch destino {
+        case .profissional?, .contratante?: true
+        default: false
+        }
+    }
+
+    private var conteudoComCicloDeVida: some View {
         Group {
             #if DEBUG
             // Entrada isolada para o UI test do cadastro; a entrada por código fará a ligação de produto.
@@ -420,13 +440,6 @@ private struct EntradaDoApp: View {
         }
         #endif
         .environment(permissaoDePush)
-        .environment(atualizacao)
-        // A atualização automática só relê com uma conta dentro de um dos dois fluxos: na entrada,
-        // no cadastro e na conta suspensa nada é pedido. Saída, encerramento e troca de conta passam
-        // por `destinoAtual = nil`, e isso zera os intervalos da conta anterior.
-        .onChange(of: destinoAtual, initial: true) { _, destino in
-            atualizacao.mudarSessao(ativa: destino == .profissional || destino == .contratante)
-        }
         .sheet(isPresented: $permissaoDePush.explicacaoVisivel) {
             TelaExplicacaoDoPush(modelo: permissaoDePush, perfil: destinoAtual == .contratante ? .contratante : .profissional)
         }
