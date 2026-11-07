@@ -158,7 +158,6 @@ public struct TelaPerfilProfissional: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("link-editar-apresentacao")
         }
-        }
         secaoPontoBase
         secaoHorarios
     }

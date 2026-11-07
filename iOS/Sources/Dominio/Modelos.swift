@@ -142,7 +142,7 @@ public enum LevaMaterial: String, Codable, CaseIterable, Sendable {
     case sim, nao, depende
 }
 
-public enum ExperienciaFaixa: String, Codable, Sendable {
+public enum ExperienciaFaixa: String, Codable, CaseIterable, Sendable {
     case menosDe1Ano = "menos_de_1_ano"
     case de1A3Anos = "de_1_a_3_anos"
     case de3A5Anos = "de_3_a_5_anos"
@@ -150,7 +150,7 @@ public enum ExperienciaFaixa: String, Codable, Sendable {
     case maisDe10Anos = "mais_de_10_anos"
 }
 
-public enum Idioma: String, Codable, Sendable {
+public enum Idioma: String, Codable, CaseIterable, Sendable {
     case portugues, ingles, espanhol, libras, outro
 }
 
@@ -315,31 +315,6 @@ public struct PerfilProfissional: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
-public enum ExperienciaFaixa: String, Codable, CaseIterable, Sendable {
-    case menosDe1Ano = "menos_de_1_ano"
-    case de1A3Anos = "de_1_a_3_anos"
-    case de3A5Anos = "de_3_a_5_anos"
-    case de5A10Anos = "de_5_a_10_anos"
-    case maisDe10Anos = "mais_de_10_anos"
-}
-
-public enum Idioma: String, Codable, CaseIterable, Sendable {
-    case portugues
-    case ingles
-    case espanhol
-    case libras
-    case outro
-}
-
-public enum UnidadePreco: String, Codable, CaseIterable, Sendable {
-    case hora, diaria, evento, pacote
-    case porPessoa = "por_pessoa"
-    case aCombinar = "a_combinar"
-}
-
-public enum LevaMaterial: String, Codable, CaseIterable, Sendable {
-    case sim, nao, depende
-}
 
 public struct ApresentacaoDoProfissional: Codable, Hashable, Sendable {
     public var apresentacao: String?
@@ -1396,13 +1371,43 @@ public struct RegistroDeEvento: Codable, Equatable, Sendable {
 
 // MARK: Foto de perfil (contrato 0.2.54, RN37 e RN46)
 
-/// Tipos de mídia do contrato. Nesta versão só `fotoPerfil` está disponível; os outros três são
-/// reservados para a v1.2 e o servidor os recusa com `422 midia_invalida` (`tipo_indisponivel`).
-public enum TipoMidia: String, Codable, CaseIterable, Sendable {
-    case fotoPerfil = "foto_perfil"
-    case fotoTrabalho = "foto_trabalho"
-    case fotoLocal = "foto_local"
-    case curriculo
+/// Tipos de mídia do contrato. Nesta versão só `fotoPerfil` está disponível.
+/// Descartadas galeria e currículo: se vier qualquer outro tipo desconhecido do servidor,
+/// o app tolera e decodifica como `.desconhecido(texto)` sem quebrar.
+public enum TipoMidia: Hashable, Sendable, CaseIterable {
+    case fotoPerfil
+    case desconhecido(String)
+
+    public static var allCases: [TipoMidia] {
+        [.fotoPerfil]
+    }
+
+    public var rawValue: String {
+        switch self {
+        case .fotoPerfil: return "foto_perfil"
+        case .desconhecido(let texto): return texto
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "foto_perfil": self = .fotoPerfil
+        default: self = .desconhecido(rawValue)
+        }
+    }
+}
+
+extension TipoMidia: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let texto = try container.decode(String.self)
+        self.init(rawValue: texto)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 /// `enviando` → `em_analise` → `aprovada`, `recusada` ou `nao_publicada` (a análise falhou 4 vezes);

@@ -45,6 +45,9 @@ final class FotoDePerfilUITests: XCTestCase {
     @MainActor
     func testSemFotoOfereceEscolher() {
         let app = abrir("foto-sem-foto")
+        print("DEBUG APP ELEMENTOS: \(app.staticTexts.allElementsBoundByIndex.map { "\($0.identifier): \($0.label)" })")
+        print("DEBUG SCROLLVIEWS: \(app.scrollViews.allElementsBoundByIndex.map { $0.identifier })")
+        print("DEBUG OTHER: \(app.descendants(matching: .any).allElementsBoundByIndex.map { $0.identifier }.filter { !$0.isEmpty })")
         XCTAssertEqual(texto("perfil-foto-estado", em: app), "Foto de perfil")
         XCTAssertTrue(existe("perfil-foto-escolher", em: app))
         XCTAssertFalse(app.buttons["perfil-foto-remover"].exists, "sem foto não há o que remover")

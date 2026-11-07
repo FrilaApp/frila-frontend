@@ -39,7 +39,6 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case contaSuspensa = "conta_suspensa"
     case verificacaoIndisponivel = "verificacao_indisponivel"
     case evidenciaIncompleta = "evidencia_incompleta"
-    case funcaoNaoMarcada = "funcao_nao_marcada"
     case midiaIndisponivel = "midia_indisponivel"
     case midiaInvalida = "midia_invalida"
     case chamadaJaAberta = "chamada_ja_aberta"
