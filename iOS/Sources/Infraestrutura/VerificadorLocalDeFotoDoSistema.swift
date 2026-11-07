@@ -113,6 +113,9 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
         if contexto == .profissional {
             do {
                 let pedidoRostos = VNDetectFaceRectanglesRequest()
+                #if targetEnvironment(simulator)
+                pedidoRostos.revision = VNDetectFaceRectanglesRequestRevision2
+                #endif
                 try VNImageRequestHandler(data: jpeg, options: [:]).perform([pedidoRostos])
                 let observacoes = pedidoRostos.results ?? []
                 totalRostos = observacoes.count
