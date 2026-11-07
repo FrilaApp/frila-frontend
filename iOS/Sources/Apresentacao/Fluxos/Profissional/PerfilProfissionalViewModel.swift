@@ -37,6 +37,7 @@ public final class PerfilProfissionalViewModel {
     public private(set) var suportaPerfilRico: Bool = false
 
     private let api: any ApiCliente
+    public var apiCliente: any ApiCliente { api }
     private let buscarPontoBase: (@MainActor (String) async throws -> [MKMapItem])?
 
     public init(

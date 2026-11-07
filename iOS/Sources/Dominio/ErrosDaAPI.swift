@@ -17,6 +17,7 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case administradorUnico = "administrador_unico"
     case perfilJaExiste = "perfil_ja_existe"
     case campoObrigatorio = "campo_obrigatorio"
+    case funcaoNaoMarcada = "funcao_nao_marcada"
     case campoInvalido = "campo_invalido"
     case intervaloMaximoExcedido = "intervalo_maximo_excedido"
     case foraDaJanela = "fora_da_janela"

@@ -979,6 +979,16 @@
         }
       }
     },
+    "1 a 3 anos" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 a 3 anos"
+          }
+        }
+      }
+    },
     "1 candidato aguardando sua escolha" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1089,6 +1099,16 @@
         }
       }
     },
+    "3 a 5 anos" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 a 5 anos"
+          }
+        }
+      }
+    },
     "3 horas antes" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1096,6 +1116,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3 horas antes"
+          }
+        }
+      }
+    },
+    "5 a 10 anos" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5 a 10 anos"
           }
         }
       }
@@ -1423,6 +1453,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A resposta da Equipe Frila é enviada por e-mail. Para qualquer recurso adicional, escreva para %@."
+          }
+        }
+      }
+    },
+    "A seleção de regiões define onde você quer atender, mas não altera o ponto base do seu cadastro nem o raio de 15 km do despacho de vagas normais." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A seleção de regiões define onde você quer atender, mas não altera o ponto base do seu cadastro nem o raio de 15 km do despacho de vagas normais."
           }
         }
       }
@@ -1843,6 +1883,16 @@
         }
       }
     },
+    "Adicionar curso" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar curso"
+          }
+        }
+      }
+    },
     "Adicionar horário" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2169,6 +2219,26 @@
         }
       }
     },
+    "Apresentação atualizada com sucesso." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apresentação atualizada com sucesso."
+          }
+        }
+      }
+    },
+    "Apresentação e regiões" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apresentação e regiões"
+          }
+        }
+      }
+    },
     "ÁREA" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2319,6 +2389,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atenção: a exclusão da sua conta é permanente e não poderá ser desfeita."
+          }
+        }
+      }
+    },
+    "Atender em todo o DF" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atender em todo o DF"
           }
         }
       }
@@ -3368,6 +3448,16 @@
         }
       }
     },
+    "Confira as regiões selecionadas." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confira as regiões selecionadas."
+          }
+        }
+      }
+    },
     "Confira o campo indicado." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3608,6 +3698,16 @@
         }
       }
     },
+    "Conte há quanto tempo trabalha, onde já trabalhou e no que você é bom." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conte há quanto tempo trabalha, onde já trabalhou e no que você é bom."
+          }
+        }
+      }
+    },
     "Conte o que aconteceu antes de enviar." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3626,6 +3726,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conte qual vaga esperava receber e por quê…"
+          }
+        }
+      }
+    },
+    "Conte sobre você" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conte sobre você"
           }
         }
       }
@@ -3791,6 +3901,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CPF ou CNPJ"
+          }
+        }
+      }
+    },
+    "Cursos e certificados" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cursos e certificados"
           }
         }
       }
@@ -4373,6 +4493,16 @@
         }
       }
     },
+    "Editar apresentação e regiões" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar apresentação e regiões"
+          }
+        }
+      }
+    },
     "Ela saiu da lista e não é mais enviada aos profissionais." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4907,6 +5037,16 @@
         }
       }
     },
+    "Espanhol" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espanhol"
+          }
+        }
+      }
+    },
     "Esperar" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5319,6 +5459,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Evento"
+          }
+        }
+      }
+    },
+    "Ex.: 'Boas práticas de manipulação de alimentos', 'Curso de coquetelaria'." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ex.: 'Boas práticas de manipulação de alimentos', 'Curso de coquetelaria'."
           }
         }
       }
@@ -5967,6 +6117,16 @@
         }
       }
     },
+    "Idiomas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idiomas"
+          }
+        }
+      }
+    },
     "Imprevisto pessoal" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6185,6 +6345,16 @@
         }
       }
     },
+    "Inglês" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inglês"
+          }
+        }
+      }
+    },
     "Início" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6277,6 +6447,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Li o aviso e confirmo a chamada"
+          }
+        }
+      }
+    },
+    "Libras" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libras"
           }
         }
       }
@@ -6402,6 +6582,16 @@
         }
       }
     },
+    "Locais onde já atuou" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locais onde já atuou"
+          }
+        }
+      }
+    },
     "Local" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6431,6 +6621,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Logística"
+          }
+        }
+      }
+    },
+    "Mais de 10 anos" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mais de 10 anos"
           }
         }
       }
@@ -6468,6 +6668,16 @@
         }
       }
     },
+    "Marque só onde você consegue chegar no horário." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marque só onde você consegue chegar no horário."
+          }
+        }
+      }
+    },
     "Material" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6497,6 +6707,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Material próprio: %@"
+          }
+        }
+      }
+    },
+    "Menos de 1 ano" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menos de 1 ano"
           }
         }
       }
@@ -7127,6 +7347,16 @@
         }
       }
     },
+    "Não foi possível carregar sua apresentação." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar sua apresentação."
+          }
+        }
+      }
+    },
     "Não foi possível carregar suas vagas. Tente novamente." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7357,6 +7587,16 @@
         }
       }
     },
+    "Não foi possível salvar a apresentação. Verifique sua conexão e tente novamente." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível salvar a apresentação. Verifique sua conexão e tente novamente."
+          }
+        }
+      }
+    },
     "Não foi possível salvar o perfil." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7397,6 +7637,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não haverá o aviso de 3 h antes: enquanto seguir vazia, a vaga fica em Precisa de atenção, em Minhas vagas."
+          }
+        }
+      }
+    },
+    "Não informado" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não informado"
           }
         }
       }
@@ -7649,6 +7899,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nome de quem recebe"
+          }
+        }
+      }
+    },
+    "Nome do curso ou certificado" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome do curso ou certificado"
           }
         }
       }
@@ -8004,6 +8264,16 @@
         }
       }
     },
+    "O nome do curso não pode passar de 80 caracteres." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O nome do curso não pode passar de 80 caracteres."
+          }
+        }
+      }
+    },
     "O prazo para a exclusão completa das cópias de backup é de até 15 dias." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8146,6 +8416,26 @@
         }
       }
     },
+    "O texto de Onde já trabalhei não pode passar de 400 caracteres." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O texto de Onde já trabalhei não pode passar de 400 caracteres."
+          }
+        }
+      }
+    },
+    "O texto de Sobre mim não pode passar de 600 caracteres." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O texto de Sobre mim não pode passar de 600 caracteres."
+          }
+        }
+      }
+    },
     "O turno desta vaga já começou." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8240,6 +8530,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ok"
+          }
+        }
+      }
+    },
+    "Onde atendo" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onde atendo"
+          }
+        }
+      }
+    },
+    "Onde já trabalhei" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onde já trabalhei"
           }
         }
       }
@@ -8394,6 +8704,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Outro"
+          }
+        }
+      }
+    },
+    "Outro idioma" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro idioma"
           }
         }
       }
@@ -8563,6 +8883,16 @@
         }
       }
     },
+    "Pode citar tipos de lugar ('buffet de casamento', 'bar no Sudoeste'). Evite nome e telefone de outras pessoas." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pode citar tipos de lugar ('buffet de casamento', 'bar no Sudoeste'). Evite nome e telefone de outras pessoas."
+          }
+        }
+      }
+    },
     "Política de privacidade" : {
       "localizations" : {
         "pt-BR" : {
@@ -8678,6 +9008,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "por turno"
+          }
+        }
+      }
+    },
+    "Português" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Português"
           }
         }
       }
@@ -9588,6 +9928,16 @@
         }
       }
     },
+    "Remover curso" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover curso"
+          }
+        }
+      }
+    },
     "Remover da equipe?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9916,6 +10266,16 @@
         }
       }
     },
+    "Salvar" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvar"
+          }
+        }
+      }
+    },
     "Salvar alterações" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10081,6 +10441,16 @@
         }
       }
     },
+    "Selecione a faixa que melhor descreve sua trajetória." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecione a faixa que melhor descreve sua trajetória."
+          }
+        }
+      }
+    },
     "Selecione a Região Administrativa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10099,6 +10469,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Selecione ao menos uma função."
+          }
+        }
+      }
+    },
+    "Selecione os idiomas em que você se comunica." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecione os idiomas em que você se comunica."
           }
         }
       }
@@ -10165,6 +10545,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sem conexão com a internet. A solicitação foi guardada para envio."
+          }
+        }
+      }
+    },
+    "Sem conexão com a internet. O rascunho continua salvo para tentar novamente." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conexão com a internet. O rascunho continua salvo para tentar novamente."
           }
         }
       }
@@ -10585,6 +10975,26 @@
         }
       }
     },
+    "Sobre mim" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre mim"
+          }
+        }
+      }
+    },
+    "Sobre mim, experiência, cursos e regiões atendidas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre mim, experiência, cursos e regiões atendidas"
+          }
+        }
+      }
+    },
     "Sobre os horários" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10859,6 +11269,16 @@
         }
       }
     },
+    "Tempo de experiência" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo de experiência"
+          }
+        }
+      }
+    },
     "Tenho 18 anos ou mais" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11063,6 +11483,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tipo do estabelecimento"
+          }
+        }
+      }
+    },
+    "Tire telefone, e-mail, link ou Pix do texto. O Frila não troca contato entre as partes; depois do aceite, o turno mostra endereço e quem recebe." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tire telefone, e-mail, link ou Pix do texto. O Frila não troca contato entre as partes; depois do aceite, o turno mostra endereço e quem recebe."
           }
         }
       }
@@ -12086,6 +12516,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Você não tem permissão para republicar esta vaga."
+          }
+        }
+      }
+    },
+    "Você pode cadastrar no máximo 5 cursos." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você pode cadastrar no máximo 5 cursos."
           }
         }
       }
