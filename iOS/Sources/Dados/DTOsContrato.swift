@@ -292,6 +292,173 @@ enum ContratoAPI {
         }
     }
 
+    struct ApresentacaoDoProfissionalDTO: Encodable {
+        let apresentacao: String?
+        let ondeTrabalhei: String?
+        let experienciaFaixa: ExperienciaFaixa?
+        let cursos: [String]?
+        let idiomas: [Idioma]?
+
+        enum CodingKeys: String, CodingKey {
+            case apresentacao
+            case ondeTrabalhei = "onde_trabalhei"
+            case experienciaFaixa = "experiencia_faixa"
+            case cursos
+            case idiomas
+        }
+
+        init(_ apresentacao: ApresentacaoDoProfissional) {
+            self.apresentacao = apresentacao.apresentacao
+            self.ondeTrabalhei = apresentacao.ondeTrabalhei
+            self.experienciaFaixa = apresentacao.experienciaFaixa
+            self.cursos = apresentacao.cursos
+            self.idiomas = apresentacao.idiomas
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(apresentacao, forKey: .apresentacao)
+            try container.encode(ondeTrabalhei, forKey: .ondeTrabalhei)
+            try container.encode(experienciaFaixa, forKey: .experienciaFaixa)
+            try container.encode(cursos, forKey: .cursos)
+            try container.encode(idiomas, forKey: .idiomas)
+        }
+    }
+
+    struct RegioesAtendidasDTO: Encodable {
+        let regioes: [Int]
+        let atendeTodoDF: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case regioes
+            case atendeTodoDF = "atende_todo_df"
+        }
+
+        init(regioes: [Int], atendeTodoDF: Bool) {
+            self.regioes = regioes
+            self.atendeTodoDF = atendeTodoDF
+        }
+    }
+
+    struct ServicoNoPerfilDTO: Decodable {
+        let funcao: FuncaoDTO
+        let unidade: UnidadePreco
+        let valorCentavos: Int?
+        let valorMaxCentavos: Int?
+        let horasIncluidas: Int?
+        let minimoHoras: Int?
+        let duracaoTipicaH: Int?
+        let atePessoas: Int?
+        let minimoPessoas: Int?
+        let descricaoPacote: String?
+        let itensInclusos: String?
+        let levaMaterial: LevaMaterial?
+        let especialidades: [EspecialidadeDTO]?
+
+        enum CodingKeys: String, CodingKey {
+            case funcao
+            case unidade
+            case valorCentavos = "valor_centavos"
+            case valorMaxCentavos = "valor_max_centavos"
+            case horasIncluidas = "horas_incluidas"
+            case minimoHoras = "minimo_horas"
+            case duracaoTipicaH = "duracao_tipica_h"
+            case atePessoas = "ate_pessoas"
+            case minimoPessoas = "minimo_pessoas"
+            case descricaoPacote = "descricao_pacote"
+            case itensInclusos = "inclui"
+            case levaMaterial = "leva_material"
+            case especialidades
+        }
+    }
+
+    struct ServicoOferecidoDTO: Encodable {
+        let funcaoID: UUID
+        let unidade: UnidadePreco
+        let valorCentavos: Int?
+        let valorMaxCentavos: Int?
+        let horasIncluidas: Int?
+        let minimoHoras: Int?
+        let duracaoTipicaH: Int?
+        let atePessoas: Int?
+        let minimoPessoas: Int?
+        let descricaoPacote: String?
+        let itensInclusos: String?
+        let levaMaterial: LevaMaterial?
+        let especialidadeIDs: [UUID]?
+
+        enum CodingKeys: String, CodingKey {
+            case funcaoID = "funcao_id"
+            case unidade
+            case valorCentavos = "valor_centavos"
+            case valorMaxCentavos = "valor_max_centavos"
+            case horasIncluidas = "horas_incluidas"
+            case minimoHoras = "minimo_horas"
+            case duracaoTipicaH = "duracao_tipica_h"
+            case atePessoas = "ate_pessoas"
+            case minimoPessoas = "minimo_pessoas"
+            case descricaoPacote = "descricao_pacote"
+            case itensInclusos = "inclui"
+            case levaMaterial = "leva_material"
+            case especialidadeIDs = "especialidade_ids"
+        }
+    }
+
+    struct PerfilProfissionalDetalhadoDTO: Decodable {
+        let id: UUID
+        let usuarioID: UUID
+        let funcoes: [FuncaoDTO]
+        let pontoBase: CoordenadaDTO
+        let disponibilidades: [JanelaDTO]
+        let reputacao: ReputacaoDTO
+        let apresentacao: String?
+        let ondeTrabalhei: String?
+        let experienciaFaixa: ExperienciaFaixa?
+        let cursos: [String]?
+        let idiomas: [Idioma]?
+        let servicos: [ServicoNoPerfilDTO]?
+        let regioes: [RegiaoAdministrativaDTO]?
+        let atendeTodoDF: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case usuarioID = "usuario_id"
+            case funcoes
+            case pontoBase = "ponto_base"
+            case disponibilidades
+            case reputacao
+            case apresentacao
+            case ondeTrabalhei = "onde_trabalhei"
+            case experienciaFaixa = "experiencia_faixa"
+            case cursos
+            case idiomas
+            case servicos
+            case regioes
+            case atendeTodoDF = "atende_todo_df"
+        }
+
+        func dominio() throws -> PerfilProfissionalDetalhado {
+            let base = try PerfilProfissional(
+                id: id,
+                usuarioID: usuarioID,
+                funcoes: funcoes.map { $0.dominio() },
+                pontoBase: pontoBase.dominio(),
+                disponibilidades: disponibilidades.map { try $0.dominio() },
+                reputacao: reputacao.dominio()
+            )
+            return PerfilProfissionalDetalhado(
+                perfil: base,
+                apresentacao: apresentacao,
+                ondeTrabalhei: ondeTrabalhei,
+                experienciaFaixa: experienciaFaixa,
+                cursos: cursos ?? [],
+                idiomas: idiomas ?? [],
+                regioes: regioes?.map { $0.dominio() } ?? [],
+                atendeTodoDF: atendeTodoDF ?? false
+            )
+        }
+    }
+
     struct DadosPerfilProfissionalDTO: Encodable {
         let funcoes: [UUID]
         let pontoBase: CoordenadaDTO

@@ -139,6 +139,27 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try perfil.dominio() }
     }
 
+    public func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado {
+        let perfil: ContratoAPI.PerfilProfissionalDetalhadoDTO = try await rpc("meu_perfil_detalhado")
+        return try converter { try perfil.dominio() }
+    }
+
+    public func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado {
+        let perfil: ContratoAPI.PerfilProfissionalDetalhadoDTO = try await rpc(
+            "atualizar_apresentacao_profissional",
+            params: ContratoAPI.ApresentacaoDoProfissionalDTO(apresentacao)
+        )
+        return try converter { try perfil.dominio() }
+    }
+
+    public func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado {
+        let perfil: ContratoAPI.PerfilProfissionalDetalhadoDTO = try await rpc(
+            "definir_regioes_atendidas",
+            params: ContratoAPI.RegioesAtendidasDTO(regioes: regioes.regioes, atendeTodoDF: regioes.atendeTodoDF)
+        )
+        return try converter { try perfil.dominio() }
+    }
+
     // MARK: Por que recebo vagas (RF27)
 
     public func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao {

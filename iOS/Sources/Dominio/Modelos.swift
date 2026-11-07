@@ -211,6 +211,96 @@ public struct PerfilProfissional: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public enum ExperienciaFaixa: String, Codable, CaseIterable, Sendable {
+    case menosDe1Ano = "menos_de_1_ano"
+    case de1A3Anos = "de_1_a_3_anos"
+    case de3A5Anos = "de_3_a_5_anos"
+    case de5A10Anos = "de_5_a_10_anos"
+    case maisDe10Anos = "mais_de_10_anos"
+}
+
+public enum Idioma: String, Codable, CaseIterable, Sendable {
+    case portugues
+    case ingles
+    case espanhol
+    case libras
+    case outro
+}
+
+public enum UnidadePreco: String, Codable, CaseIterable, Sendable {
+    case hora, diaria, evento, pacote
+    case porPessoa = "por_pessoa"
+    case aCombinar = "a_combinar"
+}
+
+public enum LevaMaterial: String, Codable, CaseIterable, Sendable {
+    case sim, nao, depende
+}
+
+public struct ApresentacaoDoProfissional: Codable, Hashable, Sendable {
+    public var apresentacao: String?
+    public var ondeTrabalhei: String?
+    public var experienciaFaixa: ExperienciaFaixa?
+    public var cursos: [String]?
+    public var idiomas: [Idioma]?
+
+    public init(
+        apresentacao: String? = nil,
+        ondeTrabalhei: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        cursos: [String]? = nil,
+        idiomas: [Idioma]? = nil
+    ) {
+        self.apresentacao = apresentacao
+        self.ondeTrabalhei = ondeTrabalhei
+        self.experienciaFaixa = experienciaFaixa
+        self.cursos = cursos
+        self.idiomas = idiomas
+    }
+}
+
+public struct RegioesAtendidas: Codable, Hashable, Sendable {
+    public var regioes: [Int]
+    public var atendeTodoDF: Bool
+
+    public init(regioes: [Int] = [], atendeTodoDF: Bool = false) {
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+    }
+}
+
+public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID { perfil.id }
+    public let perfil: PerfilProfissional
+    public let apresentacao: String?
+    public let ondeTrabalhei: String?
+    public let experienciaFaixa: ExperienciaFaixa?
+    public let cursos: [String]
+    public let idiomas: [Idioma]
+    public let regioes: [RegiaoAdministrativa]
+    public let atendeTodoDF: Bool
+
+    public init(
+        perfil: PerfilProfissional,
+        apresentacao: String? = nil,
+        ondeTrabalhei: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        cursos: [String] = [],
+        idiomas: [Idioma] = [],
+        regioes: [RegiaoAdministrativa] = [],
+        atendeTodoDF: Bool = false
+    ) {
+        self.perfil = perfil
+        self.apresentacao = apresentacao
+        self.ondeTrabalhei = ondeTrabalhei
+        self.experienciaFaixa = experienciaFaixa
+        self.cursos = cursos
+        self.idiomas = idiomas
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+    }
+}
+
 public enum TipoEstabelecimento: String, Codable, CaseIterable, Sendable {
     case foodService = "food_service"
     case evento
