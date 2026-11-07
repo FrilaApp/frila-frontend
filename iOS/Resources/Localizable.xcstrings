@@ -1,12 +1,342 @@
 {
   "sourceLanguage" : "pt-BR",
   "strings" : {
+    "%@ a diária de %lld h" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ a diária de %lld h"
+          }
+        }
+      }
+    },
     " avaliações indicam que trabalhariam lá de novo" : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : " avaliações indicam que trabalhariam lá de novo"
+          }
+        }
+      }
+    },
+    "A combinar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A combinar"
+          }
+        }
+      }
+    },
+    "A combinar: o total será confirmado na chamada." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A combinar: o total será confirmado na chamada."
+          }
+        }
+      }
+    },
+    "Até quantas pessoas (opcional, 1 a 2.000)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Até quantas pessoas (opcional, 1 a 2.000)"
+          }
+        }
+      }
+    },
+    "Confira o valor máximo: deve ser igual ou maior que o valor inicial, até R$ 10.000." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confira o valor máximo: deve ser igual ou maior que o valor inicial, até R$ 10.000."
+          }
+        }
+      }
+    },
+    "Confira o valor: de R$ 10 a R$ 10.000." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confira o valor: de R$ 10 a R$ 10.000."
+          }
+        }
+      }
+    },
+    "De R$ 10 a R$ 10.000 por unidade." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De R$ 10 a R$ 10.000 por unidade."
+          }
+        }
+      }
+    },
+    "Depende" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depende"
+          }
+        }
+      }
+    },
+    "Descrição do pacote (até 120 caracteres)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descrição do pacote (até 120 caracteres)"
+          }
+        }
+      }
+    },
+    "Diária" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diária"
+          }
+        }
+      }
+    },
+    "Duração em horas (opcional, 1 a 24)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duração em horas (opcional, 1 a 24)"
+          }
+        }
+      }
+    },
+    "Editar serviços" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editar serviços"
+          }
+        }
+      }
+    },
+    "Escolha até 8 especialidades da mesma função." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha até 8 especialidades da mesma função."
+          }
+        }
+      }
+    },
+    "Escolha até 8 especialidades." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha até 8 especialidades."
+          }
+        }
+      }
+    },
+    "Hora" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hora"
+          }
+        }
+      }
+    },
+    "Horas incluídas (4 a 12)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horas incluídas (4 a 12)"
+          }
+        }
+      }
+    },
+    "Leva material?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leva material?"
+          }
+        }
+      }
+    },
+    "Mínimo de horas (opcional, 1 a 12)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mínimo de horas (opcional, 1 a 12)"
+          }
+        }
+      }
+    },
+    "Mínimo de pessoas (1 a 2.000)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mínimo de pessoas (1 a 2.000)"
+          }
+        }
+      }
+    },
+    "Não informado" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não informado"
+          }
+        }
+      }
+    },
+    "O que está incluído (até 300 caracteres)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que está incluído (até 300 caracteres)"
+          }
+        }
+      }
+    },
+    "Pacote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pacote"
+          }
+        }
+      }
+    },
+    "Por pessoa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por pessoa"
+          }
+        }
+      }
+    },
+    "Revise o que está incluído. Não informe contato ou Pix." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revise o que está incluído. Não informe contato ou Pix."
+          }
+        }
+      }
+    },
+    "Revise os serviços selecionados." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revise os serviços selecionados."
+          }
+        }
+      }
+    },
+    "Serviços salvos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serviços salvos"
+          }
+        }
+      }
+    },
+    "Serviços são opcionais. Você recebe o valor integral; o Frila não desconta nada." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serviços são opcionais. Você recebe o valor integral; o Frila não desconta nada."
+          }
+        }
+      }
+    },
+    "Unidade de preço" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unidade de preço"
+          }
+        }
+      }
+    },
+    "Valor em reais" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor em reais"
+          }
+        }
+      }
+    },
+    "Valor máximo em reais (opcional)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor máximo em reais (opcional)"
           }
         }
       }

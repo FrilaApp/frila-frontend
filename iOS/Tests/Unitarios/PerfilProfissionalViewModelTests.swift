@@ -625,6 +625,36 @@ struct PerfilProfissionalViewModelTests {
         #expect(PerfilProfissionalViewModel.nomeDoDia(7).isEmpty)
         #expect(PerfilProfissionalViewModel.nomeDoDia(100).isEmpty)
     }
+
+    @Test("Recursos.perfilRico ausente ou falso desativa suportaPerfilRico no ViewModel")
+    func perfilRicoDesativadoOcultaServicos() async {
+        let api = criarDubleApi()
+        api.configuracaoRetorno = ConfiguracaoApp(
+            versaoMinima: "1.0.0",
+            versaoRecomendada: "1.0.0",
+            mensagem: nil,
+            urlDaLoja: URL(string: "https://apps.apple.com/")!,
+            recursos: .desligados
+        )
+        let vm = PerfilProfissionalViewModel(api: api, modo: .edicao)
+        await vm.carregar()
+        #expect(!vm.suportaPerfilRico)
+    }
+
+    @Test("Recursos.perfilRico verdadeiro ativa suportaPerfilRico no ViewModel")
+    func perfilRicoAtivadoMostraServicos() async {
+        let api = criarDubleApi()
+        api.configuracaoRetorno = ConfiguracaoApp(
+            versaoMinima: "1.0.0",
+            versaoRecomendada: "1.0.0",
+            mensagem: nil,
+            urlDaLoja: URL(string: "https://apps.apple.com/")!,
+            recursos: RecursosDoApp(perfilRico: true)
+        )
+        let vm = PerfilProfissionalViewModel(api: api, modo: .edicao)
+        await vm.carregar()
+        #expect(vm.suportaPerfilRico)
+    }
 }
 
 // MARK: - Dublê de testes
@@ -640,6 +670,12 @@ private final class ApiClienteDuble: ApiClienteEncaminhador, @unchecked Sendable
     var chamadasCriarPerfil: Int = 0
     var chamadasAtualizarPerfil: Int = 0
     var pausaAoCriarMs: UInt64 = 0
+    var configuracaoRetorno: ConfiguracaoApp?
+
+    override func configuracaoDoApp() async throws -> ConfiguracaoApp {
+        if let configuracaoRetorno { return configuracaoRetorno }
+        return try await base.configuracaoDoApp()
+    }
 
     override func funcoes() async throws -> [Funcao] {
         if let erroAoCarregar { throw erroAoCarregar }

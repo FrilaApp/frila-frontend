@@ -1,6 +1,7 @@
 import Foundation
 
 public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
+    case funcaoNaoMarcada = "funcao_nao_marcada"
     case naoAutenticado = "nao_autenticado"
     case semPermissao = "sem_permissao"
     case contatoExpirado = "contato_expirado"
