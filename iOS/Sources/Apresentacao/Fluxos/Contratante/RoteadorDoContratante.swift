@@ -40,7 +40,7 @@ public enum AvisoDoContratante: Equatable, Sendable {
         case .vagaVazia:
             guard let vagaID = id("vaga_id") else { return nil }
             self = .vagaVazia(vagaID: vagaID)
-        case .confirmacao, .lembrete24h, .lembrete3h, .checkin, .fimSemCheckout, .avaliacaoDisponivel:
+        case .confirmacao, .lembrete24h, .lembrete3h, .checkin, .fimSemCheckout, .avaliacaoDisponivel, .turnoNaoVerificado:
             guard let turnoID = id("turno_id") else { return nil }
             self = .turno(turnoID: turnoID)
         case .vagaSemElegiveis, .cancelamento, .selecaoEncerrada, .selecaoLembrete:
