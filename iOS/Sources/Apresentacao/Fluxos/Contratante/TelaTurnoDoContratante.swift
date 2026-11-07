@@ -174,7 +174,7 @@ struct TelaTurnoDoContratante: View {
             guard let api else { return }
             chamadaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
                 try await api.configuracaoDoApp()
-            })?.recursos?.chamadaDireta == true
+            })?.recursos.chamadaDireta == true
         }
     }
 

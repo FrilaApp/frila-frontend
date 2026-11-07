@@ -1589,21 +1589,6 @@ enum ContratoAPI {
         }
     }
 
-    /// `ConfiguracaoDoApp.recursos` (0.2.54): campo ausente vale `false`.
-    struct RecursosDoAppDTO: Decodable {
-        let fotoDePerfil: Bool?
-        let chamadaDireta: Bool?
-
-        enum CodingKeys: String, CodingKey {
-            case fotoDePerfil = "foto_de_perfil"
-            case chamadaDireta = "chamada_direta"
-        }
-
-        func dominio() -> RecursosDoApp {
-            RecursosDoApp(fotoDePerfil: fotoDePerfil ?? false, chamadaDireta: chamadaDireta ?? false)
-        }
-    }
-
     // MARK: Foto de perfil (0.2.54)
 
     /// O schema `Midia`: a mídia como o dono a vê.

@@ -608,6 +608,10 @@ def conferir_dtos(
                     avisos.append(
                         f"DTO {dto_name} (schema {schema_name}): campo extra '{campo}' tolerado por exceção documentada (Aditivo 0.2.60 para feature flag perfil_rico)"
                     )
+                elif schema_name == "RecursosDoApp" and campo == "perfil_rico":
+                    avisos.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo extra '{campo}' tolerado por exceção documentada (Aditivo 0.2.60 para feature flag perfil_rico)"
+                    )
                 else:
                     extras_reais.add(campo)
             if extras_reais:

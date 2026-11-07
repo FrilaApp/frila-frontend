@@ -103,10 +103,10 @@ struct ChamadaDiretaTests {
         await model.carregar()
         #expect(!model.recursoHabilitado)
         #expect(!model.podeEnviar)
-        #expect(try await api.configuracaoDoApp().recursos?.chamadaDireta != true)
+        #expect(try await api.configuracaoDoApp().recursos.chamadaDireta == false)
         let json = #"{"versao_minima":"1.0.0","versao_recomendada":"1.0.0","url_da_loja":"https://apps.apple.com/"}"#
         let dto = try JSONDecoder().decode(ContratoAPI.ConfiguracaoDoAppDTO.self, from: Data(json.utf8))
-        #expect(dto.dominio().recursos?.chamadaDireta != true)
+        #expect(dto.dominio().recursos.chamadaDireta == false)
     }
 
     @Test("Payload usa os nomes planos de chamar_profissional, centavos inteiros e confirmação J7")

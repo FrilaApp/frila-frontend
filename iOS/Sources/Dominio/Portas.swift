@@ -215,20 +215,6 @@ public struct Denuncia: Codable, Equatable, Sendable {
     }
 }
 
-public struct RecursosDoApp: Codable, Equatable, Sendable {
-    public let fotoDePerfil: Bool
-    public let chamadaDireta: Bool
-    public let perfilRico: Bool
-
-    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
-        self.fotoDePerfil = fotoDePerfil
-        self.chamadaDireta = chamadaDireta
-        self.perfilRico = perfilRico
-    }
-
-    public static let desligados = RecursosDoApp()
-}
-
 public enum EstadoChamada: String, Codable, CaseIterable, Sendable {
     case aberta, aceita, recusada, expirada, cancelada, encerrada
 }
@@ -306,12 +292,6 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
         urlDaLoja: URL,
         recursos: RecursosDoApp = .desligados
     ) {
-        self.versaoMinima = versaoMinima
-        self.versaoRecomendada = versaoRecomendada
-        self.mensagem = mensagem
-        self.urlDaLoja = urlDaLoja
-        self.recursos = recursos
-    }
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem

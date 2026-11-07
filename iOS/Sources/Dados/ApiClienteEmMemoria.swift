@@ -335,12 +335,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
             regioesAdministrativasCadastradas = (try? FixturesDoContrato.carregar("regioes-administrativas", como: [ContratoAPI.RegiaoAdministrativaDTO].self).map { $0.dominio() }) ?? []
             let configuracaoBase = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
+            let perfilRicoHabilitado = (cenario == .perfilRicoHabilitado || cenario == .servicosVazios || cenario == .servicosInclusosRecusados)
             configuracao = ConfiguracaoApp(
                 versaoMinima: configuracaoBase.versaoMinima,
                 versaoRecomendada: configuracaoBase.versaoRecomendada,
                 mensagem: configuracaoBase.mensagem,
                 urlDaLoja: configuracaoBase.urlDaLoja,
-                recursos: RecursosDoApp(fotoDePerfil: cenario.fotoDePerfilLigada, chamadaDireta: false)
+                recursos: RecursosDoApp(
+                    fotoDePerfil: cenario.fotoDePerfilLigada,
+                    chamadaDireta: cenario.deChamada,
+                    perfilRico: perfilRicoHabilitado
+                )
             )
             midias = Self.midiasIniciais(cenario, agora: relogio.agora)
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
@@ -2252,19 +2257,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 recursos: recursosConfigurados
             )
         }
-        if cenario == .perfilRicoHabilitado || cenario == .servicosVazios || cenario == .servicosInclusosRecusados {
-            return ConfiguracaoApp(
-                versaoMinima: configuracao.versaoMinima,
-                versaoRecomendada: configuracao.versaoRecomendada,
-                mensagem: configuracao.mensagem,
-                urlDaLoja: configuracao.urlDaLoja,
-                recursos: RecursosDoApp(perfilRico: true)
-            )
-        }
-        return ConfiguracaoApp(versaoMinima: configuracao.versaoMinima,
-                               versaoRecomendada: configuracao.versaoRecomendada,
-                               mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja,
-                               recursos: RecursosDoApp(chamadaDireta: cenario.deChamada))
+        return configuracao
     }
 
     /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o

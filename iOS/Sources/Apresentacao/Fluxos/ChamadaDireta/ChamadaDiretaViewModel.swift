@@ -64,7 +64,7 @@ public final class ChamadaDiretaViewModel {
             let vagaID = vagaID
             let dados = try await PrazoDaAbertura.esperar(.seconds(15)) {
                 let configuracao = try await api.configuracaoDoApp()
-                guard configuracao.recursos?.chamadaDireta == true else { throw ErroDaApi(codigo: .recursoDesligado) }
+                guard configuracao.recursos.chamadaDireta else { throw ErroDaApi(codigo: .recursoDesligado) }
                 let casa = try await api.meuEstabelecimento(id: estabelecimentoID)
                 let funcoes = try await api.funcoes()
                 let vaga: Vaga?
