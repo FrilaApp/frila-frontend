@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.53
+  version: 0.2.54
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -80,6 +80,9 @@ info:
     | 409 | `verificacao_indisponivel` | A verificação de identidade não aceita a ação agora; `details`: `em_analise` ou `aprovada` (pedir upload), `aprovada` ou `sem_envio_solicitado` (confirmar envio) (RN14) |
     | 409 | `contestacao_ja_aberta` | Já existe contestação para a suspensão em vigor ou para o despacho, em análise ou já respondida (RF24, RF27) |
     | 422 | `campo_obrigatorio` | Falta campo exigido; `details` diz qual (na vaga, RN02) |
+    | 403 | `sem_permissao` + `recurso_desligado` | O recurso está desligado no servidor (`ConfiguracaoDoApp.recursos`, 0.2.54, RN46) |
+    | 409 | `midia_indisponivel` | `pedir_nova_analise_midia` em mídia que não está `recusada` nem `nao_publicada`; `details: estado_invalido` ou `expurgada` (0.2.54) |
+    | 422 | `midia_invalida` | Mídia recusada na entrada; `details`: `formato`, `tamanho`, `metadados` (tipo pelo cabeçalho ou EXIF presente), `limite_atingido` ou `tipo_indisponivel` (0.2.54) |
     | 422 | `funcao_nao_marcada` | `definir_servicos` com função que o profissional não marcou no perfil (0.2.53, RN27) |
     | 422 | `campo_invalido` | O campo veio, e o valor é recusado pela regra; `details` diz qual campo. Distinto de `campo_obrigatorio`, que é ausência — a tela destaca o mesmo campo, com texto diferente |
     | 422 | `intervalo_maximo_excedido` | Intervalo entre `de` e `ate` maior que 30 dias na exportação de turnos (pd7zOS5P) |
@@ -100,6 +103,34 @@ info:
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.54, de 07/11/2026.** Contratação direta, fatia F3: foto de perfil com moderação
+    automática, sem pessoa revisando (decisão D8 = C, ordem do Cauê de 07/11/2026;
+    `requisitos/contratacao-direta-v1.1.md`, RN37 e RN46; `produto/contratacao-direta/05-midia.md`).
+    Adição compatível: cinco operações novas, um campo opcional em `PerfilPublico` e em
+    `ConfiguracaoDoApp`, um tipo de aviso novo; nenhuma operação existente muda.
+
+    - **`ConfiguracaoDoApp.recursos`** (opcional): `foto_de_perfil` e `chamada_direta`, ausente =
+      `false`. É o interruptor do servidor: no Prod, os dois nascem desligados até o jurídico e o
+      ROPA liberarem. Recurso desligado: as operações dele respondem `403 sem_permissao` com
+      `details: recurso_desligado`, e o app esconde a entrada.
+    - **Mídia:** `solicitar_upload_midia` (URL assinada por 2 h, bucket privado),
+      `confirmar_upload_midia` (só enfileira a análise; nada é publicado antes da decisão),
+      `remover_midia`, `minhas_midias` e `pedir_nova_analise_midia` (uma vez por foto, com modelo
+      mais forte). Nesta versão só `foto_perfil`; os demais tipos são reservados e recusados com
+      `422 midia_invalida` (`tipo_indisponivel`).
+    - **Moderação automática, falha fechada:** `aprovada` publica; `recusada` e decisão incerta não;
+      erro do provedor mantém `em_analise` com até 3 novas tentativas e depois `nao_publicada`. Duas
+      denúncias de contas diferentes ocultam a foto e disparam reanálise. O app recebe só um motivo
+      genérico (`MotivoRecusaMidia`); o código fino do modelo nunca sai na API.
+    - **`PerfilPublico.foto_url` e `foto_id`** (opcionais): só para leitor com vínculo de leitura,
+      com o recurso ligado e o titular ativo; ausentes nos demais casos, e o resto do perfil responde
+      como antes. `denunciar` ganha `midia_id` opcional (a foto pelo `foto_id`), com contagem por
+      mídia e por denunciante distinto. `remover_midia` e `minhas_midias` funcionam com o recurso
+      desligado.
+    - **Aviso novo:** `midia_recusada` (só `tipo` e `midia_id`, RN15 do Documento de Requisitos).
+      O app publicado ignora tipo desconhecido sem quebrar (C0, `AvisoDePush.swift:48-51`).
+    - **Erros novos:** `409 midia_indisponivel`, `422 midia_invalida`.
 
     **Versão 0.2.53, de 07/11/2026.** Contratação direta, fatia F2: o perfil que explica
     (`requisitos/contratacao-direta-v1.1.md`, RN26, RN27, RN38, RN39;
@@ -1894,6 +1925,234 @@ paths:
         '422':
           $ref: '#/components/responses/RegraRecusou'
 
+  /rpc/solicitar_upload_midia:
+    post:
+      tags: [Cadastro e perfil]
+      operationId: solicitarUploadMidia
+      summary: Pedir a URL para enviar uma foto
+      description: |
+        0.2.54. Cria a mídia em `enviando` e devolve uma URL assinada de upload para o bucket privado
+        `midia-perfil`, válida por 2 h (mesmo desenho da RN14). O app envia JPEG já sem EXIF, lado
+        maior até 1600 px, até 5 MB, e a miniatura de 320 px por `upload_url_miniatura`. O caminho
+        do objeto não contém o id do usuário.
+
+        Nesta versão só `tipo = foto_perfil`, uma por dono (profissional, ou estabelecimento com
+        `estabelecimento_id` para a foto ou logo da casa, por membro da casa). Os outros tipos são
+        `422 midia_invalida` (`tipo_indisponivel`). Formato fora de JPEG é `formato`; acima de 5 MB,
+        `tamanho`. Trocar a foto é enviar outra: a anterior aprovada continua até a nova ser aprovada.
+      x-requisitos: [RN37, RN46]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, mime, bytes]
+              properties:
+                tipo:
+                  $ref: '#/components/schemas/TipoMidia'
+                mime:
+                  type: string
+                  example: image/jpeg
+                bytes:
+                  type: integer
+                  minimum: 1
+                estabelecimento_id:
+                  description: Para a foto ou o logo da casa. Exige ser membro do estabelecimento.
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Mídia criada e URL de upload.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [midia_id, upload_url, expira_em]
+                properties:
+                  midia_id:
+                    $ref: '#/components/schemas/Uuid'
+                  upload_url:
+                    type: string
+                    format: uri
+                  upload_url_miniatura:
+                    type: string
+                    format: uri
+                  expira_em:
+                    $ref: '#/components/schemas/Instante'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao` com `details: recurso_desligado` quando `recursos.foto_de_perfil` está
+            desligado; `conta_suspensa` quando a conta está suspensa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/confirmar_upload_midia:
+    post:
+      tags: [Cadastro e perfil]
+      operationId: confirmarUploadMidia
+      summary: Confirmar o envio e pedir a análise
+      description: |
+        0.2.54. Confere que o arquivo chegou ao bucket (`422 evidencia_incompleta`, como na RN14), o
+        tipo pelo cabeçalho do arquivo e a ausência de EXIF (`422 midia_invalida`, `formato` ou
+        `metadados`). Passou, a mídia vai a `em_analise` e a análise automática é **enfileirada**; a
+        resposta não espera o modelo e nada é publicado antes da decisão. A análise cobre o
+        **original e a miniatura**; as duas só são publicadas juntas, se as duas forem aprovadas.
+        Idempotente: confirmar de novo devolve o estado atual.
+      x-requisitos: [RN37, RN46]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [midia_id]
+              properties:
+                midia_id:
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Mídia em análise.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Midia'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao` com `details: recurso_desligado` quando `recursos.foto_de_perfil` está
+            desligado; `conta_suspensa` quando a conta está suspensa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/remover_midia:
+    post:
+      tags: [Cadastro e perfil]
+      operationId: removerMidia
+      summary: Remover uma foto
+      description: |
+        0.2.54. A mídia vai a `removida` na hora: nenhuma URL nova é emitida e a já emitida vence em
+        até 1 h. O arquivo sai do Storage na rodada seguinte do expurgo em duas fases da RN14.
+        Idempotente. **Funciona mesmo com `recursos.foto_de_perfil` desligado**: remover o próprio
+        dado nunca depende do interruptor (o mesmo vale para `minhas_midias`).
+      x-requisitos: [RN37, RN46]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [midia_id]
+              properties:
+                midia_id:
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Mídia removida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Midia'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao` com `details: conta_suspensa` quando a conta está suspensa. Esta operação
+            não depende de `recursos.foto_de_perfil`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+
+  /rpc/minhas_midias:
+    get:
+      tags: [Cadastro e perfil]
+      operationId: minhasMidias
+      summary: Listar as próprias fotos
+      description: |
+        0.2.54. Todas as mídias do chamador, em qualquer estado, com o motivo genérico de recusa.
+        Nunca traz o código fino do modelo, o caminho no Storage nem o registro interno da decisão.
+      x-requisitos: [RN37, RN46]
+      responses:
+        '200':
+          description: Mídias do chamador.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Midia'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao` com `details: conta_suspensa` quando a conta está suspensa. Esta operação
+            não depende de `recursos.foto_de_perfil`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+
+  /rpc/pedir_nova_analise_midia:
+    post:
+      tags: [Cadastro e perfil]
+      operationId: pedirNovaAnaliseMidia
+      summary: Pedir nova análise de uma foto recusada
+      description: |
+        0.2.54. Uma vez por foto, para mídia `recusada` ou `nao_publicada`: volta a `em_analise` e a
+        análise é refeita com um modelo mais forte. Repetir o pedido da mesma foto não gera outra
+        análise e devolve o estado atual. Mídia em outro estado é `409 midia_indisponivel`
+        (`estado_invalido`). Só enquanto o arquivo ainda existe: depois do expurgo da recusada (até
+        24 h, RN14) é `409 midia_indisponivel` (`expurgada`), e o app orienta enviar outra foto. O
+        pedido **não** estende a retenção do arquivo. Depois disso, o caminho é o e-mail do suporte,
+        sem prazo prometido; o app não promete revisão por pessoa.
+      x-requisitos: [RN37, RN46]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [midia_id]
+              properties:
+                midia_id:
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Estado atual da mídia.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Midia'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao` com `details: recurso_desligado` quando `recursos.foto_de_perfil` está
+            desligado; `conta_suspensa` quando a conta está suspensa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflito'
+
   /rpc/criterios_de_notificacao:
     get:
       tags: [Cadastro e perfil]
@@ -3501,6 +3760,15 @@ paths:
                   minLength: 10
                 chave:
                   $ref: '#/components/schemas/ChaveDeIdempotencia'
+                midia_id:
+                  description: |
+                    0.2.54. Opcional: denuncia uma foto específica, pelo `foto_id` que o perfil
+                    mostrou. Tem de ser foto do próprio alvo (`alvo_tipo` + `alvo_id`); senão,
+                    `422 campo_invalido` com `details: midia_id`. A contagem é por mídia e por
+                    denunciante distinto: a 2ª denúncia de conta diferente oculta a foto na hora e
+                    dispara a reanálise automática; a mesma conta denunciando de novo não conta duas
+                    vezes. Denúncia sem `midia_id` continua valendo como hoje, sobre o perfil.
+                  $ref: '#/components/schemas/Uuid'
       responses:
         '200':
           description: Denúncia registrada.
@@ -4668,6 +4936,10 @@ components:
         | `selecao_encerrada` | Membro do estabelecimento | Prazo de escolha encerrado | A vaga de {função} fechou sem todas as posições preenchidas. Toque para republicar em urgência. |
         | `selecao_lembrete` | Membro do estabelecimento | Candidatos esperando sua escolha | {N} candidato(s) para a vaga de {função}. Escolha até {dd/mm às HH:MM}, quando a vaga fecha. |
 
+        **Foto de perfil (0.2.54).** `midia_recusada` vai ao dono quando a foto não é publicada
+        (`recusada` ou `nao_publicada`), só com `tipo` e `midia_id`. Título "Foto não publicada";
+        corpo "Use uma foto sua, com rosto visível, sem texto nem dados pessoais."
+
         `confirmacao` em vaga de urgência mantém o texto de sempre ("Turno confirmado"). O
         `selecao_lembrete` sai uma vez por vaga: faltando 6 horas ou menos para o prazo de escolha
         (RN24) e com ao menos uma candidatura pendente. O horário é o do fuso America/Sao_Paulo (RN18).
@@ -4675,7 +4947,7 @@ components:
       enum: [vaga, vagas_agrupadas, vaga_sem_elegiveis, confirmacao, lembrete_24h, lembrete_3h,
              inicio_sem_checkin, atraso_15min, fim_sem_checkout, vaga_vazia, checkin,
              checkin_manual_pendente, cancelamento, avaliacao_disponivel, suspensao, reativacao,
-             candidatura_recusada, selecao_encerrada, selecao_lembrete]
+             candidatura_recusada, selecao_encerrada, selecao_lembrete, midia_recusada]
     EventoDeTelemetria:
       description: |
         Dicionário fechado. Acrescentar evento é mudança de contrato, com versão subindo — é o
@@ -5010,6 +5282,72 @@ components:
                 $ref: '#/components/schemas/RegiaoAdministrativa'
             atende_todo_df:
               type: boolean
+    RecursosDoApp:
+      type: object
+      description: |
+        0.2.54. Interruptores do servidor. Ausente, ou campo ausente, vale `false`. O app esconde a
+        entrada do recurso desligado, e o servidor recusa as operações dele com
+        `403 sem_permissao` (`recurso_desligado`) independentemente do app (RN46).
+      properties:
+        foto_de_perfil:
+          type: boolean
+        chamada_direta:
+          type: boolean
+    TipoMidia:
+      type: string
+      description: |
+        0.2.54. Só `foto_perfil` está disponível; `foto_trabalho`, `foto_local` e `curriculo` são
+        reservados para a v1.2 e recusados com `422 midia_invalida` (`tipo_indisponivel`).
+      enum: [foto_perfil, foto_trabalho, foto_local, curriculo]
+    EstadoMidia:
+      type: string
+      description: |
+        0.2.54. `enviando` → `em_analise` → `aprovada`, `recusada` ou `nao_publicada` (a análise
+        falhou 4 vezes); `aprovada` → `ocultada` (duas denúncias, até a reanálise) ou `removida`
+        (pelo dono). Só `aprovada` aparece para outra conta.
+      enum: [enviando, em_analise, aprovada, recusada, nao_publicada, ocultada, removida]
+    MotivoRecusaMidia:
+      type: string
+      description: |
+        0.2.54. Motivo genérico, que o app traduz em texto amigável: `foto_inadequada` ("use uma
+        foto sua, com rosto visível"), `texto_ou_dado_pessoal` ("sem texto, telefone, Pix, QR code
+        ou documento"), `nao_e_pessoa_ou_servico` e `nao_analisada` ("não conseguimos analisar
+        agora, tente de novo"). O código fino do modelo fica só no registro interno.
+      enum: [foto_inadequada, texto_ou_dado_pessoal, nao_e_pessoa_ou_servico, nao_analisada]
+    Midia:
+      type: object
+      required: [id, tipo, estado, pode_pedir_nova_analise]
+      description: |
+        0.2.54. A mídia como o dono a vê. Nunca traz o caminho no Storage, o código fino do motivo,
+        o modelo nem o hash da imagem.
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        tipo:
+          $ref: '#/components/schemas/TipoMidia'
+        estado:
+          $ref: '#/components/schemas/EstadoMidia'
+        motivo_recusa:
+          oneOf:
+            - $ref: '#/components/schemas/MotivoRecusaMidia'
+            - type: 'null'
+        pode_pedir_nova_analise:
+          type: boolean
+          description: "`true` quando a mídia está `recusada` ou `nao_publicada`, a nova análise ainda não foi pedida e o arquivo ainda não foi expurgado; `false` depois do expurgo (o app oferece enviar outra foto)."
+        url:
+          description: URL assinada por 1 h, só quando `aprovada`.
+          type: string
+          format: uri
+        estabelecimento_id:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+        enviada_em:
+          $ref: '#/components/schemas/Instante'
+        decidida_em:
+          oneOf:
+            - $ref: '#/components/schemas/Instante'
+            - type: 'null'
     CriteriosDeNotificacao:
       type: object
       required: [funcoes, disponibilidades, distancia_maxima_km, equipes_de_confianca, notificacoes_no_maximo_a_cada_min]
@@ -5299,6 +5637,22 @@ components:
             $ref: '#/components/schemas/RegiaoAdministrativa'
         atende_todo_df:
           type: boolean
+        foto_url:
+          description: |
+            0.2.54. URL assinada por 1 h da foto `aprovada` (miniatura de 320 px). Só vem para
+            leitor com **vínculo de leitura**: foto de profissional, para contratante com
+            candidatura numa vaga da casa, turno entre eles ou equipe de confiança; foto de
+            estabelecimento, para profissional com candidatura, chamada ou turno com a casa. Sem
+            vínculo, com `recursos.foto_de_perfil` desligado, sem foto aprovada, ou com o titular
+            suspenso (RN13) ou com conta encerrada (RF25), o campo vem **ausente**, e os demais
+            campos do perfil respondem exatamente como antes da 0.2.54.
+          type: string
+          format: uri
+        foto_id:
+          description: |
+            0.2.54. Identificador opaco da foto exibida, com as mesmas condições de `foto_url`. É o
+            que o app manda em `denunciar.midia_id` para denunciar a foto.
+          $ref: '#/components/schemas/Uuid'
         no_frila_desde:
           description: 0.2.53. Mês e ano de criação do perfil, `AAAA-MM`.
           type: string
@@ -6161,6 +6515,8 @@ components:
             Texto opcional para a tela de bloqueio. Nulo na maior parte do tempo: o app tem um
             texto padrão, e depender deste campo para a tela funcionar faria uma falha de rede
             virar tela vazia.
+        recursos:
+          $ref: '#/components/schemas/RecursosDoApp'
 
     # ── Dispositivos e conta
 

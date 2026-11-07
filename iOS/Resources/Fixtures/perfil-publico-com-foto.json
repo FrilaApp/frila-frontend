@@ -1,0 +1,17 @@
+{
+  "id": "80000000-0000-0000-0000-000000000001",
+  "tipo": "profissional",
+  "nome": "Ana Cunha",
+  "funcoes": [
+    "Garçom"
+  ],
+  "reputacao": {
+    "positivas": 7,
+    "total": 7,
+    "taxa_comparecimento": 1.0,
+    "turnos_considerados": 7,
+    "turnos_realizados": 7
+  },
+  "foto_url": "https://armazenamento.frila.invalid/midia-perfil/5d0f1c2a-320.jpg?token=exemplo",
+  "foto_id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a10"
+}

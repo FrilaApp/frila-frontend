@@ -1,0 +1,51 @@
+[
+  {
+    "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a11",
+    "tipo": "foto_perfil",
+    "estado": "enviando",
+    "pode_pedir_nova_analise": false,
+    "enviada_em": "2026-11-07T16:00:00Z"
+  },
+  {
+    "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a12",
+    "tipo": "foto_perfil",
+    "estado": "em_analise",
+    "pode_pedir_nova_analise": false,
+    "enviada_em": "2026-11-07T15:50:00Z"
+  },
+  {
+    "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a13",
+    "tipo": "foto_perfil",
+    "estado": "recusada",
+    "motivo_recusa": "texto_ou_dado_pessoal",
+    "pode_pedir_nova_analise": true,
+    "enviada_em": "2026-11-07T15:00:00Z",
+    "decidida_em": "2026-11-07T15:01:00Z"
+  },
+  {
+    "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a14",
+    "tipo": "foto_perfil",
+    "estado": "nao_publicada",
+    "motivo_recusa": "nao_analisada",
+    "pode_pedir_nova_analise": true,
+    "enviada_em": "2026-11-07T14:00:00Z",
+    "decidida_em": "2026-11-07T14:05:00Z"
+  },
+  {
+    "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a15",
+    "tipo": "foto_perfil",
+    "estado": "ocultada",
+    "motivo_recusa": null,
+    "pode_pedir_nova_analise": false,
+    "enviada_em": "2026-11-06T14:00:00Z",
+    "decidida_em": "2026-11-07T09:00:00Z"
+  },
+  {
+    "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a16",
+    "tipo": "foto_perfil",
+    "estado": "removida",
+    "pode_pedir_nova_analise": false,
+    "estabelecimento_id": "30000000-0000-0000-0000-000000000001",
+    "enviada_em": "2026-11-05T14:00:00Z"
+  }
+]

@@ -270,13 +270,23 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
     public let nome: String
     public let funcoes: [String]
     public let reputacao: Reputacao
+    /// Foto `aprovada` (miniatura de 320 px, URL assinada por 1 h). Só vem para quem tem vínculo de
+    /// leitura e com o recurso ligado (contrato 0.2.54); ausente nos demais casos.
+    public let fotoURL: URL?
+    /// Identificador opaco da foto exibida: é o que `denunciar.midia_id` recebe.
+    public let fotoID: UUID?
 
-    public init(id: UUID, tipo: TipoPerfilPublico, nome: String, funcoes: [String] = [], reputacao: Reputacao) {
+    public init(
+        id: UUID, tipo: TipoPerfilPublico, nome: String, funcoes: [String] = [], reputacao: Reputacao,
+        fotoURL: URL? = nil, fotoID: UUID? = nil
+    ) {
         self.id = id
         self.tipo = tipo
         self.nome = nome
         self.funcoes = funcoes
         self.reputacao = reputacao
+        self.fotoURL = fotoURL
+        self.fotoID = fotoID
     }
 }
 
@@ -1277,3 +1287,116 @@ public struct RegistroDeEvento: Codable, Equatable, Sendable {
     }
 }
 
+
+// MARK: Foto de perfil (contrato 0.2.54, RN37 e RN46)
+
+/// Tipos de mídia do contrato. Nesta versão só `fotoPerfil` está disponível; os outros três são
+/// reservados para a v1.2 e o servidor os recusa com `422 midia_invalida` (`tipo_indisponivel`).
+public enum TipoMidia: String, Codable, CaseIterable, Sendable {
+    case fotoPerfil = "foto_perfil"
+    case fotoTrabalho = "foto_trabalho"
+    case fotoLocal = "foto_local"
+    case curriculo
+}
+
+/// `enviando` → `em_analise` → `aprovada`, `recusada` ou `nao_publicada` (a análise falhou 4 vezes);
+/// `aprovada` → `ocultada` (duas denúncias) ou `removida` (pelo dono). Só `aprovada` aparece para outra conta.
+public enum EstadoMidia: String, Codable, CaseIterable, Sendable {
+    case enviando
+    case emAnalise = "em_analise"
+    case aprovada
+    case recusada
+    case naoPublicada = "nao_publicada"
+    case ocultada
+    case removida
+}
+
+/// Motivo genérico da recusa, que a tela traduz em texto amigável. O código fino do modelo nunca sai da API.
+public enum MotivoRecusaMidia: String, Codable, CaseIterable, Sendable {
+    case fotoInadequada = "foto_inadequada"
+    case textoOuDadoPessoal = "texto_ou_dado_pessoal"
+    case naoEPessoaOuServico = "nao_e_pessoa_ou_servico"
+    case naoAnalisada = "nao_analisada"
+}
+
+/// A mídia como o dono a vê. Nunca traz o caminho no Storage, o código fino do motivo nem o hash.
+public struct Midia: Codable, Hashable, Identifiable, Sendable {
+    public let id: UUID
+    public let tipo: TipoMidia
+    public let estado: EstadoMidia
+    public let motivoRecusa: MotivoRecusaMidia?
+    /// `true` só com a mídia `recusada` ou `nao_publicada`, a nova análise ainda não pedida e o
+    /// arquivo ainda não expurgado.
+    public let podePedirNovaAnalise: Bool
+    /// URL assinada por 1 h, só com a mídia `aprovada`.
+    public let url: URL?
+    public let estabelecimentoID: UUID?
+    public let enviadaEm: Date?
+    public let decididaEm: Date?
+
+    public init(
+        id: UUID,
+        tipo: TipoMidia = .fotoPerfil,
+        estado: EstadoMidia,
+        motivoRecusa: MotivoRecusaMidia? = nil,
+        podePedirNovaAnalise: Bool = false,
+        url: URL? = nil,
+        estabelecimentoID: UUID? = nil,
+        enviadaEm: Date? = nil,
+        decididaEm: Date? = nil
+    ) {
+        self.id = id
+        self.tipo = tipo
+        self.estado = estado
+        self.motivoRecusa = motivoRecusa
+        self.podePedirNovaAnalise = podePedirNovaAnalise
+        self.url = url
+        self.estabelecimentoID = estabelecimentoID
+        self.enviadaEm = enviadaEm
+        self.decididaEm = decididaEm
+    }
+}
+
+/// O pedido de URL de upload: a mídia nasce em `enviando` e o app envia o JPEG para `uploadURL`.
+public struct UploadDeMidia: Equatable, Sendable {
+    public let midiaID: UUID
+    public let uploadURL: URL
+    /// Presente no contrato, mas o app não a usa: a miniatura deriva do servidor (CD-M04b).
+    public let uploadURLMiniatura: URL?
+    public let expiraEm: Date
+
+    public init(midiaID: UUID, uploadURL: URL, uploadURLMiniatura: URL? = nil, expiraEm: Date) {
+        self.midiaID = midiaID
+        self.uploadURL = uploadURL
+        self.uploadURLMiniatura = uploadURLMiniatura
+        self.expiraEm = expiraEm
+    }
+}
+
+/// Pedido de `solicitar_upload_midia`.
+public struct PedidoDeUploadDeMidia: Equatable, Sendable {
+    public let tipo: TipoMidia
+    public let mime: String
+    public let bytes: Int
+    public let estabelecimentoID: UUID?
+
+    public init(tipo: TipoMidia = .fotoPerfil, mime: String = "image/jpeg", bytes: Int, estabelecimentoID: UUID? = nil) {
+        self.tipo = tipo
+        self.mime = mime
+        self.bytes = bytes
+        self.estabelecimentoID = estabelecimentoID
+    }
+}
+
+/// Interruptores do servidor (`ConfiguracaoDoApp.recursos`). Ausente vale desligado: no Prod os dois nascem desligados.
+public struct RecursosDoApp: Codable, Equatable, Sendable {
+    public let fotoDePerfil: Bool
+    public let chamadaDireta: Bool
+
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false) {
+        self.fotoDePerfil = fotoDePerfil
+        self.chamadaDireta = chamadaDireta
+    }
+
+    public static let desligados = RecursosDoApp()
+}

@@ -124,10 +124,36 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case cancelarSemRede = "cancelar-sem-rede"
         /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
         case profissionalServidorAntigo = "profissional-servidor-antigo"
+        /// Foto de perfil (0.2.54), recurso ligado e nenhuma foto enviada: o fluxo de escolha e envio.
+        case fotoSemFoto = "foto-sem-foto"
+        /// Foto enviada e esperando a análise automática (`em_analise`).
+        case fotoEmAnalise = "foto-em-analise"
+        /// Foto `aprovada`, publicada para quem tem vínculo de leitura.
+        case fotoAprovada = "foto-aprovada"
+        /// Foto `recusada` por texto ou dado pessoal; ainda cabe pedir nova análise.
+        case fotoRecusada = "foto-recusada"
+        /// A análise falhou 4 vezes (`nao_publicada`, motivo `nao_analisada`); cabe pedir nova análise.
+        case fotoNaoPublicada = "foto-nao-publicada"
+        /// Duas denúncias ocultaram a foto (`ocultada`): fica oculta até o envio de outra.
+        case fotoOcultada = "foto-ocultada"
+        /// O servidor desligou o recurso (`recursos.foto_de_perfil = false`) e há uma foto aprovada: só remover.
+        case fotoRecursoDesligado = "foto-recurso-desligado"
         #if DEBUG
         /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
         case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
         #endif
+
+        /// Os cenários da foto de perfil (0.2.54).
+        public var daFotoDePerfil: Bool {
+            switch self {
+            case .fotoSemFoto, .fotoEmAnalise, .fotoAprovada, .fotoRecusada, .fotoNaoPublicada, .fotoOcultada,
+                 .fotoRecursoDesligado: true
+            default: false
+            }
+        }
+
+        /// No Prod o recurso nasce desligado; os cenários da foto o ligam, menos `fotoRecursoDesligado`.
+        var fotoDePerfilLigada: Bool { daFotoDePerfil && self != .fotoRecursoDesligado }
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
@@ -185,6 +211,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private let catalogo: [Funcao]
     private let regioesAdministrativasCadastradas: [RegiaoAdministrativa]
     private let configuracao: ConfiguracaoApp
+    /// As mídias da conta, como `minhas_midias` as devolve (0.2.54).
+    private var midias: [Midia] = []
+    /// Fotos cuja nova análise já foi pedida: uma vez só por foto.
+    private var novasAnalisesPedidas: Set<UUID> = []
+    /// Fotos cujo arquivo já foi expurgado: `pedir_nova_analise_midia` vira `expurgada`.
+    private var midiasExpurgadas: Set<UUID> = []
+    public private(set) var pedidosDeUploadDeMidia: [PedidoDeUploadDeMidia] = []
     private let contatoDeExemplo: Contato
     private let perfilPublicoDeExemplo: PerfilPublico
     private var sessaoAtiva = false
@@ -296,7 +329,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
             regioesAdministrativasCadastradas = (try? FixturesDoContrato.carregar("regioes-administrativas", como: [ContratoAPI.RegiaoAdministrativaDTO].self).map { $0.dominio() }) ?? []
-            configuracao = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
+            let configuracaoBase = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
+            configuracao = ConfiguracaoApp(
+                versaoMinima: configuracaoBase.versaoMinima,
+                versaoRecomendada: configuracaoBase.versaoRecomendada,
+                mensagem: configuracaoBase.mensagem,
+                urlDaLoja: configuracaoBase.urlDaLoja,
+                recursos: RecursosDoApp(fotoDePerfil: cenario.fotoDePerfilLigada, chamadaDireta: false)
+            )
+            midias = Self.midiasIniciais(cenario, agora: relogio.agora)
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             candidatosDeExemplo = try FixturesDoContrato.carregar("candidatos", como: [ContratoAPI.CandidatoDTO].self).map { $0.dominio() }
@@ -1990,6 +2031,135 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if cenario == .exportarIntervaloMaximoExcedido { throw erro("intervalo_maximo_excedido") }
         if cenario == .exportarTurnosSemTurnos { return .semTurnos }
         return .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: pedido.formato.rawValue))
+    }
+
+    // MARK: Foto de perfil (contrato 0.2.54)
+
+    /// A foto de exemplo dos cenários: um JPEG minúsculo em `data:`, que o `URLSession` lê sem rede.
+    static let urlDaFotoDeExemplo = URL(string: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBARXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAGAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwQDAwMEBQQEBAQFBwUFBQUFBwgHBwcHBwcICAgICAgICAoKCgoKCgsLCwsLDQ0NDQ0NDQ0NDf/bAEMBAgICAwMDBgMDBg0JBwkNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDf/dAAQAAv/aAAwDAQACEQMRAD8A+07O86EGvnu1/bD8JReNF8Otps/9k/aPs39recuM7tnmeTtz5Wed2/dt5254r1axvunNfJcH7KE0vjAXP9rW/wDwjn2jzjHh/tflbt3lY27Ony793vt7V+C8P/2bL2n9oO2nu7/PbrtY/pvi3CZnB0/7Oje797b5b9N7s/UGxvunNa328V5xY33Tmtb7d715samhwV8v9/Y//9DI+NfxQ1jw1b2vh3w9O1rdXsRmnuUOJEhyVUIf4SxDZYcgDjrkfII1XVBef2iLy4F1nd5/mt5ufXfndmvZv2gP+RusP+wZH/6Omrwqvi+EcHRp5XTnCKvJXb76n6t4h4+vVz2vTnJ8sHaK6LRbH6Hfsx/F/XPFi3nhLxNO15eafCtzb3TnMskAYIyyH+JkZlwx5IPPTJ+vPt3v+tfm3+yR/wAlE1P/ALAs3/pRb1+h1fn/ABVh6dDMZwpKydnb1R91whWnicshUru7Tav6M//Z")!
+
+    /// Ids fixos, para os testes de interface acharem a foto do cenário.
+    static let idDaFotoDeExemplo = UUID(uuidString: "5D0F1C2A-7B7E-4C1B-9A55-0C6B2E4F7A10")!
+
+    private static func midiasIniciais(_ cenario: Cenario, agora: Date) -> [Midia] {
+        guard cenario.daFotoDePerfil, cenario != .fotoSemFoto else { return [] }
+        let enviada = agora.addingTimeInterval(-3 * 60 * 60)
+        let decidida = agora.addingTimeInterval(-2 * 60 * 60)
+        let id = idDaFotoDeExemplo
+        switch cenario {
+        case .fotoEmAnalise:
+            return [Midia(id: id, estado: .emAnalise, enviadaEm: agora.addingTimeInterval(-60))]
+        case .fotoAprovada, .fotoRecursoDesligado:
+            return [Midia(id: id, estado: .aprovada, url: urlDaFotoDeExemplo, enviadaEm: enviada, decididaEm: decidida)]
+        case .fotoRecusada:
+            return [Midia(
+                id: id, estado: .recusada, motivoRecusa: .textoOuDadoPessoal, podePedirNovaAnalise: true,
+                enviadaEm: enviada, decididaEm: decidida
+            )]
+        case .fotoNaoPublicada:
+            return [Midia(
+                id: id, estado: .naoPublicada, motivoRecusa: .naoAnalisada, podePedirNovaAnalise: true,
+                enviadaEm: enviada, decididaEm: decidida
+            )]
+        case .fotoOcultada:
+            return [Midia(id: id, estado: .ocultada, enviadaEm: enviada, decididaEm: decidida)]
+        default:
+            return []
+        }
+    }
+
+    private func exigirFotoDePerfilLigada() throws {
+        guard configuracao.recursos.fotoDePerfil else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+    }
+
+    private func indiceDaMidia(_ id: UUID) throws -> Int {
+        guard let indice = midias.firstIndex(where: { $0.id == id }) else { throw erro("nao_encontrado") }
+        return indice
+    }
+
+    public func solicitarUploadMidia(_ pedido: PedidoDeUploadDeMidia) async throws -> UploadDeMidia {
+        try verificarFalhaGeral()
+        try exigirFotoDePerfilLigada()
+        pedidosDeUploadDeMidia.append(pedido)
+        guard pedido.tipo == .fotoPerfil else { throw erro("midia_invalida", detalhes: "tipo_indisponivel") }
+        guard pedido.mime == LimitesDaFoto.mime else { throw erro("midia_invalida", detalhes: "formato") }
+        guard pedido.bytes >= 1, pedido.bytes <= LimitesDaFoto.bytesMaximos else { throw erro("midia_invalida", detalhes: "tamanho") }
+        let midia = Midia(id: UUID(), estado: .enviando, enviadaEm: relogio.agora)
+        midias.append(midia)
+        return UploadDeMidia(
+            midiaID: midia.id,
+            uploadURL: URL(string: "https://armazenamento.frila.invalid/midia-perfil/\(midia.id.uuidString.lowercased()).jpg")!,
+            expiraEm: relogio.agora.addingTimeInterval(2 * 60 * 60)
+        )
+    }
+
+    public func confirmarUploadMidia(id: UUID) async throws -> Midia {
+        try verificarFalhaGeral()
+        try exigirFotoDePerfilLigada()
+        let indice = try indiceDaMidia(id)
+        // Idempotente: só `enviando` vai a `em_analise`; nos outros estados devolve o atual.
+        if midias[indice].estado == .enviando {
+            let atual = midias[indice]
+            midias[indice] = Midia(id: atual.id, estado: .emAnalise, enviadaEm: atual.enviadaEm)
+        }
+        return midias[indice]
+    }
+
+    public func removerMidia(id: UUID) async throws -> Midia {
+        // Remover o próprio dado nunca depende do interruptor; conta suspensa ainda é recusada.
+        try verificarFalhaGeral()
+        let indice = try indiceDaMidia(id)
+        let atual = midias[indice]
+        if atual.estado != .removida {
+            midias[indice] = Midia(id: atual.id, estado: .removida, enviadaEm: atual.enviadaEm, decididaEm: atual.decididaEm)
+        }
+        return midias[indice]
+    }
+
+    public func minhasMidias() async throws -> [Midia] {
+        try verificarFalhaGeral()
+        return midias
+    }
+
+    public func pedirNovaAnaliseMidia(id: UUID) async throws -> Midia {
+        try verificarFalhaGeral()
+        try exigirFotoDePerfilLigada()
+        let indice = try indiceDaMidia(id)
+        let atual = midias[indice]
+        if novasAnalisesPedidas.contains(id) { return atual }
+        guard atual.estado == .recusada || atual.estado == .naoPublicada else {
+            throw erro("midia_indisponivel", detalhes: "estado_invalido")
+        }
+        guard !midiasExpurgadas.contains(id), atual.podePedirNovaAnalise else {
+            throw erro("midia_indisponivel", detalhes: "expurgada")
+        }
+        novasAnalisesPedidas.insert(id)
+        midias[indice] = Midia(id: atual.id, estado: .emAnalise, enviadaEm: atual.enviadaEm)
+        return midias[indice]
+    }
+
+    /// Só para testes e previews: a decisão da análise automática, que no servidor vem depois, em segundo plano.
+    public func decidirMidiaParaTeste(id: UUID, estado: EstadoMidia, motivo: MotivoRecusaMidia? = nil) throws {
+        let indice = try indiceDaMidia(id)
+        let atual = midias[indice]
+        let recusada = estado == .recusada || estado == .naoPublicada
+        midias[indice] = Midia(
+            id: atual.id, estado: estado, motivoRecusa: recusada ? motivo : nil,
+            podePedirNovaAnalise: recusada && !novasAnalisesPedidas.contains(id) && !midiasExpurgadas.contains(id),
+            url: estado == .aprovada ? Self.urlDaFotoDeExemplo : nil,
+            enviadaEm: atual.enviadaEm, decididaEm: relogio.agora
+        )
+    }
+
+    /// Só para testes: o expurgo apagou o arquivo da foto recusada (`expurgada`).
+    public func expurgarMidiaParaTeste(id: UUID) throws {
+        let indice = try indiceDaMidia(id)
+        midiasExpurgadas.insert(id)
+        let atual = midias[indice]
+        midias[indice] = Midia(
+            id: atual.id, estado: atual.estado, motivoRecusa: atual.motivoRecusa, podePedirNovaAnalise: false,
+            enviadaEm: atual.enviadaEm, decididaEm: atual.decididaEm
+        )
     }
 
     // MARK: Aplicativo e dispositivo

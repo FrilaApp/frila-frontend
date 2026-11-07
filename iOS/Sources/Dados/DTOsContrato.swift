@@ -351,9 +351,21 @@ enum ContratoAPI {
         let nome: String
         let funcoes: [String]?
         let reputacao: ReputacaoDTO
+        /// 0.2.54: só vêm para leitor com vínculo de leitura, com o recurso ligado e o titular ativo.
+        let fotoURL: URL?
+        let fotoID: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case id, tipo, nome, funcoes, reputacao
+            case fotoURL = "foto_url"
+            case fotoID = "foto_id"
+        }
 
         func dominio() -> PerfilPublico {
-            PerfilPublico(id: id, tipo: tipo, nome: nome, funcoes: funcoes ?? [], reputacao: reputacao.dominio())
+            PerfilPublico(
+                id: id, tipo: tipo, nome: nome, funcoes: funcoes ?? [], reputacao: reputacao.dominio(),
+                fotoURL: fotoURL, fotoID: fotoID
+            )
         }
     }
 
@@ -1498,15 +1510,17 @@ enum ContratoAPI {
 
     struct ConfiguracaoDoAppDTO: Decodable {
         let plataforma: Plataforma?
-        let recursos: RecursosDoAppDTO?
         let versaoMinima: String
         let versaoRecomendada: String
         let urlDaLoja: URL
         let mensagem: String?
+        /// 0.2.54: ausente vale tudo desligado.
+        let recursos: RecursosDoAppDTO?
 
         enum CodingKeys: String, CodingKey {
-            case plataforma, recursos
+            case plataforma
             case mensagem
+            case recursos
             case versaoMinima = "versao_minima"
             case versaoRecomendada = "versao_recomendada"
             case urlDaLoja = "url_da_loja"
@@ -1523,7 +1537,7 @@ enum ContratoAPI {
                 versaoRecomendada: versaoRecomendada,
                 mensagem: mensagem,
                 urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja),
-                recursos: recursos?.dominio()
+                recursos: recursos?.dominio() ?? .desligados
             )
         }
 
@@ -1535,6 +1549,92 @@ enum ContratoAPI {
             }
             log.notice("url_da_loja_saneada")
             return urlPadraoDaLoja
+        }
+    }
+
+    /// `ConfiguracaoDoApp.recursos` (0.2.54): campo ausente vale `false`.
+    struct RecursosDoAppDTO: Decodable {
+        let fotoDePerfil: Bool?
+        let chamadaDireta: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case fotoDePerfil = "foto_de_perfil"
+            case chamadaDireta = "chamada_direta"
+        }
+
+        func dominio() -> RecursosDoApp {
+            RecursosDoApp(fotoDePerfil: fotoDePerfil ?? false, chamadaDireta: chamadaDireta ?? false)
+        }
+    }
+
+    // MARK: Foto de perfil (0.2.54)
+
+    /// O schema `Midia`: a mídia como o dono a vê.
+    struct MidiaDTO: Decodable {
+        let id: UUID
+        let tipo: TipoMidia
+        let estado: EstadoMidia
+        let motivoRecusa: MotivoRecusaMidia?
+        let podePedirNovaAnalise: Bool
+        let url: URL?
+        let estabelecimentoID: UUID?
+        let enviadaEm: Date?
+        let decididaEm: Date?
+
+        enum CodingKeys: String, CodingKey {
+            case id, tipo, estado, url
+            case motivoRecusa = "motivo_recusa"
+            case podePedirNovaAnalise = "pode_pedir_nova_analise"
+            case estabelecimentoID = "estabelecimento_id"
+            case enviadaEm = "enviada_em"
+            case decididaEm = "decidida_em"
+        }
+
+        func dominio() -> Midia {
+            Midia(
+                id: id, tipo: tipo, estado: estado, motivoRecusa: motivoRecusa,
+                podePedirNovaAnalise: podePedirNovaAnalise, url: url,
+                estabelecimentoID: estabelecimentoID, enviadaEm: enviadaEm, decididaEm: decididaEm
+            )
+        }
+    }
+
+    /// Resposta de `solicitar_upload_midia`.
+    struct UploadMidiaDTO: Decodable {
+        let midiaID: UUID
+        let uploadURL: URL
+        let uploadURLMiniatura: URL?
+        let expiraEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case midiaID = "midia_id"
+            case uploadURL = "upload_url"
+            case uploadURLMiniatura = "upload_url_miniatura"
+            case expiraEm = "expira_em"
+        }
+
+        func dominio() -> UploadDeMidia {
+            UploadDeMidia(midiaID: midiaID, uploadURL: uploadURL, uploadURLMiniatura: uploadURLMiniatura, expiraEm: expiraEm)
+        }
+    }
+
+    /// Parâmetros de `solicitar_upload_midia`.
+    struct SolicitarUploadMidia: Encodable {
+        let tipo: TipoMidia
+        let mime: String
+        let bytes: Int
+        let estabelecimentoID: UUID?
+
+        init(_ pedido: PedidoDeUploadDeMidia) {
+            tipo = pedido.tipo
+            mime = pedido.mime
+            bytes = pedido.bytes
+            estabelecimentoID = pedido.estabelecimentoID
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case tipo, mime, bytes
+            case estabelecimentoID = "estabelecimento_id"
         }
     }
 
