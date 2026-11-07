@@ -222,6 +222,8 @@ def conferir_rpcs(
     # Operações do contrato ainda não consumidas pelo app iOS (e.g. novas RPCs da RN14
     # pendentes de adoção no cliente iOS).
     RPCS_NAO_CONSUMIDAS_PELO_APP = {
+        "atualizar_apresentacao_profissional": "Pendente de adoção na fatia F2 (PR I2b)",
+        "definir_regioes_atendidas": "Pendente de adoção na fatia F2 (PR I2b)",
         "minha_identidade_status": (
             "Verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo de upload de documento pendente de adoção no app iOS."
@@ -444,6 +446,7 @@ def conferir_dtos(
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
     SCHEMAS_NAO_CONSUMIDOS_PELO_APP = {
+        "ApresentacaoDoProfissional": "Pendente de adoção no PR I2b",
         "StatusVerificacao": (
             "Payload de minha_identidade_status (RN14, contrato 0.2.50); "
             "pendente de adoção no cliente iOS."
@@ -460,6 +463,19 @@ def conferir_dtos(
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+        "PerfilPublico": {
+            "apresentacao": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "atende_todo_df": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "cursos": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "experiencia_faixa": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "foto_id": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "foto_url": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "idiomas": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "no_frila_desde": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "onde_trabalhei": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "regioes": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "servicos": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+        },
         "VagaResumo": {
             "ponto": (
                 "Coordenadas exatas do estabelecimento introduzidas no contrato 0.2.47 (v1.1, Cartão 72); "

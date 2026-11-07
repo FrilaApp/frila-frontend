@@ -38,6 +38,10 @@
     "schema": "#/components/schemas/Erro",
     "lista": true
   },
+  "especialidades-servicos.json": {
+    "schema": "#/components/schemas/Especialidade",
+    "lista": true
+  },
   "estabelecimento.json": {
     "schema": "#/components/schemas/Estabelecimento"
   },

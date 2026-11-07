@@ -229,6 +229,97 @@ enum ContratoAPI {
         }
     }
 
+    struct ServicoOferecidoDTO: Encodable {
+        let funcaoID: UUID
+        let unidade: UnidadePreco
+        let valorCentavos: Int?
+        let valorMaxCentavos: Int?
+        let horasIncluidas: Int?
+        let minimoHoras: Int?
+        let duracaoTipicaH: Int?
+        let atePessoas: Int?
+        let minimoPessoas: Int?
+        let descricaoPacote: String?
+        let itensInclusos: String?
+        let levaMaterial: LevaMaterial?
+        let especialidadeIDs: [UUID]?
+
+        enum CodingKeys: String, CodingKey {
+            case funcaoID = "funcao_id"
+            case unidade
+            case valorCentavos = "valor_centavos"
+            case valorMaxCentavos = "valor_max_centavos"
+            case horasIncluidas = "horas_incluidas"
+            case minimoHoras = "minimo_horas"
+            case duracaoTipicaH = "duracao_tipica_h"
+            case atePessoas = "ate_pessoas"
+            case minimoPessoas = "minimo_pessoas"
+            case descricaoPacote = "descricao_pacote"
+            case itensInclusos = "inclui"
+            case levaMaterial = "leva_material"
+            case especialidadeIDs = "especialidade_ids"
+        }
+
+        init(_ servico: ServicoOferecido) {
+            funcaoID = servico.funcaoID
+            unidade = servico.unidade
+            valorCentavos = servico.valorCentavos
+            valorMaxCentavos = servico.valorMaxCentavos
+            horasIncluidas = servico.horasIncluidas
+            minimoHoras = servico.minimoHoras
+            duracaoTipicaH = servico.duracaoTipicaH
+            atePessoas = servico.atePessoas
+            minimoPessoas = servico.minimoPessoas
+            descricaoPacote = servico.descricaoPacote
+            itensInclusos = servico.itensInclusos
+            levaMaterial = servico.levaMaterial
+            especialidadeIDs = servico.especialidadeIDs
+        }
+    }
+
+    struct ServicoNoPerfilDTO: Decodable {
+        let funcao: FuncaoDTO
+        let unidade: UnidadePreco
+        let valorCentavos: Int?
+        let valorMaxCentavos: Int?
+        let horasIncluidas: Int?
+        let minimoHoras: Int?
+        let duracaoTipicaH: Int?
+        let atePessoas: Int?
+        let minimoPessoas: Int?
+        let descricaoPacote: String?
+        let itensInclusos: String?
+        let levaMaterial: LevaMaterial?
+        let especialidades: [EspecialidadeDTO]?
+
+        enum CodingKeys: String, CodingKey {
+            case funcao
+            case unidade
+            case valorCentavos = "valor_centavos"
+            case valorMaxCentavos = "valor_max_centavos"
+            case horasIncluidas = "horas_incluidas"
+            case minimoHoras = "minimo_horas"
+            case duracaoTipicaH = "duracao_tipica_h"
+            case atePessoas = "ate_pessoas"
+            case minimoPessoas = "minimo_pessoas"
+            case descricaoPacote = "descricao_pacote"
+            case itensInclusos = "inclui"
+            case levaMaterial = "leva_material"
+            case especialidades
+        }
+
+        func dominio() -> ServicoNoPerfil {
+            ServicoNoPerfil(funcao: funcao.dominio(), servico: ServicoOferecido(
+                funcaoID: funcao.id, unidade: unidade, valorCentavos: valorCentavos, valorMaxCentavos: valorMaxCentavos, horasIncluidas: horasIncluidas, minimoHoras: minimoHoras, duracaoTipicaH: duracaoTipicaH, atePessoas: atePessoas, minimoPessoas: minimoPessoas, descricaoPacote: descricaoPacote, levaMaterial: levaMaterial, itensInclusos: itensInclusos,
+                especialidadeIDs: especialidades?.map(\.id)
+            ), especialidades: especialidades?.map { $0.dominio() } ?? [])
+        }
+    }
+
+    struct ServicosDoPerfil: Decodable {
+        let servicos: [ServicoNoPerfilDTO]
+    }
+
     struct ReputacaoDTO: Codable {
         let positivas: Int
         let total: Int

@@ -132,6 +132,100 @@ public struct Especialidade: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public enum UnidadePreco: String, Codable, CaseIterable, Sendable {
+    case hora, diaria, evento, pacote
+    case porPessoa = "por_pessoa"
+    case aCombinar = "a_combinar"
+}
+
+public enum LevaMaterial: String, Codable, CaseIterable, Sendable {
+    case sim, nao, depende
+}
+
+public enum ExperienciaFaixa: String, Codable, Sendable {
+    case menosDe1Ano = "menos_de_1_ano"
+    case de1A3Anos = "de_1_a_3_anos"
+    case de3A5Anos = "de_3_a_5_anos"
+    case de5A10Anos = "de_5_a_10_anos"
+    case maisDe10Anos = "mais_de_10_anos"
+}
+
+public enum Idioma: String, Codable, Sendable {
+    case portugues, ingles, espanhol, libras, outro
+}
+
+public struct ServicoOferecido: Codable, Hashable, Sendable {
+    public var funcaoID: UUID
+    public var unidade: UnidadePreco
+    public var valorCentavos: Int?
+    public var valorMaxCentavos: Int?
+    public var horasIncluidas: Int?
+    public var minimoHoras: Int?
+    public var duracaoTipicaH: Int?
+    public var atePessoas: Int?
+    public var minimoPessoas: Int?
+    public var descricaoPacote: String?
+    public var levaMaterial: LevaMaterial?
+    public var itensInclusos: String?
+    public var especialidadeIDs: [UUID]?
+
+    public init(funcaoID: UUID, unidade: UnidadePreco, valorCentavos: Int? = nil,
+                valorMaxCentavos: Int? = nil, horasIncluidas: Int? = nil, minimoHoras: Int? = nil,
+                duracaoTipicaH: Int? = nil, atePessoas: Int? = nil, minimoPessoas: Int? = nil,
+                descricaoPacote: String? = nil, levaMaterial: LevaMaterial? = nil,
+                itensInclusos: String? = nil, especialidadeIDs: [UUID]? = nil) {
+        self.funcaoID = funcaoID; self.unidade = unidade; self.valorCentavos = valorCentavos
+        self.valorMaxCentavos = valorMaxCentavos; self.horasIncluidas = horasIncluidas
+        self.minimoHoras = minimoHoras; self.duracaoTipicaH = duracaoTipicaH; self.atePessoas = atePessoas
+        self.minimoPessoas = minimoPessoas; self.descricaoPacote = descricaoPacote
+        self.levaMaterial = levaMaterial; self.itensInclusos = itensInclusos; self.especialidadeIDs = especialidadeIDs
+    }
+
+    public func validar() throws {
+        func exigir(_ condicao: Bool, _ campo: String) throws {
+            if !condicao { throw ErroDaApi(codigo: .campoInvalido, detalhes: campo) }
+        }
+        try exigir(unidade == .aCombinar ? valorCentavos == nil : valorCentavos.map { (1000...1000000).contains($0) } == true, "valor_centavos")
+        try exigir(valorMaxCentavos == nil || ([.hora, .diaria, .pacote].contains(unidade) && valorMaxCentavos.map { ((valorCentavos ?? 1000)...1000000).contains($0) } == true), "valor_max_centavos")
+        try exigir(unidade == .diaria ? horasIncluidas.map { (4...12).contains($0) } == true : horasIncluidas == nil, "horas_incluidas")
+        try exigir(minimoHoras == nil || (unidade == .hora && minimoHoras.map { (1...12).contains($0) } == true), "minimo_horas")
+        try exigir(duracaoTipicaH == nil || (unidade == .evento && duracaoTipicaH.map { (1...24).contains($0) } == true), "duracao_tipica_h")
+        try exigir(atePessoas == nil || (unidade == .evento && atePessoas.map { (1...2000).contains($0) } == true), "ate_pessoas")
+        try exigir(unidade == .porPessoa ? minimoPessoas.map { (1...2000).contains($0) } == true : minimoPessoas == nil, "minimo_pessoas")
+        try exigir(unidade == .pacote ? descricaoPacote.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.count <= 120 } == true : descricaoPacote == nil, "descricao_pacote")
+        try exigir((itensInclusos?.count ?? 0) <= 300, "inclui")
+        let ids = especialidadeIDs ?? []
+        try exigir(ids.count <= 8 && Set(ids).count == ids.count, "especialidade_ids")
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case funcaoID = "funcao_id"
+        case unidade
+        case valorCentavos = "valor_centavos"
+        case valorMaxCentavos = "valor_max_centavos"
+        case horasIncluidas = "horas_incluidas"
+        case minimoHoras = "minimo_horas"
+        case duracaoTipicaH = "duracao_tipica_h"
+        case atePessoas = "ate_pessoas"
+        case minimoPessoas = "minimo_pessoas"
+        case descricaoPacote = "descricao_pacote"
+        case levaMaterial = "leva_material"
+        case itensInclusos = "inclui"
+        case especialidadeIDs = "especialidade_ids"
+    }
+}
+
+public struct ServicoNoPerfil: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID { funcao.id }
+    public let funcao: Funcao
+    public let servico: ServicoOferecido
+    public let especialidades: [Especialidade]
+
+    public init(funcao: Funcao, servico: ServicoOferecido, especialidades: [Especialidade] = []) {
+        self.funcao = funcao; self.servico = servico; self.especialidades = especialidades
+    }
+}
+
 public struct Reputacao: Codable, Hashable, Sendable {
     public let positivas: Int
     public let total: Int

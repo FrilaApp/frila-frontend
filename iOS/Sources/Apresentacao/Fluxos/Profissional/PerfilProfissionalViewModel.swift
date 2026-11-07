@@ -71,6 +71,8 @@ public final class PerfilProfissionalViewModel {
         await carregar()
     }
 
+    func editorDeServicos() -> ServicosDoProfissionalViewModel { ServicosDoProfissionalViewModel(api: api) }
+
     public func alternarFuncao(_ id: UUID) {
         if funcoesSelecionadas.contains(id) {
             funcoesSelecionadas.remove(id)

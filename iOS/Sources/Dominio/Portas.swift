@@ -251,6 +251,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func criarConta(_ cadastro: CadastroConta) async throws -> Conta
     func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional
     func meuPerfilProfissional() async throws -> PerfilProfissional
+    func meusServicos() async throws -> [ServicoNoPerfil]
+    func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil]
+    func especialidades(funcaoID: UUID) async throws -> [Especialidade]
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional
     /// Troca telefone e/ou e-mail da conta. O backend ainda não oferece a operação (ver o handoff em
     /// `operacao/conta-editar-contato-handoff-backend.md`): `suportaEdicaoDeContato` diz se este cliente a
@@ -394,6 +397,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 }
 
 public extension ApiCliente {
+    func meusServicos() async throws -> [ServicoNoPerfil] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func especialidades(funcaoID: UUID) async throws -> [Especialidade] { throw ErroDaApi(codigo: .respostaInvalida) }
     var suportaEdicaoDeContato: Bool { false }
     func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta {
         throw ErroDaApi(codigo: .respostaInvalida)
