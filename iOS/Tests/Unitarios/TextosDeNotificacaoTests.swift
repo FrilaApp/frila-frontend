@@ -15,6 +15,15 @@ struct TextosDeNotificacaoTests {
     private static let caminhoDoDoc = raiz.appending(path: "Docs/TextosDeNotificacao.md")
     private static let caminhoDoContrato = raiz.appending(path: "Contrato/openapi.yaml")
 
+    /// Os 19 tipos originais documentados na planilha de push (Sprint 0 / VyY2SGsX).
+    /// Novos tipos contratuais (mídia e chamadas diretas) são definidos e validados diretamente pelo OpenAPI.
+    static let tiposBase: [TipoDeAviso] = [
+        .vaga, .vagasAgrupadas, .vagaSemElegiveis, .confirmacao, .lembrete24h, .lembrete3h,
+        .inicioSemCheckin, .atraso15min, .fimSemCheckout, .vagaVazia, .checkin,
+        .checkinManualPendente, .cancelamento, .avaliacaoDisponivel, .suspensao, .reativacao,
+        .candidaturaRecusada, .selecaoEncerrada, .selecaoLembrete
+    ]
+
     /// Representação de uma linha da tabela de especificação de push (seção 4).
     struct LinhaDaTabela: Sendable {
         let numero: String
@@ -128,25 +137,25 @@ struct TextosDeNotificacaoTests {
         return linhasDeDados
     }
 
-    @Test("A planilha cobre exatamente 19 tipos únicos que concordam 1:1 com TipoDeAviso.allCases")
+    @Test("A planilha cobre exatamente 19 tipos únicos que concordam 1:1 com os tipos base de TipoDeAviso")
     func tiposConcordamComCodigo() throws {
         let tabela = try Self.carregarTabela()
         #expect(tabela.count == 32, "A tabela da seção 4 deve conter exatamente 32 linhas de cenários")
 
         let tiposNaPlanilha = Set(tabela.map(\.tipo))
-        let tiposNoCodigo = Set(TipoDeAviso.allCases.map(\.rawValue))
+        let tiposNoCodigoBase = Set(Self.tiposBase.map(\.rawValue))
 
         #expect(tiposNaPlanilha.count == 19, "A planilha deve cobrir exatamente 19 tipos únicos de notificação")
-        #expect(tiposNoCodigo.count == 19, "O enum TipoDeAviso deve ter exatamente 19 casos")
+        #expect(tiposNoCodigoBase.count == 19, "Os tipos base de TipoDeAviso devem somar exatamente 19 casos")
 
-        let faltandoNoCodigo = tiposNaPlanilha.subtracting(tiposNoCodigo)
-        let faltandoNaPlanilha = tiposNoCodigo.subtracting(tiposNaPlanilha)
+        let faltandoNoCodigo = tiposNaPlanilha.subtracting(tiposNoCodigoBase)
+        let faltandoNaPlanilha = tiposNoCodigoBase.subtracting(tiposNaPlanilha)
 
-        #expect(faltandoNoCodigo.isEmpty, "Tipos da planilha ausentes em TipoDeAviso: \(faltandoNoCodigo)")
-        #expect(faltandoNaPlanilha.isEmpty, "Tipos de TipoDeAviso ausentes na planilha: \(faltandoNaPlanilha)")
+        #expect(faltandoNoCodigo.isEmpty, "Tipos da planilha ausentes em tiposBase: \(faltandoNoCodigo)")
+        #expect(faltandoNaPlanilha.isEmpty, "Tipos base ausentes na planilha: \(faltandoNaPlanilha)")
     }
 
-    @Test("Cada um dos 19 tipos tem títulos de até 40 caracteres (iPhone SE)", arguments: TipoDeAviso.allCases)
+    @Test("Cada um dos 19 tipos tem títulos de até 40 caracteres (iPhone SE)", arguments: Self.tiposBase)
     func limitesDeTitulo(tipo: TipoDeAviso) throws {
         let tabela = try Self.carregarTabela().filter { $0.tipo == tipo.rawValue }
         #expect(!tabela.isEmpty, "Tabela de notificações não pode estar vazia")
@@ -161,7 +170,7 @@ struct TextosDeNotificacaoTests {
         }
     }
 
-    @Test("Cada um dos 19 tipos tem corpos de até 110 caracteres, salvo a divergência contratual documentada", arguments: TipoDeAviso.allCases)
+    @Test("Cada um dos 19 tipos tem corpos de até 110 caracteres, salvo a divergência contratual documentada", arguments: Self.tiposBase)
     func limitesDeCorpo(tipo: TipoDeAviso) throws {
         let tabela = try Self.carregarTabela().filter { $0.tipo == tipo.rawValue }
         #expect(!tabela.isEmpty, "Tabela de notificações não pode estar vazia")
@@ -237,7 +246,7 @@ struct TextosDeNotificacaoTests {
         }
     }
 
-    @Test("O contrato OpenAPI (iOS/Contrato/openapi.yaml) concorda com os 19 tipos de TipoDeAviso")
+    @Test("O contrato OpenAPI (iOS/Contrato/openapi.yaml) concorda com os 27 tipos de TipoDeAviso")
     func tiposConcordamComContratoOpenAPI() throws {
         let conteudo = try String(contentsOf: Self.caminhoDoContrato, encoding: .utf8)
         let regex = try Regex(#"TipoNotificacao:[\s\S]*?enum:\s*\[([\s\S]*?)\]"#)
@@ -254,11 +263,11 @@ struct TextosDeNotificacaoTests {
 
         let tiposNoCodigo = Set(TipoDeAviso.allCases.map(\.rawValue))
 
-        #expect(tiposOpenAPI.count == 19, "O contrato OpenAPI deve conter exatamente 19 tipos em TipoNotificacao")
+        #expect(tiposOpenAPI.count == 27, "O contrato OpenAPI deve conter exatamente 27 tipos em TipoNotificacao")
         #expect(tiposOpenAPI == tiposNoCodigo, "Divergência entre TipoNotificacao do openapi.yaml e TipoDeAviso do código")
     }
 
-    @Test("A tabela de inventário da seção 3 contém exatamente 19 linhas correspondentes a TipoDeAviso.allCases")
+    @Test("A tabela de inventário da seção 3 contém exatamente 19 linhas correspondentes aos tipos base de TipoDeAviso")
     func inventarioSecao3Tem19Linhas() throws {
         let conteudo = try String(contentsOf: Self.caminhoDoDoc, encoding: .utf8)
         let linhas = conteudo.components(separatedBy: .newlines)
@@ -284,8 +293,8 @@ struct TextosDeNotificacaoTests {
         }
 
         #expect(tiposSecao3.count == 19, "A tabela da seção 3 deve ter exatamente 19 linhas")
-        let tiposNoCodigo = Set(TipoDeAviso.allCases.map(\.rawValue))
-        #expect(Set(tiposSecao3) == tiposNoCodigo, "Tipos da seção 3 devem ser idênticos a TipoDeAviso.allCases")
+        let tiposNoCodigoBase = Set(Self.tiposBase.map(\.rawValue))
+        #expect(Set(tiposSecao3) == tiposNoCodigoBase, "Tipos da seção 3 devem ser idênticos aos tipos base de TipoDeAviso")
     }
 
     @Test("Planilha segue as decisões do Backlog v1.2.1 sobre US10, US14 e RF12 com link de decisão (#VyY2SGsX)")
