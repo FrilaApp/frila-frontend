@@ -7,6 +7,7 @@ import FrilaDominio
 public actor ApiClienteEmMemoria: ApiCliente {
     public enum Cenario: String, CaseIterable, Sendable {
         case sucesso = "success"
+        case perfilRicoHabilitado = "perfil-rico-habilitado"
         case servicosVazios = "servicos-vazios"
         case servicosSemRede = "servicos-sem-rede"
         case servicosInclusosRecusados = "servicos-inclusos-recusados"
@@ -1993,10 +1994,40 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     // MARK: Aplicativo e dispositivo
 
+    private var recursosConfigurados: RecursosDoApp?
+
+    public func definirRecursos(_ recursos: RecursosDoApp) {
+        self.recursosConfigurados = recursos
+    }
+
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
         if cenario == .atualizacaoObrigatoria {
-            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+            return ConfiguracaoApp(
+                versaoMinima: "99.0.0",
+                versaoRecomendada: "99.0.0",
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: configuracao.recursos
+            )
+        }
+        if let recursosConfigurados {
+            return ConfiguracaoApp(
+                versaoMinima: configuracao.versaoMinima,
+                versaoRecomendada: configuracao.versaoRecomendada,
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: recursosConfigurados
+            )
+        }
+        if cenario == .perfilRicoHabilitado || cenario == .servicosVazios || cenario == .servicosInclusosRecusados {
+            return ConfiguracaoApp(
+                versaoMinima: configuracao.versaoMinima,
+                versaoRecomendada: configuracao.versaoRecomendada,
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: RecursosDoApp(perfilRico: true)
+            )
         }
         return configuracao
     }

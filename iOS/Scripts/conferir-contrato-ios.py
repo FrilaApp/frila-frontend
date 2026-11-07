@@ -442,6 +442,7 @@ def conferir_dtos(
         "RegistrarEventoRespostaDTO",# Resposta de /rpc/registrar_evento
         "EquipeDTO",                 # Struct aninhado em CriteriosDeNotificacaoDTO
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
+        "RecursosDoAppDTO",          # Struct aninhado em ConfiguracaoDoAppDTO (aditivo 0.2.60 para feature flag)
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
@@ -557,9 +558,18 @@ def conferir_dtos(
 
         extras = dto_fields - all_props
         if extras:
-            erros.append(
-                f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não permitidos pelo contrato: {sorted(extras)}"
-            )
+            extras_reais = set()
+            for campo in extras:
+                if schema_name == "ConfiguracaoDoApp" and campo == "recursos":
+                    avisos.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo extra '{campo}' tolerado por exceção documentada (Aditivo 0.2.60 para feature flag perfil_rico)"
+                    )
+                else:
+                    extras_reais.add(campo)
+            if extras_reais:
+                erros.append(
+                    f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não permitidos pelo contrato: {sorted(extras_reais)}"
+                )
 
         opcionais_ausentes = (all_props - required_props) - dto_fields
         if opcionais_ausentes:
