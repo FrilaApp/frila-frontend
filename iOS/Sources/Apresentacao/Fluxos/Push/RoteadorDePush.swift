@@ -24,7 +24,7 @@ public enum DestinoDoProfissional: Equatable, Sendable {
             self = .vaga(vagaID)
         case .vagasAgrupadas:
             self = .vagas
-        case .confirmacao, .lembrete24h, .lembrete3h, .inicioSemCheckin, .fimSemCheckout:
+        case .confirmacao, .lembrete24h, .lembrete3h, .inicioSemCheckin, .fimSemCheckout, .turnoNaoVerificado:
             guard let turnoID = aviso.turnoID else { return nil }
             self = .turno(turnoID)
         case .cancelamento:

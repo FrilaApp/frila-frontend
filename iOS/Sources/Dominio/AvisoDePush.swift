@@ -32,6 +32,8 @@ public enum TipoDeAviso: String, CaseIterable, Sendable {
     case selecaoLembrete = "selecao_lembrete"
     /// 0.2.54: a foto de perfil não foi publicada (`recusada` ou `nao_publicada`). Só traz `tipo` e `midia_id`.
     case midiaRecusada = "midia_recusada"
+    /// 0.2.62: presença no turno não confirmada dentro do prazo (RN15, RN22). Leva `turno_id`.
+    case turnoNaoVerificado = "turno_nao_verificado"
 }
 
 /// Paridade direta com o schema TipoNotificacao do contrato OpenAPI.

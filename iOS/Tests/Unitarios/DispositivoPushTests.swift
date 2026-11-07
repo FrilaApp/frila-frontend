@@ -147,7 +147,7 @@ struct DispositivoPushTests {
         #expect(disp.vinculoID == vinculo)
     }
 
-    @Test("TipoDeAviso possui paridade exata com os 27 casos de TipoNotificacao no contrato")
+    @Test("TipoDeAviso possui paridade exata com os 28 casos de TipoNotificacao no contrato")
     func paridadeDeTiposDeNotificacaoComContrato() {
         let casosDoContrato: Set<String> = [
             "vaga",
@@ -176,12 +176,13 @@ struct DispositivoPushTests {
             "chamada_recusada",
             "chamada_expirada",
             "chamada_cancelada",
-            "chamada_encerrada"
+            "chamada_encerrada",
+            "turno_nao_verificado"
         ]
 
         let casosImplementados = Set(TipoDeAviso.allCases.map(\.rawValue))
         #expect(casosImplementados == casosDoContrato, "Os casos de TipoDeAviso devem espelhar fielmente o schema TipoNotificacao")
-        #expect(TipoDeAviso.allCases.count == 27)
+        #expect(TipoDeAviso.allCases.count == 28)
 
         for caso in TipoDeAviso.allCases {
             #expect(TipoDeAviso(rawValue: caso.rawValue) == caso)
@@ -189,7 +190,7 @@ struct DispositivoPushTests {
         }
     }
 
-    @Test("AvisoDePush decodifica todos os 27 tipos contratuais e preserva chaves canônicas (RN15)")
+    @Test("AvisoDePush decodifica todos os 28 tipos contratuais e preserva chaves canônicas (RN15)")
     func decodificacaoEExportacaoAvisoDePush() {
         let vagaID = UUID()
         let turnoID = UUID()

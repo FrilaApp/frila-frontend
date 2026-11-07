@@ -76,6 +76,8 @@ struct CasoDoAviso: Sendable, CustomTestStringConvertible {
         CasoDoAviso(tipo: "chamada_expirada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
         CasoDoAviso(tipo: "chamada_cancelada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
         CasoDoAviso(tipo: "chamada_encerrada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
+        // 0.2.62: turno não verificado. Leva turno_id e abre o turno para ambos os lados.
+        CasoDoAviso(tipo: "turno_nao_verificado", payload: turnoID, profissional: .turno(IDs.turno), contratante: .turno(turnoID: IDs.turno)),
     ]
 
     /// O `userInfo` como chega do APNs: os campos de `data` na raiz, ao lado do `aps` e das chaves do FCM.
@@ -93,7 +95,7 @@ struct CasoDoAviso: Sendable, CustomTestStringConvertible {
 
 @Suite("Push: a tela que cada tipo de aviso abre (#8)")
 struct DestinoDeCadaTipoTests {
-    @Test("A tabela cobre os vinte e sete tipos do backend, e o app não conhece nenhum a mais")
+    @Test("A tabela cobre os vinte e oito tipos do backend, e o app não conhece nenhum a mais")
     func cobertura() {
         let doBackend: Set<String> = [
             "vaga", "vagas_agrupadas", "vaga_sem_elegiveis", "confirmacao", "lembrete_24h", "lembrete_3h",
@@ -102,6 +104,7 @@ struct DestinoDeCadaTipoTests {
             "selecao_lembrete", "midia_recusada",
             "chamada_recebida", "chamada_lembrete", "chamada_aceita", "chamada_recusada",
             "chamada_expirada", "chamada_cancelada", "chamada_encerrada",
+            "turno_nao_verificado",
         ]
         #expect(Set(TipoDeAviso.allCases.map(\.rawValue)) == doBackend)
         #expect(Set(CasoDoAviso.todos.map(\.tipo)) == doBackend)

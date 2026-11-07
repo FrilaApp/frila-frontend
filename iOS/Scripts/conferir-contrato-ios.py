@@ -259,6 +259,10 @@ def conferir_rpcs(
         "meu_perfil_detalhado": PENDENTE_F2,
         "atualizar_apresentacao_profissional": PENDENTE_F2,
         "definir_regioes_atendidas": PENDENTE_F2,
+        "definir_preferencia_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "detalhe_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "minhas_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "publicar_a_partir_da_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
     }
 
     faltando = openapi_rpcs - swift_rpcs
@@ -509,10 +513,14 @@ def conferir_dtos(
             "Item de listar_bloqueios (decisão A8 da PO, contrato 0.2.51); "
             "pendente de adoção no cliente iOS."
         ),
+        "PreferenciaChamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
     }
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+        "CriteriosDeNotificacao": {
+            "contestacao": "Pendente de adoção no PR de contestação do despacho (contrato 0.2.62, RF27)",
+        },
         # O perfil público ganhou, na F2 (0.2.53), os campos do "perfil que explica"; o iOS adota
         # primeiro só a foto (F3, 0.2.54): `foto_url` e `foto_id` estão mapeados.
         "PerfilPublico": {
