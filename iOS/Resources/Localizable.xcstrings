@@ -11733,6 +11733,486 @@
           }
         }
       }
+    },
+    "Foto de perfil" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto de perfil"
+          }
+        }
+      }
+    },
+    "Use uma foto sua, com o rosto visível, sem texto nem dados pessoais. Ela só aparece para quem tem vínculo com você, depois de aprovada." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use uma foto sua, com o rosto visível, sem texto nem dados pessoais. Ela só aparece para quem tem vínculo com você, depois de aprovada."
+          }
+        }
+      }
+    },
+    "Você ainda não tem foto de perfil." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você ainda não tem foto de perfil."
+          }
+        }
+      }
+    },
+    "Escolher foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher foto"
+          }
+        }
+      }
+    },
+    "Trocar foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trocar foto"
+          }
+        }
+      }
+    },
+    "Tentar outra foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar outra foto"
+          }
+        }
+      }
+    },
+    "Pedir nova análise" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pedir nova análise"
+          }
+        }
+      }
+    },
+    "Remover foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover foto"
+          }
+        }
+      }
+    },
+    "Remover sua foto?" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover sua foto?"
+          }
+        }
+      }
+    },
+    "Ela deixa de aparecer na hora. Você pode enviar outra quando quiser." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ela deixa de aparecer na hora. Você pode enviar outra quando quiser."
+          }
+        }
+      }
+    },
+    "Enviando sua foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviando sua foto"
+          }
+        }
+      }
+    },
+    "Aguarde um instante." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguarde um instante."
+          }
+        }
+      }
+    },
+    "Foto em análise" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto em análise"
+          }
+        }
+      }
+    },
+    "Estamos conferindo sua foto. Ela só aparece para outras pessoas depois de aprovada." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estamos conferindo sua foto. Ela só aparece para outras pessoas depois de aprovada."
+          }
+        }
+      }
+    },
+    "Foto publicada" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto publicada"
+          }
+        }
+      }
+    },
+    "Quem tem vínculo com você vê esta foto no seu perfil." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quem tem vínculo com você vê esta foto no seu perfil."
+          }
+        }
+      }
+    },
+    "Foto não publicada" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto não publicada"
+          }
+        }
+      }
+    },
+    "Não conseguimos analisar sua foto agora. Peça uma nova análise ou tente outra foto." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não conseguimos analisar sua foto agora. Peça uma nova análise ou tente outra foto."
+          }
+        }
+      }
+    },
+    "Foto oculta" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto oculta"
+          }
+        }
+      }
+    },
+    "Sua foto foi ocultada depois de denúncias. Envie outra foto para voltar a ter uma." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua foto foi ocultada depois de denúncias. Envie outra foto para voltar a ter uma."
+          }
+        }
+      }
+    },
+    "A nova análise já foi pedida. Se a foto continuar sem aparecer, tente outra foto." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A nova análise já foi pedida. Se a foto continuar sem aparecer, tente outra foto."
+          }
+        }
+      }
+    },
+    "Use uma foto sua, com o rosto visível." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use uma foto sua, com o rosto visível."
+          }
+        }
+      }
+    },
+    "Use uma foto sem texto, telefone, Pix, QR code ou documento." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use uma foto sem texto, telefone, Pix, QR code ou documento."
+          }
+        }
+      }
+    },
+    "A foto precisa mostrar você. Logos, desenhos e paisagens não servem como foto de perfil." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A foto precisa mostrar você. Logos, desenhos e paisagens não servem como foto de perfil."
+          }
+        }
+      }
+    },
+    "Não conseguimos analisar agora. Tente de novo." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não conseguimos analisar agora. Tente de novo."
+          }
+        }
+      }
+    },
+    "Tente outra foto, com seu rosto visível e sem texto nem dados pessoais." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tente outra foto, com seu rosto visível e sem texto nem dados pessoais."
+          }
+        }
+      }
+    },
+    "Fotos de perfil estão indisponíveis por enquanto. Quando voltarem, você poderá enviar a sua." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos de perfil estão indisponíveis por enquanto. Quando voltarem, você poderá enviar a sua."
+          }
+        }
+      }
+    },
+    "Fotos de perfil estão indisponíveis por enquanto. Sua foto fica guardada, e você pode removê-la quando quiser." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos de perfil estão indisponíveis por enquanto. Sua foto fica guardada, e você pode removê-la quando quiser."
+          }
+        }
+      }
+    },
+    "Ajustar a foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar a foto"
+          }
+        }
+      }
+    },
+    "Arraste e aproxime para deixar seu rosto no quadrado." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arraste e aproxime para deixar seu rosto no quadrado."
+          }
+        }
+      }
+    },
+    "Usar esta foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar esta foto"
+          }
+        }
+      }
+    },
+    "Aproximar" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aproximar"
+          }
+        }
+      }
+    },
+    "Afastar" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afastar"
+          }
+        }
+      }
+    },
+    "Área da foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Área da foto"
+          }
+        }
+      }
+    },
+    "Preparando a foto…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparando a foto…"
+          }
+        }
+      }
+    },
+    "Conferindo a foto…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferindo a foto…"
+          }
+        }
+      }
+    },
+    "Enviando a foto…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviando a foto…"
+          }
+        }
+      }
+    },
+    "Não conseguimos abrir essa foto. Tente outra." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não conseguimos abrir essa foto. Tente outra."
+          }
+        }
+      }
+    },
+    "Essa foto não pôde ser enviada. Tente outra foto." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essa foto não pôde ser enviada. Tente outra foto."
+          }
+        }
+      }
+    },
+    "O arquivo dessa foto já foi apagado. Envie outra foto." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O arquivo dessa foto já foi apagado. Envie outra foto."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa. Enquanto a suspensão durar, não é possível mudar a foto." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta está suspensa. Enquanto a suspensão durar, não é possível mudar a foto."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir agora. Tente novamente em instantes." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível concluir agora. Tente novamente em instantes."
+          }
+        }
+      }
+    },
+    "Encontramos na foto algo que parece telefone, e-mail, link ou chave Pix. Tente outra foto, sem texto nem dados pessoais." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontramos na foto algo que parece telefone, e-mail, link ou chave Pix. Tente outra foto, sem texto nem dados pessoais."
+          }
+        }
+      }
+    },
+    "Encontramos um QR code ou código de barras na foto. Tente outra foto, sem eles." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontramos um QR code ou código de barras na foto. Tente outra foto, sem eles."
+          }
+        }
+      }
+    },
+    "Essa foto não pode ser usada. Tente outra, com seu rosto visível." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essa foto não pode ser usada. Tente outra, com seu rosto visível."
+          }
+        }
+      }
+    },
+    "Não conseguimos conferir a foto neste aparelho agora. Por segurança, ela não foi enviada. Tente outra foto em instantes." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não conseguimos conferir a foto neste aparelho agora. Por segurança, ela não foi enviada. Tente outra foto em instantes."
+          }
+        }
+      }
+    },
+    "Sua foto de perfil" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua foto de perfil"
+          }
+        }
+      }
+    },
+    "Sem foto de perfil" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem foto de perfil"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

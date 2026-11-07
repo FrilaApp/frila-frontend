@@ -41,8 +41,10 @@ public enum DestinoDoProfissional: Equatable, Sendable {
         case .avaliacaoDisponivel:
             guard let turnoID = aviso.turnoID else { return nil }
             self = .avaliacao(turnoID: turnoID)
-        case .vagaSemElegiveis, .atraso15min, .vagaVazia, .checkin, .checkinManualPendente, .suspensao, .reativacao, .selecaoLembrete:
-            // O lembrete da seleção (0.2.38) é só da casa.
+        case .vagaSemElegiveis, .atraso15min, .vagaVazia, .checkin, .checkinManualPendente, .suspensao, .reativacao, .selecaoLembrete,
+             .midiaRecusada:
+            // O lembrete da seleção (0.2.38) é só da casa. `midia_recusada` (0.2.54) traz só `tipo` e
+            // `midia_id`: o aviso informa, e a foto está em Meu perfil.
             return nil
         }
     }

@@ -38,6 +38,10 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case contaSuspensa = "conta_suspensa"
     case verificacaoIndisponivel = "verificacao_indisponivel"
     case evidenciaIncompleta = "evidencia_incompleta"
+    case funcaoNaoMarcada = "funcao_nao_marcada"
+    case midiaIndisponivel = "midia_indisponivel"
+    case midiaInvalida = "midia_invalida"
+    case recursoDesligado = "recurso_desligado"
     case semRede = "sem_rede"
     case respostaInvalida = "resposta_invalida"
     case desconhecido
@@ -51,6 +55,14 @@ public enum MotivoRepublicacaoIndisponivel: String, Codable, CaseIterable, Senda
     case jaComecou = "ja_comecou"
     case semPosicoesRestantes = "sem_posicoes_restantes"
     case jaRepublicada = "ja_republicada"
+}
+
+public extension ErroDaApi {
+    /// `403 sem_permissao` com `details: recurso_desligado` (contrato 0.2.54, RN46): o recurso está
+    /// desligado no servidor. O código solto `recurso_desligado` vale o mesmo.
+    var recursoDesligado: Bool {
+        codigo == .recursoDesligado || (codigo == .semPermissao && detalhes == CodigoErroAPI.recursoDesligado.rawValue)
+    }
 }
 
 public extension CodigoErroAPI {

@@ -490,6 +490,32 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         let _: ContratoAPI.RemocaoDTO = try await rpc("remover_dispositivo", params: ContratoAPI.RemoverDispositivo(tokenFCM: tokenFCM))
     }
 
+    // MARK: Foto de perfil (contrato 0.2.54, RN37 e RN46)
+
+    public func solicitarUploadMidia(_ pedido: PedidoDeUploadDeMidia) async throws -> UploadDeMidia {
+        let resposta: ContratoAPI.UploadMidiaDTO = try await rpc("solicitar_upload_midia", params: ContratoAPI.SolicitarUploadMidia(pedido))
+        return resposta.dominio()
+    }
+
+    public func confirmarUploadMidia(id: UUID) async throws -> Midia {
+        let resposta: ContratoAPI.MidiaDTO = try await rpc("confirmar_upload_midia", params: ContratoAPI.ID("midia_id", id))
+        return resposta.dominio()
+    }
+
+    public func removerMidia(id: UUID) async throws -> Midia {
+        let resposta: ContratoAPI.MidiaDTO = try await rpc("remover_midia", params: ContratoAPI.ID("midia_id", id))
+        return resposta.dominio()
+    }
+
+    public func minhasMidias() async throws -> [Midia] {
+        try await lista("minhas_midias") { (item: ContratoAPI.MidiaDTO) in item.dominio() }
+    }
+
+    public func pedirNovaAnaliseMidia(id: UUID) async throws -> Midia {
+        let resposta: ContratoAPI.MidiaDTO = try await rpc("pedir_nova_analise_midia", params: ContratoAPI.ID("midia_id", id))
+        return resposta.dominio()
+    }
+
     // MARK: Telemetria (RN15, RNF08, contrato 0.2.41)
 
     public func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool {
@@ -618,6 +644,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         "historico_profissional",
         "avaliacoes_do_turno",
         "configuracao_do_app",
+        "minhas_midias",
     ]
 
     /// Falhas transitórias de rede que justificam uma retentativa imediata em leituras idempotentes
