@@ -4,14 +4,17 @@ import SwiftUI
 /// Equipe de confiança (#24): lista Hi-Fi com divisórias e remoção com confirmação.
 public struct TelaEquipeDeConfianca: View {
     @State private var viewModel: EquipeDeConfiancaViewModel
+    @State private var chamadaHabilitada = false
+    private let api: (any ApiCliente)?
     @State private var aRemover: PerfilPublico?
 
-    public init(viewModel: EquipeDeConfiancaViewModel) {
+    public init(viewModel: EquipeDeConfiancaViewModel, api: (any ApiCliente)? = nil) {
+        self.api = api
         _viewModel = State(initialValue: viewModel)
     }
 
     public init(api: any ApiCliente, estabelecimentoID: UUID, cache: CacheEquipeDeConfianca = .compartilhado) {
-        self.init(viewModel: EquipeDeConfiancaViewModel(estabelecimentoID: estabelecimentoID, api: api, cache: cache))
+        self.init(viewModel: EquipeDeConfiancaViewModel(estabelecimentoID: estabelecimentoID, api: api, cache: cache), api: api)
     }
 
     public var body: some View {
@@ -41,7 +44,14 @@ public struct TelaEquipeDeConfianca: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(.hidden, for: .navigationBar)
 
-        .task { await viewModel.carregar() }
+        .task {
+            if let api {
+                chamadaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
+                    try await api.configuracaoDoApp()
+                })?.recursos?.chamadaDireta == true
+            }
+            await viewModel.carregar()
+        }
         .refreshable { await viewModel.carregar() }
         // O `.task` acima já relê a cada aparição: aqui ficam a volta do segundo plano e o push.
         .atualizacaoAutomatica(.equipeDeConfianca, aoAparecer: .nunca, recarregar: viewModel.atualizarEmSilencio)
@@ -95,6 +105,9 @@ public struct TelaEquipeDeConfianca: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
             SeloReputacao(perfil.reputacao)
+            if chamadaHabilitada, let api {
+                BotaoChamarDeNovo(api: api, profissionalID: perfil.id, estabelecimentoID: viewModel.estabelecimentoID)
+            }
             BotaoSecundario(verbatim: TextosEquipeDeConfianca.remover) { aRemover = perfil }
                 .disabled(viewModel.removendo != nil)
                 .accessibilityLabel(Text(verbatim: "\(TextosEquipeDeConfianca.remover) \(perfil.nome)"))

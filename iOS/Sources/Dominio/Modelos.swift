@@ -346,7 +346,14 @@ public enum ErroValidacaoVaga: String, Error, CaseIterable, Sendable {
     case selecaoSemAntecedencia
 }
 
+public enum OrigemVaga: String, Codable, CaseIterable, Sendable {
+    case publicacao
+    case chamadaDireta = "chamada_direta"
+}
+
 public struct Vaga: Codable, Hashable, Identifiable, Sendable {
+    public let origem: OrigemVaga?
+    public let vagaOrigemId: UUID?
     public let id: UUID
     public let estabelecimento: PerfilPublico
     public let funcao: Funcao
@@ -390,8 +397,11 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         modo: ModoPreenchimento,
         estado: EstadoVaga,
         oculta: Bool = false,
-        publicadoEm: Date
+        publicadoEm: Date,
+        origem: OrigemVaga? = nil, vagaOrigemId: UUID? = nil
     ) {
+        self.origem = origem
+        self.vagaOrigemId = vagaOrigemId
         self.id = id
         self.estabelecimento = estabelecimento
         self.funcao = funcao
@@ -415,7 +425,7 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
     }
 
     public var resumo: VagaResumo {
-        VagaResumo(id: id, funcao: funcao.nome, local: local, regiaoAdministrativa: regiaoAdministrativa, periodo: periodo, valor: valor)
+        VagaResumo(id: id, funcao: funcao.nome, local: local, regiaoAdministrativa: regiaoAdministrativa, periodo: periodo, valor: valor, origem: origem, vagaOrigemId: vagaOrigemId)
     }
 
     public func validar(agora: Date) -> [ErroValidacaoVaga] {
@@ -487,6 +497,8 @@ public struct VagaNaLista: Codable, Hashable, Identifiable, Sendable {
 }
 
 public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
+    public let origem: OrigemVaga?
+    public let vagaOrigemId: UUID?
     public let id: UUID
     public let funcao: String
     public let local: String
@@ -494,7 +506,9 @@ public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
     public let periodo: Periodo
     public let valor: Dinheiro
 
-    public init(id: UUID, funcao: String, local: String, regiaoAdministrativa: String, periodo: Periodo, valor: Dinheiro) {
+    public init(id: UUID, funcao: String, local: String, regiaoAdministrativa: String, periodo: Periodo, valor: Dinheiro, origem: OrigemVaga? = nil, vagaOrigemId: UUID? = nil) {
+        self.origem = origem
+        self.vagaOrigemId = vagaOrigemId
         self.id = id
         self.funcao = funcao
         self.local = local
@@ -509,6 +523,8 @@ public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
     /// deixaria de abrir em modo avião logo depois da atualização do app.
     public init(from decoder: any Decoder) throws {
         let campos = try decoder.container(keyedBy: CodingKeys.self)
+        origem = try campos.decodeIfPresent(OrigemVaga.self, forKey: .origem)
+        vagaOrigemId = try campos.decodeIfPresent(UUID.self, forKey: .vagaOrigemId)
         id = try campos.decode(UUID.self, forKey: .id)
         funcao = try campos.decode(String.self, forKey: .funcao)
         local = try campos.decode(String.self, forKey: .local)
