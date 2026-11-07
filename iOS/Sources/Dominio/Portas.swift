@@ -215,17 +215,39 @@ public struct Denuncia: Codable, Equatable, Sendable {
     }
 }
 
+public struct RecursosDoApp: Codable, Equatable, Sendable {
+    public let fotoDePerfil: Bool
+    public let chamadaDireta: Bool
+    public let perfilRico: Bool
+
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
+        self.fotoDePerfil = fotoDePerfil
+        self.chamadaDireta = chamadaDireta
+        self.perfilRico = perfilRico
+    }
+
+    public static let desligados = RecursosDoApp()
+}
+
 public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     public let versaoMinima: String
     public let versaoRecomendada: String
     public let mensagem: String?
     public let urlDaLoja: URL
+    public let recursos: RecursosDoApp
 
-    public init(versaoMinima: String, versaoRecomendada: String, mensagem: String?, urlDaLoja: URL) {
+    public init(
+        versaoMinima: String,
+        versaoRecomendada: String,
+        mensagem: String?,
+        urlDaLoja: URL,
+        recursos: RecursosDoApp? = nil
+    ) {
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem
         self.urlDaLoja = urlDaLoja
+        self.recursos = recursos ?? .desligados
     }
 }
 

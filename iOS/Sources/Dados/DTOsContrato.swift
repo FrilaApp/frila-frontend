@@ -1476,15 +1476,36 @@ enum ContratoAPI {
 
     // MARK: Aplicativo
 
+    struct RecursosDoAppDTO: Decodable {
+        let fotoDePerfil: Bool?
+        let chamadaDireta: Bool?
+        let perfilRico: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case fotoDePerfil = "foto_de_perfil"
+            case chamadaDireta = "chamada_direta"
+            case perfilRico = "perfil_rico"
+        }
+
+        func dominio() -> RecursosDoApp {
+            RecursosDoApp(
+                fotoDePerfil: fotoDePerfil ?? false,
+                chamadaDireta: chamadaDireta ?? false,
+                perfilRico: perfilRico ?? false
+            )
+        }
+    }
+
     struct ConfiguracaoDoAppDTO: Decodable {
         let plataforma: Plataforma?
+        let recursos: RecursosDoAppDTO?
         let versaoMinima: String
         let versaoRecomendada: String
         let urlDaLoja: URL
         let mensagem: String?
 
         enum CodingKeys: String, CodingKey {
-            case plataforma
+            case plataforma, recursos
             case mensagem
             case versaoMinima = "versao_minima"
             case versaoRecomendada = "versao_recomendada"
@@ -1501,7 +1522,8 @@ enum ContratoAPI {
                 versaoMinima: versaoMinima,
                 versaoRecomendada: versaoRecomendada,
                 mensagem: mensagem,
-                urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja)
+                urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja),
+                recursos: recursos?.dominio()
             )
         }
 
