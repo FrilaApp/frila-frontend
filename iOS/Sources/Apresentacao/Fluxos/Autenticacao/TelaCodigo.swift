@@ -8,6 +8,7 @@ public struct TelaCodigo: View {
     var aoConcluir: (DestinoCodigo) -> Void
     @FocusState private var campoFocado: Bool
 
+    @ScaledMetric(relativeTo: .body) private var alturaDoBotaoColar: CGFloat = FrilaMetrica.alvoMinimo
     @State private var concluido = false
     @State private var codigoComErro: String?
 
@@ -52,6 +53,15 @@ public struct TelaCodigo: View {
                         // Seis caixas de código
                         caixasDeCodigo
                             .padding(.top, FrilaEspaco.compacto)
+
+                        botaoColar
+                            .padding(.top, FrilaEspaco.compacto)
+
+                        if let aviso = viewModel.avisoDeColagem {
+                            AvisoFrila(verbatim: aviso, tom: .alerta)
+                                .accessibilityIdentifier("codigo-colar-aviso")
+                                .padding(.top, FrilaEspaco.compacto)
+                        }
 
                         // Erro da API / verificação
                         if let erro = viewModel.erro {
@@ -128,6 +138,7 @@ public struct TelaCodigo: View {
         }
         .frilaKeyboardDismissScope()
         .onChange(of: viewModel.codigo) { _, novoCodigo in
+            viewModel.avisoDeColagem = nil
             if codigoComErro != nil && novoCodigo != codigoComErro {
                 codigoComErro = nil
             }
@@ -191,6 +202,20 @@ public struct TelaCodigo: View {
             }
         }
         .frilaFormField(id: "codigo-acesso", isFocused: campoFocado, onDismiss: { campoFocado = false })
+    }
+
+    /// Controle nativo: cola sem o aviso "Permitir colar" e sem ler a área de transferência por baixo dos panos.
+    private var botaoColar: some View {
+        PasteButton(payloadType: String.self) { textos in
+            viewModel.colar(textos)
+        }
+        .labelStyle(.titleAndIcon)
+        .buttonBorderShape(.capsule)
+        .tint(FrilaCor.texto)
+        .scaleEffect(1.3, anchor: .leading)
+        .frame(height: alturaDoBotaoColar, alignment: .leading)
+        .accessibilityLabel(Text("Colar código", bundle: bundleApresentacao))
+        .accessibilityIdentifier("codigo-colar")
     }
 
     private func caractereNoIndice(_ indice: Int) -> String {

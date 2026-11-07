@@ -25,6 +25,7 @@ public final class CodigoViewModel {
     public var segundosRestantes: Int = 60
     public var erro: String?
     public var mensagemInformativa: String?
+    public var avisoDeColagem: String?
 
     private var tarefaTemporizador: Task<Void, Never>?
 
@@ -60,6 +61,24 @@ public final class CodigoViewModel {
             return String(localized: "Vazio", bundle: bundleApresentacao)
         }
         return codigo.map(String.init).joined(separator: ", ")
+    }
+
+    /// Recebe o que o `PasteButton` entregou. Só o código extraído é guardado; o resto do texto é descartado.
+    public func colar(_ textos: [String]) {
+        var encontrado: String?
+        for texto in textos {
+            if let codigoExtraido = ExtratorDeCodigo.extrair(de: texto) {
+                encontrado = codigoExtraido
+                break
+            }
+        }
+        guard let encontrado else {
+            avisoDeColagem = String(localized: "Não encontramos um código no que você copiou. Copie os 6 números do e-mail e toque em Colar.", bundle: bundleApresentacao)
+            return
+        }
+        avisoDeColagem = nil
+        erro = nil
+        codigo = encontrado
     }
 
     public func reenviarCodigo() async {
