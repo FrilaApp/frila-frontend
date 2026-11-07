@@ -8,7 +8,7 @@ app já fazia, o que mudou e o que depende de contrato e backend.
 |---|---|---|---|---|
 | A5 | Maioridade só pela data de nascimento, sem caixa "sou maior de idade" | Sim, desde 17/10/2026 (`9ffa92c3`) | Texto de ajuda sob a data e testes que travam a regressão | Não |
 | A6 | Endereço fora do DF pode cadastrar, com aviso | Em parte: o cadastro da casa só deixava escolher Região Administrativa do DF | Aviso explícito nas duas telas de endereço; fora do DF a casa cadastra | Recomendado (ver abaixo), mas funciona com o servidor de hoje |
-| A8 | Desbloquear quem foi bloqueado | Não | Tela "Pessoas e locais bloqueados" no perfil, com lista e ação "Desbloquear" (confirmação e acessibilidade), releitura de vagas ao desbloquear, alternância de "Bloquear" / "Desbloquear" no perfil público e atualização de textos de segurança | Não mais (contrato 0.2.51 e backend #408 integrados) |
+| A8 | Desbloquear quem foi bloqueado | Não | Nada em código: só este desenho | Sim, contrato primeiro |
 | A11 | Pedir a localização precisa quando só a aproximada foi concedida | Em parte: pedia a precisa temporária no toque | Aviso antes do toque, texto no pedido e passo a passo dos Ajustes | Não |
 
 ## A5. Maioridade no cadastro
@@ -57,24 +57,39 @@ para a Equipe Frila medir a demanda de fora e para o despacho não tratar a casa
 
 ## A8. Desbloqueio
 
-**Requisito:** RF26 (bloqueio imediato, nos dois sentidos, na casa inteira). O contrato 0.2.51 e o backend (PR #408) entregaram as RPCs `/rpc/listar_bloqueios` e `/rpc/desbloquear`.
+**Requisito:** RF26 (bloqueio imediato, nos dois sentidos, na casa inteira). O contrato 0.2.48 tem
+`/rpc/bloquear` e nada para desfazer: não existe `desbloquear`, e não existe uma listagem de quem a
+pessoa bloqueou (só o campo `bloqueios` da exportação de dados, que não serve de tela).
 
-**Estado anterior:** `ApiCliente.bloquear(_:)` existia; `BloqueiosDaSessao` guardava os bloqueios só em memória, durante a sessão. Não havia como ver nem desfazer um bloqueio.
+**Estado do app:** `ApiCliente.bloquear(_:)` existe; `BloqueiosDaSessao` guarda os bloqueios só em
+memória, durante a sessão. Não há como ver nem desfazer um bloqueio.
 
-**Mudança entregue no app:**
-- Modelos e Portas: `ItemBloqueio` em `Dominio/Modelos.swift` e métodos `bloqueios() async throws -> [ItemBloqueio]` e `desbloquear(_ alvo: Alvo) async throws -> Bloqueio` na porta `ApiCliente`, com encaminhamento no `ApiClienteEncaminhador` e implementações completas em `SupabaseApiCliente` e `ApiClienteEmMemoria` (com idempotência, ordenação decrescente por `criadoEm` e restauração de visibilidade).
-- DTOs do Contrato: `ContratoAPI.Desbloquear` e `ContratoAPI.ItemBloqueioDTO` integrados ao contrato 0.2.51.
-- Sessão e Feed: `BloqueiosDaSessao.remover(_:)` implementado. Como `FluxoDoProfissional` observa `feed.bloqueios.alvos`, remover um bloqueio dispara a releitura imediata das vagas abertas.
-- Tela "Pessoas e locais bloqueados" (`TelaBloqueios` e `BloqueiosViewModel`):
-  - Acessível nas telas de perfil ("Meu perfil profissional" e perfil do estabelecimento).
-  - Estados completos: carregando, lista de bloqueios, vazio ("Nenhum bloqueio ativo"), erro e offline, com suporte a tentar novamente e pull-to-refresh.
-  - Ação "Desbloquear" para cada item da lista com alerta de confirmação e identificadores/rótulos para VoiceOver.
-- Perfil público:
-  - Botão na barra de ferramentas alterna entre "Bloquear" e "Desbloquear" com base em `model.bloqueado`. Ao tocar em desbloquear, confirmação com alerta antes da requisição.
-  - Atualização do texto explicativo `efeitoBloqueio` em `TextosDaSeguranca`, explicitando que o bloqueio pode ser desfeito a qualquer momento na tela de bloqueios do perfil.
-- Testes:
-  - `BloqueiosViewModelTests` cobrindo todos os estados (conteúdo, vazio, erro, offline), desbloqueio e idempotência.
-  - `SegurancaViewModelTests` cobrindo o ciclo de bloqueio e desbloqueio e resiliência a falhas de rede.
+**Nada foi inventado no app.** Para entregar a decisão da PO, a ordem é a das regras do repositório:
+
+1. **frila-docs, contrato.** Duas operações novas na tag "Confiança e direitos":
+   - `listarBloqueios` devolvendo, para cada bloqueio do chamador, `alvo_tipo`, `alvo_id`, o nome de
+     exibição do perfil público (já que o app nunca vê o id de conta da outra parte, RN10) e
+     `criado_em`. Só os bloqueios que o chamador criou; nunca os feitos contra ele.
+   - `desbloquear` com o mesmo par `alvo_tipo` + `alvo_id` de `bloquear`. Idempotente, como `bloquear`.
+     Desfazer vale para a casa inteira quando o bloqueio foi feito por membro de estabelecimento.
+   - Decisões que o contrato precisa fechar: o que o outro lado vê depois de desbloquear (volta tudo
+     ao normal, sem aviso); se candidaturas e despachos apagados pelo bloqueio voltam (hoje não há
+     razão para voltarem); limite de bloqueio e desbloqueio repetidos (429), para não virar canal de
+     assédio.
+2. **frila-backend.** RPCs `listar_bloqueios` e `desbloquear` com RLS e teste do cruzamento (a vaga e a
+   lista voltam a aparecer), mais atualização da exportação de dados.
+3. **frila-frontend (iOS).** Depois do contrato espelhado:
+   - métodos `bloqueios()` e `desbloquear(_:)` na porta `ApiCliente`, com o encaminhamento no
+     `ApiClienteEncaminhador` dos testes (regra do README) e a implementação em `SupabaseApiCliente`
+     e `ApiClienteEmMemoria`;
+   - `BloqueiosDaSessao.remover(_:)` e a releitura da lista de vagas ao desbloquear;
+   - tela "Pessoas e locais bloqueados" no perfil, com "Desbloquear" e confirmação; o botão
+     "Bloquear" do perfil público passa a ser "Desbloquear" quando o alvo já está bloqueado
+     (`SegurancaViewModel.bloqueado` já existe);
+   - texto do `efeitoBloqueio` em `TextosDaSeguranca`, que hoje não diz que dá para desfazer.
+
+Não deixei tela atrás de flag porque ela não teria o que chamar: uma flag sem RPC seria código morto
+que parece pronto.
 
 ## A11. Localização precisa
 
@@ -106,4 +121,4 @@ disponíveis.
 
 - Nada disto altera a versão de marketing nem o build em revisão. O PR é rascunho e não vai para a
   `main` agora.
-- A8 e A11 estão implementados nesta branch/PR (A8 com contrato 0.2.51 e backend #408 integrados). A6 pede o ajuste de contrato para ficar limpo.
+- A8 inteiro depende de contrato e backend (acima). A6 pede o ajuste de contrato para ficar limpo.
