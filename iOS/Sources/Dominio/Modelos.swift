@@ -321,6 +321,31 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
         self.atendeTodoDF = atendeTodoDF
         self.noFrilaDesde = noFrilaDesde
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, tipo, nome, funcoes, reputacao, fotoURL, fotoID
+        case apresentacao, experienciaFaixa, ondeTrabalhei, cursos, idiomas, servicos, regioes, atendeTodoDF, noFrilaDesde
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        tipo = try container.decode(TipoPerfilPublico.self, forKey: .tipo)
+        nome = try container.decode(String.self, forKey: .nome)
+        funcoes = (try? container.decode([String].self, forKey: .funcoes)) ?? []
+        reputacao = try container.decode(Reputacao.self, forKey: .reputacao)
+        fotoURL = try container.decodeIfPresent(URL.self, forKey: .fotoURL)
+        fotoID = try container.decodeIfPresent(UUID.self, forKey: .fotoID)
+        apresentacao = try container.decodeIfPresent(String.self, forKey: .apresentacao)
+        experienciaFaixa = try container.decodeIfPresent(ExperienciaFaixa.self, forKey: .experienciaFaixa)
+        ondeTrabalhei = try container.decodeIfPresent(String.self, forKey: .ondeTrabalhei)
+        cursos = (try? container.decode([String].self, forKey: .cursos)) ?? []
+        idiomas = (try? container.decode([Idioma].self, forKey: .idiomas)) ?? []
+        servicos = (try? container.decode([ServicoNoPerfil].self, forKey: .servicos)) ?? []
+        regioes = (try? container.decode([RegiaoAdministrativa].self, forKey: .regioes)) ?? []
+        atendeTodoDF = (try? container.decode(Bool.self, forKey: .atendeTodoDF)) ?? false
+        noFrilaDesde = try container.decodeIfPresent(String.self, forKey: .noFrilaDesde)
+    }
 }
 
 public struct PerfilProfissional: Codable, Hashable, Identifiable, Sendable {
