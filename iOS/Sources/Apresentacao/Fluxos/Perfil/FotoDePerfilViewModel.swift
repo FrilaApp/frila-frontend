@@ -34,6 +34,7 @@ public final class FotoDePerfilViewModel {
     public private(set) var carregou = false
     public private(set) var falhouAoCarregar = false
     public private(set) var novaAnaliseJaPedida = false
+    public let contexto: ContextoDaFotoDePerfil
 
     private let api: any ApiCliente
     private let ferramentas: FerramentasDaFoto
@@ -43,11 +44,13 @@ public final class FotoDePerfilViewModel {
     public init(
         api: any ApiCliente,
         ferramentas: FerramentasDaFoto,
+        contexto: ContextoDaFotoDePerfil = .profissional,
         intervaloDoAcompanhamento: Duration = .seconds(5),
         tentativasDoAcompanhamento: Int = 24
     ) {
         self.api = api
         self.ferramentas = ferramentas
+        self.contexto = contexto
         self.intervaloDoAcompanhamento = intervaloDoAcompanhamento
         self.tentativasDoAcompanhamento = tentativasDoAcompanhamento
     }
@@ -126,7 +129,7 @@ public final class FotoDePerfilViewModel {
         }
 
         etapa = .verificando
-        if case let .bloqueada(motivo) = await ferramentas.verificador.verificar(jpeg: preparada.jpeg) {
+        if case let .bloqueada(motivo) = await ferramentas.verificador.verificar(jpeg: preparada.jpeg, contexto: contexto) {
             aviso = .bloqueadaNoAparelho(motivo)
             return
         }

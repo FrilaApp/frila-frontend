@@ -16,6 +16,11 @@ public enum TextosFotoDePerfil {
     public static let confirmarRemocaoTitulo = String(localized: "Remover sua foto?", bundle: bundleApresentacao)
     public static let confirmarRemocaoMensagem = String(localized: "Ela deixa de aparecer na hora. Você pode enviar outra quando quiser.", bundle: bundleApresentacao)
     public static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
+    public static let avisoPrevioTitulo = String(localized: "Dicas para a foto", bundle: bundleApresentacao)
+    public static let avisoPrevioMensagem = String(localized: "Escolha uma foto com seu rosto de frente, nítido e com boa luz. Apenas você deve aparecer, sem óculos escuros nem boné.", bundle: bundleApresentacao)
+    public static let tirarFoto = String(localized: "Tirar foto", bundle: bundleApresentacao)
+    public static let escolherDaGaleria = String(localized: "Escolher da galeria", bundle: bundleApresentacao)
+    public static let cameraIndisponivel = String(localized: "Câmera indisponível neste aparelho.", bundle: bundleApresentacao)
 
     // MARK: Os sete estados
     public static let tituloEnviando = String(localized: "Enviando sua foto", bundle: bundleApresentacao)
@@ -88,8 +93,10 @@ public enum TextosFotoDePerfil {
             String(localized: "Encontramos na foto algo que parece telefone, e-mail, link ou chave Pix. Tente outra foto, sem texto nem dados pessoais.", bundle: bundleApresentacao)
         case .qrCode:
             String(localized: "Encontramos um QR code ou código de barras na foto. Tente outra foto, sem eles.", bundle: bundleApresentacao)
-        case .conteudoImproprio:
-            String(localized: "Essa foto não pode ser usada. Tente outra, com seu rosto visível.", bundle: bundleApresentacao)
+        case .rostoNaoEncontrado:
+            String(localized: "Não achei seu rosto. Tente com mais luz e de frente", bundle: bundleApresentacao)
+        case .multiplosRostos:
+            String(localized: "Escolha uma foto em que apareça apenas você.", bundle: bundleApresentacao)
         case .analiseIndisponivel:
             String(localized: "Não conseguimos conferir a foto neste aparelho agora. Por segurança, ela não foi enviada. Tente outra foto em instantes.", bundle: bundleApresentacao)
         }
