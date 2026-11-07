@@ -291,6 +291,8 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 
     // Catálogo e vagas
     func funcoes() async throws -> [Funcao]
+    func resolverServico(termo: String) async throws -> [Funcao]
+    func regioesAdministrativas() async throws -> [RegiaoAdministrativa]
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
@@ -424,6 +426,19 @@ public protocol VagaRepositorio: Sendable {
 
 public protocol ProfissionalRepositorio: Sendable {
     func funcoes() async throws -> [Funcao]
+}
+
+public extension ApiCliente {
+    func resolverServico(termo: String) async throws -> [Funcao] {
+        let limpo = termo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard limpo.count >= 2 else { return [] }
+        let todas = try await funcoes()
+        return todas.filter { $0.nome.localizedCaseInsensitiveContains(limpo) }
+    }
+
+    func regioesAdministrativas() async throws -> [RegiaoAdministrativa] {
+        []
+    }
 }
 
 public protocol TurnoRepositorio: Sendable {

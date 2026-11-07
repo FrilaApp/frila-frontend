@@ -126,14 +126,30 @@ public enum FrilaRoleCatalog {
             roleIDs: ["porteiro", "controlador-de-acesso", "manobrista"]
         ),
         FrilaRoleCategory(
+            id: "casa",
+            name: "Casa",
+            roleIDs: ["faxina-residencial", "passadeira", "faxina-comercial"]
+        ),
+        FrilaRoleCategory(
+            id: "festa-e-eventos-sociais",
+            name: "Festa e eventos sociais",
+            roleIDs: ["churrasqueiro", "cozinheiro-de-festa", "auxiliar-de-festa"]
+        ),
+        FrilaRoleCategory(
             id: "casa-e-cuidados",
             name: "Casa e cuidados",
             roleIDs: ["diarista", "baba", "cuidador-de-idosos", "jardineiro", "passeador-de-caes"]
         )
     ]
 
-    /// As 45 funções únicas do catálogo v1.
+    /// As funções únicas do catálogo v1 e ampliações 0.2.52.
     private static let funcoesDaOrigem: [FrilaRole] = [
+        FrilaRole(id: "faxina-residencial", name: "Faxina residencial"),
+        FrilaRole(id: "passadeira", name: "Passadeira"),
+        FrilaRole(id: "faxina-comercial", name: "Faxina comercial (escritório)"),
+        FrilaRole(id: "churrasqueiro", name: "Churrasqueiro"),
+        FrilaRole(id: "cozinheiro-de-festa", name: "Cozinheiro de festa"),
+        FrilaRole(id: "auxiliar-de-festa", name: "Auxiliar de festa"),
         FrilaRole(id: "garcom", name: "Garçom"),
         FrilaRole(id: "bartender", name: "Bartender"),
         FrilaRole(id: "barback", name: "Barback"),
@@ -217,12 +233,39 @@ public enum FrilaRoleCatalog {
         categories.filter { $0.roleIDs.contains(roleID) }
     }
 
-    /// Compara o nome informado com o catálogo inteiro sem diferenciar maiúsculas e acentos.
-    /// Retorna a função canônica correspondente se houver coincidência exata normalizada.
+    /// Compara o nome informado com o catálogo inteiro sem diferenciar maiúsculas e acentos,
+    /// resolvendo também por sinônimos canônicos (CD-T04 / RN44).
+    /// Retorna a função canônica correspondente se houver coincidência exata ou sinônimo normalizado.
     public static func match(_ name: String) -> FrilaRole? {
         let normalized = fold(name)
         guard !normalized.isEmpty else { return nil }
-        return roles.first { fold($0.name) == normalized }
+        let sinonimos = [
+            "diarista": "Faxina residencial",
+            "faxineira": "Faxina residencial",
+            "limpeza": "Faxina residencial",
+            "limpeza residencial": "Faxina residencial",
+            "faxina": "Faxina residencial",
+            "passadeira": "Passadeira",
+            "passar roupa": "Passadeira",
+            "faxina comercial": "Faxina comercial (escritório)",
+            "churrasqueiro": "Churrasqueiro",
+            "churrasqueira": "Churrasqueiro",
+            "churrasco": "Churrasqueiro",
+            "cozinheiro de festa": "Cozinheiro de festa",
+            "cozinheira de festa": "Cozinheiro de festa",
+            "cozinheiro de eventos": "Cozinheiro de festa",
+            "auxiliar de festa": "Auxiliar de festa",
+            "ajudante de festa": "Auxiliar de festa"
+        ]
+        let listaRoles = roles.isEmpty ? funcoesDaOrigem : roles
+        if let alvo = sinonimos[normalized],
+           let encontrada = listaRoles.first(where: { fold($0.name) == fold(alvo) }) ?? funcoesDaOrigem.first(where: { fold($0.name) == fold(alvo) }) {
+            return encontrada
+        }
+        if let direct = listaRoles.first(where: { fold($0.name) == normalized }) ?? funcoesDaOrigem.first(where: { fold($0.name) == normalized }) {
+            return direct
+        }
+        return nil
     }
 
     /// Dobra maiúsculas e acentos usando o locale pt_BR.

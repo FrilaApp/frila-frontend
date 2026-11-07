@@ -214,8 +214,49 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             return try await executarComRetentativaSeTransiente(podeRetentar: true) { [cliente] in
                 let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
                     .from("funcao")
-                    .select("id,nome,categoria")
+                    .select("id,nome,categoria,formato_padrao,grupo_busca,dica_perfil,exemplo_perfil")
                     .eq("ativo", value: true)
+                    .execute()
+                    .value
+                return resposta.map { $0.dominio() }
+            }
+        } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            throw mapear(error)
+        }
+    }
+
+    public func resolverServico(termo: String) async throws -> [Funcao] {
+        let termoLimpo = termo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard termoLimpo.count >= 2 else { return [] }
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            return try await executarComRetentativaSeTransiente(podeRetentar: true) { [cliente] in
+                let resposta: [ContratoAPI.FuncaoDTO] = try await cliente
+                    .rpc("resolver_servico", params: ["termo": termoLimpo])
+                    .execute()
+                    .value
+                return resposta.map { $0.dominio() }
+            }
+        } catch {
+            if Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            throw mapear(error)
+        }
+    }
+
+    public func regioesAdministrativas() async throws -> [RegiaoAdministrativa] {
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            return try await executarComRetentativaSeTransiente(podeRetentar: true) { [cliente] in
+                let resposta: [ContratoAPI.RegiaoAdministrativaDTO] = try await cliente
+                    .from("regiao_administrativa")
+                    .select("id,numero,nome,ativo")
+                    .eq("ativo", value: true)
+                    .order("id", ascending: true)
                     .execute()
                     .value
                 return resposta.map { $0.dominio() }
