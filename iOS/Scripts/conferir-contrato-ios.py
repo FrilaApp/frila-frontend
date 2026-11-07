@@ -234,15 +234,7 @@ def conferir_rpcs(
             "Verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo de upload de documento pendente de adoção no app iOS."
         ),
-        "listar_bloqueios": (
-            "Lista de bloqueados (decisão A8 da PO, contrato 0.2.51); "
-            "tela de bloqueados pendente de adoção no app iOS."
-        ),
-        "desbloquear": (
-            "Desbloqueio (decisão A8 da PO, contrato 0.2.51); "
-            "tela de bloqueados pendente de adoção no app iOS."
-        ),
-    }
+                    }
 
     faltando = openapi_rpcs - swift_rpcs
     extras = swift_rpcs - openapi_rpcs
@@ -452,11 +444,7 @@ def conferir_dtos(
             "Payload de solicitar_upload_verificacao (RN14, contrato 0.2.50); "
             "pendente de adoção no cliente iOS."
         ),
-        "ItemBloqueio": (
-            "Item de listar_bloqueios (decisão A8 da PO, contrato 0.2.51); "
-            "pendente de adoção no cliente iOS."
-        ),
-    }
+            }
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {

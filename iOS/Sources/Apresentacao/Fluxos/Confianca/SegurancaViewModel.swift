@@ -9,6 +9,8 @@ public final class BloqueiosDaSessao {
     public private(set) var alvos: Set<Alvo> = []
     public init() {}
     public func registrar(_ alvo: Alvo) { alvos.insert(alvo) }
+    public func remover(_ alvo: Alvo) { alvos.remove(alvo) }
+    public func remover(_ perfil: PerfilPublico) { alvos.remove(Alvo(perfil)) }
     public func contem(_ perfil: PerfilPublico) -> Bool { alvos.contains(Alvo(perfil)) }
     public func contem(_ alvo: Alvo) -> Bool { alvos.contains(alvo) }
     public func filtrar(_ vagas: [VagaNaLista]) -> [VagaNaLista] {
@@ -22,6 +24,7 @@ public final class SegurancaViewModel {
     public var relato = ""
     public private(set) var enviando = false
     public private(set) var bloqueando = false
+    public private(set) var desbloqueando = false
     public private(set) var protocolo: Protocolo?
     public private(set) var erroDenuncia: String?
     public private(set) var erroBloqueio: String?
@@ -59,13 +62,24 @@ public final class SegurancaViewModel {
     }
 
     func bloquear() async {
-        guard !bloqueando, !bloqueios.alvos.contains(alvo) else { return }
+        guard !bloqueando, !desbloqueando, !bloqueios.alvos.contains(alvo) else { return }
         bloqueando = true
         erroBloqueio = nil
         defer { bloqueando = false }
         do {
             _ = try await api.bloquear(alvo)
             bloqueios.registrar(alvo)
+        } catch { erroBloqueio = mensagem(error) }
+    }
+
+    func desbloquear() async {
+        guard !desbloqueando, !bloqueando, bloqueios.alvos.contains(alvo) else { return }
+        desbloqueando = true
+        erroBloqueio = nil
+        defer { desbloqueando = false }
+        do {
+            _ = try await api.desbloquear(alvo)
+            bloqueios.remover(alvo)
         } catch { erroBloqueio = mensagem(error) }
     }
 

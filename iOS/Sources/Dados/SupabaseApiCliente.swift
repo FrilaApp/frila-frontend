@@ -409,6 +409,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    public func bloqueios() async throws -> [ItemBloqueio] {
+        let resposta: [ContratoAPI.ItemBloqueioDTO] = try await rpc("listar_bloqueios")
+        return resposta.map { $0.dominio() }
+    }
+
+    public func desbloquear(_ alvo: Alvo) async throws -> Bloqueio {
+        let resposta: ContratoAPI.BloqueioDTO = try await rpc("desbloquear", params: ContratoAPI.Desbloquear(alvo))
+        return resposta.dominio()
+    }
+
     public func situacaoDaConta() async throws -> SituacaoDaConta {
         let resposta: ContratoAPI.SituacaoDaContaDTO = try await rpc("situacao_da_conta")
         return try converter { try resposta.dominio() }
