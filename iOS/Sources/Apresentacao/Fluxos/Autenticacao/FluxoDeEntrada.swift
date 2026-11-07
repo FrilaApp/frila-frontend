@@ -80,7 +80,6 @@ public struct FluxoDeEntrada: View {
                 if let cadastroVM {
                     TelaCadastro(
                         viewModel: cadastroVM,
-                        aoVoltar: { rotaAtual = .codigo(email: email) },
                         aoConcluir: { destino in
                             aoConcluir(destino)
                         }

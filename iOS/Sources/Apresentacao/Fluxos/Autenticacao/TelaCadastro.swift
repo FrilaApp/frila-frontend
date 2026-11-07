@@ -2,6 +2,9 @@ import FrilaDominio
 import SwiftUI
 
 /// Cadastro (#12), com pergunta editorial, escolha de perfil e campos do Hi-Fi.
+///
+/// Não tem botão Voltar: o código de entrada já foi usado e não vale de novo.
+/// O fluxo troca de rota por `switch`, então também não existe gesto de voltar pela borda.
 public struct TelaCadastro: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
@@ -9,16 +12,13 @@ public struct TelaCadastro: View {
     @State private var telefoneEmEdicao = false
     @State private var nascimentoEmEdicao = false
     @Bindable var viewModel: CadastroViewModel
-    var aoVoltar: () -> Void
     var aoConcluir: (DestinoAposEntrada) -> Void
 
     public init(
         viewModel: CadastroViewModel,
-        aoVoltar: @escaping () -> Void,
         aoConcluir: @escaping (DestinoAposEntrada) -> Void
     ) {
         self.viewModel = viewModel
-        self.aoVoltar = aoVoltar
         self.aoConcluir = aoConcluir
     }
 
@@ -28,21 +28,9 @@ public struct TelaCadastro: View {
                 VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                     // Barra superior
                     HStack {
-                        Button(action: aoVoltar) {
-                            Image(systemName: "chevron.left")
-                                .font(FrilaTipo.corpo.weight(.semibold))
-                                .foregroundStyle(FrilaCor.texto)
-                                .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
-                                .background(FrilaCor.superficie, in: Circle())
-                                .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
-                        }
-                        .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
-                        .accessibilityIdentifier("cadastro-voltar")
-
                         Text("Cadastro", bundle: bundleApresentacao)
                             .font(FrilaTipo.resumo)
                             .foregroundStyle(FrilaCor.texto)
-                            .padding(.leading, FrilaEspaco.pequeno)
 
                         Spacer()
                     }

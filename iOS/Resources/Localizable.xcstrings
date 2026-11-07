@@ -2836,6 +2836,16 @@
         }
       }
     },
+    "Colar código" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colar código"
+          }
+        }
+      }
+    },
     "Começa em %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6360,6 +6370,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não encontramos o estabelecimento cadastrado."
+          }
+        }
+      }
+    },
+    "Não encontramos um código no que você copiou. Copie os 6 números do e-mail e toque em Colar." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não encontramos um código no que você copiou. Copie os 6 números do e-mail e toque em Colar."
           }
         }
       }
