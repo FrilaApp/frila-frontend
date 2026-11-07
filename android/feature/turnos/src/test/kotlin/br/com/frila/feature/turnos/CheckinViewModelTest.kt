@@ -260,4 +260,32 @@ class CheckinViewModelTest {
         assertEquals(null, viewModel.estado.value.dialogoDefensivo)
         assertEquals(StatusCheckin.OCIOSO, viewModel.estado.value.status)
     }
+
+    @Test
+    fun `resultado com tipo manual e verificacao verificado mapeia para MANUAL_CONFIRMADO e status VERIFICADO`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaDistante)
+        val servico = servicoComResposta(resultadoJson(tipo = "manual", verificacao = "verificado", distanciaM = "500"))
+        val viewModel = criarViewModel(provedor, servico)
+
+        viewModel.fazerCheckin().join()
+
+        assertEquals(StatusCheckin.VERIFICADO, viewModel.estado.value.status)
+        val comprovante = viewModel.estado.value.comprovante
+        assertNotNull(comprovante)
+        assertEquals(TipoVerificacaoCheckin.MANUAL_CONFIRMADO, comprovante!!.tipoVerificacao)
+    }
+
+    @Test
+    fun `resultado com verificacao desconhecida cai no estado conservador NAO_VERIFICADO sem quebrar`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaDistante)
+        val servico = servicoComResposta(resultadoJson(tipo = "manual", verificacao = "em_auditoria_futura"))
+        val viewModel = criarViewModel(provedor, servico)
+
+        viewModel.fazerCheckin().join()
+
+        assertEquals(StatusCheckin.OCIOSO, viewModel.estado.value.status)
+        val comprovante = viewModel.estado.value.comprovante
+        assertNotNull(comprovante)
+        assertEquals(TipoVerificacaoCheckin.NAO_VERIFICADO, comprovante!!.tipoVerificacao)
+    }
 }

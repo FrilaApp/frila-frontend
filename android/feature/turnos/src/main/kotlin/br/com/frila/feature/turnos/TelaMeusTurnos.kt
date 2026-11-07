@@ -477,6 +477,22 @@ private fun SecaoDeAvaliacao(turno: ItemTurno, aoAbrirAvaliacao: (turnoId: Strin
     }
 }
 
+/**
+ * Textos normativos do check-in presencial (RF13/RN06/RN22, paridade iOS TextosDaPresenca.swift:42-51).
+ */
+object TextosCheckin {
+    const val REGISTRANDO = "Registrando check-in…"
+    const val CHECKIN_VERIFICADO = "Check-in verificado"
+    const val CHECKIN_MANUAL_CONFIRMADO = "Check-in manual confirmado"
+    const val CHECKIN_MANUAL_CONFIRMADO_DESCRICAO = "Check-in manual confirmado pelo contratante"
+    const val CHECKIN_MANUAL_PENDENTE = "Check-in manual, aguardando confirmação do contratante"
+    const val CHECKIN_SEM_VERIFICACAO = "Check-in sem verificação"
+    const val BOTAO_VER_COMPROVANTE = "Ver comprovante"
+    const val BOTAO_FAZER_CHECKIN = "Fazer check-in"
+    const val BOTAO_TENTAR_NOVAMENTE = "Tentar novamente"
+    const val ERRO_PADRAO = "Não foi possível registrar o check-in."
+}
+
 @Composable
 private fun SecaoDeCheckin(
     turno: ItemTurno,
@@ -513,45 +529,87 @@ private fun SecaoDeCheckin(
         modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
     ) {
+        val comprovante = comprovanteAtivo
         when {
             estado.status == StatusCheckin.REGISTRANDO -> {
-                Text("Registrando check-in…", style = MaterialTheme.typography.bodySmall)
+                Text(TextosCheckin.REGISTRANDO, style = MaterialTheme.typography.bodySmall)
             }
-            estado.status == StatusCheckin.VERIFICADO || (estado.status == StatusCheckin.OCIOSO && turno.comprovante?.tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) -> {
-                Text("Check-in verificado", style = MaterialTheme.typography.bodySmall)
-                if (comprovanteAtivo != null) {
-                    BotaoSecundario(
-                        texto = "Ver comprovante",
-                        aoClicar = { aoExibirComprovante(comprovanteAtivo) },
-                    )
-                }
-            }
-            estado.status == StatusCheckin.MANUAL_PENDENTE || (estado.status == StatusCheckin.OCIOSO && turno.comprovante?.tipoVerificacao == TipoVerificacaoCheckin.MANUAL_PENDENTE) -> {
+            estado.status == StatusCheckin.VERIFICADO || (estado.status == StatusCheckin.OCIOSO && comprovante?.tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) -> {
                 Text(
-                    "Check-in manual, aguardando confirmação do contratante",
+                    text = TextosCheckin.CHECKIN_VERIFICADO,
                     style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics {
+                        contentDescription = TextosCheckin.CHECKIN_VERIFICADO
+                    },
                 )
-                if (comprovanteAtivo != null) {
+                if (comprovante != null) {
                     BotaoSecundario(
-                        texto = "Ver comprovante",
-                        aoClicar = { aoExibirComprovante(comprovanteAtivo) },
+                        texto = TextosCheckin.BOTAO_VER_COMPROVANTE,
+                        aoClicar = { aoExibirComprovante(comprovante) },
                     )
                 }
+            }
+            estado.status == StatusCheckin.OCIOSO && comprovante?.tipoVerificacao == TipoVerificacaoCheckin.MANUAL_CONFIRMADO -> {
+                Text(
+                    text = TextosCheckin.CHECKIN_MANUAL_CONFIRMADO,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics {
+                        contentDescription = TextosCheckin.CHECKIN_MANUAL_CONFIRMADO_DESCRICAO
+                    },
+                )
+                BotaoSecundario(
+                    texto = TextosCheckin.BOTAO_VER_COMPROVANTE,
+                    aoClicar = { aoExibirComprovante(comprovante) },
+                )
+            }
+            estado.status == StatusCheckin.MANUAL_PENDENTE || (estado.status == StatusCheckin.OCIOSO && comprovante?.tipoVerificacao == TipoVerificacaoCheckin.MANUAL_PENDENTE) -> {
+                Text(
+                    text = TextosCheckin.CHECKIN_MANUAL_PENDENTE,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics {
+                        contentDescription = TextosCheckin.CHECKIN_MANUAL_PENDENTE
+                    },
+                )
+                if (comprovante != null) {
+                    BotaoSecundario(
+                        texto = TextosCheckin.BOTAO_VER_COMPROVANTE,
+                        aoClicar = { aoExibirComprovante(comprovante) },
+                    )
+                }
+            }
+            estado.status == StatusCheckin.OCIOSO && comprovante?.tipoVerificacao == TipoVerificacaoCheckin.NAO_VERIFICADO -> {
+                Text(
+                    text = TextosCheckin.CHECKIN_SEM_VERIFICACAO,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.semantics {
+                        contentDescription = TextosCheckin.CHECKIN_SEM_VERIFICACAO
+                    },
+                )
+                BotaoSecundario(
+                    texto = TextosCheckin.BOTAO_VER_COMPROVANTE,
+                    aoClicar = { aoExibirComprovante(comprovante) },
+                )
             }
             estado.status == StatusCheckin.ERRO -> {
                 Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
                     Text(
-                        text = estado.mensagemErro ?: "Não foi possível registrar o check-in.",
+                        text = estado.mensagemErro ?: TextosCheckin.ERRO_PADRAO,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.semantics {
-                            error(estado.mensagemErro ?: "Não foi possível registrar o check-in.")
+                            error(estado.mensagemErro ?: TextosCheckin.ERRO_PADRAO)
                         },
                     )
-                    BotaoSecundario(texto = "Tentar novamente", aoClicar = { emitirFeedback(); viewModel.fazerCheckin() })
+                    BotaoSecundario(
+                        texto = TextosCheckin.BOTAO_TENTAR_NOVAMENTE,
+                        aoClicar = { emitirFeedback(); viewModel.fazerCheckin() },
+                    )
                 }
             }
             else -> {
-                BotaoSecundario(texto = "Fazer check-in", aoClicar = { emitirFeedback(); viewModel.fazerCheckin() })
+                BotaoSecundario(
+                    texto = TextosCheckin.BOTAO_FAZER_CHECKIN,
+                    aoClicar = { emitirFeedback(); viewModel.fazerCheckin() },
+                )
             }
         }
     }

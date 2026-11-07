@@ -12,6 +12,8 @@ import java.util.Locale
 enum class TipoVerificacaoCheckin(val descricao: String) {
     GEOLOCALIZADO("Geolocalizado na vaga"),
     MANUAL_PENDENTE("Check-in manual pendente de confirmação"),
+    MANUAL_CONFIRMADO("Check-in manual confirmado pelo contratante"),
+    NAO_VERIFICADO("Sem verificação"),
 }
 
 /**
