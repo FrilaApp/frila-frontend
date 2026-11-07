@@ -13173,6 +13173,76 @@
           }
         }
       }
+    },
+    "Câmera indisponível neste aparelho." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Câmera indisponível neste aparelho."
+          }
+        }
+      }
+    },
+    "Dicas para a foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicas para a foto"
+          }
+        }
+      }
+    },
+    "Escolha uma foto com seu rosto de frente, nítido e com boa luz. Apenas você deve aparecer, sem óculos escuros nem boné." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha uma foto com seu rosto de frente, nítido e com boa luz. Apenas você deve aparecer, sem óculos escuros nem boné."
+          }
+        }
+      }
+    },
+    "Escolha uma foto em que apareça apenas você." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha uma foto em que apareça apenas você."
+          }
+        }
+      }
+    },
+    "Escolher da galeria" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher da galeria"
+          }
+        }
+      }
+    },
+    "Não achei seu rosto. Tente com mais luz e de frente" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não achei seu rosto. Tente com mais luz e de frente"
+          }
+        }
+      }
+    },
+    "Tirar foto" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tirar foto"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
