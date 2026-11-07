@@ -1404,14 +1404,16 @@ public struct PedidoDeUploadDeMidia: Equatable, Sendable {
     }
 }
 
-/// Interruptores do servidor (`ConfiguracaoDoApp.recursos`). Ausente vale desligado: no Prod os dois nascem desligados.
+/// Interruptores do servidor (`ConfiguracaoDoApp.recursos`). Ausente vale desligado: no Prod nascem desligados.
 public struct RecursosDoApp: Codable, Equatable, Sendable {
     public let fotoDePerfil: Bool
     public let chamadaDireta: Bool
+    public let perfilRico: Bool
 
-    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false) {
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
         self.fotoDePerfil = fotoDePerfil
         self.chamadaDireta = chamadaDireta
+        self.perfilRico = perfilRico
     }
 
     public static let desligados = RecursosDoApp()

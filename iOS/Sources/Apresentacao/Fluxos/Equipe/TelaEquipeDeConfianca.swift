@@ -48,7 +48,7 @@ public struct TelaEquipeDeConfianca: View {
             if let api {
                 chamadaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
                     try await api.configuracaoDoApp()
-                })?.recursos?.chamadaDireta == true
+                })?.recursos.chamadaDireta == true
             }
             await viewModel.carregar()
         }

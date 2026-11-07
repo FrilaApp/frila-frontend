@@ -490,15 +490,8 @@ def conferir_dtos(
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
     SCHEMAS_NAO_CONSUMIDOS_PELO_APP = {
-<<<<<<< HEAD
-        "ApresentacaoDoProfissional": "Pendente de adoção no PR I2b",
-=======
         "ResultadoChamada": "I5b: resposta à chamada (0.2.55); I5a adota Chamada.",
-        "ApresentacaoDoProfissional": "I1: perfil detalhado (0.2.52), fora de I5a.",
-        "ServicoNoPerfil": "I2: serviços (0.2.53), fora de I5a.",
-        "ServicoOferecido": "I2: serviços (0.2.53), fora de I5a.",
-        "Midia": "I4: mídia (0.2.54), fora de I5a.",
->>>>>>> origin/feat/ios-chamar-de-novo
+        "ApresentacaoDoProfissional": "Pendente de adoção no PR I2b",
         "StatusVerificacao": (
             "Payload de minha_identidade_status (RN14, contrato 0.2.50); "
             "pendente de adoção no cliente iOS."
@@ -515,7 +508,6 @@ def conferir_dtos(
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
-<<<<<<< HEAD
         # O perfil público ganhou, na F2 (0.2.53), os campos do "perfil que explica"; o iOS adota
         # primeiro só a foto (F3, 0.2.54): `foto_url` e `foto_id` estão mapeados.
         "PerfilPublico": {
@@ -528,15 +520,6 @@ def conferir_dtos(
             "onde_trabalhei": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
             "regioes": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
             "servicos": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
-=======
-        "PerfilPublico": {
-            **dict.fromkeys(
-                ("apresentacao", "atende_todo_df", "cursos", "experiencia_faixa", "idiomas",
-                 "no_frila_desde", "onde_trabalhei", "regioes", "servicos"),
-                "I1/I2: perfil e serviços (0.2.52/53), pendentes de adoção fora de I5a.",
-            ),
-            **dict.fromkeys(("foto_id", "foto_url"), "I4: mídia (0.2.54), fora de I5a."),
->>>>>>> origin/feat/ios-chamar-de-novo
         },
         "VagaResumo": {
             "ponto": (

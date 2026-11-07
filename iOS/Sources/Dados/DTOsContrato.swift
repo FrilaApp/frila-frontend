@@ -1546,7 +1546,6 @@ enum ContratoAPI {
     }
 
     struct ConfiguracaoDoAppDTO: Decodable {
-        let recursos: RecursosDoApp?
         let plataforma: Plataforma?
         let versaoMinima: String
         let versaoRecomendada: String
@@ -1556,7 +1555,7 @@ enum ContratoAPI {
         let recursos: RecursosDoAppDTO?
 
         enum CodingKeys: String, CodingKey {
-            case plataforma, recursos
+            case plataforma
             case mensagem
             case recursos
             case versaoMinima = "versao_minima"
@@ -1574,12 +1573,8 @@ enum ContratoAPI {
                 versaoMinima: versaoMinima,
                 versaoRecomendada: versaoRecomendada,
                 mensagem: mensagem,
-<<<<<<< HEAD
                 urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja),
                 recursos: recursos?.dominio() ?? .desligados
-=======
-                urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja), recursos: recursos
->>>>>>> origin/feat/ios-chamar-de-novo
             )
         }
 
@@ -1591,21 +1586,6 @@ enum ContratoAPI {
             }
             log.notice("url_da_loja_saneada")
             return urlPadraoDaLoja
-        }
-    }
-
-    /// `ConfiguracaoDoApp.recursos` (0.2.54): campo ausente vale `false`.
-    struct RecursosDoAppDTO: Decodable {
-        let fotoDePerfil: Bool?
-        let chamadaDireta: Bool?
-
-        enum CodingKeys: String, CodingKey {
-            case fotoDePerfil = "foto_de_perfil"
-            case chamadaDireta = "chamada_direta"
-        }
-
-        func dominio() -> RecursosDoApp {
-            RecursosDoApp(fotoDePerfil: fotoDePerfil ?? false, chamadaDireta: chamadaDireta ?? false)
         }
     }
 

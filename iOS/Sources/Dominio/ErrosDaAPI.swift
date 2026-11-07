@@ -1,16 +1,6 @@
 import Foundation
 
 public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
-<<<<<<< HEAD
-    case funcaoNaoMarcada = "funcao_nao_marcada"
-=======
-    case chamadaJaAberta = "chamada_ja_aberta"
-    case chamadaIndisponivel = "chamada_indisponivel"
-    case recorrenciaNaoConfirmada = "recorrencia_nao_confirmada"
-    case profissionalIndisponivel = "profissional_indisponivel"
-    case limiteDeChamadas = "limite_de_chamadas"
-    case recursoDesligado = "recurso_desligado"
->>>>>>> origin/feat/ios-chamar-de-novo
     case naoAutenticado = "nao_autenticado"
     case semPermissao = "sem_permissao"
     case contatoExpirado = "contato_expirado"
@@ -51,6 +41,11 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case funcaoNaoMarcada = "funcao_nao_marcada"
     case midiaIndisponivel = "midia_indisponivel"
     case midiaInvalida = "midia_invalida"
+    case chamadaJaAberta = "chamada_ja_aberta"
+    case chamadaIndisponivel = "chamada_indisponivel"
+    case recorrenciaNaoConfirmada = "recorrencia_nao_confirmada"
+    case profissionalIndisponivel = "profissional_indisponivel"
+    case limiteDeChamadas = "limite_de_chamadas"
     case recursoDesligado = "recurso_desligado"
     case semRede = "sem_rede"
     case respostaInvalida = "resposta_invalida"

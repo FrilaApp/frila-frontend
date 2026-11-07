@@ -215,32 +215,6 @@ public struct Denuncia: Codable, Equatable, Sendable {
     }
 }
 
-public struct RecursosDoApp: Codable, Equatable, Sendable {
-<<<<<<< HEAD
-    public let fotoDePerfil: Bool
-    public let chamadaDireta: Bool
-    public let perfilRico: Bool
-
-    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
-        self.fotoDePerfil = fotoDePerfil
-        self.chamadaDireta = chamadaDireta
-        self.perfilRico = perfilRico
-    }
-
-    public static let desligados = RecursosDoApp()
-=======
-    public let fotoDePerfil: Bool?
-    public let chamadaDireta: Bool?
-    public init(fotoDePerfil: Bool? = nil, chamadaDireta: Bool? = nil) {
-        self.fotoDePerfil = fotoDePerfil
-        self.chamadaDireta = chamadaDireta
-    }
-    enum CodingKeys: String, CodingKey {
-        case fotoDePerfil = "foto_de_perfil"
-        case chamadaDireta = "chamada_direta"
-    }
-}
-
 public enum EstadoChamada: String, Codable, CaseIterable, Sendable {
     case aberta, aceita, recusada, expirada, cancelada, encerrada
 }
@@ -301,11 +275,9 @@ public struct PedidoChamada: Equatable, Sendable {
         self.recado = recado
         self.confirmoRecorrencia = confirmoRecorrencia
     }
->>>>>>> origin/feat/ios-chamar-de-novo
 }
 
 public struct ConfiguracaoApp: Codable, Equatable, Sendable {
-    public let recursos: RecursosDoApp?
     public let versaoMinima: String
     public let versaoRecomendada: String
     public let mensagem: String?
@@ -313,7 +285,6 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     /// Interruptores do servidor (contrato 0.2.54). Ausente vale desligado.
     public let recursos: RecursosDoApp
 
-<<<<<<< HEAD
     public init(
         versaoMinima: String,
         versaoRecomendada: String,
@@ -321,10 +292,6 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
         urlDaLoja: URL,
         recursos: RecursosDoApp = .desligados
     ) {
-=======
-    public init(versaoMinima: String, versaoRecomendada: String, mensagem: String?, urlDaLoja: URL, recursos: RecursosDoApp? = nil) {
-        self.recursos = recursos
->>>>>>> origin/feat/ios-chamar-de-novo
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem
