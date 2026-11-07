@@ -168,6 +168,26 @@ public final class EquipeDeConfiancaViewModel {
         }
     }
 
+    private var atualizandoEmSilencio = false
+
+    /// Atualização automática: só com a lista (ou o vazio) na tela, sem carregamento por cima, e a
+    /// falha deixa a lista como estava. Se a tela mudou enquanto a leitura corria (uma remoção, uma
+    /// carga), a resposta é descartada: ela pode ter saído antes e traria de volta quem saiu.
+    public func atualizarEmSilencio() async {
+        let antes = estado
+        switch antes {
+        case .conteudo, .vazio: break
+        case .carregando, .semRede, .erro: return
+        }
+        guard removendo == nil, !atualizandoEmSilencio else { return }
+        atualizandoEmSilencio = true
+        defer { atualizandoEmSilencio = false }
+        guard let membros = try? await listarEquipe(estabelecimentoID), !Task.isCancelled,
+              removendo == nil, estado == antes else { return }
+        estado = membros.isEmpty ? .vazio : .conteudo(membros)
+        cache.gravar(estabelecimentoID: estabelecimentoID, membros: membros)
+    }
+
     public func remover(_ perfil: PerfilPublico) async {
         guard removendo == nil else { return }
         removendo = perfil.id

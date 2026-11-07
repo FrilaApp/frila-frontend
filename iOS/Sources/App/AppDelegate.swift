@@ -7,11 +7,13 @@ import UserNotifications
 
 /// Os três roteadores do app. Vivem no `AppDelegate` porque o toque que abre o app chega antes de
 /// qualquer tela existir: o `RoteadorDePush` guarda esse toque até a conta ser conhecida.
+/// A atualização automática das listas mora aqui pelo mesmo motivo: o push chega pelo delegate.
 @MainActor
 final class NavegacaoDoApp {
     let profissional = RoteadorDoProfissional()
     let contratante = RoteadorDoContratante()
     let push: RoteadorDePush
+    let atualizacao = AtualizacaoAutomatica()
 
     init() {
         push = RoteadorDePush(profissional: profissional, contratante: contratante)
@@ -61,6 +63,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUser
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         let mostrar = navegacao.push.apresenta(payload: notification.request.content.userInfo, entregueEm: notification.date)
+        // O aviso é da conta na tela: a lista visível se relê (a escondida, quando reaparecer).
+        if mostrar { navegacao.atualizacao.avisoChegou() }
         completionHandler(mostrar ? [.banner, .list, .sound] : [])
     }
 
@@ -72,7 +76,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUser
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
-            navegacao.push.tocar(payload: response.notification.request.content.userInfo, entregueEm: response.notification.date)
+            let decisao = navegacao.push.tocar(payload: response.notification.request.content.userInfo, entregueEm: response.notification.date)
+            // Com o app recém-aberto pelo toque a decisão espera a conta (`nil`), e as listas fazem
+            // a primeira carga de qualquer jeito.
+            if case .abrir = decisao { navegacao.atualizacao.avisoChegou() }
         }
         completionHandler()
     }

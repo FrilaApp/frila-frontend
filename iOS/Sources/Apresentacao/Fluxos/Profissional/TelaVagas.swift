@@ -28,6 +28,8 @@ public struct TelaVagas: View {
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await medirAbertura(.listaDeVagas, carregar: viewModel.atualizar, pronto: listaNaTela) }
         .task { if viewModel.estado == .ociosa { await medirAbertura(.listaDeVagas, carregar: viewModel.carregar, pronto: listaNaTela) } }
+        // Sem `medirAbertura`: a releitura automática não é abertura de tela e não entra na medição (#73).
+        .atualizacaoAutomatica(.vagas, recarregar: viewModel.atualizarEmSilencio)
         .accessibilityIdentifier("tela-vagas")
         .sheet(item: $filtroAberto) { filtro in folhaDeFiltro(filtro) }
         .modifier(BarraInferiorDeAcessibilidade(
