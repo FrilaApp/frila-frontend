@@ -138,8 +138,6 @@ final class FotoDePerfilUITests: XCTestCase {
         tocar(app.buttons["perfil-foto-remover"])
         let confirmar = app.sheets.buttons["Remover foto"].firstMatch
         XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer), "a remoção pede confirmação")
-        print("DEBUG FULLY MOUNTED SHEET LABELS: \(app.sheets.buttons.allElementsBoundByIndex.map(\.label))")
-        print("DEBUG FULLY MOUNTED APP LABELS: \(app.buttons.allElementsBoundByIndex.map(\.label))")
         anexar(app, "foto-remover-confirmacao")
         confirmar.tap()
         XCTAssertTrue(app.buttons["perfil-foto-escolher"].waitForExistence(timeout: Espera.aparecer))
@@ -151,7 +149,6 @@ final class FotoDePerfilUITests: XCTestCase {
     func testCancelarARemocaoMantemAFoto() {
         let app = abrir("foto-aprovada")
         tocar(app.buttons["perfil-foto-remover"])
-        print("DEBUG FULL HIERARCHY:\n\(app.debugDescription)")
         let cancelar = app.sheets.buttons["Cancelar"].firstMatch
         XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
         cancelar.tap()

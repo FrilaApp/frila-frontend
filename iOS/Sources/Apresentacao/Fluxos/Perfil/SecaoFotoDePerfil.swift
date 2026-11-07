@@ -74,8 +74,8 @@ private struct ConteudoDaFotoDePerfil: View {
         .confirmationDialog(
             TextosFotoDePerfil.confirmarRemocaoTitulo, isPresented: $pedirConfirmacaoDeRemocao, titleVisibility: .visible
         ) {
-            Button(role: .destructive) { Task { await model.remover() } } label: { Text(verbatim: TextosFotoDePerfil.remover) }
-            Button(role: .cancel) {} label: { Text(verbatim: TextosFotoDePerfil.cancelar) }
+            Button(TextosFotoDePerfil.remover, role: .destructive) { Task { await model.remover() } }
+            Button(TextosFotoDePerfil.cancelar, role: .cancel) {}
         } message: {
             Text(verbatim: TextosFotoDePerfil.confirmarRemocaoMensagem)
         }
