@@ -44,6 +44,7 @@ final class SuporteTurnoUITests: XCTestCase {
         if campoRelato.waitForExistence(timeout: 3) {
             campoRelato.tap()
             campoRelato.typeText("Relato de teste para o suporte.")
+            fecharTecladoDoRelato(app)
         }
 
         // 6. Botão de envio de e-mail e botão de cópia de dados (Critérios 4 e 5)
@@ -52,7 +53,7 @@ final class SuporteTurnoUITests: XCTestCase {
 
         let botaoCopiar = app.descendants(matching: .any)["botao-copiar-dados-suporte"]
         XCTAssertTrue(botaoCopiar.waitForExistence(timeout: Espera.aparecer), "Botão para copiar dados deve estar presente")
-        if !botaoCopiar.isHittable {
+        for _ in 0..<3 where !botaoCopiar.isHittable {
             app.swipeUp()
         }
         tocarFechandoTeclado(botaoCopiar, em: app)
@@ -208,6 +209,21 @@ final class SuporteTurnoUITests: XCTestCase {
             XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível em AX5")
         }
         XCTAssertTrue(subtituloDados.ehCabecalho, "O subtítulo de dados do turno deve ser cabeçalho em AX5")
+    }
+
+    /// Fecha o teclado do relato como a pessoa faria: um toque fora do campo, no título da seção.
+    /// Com o teclado aberto, ele cobre os botões do fim da folha e o `swipeUp` do XCUITest começa na
+    /// área do teclado, então nenhuma rolagem os descobre (na CI: "Failed to not hittable: Button
+    /// 'Copiar dados do e-mail'"). O escopo de fechamento (M21, decisão Q3) consome esse toque só para
+    /// fechar o teclado, sem acionar nada.
+    private func fecharTecladoDoRelato(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let teclado = app.keyboards.firstMatch
+        guard teclado.exists else { return }
+        let tituloDoRelato = app.staticTexts["Descrição do ocorrido"]
+        XCTAssertTrue(tituloDoRelato.waitForExistence(timeout: Espera.aparecer), "O título do relato deve estar visível para fechar o teclado", file: file, line: line)
+        tituloDoRelato.tap()
+        let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: teclado)
+        XCTAssertEqual(XCTWaiter.wait(for: [sumiu], timeout: Espera.aparecer), .completed, "O teclado deve fechar com o toque fora do campo", file: file, line: line)
     }
 
     private func salvarCapturaDaFolha(_ screenshot: XCUIScreenshot, nome: String) {

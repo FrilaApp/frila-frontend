@@ -6,13 +6,16 @@ import SwiftUI
 /// Prévia real do lugar e ação de mapa sob um único contorno (iteração 5, 04/11/2026).
 ///
 /// Prévia de 102 pt (`MKMapSnapshotter` centrado no ponto da vaga, norte para cima, câmera inclinada) e botão
-/// de 30 pt colado embaixo, tudo num contêiner de raio contínuo de 16 pt. Só o botão recebe toque: a prévia
-/// não aceita pan, zoom nem toque.
+/// de 30 pt colado embaixo, tudo num contêiner de raio contínuo de 16 pt. A área de toque do botão se estende a
+/// 44 pt (`alvoMinimoToque`), cobrindo a faixa inferior da prévia (que tem hit-testing desabilitado) para cumprir
+/// o alvo mínimo de acessibilidade da Apple/WCAG sem alterar a geometria visual do card.
 public struct FrilaMapaComAcao: View {
     /// Altura da prévia do mapa.
     public static let alturaPrevia: CGFloat = 102
-    /// Altura total do botão "Abrir no mapa", padding incluído.
+    /// Altura visual do botão "Abrir no mapa", padding incluído.
     public static let alturaBotao: CGFloat = 30
+    /// Alvo mínimo de toque para conformidade de acessibilidade (Apple HIG / WCAG).
+    public static let alvoMinimoToque: CGFloat = FrilaMetrica.alvoMinimo
 
     public let ponto: CLLocationCoordinate2D
     public let abrirMapa: () -> Void
@@ -23,29 +26,38 @@ public struct FrilaMapaComAcao: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
             PreviaMapaReal(ponto: ponto)
                 .frame(height: Self.alturaPrevia)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .accessibilityIdentifier("previa-do-mapa")
 
             Button(action: abrirMapa) {
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    Image(systemName: "map")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 14, height: 14)
-                        .accessibilityHidden(true)
-                    Text("Abrir no mapa", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botaoPadrao)
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: max(0, Self.alvoMinimoToque - Self.alturaBotao))
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        Image(systemName: "map")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 14, height: 14)
+                            .accessibilityHidden(true)
+                        Text("Abrir no mapa", bundle: bundleApresentacao)
+                            .font(FrilaTipo.botaoPadrao)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.alturaBotao)
+                    .foregroundStyle(FrilaColor.mapActionForeground)
+                    .background(FrilaColor.mapActionBackground)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: Self.alturaBotao)
-                .foregroundStyle(FrilaColor.mapActionForeground)
-                .background(FrilaColor.mapActionBackground)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.tatil(scale: 1, alturaMinima: Self.alturaBotao))
+            .buttonStyle(.tatil(scale: 1, alturaMinima: Self.alvoMinimoToque))
             .accessibilityIdentifier("abrir-no-mapa")
         }
+        .frame(height: Self.alturaPrevia + Self.alturaBotao)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("bloco-mapa-com-acao")
         .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
