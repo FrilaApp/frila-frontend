@@ -334,12 +334,32 @@ private struct EntradaDoApp: View {
     var body: some View {
         conteudoComCicloDeVida
             .environment(atualizacao)
+            .environment(\.ferramentasDaFoto, Self.ferramentasDaFoto(para: api))
             // A atualização automática só relê com uma conta dentro de um dos dois fluxos: na entrada,
             // no cadastro e na conta suspensa nada é pedido. Saída, encerramento e troca de conta
             // passam por `destinoAtual = nil`, e isso zera os intervalos da conta anterior.
             .onChange(of: Self.temFluxo(destinoAtual), initial: true) { (_: Bool, ativa: Bool) in
                 atualizacao.mudarSessao(ativa: ativa)
             }
+    }
+
+    /// As peças do aparelho da foto de perfil (contrato 0.2.54). No esquema Local não há modelo CoreML nem
+    /// Storage: o dublê libera a verificação (ou bloqueia, por `-FRILA_FOTO_VERIFICACAO`) e não envia.
+    private static func ferramentasDaFoto(para api: any ApiCliente) -> FerramentasDaFoto {
+        #if DEBUG
+        if api is ApiClienteEmMemoria {
+            return FerramentasDaFoto(
+                preparador: PreparadorDeFotoDoSistema(),
+                verificador: VerificadorLocalDeFotoSimulado.pelosArgumentos(),
+                enviador: EnviadorDeMidiaSimulado()
+            )
+        }
+        #endif
+        return FerramentasDaFoto(
+            preparador: PreparadorDeFotoDoSistema(),
+            verificador: VerificadorLocalDeFotoDoSistema(),
+            enviador: EnviadorDeMidiaHTTP()
+        )
     }
 
     private static func temFluxo(_ destino: DestinoDaConta?) -> Bool {

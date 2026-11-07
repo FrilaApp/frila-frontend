@@ -20,7 +20,7 @@ struct ContratoTests {
     @Test("As fixtures declaram a versão do contrato espelhado")
     func versao() throws {
         struct Versao: Decodable { let version: String }
-        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.52")
+        #expect(try FixturesDoContrato.carregar("contract-version", como: Versao.self).version == "0.2.54")
     }
 
     @Test("Fixtures da 0.2.31 cobrem turno cancelado, avaliação dada e servidor anterior")

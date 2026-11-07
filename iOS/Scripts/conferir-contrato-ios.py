@@ -197,6 +197,11 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
     return swift_enums
 
 
+# Contratação direta, fatia F2 (perfil que explica, contrato 0.2.53): a foto de perfil (F3, 0.2.54) é a
+# primeira fatia adotada no iOS; o resto do perfil entra na F2.
+PENDENTE_F2 = "Pendente de adoção na fatia F2 (perfil que explica, contrato 0.2.53)."
+
+
 def conferir_rpcs(
     doc: dict, sources_dir: pathlib.Path
 ) -> tuple[list[str], list[str], int, int]:
@@ -242,6 +247,10 @@ def conferir_rpcs(
             "Desbloqueio (decisão A8 da PO, contrato 0.2.51); "
             "tela de bloqueados pendente de adoção no app iOS."
         ),
+        "definir_servicos": PENDENTE_F2,
+        "meu_perfil_detalhado": PENDENTE_F2,
+        "atualizar_apresentacao_profissional": PENDENTE_F2,
+        "definir_regioes_atendidas": PENDENTE_F2,
     }
 
     faltando = openapi_rpcs - swift_rpcs
@@ -277,8 +286,18 @@ def conferir_rpcs(
     return erros, avisos, consumidas, total_contrato
 
 
-def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
+# Enums do contrato ainda não consumidos pelo app iOS: vêm só nos campos do perfil da F2.
+ENUMS_NAO_CONSUMIDOS_PELO_APP = {
+    "ExperienciaFaixa": PENDENTE_F2,
+    "Idioma": PENDENTE_F2,
+    "LevaMaterial": PENDENTE_F2,
+    "UnidadePreco": PENDENTE_F2,
+}
+
+
+def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> tuple[list[str], list[str]]:
     erros: list[str] = []
+    avisos: list[str] = []
     schemas = doc.get("components", {}).get("schemas", {})
     # Derivado diretamente do OpenAPI: todo schema que define enum
     openapi_enums = {name: s["enum"] for name, s in schemas.items() if "enum" in s}
@@ -290,6 +309,11 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
                 s_name = "TipoDeAviso"
             elif o_name == "TipoDeAlvo" and "TipoPerfilPublico" in swift_enums:
                 s_name = "TipoPerfilPublico"
+            elif o_name in ENUMS_NAO_CONSUMIDOS_PELO_APP:
+                avisos.append(
+                    f"Enum {o_name} do contrato pendente de adoção ({ENUMS_NAO_CONSUMIDOS_PELO_APP[o_name]})"
+                )
+                continue
             else:
                 erros.append(
                     f"Enum {o_name} do contrato OpenAPI não encontrado em nenhum arquivo Swift"
@@ -309,7 +333,7 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
                 f"Enum {o_name} ({s_name}): casos extras no Swift inexistentes no contrato: {sorted(extras)}"
             )
 
-    return erros
+    return erros, avisos
 
 
 def conferir_erros(
@@ -438,6 +462,7 @@ def conferir_dtos(
         "VagaCanceladaDTO",          # Resposta de /rpc/cancelar_vaga
         "RemocaoDTO",                # Resposta de /rpc/remover_dispositivo
         "RegistrarEventoRespostaDTO",# Resposta de /rpc/registrar_evento
+        "UploadMidiaDTO",            # Resposta de /rpc/solicitar_upload_midia (0.2.54)
         "EquipeDTO",                 # Struct aninhado em CriteriosDeNotificacaoDTO
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
     }
@@ -456,10 +481,22 @@ def conferir_dtos(
             "Item de listar_bloqueios (decisão A8 da PO, contrato 0.2.51); "
             "pendente de adoção no cliente iOS."
         ),
+        "ServicoOferecido": PENDENTE_F2,
+        "ServicoNoPerfil": PENDENTE_F2,
+        "ApresentacaoDoProfissional": PENDENTE_F2,
     }
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+        # O perfil público ganhou, na F2 (0.2.53), os campos do "perfil que explica"; o iOS adota
+        # primeiro só a foto (F3, 0.2.54): `foto_url` e `foto_id` estão mapeados.
+        "PerfilPublico": {
+            campo: PENDENTE_F2
+            for campo in (
+                "apresentacao", "atende_todo_df", "cursos", "experiencia_faixa", "idiomas",
+                "no_frila_desde", "onde_trabalhei", "regioes", "servicos",
+            )
+        },
         "VagaResumo": {
             "ponto": (
                 "Coordenadas exatas do estabelecimento introduzidas no contrato 0.2.47 (v1.1, Cartão 72); "
@@ -610,8 +647,9 @@ def main() -> None:
 
     # 3. Enums
     swift_enums = extrair_enums_swift(sources_dir)
-    erros_enums = conferir_enums(doc, swift_enums)
+    erros_enums, avisos_enums = conferir_enums(doc, swift_enums)
     todos_erros.extend(erros_enums)
+    todos_avisos.extend(avisos_enums)
     if not erros_enums and not args.silencioso:
         print("OK: 17/17 enums do contrato verificados caso a caso.")
 

@@ -250,6 +250,7 @@ public struct TelaMeuPerfilProfissional: View {
                     EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                 } else if let conta = model.conta, let perfil = model.perfil {
                     identidade(conta)
+                    SecaoFotoDePerfil(api: api)
                     historico
                     configuracao(perfil)
                 }
