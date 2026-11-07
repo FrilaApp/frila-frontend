@@ -133,6 +133,22 @@ final class FotoDePerfilUITests: XCTestCase {
     }
 
     @MainActor
+    func testEscolherFotoMostraAvisoPrevioComOpcoes() {
+        let app = abrir("foto-sem-foto")
+        tocar(app.buttons["perfil-foto-escolher"])
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: Espera.aparecer), "O aviso prévio deve abrir")
+        XCTAssertTrue(sheet.buttons["Escolher da galeria"].exists)
+        anexar(app, "foto-aviso-previo")
+        let cancelar = sheet.buttons["Cancelar"].firstMatch
+        if cancelar.exists {
+            cancelar.tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.1)).tap()
+        }
+    }
+
+    @MainActor
     func testRemoverPedeConfirmacaoETrazDeVoltaEscolher() {
         let app = abrir("foto-aprovada")
         tocar(app.buttons["perfil-foto-remover"])

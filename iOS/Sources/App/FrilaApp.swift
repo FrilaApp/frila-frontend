@@ -343,8 +343,8 @@ private struct EntradaDoApp: View {
             }
     }
 
-    /// As peças do aparelho da foto de perfil (contrato 0.2.54). No esquema Local não há modelo CoreML nem
-    /// Storage: o dublê libera a verificação (ou bloqueia, por `-FRILA_FOTO_VERIFICACAO`) e não envia.
+    /// As peças do aparelho da foto de perfil (contrato 0.2.54). No esquema Local o dublê libera a
+    /// verificação (ou bloqueia, por `-FRILA_FOTO_VERIFICACAO`) e não envia.
     private static func ferramentasDaFoto(para api: any ApiCliente) -> FerramentasDaFoto {
         #if DEBUG
         if api is ApiClienteEmMemoria {

@@ -41,7 +41,9 @@ private struct ConteudoDaFotoDePerfil: View {
     @State private var lendoEscolhida = false
     @State private var paraRecortar: FotoParaRecortar?
     @State private var pedirConfirmacaoDeRemocao = false
-    @State private var seletorAberto = false
+    @State private var mostrarAvisoPrevio = false
+    @State private var seletorGaleriaAberto = false
+    @State private var cameraAberta = false
 
     init(api: any ApiCliente, ferramentas: FerramentasDaFoto) {
         _model = State(initialValue: FotoDePerfilViewModel(api: api, ferramentas: ferramentas))
@@ -58,10 +60,19 @@ private struct ConteudoDaFotoDePerfil: View {
         }
         .task { await model.carregar() }
         .task(id: model.estaAcompanhando) { await model.acompanhar() }
-        .photosPicker(isPresented: $seletorAberto, selection: $escolhida, matching: .images, photoLibrary: .shared())
+        .photosPicker(isPresented: $seletorGaleriaAberto, selection: $escolhida, matching: .images, photoLibrary: .shared())
         .onChange(of: escolhida) { _, item in
             guard let item else { return }
             Task { await ler(item) }
+        }
+        .sheet(isPresented: $cameraAberta) {
+            SeletorDeCamera { dados in
+                cameraAberta = false
+                paraRecortar = FotoParaRecortar(dados: dados)
+            } aoCancelar: {
+                cameraAberta = false
+            }
+            .ignoresSafeArea()
         }
         .fullScreenCover(item: $paraRecortar) { foto in
             TelaRecorteDeFoto(dados: foto.dados) { recorte in
@@ -70,6 +81,17 @@ private struct ConteudoDaFotoDePerfil: View {
             } aoCancelar: {
                 paraRecortar = nil
             }
+        }
+        .confirmationDialog(
+            TextosFotoDePerfil.avisoPrevioTitulo, isPresented: $mostrarAvisoPrevio, titleVisibility: .visible
+        ) {
+            if SeletorDeCamera.cameraDisponivel {
+                Button(TextosFotoDePerfil.tirarFoto) { cameraAberta = true }
+            }
+            Button(TextosFotoDePerfil.escolherDaGaleria) { seletorGaleriaAberto = true }
+            Button(TextosFotoDePerfil.cancelar, role: .cancel) {}
+        } message: {
+            Text(verbatim: TextosFotoDePerfil.avisoPrevioMensagem)
         }
         .confirmationDialog(
             TextosFotoDePerfil.confirmarRemocaoTitulo, isPresented: $pedirConfirmacaoDeRemocao, titleVisibility: .visible
@@ -189,11 +211,11 @@ private struct ConteudoDaFotoDePerfil: View {
             if model.podeEscolherFoto {
                 if model.midia == nil || model.midia?.estado == .aprovada {
                     BotaoPrimario(verbatim: model.midia == nil ? TextosFotoDePerfil.escolher : TextosFotoDePerfil.trocar) {
-                        seletorAberto = true
+                        mostrarAvisoPrevio = true
                     }
                     .accessibilityIdentifier("perfil-foto-escolher")
                 } else if model.midia?.estado == .recusada || model.midia?.estado == .naoPublicada || model.midia?.estado == .ocultada {
-                    BotaoPrimario(verbatim: TextosFotoDePerfil.tentarOutra) { seletorAberto = true }
+                    BotaoPrimario(verbatim: TextosFotoDePerfil.tentarOutra) { mostrarAvisoPrevio = true }
                         .accessibilityIdentifier("perfil-foto-tentar-outra")
                 }
             }
