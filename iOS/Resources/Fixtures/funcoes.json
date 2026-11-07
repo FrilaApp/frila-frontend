@@ -82,7 +82,10 @@
   {
     "id": "20000000-0000-0000-0000-000000000017",
     "nome": "Churrasqueiro",
-    "categoria": "Cozinha"
+    "categoria": "Festa e eventos sociais",
+    "formato_padrao": "servico",
+    "dica_perfil": "Diga os tipos de carne que você costuma preparar.",
+    "exemplo_perfil": "Especialista em cortes nobres e fogo de chão."
   },
   {
     "id": "20000000-0000-0000-0000-000000000018",
@@ -148,5 +151,37 @@
     "id": "20000000-0000-0000-0000-000000000030",
     "nome": "Entregador",
     "categoria": "Recepção e apoio"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000031",
+    "nome": "Faxina residencial",
+    "categoria": "Casa",
+    "formato_padrao": "servico",
+    "dica_perfil": "Conte sua experiência com limpeza de casas ou apartamentos.",
+    "exemplo_perfil": "Faço faxina caprichada, com foco em banheiros e cozinha."
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000032",
+    "nome": "Passadeira",
+    "categoria": "Casa",
+    "formato_padrao": "servico"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000033",
+    "nome": "Faxina comercial (escritório)",
+    "categoria": "Casa",
+    "formato_padrao": "servico"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000035",
+    "nome": "Cozinheiro de festa",
+    "categoria": "Festa e eventos sociais",
+    "formato_padrao": "servico"
+  },
+  {
+    "id": "20000000-0000-0000-0000-000000000036",
+    "nome": "Auxiliar de festa",
+    "categoria": "Festa e eventos sociais",
+    "formato_padrao": "servico"
   }
 ]

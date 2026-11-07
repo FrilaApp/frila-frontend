@@ -83,6 +83,10 @@
   "registrar-evento.json": {
     "schema": "#/paths/~1rpc~1registrar_evento/post/responses/200/content/application~1json/schema"
   },
+  "regioes-administrativas.json": {
+    "schema": "#/components/schemas/RegiaoAdministrativa",
+    "lista": true
+  },
   "requisicao-atualizar-perfil-profissional.json": {
     "schema": "#/components/schemas/AlteracaoDoPerfilProfissional"
   },
