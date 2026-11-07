@@ -354,17 +354,49 @@ enum ContratoAPI {
         /// 0.2.54: só vêm para leitor com vínculo de leitura, com o recurso ligado e o titular ativo.
         let fotoURL: URL?
         let fotoID: UUID?
+        let apresentacao: String?
+        let experienciaFaixa: ExperienciaFaixa?
+        let ondeTrabalhei: String?
+        let cursos: [String]?
+        let idiomas: [Idioma]?
+        let servicos: [ServicoNoPerfilDTO]?
+        let regioes: [RegiaoAdministrativaDTO]?
+        let atendeTodoDF: Bool?
+        let noFrilaDesde: String?
 
         enum CodingKeys: String, CodingKey {
             case id, tipo, nome, funcoes, reputacao
             case fotoURL = "foto_url"
             case fotoID = "foto_id"
+            case apresentacao
+            case experienciaFaixa = "experiencia_faixa"
+            case ondeTrabalhei = "onde_trabalhei"
+            case cursos
+            case idiomas
+            case servicos
+            case regioes
+            case atendeTodoDF = "atende_todo_df"
+            case noFrilaDesde = "no_frila_desde"
         }
 
         func dominio() -> PerfilPublico {
             PerfilPublico(
-                id: id, tipo: tipo, nome: nome, funcoes: funcoes ?? [], reputacao: reputacao.dominio(),
-                fotoURL: fotoURL, fotoID: fotoID
+                id: id,
+                tipo: tipo,
+                nome: nome,
+                funcoes: funcoes ?? [],
+                reputacao: reputacao.dominio(),
+                fotoURL: fotoURL,
+                fotoID: fotoID,
+                apresentacao: apresentacao,
+                experienciaFaixa: experienciaFaixa,
+                ondeTrabalhei: ondeTrabalhei,
+                cursos: cursos ?? [],
+                idiomas: idiomas ?? [],
+                servicos: servicos?.map { $0.dominio() } ?? [],
+                regioes: regioes?.map { $0.dominio() } ?? [],
+                atendeTodoDF: atendeTodoDF ?? false,
+                noFrilaDesde: noFrilaDesde
             )
         }
     }

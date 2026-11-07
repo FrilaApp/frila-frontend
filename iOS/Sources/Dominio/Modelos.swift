@@ -275,10 +275,34 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
     public let fotoURL: URL?
     /// Identificador opaco da foto exibida: é o que `denunciar.midia_id` recebe.
     public let fotoID: UUID?
+    /// 0.2.53: Campos aditivos de perfil rico para leitor com vínculo de leitura.
+    public let apresentacao: String?
+    public let experienciaFaixa: ExperienciaFaixa?
+    public let ondeTrabalhei: String?
+    public let cursos: [String]
+    public let idiomas: [Idioma]
+    public let servicos: [ServicoNoPerfil]
+    public let regioes: [RegiaoAdministrativa]
+    public let atendeTodoDF: Bool
+    public let noFrilaDesde: String?
 
     public init(
-        id: UUID, tipo: TipoPerfilPublico, nome: String, funcoes: [String] = [], reputacao: Reputacao,
-        fotoURL: URL? = nil, fotoID: UUID? = nil
+        id: UUID,
+        tipo: TipoPerfilPublico,
+        nome: String,
+        funcoes: [String] = [],
+        reputacao: Reputacao,
+        fotoURL: URL? = nil,
+        fotoID: UUID? = nil,
+        apresentacao: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        ondeTrabalhei: String? = nil,
+        cursos: [String] = [],
+        idiomas: [Idioma] = [],
+        servicos: [ServicoNoPerfil] = [],
+        regioes: [RegiaoAdministrativa] = [],
+        atendeTodoDF: Bool = false,
+        noFrilaDesde: String? = nil
     ) {
         self.id = id
         self.tipo = tipo
@@ -287,6 +311,15 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
         self.reputacao = reputacao
         self.fotoURL = fotoURL
         self.fotoID = fotoID
+        self.apresentacao = apresentacao
+        self.experienciaFaixa = experienciaFaixa
+        self.ondeTrabalhei = ondeTrabalhei
+        self.cursos = cursos
+        self.idiomas = idiomas
+        self.servicos = servicos
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+        self.noFrilaDesde = noFrilaDesde
     }
 }
 
