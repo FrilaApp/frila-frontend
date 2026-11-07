@@ -494,36 +494,61 @@ public struct SecaoDeCandidatos: View {
     private func cartao(_ candidato: Candidato, podeEscolher: Bool) -> some View {
         let perfil = candidato.profissional
         return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: perfil.nome).font(FrilaTipo.resumo)
-                    .fixedSize(horizontal: false, vertical: true)
-                if candidato.daEquipe {
-                    // O selo tem texto e ícone: não é só cor (D7). Fica junto dos dados, para o
-                    // leitor de tela dizê-lo com o nome. Não muda a ordem da lista (RN06).
-                    Label {
-                        Text(verbatim: TextosDosCandidatos.daEquipe)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } icon: {
-                        Image(systemName: "checkmark.seal.fill")
+            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                if let fotoURL = perfil.fotoURL {
+                    AsyncImage(url: fotoURL) { fase in
+                        switch fase {
+                        case let .success(imagem):
+                            imagem
+                                .resizable()
+                                .scaledToFill()
+                        default:
+                            Image(systemName: "person.fill")
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(FrilaCor.controle)
+                        }
                     }
-                    .font(FrilaTipo.nota.weight(.semibold))
-                    .foregroundStyle(FrilaCor.marca)
-                    .padding(.horizontal, FrilaEspaco.compacto)
-                    .padding(.vertical, FrilaEspaco.minimo)
-                    .background(FrilaCor.marca.opacity(0.12), in: Capsule())
-                    .overlay(Capsule().strokeBorder(FrilaCor.marca.opacity(0.3), lineWidth: 1))
+                    .frame(width: 44, height: 44)
+                    .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                    .accessibilityHidden(true)
                 }
-                if !perfil.funcoes.isEmpty {
-                    Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: perfil.nome).font(FrilaTipo.resumo)
                         .fixedSize(horizontal: false, vertical: true)
+                    if candidato.daEquipe {
+                        // O selo tem texto e ícone: não é só cor (D7). Fica junto dos dados, para o
+                        // leitor de tela dizê-lo com o nome. Não muda a ordem da lista (RN06).
+                        Label {
+                            Text(verbatim: TextosDosCandidatos.daEquipe)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } icon: {
+                            Image(systemName: "checkmark.seal.fill")
+                        }
+                        .font(FrilaTipo.nota.weight(.semibold))
+                        .foregroundStyle(FrilaCor.marca)
+                        .padding(.horizontal, FrilaEspaco.compacto)
+                        .padding(.vertical, FrilaEspaco.minimo)
+                        .background(FrilaCor.marca.opacity(0.12), in: Capsule())
+                        .overlay(Capsule().strokeBorder(FrilaCor.marca.opacity(0.3), lineWidth: 1))
+                    }
+                    if !perfil.funcoes.isEmpty {
+                        Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
+                            .font(FrilaTipo.meta)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    // Reputação sempre com o denominador (RN08); sem histórico, diz que não há.
+                    SeloReputacao(perfil.reputacao)
                 }
-                // Reputação sempre com o denominador (RN08); sem histórico, diz que não há.
-                SeloReputacao(perfil.reputacao)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("dados-do-candidato-\(candidato.id)")
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("dados-do-candidato-\(candidato.id)")
+
+            blocoPerfilRico(perfil: perfil, candidatoID: candidato.id)
 
             Button { abrirPerfil(perfil) } label: {
                 HStack {
@@ -556,6 +581,84 @@ public struct SecaoDeCandidatos: View {
         .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("candidato-\(candidato.id)")
+    }
+
+    @ViewBuilder
+    private func blocoPerfilRico(perfil: PerfilPublico, candidatoID: UUID) -> some View {
+        if !perfil.servicos.isEmpty {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                ForEach(perfil.servicos) { servico in
+                    if let resumo = TextosDosServicos.resumoDoServico(servico.servico) {
+                        Text(verbatim: resumo)
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.marca)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let inclui = servico.servico.itensInclusos, !inclui.isEmpty {
+                        Text(verbatim: inclui)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if !servico.especialidades.isEmpty {
+                        Text(verbatim: servico.especialidades.map(\.nome).joined(separator: ", "))
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("servicos-do-candidato-\(candidatoID)")
+        }
+
+        if let apresentacao = perfil.apresentacao, !apresentacao.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Text(verbatim: apresentacao)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("apresentacao-do-candidato-\(candidatoID)")
+        }
+
+        if perfil.experienciaFaixa != nil || (perfil.ondeTrabalhei != nil && !perfil.ondeTrabalhei!.isEmpty) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                if let faixa = perfil.experienciaFaixa {
+                    Text(verbatim: TextosApresentacaoERegioes.textoExperiencia(faixa))
+                        .font(FrilaTipo.nota.weight(.medium))
+                        .foregroundStyle(FrilaCor.texto)
+                }
+                if let onde = perfil.ondeTrabalhei, !onde.isEmpty {
+                    Text(verbatim: onde)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .lineLimit(2)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("experiencia-do-candidato-\(candidatoID)")
+        }
+
+        if !perfil.cursos.isEmpty {
+            Text(verbatim: perfil.cursos.joined(separator: " • "))
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .lineLimit(2)
+                .accessibilityIdentifier("cursos-do-candidato-\(candidatoID)")
+        }
+
+        if !perfil.idiomas.isEmpty {
+            Text(verbatim: perfil.idiomas.map { TextosApresentacaoERegioes.textoIdioma($0) }.joined(separator: ", "))
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityIdentifier("idiomas-do-candidato-\(candidatoID)")
+        }
+
+        if perfil.atendeTodoDF || !perfil.regioes.isEmpty {
+            Text(verbatim: perfil.atendeTodoDF ? TextosApresentacaoERegioes.todoODF : perfil.regioes.map(\.nome).joined(separator: ", "))
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityIdentifier("regioes-do-candidato-\(candidatoID)")
+        }
     }
 }
 

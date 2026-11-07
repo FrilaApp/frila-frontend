@@ -338,13 +338,34 @@ public struct TelaPerfilPublico: View {
                                 }
                             } else {
                                 HStack(alignment: .center, spacing: FrilaEspaco.medio) {
-                                    Image(systemName: "person.fill")
-                                        .font(FrilaTipo.tituloGrande)
-                                        .foregroundStyle(FrilaCor.texto)
+                                    if let fotoURL = perfil.fotoURL {
+                                        AsyncImage(url: fotoURL) { fase in
+                                            switch fase {
+                                            case let .success(imagem):
+                                                imagem
+                                                    .resizable()
+                                                    .scaledToFill()
+                                            default:
+                                                Image(systemName: "person.fill")
+                                                    .font(FrilaTipo.tituloGrande)
+                                                    .foregroundStyle(FrilaCor.texto)
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .background(FrilaCor.controle)
+                                            }
+                                        }
                                         .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                                        .background(FrilaCor.controle, in: Circle())
+                                        .clipShape(Circle())
                                         .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
                                         .accessibilityHidden(true)
+                                    } else {
+                                        Image(systemName: "person.fill")
+                                            .font(FrilaTipo.tituloGrande)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                                            .background(FrilaCor.controle, in: Circle())
+                                            .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                                            .accessibilityHidden(true)
+                                    }
                                     VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                                         Text(verbatim: perfil.nome)
                                             .font(FrilaTipo.tituloDoCartao.weight(.bold))
@@ -358,6 +379,121 @@ public struct TelaPerfilPublico: View {
                                     }
                                 }
                                 SeloReputacao(reputacao)
+
+                                if !perfil.servicos.isEmpty {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                                        Text("Serviços oferecidos", bundle: bundleApresentacao)
+                                            .font(FrilaTipo.resumo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        ForEach(perfil.servicos) { servico in
+                                            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                                Text(verbatim: servico.funcao.nome)
+                                                    .font(FrilaTipo.corpo.weight(.semibold))
+                                                    .foregroundStyle(FrilaCor.texto)
+                                                if let resumo = TextosDosServicos.resumoDoServico(servico.servico) {
+                                                    Text(verbatim: resumo)
+                                                        .font(FrilaTipo.meta.weight(.medium))
+                                                        .foregroundStyle(FrilaCor.marca)
+                                                }
+                                                if let inclui = servico.servico.itensInclusos, !inclui.isEmpty {
+                                                    Text(verbatim: inclui)
+                                                        .font(FrilaTipo.nota)
+                                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                                }
+                                                if !servico.especialidades.isEmpty {
+                                                    Text(verbatim: servico.especialidades.map(\.nome).joined(separator: ", "))
+                                                        .font(FrilaTipo.microRotulo)
+                                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                                }
+                                            }
+                                            .padding(FrilaEspaco.pequeno)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+                                        }
+                                    }
+                                    .accessibilityElement(children: .contain)
+                                    .accessibilityIdentifier("perfil-publico-servicos")
+                                }
+
+                                if let apresentacao = perfil.apresentacao, !apresentacao.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                        Text(verbatim: TextosApresentacaoERegioes.sobreMimTitulo)
+                                            .font(FrilaTipo.resumo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        Text(verbatim: apresentacao)
+                                            .font(FrilaTipo.corpo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityIdentifier("perfil-publico-sobre-mim")
+                                }
+
+                                if perfil.experienciaFaixa != nil || (perfil.ondeTrabalhei != nil && !perfil.ondeTrabalhei!.isEmpty) {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                        Text(verbatim: TextosApresentacaoERegioes.experienciaTitulo)
+                                            .font(FrilaTipo.resumo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        if let faixa = perfil.experienciaFaixa {
+                                            Text(verbatim: TextosApresentacaoERegioes.textoExperiencia(faixa))
+                                                .font(FrilaTipo.corpo.weight(.medium))
+                                                .foregroundStyle(FrilaCor.texto)
+                                        }
+                                        if let onde = perfil.ondeTrabalhei, !onde.isEmpty {
+                                            Text(verbatim: onde)
+                                                .font(FrilaTipo.meta)
+                                                .foregroundStyle(FrilaCor.textoSecundario)
+                                        }
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityIdentifier("perfil-publico-experiencia")
+                                }
+
+                                if !perfil.cursos.isEmpty {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                        Text(verbatim: TextosApresentacaoERegioes.cursosTitulo)
+                                            .font(FrilaTipo.resumo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        ForEach(perfil.cursos, id: \.self) { curso in
+                                            Text(verbatim: "• \(curso)")
+                                                .font(FrilaTipo.corpo)
+                                                .foregroundStyle(FrilaCor.texto)
+                                        }
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityIdentifier("perfil-publico-cursos")
+                                }
+
+                                if !perfil.idiomas.isEmpty {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                        Text(verbatim: TextosApresentacaoERegioes.idiomasTitulo)
+                                            .font(FrilaTipo.resumo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        Text(verbatim: perfil.idiomas.map { TextosApresentacaoERegioes.textoIdioma($0) }.joined(separator: ", "))
+                                            .font(FrilaTipo.corpo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityIdentifier("perfil-publico-idiomas")
+                                }
+
+                                if perfil.atendeTodoDF || !perfil.regioes.isEmpty {
+                                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                                        Text(verbatim: TextosApresentacaoERegioes.regioesTitulo)
+                                            .font(FrilaTipo.resumo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .accessibilityAddTraits(.isHeader)
+                                        Text(verbatim: perfil.atendeTodoDF ? TextosApresentacaoERegioes.todoODF : perfil.regioes.map(\.nome).joined(separator: ", "))
+                                            .font(FrilaTipo.corpo)
+                                            .foregroundStyle(FrilaCor.texto)
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityIdentifier("perfil-publico-regioes")
+                                }
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
