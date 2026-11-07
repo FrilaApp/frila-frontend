@@ -220,12 +220,28 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     public let versaoRecomendada: String
     public let mensagem: String?
     public let urlDaLoja: URL
+    /// Interruptores do servidor (contrato 0.2.54). Ausente vale desligado.
+    public let recursos: RecursosDoApp
 
-    public init(versaoMinima: String, versaoRecomendada: String, mensagem: String?, urlDaLoja: URL) {
+    public init(
+        versaoMinima: String, versaoRecomendada: String, mensagem: String?, urlDaLoja: URL,
+        recursos: RecursosDoApp = .desligados
+    ) {
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem
         self.urlDaLoja = urlDaLoja
+        self.recursos = recursos
+    }
+
+    /// Cópia guardada antes da 0.2.54 não tem `recursos`: vale desligado.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        versaoMinima = try container.decode(String.self, forKey: .versaoMinima)
+        versaoRecomendada = try container.decode(String.self, forKey: .versaoRecomendada)
+        mensagem = try container.decodeIfPresent(String.self, forKey: .mensagem)
+        urlDaLoja = try container.decode(URL.self, forKey: .urlDaLoja)
+        recursos = try container.decodeIfPresent(RecursosDoApp.self, forKey: .recursos) ?? .desligados
     }
 }
 
@@ -391,9 +407,31 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// Sem texto livre nem dado pessoal (RN15). Devolve true quando registrado pelo servidor.
     func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool
     func sair(tokenFCM: String?) async
+
+    // Foto de perfil (contrato 0.2.54, RN37 e RN46)
+    /// Cria a mídia em `enviando` e devolve a URL assinada de upload. Com `recursos.foto_de_perfil`
+    /// desligado é `semPermissao` com `recursoDesligado`; tipo reservado e formato ou tamanho
+    /// fora do limite são `midiaInvalida`.
+    func solicitarUploadMidia(_ pedido: PedidoDeUploadDeMidia) async throws -> UploadDeMidia
+    /// Enfileira a análise (a resposta não espera o modelo). Idempotente: confirmar de novo devolve o estado atual.
+    func confirmarUploadMidia(id: UUID) async throws -> Midia
+    /// Funciona mesmo com o recurso desligado: remover o próprio dado nunca depende do interruptor.
+    func removerMidia(id: UUID) async throws -> Midia
+    /// Todas as mídias de quem chama, em qualquer estado. Também não depende do interruptor.
+    func minhasMidias() async throws -> [Midia]
+    /// Uma vez por foto `recusada` ou `nao_publicada`. Em outro estado ou depois do expurgo é `midiaIndisponivel`.
+    func pedirNovaAnaliseMidia(id: UUID) async throws -> Midia
 }
 
 public extension ApiCliente {
+    func solicitarUploadMidia(_ pedido: PedidoDeUploadDeMidia) async throws -> UploadDeMidia {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+    func confirmarUploadMidia(id: UUID) async throws -> Midia { throw ErroDaApi(codigo: .respostaInvalida) }
+    func removerMidia(id: UUID) async throws -> Midia { throw ErroDaApi(codigo: .respostaInvalida) }
+    func minhasMidias() async throws -> [Midia] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func pedirNovaAnaliseMidia(id: UUID) async throws -> Midia { throw ErroDaApi(codigo: .respostaInvalida) }
+
     var suportaEdicaoDeContato: Bool { false }
     func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta {
         throw ErroDaApi(codigo: .respostaInvalida)

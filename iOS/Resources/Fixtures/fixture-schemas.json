@@ -18,6 +18,9 @@
   "candidatura-urgencia.json": {
     "schema": "#/components/schemas/ResultadoCandidatura"
   },
+  "configuracao-do-app-com-recursos.json": {
+    "schema": "#/components/schemas/ConfiguracaoDoApp"
+  },
   "configuracao-do-app.json": {
     "schema": "#/components/schemas/ConfiguracaoDoApp"
   },
@@ -55,8 +58,15 @@
     "schema": "#/components/schemas/EstabelecimentoDaConta",
     "lista": true
   },
+  "midia-aprovada.json": {
+    "schema": "#/components/schemas/Midia"
+  },
   "minhas-candidaturas.json": {
     "schema": "#/components/schemas/Candidatura",
+    "lista": true
+  },
+  "minhas-midias.json": {
+    "schema": "#/components/schemas/Midia",
     "lista": true
   },
   "painel-com-cancelamento.json": {
@@ -71,6 +81,9 @@
   "perfil-profissional.json": {
     "schema": "#/components/schemas/PerfilProfissional"
   },
+  "perfil-publico-com-foto.json": {
+    "schema": "#/components/schemas/PerfilPublico"
+  },
   "perfil-publico.json": {
     "schema": "#/components/schemas/PerfilPublico"
   },
@@ -80,12 +93,12 @@
   "protocolo.json": {
     "schema": "#/components/schemas/Protocolo"
   },
-  "registrar-evento.json": {
-    "schema": "#/paths/~1rpc~1registrar_evento/post/responses/200/content/application~1json/schema"
-  },
   "regioes-administrativas.json": {
     "schema": "#/components/schemas/RegiaoAdministrativa",
     "lista": true
+  },
+  "registrar-evento.json": {
+    "schema": "#/paths/~1rpc~1registrar_evento/post/responses/200/content/application~1json/schema"
   },
   "requisicao-atualizar-perfil-profissional.json": {
     "schema": "#/components/schemas/AlteracaoDoPerfilProfissional"
@@ -153,6 +166,9 @@
   "requisicao-retirar-candidatura.json": {
     "schema": "#/paths/~1rpc~1retirar_candidatura/post/requestBody/content/application~1json/schema"
   },
+  "requisicao-solicitar-upload-midia.json": {
+    "schema": "#/paths/~1rpc~1solicitar_upload_midia/post/requestBody/content/application~1json/schema"
+  },
   "resultado-a-caminho.json": {
     "schema": "#/components/schemas/ResultadoACaminho"
   },
@@ -196,6 +212,9 @@
   "turnos.json": {
     "schema": "#/components/schemas/Turno",
     "lista": true
+  },
+  "upload-midia.json": {
+    "schema": "#/paths/~1rpc~1solicitar_upload_midia/post/responses/200/content/application~1json/schema"
   },
   "usuario.json": {
     "schema": "#/components/schemas/Usuario"
