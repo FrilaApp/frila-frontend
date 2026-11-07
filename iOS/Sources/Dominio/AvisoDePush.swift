@@ -1,7 +1,14 @@
 import Foundation
 
-/// Os dezenove avisos que o backend manda (`public.tipo_notificacao`). O valor é o `tipo` do payload.
+/// Os vinte avisos que o backend manda (`public.tipo_notificacao`). O valor é o `tipo` do payload.
 public enum TipoDeAviso: String, CaseIterable, Sendable {
+    case chamadaRecebida = "chamada_recebida"
+    case chamadaLembrete = "chamada_lembrete"
+    case chamadaAceita = "chamada_aceita"
+    case chamadaRecusada = "chamada_recusada"
+    case chamadaExpirada = "chamada_expirada"
+    case chamadaCancelada = "chamada_cancelada"
+    case chamadaEncerrada = "chamada_encerrada"
     case vaga
     case vagasAgrupadas = "vagas_agrupadas"
     case vagaSemElegiveis = "vaga_sem_elegiveis"
@@ -23,6 +30,10 @@ public enum TipoDeAviso: String, CaseIterable, Sendable {
     /// 0.2.38 (decisão D6): lembrete à casa, uma vez por vaga, a 6 h ou menos do prazo de escolha
     /// e só com candidatura pendente.
     case selecaoLembrete = "selecao_lembrete"
+    /// 0.2.54: a foto de perfil não foi publicada (`recusada` ou `nao_publicada`). Só traz `tipo` e `midia_id`.
+    case midiaRecusada = "midia_recusada"
+    /// 0.2.62: presença no turno não confirmada dentro do prazo (RN15, RN22). Leva `turno_id`.
+    case turnoNaoVerificado = "turno_nao_verificado"
 }
 
 /// Paridade direta com o schema TipoNotificacao do contrato OpenAPI.

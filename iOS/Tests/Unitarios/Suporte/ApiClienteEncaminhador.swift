@@ -28,6 +28,9 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional { try await base.criarPerfilProfissional(dados) }
     func meuPerfilProfissional() async throws -> PerfilProfissional { try await base.meuPerfilProfissional() }
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional { try await base.atualizarPerfilProfissional(alteracao) }
+    func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado { try await base.meuPerfilDetalhado() }
+    func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado { try await base.atualizarApresentacaoProfissional(apresentacao) }
+    func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado { try await base.definirRegioesAtendidas(regioes) }
 
     // Por que recebo vagas
     func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao { try await base.criteriosDeNotificacao() }
@@ -46,6 +49,7 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
 
     // Catálogo e vagas
     func funcoes() async throws -> [Funcao] { try await base.funcoes() }
+    func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada { try await base.chamarProfissional(pedido) }
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada { try await base.publicarVaga(publicacao) }
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada { try await base.republicarVaga(id: id, periodo: periodo, chave: chave) }
     func republicarPosicoesRestantes(vagaID: UUID, chave: UUID) async throws -> VagaPublicada { try await base.republicarPosicoesRestantes(vagaID: vagaID, chave: chave) }

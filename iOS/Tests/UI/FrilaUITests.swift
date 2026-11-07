@@ -468,7 +468,7 @@ final class CandidaturaUITests: XCTestCase {
         let app = abrirDetalheECandidatar("inelegivel-suspenso")
         XCTAssertTrue(app.descendants(matching: .any)["resultado-conta-suspensa"].waitForExistence(timeout: 10))
         let contestar = app.buttons["contestar"]
-        XCTAssertTrue(contestar.exists)
+        XCTAssertTrue(contestar.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(contestar.isEnabled)
         tocar(contestar)
         XCTAssertTrue(app.descendants(matching: .any)["tela-conta-suspensa"].waitForExistence(timeout: Espera.aparecer))

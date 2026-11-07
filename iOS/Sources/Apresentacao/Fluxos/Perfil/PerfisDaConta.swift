@@ -250,6 +250,7 @@ public struct TelaMeuPerfilProfissional: View {
                     EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                 } else if let conta = model.conta, let perfil = model.perfil {
                     identidade(conta)
+                    SecaoFotoDePerfil(api: api)
                     historico
                     configuracao(perfil)
                 }
@@ -410,6 +411,16 @@ public struct TelaMeuPerfilProfissional: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("perfil-funcoes-horarios")
+
+            DivisoriaDeLinha()
+
+            NavigationLink {
+                TelaApresentacaoERegioes(api: api)
+            } label: {
+                RotuloDeLinha(TextosApresentacaoERegioes.titulo)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-apresentacao-regioes")
 
             DivisoriaDeLinha()
 

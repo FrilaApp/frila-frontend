@@ -132,6 +132,100 @@ public struct Especialidade: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public enum UnidadePreco: String, Codable, CaseIterable, Sendable {
+    case hora, diaria, evento, pacote
+    case porPessoa = "por_pessoa"
+    case aCombinar = "a_combinar"
+}
+
+public enum LevaMaterial: String, Codable, CaseIterable, Sendable {
+    case sim, nao, depende
+}
+
+public enum ExperienciaFaixa: String, Codable, CaseIterable, Sendable {
+    case menosDe1Ano = "menos_de_1_ano"
+    case de1A3Anos = "de_1_a_3_anos"
+    case de3A5Anos = "de_3_a_5_anos"
+    case de5A10Anos = "de_5_a_10_anos"
+    case maisDe10Anos = "mais_de_10_anos"
+}
+
+public enum Idioma: String, Codable, CaseIterable, Sendable {
+    case portugues, ingles, espanhol, libras, outro
+}
+
+public struct ServicoOferecido: Codable, Hashable, Sendable {
+    public var funcaoID: UUID
+    public var unidade: UnidadePreco
+    public var valorCentavos: Int?
+    public var valorMaxCentavos: Int?
+    public var horasIncluidas: Int?
+    public var minimoHoras: Int?
+    public var duracaoTipicaH: Int?
+    public var atePessoas: Int?
+    public var minimoPessoas: Int?
+    public var descricaoPacote: String?
+    public var levaMaterial: LevaMaterial?
+    public var itensInclusos: String?
+    public var especialidadeIDs: [UUID]?
+
+    public init(funcaoID: UUID, unidade: UnidadePreco, valorCentavos: Int? = nil,
+                valorMaxCentavos: Int? = nil, horasIncluidas: Int? = nil, minimoHoras: Int? = nil,
+                duracaoTipicaH: Int? = nil, atePessoas: Int? = nil, minimoPessoas: Int? = nil,
+                descricaoPacote: String? = nil, levaMaterial: LevaMaterial? = nil,
+                itensInclusos: String? = nil, especialidadeIDs: [UUID]? = nil) {
+        self.funcaoID = funcaoID; self.unidade = unidade; self.valorCentavos = valorCentavos
+        self.valorMaxCentavos = valorMaxCentavos; self.horasIncluidas = horasIncluidas
+        self.minimoHoras = minimoHoras; self.duracaoTipicaH = duracaoTipicaH; self.atePessoas = atePessoas
+        self.minimoPessoas = minimoPessoas; self.descricaoPacote = descricaoPacote
+        self.levaMaterial = levaMaterial; self.itensInclusos = itensInclusos; self.especialidadeIDs = especialidadeIDs
+    }
+
+    public func validar() throws {
+        func exigir(_ condicao: Bool, _ campo: String) throws {
+            if !condicao { throw ErroDaApi(codigo: .campoInvalido, detalhes: campo) }
+        }
+        try exigir(unidade == .aCombinar ? valorCentavos == nil : valorCentavos.map { (1000...1000000).contains($0) } == true, "valor_centavos")
+        try exigir(valorMaxCentavos == nil || ([.hora, .diaria, .pacote].contains(unidade) && valorMaxCentavos.map { ((valorCentavos ?? 1000)...1000000).contains($0) } == true), "valor_max_centavos")
+        try exigir(unidade == .diaria ? horasIncluidas.map { (4...12).contains($0) } == true : horasIncluidas == nil, "horas_incluidas")
+        try exigir(minimoHoras == nil || (unidade == .hora && minimoHoras.map { (1...12).contains($0) } == true), "minimo_horas")
+        try exigir(duracaoTipicaH == nil || (unidade == .evento && duracaoTipicaH.map { (1...24).contains($0) } == true), "duracao_tipica_h")
+        try exigir(atePessoas == nil || (unidade == .evento && atePessoas.map { (1...2000).contains($0) } == true), "ate_pessoas")
+        try exigir(unidade == .porPessoa ? minimoPessoas.map { (1...2000).contains($0) } == true : minimoPessoas == nil, "minimo_pessoas")
+        try exigir(unidade == .pacote ? descricaoPacote.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.count <= 120 } == true : descricaoPacote == nil, "descricao_pacote")
+        try exigir((itensInclusos?.count ?? 0) <= 300, "inclui")
+        let ids = especialidadeIDs ?? []
+        try exigir(ids.count <= 8 && Set(ids).count == ids.count, "especialidade_ids")
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case funcaoID = "funcao_id"
+        case unidade
+        case valorCentavos = "valor_centavos"
+        case valorMaxCentavos = "valor_max_centavos"
+        case horasIncluidas = "horas_incluidas"
+        case minimoHoras = "minimo_horas"
+        case duracaoTipicaH = "duracao_tipica_h"
+        case atePessoas = "ate_pessoas"
+        case minimoPessoas = "minimo_pessoas"
+        case descricaoPacote = "descricao_pacote"
+        case levaMaterial = "leva_material"
+        case itensInclusos = "inclui"
+        case especialidadeIDs = "especialidade_ids"
+    }
+}
+
+public struct ServicoNoPerfil: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID { funcao.id }
+    public let funcao: Funcao
+    public let servico: ServicoOferecido
+    public let especialidades: [Especialidade]
+
+    public init(funcao: Funcao, servico: ServicoOferecido, especialidades: [Especialidade] = []) {
+        self.funcao = funcao; self.servico = servico; self.especialidades = especialidades
+    }
+}
+
 public struct Reputacao: Codable, Hashable, Sendable {
     public let positivas: Int
     public let total: Int
@@ -176,13 +270,23 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
     public let nome: String
     public let funcoes: [String]
     public let reputacao: Reputacao
+    /// Foto `aprovada` (miniatura de 320 px, URL assinada por 1 h). Só vem para quem tem vínculo de
+    /// leitura e com o recurso ligado (contrato 0.2.54); ausente nos demais casos.
+    public let fotoURL: URL?
+    /// Identificador opaco da foto exibida: é o que `denunciar.midia_id` recebe.
+    public let fotoID: UUID?
 
-    public init(id: UUID, tipo: TipoPerfilPublico, nome: String, funcoes: [String] = [], reputacao: Reputacao) {
+    public init(
+        id: UUID, tipo: TipoPerfilPublico, nome: String, funcoes: [String] = [], reputacao: Reputacao,
+        fotoURL: URL? = nil, fotoID: UUID? = nil
+    ) {
         self.id = id
         self.tipo = tipo
         self.nome = nome
         self.funcoes = funcoes
         self.reputacao = reputacao
+        self.fotoURL = fotoURL
+        self.fotoID = fotoID
     }
 }
 
@@ -208,6 +312,71 @@ public struct PerfilProfissional: Codable, Hashable, Identifiable, Sendable {
         self.pontoBase = pontoBase
         self.disponibilidades = disponibilidades
         self.reputacao = reputacao
+    }
+}
+
+
+public struct ApresentacaoDoProfissional: Codable, Hashable, Sendable {
+    public var apresentacao: String?
+    public var ondeTrabalhei: String?
+    public var experienciaFaixa: ExperienciaFaixa?
+    public var cursos: [String]?
+    public var idiomas: [Idioma]?
+
+    public init(
+        apresentacao: String? = nil,
+        ondeTrabalhei: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        cursos: [String]? = nil,
+        idiomas: [Idioma]? = nil
+    ) {
+        self.apresentacao = apresentacao
+        self.ondeTrabalhei = ondeTrabalhei
+        self.experienciaFaixa = experienciaFaixa
+        self.cursos = cursos
+        self.idiomas = idiomas
+    }
+}
+
+public struct RegioesAtendidas: Codable, Hashable, Sendable {
+    public var regioes: [Int]
+    public var atendeTodoDF: Bool
+
+    public init(regioes: [Int] = [], atendeTodoDF: Bool = false) {
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+    }
+}
+
+public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID { perfil.id }
+    public let perfil: PerfilProfissional
+    public let apresentacao: String?
+    public let ondeTrabalhei: String?
+    public let experienciaFaixa: ExperienciaFaixa?
+    public let cursos: [String]
+    public let idiomas: [Idioma]
+    public let regioes: [RegiaoAdministrativa]
+    public let atendeTodoDF: Bool
+
+    public init(
+        perfil: PerfilProfissional,
+        apresentacao: String? = nil,
+        ondeTrabalhei: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        cursos: [String] = [],
+        idiomas: [Idioma] = [],
+        regioes: [RegiaoAdministrativa] = [],
+        atendeTodoDF: Bool = false
+    ) {
+        self.perfil = perfil
+        self.apresentacao = apresentacao
+        self.ondeTrabalhei = ondeTrabalhei
+        self.experienciaFaixa = experienciaFaixa
+        self.cursos = cursos
+        self.idiomas = idiomas
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
     }
 }
 
@@ -346,7 +515,14 @@ public enum ErroValidacaoVaga: String, Error, CaseIterable, Sendable {
     case selecaoSemAntecedencia
 }
 
+public enum OrigemVaga: String, Codable, CaseIterable, Sendable {
+    case publicacao
+    case chamadaDireta = "chamada_direta"
+}
+
 public struct Vaga: Codable, Hashable, Identifiable, Sendable {
+    public let origem: OrigemVaga?
+    public let vagaOrigemId: UUID?
     public let id: UUID
     public let estabelecimento: PerfilPublico
     public let funcao: Funcao
@@ -390,8 +566,11 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
         modo: ModoPreenchimento,
         estado: EstadoVaga,
         oculta: Bool = false,
-        publicadoEm: Date
+        publicadoEm: Date,
+        origem: OrigemVaga? = nil, vagaOrigemId: UUID? = nil
     ) {
+        self.origem = origem
+        self.vagaOrigemId = vagaOrigemId
         self.id = id
         self.estabelecimento = estabelecimento
         self.funcao = funcao
@@ -415,7 +594,7 @@ public struct Vaga: Codable, Hashable, Identifiable, Sendable {
     }
 
     public var resumo: VagaResumo {
-        VagaResumo(id: id, funcao: funcao.nome, local: local, regiaoAdministrativa: regiaoAdministrativa, periodo: periodo, valor: valor)
+        VagaResumo(id: id, funcao: funcao.nome, local: local, regiaoAdministrativa: regiaoAdministrativa, periodo: periodo, valor: valor, origem: origem, vagaOrigemId: vagaOrigemId)
     }
 
     public func validar(agora: Date) -> [ErroValidacaoVaga] {
@@ -487,6 +666,8 @@ public struct VagaNaLista: Codable, Hashable, Identifiable, Sendable {
 }
 
 public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
+    public let origem: OrigemVaga?
+    public let vagaOrigemId: UUID?
     public let id: UUID
     public let funcao: String
     public let local: String
@@ -494,7 +675,9 @@ public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
     public let periodo: Periodo
     public let valor: Dinheiro
 
-    public init(id: UUID, funcao: String, local: String, regiaoAdministrativa: String, periodo: Periodo, valor: Dinheiro) {
+    public init(id: UUID, funcao: String, local: String, regiaoAdministrativa: String, periodo: Periodo, valor: Dinheiro, origem: OrigemVaga? = nil, vagaOrigemId: UUID? = nil) {
+        self.origem = origem
+        self.vagaOrigemId = vagaOrigemId
         self.id = id
         self.funcao = funcao
         self.local = local
@@ -509,6 +692,8 @@ public struct VagaResumo: Codable, Hashable, Identifiable, Sendable {
     /// deixaria de abrir em modo avião logo depois da atualização do app.
     public init(from decoder: any Decoder) throws {
         let campos = try decoder.container(keyedBy: CodingKeys.self)
+        origem = try campos.decodeIfPresent(OrigemVaga.self, forKey: .origem)
+        vagaOrigemId = try campos.decodeIfPresent(UUID.self, forKey: .vagaOrigemId)
         id = try campos.decode(UUID.self, forKey: .id)
         funcao = try campos.decode(String.self, forKey: .funcao)
         local = try campos.decode(String.self, forKey: .local)
@@ -1183,3 +1368,148 @@ public struct RegistroDeEvento: Codable, Equatable, Sendable {
     }
 }
 
+
+// MARK: Foto de perfil (contrato 0.2.54, RN37 e RN46)
+
+/// Tipos de mídia do contrato. Nesta versão só `fotoPerfil` está disponível.
+/// Descartadas galeria e currículo: se vier qualquer outro tipo desconhecido do servidor,
+/// o app tolera e decodifica como `.desconhecido(texto)` sem quebrar.
+public enum TipoMidia: Hashable, Sendable, CaseIterable {
+    case fotoPerfil
+    case desconhecido(String)
+
+    public static var allCases: [TipoMidia] {
+        [.fotoPerfil]
+    }
+
+    public var rawValue: String {
+        switch self {
+        case .fotoPerfil: return "foto_perfil"
+        case .desconhecido(let texto): return texto
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "foto_perfil": self = .fotoPerfil
+        default: self = .desconhecido(rawValue)
+        }
+    }
+}
+
+extension TipoMidia: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let texto = try container.decode(String.self)
+        self.init(rawValue: texto)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+/// `enviando` → `em_analise` → `aprovada`, `recusada` ou `nao_publicada` (a análise falhou 4 vezes);
+/// `aprovada` → `ocultada` (duas denúncias) ou `removida` (pelo dono). Só `aprovada` aparece para outra conta.
+public enum EstadoMidia: String, Codable, CaseIterable, Sendable {
+    case enviando
+    case emAnalise = "em_analise"
+    case aprovada
+    case recusada
+    case naoPublicada = "nao_publicada"
+    case ocultada
+    case removida
+}
+
+/// Motivo genérico da recusa, que a tela traduz em texto amigável. O código fino do modelo nunca sai da API.
+public enum MotivoRecusaMidia: String, Codable, CaseIterable, Sendable {
+    case fotoInadequada = "foto_inadequada"
+    case textoOuDadoPessoal = "texto_ou_dado_pessoal"
+    case naoEPessoaOuServico = "nao_e_pessoa_ou_servico"
+    case naoAnalisada = "nao_analisada"
+}
+
+/// A mídia como o dono a vê. Nunca traz o caminho no Storage, o código fino do motivo nem o hash.
+public struct Midia: Codable, Hashable, Identifiable, Sendable {
+    public let id: UUID
+    public let tipo: TipoMidia
+    public let estado: EstadoMidia
+    public let motivoRecusa: MotivoRecusaMidia?
+    /// `true` só com a mídia `recusada` ou `nao_publicada`, a nova análise ainda não pedida e o
+    /// arquivo ainda não expurgado.
+    public let podePedirNovaAnalise: Bool
+    /// URL assinada por 1 h, só com a mídia `aprovada`.
+    public let url: URL?
+    public let estabelecimentoID: UUID?
+    public let enviadaEm: Date?
+    public let decididaEm: Date?
+
+    public init(
+        id: UUID,
+        tipo: TipoMidia = .fotoPerfil,
+        estado: EstadoMidia,
+        motivoRecusa: MotivoRecusaMidia? = nil,
+        podePedirNovaAnalise: Bool = false,
+        url: URL? = nil,
+        estabelecimentoID: UUID? = nil,
+        enviadaEm: Date? = nil,
+        decididaEm: Date? = nil
+    ) {
+        self.id = id
+        self.tipo = tipo
+        self.estado = estado
+        self.motivoRecusa = motivoRecusa
+        self.podePedirNovaAnalise = podePedirNovaAnalise
+        self.url = url
+        self.estabelecimentoID = estabelecimentoID
+        self.enviadaEm = enviadaEm
+        self.decididaEm = decididaEm
+    }
+}
+
+/// O pedido de URL de upload: a mídia nasce em `enviando` e o app envia o JPEG para `uploadURL`.
+public struct UploadDeMidia: Equatable, Sendable {
+    public let midiaID: UUID
+    public let uploadURL: URL
+    /// Presente no contrato, mas o app não a usa: a miniatura deriva do servidor (CD-M04b).
+    public let uploadURLMiniatura: URL?
+    public let expiraEm: Date
+
+    public init(midiaID: UUID, uploadURL: URL, uploadURLMiniatura: URL? = nil, expiraEm: Date) {
+        self.midiaID = midiaID
+        self.uploadURL = uploadURL
+        self.uploadURLMiniatura = uploadURLMiniatura
+        self.expiraEm = expiraEm
+    }
+}
+
+/// Pedido de `solicitar_upload_midia`.
+public struct PedidoDeUploadDeMidia: Equatable, Sendable {
+    public let tipo: TipoMidia
+    public let mime: String
+    public let bytes: Int
+    public let estabelecimentoID: UUID?
+
+    public init(tipo: TipoMidia = .fotoPerfil, mime: String = "image/jpeg", bytes: Int, estabelecimentoID: UUID? = nil) {
+        self.tipo = tipo
+        self.mime = mime
+        self.bytes = bytes
+        self.estabelecimentoID = estabelecimentoID
+    }
+}
+
+/// Interruptores do servidor (`ConfiguracaoDoApp.recursos`). Ausente vale desligado: no Prod nascem desligados.
+public struct RecursosDoApp: Codable, Equatable, Sendable {
+    public let fotoDePerfil: Bool
+    public let chamadaDireta: Bool
+    public let perfilRico: Bool
+
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
+        self.fotoDePerfil = fotoDePerfil
+        self.chamadaDireta = chamadaDireta
+        self.perfilRico = perfilRico
+    }
+
+    public static let desligados = RecursosDoApp()
+}

@@ -175,11 +175,8 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
             if "{" not in line:
                 continue
             for subline in lines[i + 1 :]:
-                depth += subline.count("{") - subline.count("}")
-                if depth <= 0:
-                    break
                 stripped = subline.strip()
-                if stripped.startswith("case "):
+                if depth == 1 and stripped.startswith("case "):
                     parts = stripped[5:].split("//")[0].split(",")
                     for part in parts:
                         part = part.strip()
@@ -192,9 +189,17 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
                             cases.add(part)
                             snake = re.sub(r"(?<!^)(?=[A-Z])", "_", part).lower()
                             cases.add(snake)
+                depth += subline.count("{") - subline.count("}")
+                if depth <= 0:
+                    break
             if cases:
                 swift_enums[ename] = cases
     return swift_enums
+
+
+# Contratação direta, fatia F2 (perfil que explica, contrato 0.2.53): a foto de perfil (F3, 0.2.54) é a
+# primeira fatia adotada no iOS; o resto do perfil entra na F2.
+PENDENTE_F2 = "Pendente de adoção na fatia F2 (perfil que explica, contrato 0.2.53)."
 
 
 def conferir_rpcs(
@@ -222,6 +227,14 @@ def conferir_rpcs(
     # Operações do contrato ainda não consumidas pelo app iOS (e.g. novas RPCs da RN14
     # pendentes de adoção no cliente iOS).
     RPCS_NAO_CONSUMIDAS_PELO_APP = {
+        **dict.fromkeys(
+            ("responder_chamada", "cancelar_chamada"),
+            "Contrato 0.2.55: I5a adota somente criar chamada; resposta e cancelamento ficam para I5b.",
+        ),
+        **dict.fromkeys(
+            ("atualizar_apresentacao_profissional", "definir_regioes_atendidas", "meu_perfil_detalhado"),
+            "Contratos 0.2.52/53: adoção na fatia I2b de perfil, fora de I2a/I4/I5a.",
+        ),
         "minha_identidade_status": (
             "Verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo de upload de documento pendente de adoção no app iOS."
@@ -242,6 +255,14 @@ def conferir_rpcs(
             "Desbloqueio (decisão A8 da PO, contrato 0.2.51); "
             "tela de bloqueados pendente de adoção no app iOS."
         ),
+        "definir_servicos": PENDENTE_F2,
+        "meu_perfil_detalhado": PENDENTE_F2,
+        "atualizar_apresentacao_profissional": PENDENTE_F2,
+        "definir_regioes_atendidas": PENDENTE_F2,
+        "definir_preferencia_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "detalhe_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "minhas_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "publicar_a_partir_da_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
     }
 
     faltando = openapi_rpcs - swift_rpcs
@@ -277,19 +298,41 @@ def conferir_rpcs(
     return erros, avisos, consumidas, total_contrato
 
 
-def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
+# Enums do contrato ainda não consumidos pelo app iOS: vêm só nos campos do perfil da F2.
+ENUMS_NAO_CONSUMIDOS_PELO_APP = {
+    "ExperienciaFaixa": PENDENTE_F2,
+    "Idioma": PENDENTE_F2,
+    "LevaMaterial": PENDENTE_F2,
+    "UnidadePreco": PENDENTE_F2,
+}
+
+
+def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> tuple[list[str], list[str]]:
     erros: list[str] = []
+    avisos: list[str] = []
     schemas = doc.get("components", {}).get("schemas", {})
     # Derivado diretamente do OpenAPI: todo schema que define enum
     openapi_enums = {name: s["enum"] for name, s in schemas.items() if "enum" in s}
 
+    # Temporárias por fatia: se o enum já existir, todos os seus casos continuam sendo conferidos.
+    enums_de_outras_fatias = {
+        "EstadoMidia", "MotivoRecusaMidia", "TipoMidia",  # I4, contrato 0.2.54
+        "ExperienciaFaixa", "Idioma", "LevaMaterial", "UnidadePreco",  # I1/I2, 0.2.52/53
+    }
     for o_name, o_cases_list in sorted(openapi_enums.items()):
+        if o_name in enums_de_outras_fatias and o_name not in swift_enums:
+            continue
         s_name = o_name
         if s_name not in swift_enums:
             if o_name == "TipoNotificacao" and "TipoDeAviso" in swift_enums:
                 s_name = "TipoDeAviso"
             elif o_name == "TipoDeAlvo" and "TipoPerfilPublico" in swift_enums:
                 s_name = "TipoPerfilPublico"
+            elif o_name in ENUMS_NAO_CONSUMIDOS_PELO_APP:
+                avisos.append(
+                    f"Enum {o_name} do contrato pendente de adoção ({ENUMS_NAO_CONSUMIDOS_PELO_APP[o_name]})"
+                )
+                continue
             else:
                 erros.append(
                     f"Enum {o_name} do contrato OpenAPI não encontrado em nenhum arquivo Swift"
@@ -300,6 +343,12 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
         s_cases = swift_enums[s_name]
         faltando = o_cases - s_cases
         extras = s_cases - o_cases
+        if o_name == "TipoNotificacao":
+            faltando -= {"midia_recusada"}  # I4, contrato 0.2.54; somente o aviso de mídia fica pendente.
+        if o_name == "TipoMidia":
+            # Galeria e currículo descartados (decisão de produto, contrato 0.2.61): tolerância a tipos desconhecidos do servidor
+            faltando -= {"curriculo", "foto_local", "foto_trabalho"}
+            extras -= {"fotoPerfil"}
         if faltando:
             erros.append(
                 f"Enum {o_name} ({s_name}): casos do contrato faltando no Swift: {sorted(faltando)}"
@@ -309,7 +358,7 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> list[str]:
                 f"Enum {o_name} ({s_name}): casos extras no Swift inexistentes no contrato: {sorted(extras)}"
             )
 
-    return erros
+    return erros, avisos
 
 
 def conferir_erros(
@@ -356,6 +405,9 @@ def conferir_erros(
 
     # Códigos de erro estáveis do contrato de operações ainda não consumidas pelo app iOS
     CODIGOS_ERRO_NAO_CONSUMIDOS_PELO_APP = {
+        "funcao_nao_marcada": "I2: serviços no perfil (0.2.53), fora de I5a.",
+        "midia_indisponivel": "I4: mídia (0.2.54), fora de I5a.",
+        "midia_invalida": "I4: mídia (0.2.54), fora de I5a.",
         "verificacao_indisponivel": (
             "Erro de verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo pendente de adoção no cliente iOS."
@@ -438,12 +490,17 @@ def conferir_dtos(
         "VagaCanceladaDTO",          # Resposta de /rpc/cancelar_vaga
         "RemocaoDTO",                # Resposta de /rpc/remover_dispositivo
         "RegistrarEventoRespostaDTO",# Resposta de /rpc/registrar_evento
+        "UploadMidiaDTO",            # Resposta de /rpc/solicitar_upload_midia (0.2.54)
         "EquipeDTO",                 # Struct aninhado em CriteriosDeNotificacaoDTO
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
+        "RecursosDoAppDTO",          # Struct aninhado em ConfiguracaoDoAppDTO (aditivo 0.2.60 para feature flag)
+        "RegioesAtendidasDTO",       # Parâmetros de /rpc/definir_regioes_atendidas
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
     SCHEMAS_NAO_CONSUMIDOS_PELO_APP = {
+        "ResultadoChamada": "I5b: resposta à chamada (0.2.55); I5a adota Chamada.",
+        "ApresentacaoDoProfissional": "Pendente de adoção no PR I2b",
         "StatusVerificacao": (
             "Payload de minha_identidade_status (RN14, contrato 0.2.50); "
             "pendente de adoção no cliente iOS."
@@ -456,10 +513,27 @@ def conferir_dtos(
             "Item de listar_bloqueios (decisão A8 da PO, contrato 0.2.51); "
             "pendente de adoção no cliente iOS."
         ),
+        "PreferenciaChamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
     }
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+        "CriteriosDeNotificacao": {
+            "contestacao": "Pendente de adoção no PR de contestação do despacho (contrato 0.2.62, RF27)",
+        },
+        # O perfil público ganhou, na F2 (0.2.53), os campos do "perfil que explica"; o iOS adota
+        # primeiro só a foto (F3, 0.2.54): `foto_url` e `foto_id` estão mapeados.
+        "PerfilPublico": {
+            "apresentacao": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "atende_todo_df": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "cursos": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "experiencia_faixa": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "idiomas": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "no_frila_desde": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "onde_trabalhei": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "regioes": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+            "servicos": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+        },
         "VagaResumo": {
             "ponto": (
                 "Coordenadas exatas do estabelecimento introduzidas no contrato 0.2.47 (v1.1, Cartão 72); "
@@ -541,9 +615,22 @@ def conferir_dtos(
 
         extras = dto_fields - all_props
         if extras:
-            erros.append(
-                f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não permitidos pelo contrato: {sorted(extras)}"
-            )
+            extras_reais = set()
+            for campo in extras:
+                if schema_name == "ConfiguracaoDoApp" and campo == "recursos":
+                    avisos.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo extra '{campo}' tolerado por exceção documentada (Aditivo 0.2.60 para feature flag perfil_rico)"
+                    )
+                elif schema_name == "RecursosDoApp" and campo == "perfil_rico":
+                    avisos.append(
+                        f"DTO {dto_name} (schema {schema_name}): campo extra '{campo}' tolerado por exceção documentada (Aditivo 0.2.60 para feature flag perfil_rico)"
+                    )
+                else:
+                    extras_reais.add(campo)
+            if extras_reais:
+                erros.append(
+                    f"DTO {dto_name} (schema {schema_name}): campos extras no Swift não permitidos pelo contrato: {sorted(extras_reais)}"
+                )
 
         opcionais_ausentes = (all_props - required_props) - dto_fields
         if opcionais_ausentes:
@@ -610,8 +697,9 @@ def main() -> None:
 
     # 3. Enums
     swift_enums = extrair_enums_swift(sources_dir)
-    erros_enums = conferir_enums(doc, swift_enums)
+    erros_enums, avisos_enums = conferir_enums(doc, swift_enums)
     todos_erros.extend(erros_enums)
+    todos_avisos.extend(avisos_enums)
     if not erros_enums and not args.silencioso:
         print("OK: 17/17 enums do contrato verificados caso a caso.")
 
