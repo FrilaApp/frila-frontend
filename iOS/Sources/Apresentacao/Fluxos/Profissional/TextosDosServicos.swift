@@ -9,6 +9,21 @@ enum TextosDosServicos {
         return String(localized: "\(valor) a diária de \(horas) h", bundle: bundleApresentacao)
     }
 
+    static func resumoDoServico(_ servico: ServicoOferecido) -> String? {
+        if servico.unidade == .diaria, let centavos = servico.valorCentavos, let horas = servico.horasIncluidas {
+            let valor = (Decimal(centavos) / 100).formatted(.currency(code: "BRL").locale(Locale(identifier: "pt_BR")))
+            return String(localized: "\(valor) a diária de \(horas) h", bundle: bundleApresentacao)
+        }
+        if servico.unidade == .aCombinar {
+            return unidade(.aCombinar)
+        }
+        guard let centavos = servico.valorCentavos else {
+            return unidade(servico.unidade)
+        }
+        let valor = (Decimal(centavos) / 100).formatted(.currency(code: "BRL").locale(Locale(identifier: "pt_BR")))
+        return "\(valor) • \(unidade(servico.unidade))"
+    }
+
     static func unidade(_ unidade: UnidadePreco) -> String {
         switch unidade {
         case .hora: String(localized: "Hora", bundle: bundleApresentacao)

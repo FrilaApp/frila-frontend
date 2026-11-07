@@ -275,10 +275,34 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
     public let fotoURL: URL?
     /// Identificador opaco da foto exibida: é o que `denunciar.midia_id` recebe.
     public let fotoID: UUID?
+    /// 0.2.53: Campos aditivos de perfil rico para leitor com vínculo de leitura.
+    public let apresentacao: String?
+    public let experienciaFaixa: ExperienciaFaixa?
+    public let ondeTrabalhei: String?
+    public let cursos: [String]
+    public let idiomas: [Idioma]
+    public let servicos: [ServicoNoPerfil]
+    public let regioes: [RegiaoAdministrativa]
+    public let atendeTodoDF: Bool
+    public let noFrilaDesde: String?
 
     public init(
-        id: UUID, tipo: TipoPerfilPublico, nome: String, funcoes: [String] = [], reputacao: Reputacao,
-        fotoURL: URL? = nil, fotoID: UUID? = nil
+        id: UUID,
+        tipo: TipoPerfilPublico,
+        nome: String,
+        funcoes: [String] = [],
+        reputacao: Reputacao,
+        fotoURL: URL? = nil,
+        fotoID: UUID? = nil,
+        apresentacao: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        ondeTrabalhei: String? = nil,
+        cursos: [String] = [],
+        idiomas: [Idioma] = [],
+        servicos: [ServicoNoPerfil] = [],
+        regioes: [RegiaoAdministrativa] = [],
+        atendeTodoDF: Bool = false,
+        noFrilaDesde: String? = nil
     ) {
         self.id = id
         self.tipo = tipo
@@ -287,6 +311,40 @@ public struct PerfilPublico: Codable, Hashable, Identifiable, Sendable {
         self.reputacao = reputacao
         self.fotoURL = fotoURL
         self.fotoID = fotoID
+        self.apresentacao = apresentacao
+        self.experienciaFaixa = experienciaFaixa
+        self.ondeTrabalhei = ondeTrabalhei
+        self.cursos = cursos
+        self.idiomas = idiomas
+        self.servicos = servicos
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+        self.noFrilaDesde = noFrilaDesde
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, tipo, nome, funcoes, reputacao, fotoURL, fotoID
+        case apresentacao, experienciaFaixa, ondeTrabalhei, cursos, idiomas, servicos, regioes, atendeTodoDF, noFrilaDesde
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        tipo = try container.decode(TipoPerfilPublico.self, forKey: .tipo)
+        nome = try container.decode(String.self, forKey: .nome)
+        funcoes = (try? container.decode([String].self, forKey: .funcoes)) ?? []
+        reputacao = try container.decode(Reputacao.self, forKey: .reputacao)
+        fotoURL = try container.decodeIfPresent(URL.self, forKey: .fotoURL)
+        fotoID = try container.decodeIfPresent(UUID.self, forKey: .fotoID)
+        apresentacao = try container.decodeIfPresent(String.self, forKey: .apresentacao)
+        experienciaFaixa = try container.decodeIfPresent(ExperienciaFaixa.self, forKey: .experienciaFaixa)
+        ondeTrabalhei = try container.decodeIfPresent(String.self, forKey: .ondeTrabalhei)
+        cursos = (try? container.decode([String].self, forKey: .cursos)) ?? []
+        idiomas = (try? container.decode([Idioma].self, forKey: .idiomas)) ?? []
+        servicos = (try? container.decode([ServicoNoPerfil].self, forKey: .servicos)) ?? []
+        regioes = (try? container.decode([RegiaoAdministrativa].self, forKey: .regioes)) ?? []
+        atendeTodoDF = (try? container.decode(Bool.self, forKey: .atendeTodoDF)) ?? false
+        noFrilaDesde = try container.decodeIfPresent(String.self, forKey: .noFrilaDesde)
     }
 }
 

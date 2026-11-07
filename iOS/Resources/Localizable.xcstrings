@@ -286,6 +286,17 @@
         }
       }
     },
+    "Serviços oferecidos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serviços oferecidos"
+          }
+        }
+      }
+    },
     "Serviços salvos" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -660,4 +660,65 @@ struct CandidatosDaVagaViewModelTests {
         #expect(RotuloDaSelecao.detalhe(vaga) == "fechou sem escolha")
         #expect(try await base.candidatosDaVaga(id: vaga.vaga.id).isEmpty)
     }
+
+    @Test("Candidato com perfil rico decodifica campos aditivos e formata diária (I3 CA1 e CA2)")
+    func candidatoComPerfilRico() async throws {
+        let relogio = RelogioDeTeste(Cena.agora)
+        let base = ApiClienteEmMemoria(cenario: .selecaoComCandidatos, relogio: relogio)
+        let vaga = try #require(try await base.vagasAbertas().first)
+        let candidatos = try await base.candidatosDaVaga(id: vaga.id)
+
+        // Bruno Tavares tem perfil rico preenchido na fixture
+        let bruno = try #require(candidatos.first(where: { $0.profissional.nome == "Bruno Tavares" }))
+        #expect(bruno.profissional.apresentacao == "Garçom e bartender há mais de 5 anos em eventos e restaurantes.")
+        #expect(bruno.profissional.experienciaFaixa == .de5A10Anos)
+        #expect(bruno.profissional.ondeTrabalhei == "Restaurante no Plano Piloto, eventos corporativos")
+        #expect(bruno.profissional.cursos == ["Boas práticas de manipulação de alimentos"])
+        #expect(bruno.profissional.idiomas == [.portugues, .ingles])
+        #expect(!bruno.profissional.servicos.isEmpty)
+
+        let primeiroServico = try #require(bruno.profissional.servicos.first?.servico)
+        #expect(primeiroServico.unidade == .diaria)
+        #expect(primeiroServico.valorCentavos == 18000)
+        #expect(primeiroServico.horasIncluidas == 8)
+        #expect(primeiroServico.itensInclusos == "Uniforme próprio")
+
+        let resumo = try #require(TextosDosServicos.resumoDoServico(primeiroServico))
+        #expect(resumo.contains("a diária de 8 h"))
+        #expect(resumo.contains("180"))
+
+        // Carla Menezes tem perfil mínimo sem campos adicionais (não quebra)
+        let carla = try #require(candidatos.first(where: { $0.profissional.nome == "Carla Menezes" }))
+        #expect(carla.profissional.apresentacao == nil)
+        #expect(carla.profissional.experienciaFaixa == nil)
+        #expect(carla.profissional.ondeTrabalhei == nil)
+        #expect(carla.profissional.cursos.isEmpty)
+        #expect(carla.profissional.idiomas.isEmpty)
+        #expect(carla.profissional.servicos.isEmpty)
+    }
+
+    @Test("MeuPerfilProfissionalViewModel harmoniza suportaPerfilRico conforme recursos do app")
+    func harmonizaSuportaPerfilRicoNoPerfil() async throws {
+        let contaMock = Conta(id: UUID(), perfil: .profissional, nome: "Testador", telefone: "+5561999999999", email: "teste@frila.com", nascimento: try DataCivil(ano: 1995, mes: 5, dia: 10), estado: .ativa)
+        let perfilMock = try PerfilProfissional(id: UUID(), usuarioID: contaMock.id, funcoes: [], pontoBase: Coordenada(latitude: -15.79, longitude: -47.88), disponibilidades: [], reputacao: Reputacao(positivas: 5, total: 5, taxaComparecimento: 1.0, turnosConsiderados: 5, turnosRealizados: 5))
+        let publicoMock = PerfilPublico(id: perfilMock.id, tipo: .profissional, nome: "Testador", reputacao: perfilMock.reputacao)
+
+        let vmDesligado = MeuPerfilProfissionalViewModel(
+            conta: { contaMock },
+            perfil: { perfilMock },
+            publico: { _ in publicoMock },
+            suportaPerfilRico: false
+        )
+        await vmDesligado.carregar()
+        #expect(!vmDesligado.suportaPerfilRico)
+
+        let vmLigado = MeuPerfilProfissionalViewModel(
+            conta: { contaMock },
+            perfil: { perfilMock },
+            publico: { _ in publicoMock },
+            suportaPerfilRico: true
+        )
+        await vmLigado.carregar()
+        #expect(vmLigado.suportaPerfilRico)
+    }
 }
