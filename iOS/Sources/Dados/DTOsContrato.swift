@@ -174,7 +174,59 @@ enum ContratoAPI {
         let id: UUID
         let nome: String
         let categoria: String
-        func dominio() -> Funcao { Funcao(id: id, nome: nome, categoria: categoria) }
+        let formatoPadrao: FormatoDeTrabalho?
+        let grupoBusca: String?
+        let dicaPerfil: String?
+        let exemploPerfil: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, nome, categoria
+            case formatoPadrao = "formato_padrao"
+            case grupoBusca = "grupo_busca"
+            case dicaPerfil = "dica_perfil"
+            case exemploPerfil = "exemplo_perfil"
+        }
+
+        func dominio() -> Funcao {
+            Funcao(
+                id: id,
+                nome: nome,
+                categoria: categoria,
+                formatoPadrao: formatoPadrao,
+                grupoBusca: grupoBusca,
+                dicaPerfil: dicaPerfil,
+                exemploPerfil: exemploPerfil
+            )
+        }
+    }
+
+    struct RegiaoAdministrativaDTO: Codable {
+        let id: Int
+        let numero: String
+        let nome: String
+        let ativo: Bool?
+
+        func dominio() -> RegiaoAdministrativa {
+            RegiaoAdministrativa(id: id, numero: numero, nome: nome, ativo: ativo)
+        }
+    }
+
+    struct EspecialidadeDTO: Codable {
+        let id: UUID
+        let funcaoID: UUID
+        let nome: String
+        let ativo: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case funcaoID = "funcao_id"
+            case nome
+            case ativo
+        }
+
+        func dominio() -> Especialidade {
+            Especialidade(id: id, funcaoID: funcaoID, nome: nome, ativo: ativo)
+        }
     }
 
     struct ReputacaoDTO: Codable {

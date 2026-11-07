@@ -82,8 +82,17 @@ final class FormularioEstudioDeVaga {
 
     /// Copia o rascunho para os campos do contrato.
     func aplicar(_ rascunho: FrilaJobCreationDraft) {
-        let nome = FrilaRoleCatalog.fold(rascunho.role)
-        vaga.funcaoID = rascunho.roleOrigin == .custom ? nil : vaga.funcoes.first { FrilaRoleCatalog.fold($0.nome) == nome }?.id
+        if rascunho.roleOrigin == .custom {
+            vaga.funcaoID = nil
+        } else {
+            let papelCasado = FrilaRoleCatalog.match(rascunho.role)
+            let nomeParaBuscar = papelCasado != nil ? FrilaRoleCatalog.fold(papelCasado!.name) : FrilaRoleCatalog.fold(rascunho.role)
+            let funcaoCanonica = vaga.funcoes.first {
+                let nomeF = FrilaRoleCatalog.fold($0.nome)
+                return nomeF == nomeParaBuscar || (papelCasado != nil && nomeF == FrilaRoleCatalog.fold(papelCasado!.name))
+            }
+            vaga.funcaoID = funcaoCanonica?.id
+        }
         if let periodo = periodo(de: rascunho) {
             vaga.inicio = periodo.inicio
             vaga.fim = periodo.fim

@@ -179,6 +179,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private let relogio: any Relogio
     private let envelopes: [String: EnvelopeErroAPI]
     private let catalogo: [Funcao]
+    private let regioesAdministrativasCadastradas: [RegiaoAdministrativa]
     private let configuracao: ConfiguracaoApp
     private let contatoDeExemplo: Contato
     private let perfilPublicoDeExemplo: PerfilPublico
@@ -289,6 +290,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         do {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
+            regioesAdministrativasCadastradas = (try? FixturesDoContrato.carregar("regioes-administrativas", como: [ContratoAPI.RegiaoAdministrativaDTO].self).map { $0.dominio() }) ?? []
             configuracao = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
@@ -1034,6 +1036,20 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func funcoes() async throws -> [Funcao] {
         try verificarFalhaGeral()
         return catalogo
+    }
+
+    public func resolverServico(termo: String) async throws -> [Funcao] {
+        try verificarFalhaGeral()
+        let limpo = termo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard limpo.count >= 2 else {
+            throw erro("campo_invalido", detalhes: "termo")
+        }
+        return ResolucaoDeFuncoes.resolver(termo: termo, em: catalogo)
+    }
+
+    public func regioesAdministrativas() async throws -> [RegiaoAdministrativa] {
+        try verificarFalhaGeral()
+        return regioesAdministrativasCadastradas
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {

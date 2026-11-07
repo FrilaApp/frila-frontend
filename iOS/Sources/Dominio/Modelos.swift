@@ -54,15 +54,81 @@ public struct Conta: Codable, Hashable, Identifiable, Sendable {
     public var sessao: SessaoUsuario { SessaoUsuario(usuarioID: id, perfil: perfil) }
 }
 
+public enum FormatoDeTrabalho: String, Codable, Sendable {
+    case turno
+    case servico
+}
+
 public struct Funcao: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let nome: String
     public let categoria: String
+    public let formatoPadrao: FormatoDeTrabalho?
+    public let grupoBusca: String?
+    public let dicaPerfil: String?
+    public let exemploPerfil: String?
 
-    public init(id: UUID, nome: String, categoria: String) {
+    public init(
+        id: UUID,
+        nome: String,
+        categoria: String,
+        formatoPadrao: FormatoDeTrabalho? = nil,
+        grupoBusca: String? = nil,
+        dicaPerfil: String? = nil,
+        exemploPerfil: String? = nil
+    ) {
         self.id = id
         self.nome = nome
         self.categoria = categoria
+        self.formatoPadrao = formatoPadrao
+        self.grupoBusca = grupoBusca
+        self.dicaPerfil = dicaPerfil
+        self.exemploPerfil = exemploPerfil
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case nome
+        case categoria
+        case formatoPadrao = "formato_padrao"
+        case grupoBusca = "grupo_busca"
+        case dicaPerfil = "dica_perfil"
+        case exemploPerfil = "exemplo_perfil"
+    }
+}
+
+public struct RegiaoAdministrativa: Codable, Hashable, Identifiable, Sendable {
+    public let id: Int
+    public let numero: String
+    public let nome: String
+    public let ativo: Bool?
+
+    public init(id: Int, numero: String, nome: String, ativo: Bool? = true) {
+        self.id = id
+        self.numero = numero
+        self.nome = nome
+        self.ativo = ativo
+    }
+}
+
+public struct Especialidade: Codable, Hashable, Identifiable, Sendable {
+    public let id: UUID
+    public let funcaoID: UUID
+    public let nome: String
+    public let ativo: Bool?
+
+    public init(id: UUID, funcaoID: UUID, nome: String, ativo: Bool? = true) {
+        self.id = id
+        self.funcaoID = funcaoID
+        self.nome = nome
+        self.ativo = ativo
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case funcaoID = "funcao_id"
+        case nome
+        case ativo
     }
 }
 

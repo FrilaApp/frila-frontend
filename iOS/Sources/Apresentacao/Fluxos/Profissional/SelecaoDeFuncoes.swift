@@ -11,19 +11,40 @@ public struct GrupoDeFuncoes: Identifiable, Equatable, Sendable {
 /// Agrupamento, busca e resumo da seleção de funções. É só apresentação: a seleção continua sendo o
 /// conjunto de UUIDs do `PerfilProfissionalViewModel`, e a identidade de uma função é o UUID, nunca o nome.
 public enum OrganizacaoDeFuncoes {
+    /// Mapeamento de sinônimos conhecidos normalizados para o nome canônico da função (CD-T04 / CD-T05).
+    public static var sinonimosPadrao: [String: String] { ResolucaoDeFuncoes.sinonimosPadrao }
+
     /// Sem acento, sem diferença de caixa e sem espaços nas pontas, para comparar e buscar.
     public static func normalizar(_ texto: String) -> String {
-        texto.trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        ResolucaoDeFuncoes.normalizar(texto)
+    }
+
+    /// Resolve até 5 funções candidatas pelo termo digitado (por sinônimo e por nome), sem duplicar (RN44 / CD-T04).
+    public static func resolver(termo: String, em funcoes: [Funcao], sinonimos: [String: String] = ResolucaoDeFuncoes.sinonimosPadrao) -> [Funcao] {
+        ResolucaoDeFuncoes.resolver(termo: termo, em: funcoes, sinonimos: sinonimos)
     }
 
     /// Agrupa pela categoria recebida (comparada sem acento nem caixa, exibida como veio), com as
     /// categorias e as funções em ordem alfabética localizada. A categoria vazia vai para o fim, em
-    /// `categoriaVazia`. Com `busca`, só ficam as funções cujo nome contém o texto e as categorias que
-    /// ainda têm resultado.
-    public static func agrupar(_ funcoes: [Funcao], busca: String = "", categoriaVazia: String) -> [GrupoDeFuncoes] {
+    /// `categoriaVazia`. Com `busca`, mostra as funções correspondentes por sinônimo ou nome sem duplicar.
+    public static func agrupar(
+        _ funcoes: [Funcao],
+        busca: String = "",
+        categoriaVazia: String,
+        sinonimos: [String: String] = sinonimosPadrao
+    ) -> [GrupoDeFuncoes] {
         let consulta = normalizar(busca)
-        let visiveis = consulta.isEmpty ? funcoes : funcoes.filter { normalizar($0.nome).contains(consulta) }
+        let visiveis: [Funcao]
+        if consulta.isEmpty {
+            visiveis = funcoes
+        } else {
+            let correspondentes = resolver(termo: consulta, em: funcoes, sinonimos: sinonimos)
+            if !correspondentes.isEmpty {
+                visiveis = correspondentes
+            } else {
+                visiveis = funcoes.filter { normalizar($0.nome).contains(consulta) }
+            }
+        }
 
         var titulos: [String: String] = [:]
         var porCategoria: [String: [Funcao]] = [:]
