@@ -2,6 +2,7 @@
 
 # Confere propriedades de privacidade e remove ganchos exclusivos de Debug de
 # um bundle iOS de Release. Uso: Scripts/conferir-release.sh caminho/Frila.app
+# Com FRILA_ESQUEMA_ESPERADO=Frila-Beta|Frila-Prod, confere também que o bundle é o desse esquema.
 
 set -euo pipefail
 
@@ -167,6 +168,82 @@ if [[ "${FRILA_MEDICAO:-}" != "1" ]]; then
   ganchos_de_desenvolvimento+=('frila-medicao-de-desempenho' '-FRILA_MEDICAO' 'medicoes-abrir')
   simbolos_de_desenvolvimento+=('RegistroDeMedicoes' 'MedidorDeRede' 'BotaoDeMedicoes')
 fi
+
+# Trava do esquema (CI e enviar-testflight.sh): com FRILA_ESQUEMA_ESPERADO o bundle compilado tem de
+# ser o do esquema pedido, para um build Beta nunca seguir como se fosse o da loja. Sem a variável a
+# conferência é só a de Release acima e abaixo.
+#   Frila-Beta: ambiente frila-dev, nome "Frila Beta" e o selo "BETA · servidor de teste" no binário.
+#   Frila-Prod: ambiente frila-prod, nome "Frila", e nada do modo de design nem do selo Beta.
+esquema_esperado="${FRILA_ESQUEMA_ESPERADO:-}"
+marcas_do_beta=(
+  'servidor de teste'
+  '-FRILA_MODO_DESIGN'
+  '-FRILA_DEMO_ENTRADA'
+  'frila_modo_design_ativo'
+  '-FRILA_DESIGN'
+  'ModoDebugDesign'
+  'ContextoDebugDesign'
+  'RegistroDebugDesign'
+  'ControleModoDesign'
+  'SeloBeta'
+)
+case "$esquema_esperado" in
+  "") ;;
+  Frila-Beta|Frila-Prod)
+    if [[ "$esquema_esperado" == "Frila-Beta" ]]; then
+      ambiente_esperado=frila-dev
+      nome_esperado="Frila Beta"
+    else
+      ambiente_esperado=frila-prod
+      nome_esperado="Frila"
+    fi
+    ambiente_do_app="$(plutil -extract FRILA_ENVIRONMENT raw -o - "$info_plist" 2>/dev/null || true)"
+    [[ "$ambiente_do_app" == "$ambiente_esperado" ]] ||
+      falhar "o app compilado não é o do esquema $esquema_esperado: FRILA_ENVIRONMENT=${ambiente_do_app:-ausente}, esperado $ambiente_esperado. Não envie este build."
+
+    # O nome que o aparelho mostra vem do Info.plist e de cada InfoPlist.strings; todos têm de bater.
+    nomes_do_app="$(python3 - "$app" <<'PYNOME'
+import glob, plistlib, sys
+app = sys.argv[1]
+nomes = set()
+with open(app + "/Info.plist", "rb") as arquivo:
+    nomes.add(plistlib.load(arquivo).get("CFBundleDisplayName", "ausente"))
+for caminho in glob.glob(app + "/*.lproj/InfoPlist.strings"):
+    try:
+        with open(caminho, "rb") as arquivo:
+            nome = plistlib.load(arquivo).get("CFBundleDisplayName")
+    except Exception:
+        nome = "ilegivel"
+    if nome is not None:
+        nomes.add(nome)
+print("|".join(sorted(nomes)))
+PYNOME
+    )"
+    [[ "$nomes_do_app" == "$nome_esperado" ]] ||
+      falhar "o nome do app na tela inicial deve ser '$nome_esperado' no esquema $esquema_esperado (encontrado: ${nomes_do_app:-ausente})"
+
+    achadas=()
+    for arquivo in "${arquivos_para_conferir[@]}"; do
+      for marca in "${marcas_do_beta[@]}"; do
+        if LC_ALL=C grep -aFq -- "$marca" "$arquivo"; then
+          achadas+=("$marca")
+        else
+          status_grep=$?
+          [[ $status_grep -eq 1 ]] || falhar "não foi possível examinar o binário: $arquivo"
+        fi
+      done
+    done
+    if [[ "$esquema_esperado" == "Frila-Prod" ]]; then
+      if ((${#achadas[@]})); then
+        falhar "o build do Frila-Prod contém o modo de design ou o selo Beta: $(printf '%s\n' "${achadas[@]}" | sort -u | tr '\n' ' ')"
+      fi
+    else
+      printf '%s\n' "${achadas[@]-}" | grep -Fxq 'servidor de teste' ||
+        falhar "o build do Frila-Beta não traz o selo 'BETA · servidor de teste'; sem ele ninguém reconhece o build de teste"
+    fi
+    ;;
+  *) falhar "FRILA_ESQUEMA_ESPERADO deve ser Frila-Beta ou Frila-Prod (recebido: $esquema_esperado)" ;;
+esac
 
 for arquivo in "${arquivos_para_conferir[@]}"; do
   # O prefixo seco sb_secret_ existe na guarda do app; só uma chave completa reprova.

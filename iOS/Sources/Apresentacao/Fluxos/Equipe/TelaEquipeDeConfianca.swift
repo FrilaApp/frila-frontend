@@ -43,6 +43,8 @@ public struct TelaEquipeDeConfianca: View {
 
         .task { await viewModel.carregar() }
         .refreshable { await viewModel.carregar() }
+        // O `.task` acima já relê a cada aparição: aqui ficam a volta do segundo plano e o push.
+        .atualizacaoAutomatica(.equipeDeConfianca, aoAparecer: .nunca, recarregar: viewModel.atualizarEmSilencio)
         .accessibilityIdentifier("tela-equipe-de-confianca")
         .alert(
             Text(verbatim: TextosEquipeDeConfianca.confirmarRemocao),

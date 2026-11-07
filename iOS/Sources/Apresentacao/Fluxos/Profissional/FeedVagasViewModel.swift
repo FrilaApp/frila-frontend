@@ -152,6 +152,18 @@ public final class FeedVagasViewModel {
         soltarSeInterrompida(geracao: minha)
     }
 
+    /// Atualização automática (a tela voltou, o app voltou do segundo plano, chegou um push): só
+    /// com a lista na tela, sem carregamento por cima, e a falha deixa a lista como estava.
+    /// Com mais de uma página na tela, ou com outra carga em voo, não relê: a primeira página
+    /// trocaria a lista longa e a pessoa perderia o ponto da rolagem. Aí vale puxar para atualizar.
+    public func atualizarEmSilencio() async {
+        guard case let .carregada(atuais) = estadoRecebido, atuais.count <= tamanhoDaPagina,
+              !aguardandoPrimeiraPagina, !carregandoMais else { return }
+        let minha = iniciarCarga()
+        await executar { [self] in await buscar(geracao: minha, silenciosa: true) }
+        soltarSeInterrompida(geracao: minha)
+    }
+
     /// Próxima página, pedida quando o último cartão aparece.
     public func carregarMais() async {
         guard haMaisPaginas, !carregandoMais, !aguardandoPrimeiraPagina,
@@ -230,7 +242,7 @@ public final class FeedVagasViewModel {
         return "\(f.funcaoID?.uuidString ?? "-")|\(dia)|\(f.distanciaMaximaKm.map { String($0) } ?? "-")"
     }
 
-    private func buscar(geracao minha: Int, mantendoGuardada: Bool = false) async {
+    private func buscar(geracao minha: Int, mantendoGuardada: Bool = false, silenciosa: Bool = false) async {
         guard minha == geracao, !Task.isCancelled else { return }
         defer {
             // A conclusão de uma tarefa antiga não pode liberar a paginação da carga nova.
@@ -255,6 +267,8 @@ public final class FeedVagasViewModel {
             // A paginação segue bloqueada até uma primeira página atualizada chegar.
             if mantendoGuardada, case .semRede = (error as? ErroDaApi)?.codigo { return }
             aguardandoPrimeiraPagina = false
+            // A releitura automática falha em silêncio: a lista e a paginação continuam as de antes.
+            if silenciosa { return }
             estado = .falha(FalhaDaLista(error))
             haMaisPaginas = false
         }

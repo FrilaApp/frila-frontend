@@ -5,5 +5,9 @@ FRILA_API_MODE = supabase
 FRILA_SUPABASE_URL = $(FRILA_SUPABASE_DEV_URL)
 FRILA_SUPABASE_PUBLISHABLE_KEY = $(FRILA_SUPABASE_DEV_PUBLISHABLE_KEY)
 SWIFT_COMPILATION_MODE = wholemodule
+// FRILA_BETA compila o selo "BETA · servidor de teste" e o modo de design (painel de variantes). O modo
+// de design nasce desligado e só liga por ação deliberada em tempo de execução (Docs/ModoDesign.md).
+// Nada disso entra no Prod (Scripts/conferir-release.sh reprova).
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) FRILA_BETA
+FRILA_BUNDLE_DISPLAY_NAME = Frila Beta
 FRILA_APS_ENVIRONMENT = production

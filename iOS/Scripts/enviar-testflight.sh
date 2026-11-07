@@ -2,10 +2,16 @@
 # Arquiva, assina, confere e manda o Frila ao TestFlight (#203). É o mesmo caminho na CI
 # (.github/workflows/testflight.yml) e na máquina de quem precisar reproduzir o envio.
 #
-# Uso: Scripts/enviar-testflight.sh <Frila-Beta|Frila-Prod|Frila-Design> <versão X.Y.Z> [--sem-envio]
+# Uso: Scripts/enviar-testflight.sh <Frila-Beta|Frila-Prod> <versão X.Y.Z> [--sem-envio]
+#      Scripts/enviar-testflight.sh --rotulo <Frila-Beta|Frila-Prod>   (só imprime o rótulo do build)
 #
 #   --sem-envio   para depois da conferência e dos símbolos: o .ipa assinado fica em
 #                 $FRILA_SAIDA/exportado e nada vai ao App Store Connect.
+#
+# O rótulo do build ("Frila-Beta · frila-dev" ou "Frila-Prod · frila-prod · LOJA") sai no log, no
+# resumo da execução da CI e em $FRILA_SAIDA/o-que-testar.txt: é o texto para colar em "O que testar"
+# no App Store Connect, para quem escolhe o build saber qual é. Só o Frila-Prod vai para a loja.
+# Antes do envio, conferir-release.sh confere que o .app assinado é mesmo o do esquema pedido.
 #
 # Variáveis de ambiente:
 #   ASC_KEY_PATH, ASC_KEY_ID, ASC_ISSUER_ID   chave da App Store Connect API (.p8, Key ID e Issuer
@@ -33,7 +39,21 @@ falhar() {
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-[[ $# -ge 2 ]] || falhar "uso: $0 <Frila-Beta|Frila-Prod|Frila-Design> <versão X.Y.Z> [--sem-envio]"
+# Texto de identificação do build, uma fonte só para o log, o resumo da CI e o arquivo de notas.
+rotulo_do_esquema() {
+  case "$1" in
+    Frila-Beta) printf '%s\n' "Frila-Beta · frila-dev" ;;
+    Frila-Prod) printf '%s\n' "Frila-Prod · frila-prod · LOJA" ;;
+    *) return 1 ;;
+  esac
+}
+
+if [[ "${1:-}" == "--rotulo" ]]; then
+  rotulo_do_esquema "${2:-}" || falhar "o esquema deve ser Frila-Beta ou Frila-Prod (recebido: ${2:-vazio})"
+  exit 0
+fi
+
+[[ $# -ge 2 ]] || falhar "uso: $0 <Frila-Beta|Frila-Prod> <versão X.Y.Z> [--sem-envio]"
 ESQUEMA="$1"
 VERSAO="$2"
 shift 2
@@ -46,9 +66,9 @@ for opcao in "$@"; do
 done
 
 case "$ESQUEMA" in
-  Frila-Beta|Frila-Design) AMBIENTE=frila-dev; AMBIENTE_FIREBASE=Dev ;;
+  Frila-Beta) AMBIENTE=frila-dev; AMBIENTE_FIREBASE=Dev ;;
   Frila-Prod) AMBIENTE=frila-prod; AMBIENTE_FIREBASE=Prod ;;
-  *) falhar "o esquema deve ser Frila-Beta, Frila-Prod ou Frila-Design (recebido: $ESQUEMA)" ;;
+  *) falhar "o esquema deve ser Frila-Beta ou Frila-Prod (recebido: $ESQUEMA)" ;;
 esac
 [[ "$VERSAO" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || falhar "a versão deve ter o formato X.Y.Z (recebido: $VERSAO)"
 
@@ -165,6 +185,16 @@ descricao="$ESQUEMA $VERSAO ($FRILA_NUMERO_DO_BUILD), $AMBIENTE"
 [[ "$MEDICAO" == 0 ]] || descricao="$descricao, medição"
 echo "Frila: $descricao"
 
+# Rótulo do build para "O que testar" no App Store Connect (a gravação é manual por enquanto).
+ROTULO="$(rotulo_do_esquema "$ESQUEMA")"
+[[ "$ENSAIO" == 0 ]] || ROTULO="$ROTULO · ensaio de falha"
+[[ "$MEDICAO" == 0 ]] || ROTULO="$ROTULO · medição"
+printf '%s\n' "$ROTULO" > "$SAIDA/o-que-testar.txt"
+echo "=================================================================="
+echo "  BUILD: $ROTULO"
+echo "  Cole este texto em \"O que testar\" no App Store Connect: $SAIDA/o-que-testar.txt"
+echo "=================================================================="
+
 # 1. Archive, com a assinatura manual e a identidade Apple Distribution já importada no keychain.
 # Na CI não usamos -allowProvisioningUpdates nem assinatura automática: isso acumulava certificados
 # Apple Development via API em runners efêmeros até estourar a cota da conta Apple.
@@ -225,7 +255,7 @@ lido_da_extensao() { /usr/libexec/PlistBuddy -c "Print :$1" "$EXTENSAO_ARQUIVADA
 
 opcoes_de_exportacao() {
   local destino="$1" plist="$SAIDA/ExportOptions-$1.plist" so_interno=NO
-  [[ "$ENSAIO" == 0 && "$MEDICAO" == 0 && "$ESQUEMA" != "Frila-Design" ]] || so_interno=YES
+  [[ "$ENSAIO" == 0 && "$MEDICAO" == 0 ]] || so_interno=YES
   rm -f "$plist"
   plutil -create xml1 "$plist"
   plutil -insert method -string app-store-connect "$plist"
@@ -234,7 +264,7 @@ opcoes_de_exportacao() {
   # O número do build é o deste script; o Xcode não pode trocá-lo no envio.
   plutil -insert manageAppVersionAndBuildNumber -bool NO "$plist"
   plutil -insert uploadSymbols -bool YES "$plist"
-  # Os builds de ensaio, de medição e de design nunca chegam a testador externo nem à App Store.
+  # Os builds de ensaio e de medição nunca chegam a testador externo nem à App Store.
   plutil -insert testFlightInternalTestingOnly -bool "$so_interno" "$plist"
 
   if [[ -n "${FRILA_PROVISIONING_PROFILE_APP:-}" && -n "${FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE:-}" ]]; then
@@ -282,7 +312,9 @@ fi
 python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" ${certificado[@]+"${certificado[@]}"} "$APP_ARQUIVADO"
 python3 "$RAIZ/Scripts/diagnosticar-assinatura.py" ${certificado[@]+"${certificado[@]}"} "$APP_ASSINADO"
 
-FRILA_ENSAIO_FALHA="$ENSAIO" FRILA_MEDICAO="$MEDICAO" "$RAIZ/Scripts/conferir-release.sh" "$APP_ASSINADO"
+# FRILA_ESQUEMA_ESPERADO é a trava: se o .app compilado não for o do esquema pedido (ambiente, nome,
+# modo de design e selo Beta), o envio para aqui, antes de qualquer upload.
+FRILA_ESQUEMA_ESPERADO="$ESQUEMA" FRILA_ENSAIO_FALHA="$ENSAIO" FRILA_MEDICAO="$MEDICAO" "$RAIZ/Scripts/conferir-release.sh" "$APP_ASSINADO"
 assinatura="$(python3 - "$APP_ASSINADO" <<'PYASSINATURA'
 import plistlib, subprocess, sys
 saida = subprocess.run(["codesign", "-d", "--entitlements", "-", "--xml", sys.argv[1]], capture_output=True).stdout
@@ -322,6 +354,7 @@ echo "Símbolos do Crashlytics ($AMBIENTE_FIREBASE): $(grep -c 'Successfully sub
 if [[ "$ENVIAR" == 1 ]]; then
   exportar upload "$SAIDA/envio"
   echo "Enviado ao TestFlight: $descricao"
+  echo "Lembrete: grave em \"O que testar\" do build $FRILA_NUMERO_DO_BUILD: $ROTULO"
 else
   echo "Sem envio (--sem-envio): .ipa assinado em $IPA"
 fi

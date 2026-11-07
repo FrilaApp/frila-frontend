@@ -227,6 +227,22 @@ public final class MinhasVagasViewModel {
         }
     }
 
+    /// Uma releitura automática por vez; fica fora de `carregando` para a tela não mostrar o aviso
+    /// de "atualizando" nem desabilitar o "tentar de novo".
+    private var atualizandoEmSilencio = false
+
+    /// Atualização automática: sem o aviso de carregamento e, se falhar, sem mensagem de erro; a
+    /// lista fica como estava. Com uma carga da tela em voo, não faz nada: ela traz o que há.
+    public func atualizarEmSilencio() async {
+        guard !carregando, !atualizandoEmSilencio else { return }
+        atualizandoEmSilencio = true
+        defer { atualizandoEmSilencio = false }
+        guard let painel = try? await buscarPainel(), !Task.isCancelled, !carregando,
+              painel.estabelecimentoID == estabelecimentoID else { return }
+        vagas = painel.vagas
+        erro = nil
+    }
+
     public func podeRepublicar(_ vaga: VagaNoPainel) -> Bool {
         vaga.estado == .encerrada || vaga.estado == .cancelada || vaga.vaga.periodo.fim <= agora()
     }
@@ -390,6 +406,9 @@ public struct TelaMinhasVagas: View {
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
             .refreshable { await carregar() }
+            // Volta de uma tela empilhada, volta do segundo plano e push. Na troca de aba o `.task`
+            // da pilha também relê; com ele em voo, a releitura em silêncio não sai.
+            .atualizacaoAutomatica(.minhasVagas, recarregar: atualizarEmSilencio)
             .navigationTitle(Text(verbatim: TextosMinhasVagas.titulo))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -531,6 +550,11 @@ public struct TelaMinhasVagas: View {
     private func carregar() async {
         await viewModel.carregar()
         await acompanhamento.carregar()
+    }
+
+    private func atualizarEmSilencio() async {
+        await viewModel.atualizarEmSilencio()
+        await acompanhamento.atualizarEmSilencio()
     }
 
     private func tentarNovamente() {

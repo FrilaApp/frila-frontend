@@ -373,6 +373,10 @@ xcodebuild test \
 
 ---
 
+### 6.5 Ligar o modo de design no Beta
+
+O painel de variantes existe no `Frila-Beta` (e nos esquemas de Debug), mas nasce **desligado**. No TestFlight, sem Xcode: toque **cinco vezes seguidas** no selo "BETA · servidor de teste" (tela de entrada ou fim da tela Conta); o aparelho vibra. No Xcode: adicione `-FRILA_MODO_DESIGN` em Edit Scheme > Run > Arguments Passed On Launch. Detalhes e limites: `Docs/ModoDesign.md`. O `Frila-Prod` não tem nada disso.
+
 ## 7. Fluxo de entrega e governança
 
 O fluxo de código na org `FrilaApp` é protegido para garantir a estabilidade do produto que irá para a App Store.

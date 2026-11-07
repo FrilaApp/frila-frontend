@@ -1786,6 +1786,16 @@
         }
       }
     },
+    "Aparência" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aparência"
+          }
+        }
+      }
+    },
     "Apenas contas de contratante podem republicar vagas." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2768,6 +2778,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chegada"
+          }
+        }
+      }
+    },
+    "Claro" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claro"
           }
         }
       }
@@ -4378,6 +4398,16 @@
         }
       }
     },
+    "Escolha como o Frila aparece. A escolha fica só neste aparelho e vale também depois de trocar de conta." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha como o Frila aparece. A escolha fica só neste aparelho e vale também depois de trocar de conta."
+          }
+        }
+      }
+    },
     "Escolha Sim ou Não para avaliar." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4473,6 +4503,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escolher horário"
+          }
+        }
+      }
+    },
+    "Escuro" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escuro"
           }
         }
       }

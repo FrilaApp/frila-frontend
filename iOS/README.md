@@ -13,7 +13,7 @@ Fundação nativa em Swift 6.3, SwiftUI e SwiftData, com alvo mínimo iOS 17 e b
 |---|---|---|---|
 | `Frila-Local` | `Debug-Local` | `ApiClienteEmMemoria` | nada |
 | `Frila-Dev` | `Debug-Dev` | Supabase `frila-dev` | URL e chave publicável de Dev, plist Firebase Dev |
-| `Frila-Beta` | `Release-Beta` | Supabase `frila-dev`, compilado como Release | o mesmo do Dev; é o archive dos builds 0.4 e 0.5 do TestFlight |
+| `Frila-Beta` | `Release-Beta` | Supabase `frila-dev`, compilado como Release | o mesmo do Dev; é o archive dos builds do TestFlight de teste. Nome "Frila Beta", selo BETA e modo de design escondido e desligado (`Docs/ModoDesign.md`). Nunca vai para a loja (`Docs/QualBuildMandarParaLoja.md`) |
 | `Frila-Prod` | `Release-Prod` | Supabase `frila-prod` | URL e chave publicável de Prod, plist Firebase Prod |
 
 `Local.xcconfig`, `Dev.xcconfig` e `Prod.xcconfig` escolhem o ambiente sem alteração de código. As chaves `FRILA_*` chegam ao app pelo `Sources/App/Info.plist` parcial, que o Xcode mescla ao Info.plist gerado.

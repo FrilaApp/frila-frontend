@@ -1,4 +1,4 @@
-#if FRILA_DESIGN
+#if DEBUG || FRILA_BETA
 import SwiftUI
 import Observation
 import UIKit

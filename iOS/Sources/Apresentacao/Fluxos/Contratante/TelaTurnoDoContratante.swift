@@ -154,6 +154,11 @@ struct TelaTurnoDoContratante: View {
             if let turno = viewModel.turno(turnoID: turnoID) { await viewModel.aguardarLiberacaoDaAvaliacao(turno) }
         }
         .refreshable { await viewModel.carregar() }
+        // O `.task` acima só carrega sem painel: com o painel de Minhas vagas, quem relê ao abrir o
+        // turno é a atualização automática, com o intervalo mínimo.
+        .atualizacaoAutomatica(.turnoDoContratante, aoAparecer: .sempre) {
+            await viewModel.atualizarEmSilencio(para: turnoID)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await viewModel.carregarDaFila(para: turnoID) }
         }
