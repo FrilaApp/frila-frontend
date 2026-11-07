@@ -47,6 +47,7 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case profissionalIndisponivel = "profissional_indisponivel"
     case limiteDeChamadas = "limite_de_chamadas"
     case recursoDesligado = "recurso_desligado"
+    case cursorInvalido = "cursor_invalido"
     case semRede = "sem_rede"
     case respostaInvalida = "resposta_invalida"
     case desconhecido
