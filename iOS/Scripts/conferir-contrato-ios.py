@@ -227,8 +227,14 @@ def conferir_rpcs(
     # Operações do contrato ainda não consumidas pelo app iOS (e.g. novas RPCs da RN14
     # pendentes de adoção no cliente iOS).
     RPCS_NAO_CONSUMIDAS_PELO_APP = {
-        "atualizar_apresentacao_profissional": "Pendente de adoção na fatia F2 (PR I2b)",
-        "definir_regioes_atendidas": "Pendente de adoção na fatia F2 (PR I2b)",
+        **dict.fromkeys(
+            ("responder_chamada", "cancelar_chamada"),
+            "Contrato 0.2.55: I5a adota somente criar chamada; resposta e cancelamento ficam para I5b.",
+        ),
+        **dict.fromkeys(
+            ("atualizar_apresentacao_profissional", "definir_regioes_atendidas", "meu_perfil_detalhado"),
+            "Contratos 0.2.52/53: adoção na fatia I2b de perfil, fora de I2a/I4/I5a.",
+        ),
         "minha_identidade_status": (
             "Verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo de upload de documento pendente de adoção no app iOS."
@@ -304,7 +310,14 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> tuple[list[st
     # Derivado diretamente do OpenAPI: todo schema que define enum
     openapi_enums = {name: s["enum"] for name, s in schemas.items() if "enum" in s}
 
+    # Temporárias por fatia: se o enum já existir, todos os seus casos continuam sendo conferidos.
+    enums_de_outras_fatias = {
+        "EstadoMidia", "MotivoRecusaMidia", "TipoMidia",  # I4, contrato 0.2.54
+        "ExperienciaFaixa", "Idioma", "LevaMaterial", "UnidadePreco",  # I1/I2, 0.2.52/53
+    }
     for o_name, o_cases_list in sorted(openapi_enums.items()):
+        if o_name in enums_de_outras_fatias and o_name not in swift_enums:
+            continue
         s_name = o_name
         if s_name not in swift_enums:
             if o_name == "TipoNotificacao" and "TipoDeAviso" in swift_enums:
@@ -325,6 +338,8 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> tuple[list[st
         o_cases = set(o_cases_list)
         s_cases = swift_enums[s_name]
         faltando = o_cases - s_cases
+        if o_name == "TipoNotificacao":
+            faltando -= {"midia_recusada"}  # I4, contrato 0.2.54; somente o aviso de mídia fica pendente.
         extras = s_cases - o_cases
         if faltando:
             erros.append(
@@ -382,6 +397,9 @@ def conferir_erros(
 
     # Códigos de erro estáveis do contrato de operações ainda não consumidas pelo app iOS
     CODIGOS_ERRO_NAO_CONSUMIDOS_PELO_APP = {
+        "funcao_nao_marcada": "I2: serviços no perfil (0.2.53), fora de I5a.",
+        "midia_indisponivel": "I4: mídia (0.2.54), fora de I5a.",
+        "midia_invalida": "I4: mídia (0.2.54), fora de I5a.",
         "verificacao_indisponivel": (
             "Erro de verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo pendente de adoção no cliente iOS."
@@ -472,7 +490,15 @@ def conferir_dtos(
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
     SCHEMAS_NAO_CONSUMIDOS_PELO_APP = {
+<<<<<<< HEAD
         "ApresentacaoDoProfissional": "Pendente de adoção no PR I2b",
+=======
+        "ResultadoChamada": "I5b: resposta à chamada (0.2.55); I5a adota Chamada.",
+        "ApresentacaoDoProfissional": "I1: perfil detalhado (0.2.52), fora de I5a.",
+        "ServicoNoPerfil": "I2: serviços (0.2.53), fora de I5a.",
+        "ServicoOferecido": "I2: serviços (0.2.53), fora de I5a.",
+        "Midia": "I4: mídia (0.2.54), fora de I5a.",
+>>>>>>> origin/feat/ios-chamar-de-novo
         "StatusVerificacao": (
             "Payload de minha_identidade_status (RN14, contrato 0.2.50); "
             "pendente de adoção no cliente iOS."
@@ -489,6 +515,7 @@ def conferir_dtos(
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
+<<<<<<< HEAD
         # O perfil público ganhou, na F2 (0.2.53), os campos do "perfil que explica"; o iOS adota
         # primeiro só a foto (F3, 0.2.54): `foto_url` e `foto_id` estão mapeados.
         "PerfilPublico": {
@@ -501,6 +528,15 @@ def conferir_dtos(
             "onde_trabalhei": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
             "regioes": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
             "servicos": "Pendente de exibição no PR I3 (cartão de candidato e perfil público expandido)",
+=======
+        "PerfilPublico": {
+            **dict.fromkeys(
+                ("apresentacao", "atende_todo_df", "cursos", "experiencia_faixa", "idiomas",
+                 "no_frila_desde", "onde_trabalhei", "regioes", "servicos"),
+                "I1/I2: perfil e serviços (0.2.52/53), pendentes de adoção fora de I5a.",
+            ),
+            **dict.fromkeys(("foto_id", "foto_url"), "I4: mídia (0.2.54), fora de I5a."),
+>>>>>>> origin/feat/ios-chamar-de-novo
         },
         "VagaResumo": {
             "ponto": (

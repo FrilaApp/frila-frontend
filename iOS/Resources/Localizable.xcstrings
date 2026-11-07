@@ -1187,6 +1187,16 @@
         }
       }
     },
+    "A chamada direta está indisponível no momento." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A chamada direta está indisponível no momento."
+          }
+        }
+      }
+    },
     "A conta não foi excluída por falta de conexão. Verifique sua internet e tente novamente." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2958,6 +2968,26 @@
         }
       }
     },
+    "Chamada enviada. Aguarde a resposta do profissional." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chamada enviada. Aguarde a resposta do profissional."
+          }
+        }
+      }
+    },
+    "Chamar de novo" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chamar de novo"
+          }
+        }
+      }
+    },
     "Chamaria de novo?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3481,6 +3511,16 @@
         }
       }
     },
+    "Confirme antes de chamar novamente" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirme antes de chamar novamente"
+          }
+        }
+      }
+    },
     "Confirme se a pessoa chegou. Sem a sua confirmação, o turno fica como não verificado." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3488,6 +3528,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirme se a pessoa chegou. Sem a sua confirmação, o turno fica como não verificado."
+          }
+        }
+      }
+    },
+    "Confirmo que este é o valor total fechado que o profissional recebe pelo trabalho." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmo que este é o valor total fechado que o profissional recebe pelo trabalho."
           }
         }
       }
@@ -4618,6 +4668,16 @@
         }
       }
     },
+    "Enviar chamada" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar chamada"
+          }
+        }
+      }
+    },
     "Enviar contestação" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5111,6 +5171,16 @@
         }
       }
     },
+    "Esta é a terceira chamada à mesma pessoa em sete dias por uma casa de pessoa física. A contratação frequente pode caracterizar vínculo de emprego. O Frila não substitui as obrigações trabalhistas. Confirme que leu este aviso para continuar." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta é a terceira chamada à mesma pessoa em sete dias por uma casa de pessoa física. A contratação frequente pode caracterizar vínculo de emprego. O Frila não substitui as obrigações trabalhistas. Confirme que leu este aviso para continuar."
+          }
+        }
+      }
+    },
     "Estabelecimento" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5210,6 +5280,16 @@
         }
       }
     },
+    "Este profissional não está disponível para esta chamada." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este profissional não está disponível para esta chamada."
+          }
+        }
+      }
+    },
     "Estou a caminho" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5294,6 +5374,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excluir minha conta definitivamente"
+          }
+        }
+      }
+    },
+    "Exige material próprio" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exige material próprio"
           }
         }
       }
@@ -5899,6 +5989,26 @@
         }
       }
     },
+    "Inclui refeição" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclui refeição"
+          }
+        }
+      }
+    },
+    "Inclui transporte" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclui transporte"
+          }
+        }
+      }
+    },
     "Incluir na equipe" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6157,6 +6267,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Li e aceito os Termos de uso e a Política de privacidade"
+          }
+        }
+      }
+    },
+    "Li o aviso e confirmo a chamada" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Li o aviso e confirmo a chamada"
           }
         }
       }
@@ -7014,6 +7134,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não foi possível carregar suas vagas. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir a chamada. Verifique sua conexão e tente novamente." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível concluir a chamada. Verifique sua conexão e tente novamente."
           }
         }
       }
@@ -7958,6 +8088,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O que você preencheu não fica salvo."
+          }
+        }
+      }
+    },
+    "O recado deve ter até 300 caracteres." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O recado deve ter até 300 caracteres."
           }
         }
       }
@@ -9286,6 +9426,16 @@
         }
       }
     },
+    "Recado opcional (até 300 caracteres)" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recado opcional (até 300 caracteres)"
+          }
+        }
+      }
+    },
     "Receber código" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9577,6 +9727,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Responsável"
+          }
+        }
+      }
+    },
+    "Responsável no local" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Responsável no local"
           }
         }
       }
@@ -11518,6 +11678,16 @@
         }
       }
     },
+    "Valor total em centavos" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valor total em centavos"
+          }
+        }
+      }
+    },
     "Valoração Bruta do Contrato:" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11757,6 +11927,16 @@
         }
       }
     },
+    "Você atingiu o limite de chamadas. Aguarde antes de tentar novamente." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você atingiu o limite de chamadas. Aguarde antes de tentar novamente."
+          }
+        }
+      }
+    },
     "Você avisou que está a caminho às %@." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11874,6 +12054,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Você já tem um turno confirmado que coincide com o horário desta vaga. Não é possível assumir dois turnos ao mesmo tempo."
+          }
+        }
+      }
+    },
+    "Você já tem uma chamada aberta para este profissional." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você já tem uma chamada aberta para este profissional."
           }
         }
       }
