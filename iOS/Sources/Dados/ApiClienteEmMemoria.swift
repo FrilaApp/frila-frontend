@@ -6,6 +6,9 @@ import FrilaDominio
 /// dos cadastros de perfil, porque o fluxo de ponta a ponta atravessa os dois perfis.
 public actor ApiClienteEmMemoria: ApiCliente {
     public enum Cenario: String, CaseIterable, Sendable {
+        case chamadaDireta = "chamada-direta"
+        case chamadaRecorrente = "chamada-recorrente"
+        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente }
         case sucesso = "success"
         case perfilRicoHabilitado = "perfil-rico-habilitado"
         case servicosVazios = "servicos-vazios"
@@ -202,6 +205,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var turnoID: UUID? = nil
     }
 
+    private var chamadasPorChave: [UUID: Chamada] = [:]
+    public private(set) var pedidosChamadaRecebidos: [PedidoChamada] = []
     private var avaliacoes: [UUID: Avaliacao] = [:]
 
     private let cenario: Cenario
@@ -343,15 +348,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
             candidatosDeExemplo = try FixturesDoContrato.carregar("candidatos", como: [ContratoAPI.CandidatoDTO].self).map { $0.dominio() }
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
             #if DEBUG
-            let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido
+            let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido || cenario.deChamada
             #else
-            let ehCicloContratante = false
+            let ehCicloContratante = cenario.deChamada
             #endif
             if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -394,7 +399,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
-            if let casa = estabelecimentos.first, conta?.perfil == .profissional || cenario == .equipeDeConfiancaComMembro {
+            if let casa = estabelecimentos.first, conta?.perfil == .profissional || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) {
                 equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id]
             }
             if let casa = estabelecimentos.first, cenario == .selecaoComCandidatoDaEquipe, candidatosDeExemplo.count > 1 {
@@ -427,7 +432,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
-            if cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
+            if cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
                 || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante,
                 let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
@@ -441,7 +446,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: (cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    verificacao: (cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
                     valorAcordado: vaga.valor, podeAvaliar: false
                 )
                 if cenario == .posicaoCanceladaComMotivo {
@@ -1135,6 +1140,63 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return regioesAdministrativasCadastradas
     }
 
+    public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+        pedidosChamadaRecebidos.append(pedido)
+        try exigirAdministrador(de: pedido.trabalho.estabelecimentoID)
+        guard cenario.deChamada else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+        guard let perfil = perfilDoProfissional(pedido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
+            throw erro("nao_encontrado")
+        }
+        let t = pedido.trabalho
+        if let existente = chamadasPorChave[t.chave] { return existente }
+        guard equipesDeConfianca[t.estabelecimentoID]?.contains(perfil.id) == true
+                || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID) else {
+            throw erro("profissional_indisponivel", detalhes: "nao_aceita_chamadas")
+        }
+        guard let funcao = catalogo.first(where: { $0.id == t.funcaoID }), perfil.funcoes.contains(funcao.nome) else {
+            throw erro("funcao_incompativel")
+        }
+        guard t.periodo.inicio.timeIntervalSince(relogio.agora) >= 2 * 3600 else {
+            throw erro("profissional_indisponivel", detalhes: "antecedencia_insuficiente")
+        }
+        guard (2 * 3600...16 * 3600).contains(t.periodo.fim.timeIntervalSince(t.periodo.inicio)),
+              t.valor.centavos > 0, t.posicoes == 1, t.modo == .urgencia else { throw erro("campo_invalido") }
+        guard !t.local.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !t.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !t.responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              (pedido.recado?.count ?? 0) <= 300 else { throw erro("campo_invalido") }
+        let abertas = chamadasPorChave.values.filter { $0.estado == .aberta && $0.expiraEm > relogio.agora }
+        guard !abertas.contains(where: { $0.profissionalID == perfil.id && $0.estabelecimentoID == t.estabelecimentoID }) else {
+            throw erro("chamada_ja_aberta")
+        }
+        guard abertas.filter({ $0.profissionalID == perfil.id }).count < 5 else {
+            throw erro("profissional_indisponivel", detalhes: "agenda_cheia")
+        }
+        guard abertas.filter({ $0.estabelecimentoID == t.estabelecimentoID }).count < 10 else { throw erro("limite_de_chamadas") }
+        // Este cenário representa uma casa CPF com duas chamadas anteriores na janela de sete dias.
+        if cenario == .chamadaRecorrente, !pedido.confirmoRecorrencia { throw erro("recorrencia_nao_confirmada") }
+        let casa = estabelecimentos.first { $0.id == t.estabelecimentoID }!
+        let vaga = Vaga(id: UUID(), estabelecimento: perfilDo(casa), funcao: funcao, periodo: t.periodo,
+                        local: t.local, regiaoAdministrativa: t.regiaoAdministrativa, ponto: t.ponto,
+                        valor: t.valor, posicoes: 1, posicoesAbertas: 1, inclusos: t.inclusos,
+                        responsavelLocal: t.responsavelLocal, modo: .urgencia, estado: .publicada,
+                        publicadoEm: relogio.agora, origem: .chamadaDireta)
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = TimeZone(identifier: "America/Sao_Paulo")!
+        let hora = calendario.component(.hour, from: relogio.agora)
+        let inicioAntesDasDez = calendario.component(.hour, from: t.periodo.inicio) < 10
+        let envio: Date
+        if (hora >= 22 || hora < 7), !inicioAntesDasDez {
+            envio = calendario.nextDate(after: relogio.agora, matching: DateComponents(hour: 7), matchingPolicy: .nextTime) ?? relogio.agora
+        } else { envio = relogio.agora }
+        let chamada = Chamada(id: UUID(), vagaID: vaga.id, profissionalID: perfil.id,
+                              estabelecimentoID: casa.id, recado: pedido.recado,
+                              expiraEm: min(envio.addingTimeInterval(12 * 3600), t.periodo.inicio.addingTimeInterval(-3600)), criadaEm: relogio.agora)
+        vagas.append(vaga)
+        chamadasPorChave[t.chave] = chamada
+        return chamada
+    }
+
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
         chamadasAPublicarVaga += 1
         chavesPublicacaoRecebidas.append(publicacao.chave)
@@ -1341,7 +1403,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let ordenadas = vagas
             .filter { vaga in
                 // Fora da vitrine: a vaga ocultada pela moderação (contrato 0.2.23) e a que já começou (0.2.19).
-                guard vaga.estado == .publicada, !vaga.oculta, vaga.periodo.inicio > agora else { return false }
+                guard vaga.origem != .chamadaDireta, vaga.estado == .publicada, !vaga.oculta, vaga.periodo.inicio > agora else { return false }
                 // RF26: as partes de um bloqueio não se cruzam em lista, detalhe nem candidatura.
                 guard !bloqueada(vaga) else { return false }
                 if let funcaoID = filtro.funcaoID, vaga.funcao.id != funcaoID { return false }
@@ -1371,7 +1433,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
         try verificarFalhaGeral()
-        guard let vaga = vagas.first(where: { $0.id == id }), !bloqueada(vaga) else { throw erro("nao_encontrado") }
+        guard let vaga = vagas.first(where: { $0.id == id }), vaga.origem != .chamadaDireta, !bloqueada(vaga) else { throw erro("nao_encontrado") }
         // Contrato 0.2.23: a vaga ocultada só abre, com `oculta: true`, para quem ocupa posição ou tem
         // candidatura nela; para os demais é o mesmo 404 da vaga escondida por bloqueio.
         if vaga.oculta, !turnos.contains(where: { $0.vaga.id == id }), candidaturaDaConta(na: id) == nil {
@@ -2199,7 +2261,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 recursos: RecursosDoApp(perfilRico: true)
             )
         }
-        return configuracao
+        return ConfiguracaoApp(versaoMinima: configuracao.versaoMinima,
+                               versaoRecomendada: configuracao.versaoRecomendada,
+                               mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja,
+                               recursos: RecursosDoApp(chamadaDireta: cenario.deChamada))
     }
 
     /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o
@@ -2621,7 +2686,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             valor: vaga.valor, posicoes: posicoes ?? vaga.posicoes, posicoesAbertas: posicoesAbertas ?? vaga.posicoesAbertas,
             inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, traje: vaga.traje,
             participaRateio: vaga.participaRateio, observacoes: vaga.observacoes, modo: modo ?? vaga.modo,
-            estado: estado ?? vaga.estado, oculta: oculta ?? vaga.oculta, publicadoEm: publicadoEm ?? vaga.publicadoEm
+            estado: estado ?? vaga.estado, oculta: oculta ?? vaga.oculta, publicadoEm: publicadoEm ?? vaga.publicadoEm, origem: vaga.origem, vagaOrigemId: vaga.vagaOrigemId
         )
     }
 }

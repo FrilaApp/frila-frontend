@@ -229,6 +229,68 @@ public struct RecursosDoApp: Codable, Equatable, Sendable {
     public static let desligados = RecursosDoApp()
 }
 
+public enum EstadoChamada: String, Codable, CaseIterable, Sendable {
+    case aberta, aceita, recusada, expirada, cancelada, encerrada
+}
+
+public enum MotivoRecusaChamada: String, Codable, CaseIterable, Sendable {
+    case agenda, distancia, valor, outro
+    case tipoDeServico = "tipo_de_servico"
+}
+
+public struct Chamada: Codable, Equatable, Sendable, Identifiable {
+    public let id: UUID
+    public let vagaID: UUID
+    public let profissionalID: UUID
+    public let estabelecimentoID: UUID
+    public let estado: EstadoChamada
+    public let recado: String?
+    public let motivoRecusa: MotivoRecusaChamada?
+    public let expiraEm: Date
+    public let respondidaEm: Date?
+    public let criadaEm: Date
+
+    public init(id: UUID, vagaID: UUID, profissionalID: UUID, estabelecimentoID: UUID,
+                estado: EstadoChamada = .aberta, recado: String? = nil,
+                motivoRecusa: MotivoRecusaChamada? = nil, expiraEm: Date,
+                respondidaEm: Date? = nil, criadaEm: Date) {
+        self.id = id
+        self.vagaID = vagaID
+        self.profissionalID = profissionalID
+        self.estabelecimentoID = estabelecimentoID
+        self.estado = estado
+        self.recado = recado
+        self.motivoRecusa = motivoRecusa
+        self.expiraEm = expiraEm
+        self.respondidaEm = respondidaEm
+        self.criadaEm = criadaEm
+    }
+    enum CodingKeys: String, CodingKey {
+        case id, estado, recado
+        case vagaID = "vaga_id"
+        case profissionalID = "profissional_id"
+        case estabelecimentoID = "estabelecimento_id"
+        case motivoRecusa = "motivo_recusa"
+        case expiraEm = "expira_em"
+        case respondidaEm = "respondida_em"
+        case criadaEm = "criada_em"
+    }
+}
+
+/// I5a cria um trabalho novo com uma posição; o total é o valor integral que o profissional recebe.
+public struct PedidoChamada: Equatable, Sendable {
+    public let profissionalID: UUID
+    public let trabalho: PublicacaoVaga
+    public let recado: String?
+    public let confirmoRecorrencia: Bool
+    public init(profissionalID: UUID, trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false) {
+        self.profissionalID = profissionalID
+        self.trabalho = trabalho
+        self.recado = recado
+        self.confirmoRecorrencia = confirmoRecorrencia
+    }
+}
+
 public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     public let versaoMinima: String
     public let versaoRecomendada: String
@@ -244,6 +306,12 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
         urlDaLoja: URL,
         recursos: RecursosDoApp = .desligados
     ) {
+        self.versaoMinima = versaoMinima
+        self.versaoRecomendada = versaoRecomendada
+        self.mensagem = mensagem
+        self.urlDaLoja = urlDaLoja
+        self.recursos = recursos
+    }
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem
@@ -329,6 +397,7 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func funcoes() async throws -> [Funcao]
     func resolverServico(termo: String) async throws -> [Funcao]
     func regioesAdministrativas() async throws -> [RegiaoAdministrativa]
+    func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).

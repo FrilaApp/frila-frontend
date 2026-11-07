@@ -540,6 +540,8 @@ enum ContratoAPI {
     }
 
     struct VagaDTO: Decodable {
+        let origem: OrigemVaga?
+        let vagaOrigemId: UUID?
         let id: UUID
         let estabelecimento: PerfilPublicoDTO
         let funcao: FuncaoDTO
@@ -563,6 +565,8 @@ enum ContratoAPI {
         let publicadoEm: Date
 
         enum CodingKeys: String, CodingKey {
+            case origem
+            case vagaOrigemId = "vaga_origem_id"
             case id, estabelecimento, funcao, local, ponto, posicoes, inclusos, traje, observacoes, modo, estado, oculta
             case inicioEm = "inicio_em"
             case fimEm = "fim_em"
@@ -596,7 +600,7 @@ enum ContratoAPI {
                 modo: modo,
                 estado: estado,
                 oculta: oculta,
-                publicadoEm: publicadoEm
+                publicadoEm: publicadoEm, origem: origem, vagaOrigemId: vagaOrigemId
             )
         }
     }
@@ -643,6 +647,8 @@ enum ContratoAPI {
     }
 
     struct VagaResumoDTO: Decodable {
+        let origem: OrigemVaga?
+        let vagaOrigemId: UUID?
         let id: UUID
         let funcao: String
         let local: String
@@ -652,6 +658,8 @@ enum ContratoAPI {
         let valorCentavos: Int
 
         enum CodingKeys: String, CodingKey {
+            case origem
+            case vagaOrigemId = "vaga_origem_id"
             case id, funcao, local
             case regiaoAdministrativa = "regiao_administrativa"
             case inicioEm = "inicio_em"
@@ -663,8 +671,37 @@ enum ContratoAPI {
             try VagaResumo(
                 id: id, funcao: funcao, local: local, regiaoAdministrativa: regiaoAdministrativa,
                 periodo: Periodo(inicio: inicioEm, fim: fimEm),
-                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos")
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos"), origem: origem, vagaOrigemId: vagaOrigemId
             )
+        }
+    }
+
+    struct ChamarProfissional: Encodable {
+        let pedido: PedidoChamada
+        enum CodingKeys: String, CodingKey {
+            case chave, profissional_id, estabelecimento_id, funcao_id, inicio_em, fim_em
+            case local, regiao_administrativa, ponto, valor_centavos, inclui_refeicao
+            case inclui_transporte, exige_material_proprio, responsavel_local, recado, confirmo_recorrencia
+        }
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            let t = pedido.trabalho
+            try c.encode(t.chave, forKey: .chave)
+            try c.encode(pedido.profissionalID, forKey: .profissional_id)
+            try c.encode(t.estabelecimentoID, forKey: .estabelecimento_id)
+            try c.encode(t.funcaoID, forKey: .funcao_id)
+            try c.encode(ContratoAPI.texto(t.periodo.inicio), forKey: .inicio_em)
+            try c.encode(ContratoAPI.texto(t.periodo.fim), forKey: .fim_em)
+            try c.encode(t.local, forKey: .local)
+            try c.encode(t.regiaoAdministrativa, forKey: .regiao_administrativa)
+            try c.encode(CoordenadaDTO(t.ponto), forKey: .ponto)
+            try c.encode(t.valor.centavos, forKey: .valor_centavos)
+            try c.encode(t.inclusos.refeicao, forKey: .inclui_refeicao)
+            try c.encode(t.inclusos.transporte, forKey: .inclui_transporte)
+            try c.encode(t.inclusos.exigeMaterialProprio, forKey: .exige_material_proprio)
+            try c.encode(t.responsavelLocal, forKey: .responsavel_local)
+            try c.encodeIfPresent(pedido.recado, forKey: .recado)
+            try c.encode(pedido.confirmoRecorrencia, forKey: .confirmo_recorrencia)
         }
     }
 

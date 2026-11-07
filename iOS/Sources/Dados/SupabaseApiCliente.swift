@@ -292,6 +292,10 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
     }
 
+    public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+        try await rpc("chamar_profissional", params: ContratoAPI.ChamarProfissional(pedido: pedido))
+    }
+
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
         let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("publicar_vaga", params: ContratoAPI.NovaVaga(publicacao))
         return resposta.dominio()

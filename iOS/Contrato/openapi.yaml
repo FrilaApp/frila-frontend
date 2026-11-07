@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.54
+  version: 0.2.55
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -80,6 +80,11 @@ info:
     | 409 | `verificacao_indisponivel` | A verificação de identidade não aceita a ação agora; `details`: `em_analise` ou `aprovada` (pedir upload), `aprovada` ou `sem_envio_solicitado` (confirmar envio) (RN14) |
     | 409 | `contestacao_ja_aberta` | Já existe contestação para a suspensão em vigor ou para o despacho, em análise ou já respondida (RF24, RF27) |
     | 422 | `campo_obrigatorio` | Falta campo exigido; `details` diz qual (na vaga, RN02) |
+    | 409 | `chamada_ja_aberta` | O par estabelecimento e profissional já tem chamada aberta (0.2.55, RN34) |
+    | 409 | `chamada_indisponivel` | Responder ou cancelar chamada que não está aberta; `details`: `aceita`, `recusada`, `expirada`, `cancelada` ou `encerrada` (0.2.55) |
+    | 409 | `recorrencia_nao_confirmada` | 3ª chamada da mesma casa pessoa física ao mesmo profissional em 7 dias sem `confirmo_recorrencia: true` (0.2.55, RN45) |
+    | 422 | `profissional_indisponivel` | A chamada fura preferência ou limite do profissional; `details`: `nao_aceita_chamadas`, `antecedencia_insuficiente`, `agenda_cheia` ou `pausa_por_recusas` (0.2.55, RN30, RN33, RN34) |
+    | 422 | `limite_de_chamadas` | Limite do estabelecimento; `details`: `por_vaga`, `abertas`, `por_dia` ou `conta_nova` (0.2.55, RN34) |
     | 403 | `sem_permissao` + `recurso_desligado` | O recurso está desligado no servidor (`ConfiguracaoDoApp.recursos`, 0.2.54, RN46) |
     | 409 | `midia_indisponivel` | `pedir_nova_analise_midia` em mídia que não está `recusada` nem `nao_publicada`; `details: estado_invalido` ou `expurgada` (0.2.54) |
     | 422 | `midia_invalida` | Mídia recusada na entrada; `details`: `formato`, `tamanho`, `metadados` (tipo pelo cabeçalho ou EXIF presente), `limite_atingido` ou `tipo_indisponivel` (0.2.54) |
@@ -103,6 +108,38 @@ info:
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.55, de 07/11/2026.** Contratação direta, fatia F4, parte A: chamar, responder e
+    cancelar (`arquitetura/ADR-001-chamada-direta-vaga-enderecada.md`; `requisitos/contratacao-direta-v1.1.md`,
+    RN28 a RN36, RN42, RN43, RN45 e RN46; `produto/contratacao-direta/01-especificacao.md`, CD-C).
+    Adição compatível: três operações novas, dois campos opcionais em `Vaga` e `VagaResumo`, sete
+    tipos de aviso novos; nenhuma operação existente muda.
+
+    - **A chamada é uma vaga endereçada:** `chamar_profissional` cria uma vaga de uma posição com
+      `origem = chamada_direta` e `modo = urgencia` (sem valor novo em `ModoPreenchimento`, que o
+      iOS publicado não tolera), não despachada e fora da lista do DF. Depois do aceite, é o turno de
+      sempre. **Nenhum telefone é trocado** (decisão de 04/11/2026, 0.2.49).
+    - **Na v1.1, só quem já trabalhou com a casa:** turno cumprido com presença verificada, ou equipe
+      de confiança. A busca é de outra versão.
+    - **`responder_chamada`**: aceitar ou recusar, com a ordem de recusas fixa da descrição; aceites
+      simultâneos do mesmo trabalho confirmam um só, e o outro recebe `409 chamada_indisponivel`
+      (`encerrada`).
+    - **`cancelar_chamada`**: antes do aceite, sem efeito para ninguém.
+    - **Recorrência com pessoa física (J7):** a 3ª chamada da mesma casa CPF ao mesmo profissional em
+      7 dias exige `confirmo_recorrencia: true`; sem ela, `409 recorrencia_nao_confirmada`.
+    - **`Vaga.origem` e `Vaga.vaga_origem_id`** (também em `VagaResumo`), opcionais; ausente vale
+      `publicacao`.
+    - **Avisos novos:** `chamada_recebida`, `chamada_lembrete`, `chamada_aceita`,
+      `chamada_recusada`, `chamada_expirada`, `chamada_cancelada`, `chamada_encerrada`, sem nome e
+      sem contato, e só para aparelho com app que os suporta (`versao_app`, 0.2.56).
+    - **Leituras e operações de vaga vigentes** ganham a exceção da vaga direta, sem mudar o
+      formato: `vagas_abertas` nunca a lista; `detalhe_vaga` e `candidatar` respondem `404` a quem não
+      é da casa nem o profissional confirmado; `cancelar_posicao` e `reabrir_por_atraso` repõem a
+      posição sem despacho; só `publicar_a_partir_da_chamada` (0.2.56) cria vaga pública.
+    - **Interruptor:** `recursos.chamada_direta` desligado → `403 sem_permissao`
+      (`recurso_desligado`).
+    - **Erros novos:** `409 chamada_ja_aberta`, `409 chamada_indisponivel`,
+      `409 recorrencia_nao_confirmada`, `422 profissional_indisponivel`, `422 limite_de_chamadas`.
 
     **Versão 0.2.54, de 07/11/2026.** Contratação direta, fatia F3: foto de perfil com moderação
     automática, sem pessoa revisando (decisão D8 = C, ordem do Cauê de 07/11/2026;
@@ -2805,6 +2842,9 @@ paths:
       operationId: vagasAbertas
       summary: Lista de vagas abertas do DF, das mais próximas para as mais distantes
       description: |
+        **Vaga direta (0.2.55):** `origem = chamada_direta` nunca aparece nesta lista, para ninguém
+        (RN28).
+
         Todas as vagas abertas, ordenadas pela distância até o ponto informado (ou até o ponto base do
         profissional, se nenhum for enviado). A distância aqui **ordena**, não filtra: o limite de
         15 km vale só para a notificação (B07). Vagas de estabelecimentos com bloqueio entre as partes
@@ -2888,6 +2928,11 @@ paths:
       operationId: detalheVaga
       summary: Detalhe de uma vaga
       description: |
+        **Vaga direta (0.2.55):** para `origem = chamada_direta`, responde `404 nao_encontrado`,
+        indistinguível de vaga inexistente, a quem não é membro do estabelecimento nem o
+        profissional com turno confirmado nela. Antes do aceite, o profissional chamado lê o
+        trabalho só por `detalhe_chamada`, sem endereço (RN28, RN36).
+
         Tudo o que o profissional vê antes de se candidatar (UC03, passo 2). Sem documento do
         estabelecimento e sem contato de ninguém: o telefone sai por `contato_do_turno`, depois da
         confirmação e dentro do prazo (RN10).
@@ -2936,6 +2981,10 @@ paths:
       operationId: candidatar
       summary: Candidatar-se a uma vaga
       description: |
+        **Vaga direta (0.2.55):** candidatar numa vaga com `origem = chamada_direta` é `404
+        nao_encontrado`, inclusive para o profissional chamado: o aceite é só por
+        `responder_chamada` (RN28).
+
         O profissional se candidata à vaga; o servidor escolhe a posição.
 
         - **Modo urgência:** o primeiro elegível que aceita é confirmado na hora, por escrita
@@ -3182,6 +3231,228 @@ paths:
           $ref: '#/components/responses/Conflito'
         '422':
           $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/chamar_profissional:
+    post:
+      tags: [Vagas]
+      operationId: chamarProfissional
+      summary: Chamar direto um profissional para um trabalho
+      description: |
+        0.2.55. Cria uma **vaga direta** de uma posição (`origem = chamada_direta`, `modo = urgencia`),
+        nunca despachada nem listada em `vagas_abertas`, e uma chamada para o profissional. Ou se manda
+        `vaga_id` (chamar mais alguém para o mesmo trabalho, até 3 abertas) ou os campos da RN02, com os
+        mesmos nomes de `NovaVaga`; nunca os dois. Idempotente pela `chave`: reenviar devolve a mesma
+        chamada e não gasta cota.
+
+        **Quem pode ser chamado (v1.1):** quem tem turno cumprido com presença verificada com a casa,
+        ou está na equipe de confiança dela, e não desligou "receber chamadas de quem já trabalhou
+        comigo" nem está pausado. Tem de ter a função e não estar suspenso. Bloqueio entre as partes é
+        `404 nao_encontrado` e tem precedência sobre qualquer outra recusa (RF26).
+
+        **Prazo:** o início tem de estar a pelo menos o maior entre 2 h e a antecedência mínima do
+        profissional (`422 profissional_indisponivel`, `antecedencia_insuficiente`). O servidor calcula
+        `expira_em` = menor entre envio + 12 h e início − 1 h; entre 22 h e 7 h (America/Sao_Paulo), o
+        envio conta a partir das 7 h, salvo início antes das 10 h (RN31).
+
+        **Valor:** `valor_centavos` é o total fechado do trabalho, que o profissional recebe (RN01,
+        RN29). Os termos não mudam com chamada aberta.
+
+        **Limites (RN33, RN34):** 1 chamada aberta por par estabelecimento e profissional
+        (`409 chamada_ja_aberta`); 24 h depois de recusa e pausa de 30 dias depois de 3 recusas ou
+        expirações seguidas (`422 profissional_indisponivel`, `pausa_por_recusas`); 5 chamadas abertas
+        no profissional (`agenda_cheia`); por estabelecimento, somando os membros, 3 por trabalho, 10
+        abertas e 20 por dia civil, ou 3 abertas e 5 em 7 dias sem turno cumprido
+        (`422 limite_de_chamadas`). Cancelar não devolve cota de envio.
+
+        **Recorrência (J7, RN45):** se o estabelecimento é pessoa física (CPF) e esta seria a 3ª
+        chamada ao mesmo profissional em 7 dias corridos, sem `confirmo_recorrencia: true` a resposta é
+        `409 recorrencia_nao_confirmada`; o app mostra o aviso e reenvia com a confirmação. Nunca vale
+        para CNPJ e nunca bloqueia.
+
+        O `recado` passa pelo filtro de termos e de contato (RN38). A preferência "aceito só de
+        estabelecimentos com CNPJ" e as demais saem como `nao_aceita_chamadas`, sem dizer qual. Profissional sem vínculo de trabalho com a casa recebe a mesma recusa genérica (`422 profissional_indisponivel`, `nao_aceita_chamadas`), sem revelar que o vínculo falta.
+      x-requisitos: [RN28, RN29, RN30, RN31, RN33, RN34, RN38, RN45, RN46, RN02, RN19, RF26]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chave, profissional_id, estabelecimento_id]
+              properties:
+                chave:
+                  $ref: '#/components/schemas/ChaveDeIdempotencia'
+                profissional_id:
+                  description: O `id` do `PerfilPublico` do profissional.
+                  $ref: '#/components/schemas/Uuid'
+                estabelecimento_id:
+                  $ref: '#/components/schemas/Uuid'
+                vaga_id:
+                  description: |
+                    Para chamar mais alguém para um trabalho já criado. Exclui os campos abaixo. Tem
+                    de ser vaga do mesmo `estabelecimento_id`, com `origem = chamada_direta`, uma
+                    posição e ainda aberta; vaga de outra casa é `404`, e vaga normal, preenchida ou
+                    encerrada é `409 vaga_encerrada`.
+                  $ref: '#/components/schemas/Uuid'
+                funcao_id:
+                  $ref: '#/components/schemas/Uuid'
+                inicio_em:
+                  $ref: '#/components/schemas/Instante'
+                fim_em:
+                  $ref: '#/components/schemas/Instante'
+                local:
+                  type: string
+                regiao_administrativa:
+                  type: string
+                ponto:
+                  $ref: '#/components/schemas/Coordenada'
+                valor_centavos:
+                  $ref: '#/components/schemas/Centavos'
+                inclui_refeicao:
+                  type: boolean
+                inclui_transporte:
+                  type: boolean
+                exige_material_proprio:
+                  type: boolean
+                responsavel_local:
+                  type: string
+                recado:
+                  type: string
+                  maxLength: 300
+                confirmo_recorrencia:
+                  type: boolean
+              oneOf:
+                - required: [vaga_id]
+                - required: [funcao_id, inicio_em, fim_em, local, regiao_administrativa, ponto,
+                             valor_centavos, inclui_refeicao, inclui_transporte,
+                             exige_material_proprio, responsavel_local]
+      responses:
+        '200':
+          description: Chamada criada (ou a mesma, no reenvio pela `chave`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chamada'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao`: `recurso_desligado` quando `recursos.chamada_direta` está desligado;
+            `conta_suspensa`; ou quem chama não é membro do estabelecimento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflito'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/responder_chamada:
+    post:
+      tags: [Vagas]
+      operationId: responderChamada
+      summary: Aceitar ou recusar uma chamada
+      description: |
+        0.2.55. Só o profissional chamado. Aceitar é candidatar e confirmar numa transação, com a trava
+        da vaga (RN19). Conferências, nesta ordem: (1) bloqueio → `404` e a chamada vira `encerrada`;
+        (2) suspensão → `403 sem_permissao` (`conta_suspensa`) e a chamada vira `cancelada`; (3) prazo
+        pelo relógio do servidor, `agora < expira_em` → senão `409 chamada_indisponivel` (`expirada`);
+        (4) função ainda marcada → senão `422 inelegivel` (`funcao_incompativel`); (5) turno
+        sobreposto (RN21) → `422 inelegivel` (`turno_sobreposto`), e a chamada segue aberta até o
+        prazo. Aceites simultâneos do mesmo trabalho: o primeiro confirma e encerra as outras chamadas;
+        o segundo recebe `409 chamada_indisponivel` (`encerrada`). `409 posicao_ja_preenchida` fica só
+        como defesa.
+
+        Aceito, nasce o turno e o profissional passa a ver `local`, `ponto` e `responsavel_local`.
+        **Nenhum telefone é devolvido.** Recusar aceita `motivo_recusa` opcional, que o contratante vê
+        como categoria; `motivo_recusa` junto de `aceitar` é ignorado. Recusar não penaliza (RN16,
+        RN33). Repetir a mesma resposta devolve o mesmo resultado; resposta diferente é
+        `409 chamada_indisponivel`.
+      x-requisitos: [RN32, RN33, RN36, RN42, RN46, RN16, RN19, RN21, RF26]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chamada_id, resposta]
+              properties:
+                chamada_id:
+                  $ref: '#/components/schemas/Uuid'
+                resposta:
+                  type: string
+                  enum: [aceitar, recusar]
+                motivo_recusa:
+                  $ref: '#/components/schemas/MotivoRecusaChamada'
+      responses:
+        '200':
+          description: Resposta registrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultadoChamada'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao`: `recurso_desligado` quando `recursos.chamada_direta` está desligado;
+            `conta_suspensa`; ou quem chama não é membro do estabelecimento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflito'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/cancelar_chamada:
+    post:
+      tags: [Vagas]
+      operationId: cancelarChamada
+      summary: Cancelar uma chamada ainda aberta
+      description: |
+        0.2.55. Qualquer membro do estabelecimento cancela uma chamada `aberta`, sem efeito para
+        ninguém; o profissional recebe `chamada_cancelada`. Idempotente para o mesmo autor. Chamada em
+        outro estado é `409 chamada_indisponivel`. Depois do aceite, o caminho é `cancelar_posicao`
+        (RN12), com a reposição sem despacho da vaga direta.
+      x-requisitos: [RN35, RN46, RN12]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chamada_id]
+              properties:
+                chamada_id:
+                  $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Chamada cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chamada'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          description: |
+            `sem_permissao`: `recurso_desligado` quando `recursos.chamada_direta` está desligado;
+            `conta_suspensa`; ou quem chama não é membro do estabelecimento.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflito'
 
   # ───────────────────────────────────────────── Turno
 
@@ -3484,6 +3755,11 @@ paths:
       operationId: cancelarPosicao
       summary: Cancelar uma posição confirmada
       description: |
+        **Vaga direta (0.2.55):** na vaga com `origem = chamada_direta`, a posição cancelada antes
+        do início reabre **sem despacho e sem notificação**; os membros da casa recebem o aviso com
+        as duas saídas (chamar outra pessoa ou `publicar_a_partir_da_chamada`). Só a conversão
+        explícita cria vaga pública (RN12 alterada, RN35).
+
         Qualquer das partes, com motivo (RN12). Antes do início, a posição cancelada é substituída por
         uma nova, aberta, e a notificação sai de novo em até 30 segundos. Depois do início, não há
         reabertura, e o contratante é avisado de que o turno ficou descoberto.
@@ -3545,6 +3821,10 @@ paths:
       operationId: reabrirPorAtraso
       summary: Reabrir a vaga quando o profissional não chegou
       description: |
+        **Vaga direta (0.2.55):** na vaga com `origem = chamada_direta`, a reabertura por atraso
+        reabre a posição **sem despacho e sem notificação**; a casa pode chamar outra pessoa ou
+        converter com `publicar_a_partir_da_chamada` até `fim_em − 1 h` (RF13 alterada, RN35).
+
         Aos 15 minutos do início sem check-in, o contratante recebe o alerta e decide esperar ou
         reabrir (D06). Reabrir marca falta do profissional e abre uma nova posição, que é notificada de
         novo. Antes dos 15 minutos: `422 reabertura_antes_da_tolerancia`. Com check-in já feito: `409`.
@@ -4936,6 +5216,20 @@ components:
         | `selecao_encerrada` | Membro do estabelecimento | Prazo de escolha encerrado | A vaga de {função} fechou sem todas as posições preenchidas. Toque para republicar em urgência. |
         | `selecao_lembrete` | Membro do estabelecimento | Candidatos esperando sua escolha | {N} candidato(s) para a vaga de {função}. Escolha até {dd/mm às HH:MM}, quando a vaga fecha. |
 
+        **Chamadas diretas (0.2.55).** Sem nome de pessoa e sem contato no texto; payload só com
+        `tipo`, `chamada_id` e `vaga_id`. Não contam no teto da RN23. Só saem para aparelho com
+        `versao_app` que suporta a chamada (0.2.56); aparelho sem versão conta como antigo.
+
+        | Tipo | Quem recebe | Título | Corpo |
+        |---|---|---|---|
+        | `chamada_recebida` | Profissional | Nova chamada | Um contratante quer você para {serviço} em {dd/mm}. Responda até {HH:MM}. |
+        | `chamada_lembrete` | Profissional | Chamada esperando resposta | A chamada para {serviço} em {dd/mm} vence às {HH:MM}. |
+        | `chamada_aceita` | Membros da casa | Chamada aceita | A chamada para {serviço} em {dd/mm} foi aceita. Toque para ver o turno. |
+        | `chamada_recusada` | Membros da casa | Chamada recusada | A chamada para {serviço} em {dd/mm} foi recusada. Você pode chamar outra pessoa ou publicar para todos. |
+        | `chamada_expirada` | Os dois | Chamada vencida | A chamada para {serviço} em {dd/mm} venceu sem resposta. |
+        | `chamada_cancelada` | Profissional | Chamada cancelada | O contratante cancelou a chamada para {serviço} em {dd/mm}. Nada muda para você. |
+        | `chamada_encerrada` | Profissional | Trabalho preenchido | O contratante fechou com outra pessoa. Nada muda para você. |
+
         **Foto de perfil (0.2.54).** `midia_recusada` vai ao dono quando a foto não é publicada
         (`recusada` ou `nao_publicada`), só com `tipo` e `midia_id`. Título "Foto não publicada";
         corpo "Use uma foto sua, com rosto visível, sem texto nem dados pessoais."
@@ -4947,7 +5241,9 @@ components:
       enum: [vaga, vagas_agrupadas, vaga_sem_elegiveis, confirmacao, lembrete_24h, lembrete_3h,
              inicio_sem_checkin, atraso_15min, fim_sem_checkout, vaga_vazia, checkin,
              checkin_manual_pendente, cancelamento, avaliacao_disponivel, suspensao, reativacao,
-             candidatura_recusada, selecao_encerrada, selecao_lembrete, midia_recusada]
+             candidatura_recusada, selecao_encerrada, selecao_lembrete, midia_recusada,
+             chamada_recebida, chamada_lembrete, chamada_aceita, chamada_recusada,
+             chamada_expirada, chamada_cancelada, chamada_encerrada]
     EventoDeTelemetria:
       description: |
         Dicionário fechado. Acrescentar evento é mudança de contrato, com versão subindo — é o
@@ -5348,6 +5644,72 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Instante'
             - type: 'null'
+    OrigemVaga:
+      type: string
+      description: 0.2.55. De onde a vaga nasceu. Ausente nas respostas vale `publicacao`.
+      enum: [publicacao, chamada_direta]
+    EstadoChamada:
+      type: string
+      description: |
+        0.2.55. `aberta` → `aceita` · `recusada` · `expirada` · `cancelada` (pelo contratante ou por
+        suspensão do profissional) · `encerrada` (outra chamada do trabalho foi aceita, a vaga foi
+        cancelada ou convertida, o membro que chamou foi suspenso, ou houve bloqueio). Desfechos finais.
+      enum: [aberta, aceita, recusada, expirada, cancelada, encerrada]
+    MotivoRecusaChamada:
+      type: string
+      description: 0.2.55. Categoria opcional da recusa, vista pelo contratante; sem texto livre (RN33).
+      enum: [agenda, distancia, valor, tipo_de_servico, outro]
+    Chamada:
+      type: object
+      required: [id, vaga_id, profissional_id, estabelecimento_id, estado, expira_em, criada_em]
+      description: |
+        0.2.55. Uma chamada. Valor, horário e local moram na vaga; a leitura para o profissional
+        antes do aceite é `detalhe_chamada` (0.2.56), sem endereço.
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        vaga_id:
+          $ref: '#/components/schemas/Uuid'
+        profissional_id:
+          $ref: '#/components/schemas/Uuid'
+        estabelecimento_id:
+          $ref: '#/components/schemas/Uuid'
+        estado:
+          $ref: '#/components/schemas/EstadoChamada'
+        recado:
+          oneOf:
+            - type: string
+              maxLength: 300
+            - type: 'null'
+        motivo_recusa:
+          oneOf:
+            - $ref: '#/components/schemas/MotivoRecusaChamada'
+            - type: 'null'
+        expira_em:
+          $ref: '#/components/schemas/Instante'
+        respondida_em:
+          oneOf:
+            - $ref: '#/components/schemas/Instante'
+            - type: 'null'
+        criada_em:
+          $ref: '#/components/schemas/Instante'
+    ResultadoChamada:
+      type: object
+      required: [chamada]
+      description: |
+        0.2.55. Resposta de `responder_chamada`. No aceite, traz o turno e o que a RN36 libera
+        (`local`, `ponto`, `responsavel_local`); na recusa, só a chamada. Nunca telefone.
+      properties:
+        chamada:
+          $ref: '#/components/schemas/Chamada'
+        turno_id:
+          $ref: '#/components/schemas/Uuid'
+        local:
+          type: string
+        ponto:
+          $ref: '#/components/schemas/Coordenada'
+        responsavel_local:
+          type: string
     CriteriosDeNotificacao:
       type: object
       required: [funcoes, disponibilidades, distancia_maxima_km, equipes_de_confianca, notificacoes_no_maximo_a_cada_min]
@@ -5786,6 +6148,16 @@ components:
       type: object
       required: [id, estabelecimento, funcao, inicio_em, fim_em, local, regiao_administrativa, ponto, valor_centavos, posicoes, posicoes_abertas, inclusos, responsavel_local, modo, estado, oculta, publicado_em]
       properties:
+        origem:
+          description: |
+            0.2.55. `chamada_direta` na vaga criada por `chamar_profissional`; ausente vale
+            `publicacao`. A vaga direta é `modo = urgencia`, nunca despachada nem listada.
+          $ref: '#/components/schemas/OrigemVaga'
+        vaga_origem_id:
+          description: 0.2.55. Na vaga normal criada a partir de uma vaga direta, o id da direta.
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
         id:
           $ref: '#/components/schemas/Uuid'
         estabelecimento:
@@ -5840,6 +6212,16 @@ components:
       type: object
       required: [id, funcao, local, regiao_administrativa, inicio_em, fim_em, valor_centavos]
       properties:
+        origem:
+          description: |
+            0.2.55. `chamada_direta` na vaga criada por `chamar_profissional`; ausente vale
+            `publicacao`. A vaga direta é `modo = urgencia`, nunca despachada nem listada.
+          $ref: '#/components/schemas/OrigemVaga'
+        vaga_origem_id:
+          description: 0.2.55. Na vaga normal criada a partir de uma vaga direta, o id da direta.
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
         id:
           $ref: '#/components/schemas/Uuid'
         funcao:
