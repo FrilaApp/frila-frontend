@@ -46,6 +46,38 @@ class ComprovanteCheckinTest {
     }
 
     @Test
+    fun `gera comprovante manual confirmado pelo contratante`() {
+        val comprovante = GeradorComprovanteCheckin.gerar(
+            turnoId = turnoId,
+            registradoEm = instante,
+            tipoVerificacao = TipoVerificacaoCheckin.MANUAL_CONFIRMADO,
+            coordenada = null,
+        )
+
+        assertEquals(TipoVerificacaoCheckin.MANUAL_CONFIRMADO, comprovante.tipoVerificacao)
+        assertEquals("Check-in manual confirmado pelo contratante", comprovante.tipoVerificacao.descricao)
+        val texto = comprovante.textoCompartilhamento()
+        assertTrue(texto.contains("Status: Check-in manual confirmado pelo contratante"))
+    }
+
+    @Test
+    fun `gera comprovante sem verificacao e texto de compartilhamento nao afirma presenca verificada`() {
+        val comprovante = GeradorComprovanteCheckin.gerar(
+            turnoId = turnoId,
+            registradoEm = instante,
+            tipoVerificacao = TipoVerificacaoCheckin.NAO_VERIFICADO,
+            coordenada = null,
+        )
+
+        assertEquals(TipoVerificacaoCheckin.NAO_VERIFICADO, comprovante.tipoVerificacao)
+        assertEquals("Sem verificação", comprovante.tipoVerificacao.descricao)
+        val texto = comprovante.textoCompartilhamento()
+        assertTrue(texto.contains("Status: Sem verificação"))
+        assertTrue(!texto.contains("Geolocalizado"))
+        assertTrue(!texto.contains("confirmado"))
+    }
+
+    @Test
     fun `calculo de codigo de autenticacao e deterministico para mesmo turno e instante`() {
         val codigo1 = GeradorComprovanteCheckin.calcularCodigoAutenticacao(turnoId, instante)
         val codigo2 = GeradorComprovanteCheckin.calcularCodigoAutenticacao(turnoId, instante)

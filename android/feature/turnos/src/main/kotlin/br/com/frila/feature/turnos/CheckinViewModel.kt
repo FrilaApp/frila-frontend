@@ -123,11 +123,10 @@ class CheckinViewModel(
         // antes da hora (MEDIDO/ressalva do Shisui, PR #598).
         monitorizador?.removerAlerta(turnoId)
 
-        val tipoVerificacao = if (resultado.verificacao == "verificado") {
-            TipoVerificacaoCheckin.GEOLOCALIZADO
-        } else {
-            TipoVerificacaoCheckin.MANUAL_PENDENTE
-        }
+        val tipoVerificacao = mapearTipoVerificacaoCheckin(
+            verificacao = resultado.verificacao,
+            checkinTipo = resultado.tipo,
+        )
 
         val comprovante = GeradorComprovanteCheckin.gerar(
             turnoId = turnoId,
@@ -136,13 +135,16 @@ class CheckinViewModel(
             coordenada = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) coordenadaAtual else null,
         )
 
+        val status = when (tipoVerificacao) {
+            TipoVerificacaoCheckin.GEOLOCALIZADO,
+            TipoVerificacaoCheckin.MANUAL_CONFIRMADO -> StatusCheckin.VERIFICADO
+            TipoVerificacaoCheckin.MANUAL_PENDENTE -> StatusCheckin.MANUAL_PENDENTE
+            TipoVerificacaoCheckin.NAO_VERIFICADO -> StatusCheckin.OCIOSO
+        }
+
         _estado.update {
             it.copy(
-                status = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) {
-                    StatusCheckin.VERIFICADO
-                } else {
-                    StatusCheckin.MANUAL_PENDENTE
-                },
+                status = status,
                 comprovante = comprovante,
             )
         }

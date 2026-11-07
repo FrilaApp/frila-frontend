@@ -101,4 +101,46 @@ class DialogoComprovanteCheckinTest {
 
         assertEquals(true, fechou)
     }
+
+    @Test
+    fun `dialogo exibe status manual confirmado pelo contratante`() {
+        val comprovanteManual = ComprovanteCheckin(
+            turnoId = "turno-manual-1",
+            registradoEm = Instant.parse("2026-10-27T18:30:00Z"),
+            tipoVerificacao = TipoVerificacaoCheckin.MANUAL_CONFIRMADO,
+            codigoAutenticacao = "CHK-MAN12345",
+        )
+
+        compose.setContent {
+            FrilaTheme {
+                DialogoComprovanteCheckin(
+                    comprovante = comprovanteManual,
+                    aoFechar = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Check-in manual confirmado pelo contratante").assertIsDisplayed()
+    }
+
+    @Test
+    fun `dialogo exibe status sem verificacao quando nao verificado`() {
+        val comprovanteNaoVerificado = ComprovanteCheckin(
+            turnoId = "turno-nv-1",
+            registradoEm = Instant.parse("2026-10-27T18:30:00Z"),
+            tipoVerificacao = TipoVerificacaoCheckin.NAO_VERIFICADO,
+            codigoAutenticacao = "CHK-NOV12345",
+        )
+
+        compose.setContent {
+            FrilaTheme {
+                DialogoComprovanteCheckin(
+                    comprovante = comprovanteNaoVerificado,
+                    aoFechar = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Sem verificação").assertIsDisplayed()
+    }
 }

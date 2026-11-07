@@ -526,4 +526,109 @@ class TelaMeusTurnosTest {
         compose.onNodeWithContentDescription("Carregando turnos...")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
     }
+
+    private fun turnoComCheckinJson(
+        id: String,
+        checkinTipo: String?,
+        verificacao: String,
+        checkinConfirmadoEm: String? = null,
+        distanciaM: Int? = null,
+    ) = """
+        {
+          "id": "$id",
+          "posicao_id": "posicao-$id",
+          "vaga": {
+            "id": "vaga-$id",
+            "funcao": "Garçom",
+            "local": "CLS 405 Bloco C",
+            "regiao_administrativa": "Plano Piloto",
+            "inicio_em": "2026-11-01T21:00:00Z",
+            "fim_em": "2026-11-02T03:00:00Z",
+            "valor_centavos": 16000
+          },
+          "contraparte": {
+            "id": "e1",
+            "tipo": "estabelecimento",
+            "nome": "Bar do Zé",
+            "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}
+          },
+          "contato_visivel_ate": "2026-11-09T03:00:00Z",
+          "a_caminho_em": "2026-11-01T20:30:00Z",
+          "checkin_em": "2026-11-01T20:55:00Z",
+          "checkin_tipo": ${checkinTipo?.let { "\"$it\"" } ?: "null"},
+          "checkin_distancia_m": $distanciaM,
+          "checkin_confirmado_em": ${checkinConfirmadoEm?.let { "\"$it\"" } ?: "null"},
+          "checkout_em": null,
+          "checkout_distancia_m": null,
+          "verificacao": "$verificacao",
+          "valor_acordado_centavos": 16000,
+          "pode_avaliar": false,
+          "estado": "confirmada",
+          "avaliacao": null,
+          "cancelamento": null
+        }
+    """.trimIndent()
+
+    @Test
+    fun `card de turno com checkin geolocalizado exibe Check-in verificado e botao Ver comprovante`() {
+        val json = "[" + turnoComCheckinJson("t-geo", "geolocalizado", "verificado", distanciaM = 80) + "]"
+        val viewModel = criarViewModel(json)
+        runBlocking { viewModel.carregar().join() }
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Check-in verificado").assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").assertIsDisplayed().assertHasClickAction()
+    }
+
+    @Test
+    fun `card de turno com checkin manual confirmado exibe Check-in manual confirmado e botao Ver comprovante`() {
+        val json = "[" + turnoComCheckinJson("t-man-conf", "manual", "verificado", checkinConfirmadoEm = "2026-11-01T21:10:00Z", distanciaM = 350) + "]"
+        val viewModel = criarViewModel(json)
+        runBlocking { viewModel.carregar().join() }
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Check-in manual confirmado").assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").assertIsDisplayed().assertHasClickAction()
+    }
+
+    @Test
+    fun `card de turno com checkin nao verificado exibe Check-in sem verificacao e botao Ver comprovante`() {
+        val json = "[" + turnoComCheckinJson("t-nv", "manual", "nao_verificado") + "]"
+        val viewModel = criarViewModel(json)
+        runBlocking { viewModel.carregar().join() }
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Check-in sem verificação").assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").assertIsDisplayed().assertHasClickAction()
+    }
 }
