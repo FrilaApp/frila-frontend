@@ -83,8 +83,7 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
         do {
             let codigos = VNDetectBarcodesRequest()
             #if targetEnvironment(simulator)
-            codigos.revision = VNDetectBarcodesRequestRevision2
-            configurarDispositivoDeCalculoParaSimulador(codigos)
+            codigos.revision = VNDetectBarcodesRequestRevision1
             #endif
             try VNImageRequestHandler(data: jpeg, options: [:]).perform([codigos])
             temCodigo = !(codigos.results ?? []).isEmpty
@@ -100,9 +99,6 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
             texto.recognitionLevel = .accurate
             texto.usesLanguageCorrection = false
             texto.recognitionLanguages = ["pt-BR", "en-US"]
-            #if targetEnvironment(simulator)
-            configurarDispositivoDeCalculoParaSimulador(texto)
-            #endif
             try VNImageRequestHandler(data: jpeg, options: [:]).perform([texto])
             linhas = (texto.results ?? []).compactMap { $0.topCandidates(1).first?.string }
         } catch {
@@ -117,9 +113,6 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
         if contexto == .profissional {
             do {
                 let pedidoRostos = VNDetectFaceRectanglesRequest()
-                #if targetEnvironment(simulator)
-                configurarDispositivoDeCalculoParaSimulador(pedidoRostos)
-                #endif
                 try VNImageRequestHandler(data: jpeg, options: [:]).perform([pedidoRostos])
                 let observacoes = pedidoRostos.results ?? []
                 totalRostos = observacoes.count
@@ -149,12 +142,4 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
             rostoUnicoValido: rostoValido
         )
     }
-
-    #if targetEnvironment(simulator)
-    private static func configurarDispositivoDeCalculoParaSimulador(_ pedido: VNRequest) {
-        if let cpu = try? pedido.supportedComputeStageDevices[.main]?.first(where: { String(describing: type(of: $0)).contains("CPU") }) {
-            pedido.setComputeDevice(cpu, for: .main)
-        }
-    }
-    #endif
 }
