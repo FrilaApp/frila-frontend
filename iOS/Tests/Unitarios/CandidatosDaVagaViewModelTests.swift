@@ -700,7 +700,7 @@ struct CandidatosDaVagaViewModelTests {
     @Test("MeuPerfilProfissionalViewModel harmoniza suportaPerfilRico conforme recursos do app")
     func harmonizaSuportaPerfilRicoNoPerfil() async throws {
         let contaMock = Conta(id: UUID(), perfil: .profissional, nome: "Testador", telefone: "+5561999999999", email: "teste@frila.com", nascimento: try DataCivil(ano: 1995, mes: 5, dia: 10), estado: .ativa)
-        let perfilMock = PerfilProfissional(id: UUID(), usuarioID: contaMock.id, funcoes: [], pontoBase: Coordenada(latitude: -15.79, longitude: -47.88), disponibilidades: [], reputacao: Reputacao(positivas: 5, total: 5, taxaComparecimento: 1.0, turnosConsiderados: 5, turnosRealizados: 5))
+        let perfilMock = try PerfilProfissional(id: UUID(), usuarioID: contaMock.id, funcoes: [], pontoBase: Coordenada(latitude: -15.79, longitude: -47.88), disponibilidades: [], reputacao: Reputacao(positivas: 5, total: 5, taxaComparecimento: 1.0, turnosConsiderados: 5, turnosRealizados: 5))
         let publicoMock = PerfilPublico(id: perfilMock.id, tipo: .profissional, nome: "Testador", reputacao: perfilMock.reputacao)
 
         let vmDesligado = MeuPerfilProfissionalViewModel(
