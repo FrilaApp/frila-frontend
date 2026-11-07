@@ -31,6 +31,7 @@ public struct SecaoFotoDePerfil: View {
     }
 
     public var body: some View {
+        let _ = NSLog("DEBUG SecaoFotoDePerfil.body chamado")
         ConteudoDaFotoDePerfil(api: api, ferramentas: ferramentas)
     }
 }
@@ -48,10 +49,13 @@ private struct ConteudoDaFotoDePerfil: View {
     }
 
     var body: some View {
+        let _ = NSLog("DEBUG ConteudoDaFotoDePerfil.body: secaoVisivel=%d, falhou=%d, carregou=%d", model.secaoVisivel ? 1 : 0, model.falhouAoCarregar ? 1 : 0, model.carregou ? 1 : 0)
         Group {
             if model.secaoVisivel {
+                let _ = NSLog("DEBUG ConteudoDaFotoDePerfil: renderizando cartao")
                 cartao
             } else if model.falhouAoCarregar {
+                let _ = NSLog("DEBUG ConteudoDaFotoDePerfil: renderizando erro")
                 EstadoErro(verbatim: TextosFotoDePerfil.aviso(.indisponivelAgora)) { Task { await model.carregar() } }
             }
         }

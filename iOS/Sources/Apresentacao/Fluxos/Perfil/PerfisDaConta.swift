@@ -92,7 +92,11 @@ public final class MeuPerfilProfissionalViewModel {
             let perfilNovo = try await carregarPerfil()
             let publicoNovo = try await carregarPublico(perfilNovo.id)
             conta = contaNova; perfil = perfilNovo; perfilPublico = publicoNovo
-        } catch { mensagemErro = TextosPerfilConta.erro }
+            NSLog("DEBUG MeuPerfilProfissionalViewModel carregar: conta=%@, perfil=%@", String(describing: conta), String(describing: perfil))
+        } catch {
+            NSLog("DEBUG MeuPerfilProfissionalViewModel carregar ERRO: %@", String(describing: error))
+            mensagemErro = TextosPerfilConta.erro
+        }
     }
 }
 
@@ -245,10 +249,13 @@ public struct TelaMeuPerfilProfissional: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                 if model.carregando {
+                    let _ = NSLog("DEBUG PerfisDaConta: model.carregando")
                     EstadoCarregando()
                 } else if let erro = model.mensagemErro {
+                    let _ = NSLog("DEBUG PerfisDaConta: erro=%@", erro)
                     EstadoErro(verbatim: erro) { Task { await model.carregar() } }
                 } else if let conta = model.conta, let perfil = model.perfil {
+                    let _ = NSLog("DEBUG PerfisDaConta: renderizando identidade e foto")
                     identidade(conta)
                     SecaoFotoDePerfil(api: api)
                     historico
