@@ -225,7 +225,7 @@ public struct TelaApresentacaoERegioes: View {
             if viewModel.cursos.count < ApresentacaoERegioesViewModel.limiteMaxCursos {
                 HStack(spacing: FrilaEspaco.pequeno) {
                     TextField(
-                        verbatim: TextosApresentacaoERegioes.cursoPrompt,
+                        TextosApresentacaoERegioes.cursoPrompt,
                         text: $viewModel.novoCursoTexto
                     )
                     .font(FrilaTipo.corpo)

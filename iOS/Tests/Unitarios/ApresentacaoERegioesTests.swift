@@ -18,7 +18,7 @@ struct ApresentacaoERegioesTests {
             cursos: ["Boas Práticas de Manipulação", "Atendimento de Excelência"],
             idiomas: [.ingles, .espanhol]
         )
-        api.definirApresentacaoDetalhada(
+        await api.definirApresentacaoDetalhada(
             apresentacao: apresentacaoInicial,
             regioes: [1, 2], // Plano Piloto, Gama
             atendeTodoDF: false
@@ -82,7 +82,7 @@ struct ApresentacaoERegioesTests {
 
         vm.sobreMim = sobreComContato
         vm.ondeTrabalhei = locais
-        vm.experienciaFaixa = .maisDe5Anos
+        vm.experienciaFaixa = .maisDe10Anos
         vm.cursos = [curso]
         vm.idiomasSelecionados = [.ingles]
         vm.regioesSelecionadas = [1]
@@ -95,7 +95,7 @@ struct ApresentacaoERegioesTests {
         // Verificação crucial: o rascunho continua intacto para correção
         #expect(vm.sobreMim == sobreComContato)
         #expect(vm.ondeTrabalhei == locais)
-        #expect(vm.experienciaFaixa == .maisDe5Anos)
+        #expect(vm.experienciaFaixa == .maisDe10Anos)
         #expect(vm.cursos == [curso])
         #expect(vm.idiomasSelecionados == [.ingles])
         #expect(vm.regioesSelecionadas == [1])
@@ -120,7 +120,7 @@ struct ApresentacaoERegioesTests {
     @Test("Erro 422 de anti-contato sem detalhe ou genérico associa a erroSobreMim")
     func antiContatoGenericoAssociaAoSobreMim() async throws {
         let api = ApiClienteEmMemoria()
-        api.simularErroApresentacao(.campoInvalido, detalhes: nil)
+        await api.simularErroApresentacao(.campoInvalido, detalhes: nil)
 
         let vm = ApresentacaoERegioesViewModel(api: api)
         await vm.carregar()
@@ -243,7 +243,7 @@ struct ApresentacaoERegioesTests {
     @Test("Erro de falta de rede preserva o rascunho e exibe mensagem amigável")
     func erroSemRedeAoSalvar() async {
         let api = ApiClienteEmMemoria()
-        api.simularErroApresentacao(.semRede)
+        await api.simularErroApresentacao(.semRede)
 
         let vm = ApresentacaoERegioesViewModel(api: api)
         vm.sobreMim = "Rascunho importante que não pode ser perdido"
@@ -287,16 +287,16 @@ struct ApresentacaoERegioesTests {
             ondeTrabalhei: "Bares",
             experienciaFaixa: .de3A5Anos,
             cursos: ["Curso 1"],
-            idiomas: [.frances]
+            idiomas: [.libras]
         )
         let regioes = RegioesAtendidas(regioes: [1, 3], atendeTodoDF: false)
 
         let detalhado1 = try await api.atualizarApresentacaoProfissional(apresentacao)
         #expect(detalhado1.apresentacao == "Perfil salvo em teste")
         #expect(detalhado1.ondeTrabalhei == "Bares")
-        #expect(detalhado1.experienciaFaixa == .de3A5Anos)
+        #expect(detalhado1.experienciaFaixa == ExperienciaFaixa.de3A5Anos)
         #expect(detalhado1.cursos == ["Curso 1"])
-        #expect(detalhado1.idiomas == [.frances])
+        #expect(detalhado1.idiomas == [Idioma.libras])
 
         let detalhado2 = try await api.definirRegioesAtendidas(regioes)
         #expect(detalhado2.regioes.map(\.id).sorted() == [1, 3])
