@@ -116,7 +116,7 @@ Não se repetem aqui: `iOS/README.md`, `iOS/Docs/GuiaDoFabricio.md`, `iOS/Docs/D
 O "andar alinhamento" do Fabrício (Maestri, Logs e Fila) é uma orquestração pessoal e vive em `iOS/Docs/Orquestracao-Alinhamento.md`. Só quem a usa precisa ler; as regras do time acima valem para todos, inclusive para ele.
 
 ### Faixa de design rápido (temporária, revisar em 13/11/2026)
-Decidida pelo Cauê (líder) em 30/10/2026 para o Fabrício iterar telas sem PR e sem CI. Vale só para a branch `design/iteracao`: commit direto, sem cartão, sem PR e sem CI (o CI só roda em PR). Os builds dela vão ao TestFlight pelo Mac de quem envia (`iOS/Scripts/enviar-testflight.sh Frila-Design <versão>`) e são sempre só internos. Nada dessa branch entra na `main` por merge: o que vale para produção chega por Log, executado pelo workspace de Frontend, com PR e gate. A `main` continua só por PR. Detalhes: issue #607.
+Decidida pelo Cauê (líder) em 30/10/2026 para o Fabrício iterar telas sem PR e sem CI. Vale só para a branch `design/iteracao`: commit direto, sem cartão, sem PR e sem CI (o CI só roda em PR). Os builds dela vão ao TestFlight pelo Mac de quem envia (`iOS/Scripts/enviar-testflight.sh Frila-Beta <versão>`; o esquema `Frila-Design` deixou de existir em 06/11/2026: o modo de design agora é uma chave escondida do `Frila-Beta`, veja `iOS/Docs/ModoDesign.md`). Só o `Frila-Prod` vai para a loja (`iOS/Docs/QualBuildMandarParaLoja.md`). Nada dessa branch entra na `main` por merge: o que vale para produção chega por Log, executado pelo workspace de Frontend, com PR e gate. A `main` continua só por PR. Detalhes: issue #607.
 
 ## Bancada
 

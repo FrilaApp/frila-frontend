@@ -152,6 +152,8 @@ no App Store Connect, Crashlytics e separação de tarefas humanas está em [Pas
       (`uploadSymbols`).
    5. **Envio**: um segundo export, com `destination: upload` autenticado pela chave API, sem recriar
       ou atualizar certificados.
+   Depois do envio, o passo "Gravar o esquema em O que testar" grava o rótulo do esquema em "O que testar" do
+   build pela API (ação `notas-do-build` do `Scripts/app-store-connect.rb`); se falhar, o envio vale e o resumo avisa.
 6. Restaura a lista anterior de keychains e apaga a identidade temporária, os perfis instalados,
    a chave, os segredos, o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
    Nada vira artefato do Actions, porque o `.ipa` traz o plist do Firebase e a chave publicável do
@@ -165,7 +167,7 @@ Regras do build:
   (`manageAppVersionAndBuildNumber` desligado).
 - **Criptografia:** o `Info.plist` declara `ITSAppUsesNonExemptEncryption` como `false`, conferido
   pelo `conferir-release.sh`. Por isso o build não pede a resposta manual sobre criptografia.
-- **Build de Design:** o esquema `Frila-Design` é sempre só interno (`testFlightInternalTestingOnly = true`), nunca chega a testadores externos nem à produção.
+- **Build de Design:** não há mais esquema `Frila-Design`. O modo de design vive no `Frila-Beta`, desligado por padrão (`Docs/ModoDesign.md`), e o `Frila-Prod` não o compila. Quais notas e conferências cada esquema recebe: `Docs/QualBuildMandarParaLoja.md`.
 
 ### O que o Cauê faz uma vez
 
@@ -393,7 +395,7 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 
 Sem as três variáveis `ASC_*`, o script usa a conta logada no Xcode da máquina. Sem `--sem-envio`,
 ele manda ao TestFlight. Com `FRILA_ENSAIO_FALHA=1`, ele monta o build de ensaio; com
-`FRILA_MEDICAO=1`, o build de medição. Build de Design (`Frila-Design`) é sempre só interno.
+`FRILA_MEDICAO=1`, o build de medição. Para ligar o modo de design use o `Frila-Beta` (`Docs/ModoDesign.md`); não existe mais esquema próprio.
 
 ### Validação e próximo envio
 

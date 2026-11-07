@@ -69,6 +69,9 @@ private final class AncoraDaCortina: UIView {
     }
 
     private func atualizar(esconderConteudo: Bool) {
+        // A janela da cortina é separada da raiz SwiftUI e não herda o `preferredColorScheme`:
+        // sem isto ela seguiria o sistema e mostraria o fundo escuro com o app no claro.
+        cortina?.overrideUserInterfaceStyle = PreferenciaDeAparencia.compartilhada.aparencia.estiloDoUIKit
         cortina?.isHidden = !esconderConteudo
     }
 

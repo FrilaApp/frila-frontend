@@ -260,7 +260,13 @@ public struct TelaMeuPerfilProfissional: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("perfil-ajuda")
 
+                LinhaDeAparencia()
+
                 contaEDados
+
+                #if FRILA_BETA
+                SeloBeta()
+                #endif
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.medio)
@@ -640,6 +646,8 @@ public struct TelaPerfilEstabelecimento: View {
                         ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
                         DivisoriaDeLinha()
                     }
+                    LinhaDeAparencia()
+                    DivisoriaDeLinha()
                     Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
                         RotuloDeLinha(TextosPerfilConta.sair)
                     }
@@ -658,6 +666,10 @@ public struct TelaPerfilEstabelecimento: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("estabelecimento-excluir-conta")
+
+                #if FRILA_BETA
+                SeloBeta()
+                #endif
             }.padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)

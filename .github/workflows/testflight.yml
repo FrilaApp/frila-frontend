@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       esquema:
-        description: "Esquema: Frila-Beta (frila-dev) ou Frila-Prod (frila-prod)"
+        description: "Esquema: Frila-Beta (frila-dev, só teste) ou Frila-Prod (frila-prod, o único que vai para a loja)"
         type: choice
-        options: [Frila-Beta, Frila-Prod, Frila-Design]
+        options: [Frila-Beta, Frila-Prod]
         default: Frila-Beta
       versao:
         description: "Versão no formato X.Y.Z (ex.: 0.4.0)"
@@ -90,7 +90,7 @@ jobs:
             ENVIAR=$([[ "$ENTRADA_ENVIAR" == "true" ]] && echo 1 || echo 0)
           fi
           case "$ESQUEMA" in
-            Frila-Beta|Frila-Prod|Frila-Design) ;;
+            Frila-Beta|Frila-Prod) ;;
             *) echo "::error::Esquema inválido: $ESQUEMA"; exit 1 ;;
           esac
           if [[ ! "$VERSAO" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -109,7 +109,11 @@ jobs:
             echo "FRILA_MEDICAO=$MEDICAO"
             echo "FRILA_ENVIAR=$ENVIAR"
           } >> "$GITHUB_ENV"
+          # Rótulo do build no topo do resumo: é o texto para "O que testar" no App Store Connect.
+          ROTULO="$(Scripts/enviar-testflight.sh --rotulo "$ESQUEMA")"
           {
+            echo "# $ROTULO"
+            echo "Cole este texto em **O que testar** do build no App Store Connect. Só o Frila-Prod vai para a loja."
             echo "### $ESQUEMA $VERSAO ($NUMERO)"
             echo "- Ensaio de falha: $([[ $ENSAIO == 1 ]] && echo 'sim, só teste interno' || echo 'não')"
             echo "- Build de medição: $([[ $MEDICAO == 1 ]] && echo 'sim, só teste interno' || echo 'não')"
@@ -181,7 +185,7 @@ jobs:
           FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
         run: |
           case "$FRILA_ESQUEMA" in
-            Frila-Beta|Frila-Design) AMBIENTE=dev ;;
+            Frila-Beta) AMBIENTE=dev ;;
             Frila-Prod) AMBIENTE=prod ;;
           esac
           Scripts/generate-supabase-secrets.sh "$AMBIENTE"
@@ -218,6 +222,47 @@ jobs:
           opcoes=()
           [[ "$FRILA_ENVIAR" == 1 ]] || opcoes+=(--sem-envio)
           Scripts/enviar-testflight.sh "$FRILA_ESQUEMA" "$FRILA_VERSAO" ${opcoes[@]+"${opcoes[@]}"}
+
+      # Grava o rótulo do esquema em "O que testar" do build pela API (Scripts/app-store-connect.rb,
+      # ação notas-do-build). O envio já foi feito: se isto falhar, o job continua verde e o resumo
+      # avisa, com o texto para colar à mão.
+      - name: Gravar o esquema em "O que testar"
+        if: env.FRILA_ENVIAR == '1'
+        continue-on-error: true
+        timeout-minutes: 25
+        env:
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          ASC_ACAO: notas-do-build
+          ASC_APLICAR: "true"
+        run: |
+          export ASC_VERSAO="$FRILA_VERSAO" ASC_NUMERO_DO_BUILD="$FRILA_NUMERO_DO_BUILD"
+          export ASC_NOTAS_ARQUIVO="$FRILA_SAIDA/o-que-testar.txt"
+          LOG_NOTAS="$RUNNER_TEMP/gravar-o-que-testar.log"
+          set +e
+          ruby Scripts/app-store-connect.rb 2>&1 | tee "$LOG_NOTAS"
+          status="${PIPESTATUS[0]}"
+          set -e
+          ROTULO="$(head -n 1 "$ASC_NOTAS_ARQUIVO" 2>/dev/null || true)"
+          if [[ "$status" == 0 ]]; then
+            echo "O que testar gravado pela API no build $FRILA_NUMERO_DO_BUILD: $ROTULO"
+            echo "- O que testar: gravado pela API ($ROTULO)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=O que testar não foi gravado::O build $FRILA_NUMERO_DO_BUILD foi enviado, mas a API não gravou o esquema. Cole à mão: $ROTULO"
+            {
+              echo ""
+              echo "## ⚠️ O que testar NÃO foi gravado pela API"
+              echo "O build $FRILA_NUMERO_DO_BUILD já foi enviado ao TestFlight. Antes de escolher o build no App Store Connect, cole este texto em **O que testar**:"
+              echo ""
+              echo "\`\`\`"
+              echo "${ROTULO:-texto indisponível: veja o topo deste resumo}"
+              echo "\`\`\`"
+              echo "O motivo está no log deste passo, que não imprime segredos."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          # Nunca derruba o envio já feito.
+          exit 0
 
       - name: Restaurar keychains e apagar identidade de distribuição
         if: always()
