@@ -14,7 +14,7 @@ final class FotoDePerfilUITests: XCTestCase {
     @MainActor
     private func abrir(_ cenario: String, ax5: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
-        var argumentos = ["-FRILA_SCENARIO", cenario]
+        var argumentos = ["-FRILA_SCENARIO", cenario, "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"]
         if ax5 { argumentos += ["-UIPreferredContentSizeCategoryName", Self.ax5] }
         AjudanteDeLancamentoUITests.abrir(app, argumentos: argumentos)
         let conta = app.tabBars.buttons["Conta"]
@@ -149,9 +149,15 @@ final class FotoDePerfilUITests: XCTestCase {
     func testCancelarARemocaoMantemAFoto() {
         let app = abrir("foto-aprovada")
         tocar(app.buttons["perfil-foto-remover"])
-        let cancelar = app.sheets.buttons["Cancelar"].firstMatch
-        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
-        cancelar.tap()
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: Espera.aparecer))
+        let cancelar = sheet.buttons["Cancelar"].firstMatch
+        if cancelar.exists {
+            cancelar.tap()
+        } else {
+            // No formato popover o SwiftUI omite o botão Cancelar (HIG); o cancelamento ocorre ao tocar fora.
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.1)).tap()
+        }
         XCTAssertEqual(texto("perfil-foto-estado", em: app), "Foto publicada")
     }
 
