@@ -28,6 +28,9 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional { try await base.criarPerfilProfissional(dados) }
     func meuPerfilProfissional() async throws -> PerfilProfissional { try await base.meuPerfilProfissional() }
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional { try await base.atualizarPerfilProfissional(alteracao) }
+    func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado { try await base.meuPerfilDetalhado() }
+    func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado { try await base.atualizarApresentacaoProfissional(apresentacao) }
+    func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado { try await base.definirRegioesAtendidas(regioes) }
 
     // Por que recebo vagas
     func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao { try await base.criteriosDeNotificacao() }

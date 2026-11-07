@@ -336,6 +336,10 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil]
     func especialidades(funcaoID: UUID) async throws -> [Especialidade]
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional
+    /// Apresentação e regiões atendidas (Fatia F2, contrato 0.2.53)
+    func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado
+    func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado
+    func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado
     /// Troca telefone e/ou e-mail da conta. O backend ainda não oferece a operação (ver o handoff em
     /// `operacao/conta-editar-contato-handoff-backend.md`): `suportaEdicaoDeContato` diz se este cliente a
     /// atende, e a interface só oferece Editar quando diz que sim. O padrão é não suportar.
@@ -547,6 +551,19 @@ public extension ApiCliente {
 
     func regioesAdministrativas() async throws -> [RegiaoAdministrativa] {
         []
+    }
+
+    func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado {
+        let base = try await meuPerfilProfissional()
+        return PerfilProfissionalDetalhado(perfil: base)
+    }
+
+    func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado {
+        try await meuPerfilDetalhado()
+    }
+
+    func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado {
+        try await meuPerfilDetalhado()
     }
 }
 

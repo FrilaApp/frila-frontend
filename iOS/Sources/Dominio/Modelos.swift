@@ -142,7 +142,7 @@ public enum LevaMaterial: String, Codable, CaseIterable, Sendable {
     case sim, nao, depende
 }
 
-public enum ExperienciaFaixa: String, Codable, Sendable {
+public enum ExperienciaFaixa: String, Codable, CaseIterable, Sendable {
     case menosDe1Ano = "menos_de_1_ano"
     case de1A3Anos = "de_1_a_3_anos"
     case de3A5Anos = "de_3_a_5_anos"
@@ -150,7 +150,7 @@ public enum ExperienciaFaixa: String, Codable, Sendable {
     case maisDe10Anos = "mais_de_10_anos"
 }
 
-public enum Idioma: String, Codable, Sendable {
+public enum Idioma: String, Codable, CaseIterable, Sendable {
     case portugues, ingles, espanhol, libras, outro
 }
 
@@ -312,6 +312,71 @@ public struct PerfilProfissional: Codable, Hashable, Identifiable, Sendable {
         self.pontoBase = pontoBase
         self.disponibilidades = disponibilidades
         self.reputacao = reputacao
+    }
+}
+
+
+public struct ApresentacaoDoProfissional: Codable, Hashable, Sendable {
+    public var apresentacao: String?
+    public var ondeTrabalhei: String?
+    public var experienciaFaixa: ExperienciaFaixa?
+    public var cursos: [String]?
+    public var idiomas: [Idioma]?
+
+    public init(
+        apresentacao: String? = nil,
+        ondeTrabalhei: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        cursos: [String]? = nil,
+        idiomas: [Idioma]? = nil
+    ) {
+        self.apresentacao = apresentacao
+        self.ondeTrabalhei = ondeTrabalhei
+        self.experienciaFaixa = experienciaFaixa
+        self.cursos = cursos
+        self.idiomas = idiomas
+    }
+}
+
+public struct RegioesAtendidas: Codable, Hashable, Sendable {
+    public var regioes: [Int]
+    public var atendeTodoDF: Bool
+
+    public init(regioes: [Int] = [], atendeTodoDF: Bool = false) {
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+    }
+}
+
+public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Sendable {
+    public var id: UUID { perfil.id }
+    public let perfil: PerfilProfissional
+    public let apresentacao: String?
+    public let ondeTrabalhei: String?
+    public let experienciaFaixa: ExperienciaFaixa?
+    public let cursos: [String]
+    public let idiomas: [Idioma]
+    public let regioes: [RegiaoAdministrativa]
+    public let atendeTodoDF: Bool
+
+    public init(
+        perfil: PerfilProfissional,
+        apresentacao: String? = nil,
+        ondeTrabalhei: String? = nil,
+        experienciaFaixa: ExperienciaFaixa? = nil,
+        cursos: [String] = [],
+        idiomas: [Idioma] = [],
+        regioes: [RegiaoAdministrativa] = [],
+        atendeTodoDF: Bool = false
+    ) {
+        self.perfil = perfil
+        self.apresentacao = apresentacao
+        self.ondeTrabalhei = ondeTrabalhei
+        self.experienciaFaixa = experienciaFaixa
+        self.cursos = cursos
+        self.idiomas = idiomas
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
     }
 }
 
@@ -1306,13 +1371,43 @@ public struct RegistroDeEvento: Codable, Equatable, Sendable {
 
 // MARK: Foto de perfil (contrato 0.2.54, RN37 e RN46)
 
-/// Tipos de mídia do contrato. Nesta versão só `fotoPerfil` está disponível; os outros três são
-/// reservados para a v1.2 e o servidor os recusa com `422 midia_invalida` (`tipo_indisponivel`).
-public enum TipoMidia: String, Codable, CaseIterable, Sendable {
-    case fotoPerfil = "foto_perfil"
-    case fotoTrabalho = "foto_trabalho"
-    case fotoLocal = "foto_local"
-    case curriculo
+/// Tipos de mídia do contrato. Nesta versão só `fotoPerfil` está disponível.
+/// Descartadas galeria e currículo: se vier qualquer outro tipo desconhecido do servidor,
+/// o app tolera e decodifica como `.desconhecido(texto)` sem quebrar.
+public enum TipoMidia: Hashable, Sendable, CaseIterable {
+    case fotoPerfil
+    case desconhecido(String)
+
+    public static var allCases: [TipoMidia] {
+        [.fotoPerfil]
+    }
+
+    public var rawValue: String {
+        switch self {
+        case .fotoPerfil: return "foto_perfil"
+        case .desconhecido(let texto): return texto
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "foto_perfil": self = .fotoPerfil
+        default: self = .desconhecido(rawValue)
+        }
+    }
+}
+
+extension TipoMidia: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let texto = try container.decode(String.self)
+        self.init(rawValue: texto)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 /// `enviando` → `em_analise` → `aprovada`, `recusada` ou `nao_publicada` (a análise falhou 4 vezes);

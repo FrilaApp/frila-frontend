@@ -133,6 +133,30 @@ public struct TelaPerfilProfissional: View {
             } label: { Text("Editar serviços", bundle: bundleApresentacao).font(FrilaTipo.corpo) }
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("editar-servicos")
+
+            NavigationLink {
+                TelaApresentacaoERegioes(api: viewModel.apiCliente)
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text(verbatim: TextosApresentacaoERegioes.editarApresentacao)
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                        Text(verbatim: TextosApresentacaoERegioes.linkApresentacaoSubtitulo)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("link-editar-apresentacao")
         }
         secaoPontoBase
         secaoHorarios

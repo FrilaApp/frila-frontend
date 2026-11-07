@@ -4,7 +4,7 @@ import XCTest
 final class ServicosDoProfissionalUITests: XCTestCase {
     override func setUp() { super.setUp(); continueAfterFailure = false }
 
-    private func abrir(_ cenario: String = "success", ax5: Bool = false) -> XCUIApplication {
+    private func abrir(_ cenario: String = "perfil-rico-habilitado", ax5: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", cenario, "-AppleLanguages", "(pt-BR)", "-AppleLocale", "pt_BR"]
         if ax5 { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }

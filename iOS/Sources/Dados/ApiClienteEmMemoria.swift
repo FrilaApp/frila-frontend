@@ -229,6 +229,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
     private var servicosDoPerfil: [ServicoNoPerfil]?
+    private var apresentacaoProfissional: ApresentacaoDoProfissional?
+    private var regioesAtendidasCadastradas: [Int] = []
+    private var atendeTodoDFCadastrado: Bool = false
+    public var cenarioApresentacaoErro: CodigoErroAPI?
+    public var detalhesErroApresentacao: String?
     private var tentativasCriacaoPerfil = 0
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
@@ -880,6 +885,80 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
         perfilProfissional = perfil
         return perfil
+    }
+
+    public func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado {
+        try verificarRede()
+        if cenario == .perfilProfissionalComErroDeRede {
+            throw ErroDaApi(codigo: .semRede)
+        }
+        guard let perfil = perfilProfissional else { throw erro("nao_encontrado") }
+        let regioesObjetos = regioesAdministrativasCadastradas.filter { regioesAtendidasCadastradas.contains($0.id) }
+        return PerfilProfissionalDetalhado(
+            perfil: perfil,
+            apresentacao: apresentacaoProfissional?.apresentacao,
+            ondeTrabalhei: apresentacaoProfissional?.ondeTrabalhei,
+            experienciaFaixa: apresentacaoProfissional?.experienciaFaixa,
+            cursos: apresentacaoProfissional?.cursos ?? [],
+            idiomas: apresentacaoProfissional?.idiomas ?? [],
+            regioes: regioesObjetos,
+            atendeTodoDF: atendeTodoDFCadastrado
+        )
+    }
+
+    public func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado {
+        try verificarFalhaGeral()
+        if let erro = cenarioApresentacaoErro {
+            throw ErroDaApi(codigo: erro, detalhes: detalhesErroApresentacao)
+        }
+        if let sobre = apresentacao.apresentacao, contemContatoOuPix(sobre) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "apresentacao")
+        }
+        if let onde = apresentacao.ondeTrabalhei, contemContatoOuPix(onde) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "onde_trabalhei")
+        }
+        if let cursos = apresentacao.cursos, cursos.contains(where: { contemContatoOuPix($0) }) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "cursos")
+        }
+        self.apresentacaoProfissional = apresentacao
+        return try await meuPerfilDetalhado()
+    }
+
+    public func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado {
+        try verificarFalhaGeral()
+        if let erro = cenarioApresentacaoErro {
+            throw ErroDaApi(codigo: erro, detalhes: detalhesErroApresentacao)
+        }
+        self.atendeTodoDFCadastrado = regioes.atendeTodoDF
+        self.regioesAtendidasCadastradas = regioes.atendeTodoDF ? [] : regioes.regioes
+        return try await meuPerfilDetalhado()
+    }
+
+    public func definirApresentacaoDetalhada(
+        apresentacao: ApresentacaoDoProfissional,
+        regioes: [Int] = [],
+        atendeTodoDF: Bool = false
+    ) {
+        self.apresentacaoProfissional = apresentacao
+        self.regioesAtendidasCadastradas = regioes
+        self.atendeTodoDFCadastrado = atendeTodoDF
+    }
+
+    public func simularErroApresentacao(_ codigo: CodigoErroAPI?, detalhes: String? = nil) {
+        self.cenarioApresentacaoErro = codigo
+        self.detalhesErroApresentacao = detalhes
+    }
+
+    private func contemContatoOuPix(_ texto: String) -> Bool {
+        let minusculo = texto.lowercased()
+        if minusculo.contains("pix") || minusculo.contains("@") || minusculo.contains("http://") || minusculo.contains("https://") || minusculo.contains(".com") {
+            return true
+        }
+        let digitos = texto.filter { $0.isNumber }
+        if digitos.count >= 8 {
+            return true
+        }
+        return false
     }
 
     // MARK: Por que recebo vagas (RF27)

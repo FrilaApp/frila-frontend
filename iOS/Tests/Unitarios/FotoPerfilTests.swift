@@ -18,8 +18,10 @@ struct FotoPerfilTests {
     // MARK: Contrato: enums, DTOs e erros
 
     @Test("Os enums de mídia espelham o contrato caso a caso")
-    func enumsDeMidia() {
-        #expect(Set(TipoMidia.allCases.map(\.rawValue)) == ["foto_perfil", "foto_trabalho", "foto_local", "curriculo"])
+    func enumsDeMidia() throws {
+        #expect(Set(TipoMidia.allCases.map(\.rawValue)) == ["foto_perfil"])
+        let decodificado = try JSONDecoder().decode(TipoMidia.self, from: Data("\"tipo_futuro_do_servidor\"".utf8))
+        #expect(decodificado == .desconhecido("tipo_futuro_do_servidor"))
         #expect(Set(EstadoMidia.allCases.map(\.rawValue)) == [
             "enviando", "em_analise", "aprovada", "recusada", "nao_publicada", "ocultada", "removida",
         ])
@@ -381,8 +383,8 @@ struct FotoPerfilTests {
     func recusasDeEntradaEmMemoria() async throws {
         let api = ApiClienteEmMemoria(cenario: .fotoSemFoto)
         let casos: [(PedidoDeUploadDeMidia, String)] = [
-            (PedidoDeUploadDeMidia(tipo: .curriculo, bytes: 100), "tipo_indisponivel"),
-            (PedidoDeUploadDeMidia(tipo: .fotoTrabalho, bytes: 100), "tipo_indisponivel"),
+            (PedidoDeUploadDeMidia(tipo: TipoMidia(rawValue: "curriculo"), bytes: 100), "tipo_indisponivel"),
+            (PedidoDeUploadDeMidia(tipo: TipoMidia(rawValue: "foto_trabalho"), bytes: 100), "tipo_indisponivel"),
             (PedidoDeUploadDeMidia(mime: "image/png", bytes: 100), "formato"),
             (PedidoDeUploadDeMidia(bytes: LimitesDaFoto.bytesMaximos + 1), "tamanho"),
             (PedidoDeUploadDeMidia(bytes: 0), "tamanho"),

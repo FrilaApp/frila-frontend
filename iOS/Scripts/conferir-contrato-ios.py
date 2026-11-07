@@ -175,11 +175,8 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
             if "{" not in line:
                 continue
             for subline in lines[i + 1 :]:
-                depth += subline.count("{") - subline.count("}")
-                if depth <= 0:
-                    break
                 stripped = subline.strip()
-                if stripped.startswith("case "):
+                if depth == 1 and stripped.startswith("case "):
                     parts = stripped[5:].split("//")[0].split(",")
                     for part in parts:
                         part = part.strip()
@@ -192,6 +189,9 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
                             cases.add(part)
                             snake = re.sub(r"(?<!^)(?=[A-Z])", "_", part).lower()
                             cases.add(snake)
+                depth += subline.count("{") - subline.count("}")
+                if depth <= 0:
+                    break
             if cases:
                 swift_enums[ename] = cases
     return swift_enums
@@ -338,9 +338,13 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> tuple[list[st
         o_cases = set(o_cases_list)
         s_cases = swift_enums[s_name]
         faltando = o_cases - s_cases
+        extras = s_cases - o_cases
         if o_name == "TipoNotificacao":
             faltando -= {"midia_recusada"}  # I4, contrato 0.2.54; somente o aviso de mídia fica pendente.
-        extras = s_cases - o_cases
+        if o_name == "TipoMidia":
+            # Galeria e currículo descartados (decisão de produto, contrato 0.2.61): tolerância a tipos desconhecidos do servidor
+            faltando -= {"curriculo", "foto_local", "foto_trabalho"}
+            extras -= {"fotoPerfil"}
         if faltando:
             erros.append(
                 f"Enum {o_name} ({s_name}): casos do contrato faltando no Swift: {sorted(faltando)}"
@@ -486,6 +490,7 @@ def conferir_dtos(
         "EquipeDTO",                 # Struct aninhado em CriteriosDeNotificacaoDTO
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
         "RecursosDoAppDTO",          # Struct aninhado em ConfiguracaoDoAppDTO (aditivo 0.2.60 para feature flag)
+        "RegioesAtendidasDTO",       # Parâmetros de /rpc/definir_regioes_atendidas
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)

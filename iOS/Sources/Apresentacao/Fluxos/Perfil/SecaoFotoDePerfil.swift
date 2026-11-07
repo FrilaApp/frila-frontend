@@ -48,7 +48,8 @@ private struct ConteudoDaFotoDePerfil: View {
     }
 
     var body: some View {
-        Group {
+        ZStack(alignment: .leading) {
+            Color.clear.frame(height: 0)
             if model.secaoVisivel {
                 cartao
             } else if model.falhouAoCarregar {
@@ -73,8 +74,8 @@ private struct ConteudoDaFotoDePerfil: View {
         .confirmationDialog(
             TextosFotoDePerfil.confirmarRemocaoTitulo, isPresented: $pedirConfirmacaoDeRemocao, titleVisibility: .visible
         ) {
-            Button(role: .destructive) { Task { await model.remover() } } label: { Text(verbatim: TextosFotoDePerfil.remover) }
-            Button(role: .cancel) {} label: { Text(verbatim: TextosFotoDePerfil.cancelar) }
+            Button(TextosFotoDePerfil.remover, role: .destructive) { Task { await model.remover() } }
+            Button(TextosFotoDePerfil.cancelar, role: .cancel) {}
         } message: {
             Text(verbatim: TextosFotoDePerfil.confirmarRemocaoMensagem)
         }
@@ -88,6 +89,7 @@ private struct ConteudoDaFotoDePerfil: View {
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("perfil-foto-titulo")
             VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
                 HStack(alignment: .top, spacing: FrilaEspaco.medio) {
                     AvatarDaFoto(url: model.urlDaFoto)
@@ -105,7 +107,6 @@ private struct ConteudoDaFotoDePerfil: View {
                     .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
             )
         }
-        .accessibilityIdentifier("perfil-foto")
     }
 
     // MARK: Estado
