@@ -43,7 +43,7 @@ O cartão `VyY2SGsX` registra três conflitos identificados nas auditorias de pr
 
 ## 3. Inventário de Tipos de Notificação no Aplicativo e Backend
 
-Todos os 19 tipos de aviso suportados pela plataforma estão mapeados e implementados nos seguintes arquivos do repositório:
+Todos os 28 tipos de aviso suportados pela plataforma estão mapeados e implementados nos seguintes arquivos do repositório:
 
 | Tipo (`public.tipo_notificacao`) | Onde está declarado no app | Onde está documentado no contrato | Onde é roteado no iOS | Onde é formatado no backend |
 |---|---|---|---|---|
@@ -66,6 +66,15 @@ Todos os 19 tipos de aviso suportados pela plataforma estão mapeados e implemen
 | `candidatura_recusada` | `iOS/Sources/Dominio/AvisoDePush.swift:21` | `iOS/Contrato/openapi.yaml:3795,3807` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:20` | `supabase/functions/enviar-push/index.ts:437` / contrato |
 | `selecao_encerrada` | `iOS/Sources/Dominio/AvisoDePush.swift:22` | `iOS/Contrato/openapi.yaml:3796,3807` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:20` | `supabase/functions/enviar-push/index.ts:437` / contrato |
 | `selecao_lembrete` | `iOS/Sources/Dominio/AvisoDePush.swift:25` | `iOS/Contrato/openapi.yaml:3798,3807` | `iOS/Sources/Apresentacao/Fluxos/Contratante/RoteadorDoContratante.swift:46` | `supabase/functions/enviar-push/index.ts:437` / contrato |
+| `midia_recusada` | `iOS/Sources/Dominio/AvisoDePush.swift:34` | `iOS/Contrato/openapi.yaml:5572,5589` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:47` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_recebida` | `iOS/Sources/Dominio/AvisoDePush.swift:5` | `iOS/Contrato/openapi.yaml:5564,5590` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_lembrete` | `iOS/Sources/Dominio/AvisoDePush.swift:6` | `iOS/Contrato/openapi.yaml:5565,5590` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_aceita` | `iOS/Sources/Dominio/AvisoDePush.swift:7` | `iOS/Contrato/openapi.yaml:5566,5590` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_recusada` | `iOS/Sources/Dominio/AvisoDePush.swift:8` | `iOS/Contrato/openapi.yaml:5567,5590` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_expirada` | `iOS/Sources/Dominio/AvisoDePush.swift:9` | `iOS/Contrato/openapi.yaml:5568,5591` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_cancelada` | `iOS/Sources/Dominio/AvisoDePush.swift:10` | `iOS/Contrato/openapi.yaml:5569,5591` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `chamada_encerrada` | `iOS/Sources/Dominio/AvisoDePush.swift:11` | `iOS/Contrato/openapi.yaml:5570,5591` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:44` | `supabase/functions/enviar-push/index.ts` / contrato |
+| `turno_nao_verificado` | `iOS/Sources/Dominio/AvisoDePush.swift:36` | `iOS/Contrato/openapi.yaml:5580,5591` | `iOS/Sources/Apresentacao/Fluxos/Push/RoteadorDePush.swift:27` | `supabase/functions/enviar-push/index.ts` / contrato |
 
 ---
 
@@ -113,6 +122,15 @@ Todos os 19 tipos de aviso suportados pela plataforma estão mapeados e implemen
 | 30 | `selecao_encerrada` | Seleção expirada (Candidato) | Prazo de escolha expirou sem que a casa selecionasse (0.2.38) | Candidato pendente | Vaga fechada sem escolha | 24 (OK) | O prazo de escolha terminou e sua candidatura foi encerrada. Você está livre para outras vagas. | 95 (OK) | Tela de vaga indisponível (`TelaVagaIndisponivel`) | Deixa claro que profissional está desimpedido. |
 | 31 | `selecao_encerrada` | Seleção expirada (Contratante) | Prazo de escolha de 24h encerrou sem preenchimento total (0.2.38) | Contratante (membros do estabelecimento) | Prazo de escolha encerrado | 26 (OK) | A vaga de {função} fechou sem todas as posições preenchidas. Toque para republicar em urgência. | 93 (OK) | Detalhe da vaga em Minhas Vagas | Oferece saída direta para republicação em urgência. |
 | 32 | `selecao_lembrete` | Lembrete de escolha (Contratante) | Faltando ≤ 6 horas para expirar prazo de seleção com candidatos pendentes (0.2.38) | Contratante (membros do estabelecimento) | Candidatos esperando sua escolha | 32 (OK) | {N} candidato(s) para a vaga de {função}. Escolha até {dd/mm às HH:MM}, quando a vaga fecha. | 84 a 95 (OK) | Detalhe da vaga em Minhas Vagas com aba Candidatos | Dispara uma única vez por vaga; horário no fuso de Brasília. |
+| 33 | `midia_recusada` | Foto não publicada | Moderação recusou ou foto não aprovada (0.2.54) | Profissional (dono da mídia) | Foto não publicada | 18 (OK) | Use uma foto sua, com rosto visível, sem texto nem dados pessoais. | 66 (OK) | Meu Perfil / Fotos | Aviso neutro sem expor detalhes internos da análise. |
+| 34 | `chamada_recebida` | Nova chamada direta | Estabelecimento chamou o profissional diretamente (0.2.55) | Profissional chamado | Nova chamada | 12 (OK) | Um contratante quer você para {serviço} em {dd/mm}. Responda até {HH:MM}. | 66 (OK) | Detalhe da chamada | Sem nome nem telefone; responde no app. |
+| 35 | `chamada_lembrete` | Lembrete de chamada | Vencimento da chamada se aproximando (0.2.55) | Profissional chamado | Chamada esperando resposta | 26 (OK) | A chamada para {serviço} em {dd/mm} vence às {HH:MM}. | 46 (OK) | Detalhe da chamada | Lembrete objetivo antes de expirar. |
+| 36 | `chamada_aceita` | Chamada confirmada | Profissional aceitou a chamada direta (0.2.55) | Contratante (membros do estabelecimento) | Chamada aceita | 14 (OK) | A chamada para {serviço} em {dd/mm} foi aceita. Toque para ver o turno. | 67 (OK) | Detalhe do turno em Minhas Vagas | Confirmação da contratação direta. |
+| 37 | `chamada_recusada` | Chamada declinada | Profissional recusou a chamada direta (0.2.55) | Contratante (membros do estabelecimento) | Chamada recusada | 16 (OK) | A chamada para {serviço} em {dd/mm} foi recusada. Você pode chamar outra pessoa ou publicar para todos. | 99 (OK) | Minhas Vagas | Permite nova ação da casa sem atrito. |
+| 38 | `chamada_expirada` | Chamada sem resposta | Prazo de resposta da chamada esgotou (0.2.55) | Profissional e Contratante | Chamada vencida | 15 (OK) | A chamada para {serviço} em {dd/mm} venceu sem resposta. | 51 (OK) | Minhas Vagas / Início | Encerramento automático por tempo. |
+| 39 | `chamada_cancelada` | Chamada cancelada pela casa | Contratante cancelou a chamada antes da resposta (0.2.55) | Profissional chamado | Chamada cancelada | 17 (OK) | O contratante cancelou a chamada para {serviço} em {dd/mm}. Nada muda para você. | 75 (OK) | Início / Vagas | Esclarece ausência de impacto na reputação. |
+| 40 | `chamada_encerrada` | Vaga preenchida por outro | Contratante fechou o turno com outra pessoa (0.2.55) | Profissional chamado | Trabalho preenchido | 19 (OK) | O contratante fechou com outra pessoa. Nada muda para você. | 59 (OK) | Início / Vagas | Comunica liberação sem penalidade. |
+| 41 | `turno_nao_verificado` | Turno sem presença confirmada | Turno encerrou sem check-in ou sem confirmação de presença (0.2.62, RN22) | Profissional e Contratante | Turno não verificado | 20 (OK) | A presença no turno não foi confirmada dentro do prazo. O turno foi encerrado como não verificado. | 99 (OK) | Detalhe do turno (`TelaTurno`) | Informa encerramento sem acusação; dados do turno no app. |
 
 ---
 
@@ -185,7 +203,7 @@ Exibida quando a notificação traz um identificador de turno que não pertence 
 
 | Critério de Aceite | Status | Verificação Realizada |
 |---|:---:|---|
-| Todos os tipos de notificação mapeados sem omissões | **Atendido** | 19 tipos do contrato OpenAPI / `TipoDeAviso` e 32 cenários/variantes detalhados com seus respectivos arquivos de código. |
+| Todos os tipos de notificação mapeados sem omissões | **Atendido** | 28 tipos do contrato OpenAPI / `TipoDeAviso` e 41 cenários/variantes detalhados com seus respectivos arquivos de código. |
 | Nenhum push com telefone ou e-mail | **Atendido** | 0 ocorrências de contato direto em texto de push. Dados pessoais protegidos pela RN10/RN15. |
 | Nenhum push com motivo de suspensão | **Atendido** | Push de suspensão contém mensagem neutra e genérica ("Aviso sobre sua conta / Sua conta foi suspensa. Abra o aplicativo para mais detalhes."). |
 | Nenhum push com relato de denúncia | **Atendido** | Denúncias e relatos são restritos ao canal interno da Equipe Frila e e-mail operacional. |

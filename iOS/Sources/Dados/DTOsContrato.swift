@@ -229,6 +229,97 @@ enum ContratoAPI {
         }
     }
 
+    struct ServicoOferecidoDTO: Encodable {
+        let funcaoID: UUID
+        let unidade: UnidadePreco
+        let valorCentavos: Int?
+        let valorMaxCentavos: Int?
+        let horasIncluidas: Int?
+        let minimoHoras: Int?
+        let duracaoTipicaH: Int?
+        let atePessoas: Int?
+        let minimoPessoas: Int?
+        let descricaoPacote: String?
+        let itensInclusos: String?
+        let levaMaterial: LevaMaterial?
+        let especialidadeIDs: [UUID]?
+
+        enum CodingKeys: String, CodingKey {
+            case funcaoID = "funcao_id"
+            case unidade
+            case valorCentavos = "valor_centavos"
+            case valorMaxCentavos = "valor_max_centavos"
+            case horasIncluidas = "horas_incluidas"
+            case minimoHoras = "minimo_horas"
+            case duracaoTipicaH = "duracao_tipica_h"
+            case atePessoas = "ate_pessoas"
+            case minimoPessoas = "minimo_pessoas"
+            case descricaoPacote = "descricao_pacote"
+            case itensInclusos = "inclui"
+            case levaMaterial = "leva_material"
+            case especialidadeIDs = "especialidade_ids"
+        }
+
+        init(_ servico: ServicoOferecido) {
+            funcaoID = servico.funcaoID
+            unidade = servico.unidade
+            valorCentavos = servico.valorCentavos
+            valorMaxCentavos = servico.valorMaxCentavos
+            horasIncluidas = servico.horasIncluidas
+            minimoHoras = servico.minimoHoras
+            duracaoTipicaH = servico.duracaoTipicaH
+            atePessoas = servico.atePessoas
+            minimoPessoas = servico.minimoPessoas
+            descricaoPacote = servico.descricaoPacote
+            itensInclusos = servico.itensInclusos
+            levaMaterial = servico.levaMaterial
+            especialidadeIDs = servico.especialidadeIDs
+        }
+    }
+
+    struct ServicoNoPerfilDTO: Decodable {
+        let funcao: FuncaoDTO
+        let unidade: UnidadePreco
+        let valorCentavos: Int?
+        let valorMaxCentavos: Int?
+        let horasIncluidas: Int?
+        let minimoHoras: Int?
+        let duracaoTipicaH: Int?
+        let atePessoas: Int?
+        let minimoPessoas: Int?
+        let descricaoPacote: String?
+        let itensInclusos: String?
+        let levaMaterial: LevaMaterial?
+        let especialidades: [EspecialidadeDTO]?
+
+        enum CodingKeys: String, CodingKey {
+            case funcao
+            case unidade
+            case valorCentavos = "valor_centavos"
+            case valorMaxCentavos = "valor_max_centavos"
+            case horasIncluidas = "horas_incluidas"
+            case minimoHoras = "minimo_horas"
+            case duracaoTipicaH = "duracao_tipica_h"
+            case atePessoas = "ate_pessoas"
+            case minimoPessoas = "minimo_pessoas"
+            case descricaoPacote = "descricao_pacote"
+            case itensInclusos = "inclui"
+            case levaMaterial = "leva_material"
+            case especialidades
+        }
+
+        func dominio() -> ServicoNoPerfil {
+            ServicoNoPerfil(funcao: funcao.dominio(), servico: ServicoOferecido(
+                funcaoID: funcao.id, unidade: unidade, valorCentavos: valorCentavos, valorMaxCentavos: valorMaxCentavos, horasIncluidas: horasIncluidas, minimoHoras: minimoHoras, duracaoTipicaH: duracaoTipicaH, atePessoas: atePessoas, minimoPessoas: minimoPessoas, descricaoPacote: descricaoPacote, levaMaterial: levaMaterial, itensInclusos: itensInclusos,
+                especialidadeIDs: especialidades?.map(\.id)
+            ), especialidades: especialidades?.map { $0.dominio() } ?? [])
+        }
+    }
+
+    struct ServicosDoPerfil: Decodable {
+        let servicos: [ServicoNoPerfilDTO]
+    }
+
     struct ReputacaoDTO: Codable {
         let positivas: Int
         let total: Int
@@ -260,9 +351,21 @@ enum ContratoAPI {
         let nome: String
         let funcoes: [String]?
         let reputacao: ReputacaoDTO
+        /// 0.2.54: só vêm para leitor com vínculo de leitura, com o recurso ligado e o titular ativo.
+        let fotoURL: URL?
+        let fotoID: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case id, tipo, nome, funcoes, reputacao
+            case fotoURL = "foto_url"
+            case fotoID = "foto_id"
+        }
 
         func dominio() -> PerfilPublico {
-            PerfilPublico(id: id, tipo: tipo, nome: nome, funcoes: funcoes ?? [], reputacao: reputacao.dominio())
+            PerfilPublico(
+                id: id, tipo: tipo, nome: nome, funcoes: funcoes ?? [], reputacao: reputacao.dominio(),
+                fotoURL: fotoURL, fotoID: fotoID
+            )
         }
     }
 
@@ -288,6 +391,109 @@ enum ContratoAPI {
                 pontoBase: pontoBase.dominio(),
                 disponibilidades: disponibilidades.map { try $0.dominio() },
                 reputacao: reputacao.dominio()
+            )
+        }
+    }
+
+    struct ApresentacaoDoProfissionalDTO: Encodable {
+        let apresentacao: String?
+        let ondeTrabalhei: String?
+        let experienciaFaixa: ExperienciaFaixa?
+        let cursos: [String]?
+        let idiomas: [Idioma]?
+
+        enum CodingKeys: String, CodingKey {
+            case apresentacao
+            case ondeTrabalhei = "onde_trabalhei"
+            case experienciaFaixa = "experiencia_faixa"
+            case cursos
+            case idiomas
+        }
+
+        init(_ apresentacao: ApresentacaoDoProfissional) {
+            self.apresentacao = apresentacao.apresentacao
+            self.ondeTrabalhei = apresentacao.ondeTrabalhei
+            self.experienciaFaixa = apresentacao.experienciaFaixa
+            self.cursos = apresentacao.cursos
+            self.idiomas = apresentacao.idiomas
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(apresentacao, forKey: .apresentacao)
+            try container.encode(ondeTrabalhei, forKey: .ondeTrabalhei)
+            try container.encode(experienciaFaixa, forKey: .experienciaFaixa)
+            try container.encode(cursos, forKey: .cursos)
+            try container.encode(idiomas, forKey: .idiomas)
+        }
+    }
+
+    struct RegioesAtendidasDTO: Encodable {
+        let regioes: [Int]
+        let atendeTodoDF: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case regioes
+            case atendeTodoDF = "atende_todo_df"
+        }
+
+        init(regioes: [Int], atendeTodoDF: Bool) {
+            self.regioes = regioes
+            self.atendeTodoDF = atendeTodoDF
+        }
+    }
+
+    struct PerfilProfissionalDetalhadoDTO: Decodable {
+        let id: UUID
+        let usuarioID: UUID
+        let funcoes: [FuncaoDTO]
+        let pontoBase: CoordenadaDTO
+        let disponibilidades: [JanelaDTO]
+        let reputacao: ReputacaoDTO
+        let apresentacao: String?
+        let ondeTrabalhei: String?
+        let experienciaFaixa: ExperienciaFaixa?
+        let cursos: [String]?
+        let idiomas: [Idioma]?
+        let servicos: [ServicoNoPerfilDTO]?
+        let regioes: [RegiaoAdministrativaDTO]?
+        let atendeTodoDF: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case usuarioID = "usuario_id"
+            case funcoes
+            case pontoBase = "ponto_base"
+            case disponibilidades
+            case reputacao
+            case apresentacao
+            case ondeTrabalhei = "onde_trabalhei"
+            case experienciaFaixa = "experiencia_faixa"
+            case cursos
+            case idiomas
+            case servicos
+            case regioes
+            case atendeTodoDF = "atende_todo_df"
+        }
+
+        func dominio() throws -> PerfilProfissionalDetalhado {
+            let base = try PerfilProfissional(
+                id: id,
+                usuarioID: usuarioID,
+                funcoes: funcoes.map { $0.dominio() },
+                pontoBase: pontoBase.dominio(),
+                disponibilidades: disponibilidades.map { try $0.dominio() },
+                reputacao: reputacao.dominio()
+            )
+            return PerfilProfissionalDetalhado(
+                perfil: base,
+                apresentacao: apresentacao,
+                ondeTrabalhei: ondeTrabalhei,
+                experienciaFaixa: experienciaFaixa,
+                cursos: cursos ?? [],
+                idiomas: idiomas ?? [],
+                regioes: regioes?.map { $0.dominio() } ?? [],
+                atendeTodoDF: atendeTodoDF ?? false
             )
         }
     }
@@ -437,6 +643,8 @@ enum ContratoAPI {
     }
 
     struct VagaDTO: Decodable {
+        let origem: OrigemVaga?
+        let vagaOrigemId: UUID?
         let id: UUID
         let estabelecimento: PerfilPublicoDTO
         let funcao: FuncaoDTO
@@ -460,6 +668,8 @@ enum ContratoAPI {
         let publicadoEm: Date
 
         enum CodingKeys: String, CodingKey {
+            case origem
+            case vagaOrigemId = "vaga_origem_id"
             case id, estabelecimento, funcao, local, ponto, posicoes, inclusos, traje, observacoes, modo, estado, oculta
             case inicioEm = "inicio_em"
             case fimEm = "fim_em"
@@ -493,7 +703,7 @@ enum ContratoAPI {
                 modo: modo,
                 estado: estado,
                 oculta: oculta,
-                publicadoEm: publicadoEm
+                publicadoEm: publicadoEm, origem: origem, vagaOrigemId: vagaOrigemId
             )
         }
     }
@@ -540,6 +750,8 @@ enum ContratoAPI {
     }
 
     struct VagaResumoDTO: Decodable {
+        let origem: OrigemVaga?
+        let vagaOrigemId: UUID?
         let id: UUID
         let funcao: String
         let local: String
@@ -549,6 +761,8 @@ enum ContratoAPI {
         let valorCentavos: Int
 
         enum CodingKeys: String, CodingKey {
+            case origem
+            case vagaOrigemId = "vaga_origem_id"
             case id, funcao, local
             case regiaoAdministrativa = "regiao_administrativa"
             case inicioEm = "inicio_em"
@@ -560,8 +774,37 @@ enum ContratoAPI {
             try VagaResumo(
                 id: id, funcao: funcao, local: local, regiaoAdministrativa: regiaoAdministrativa,
                 periodo: Periodo(inicio: inicioEm, fim: fimEm),
-                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos")
+                valor: ContratoAPI.dinheiro(valorCentavos, campo: "valor_centavos"), origem: origem, vagaOrigemId: vagaOrigemId
             )
+        }
+    }
+
+    struct ChamarProfissional: Encodable {
+        let pedido: PedidoChamada
+        enum CodingKeys: String, CodingKey {
+            case chave, profissional_id, estabelecimento_id, funcao_id, inicio_em, fim_em
+            case local, regiao_administrativa, ponto, valor_centavos, inclui_refeicao
+            case inclui_transporte, exige_material_proprio, responsavel_local, recado, confirmo_recorrencia
+        }
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            let t = pedido.trabalho
+            try c.encode(t.chave, forKey: .chave)
+            try c.encode(pedido.profissionalID, forKey: .profissional_id)
+            try c.encode(t.estabelecimentoID, forKey: .estabelecimento_id)
+            try c.encode(t.funcaoID, forKey: .funcao_id)
+            try c.encode(ContratoAPI.texto(t.periodo.inicio), forKey: .inicio_em)
+            try c.encode(ContratoAPI.texto(t.periodo.fim), forKey: .fim_em)
+            try c.encode(t.local, forKey: .local)
+            try c.encode(t.regiaoAdministrativa, forKey: .regiao_administrativa)
+            try c.encode(CoordenadaDTO(t.ponto), forKey: .ponto)
+            try c.encode(t.valor.centavos, forKey: .valor_centavos)
+            try c.encode(t.inclusos.refeicao, forKey: .inclui_refeicao)
+            try c.encode(t.inclusos.transporte, forKey: .inclui_transporte)
+            try c.encode(t.inclusos.exigeMaterialProprio, forKey: .exige_material_proprio)
+            try c.encode(t.responsavelLocal, forKey: .responsavel_local)
+            try c.encodeIfPresent(pedido.recado, forKey: .recado)
+            try c.encode(pedido.confirmoRecorrencia, forKey: .confirmo_recorrencia)
         }
     }
 
@@ -1385,16 +1628,39 @@ enum ContratoAPI {
 
     // MARK: Aplicativo
 
+    struct RecursosDoAppDTO: Decodable {
+        let fotoDePerfil: Bool?
+        let chamadaDireta: Bool?
+        let perfilRico: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case fotoDePerfil = "foto_de_perfil"
+            case chamadaDireta = "chamada_direta"
+            case perfilRico = "perfil_rico"
+        }
+
+        func dominio() -> RecursosDoApp {
+            RecursosDoApp(
+                fotoDePerfil: fotoDePerfil ?? false,
+                chamadaDireta: chamadaDireta ?? false,
+                perfilRico: perfilRico ?? false
+            )
+        }
+    }
+
     struct ConfiguracaoDoAppDTO: Decodable {
         let plataforma: Plataforma?
         let versaoMinima: String
         let versaoRecomendada: String
         let urlDaLoja: URL
         let mensagem: String?
+        /// 0.2.54: ausente vale tudo desligado.
+        let recursos: RecursosDoAppDTO?
 
         enum CodingKeys: String, CodingKey {
             case plataforma
             case mensagem
+            case recursos
             case versaoMinima = "versao_minima"
             case versaoRecomendada = "versao_recomendada"
             case urlDaLoja = "url_da_loja"
@@ -1410,7 +1676,8 @@ enum ContratoAPI {
                 versaoMinima: versaoMinima,
                 versaoRecomendada: versaoRecomendada,
                 mensagem: mensagem,
-                urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja)
+                urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja),
+                recursos: recursos?.dominio() ?? .desligados
             )
         }
 
@@ -1422,6 +1689,77 @@ enum ContratoAPI {
             }
             log.notice("url_da_loja_saneada")
             return urlPadraoDaLoja
+        }
+    }
+
+    // MARK: Foto de perfil (0.2.54)
+
+    /// O schema `Midia`: a mídia como o dono a vê.
+    struct MidiaDTO: Decodable {
+        let id: UUID
+        let tipo: TipoMidia
+        let estado: EstadoMidia
+        let motivoRecusa: MotivoRecusaMidia?
+        let podePedirNovaAnalise: Bool
+        let url: URL?
+        let estabelecimentoID: UUID?
+        let enviadaEm: Date?
+        let decididaEm: Date?
+
+        enum CodingKeys: String, CodingKey {
+            case id, tipo, estado, url
+            case motivoRecusa = "motivo_recusa"
+            case podePedirNovaAnalise = "pode_pedir_nova_analise"
+            case estabelecimentoID = "estabelecimento_id"
+            case enviadaEm = "enviada_em"
+            case decididaEm = "decidida_em"
+        }
+
+        func dominio() -> Midia {
+            Midia(
+                id: id, tipo: tipo, estado: estado, motivoRecusa: motivoRecusa,
+                podePedirNovaAnalise: podePedirNovaAnalise, url: url,
+                estabelecimentoID: estabelecimentoID, enviadaEm: enviadaEm, decididaEm: decididaEm
+            )
+        }
+    }
+
+    /// Resposta de `solicitar_upload_midia`.
+    struct UploadMidiaDTO: Decodable {
+        let midiaID: UUID
+        let uploadURL: URL
+        let uploadURLMiniatura: URL?
+        let expiraEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case midiaID = "midia_id"
+            case uploadURL = "upload_url"
+            case uploadURLMiniatura = "upload_url_miniatura"
+            case expiraEm = "expira_em"
+        }
+
+        func dominio() -> UploadDeMidia {
+            UploadDeMidia(midiaID: midiaID, uploadURL: uploadURL, uploadURLMiniatura: uploadURLMiniatura, expiraEm: expiraEm)
+        }
+    }
+
+    /// Parâmetros de `solicitar_upload_midia`.
+    struct SolicitarUploadMidia: Encodable {
+        let tipo: TipoMidia
+        let mime: String
+        let bytes: Int
+        let estabelecimentoID: UUID?
+
+        init(_ pedido: PedidoDeUploadDeMidia) {
+            tipo = pedido.tipo
+            mime = pedido.mime
+            bytes = pedido.bytes
+            estabelecimentoID = pedido.estabelecimentoID
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case tipo, mime, bytes
+            case estabelecimentoID = "estabelecimento_id"
         }
     }
 

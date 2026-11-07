@@ -102,6 +102,7 @@ enum TextosDoAcompanhamento {
 /// profissional, a confirmação do check-in manual e a reabertura por atraso. Recebe o turno pelo id,
 /// que é o que o aviso do push traz.
 struct TelaTurnoDoContratante: View {
+    @State private var chamadaHabilitada = false
     @State private var mostrarConfirmacaoDeSaida = false
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
@@ -169,6 +170,12 @@ struct TelaTurnoDoContratante: View {
             FolhaSuporteTurno(viewModel: model)
         }
         .accessibilityIdentifier("turno-do-contratante")
+        .task {
+            guard let api else { return }
+            chamadaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
+                try await api.configuracaoDoApp()
+            })?.recursos.chamadaDireta == true
+        }
     }
 
     @ViewBuilder private func conteudo(_ turno: TurnoAcompanhado) -> some View {
@@ -326,6 +333,10 @@ struct TelaTurnoDoContratante: View {
                 // Só com a presença verificada: é a condição de `incluir_na_equipe` (UC11). O
                 // servidor confere de novo; aqui é só para não oferecer o que ele vai recusar.
                 if turno.posicao.verificacao == .verificado, let estabelecimentoID = viewModel.painel?.estabelecimentoID {
+                    if chamadaHabilitada, viewModel.podeAvaliar(turno) {
+                        BotaoChamarDeNovo(api: api, profissionalID: profissional.id,
+                            estabelecimentoID: estabelecimentoID, vagaID: turno.vaga.id)
+                    }
                     BotaoIncluirNaEquipe(
                         perfil: profissional, estabelecimentoID: estabelecimentoID, api: api,
                         cache: .compartilhado,

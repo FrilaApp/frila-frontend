@@ -1,0 +1,11 @@
+{
+  "id": "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a10",
+  "tipo": "foto_perfil",
+  "estado": "aprovada",
+  "motivo_recusa": null,
+  "pode_pedir_nova_analise": false,
+  "url": "https://armazenamento.frila.invalid/midia-perfil/5d0f1c2a.jpg?token=exemplo",
+  "estabelecimento_id": null,
+  "enviada_em": "2026-11-07T15:00:00Z",
+  "decidida_em": "2026-11-07T15:01:12.345Z"
+}

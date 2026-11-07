@@ -6,7 +6,14 @@ import FrilaDominio
 /// dos cadastros de perfil, porque o fluxo de ponta a ponta atravessa os dois perfis.
 public actor ApiClienteEmMemoria: ApiCliente {
     public enum Cenario: String, CaseIterable, Sendable {
+        case chamadaDireta = "chamada-direta"
+        case chamadaRecorrente = "chamada-recorrente"
+        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente }
         case sucesso = "success"
+        case perfilRicoHabilitado = "perfil-rico-habilitado"
+        case servicosVazios = "servicos-vazios"
+        case servicosSemRede = "servicos-sem-rede"
+        case servicosInclusosRecusados = "servicos-inclusos-recusados"
         case primeiroAcesso = "primeiro-acesso"
         case vagaPreenchida = "vaga-preenchida"
         case inelegivel
@@ -120,10 +127,36 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case cancelarSemRede = "cancelar-sem-rede"
         /// Servidor de hoje no lado do profissional: turnos sem estado, avaliacao e cancelamento; candidaturas sem turno_id.
         case profissionalServidorAntigo = "profissional-servidor-antigo"
+        /// Foto de perfil (0.2.54), recurso ligado e nenhuma foto enviada: o fluxo de escolha e envio.
+        case fotoSemFoto = "foto-sem-foto"
+        /// Foto enviada e esperando a análise automática (`em_analise`).
+        case fotoEmAnalise = "foto-em-analise"
+        /// Foto `aprovada`, publicada para quem tem vínculo de leitura.
+        case fotoAprovada = "foto-aprovada"
+        /// Foto `recusada` por texto ou dado pessoal; ainda cabe pedir nova análise.
+        case fotoRecusada = "foto-recusada"
+        /// A análise falhou 4 vezes (`nao_publicada`, motivo `nao_analisada`); cabe pedir nova análise.
+        case fotoNaoPublicada = "foto-nao-publicada"
+        /// Duas denúncias ocultaram a foto (`ocultada`): fica oculta até o envio de outra.
+        case fotoOcultada = "foto-ocultada"
+        /// O servidor desligou o recurso (`recursos.foto_de_perfil = false`) e há uma foto aprovada: só remover.
+        case fotoRecursoDesligado = "foto-recurso-desligado"
         #if DEBUG
         /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
         case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
         #endif
+
+        /// Os cenários da foto de perfil (0.2.54).
+        public var daFotoDePerfil: Bool {
+            switch self {
+            case .fotoSemFoto, .fotoEmAnalise, .fotoAprovada, .fotoRecusada, .fotoNaoPublicada, .fotoOcultada,
+                 .fotoRecursoDesligado: true
+            default: false
+            }
+        }
+
+        /// No Prod o recurso nasce desligado; os cenários da foto o ligam, menos `fotoRecursoDesligado`.
+        var fotoDePerfilLigada: Bool { daFotoDePerfil && self != .fotoRecursoDesligado }
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
@@ -172,6 +205,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var turnoID: UUID? = nil
     }
 
+    private var chamadasPorChave: [UUID: Chamada] = [:]
+    public private(set) var pedidosChamadaRecebidos: [PedidoChamada] = []
     private var avaliacoes: [UUID: Avaliacao] = [:]
 
     private let cenario: Cenario
@@ -181,11 +216,24 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private let catalogo: [Funcao]
     private let regioesAdministrativasCadastradas: [RegiaoAdministrativa]
     private let configuracao: ConfiguracaoApp
+    /// As mídias da conta, como `minhas_midias` as devolve (0.2.54).
+    private var midias: [Midia] = []
+    /// Fotos cuja nova análise já foi pedida: uma vez só por foto.
+    private var novasAnalisesPedidas: Set<UUID> = []
+    /// Fotos cujo arquivo já foi expurgado: `pedir_nova_analise_midia` vira `expurgada`.
+    private var midiasExpurgadas: Set<UUID> = []
+    public private(set) var pedidosDeUploadDeMidia: [PedidoDeUploadDeMidia] = []
     private let contatoDeExemplo: Contato
     private let perfilPublicoDeExemplo: PerfilPublico
     private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
+    private var servicosDoPerfil: [ServicoNoPerfil]?
+    private var apresentacaoProfissional: ApresentacaoDoProfissional?
+    private var regioesAtendidasCadastradas: [Int] = []
+    private var atendeTodoDFCadastrado: Bool = false
+    public var cenarioApresentacaoErro: CodigoErroAPI?
+    public var detalhesErroApresentacao: String?
     private var tentativasCriacaoPerfil = 0
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
@@ -291,21 +339,34 @@ public actor ApiClienteEmMemoria: ApiCliente {
             envelopes = try FixturesDoContrato.erros()
             catalogo = try FixturesDoContrato.carregar("funcoes", como: [ContratoAPI.FuncaoDTO].self).map { $0.dominio() }
             regioesAdministrativasCadastradas = (try? FixturesDoContrato.carregar("regioes-administrativas", como: [ContratoAPI.RegiaoAdministrativaDTO].self).map { $0.dominio() }) ?? []
-            configuracao = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
+            let configuracaoBase = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
+            let perfilRicoHabilitado = (cenario == .perfilRicoHabilitado || cenario == .servicosVazios || cenario == .servicosInclusosRecusados)
+            configuracao = ConfiguracaoApp(
+                versaoMinima: configuracaoBase.versaoMinima,
+                versaoRecomendada: configuracaoBase.versaoRecomendada,
+                mensagem: configuracaoBase.mensagem,
+                urlDaLoja: configuracaoBase.urlDaLoja,
+                recursos: RecursosDoApp(
+                    fotoDePerfil: cenario.fotoDePerfilLigada,
+                    chamadaDireta: cenario.deChamada,
+                    perfilRico: perfilRicoHabilitado
+                )
+            )
+            midias = Self.midiasIniciais(cenario, agora: relogio.agora)
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
             perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
             candidatosDeExemplo = try FixturesDoContrato.carregar("candidatos", como: [ContratoAPI.CandidatoDTO].self).map { $0.dominio() }
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
             #if DEBUG
-            let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido
+            let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido || cenario.deChamada
             #else
-            let ehCicloContratante = false
+            let ehCicloContratante = cenario.deChamada
             #endif
             if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -348,7 +409,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
-            if let casa = estabelecimentos.first, conta?.perfil == .profissional || cenario == .equipeDeConfiancaComMembro {
+            if let casa = estabelecimentos.first, conta?.perfil == .profissional || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) {
                 equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id]
             }
             if let casa = estabelecimentos.first, cenario == .selecaoComCandidatoDaEquipe, candidatosDeExemplo.count > 1 {
@@ -381,7 +442,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
-            if cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
+            if cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
                 || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante,
                 let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
@@ -395,7 +456,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: (cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    verificacao: (cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
                     valorAcordado: vaga.valor, podeAvaliar: false
                 )
                 if cenario == .posicaoCanceladaComMotivo {
@@ -775,6 +836,43 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return perfilProfissional
     }
 
+    public func especialidades(funcaoID: UUID) async throws -> [Especialidade] {
+        try verificarFalhaGeral()
+        return try FixturesDoContrato.carregar("especialidades-servicos", como: [ContratoAPI.EspecialidadeDTO].self)
+            .map { $0.dominio() }.filter { $0.funcaoID == funcaoID && $0.ativo == true }
+    }
+
+    public func meusServicos() async throws -> [ServicoNoPerfil] {
+        let perfil = try await meuPerfilProfissional()
+        if let servicosDoPerfil { return servicosDoPerfil.filter { item in perfil.funcoes.contains { $0.id == item.id } } }
+        if cenario == .servicosVazios { return [] }
+        return perfil.funcoes.prefix(1).map {
+            ServicoNoPerfil(funcao: $0, servico: ServicoOferecido(funcaoID: $0.id, unidade: .diaria, valorCentavos: 18000, horasIncluidas: 8))
+        }
+    }
+
+    public func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil] {
+        try verificarFalhaGeral()
+        if cenario == .servicosSemRede { throw erro("sem_rede") }
+        if cenario == .servicosInclusosRecusados, servicos.contains(where: { $0.itensInclusos != nil }) { throw erro("campo_invalido", detalhes: "inclui") }
+        let conta = try await minhaConta()
+        guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
+        guard conta.estado == .ativa else { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+        let perfil = try await meuPerfilProfissional()
+        guard servicos.count <= 10, Set(servicos.map(\.funcaoID)).count == servicos.count else { throw erro("campo_invalido", detalhes: "servicos") }
+        var novos: [ServicoNoPerfil] = []
+        for servico in servicos {
+            guard let funcao = perfil.funcoes.first(where: { $0.id == servico.funcaoID }) else { throw erro("funcao_nao_marcada", detalhes: servico.funcaoID.uuidString) }
+            try servico.validar()
+            let ativas = try await especialidades(funcaoID: funcao.id)
+            let ids = servico.especialidadeIDs ?? []
+            guard ids.allSatisfy({ id in ativas.contains { $0.id == id } }) else { throw erro("campo_invalido", detalhes: "especialidade_ids") }
+            novos.append(ServicoNoPerfil(funcao: funcao, servico: servico, especialidades: ativas.filter { ids.contains($0.id) }))
+        }
+        servicosDoPerfil = novos
+        return novos
+    }
+
     public func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
         try verificarFalhaGeral()
         let atual = try await meuPerfilProfissional()
@@ -787,6 +885,80 @@ public actor ApiClienteEmMemoria: ApiCliente {
         )
         perfilProfissional = perfil
         return perfil
+    }
+
+    public func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado {
+        try verificarRede()
+        if cenario == .perfilProfissionalComErroDeRede {
+            throw ErroDaApi(codigo: .semRede)
+        }
+        guard let perfil = perfilProfissional else { throw erro("nao_encontrado") }
+        let regioesObjetos = regioesAdministrativasCadastradas.filter { regioesAtendidasCadastradas.contains($0.id) }
+        return PerfilProfissionalDetalhado(
+            perfil: perfil,
+            apresentacao: apresentacaoProfissional?.apresentacao,
+            ondeTrabalhei: apresentacaoProfissional?.ondeTrabalhei,
+            experienciaFaixa: apresentacaoProfissional?.experienciaFaixa,
+            cursos: apresentacaoProfissional?.cursos ?? [],
+            idiomas: apresentacaoProfissional?.idiomas ?? [],
+            regioes: regioesObjetos,
+            atendeTodoDF: atendeTodoDFCadastrado
+        )
+    }
+
+    public func atualizarApresentacaoProfissional(_ apresentacao: ApresentacaoDoProfissional) async throws -> PerfilProfissionalDetalhado {
+        try verificarFalhaGeral()
+        if let erro = cenarioApresentacaoErro {
+            throw ErroDaApi(codigo: erro, detalhes: detalhesErroApresentacao)
+        }
+        if let sobre = apresentacao.apresentacao, contemContatoOuPix(sobre) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "apresentacao")
+        }
+        if let onde = apresentacao.ondeTrabalhei, contemContatoOuPix(onde) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "onde_trabalhei")
+        }
+        if let cursos = apresentacao.cursos, cursos.contains(where: { contemContatoOuPix($0) }) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "cursos")
+        }
+        self.apresentacaoProfissional = apresentacao
+        return try await meuPerfilDetalhado()
+    }
+
+    public func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado {
+        try verificarFalhaGeral()
+        if let erro = cenarioApresentacaoErro {
+            throw ErroDaApi(codigo: erro, detalhes: detalhesErroApresentacao)
+        }
+        self.atendeTodoDFCadastrado = regioes.atendeTodoDF
+        self.regioesAtendidasCadastradas = regioes.atendeTodoDF ? [] : regioes.regioes
+        return try await meuPerfilDetalhado()
+    }
+
+    public func definirApresentacaoDetalhada(
+        apresentacao: ApresentacaoDoProfissional,
+        regioes: [Int] = [],
+        atendeTodoDF: Bool = false
+    ) {
+        self.apresentacaoProfissional = apresentacao
+        self.regioesAtendidasCadastradas = regioes
+        self.atendeTodoDFCadastrado = atendeTodoDF
+    }
+
+    public func simularErroApresentacao(_ codigo: CodigoErroAPI?, detalhes: String? = nil) {
+        self.cenarioApresentacaoErro = codigo
+        self.detalhesErroApresentacao = detalhes
+    }
+
+    private func contemContatoOuPix(_ texto: String) -> Bool {
+        let minusculo = texto.lowercased()
+        if minusculo.contains("pix") || minusculo.contains("@") || minusculo.contains("http://") || minusculo.contains("https://") || minusculo.contains(".com") {
+            return true
+        }
+        let digitos = texto.filter { $0.isNumber }
+        if digitos.count >= 8 {
+            return true
+        }
+        return false
     }
 
     // MARK: Por que recebo vagas (RF27)
@@ -1052,6 +1224,63 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return regioesAdministrativasCadastradas
     }
 
+    public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+        pedidosChamadaRecebidos.append(pedido)
+        try exigirAdministrador(de: pedido.trabalho.estabelecimentoID)
+        guard cenario.deChamada else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+        guard let perfil = perfilDoProfissional(pedido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
+            throw erro("nao_encontrado")
+        }
+        let t = pedido.trabalho
+        if let existente = chamadasPorChave[t.chave] { return existente }
+        guard equipesDeConfianca[t.estabelecimentoID]?.contains(perfil.id) == true
+                || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID) else {
+            throw erro("profissional_indisponivel", detalhes: "nao_aceita_chamadas")
+        }
+        guard let funcao = catalogo.first(where: { $0.id == t.funcaoID }), perfil.funcoes.contains(funcao.nome) else {
+            throw erro("funcao_incompativel")
+        }
+        guard t.periodo.inicio.timeIntervalSince(relogio.agora) >= 2 * 3600 else {
+            throw erro("profissional_indisponivel", detalhes: "antecedencia_insuficiente")
+        }
+        guard (2 * 3600...16 * 3600).contains(t.periodo.fim.timeIntervalSince(t.periodo.inicio)),
+              t.valor.centavos > 0, t.posicoes == 1, t.modo == .urgencia else { throw erro("campo_invalido") }
+        guard !t.local.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !t.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !t.responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              (pedido.recado?.count ?? 0) <= 300 else { throw erro("campo_invalido") }
+        let abertas = chamadasPorChave.values.filter { $0.estado == .aberta && $0.expiraEm > relogio.agora }
+        guard !abertas.contains(where: { $0.profissionalID == perfil.id && $0.estabelecimentoID == t.estabelecimentoID }) else {
+            throw erro("chamada_ja_aberta")
+        }
+        guard abertas.filter({ $0.profissionalID == perfil.id }).count < 5 else {
+            throw erro("profissional_indisponivel", detalhes: "agenda_cheia")
+        }
+        guard abertas.filter({ $0.estabelecimentoID == t.estabelecimentoID }).count < 10 else { throw erro("limite_de_chamadas") }
+        // Este cenário representa uma casa CPF com duas chamadas anteriores na janela de sete dias.
+        if cenario == .chamadaRecorrente, !pedido.confirmoRecorrencia { throw erro("recorrencia_nao_confirmada") }
+        let casa = estabelecimentos.first { $0.id == t.estabelecimentoID }!
+        let vaga = Vaga(id: UUID(), estabelecimento: perfilDo(casa), funcao: funcao, periodo: t.periodo,
+                        local: t.local, regiaoAdministrativa: t.regiaoAdministrativa, ponto: t.ponto,
+                        valor: t.valor, posicoes: 1, posicoesAbertas: 1, inclusos: t.inclusos,
+                        responsavelLocal: t.responsavelLocal, modo: .urgencia, estado: .publicada,
+                        publicadoEm: relogio.agora, origem: .chamadaDireta)
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = TimeZone(identifier: "America/Sao_Paulo")!
+        let hora = calendario.component(.hour, from: relogio.agora)
+        let inicioAntesDasDez = calendario.component(.hour, from: t.periodo.inicio) < 10
+        let envio: Date
+        if (hora >= 22 || hora < 7), !inicioAntesDasDez {
+            envio = calendario.nextDate(after: relogio.agora, matching: DateComponents(hour: 7), matchingPolicy: .nextTime) ?? relogio.agora
+        } else { envio = relogio.agora }
+        let chamada = Chamada(id: UUID(), vagaID: vaga.id, profissionalID: perfil.id,
+                              estabelecimentoID: casa.id, recado: pedido.recado,
+                              expiraEm: min(envio.addingTimeInterval(12 * 3600), t.periodo.inicio.addingTimeInterval(-3600)), criadaEm: relogio.agora)
+        vagas.append(vaga)
+        chamadasPorChave[t.chave] = chamada
+        return chamada
+    }
+
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
         chamadasAPublicarVaga += 1
         chavesPublicacaoRecebidas.append(publicacao.chave)
@@ -1258,7 +1487,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let ordenadas = vagas
             .filter { vaga in
                 // Fora da vitrine: a vaga ocultada pela moderação (contrato 0.2.23) e a que já começou (0.2.19).
-                guard vaga.estado == .publicada, !vaga.oculta, vaga.periodo.inicio > agora else { return false }
+                guard vaga.origem != .chamadaDireta, vaga.estado == .publicada, !vaga.oculta, vaga.periodo.inicio > agora else { return false }
                 // RF26: as partes de um bloqueio não se cruzam em lista, detalhe nem candidatura.
                 guard !bloqueada(vaga) else { return false }
                 if let funcaoID = filtro.funcaoID, vaga.funcao.id != funcaoID { return false }
@@ -1288,7 +1517,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func detalheDaVaga(id: UUID) async throws -> Vaga {
         try verificarFalhaGeral()
-        guard let vaga = vagas.first(where: { $0.id == id }), !bloqueada(vaga) else { throw erro("nao_encontrado") }
+        guard let vaga = vagas.first(where: { $0.id == id }), vaga.origem != .chamadaDireta, !bloqueada(vaga) else { throw erro("nao_encontrado") }
         // Contrato 0.2.23: a vaga ocultada só abre, com `oculta: true`, para quem ocupa posição ou tem
         // candidatura nela; para os demais é o mesmo 404 da vaga escondida por bloqueio.
         if vaga.oculta, !turnos.contains(where: { $0.vaga.id == id }), candidaturaDaConta(na: id) == nil {
@@ -1950,12 +2179,162 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return .arquivo(try FixturesDoContrato.arquivo("exportar-turnos", extensao: pedido.formato.rawValue))
     }
 
+    // MARK: Foto de perfil (contrato 0.2.54)
+
+    /// A foto de exemplo dos cenários: um JPEG minúsculo em `data:`, que o `URLSession` lê sem rede.
+    static let urlDaFotoDeExemplo = URL(string: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBARXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAGAAYAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICAwICAwQDAwMEBQQEBAQFBwUFBQUFBwgHBwcHBwcICAgICAgICAoKCgoKCgsLCwsLDQ0NDQ0NDQ0NDf/bAEMBAgICAwMDBgMDBg0JBwkNDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDf/dAAQAAv/aAAwDAQACEQMRAD8A+07O86EGvnu1/bD8JReNF8Otps/9k/aPs39recuM7tnmeTtz5Wed2/dt5254r1axvunNfJcH7KE0vjAXP9rW/wDwjn2jzjHh/tflbt3lY27Ony793vt7V+C8P/2bL2n9oO2nu7/PbrtY/pvi3CZnB0/7Oje797b5b9N7s/UGxvunNa328V5xY33Tmtb7d715samhwV8v9/Y//9DI+NfxQ1jw1b2vh3w9O1rdXsRmnuUOJEhyVUIf4SxDZYcgDjrkfII1XVBef2iLy4F1nd5/mt5ufXfndmvZv2gP+RusP+wZH/6Omrwqvi+EcHRp5XTnCKvJXb76n6t4h4+vVz2vTnJ8sHaK6LRbH6Hfsx/F/XPFi3nhLxNO15eafCtzb3TnMskAYIyyH+JkZlwx5IPPTJ+vPt3v+tfm3+yR/wAlE1P/ALAs3/pRb1+h1fn/ABVh6dDMZwpKydnb1R91whWnicshUru7Tav6M//Z")!
+
+    /// Ids fixos, para os testes de interface acharem a foto do cenário.
+    static let idDaFotoDeExemplo = UUID(uuidString: "5D0F1C2A-7B7E-4C1B-9A55-0C6B2E4F7A10")!
+
+    private static func midiasIniciais(_ cenario: Cenario, agora: Date) -> [Midia] {
+        guard cenario.daFotoDePerfil, cenario != .fotoSemFoto else { return [] }
+        let enviada = agora.addingTimeInterval(-3 * 60 * 60)
+        let decidida = agora.addingTimeInterval(-2 * 60 * 60)
+        let id = idDaFotoDeExemplo
+        switch cenario {
+        case .fotoEmAnalise:
+            return [Midia(id: id, estado: .emAnalise, enviadaEm: agora.addingTimeInterval(-60))]
+        case .fotoAprovada, .fotoRecursoDesligado:
+            return [Midia(id: id, estado: .aprovada, url: urlDaFotoDeExemplo, enviadaEm: enviada, decididaEm: decidida)]
+        case .fotoRecusada:
+            return [Midia(
+                id: id, estado: .recusada, motivoRecusa: .textoOuDadoPessoal, podePedirNovaAnalise: true,
+                enviadaEm: enviada, decididaEm: decidida
+            )]
+        case .fotoNaoPublicada:
+            return [Midia(
+                id: id, estado: .naoPublicada, motivoRecusa: .naoAnalisada, podePedirNovaAnalise: true,
+                enviadaEm: enviada, decididaEm: decidida
+            )]
+        case .fotoOcultada:
+            return [Midia(id: id, estado: .ocultada, enviadaEm: enviada, decididaEm: decidida)]
+        default:
+            return []
+        }
+    }
+
+    private func exigirFotoDePerfilLigada() throws {
+        guard configuracao.recursos.fotoDePerfil else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+    }
+
+    private func indiceDaMidia(_ id: UUID) throws -> Int {
+        guard let indice = midias.firstIndex(where: { $0.id == id }) else { throw erro("nao_encontrado") }
+        return indice
+    }
+
+    public func solicitarUploadMidia(_ pedido: PedidoDeUploadDeMidia) async throws -> UploadDeMidia {
+        try verificarFalhaGeral()
+        try exigirFotoDePerfilLigada()
+        pedidosDeUploadDeMidia.append(pedido)
+        guard pedido.tipo == .fotoPerfil else { throw erro("midia_invalida", detalhes: "tipo_indisponivel") }
+        guard pedido.mime == LimitesDaFoto.mime else { throw erro("midia_invalida", detalhes: "formato") }
+        guard pedido.bytes >= 1, pedido.bytes <= LimitesDaFoto.bytesMaximos else { throw erro("midia_invalida", detalhes: "tamanho") }
+        let midia = Midia(id: UUID(), estado: .enviando, enviadaEm: relogio.agora)
+        midias.append(midia)
+        return UploadDeMidia(
+            midiaID: midia.id,
+            uploadURL: URL(string: "https://armazenamento.frila.invalid/midia-perfil/\(midia.id.uuidString.lowercased()).jpg")!,
+            expiraEm: relogio.agora.addingTimeInterval(2 * 60 * 60)
+        )
+    }
+
+    public func confirmarUploadMidia(id: UUID) async throws -> Midia {
+        try verificarFalhaGeral()
+        try exigirFotoDePerfilLigada()
+        let indice = try indiceDaMidia(id)
+        // Idempotente: só `enviando` vai a `em_analise`; nos outros estados devolve o atual.
+        if midias[indice].estado == .enviando {
+            let atual = midias[indice]
+            midias[indice] = Midia(id: atual.id, estado: .emAnalise, enviadaEm: atual.enviadaEm)
+        }
+        return midias[indice]
+    }
+
+    public func removerMidia(id: UUID) async throws -> Midia {
+        // Remover o próprio dado nunca depende do interruptor; conta suspensa ainda é recusada.
+        try verificarFalhaGeral()
+        let indice = try indiceDaMidia(id)
+        let atual = midias[indice]
+        if atual.estado != .removida {
+            midias[indice] = Midia(id: atual.id, estado: .removida, enviadaEm: atual.enviadaEm, decididaEm: atual.decididaEm)
+        }
+        return midias[indice]
+    }
+
+    public func minhasMidias() async throws -> [Midia] {
+        try verificarFalhaGeral()
+        return midias
+    }
+
+    public func pedirNovaAnaliseMidia(id: UUID) async throws -> Midia {
+        try verificarFalhaGeral()
+        try exigirFotoDePerfilLigada()
+        let indice = try indiceDaMidia(id)
+        let atual = midias[indice]
+        if novasAnalisesPedidas.contains(id) { return atual }
+        guard atual.estado == .recusada || atual.estado == .naoPublicada else {
+            throw erro("midia_indisponivel", detalhes: "estado_invalido")
+        }
+        guard !midiasExpurgadas.contains(id), atual.podePedirNovaAnalise else {
+            throw erro("midia_indisponivel", detalhes: "expurgada")
+        }
+        novasAnalisesPedidas.insert(id)
+        midias[indice] = Midia(id: atual.id, estado: .emAnalise, enviadaEm: atual.enviadaEm)
+        return midias[indice]
+    }
+
+    /// Só para testes e previews: a decisão da análise automática, que no servidor vem depois, em segundo plano.
+    public func decidirMidiaParaTeste(id: UUID, estado: EstadoMidia, motivo: MotivoRecusaMidia? = nil) throws {
+        let indice = try indiceDaMidia(id)
+        let atual = midias[indice]
+        let recusada = estado == .recusada || estado == .naoPublicada
+        midias[indice] = Midia(
+            id: atual.id, estado: estado, motivoRecusa: recusada ? motivo : nil,
+            podePedirNovaAnalise: recusada && !novasAnalisesPedidas.contains(id) && !midiasExpurgadas.contains(id),
+            url: estado == .aprovada ? Self.urlDaFotoDeExemplo : nil,
+            enviadaEm: atual.enviadaEm, decididaEm: relogio.agora
+        )
+    }
+
+    /// Só para testes: o expurgo apagou o arquivo da foto recusada (`expurgada`).
+    public func expurgarMidiaParaTeste(id: UUID) throws {
+        let indice = try indiceDaMidia(id)
+        midiasExpurgadas.insert(id)
+        let atual = midias[indice]
+        midias[indice] = Midia(
+            id: atual.id, estado: atual.estado, motivoRecusa: atual.motivoRecusa, podePedirNovaAnalise: false,
+            enviadaEm: atual.enviadaEm, decididaEm: atual.decididaEm
+        )
+    }
+
     // MARK: Aplicativo e dispositivo
+
+    private var recursosConfigurados: RecursosDoApp?
+
+    public func definirRecursos(_ recursos: RecursosDoApp) {
+        self.recursosConfigurados = recursos
+    }
 
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
         if cenario == .atualizacaoObrigatoria {
-            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+            return ConfiguracaoApp(
+                versaoMinima: "99.0.0",
+                versaoRecomendada: "99.0.0",
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: configuracao.recursos
+            )
+        }
+        if let recursosConfigurados {
+            return ConfiguracaoApp(
+                versaoMinima: configuracao.versaoMinima,
+                versaoRecomendada: configuracao.versaoRecomendada,
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: recursosConfigurados
+            )
         }
         return configuracao
     }
@@ -2379,7 +2758,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             valor: vaga.valor, posicoes: posicoes ?? vaga.posicoes, posicoesAbertas: posicoesAbertas ?? vaga.posicoesAbertas,
             inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, traje: vaga.traje,
             participaRateio: vaga.participaRateio, observacoes: vaga.observacoes, modo: modo ?? vaga.modo,
-            estado: estado ?? vaga.estado, oculta: oculta ?? vaga.oculta, publicadoEm: publicadoEm ?? vaga.publicadoEm
+            estado: estado ?? vaga.estado, oculta: oculta ?? vaga.oculta, publicadoEm: publicadoEm ?? vaga.publicadoEm, origem: vaga.origem, vagaOrigemId: vaga.vagaOrigemId
         )
     }
 }
