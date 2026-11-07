@@ -31,7 +31,6 @@ public struct SecaoFotoDePerfil: View {
     }
 
     public var body: some View {
-        let _ = NSLog("DEBUG SecaoFotoDePerfil.body chamado")
         ConteudoDaFotoDePerfil(api: api, ferramentas: ferramentas)
     }
 }
@@ -49,13 +48,11 @@ private struct ConteudoDaFotoDePerfil: View {
     }
 
     var body: some View {
-        let _ = NSLog("DEBUG ConteudoDaFotoDePerfil.body: secaoVisivel=%d, falhou=%d, carregou=%d", model.secaoVisivel ? 1 : 0, model.falhouAoCarregar ? 1 : 0, model.carregou ? 1 : 0)
-        Group {
+        ZStack(alignment: .leading) {
+            Color.clear.frame(height: 0)
             if model.secaoVisivel {
-                let _ = NSLog("DEBUG ConteudoDaFotoDePerfil: renderizando cartao")
                 cartao
             } else if model.falhouAoCarregar {
-                let _ = NSLog("DEBUG ConteudoDaFotoDePerfil: renderizando erro")
                 EstadoErro(verbatim: TextosFotoDePerfil.aviso(.indisponivelAgora)) { Task { await model.carregar() } }
             }
         }
@@ -92,6 +89,7 @@ private struct ConteudoDaFotoDePerfil: View {
                 .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("perfil-foto-titulo")
             VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
                 HStack(alignment: .top, spacing: FrilaEspaco.medio) {
                     AvatarDaFoto(url: model.urlDaFoto)
@@ -109,7 +107,6 @@ private struct ConteudoDaFotoDePerfil: View {
                     .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
             )
         }
-        .accessibilityIdentifier("perfil-foto")
     }
 
     // MARK: Estado

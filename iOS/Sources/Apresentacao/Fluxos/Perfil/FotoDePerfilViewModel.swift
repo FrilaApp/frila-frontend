@@ -83,13 +83,10 @@ public final class FotoDePerfilViewModel {
         defer { carregando = false; carregou = true }
         falhouAoCarregar = false
         do {
-            let conf = try await api.configuracaoDoApp()
-            recursoLigado = conf.recursos.fotoDePerfil
-            let m = try await api.minhasMidias()
-            aplicar(m)
-            NSLog("DEBUG FotoDePerfilViewModel.carregar SUCESSO: recursoLigado=%d, midias=%ld, secaoVisivel=%d", recursoLigado ? 1 : 0, m.count, secaoVisivel ? 1 : 0)
+            // O interruptor falhar não derruba a tela: sem ele o recurso fica desligado (falha fechada).
+            recursoLigado = (try? await api.configuracaoDoApp().recursos.fotoDePerfil) ?? false
+            aplicar(try await api.minhasMidias())
         } catch {
-            NSLog("DEBUG FotoDePerfilViewModel.carregar ERRO: %@", String(describing: error))
             falhouAoCarregar = midia == nil
         }
     }
