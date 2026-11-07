@@ -4,7 +4,7 @@ import os
 
 // Foto de perfil, parte do aparelho (contrato 0.2.54, CD-M04b e CD-M06): recorte quadrado, conversão
 // para JPEG sem metadados e as verificações locais que rodam antes de qualquer byte subir. Aqui ficam
-// só as regras e as portas; Vision, CoreML e ImageIO moram em `FrilaInfraestrutura`.
+// só as regras e as portas; Vision e ImageIO moram em `FrilaInfraestrutura`.
 
 /// Limites que o contrato exige do original enviado.
 public enum LimitesDaFoto {
@@ -70,6 +70,14 @@ public protocol PreparadorDeFoto: Sendable {
     func preparar(original: Data, recorte: RecorteQuadrado) throws -> FotoPreparada
 }
 
+/// Contexto em que a foto de perfil está sendo analisada no aparelho.
+public enum ContextoDaFotoDePerfil: String, CaseIterable, Equatable, Sendable {
+    /// Exige exatamente um rosto inteiro e nítido.
+    case profissional
+    /// Imagem livre (fachada, ambiente, logo), sem exigência de rosto, mas restringe códigos e dados de contato.
+    case estabelecimento
+}
+
 /// Por que a verificação do aparelho não deixou a foto subir.
 public enum MotivoDeBloqueioLocal: Equatable, Sendable {
     case telefone
@@ -77,16 +85,18 @@ public enum MotivoDeBloqueioLocal: Equatable, Sendable {
     case linkOuArroba
     case chavePix
     case qrCode
-    /// O classificador local achou conteúdo impróprio acima do limite.
-    case conteudoImproprio
-    /// A análise local não rodou (modelo ausente, erro, prazo): a foto não sobe (falha fechada).
+    /// Nenhum rosto foi detectado na foto ou a qualidade é insuficiente para identificação facial (perfil profissional).
+    case rostoNaoEncontrado
+    /// Mais de um rosto foi detectado na foto (o perfil profissional deve ser individual).
+    case multiplosRostos
+    /// A análise local não rodou (erro, prazo, recurso indisponível): a foto não sobe (falha fechada).
     case analiseIndisponivel
 
     /// A foto tem dado de contato, e a recusa é pelo texto ou código que ela mostra.
     public var ehDadoDeContato: Bool {
         switch self {
         case .telefone, .email, .linkOuArroba, .chavePix, .qrCode: true
-        case .conteudoImproprio, .analiseIndisponivel: false
+        case .rostoNaoEncontrado, .multiplosRostos, .analiseIndisponivel: false
         }
     }
 }
@@ -97,10 +107,16 @@ public enum ResultadoDaVerificacaoLocal: Equatable, Sendable {
 }
 
 /// As verificações do aparelho (CD-M06, camada 1): texto com telefone, e-mail, link, @ ou Pix; QR code ou
-/// código de barras; conteúdo impróprio. Falha fechada: o que não puder rodar volta como
+/// código de barras; detecção de rosto para perfil profissional. Falha fechada: o que não puder rodar volta como
 /// `.bloqueada(.analiseIndisponivel)`, e a foto não sobe.
 public protocol VerificadorLocalDeFoto: Sendable {
-    func verificar(jpeg: Data) async -> ResultadoDaVerificacaoLocal
+    func verificar(jpeg: Data, contexto: ContextoDaFotoDePerfil) async -> ResultadoDaVerificacaoLocal
+}
+
+public extension VerificadorLocalDeFoto {
+    func verificar(jpeg: Data) async -> ResultadoDaVerificacaoLocal {
+        await verificar(jpeg: jpeg, contexto: .profissional)
+    }
 }
 
 /// Envia os bytes para a URL assinada que `solicitar_upload_midia` devolveu.
@@ -185,8 +201,8 @@ public func executarComPrazo<T: Sendable>(_ prazo: Duration, _ operacao: @escapi
     }
 }
 
-/// As três peças do aparelho que a foto de perfil usa. O app monta as de verdade (ImageIO, Vision e
-/// CoreML, e o envio HTTP) uma vez, na raiz; a tela lê do ambiente.
+/// As três peças do aparelho que a foto de perfil usa. O app monta as de verdade (ImageIO e Vision,
+/// e o envio HTTP) uma vez, na raiz; a tela lê do ambiente.
 public struct FerramentasDaFoto: Sendable {
     public let preparador: any PreparadorDeFoto
     public let verificador: any VerificadorLocalDeFoto
@@ -208,7 +224,9 @@ public struct FerramentasDaFoto: Sendable {
     }
 
     private struct VerificadorIndisponivel: VerificadorLocalDeFoto {
-        func verificar(jpeg: Data) async -> ResultadoDaVerificacaoLocal { .bloqueada(.analiseIndisponivel) }
+        func verificar(jpeg: Data, contexto: ContextoDaFotoDePerfil) async -> ResultadoDaVerificacaoLocal {
+            .bloqueada(.analiseIndisponivel)
+        }
     }
 
     private struct EnviadorIndisponivel: EnviadorDeMidia {

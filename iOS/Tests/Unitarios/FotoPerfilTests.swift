@@ -189,73 +189,65 @@ struct FotoPerfilTests {
         #expect(DetectorDeDadosEmTexto.motivo(em: ["Bar do Lago", "Garçom"]) == nil)
     }
 
-    // MARK: Vision e CoreML: o verificador do aparelho
+    // MARK: Vision: o verificador do aparelho (parecer J-007, sem biometria)
 
-    private struct ClassificadorFalso: ClassificadorDeConteudo {
-        let resultado: Result<Double, ErroDoClassificadorDeConteudo>
-        func pontuacaoDeConteudoImproprio(em jpeg: Data) async throws -> Double { try resultado.get() }
+    @Test("Vision: imagem sem rosto no contexto profissional bloqueia com rostoNaoEncontrado")
+    func profissionalSemRostoBloqueia() async throws {
+        let verificador = VerificadorLocalDeFotoDoSistema()
+        let jpegSemRosto = try Imagens.jpegDeTexto(nil)
+        let resultado = await verificador.verificar(jpeg: jpegSemRosto, contexto: .profissional)
+        #expect(resultado == .bloqueada(.rostoNaoEncontrado))
     }
 
-    private struct ClassificadorQueNaoVolta: ClassificadorDeConteudo {
-        func pontuacaoDeConteudoImproprio(em jpeg: Data) async throws -> Double {
-            try await Task.sleep(for: .seconds(600))
-            return 0
-        }
-    }
-
-    @Test("Foto limpa e classificador abaixo do limite: liberada")
-    func fotoLimpaLiberada() async throws {
-        let verificador = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorFalso(resultado: .success(0.05)))
-        let resultado = await verificador.verificar(jpeg: try Imagens.jpegDeTexto(nil))
+    @Test("Vision: imagem sem rosto no contexto estabelecimento é liberada")
+    func estabelecimentoSemRostoLiberada() async throws {
+        let verificador = VerificadorLocalDeFotoDoSistema()
+        let jpegSemRosto = try Imagens.jpegDeTexto(nil)
+        let resultado = await verificador.verificar(jpeg: jpegSemRosto, contexto: .estabelecimento)
         #expect(resultado == .liberada)
     }
 
-    @Test("Classificador acima do limite: conteúdo impróprio")
-    func conteudoImproprio() async throws {
-        let verificador = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorFalso(resultado: .success(0.93)))
-        #expect(await verificador.verificar(jpeg: try Imagens.jpegDeTexto(nil)) == .bloqueada(.conteudoImproprio))
+    @Test("Vision: QR code é barrado em ambos os contextos")
+    func qrCodeBarradoEmAmbosContextos() async throws {
+        let verificador = VerificadorLocalDeFotoDoSistema()
+        let jpegComQR = try Imagens.jpegComQRCode("https://wa.me/5561998765432")
+        #expect(await verificador.verificar(jpeg: jpegComQR, contexto: .profissional) == .bloqueada(.qrCode))
+        #expect(await verificador.verificar(jpeg: jpegComQR, contexto: .estabelecimento) == .bloqueada(.qrCode))
     }
 
-    @Test("Falha fechada: classificador que falha ou modelo ausente impede o envio")
-    func falhaFechada() async throws {
-        let jpeg = try Imagens.jpegDeTexto(nil)
-        let quebrado = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorFalso(resultado: .failure(.semResultado)))
-        #expect(await quebrado.verificar(jpeg: jpeg) == .bloqueada(.analiseIndisponivel))
-        // O bundle dos testes não tem `FrilaModeracaoFoto.mlmodelc`: sem o modelo a foto não sobe.
-        let semModelo = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorDeConteudoCoreML(bundle: Bundle(for: MarcadorDosTestes.self)))
-        #expect(await semModelo.verificar(jpeg: jpeg) == .bloqueada(.analiseIndisponivel))
-        #expect(await semModelo.verificar(jpeg: Data("isto não é imagem".utf8)) == .bloqueada(.analiseIndisponivel))
-        await #expect(throws: ErroDoClassificadorDeConteudo.modeloAusente) {
-            try await ClassificadorDeConteudoCoreML(bundle: Bundle(for: MarcadorDosTestes.self)).pontuacaoDeConteudoImproprio(em: jpeg)
-        }
-    }
-
-    @Test("Falha fechada: análise que não termina no prazo bloqueia em vez de esperar")
-    func prazoEstourado() async throws {
-        let verificador = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorQueNaoVolta(), prazo: .milliseconds(400))
-        let inicio = ContinuousClock.now
-        let resultado = await verificador.verificar(jpeg: try Imagens.jpegDeTexto(nil))
-        #expect(resultado == .bloqueada(.analiseIndisponivel))
-        #expect(inicio.duration(to: .now) < .seconds(20))
-    }
-
-    @Test("Vision lê um QR code na foto e a barra, antes de chamar o classificador")
-    func qrCodeBarrado() async throws {
-        // Se o classificador fosse chamado, a foto seria liberada: o QR precisa vencer antes.
-        let verificador = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorFalso(resultado: .success(0)))
-        let resultado = await verificador.verificar(jpeg: try Imagens.jpegComQRCode("https://wa.me/5561998765432"))
-        #expect(resultado == .bloqueada(.qrCode), "obtido: \(resultado)")
-    }
-
-    @Test("Vision lê o texto da foto: telefone e chave Pix são barrados, nome comum passa",
+    @Test("Vision: telefone e chave Pix são barrados em ambos os contextos",
           arguments: [
               ("Zap 61 99876-5432", ResultadoDaVerificacaoLocal.bloqueada(.telefone)),
               ("chave pix: ana@frila.com.br", .bloqueada(.chavePix)),
-              ("Ana Cunha", .liberada),
           ])
-    func textoDaFotoLidoPeloVision(texto: String, esperado: ResultadoDaVerificacaoLocal) async throws {
-        let verificador = VerificadorLocalDeFotoDoSistema(classificador: ClassificadorFalso(resultado: .success(0)))
-        #expect(await verificador.verificar(jpeg: try Imagens.jpegDeTexto(texto)) == esperado)
+    func contatoBarradoEmAmbosContextos(texto: String, esperado: ResultadoDaVerificacaoLocal) async throws {
+        let verificador = VerificadorLocalDeFotoDoSistema()
+        let jpeg = try Imagens.jpegDeTexto(texto)
+        #expect(await verificador.verificar(jpeg: jpeg, contexto: .profissional) == esperado)
+        #expect(await verificador.verificar(jpeg: jpeg, contexto: .estabelecimento) == esperado)
+    }
+
+    @Test("Vision: nome comercial comum no estabelecimento passa livremente")
+    func estabelecimentoTextoComercialPassa() async throws {
+        let verificador = VerificadorLocalDeFotoDoSistema()
+        let jpeg = try Imagens.jpegDeTexto("Bar do Lago Restaurante")
+        let resultado = await verificador.verificar(jpeg: jpeg, contexto: .estabelecimento)
+        #expect(resultado == .liberada)
+    }
+
+    @Test("Falha fechada: dados corrompidos não sobem")
+    func falhaFechadaDadosCorrompidos() async {
+        let verificador = VerificadorLocalDeFotoDoSistema()
+        let corrompido = Data("isto não é jpeg".utf8)
+        #expect(await verificador.verificar(jpeg: corrompido, contexto: .profissional) == .bloqueada(.analiseIndisponivel))
+        #expect(await verificador.verificar(jpeg: corrompido, contexto: .estabelecimento) == .bloqueada(.analiseIndisponivel))
+    }
+
+    @Test("Falha fechada: análise com prazo zero ou estourado bloqueia")
+    func prazoEstourado() async throws {
+        let verificador = VerificadorLocalDeFotoDoSistema(prazo: .milliseconds(0))
+        let resultado = await verificador.verificar(jpeg: try Imagens.jpegDeTexto(nil), contexto: .estabelecimento)
+        #expect(resultado == .bloqueada(.analiseIndisponivel))
     }
 
     // MARK: Preparo do JPEG: recorte, tamanho e metadados
@@ -524,7 +516,7 @@ struct FotoPerfilTests {
     }
 
     @Test("Bloqueio do aparelho: nada vai ao servidor nem ao Storage, e a tela diz o que fazer",
-          arguments: [MotivoDeBloqueioLocal.telefone, .qrCode, .conteudoImproprio, .analiseIndisponivel])
+          arguments: [MotivoDeBloqueioLocal.telefone, .qrCode, .rostoNaoEncontrado, .multiplosRostos, .analiseIndisponivel])
     @MainActor func bloqueioNoAparelho(motivo: MotivoDeBloqueioLocal) async throws {
         let api = ApiClienteEmMemoria(cenario: .fotoSemFoto)
         let enviador = EnviadorDeMidiaSimulado()
@@ -664,7 +656,7 @@ struct FotoPerfilTests {
         #expect(Set(todos).count == todos.count)
         let avisos: [FotoDePerfilViewModel.Aviso] = [
             .imagemInvalida, .semRede, .recusadaPeloServidor, .recursoDesligado, .expurgada, .contaSuspensa, .indisponivelAgora,
-        ] + [MotivoDeBloqueioLocal.telefone, .qrCode, .conteudoImproprio, .analiseIndisponivel].map { .bloqueadaNoAparelho($0) }
+        ] + [MotivoDeBloqueioLocal.telefone, .qrCode, .rostoNaoEncontrado, .multiplosRostos, .analiseIndisponivel].map { .bloqueadaNoAparelho($0) }
         let frases = avisos.map(TextosFotoDePerfil.aviso) + [TextosFotoDePerfil.textoEmAnalise, TextosFotoDePerfil.textoNaoPublicada, TextosFotoDePerfil.textoOcultada]
         #expect(frases.allSatisfy { !$0.isEmpty })
         for frase in frases {

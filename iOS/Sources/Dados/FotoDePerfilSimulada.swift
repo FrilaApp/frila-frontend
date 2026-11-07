@@ -1,8 +1,8 @@
 import Foundation
 import FrilaDominio
 
-/// Dublê da verificação do aparelho para testes e para o esquema Frila-Local: no Local não há modelo
-/// CoreML, e a verificação de verdade falharia fechada. O resultado é fixo e não olha a imagem.
+/// Dublê da verificação do aparelho para testes e para o esquema Frila-Local: simula o resultado
+/// sem executar a análise do Vision sobre a imagem.
 public final class VerificadorLocalDeFotoSimulado: VerificadorLocalDeFoto, @unchecked Sendable {
     public var resultado: ResultadoDaVerificacaoLocal
     public private(set) var chamadas = 0
@@ -12,16 +12,20 @@ public final class VerificadorLocalDeFotoSimulado: VerificadorLocalDeFoto, @unch
         self.resultado = resultado
     }
 
-    public func verificar(jpeg: Data) async -> ResultadoDaVerificacaoLocal {
+    public func verificar(jpeg: Data, contexto: ContextoDaFotoDePerfil) async -> ResultadoDaVerificacaoLocal {
         trava.withLock {
             chamadas += 1
             return resultado
         }
     }
 
+    public func verificar(jpeg: Data) async -> ResultadoDaVerificacaoLocal {
+        await verificar(jpeg: jpeg, contexto: .profissional)
+    }
+
     #if DEBUG
     /// Só em Debug, como o `ApiClienteEmMemoria.pelosArgumentos` (#96): o Release não lê argumentos de
-    /// lançamento. `-FRILA_FOTO_VERIFICACAO <telefone|email|link|pix|qrcode|improprio|indisponivel>`
+    /// lançamento. `-FRILA_FOTO_VERIFICACAO <telefone|email|link|pix|qrcode|sem_rosto|multiplos_rostos|indisponivel>`
     /// faz a verificação do aparelho bloquear a foto com esse motivo.
     public static func pelosArgumentos(_ argumentos: [String] = ProcessInfo.processInfo.arguments) -> VerificadorLocalDeFotoSimulado {
         guard let indice = argumentos.firstIndex(of: "-FRILA_FOTO_VERIFICACAO"), argumentos.indices.contains(indice + 1) else {
@@ -33,7 +37,8 @@ public final class VerificadorLocalDeFotoSimulado: VerificadorLocalDeFoto, @unch
         case "link": .linkOuArroba
         case "pix": .chavePix
         case "qrcode": .qrCode
-        case "improprio": .conteudoImproprio
+        case "sem_rosto", "rosto_nao_encontrado", "improprio": .rostoNaoEncontrado
+        case "multiplos_rostos": .multiplosRostos
         case "indisponivel": .analiseIndisponivel
         default: nil
         }
