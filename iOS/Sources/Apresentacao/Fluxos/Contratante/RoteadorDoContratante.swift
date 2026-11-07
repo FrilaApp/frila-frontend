@@ -46,6 +46,8 @@ public enum AvisoDoContratante: Equatable, Sendable {
         case .vagaSemElegiveis, .cancelamento, .selecaoEncerrada, .selecaoLembrete:
             guard let vagaID = id("vaga_id") else { return nil }
             self = .vaga(vagaID: vagaID)
+        case .chamadaRecebida, .chamadaLembrete, .chamadaAceita, .chamadaRecusada, .chamadaExpirada, .chamadaCancelada, .chamadaEncerrada:
+            return nil
         case .vaga, .vagasAgrupadas, .inicioSemCheckin, .candidaturaRecusada, .suspensao, .reativacao, nil:
             // Os quatro primeiros são do profissional; suspensão e reativação são da conta, e quem
             // as trata é o `RoteadorDePush`.

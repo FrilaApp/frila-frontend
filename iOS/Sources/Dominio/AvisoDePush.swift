@@ -2,6 +2,13 @@ import Foundation
 
 /// Os dezenove avisos que o backend manda (`public.tipo_notificacao`). O valor é o `tipo` do payload.
 public enum TipoDeAviso: String, CaseIterable, Sendable {
+    case chamadaRecebida = "chamada_recebida"
+    case chamadaLembrete = "chamada_lembrete"
+    case chamadaAceita = "chamada_aceita"
+    case chamadaRecusada = "chamada_recusada"
+    case chamadaExpirada = "chamada_expirada"
+    case chamadaCancelada = "chamada_cancelada"
+    case chamadaEncerrada = "chamada_encerrada"
     case vaga
     case vagasAgrupadas = "vagas_agrupadas"
     case vagaSemElegiveis = "vaga_sem_elegiveis"
