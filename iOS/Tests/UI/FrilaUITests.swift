@@ -928,6 +928,41 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(btnContinuar.isEnabled, "Botão deve continuar habilitado com os termos aceitos")
     }
 
+    func testTelaDeCadastroNaoTemBotaoVoltarNemGestoDeVoltar() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.digitarEEsperar("novo@frila.app")
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
+
+        let tfCodigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
+        tfCodigo.tap()
+        tfCodigo.typeText("123456")
+        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
+            app.buttons["codigo-entrar"].tap()
+        }
+
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Cadastro"].exists)
+
+        // Sem botão Voltar, nem pelo identificador nem pelo rótulo do VoiceOver
+        XCTAssertFalse(app.buttons["cadastro-voltar"].exists)
+        XCTAssertFalse(app.buttons["Voltar"].exists)
+
+        // O gesto de voltar pela borda esquerda também não leva a lugar nenhum
+        let janela = app.windows.firstMatch
+        let inicio = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.0, dy: 0.5))
+        let fim = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
+        inicio.press(forDuration: 0.1, thenDragTo: fim)
+        XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].exists)
+        XCTAssertFalse(app.textFields["Código de acesso"].exists)
+    }
+
     func testCapturasDeTelaCadastro() {
         let pastaCapturas = "/Users/cauecarneiro/Documents/Projetos/Apps/.workers/missoes/capturas/2026-10-17-ux-01-autenticacao"
         try? FileManager.default.createDirectory(atPath: pastaCapturas, withIntermediateDirectories: true)
