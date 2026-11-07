@@ -516,7 +516,7 @@ struct FotoPerfilTests {
     }
 
     @Test("Bloqueio do aparelho: nada vai ao servidor nem ao Storage, e a tela diz o que fazer",
-          arguments: [MotivoDeBloqueioLocal.telefone, .qrCode, .conteudoImproprio, .analiseIndisponivel])
+          arguments: [MotivoDeBloqueioLocal.telefone, .qrCode, .rostoNaoEncontrado, .multiplosRostos, .analiseIndisponivel])
     @MainActor func bloqueioNoAparelho(motivo: MotivoDeBloqueioLocal) async throws {
         let api = ApiClienteEmMemoria(cenario: .fotoSemFoto)
         let enviador = EnviadorDeMidiaSimulado()

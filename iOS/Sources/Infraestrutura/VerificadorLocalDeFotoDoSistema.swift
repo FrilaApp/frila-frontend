@@ -64,7 +64,7 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
             return .liberada
         } catch {
             // Só o tipo do erro vai ao log, nunca a imagem nem o texto lido dela.
-            Self.log.error("analise_local_falhou erro=\(String(describing: type(of: error)), privacy: .public)")
+            Self.log.error("analise_local_falhou erro=\(String(describing: error), privacy: .public)")
             return .bloqueada(.analiseIndisponivel)
         }
     }
@@ -78,46 +78,67 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
 
     /// Executa os pedidos do Vision sobre o JPEG.
     static func executarAnaliseVision(_ jpeg: Data, contexto: ContextoDaFotoDePerfil) throws -> AchadosAnalise {
-        let manipulador = VNImageRequestHandler(data: jpeg, options: [:])
-
         // 1. Códigos de barras / QR code
-        let codigos = VNDetectBarcodesRequest()
-        #if targetEnvironment(simulator)
-        codigos.revision = VNDetectBarcodesRequestRevision2
-        #endif
-        try manipulador.perform([codigos])
-        let temCodigo = !(codigos.results ?? []).isEmpty
+        var temCodigo = false
+        do {
+            let codigos = VNDetectBarcodesRequest()
+            #if targetEnvironment(simulator)
+            codigos.revision = VNDetectBarcodesRequestRevision2
+            configurarDispositivoDeCalculoParaSimulador(codigos)
+            #endif
+            try VNImageRequestHandler(data: jpeg, options: [:]).perform([codigos])
+            temCodigo = !(codigos.results ?? []).isEmpty
+        } catch {
+            Self.log.error("falha_barcodes erro=\(String(describing: error), privacy: .public)")
+            throw error
+        }
 
         // 2. Reconhecimento de texto
-        let texto = VNRecognizeTextRequest()
-        texto.recognitionLevel = .accurate
-        // Correção de idioma "conserta" dígito em letra e esconderia um telefone: lê o que está escrito.
-        texto.usesLanguageCorrection = false
-        texto.recognitionLanguages = ["pt-BR", "en-US"]
-        try manipulador.perform([texto])
-        let linhas = (texto.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        var linhas: [String] = []
+        do {
+            let texto = VNRecognizeTextRequest()
+            texto.recognitionLevel = .accurate
+            texto.usesLanguageCorrection = false
+            texto.recognitionLanguages = ["pt-BR", "en-US"]
+            #if targetEnvironment(simulator)
+            configurarDispositivoDeCalculoParaSimulador(texto)
+            #endif
+            try VNImageRequestHandler(data: jpeg, options: [:]).perform([texto])
+            linhas = (texto.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        } catch {
+            Self.log.error("falha_texto erro=\(String(describing: error), privacy: .public)")
+            throw error
+        }
 
         // 3. Detecção de rostos (apenas retângulos, sem landmarks - parecer J-007)
         var totalRostos = 0
         var rostoValido = false
 
         if contexto == .profissional {
-            let pedidoRostos = VNDetectFaceRectanglesRequest()
-            try manipulador.perform([pedidoRostos])
-            let observacoes = pedidoRostos.results ?? []
-            totalRostos = observacoes.count
+            do {
+                let pedidoRostos = VNDetectFaceRectanglesRequest()
+                #if targetEnvironment(simulator)
+                configurarDispositivoDeCalculoParaSimulador(pedidoRostos)
+                #endif
+                try VNImageRequestHandler(data: jpeg, options: [:]).perform([pedidoRostos])
+                let observacoes = pedidoRostos.results ?? []
+                totalRostos = observacoes.count
 
-            if observacoes.count == 1, let face = observacoes.first {
-                let confiancaOk = face.confidence >= confiancaMinimaRosto
-                let area = Double(face.boundingBox.width * face.boundingBox.height)
-                let tamanhoOk = area >= areaMinimaRosto && face.boundingBox.width >= 0.08 && face.boundingBox.height >= 0.08
-                let qualidadeOk: Bool
-                if let qualidade = face.faceCaptureQuality {
-                    qualidadeOk = qualidade >= 0.10
-                } else {
-                    qualidadeOk = true
+                if observacoes.count == 1, let face = observacoes.first {
+                    let confiancaOk = face.confidence >= confiancaMinimaRosto
+                    let area = Double(face.boundingBox.width * face.boundingBox.height)
+                    let tamanhoOk = area >= areaMinimaRosto && face.boundingBox.width >= 0.08 && face.boundingBox.height >= 0.08
+                    let qualidadeOk: Bool
+                    if let qualidade = face.faceCaptureQuality {
+                        qualidadeOk = qualidade >= 0.10
+                    } else {
+                        qualidadeOk = true
+                    }
+                    rostoValido = confiancaOk && tamanhoOk && qualidadeOk
                 }
-                rostoValido = confiancaOk && tamanhoOk && qualidadeOk
+            } catch {
+                Self.log.error("falha_rostos erro=\(String(describing: error), privacy: .public)")
+                throw error
             }
         }
 
@@ -128,4 +149,12 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
             rostoUnicoValido: rostoValido
         )
     }
+
+    #if targetEnvironment(simulator)
+    private static func configurarDispositivoDeCalculoParaSimulador(_ pedido: VNRequest) {
+        if let cpu = try? pedido.supportedComputeStageDevices[.main]?.first(where: { String(describing: type(of: $0)).contains("CPU") }) {
+            pedido.setComputeDevice(cpu, for: .main)
+        }
+    }
+    #endif
 }
