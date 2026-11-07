@@ -413,6 +413,16 @@ public struct TelaMeuPerfilProfissional: View {
 
             DivisoriaDeLinha()
 
+            NavigationLink {
+                TelaApresentacaoERegioes(api: api)
+            } label: {
+                RotuloDeLinha(TextosApresentacaoERegioes.titulo)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-apresentacao-regioes")
+
+            DivisoriaDeLinha()
+
             Button { mostrarExplicacao = true } label: {
                 RotuloDeLinha(TextosPerfilConta.porQueRecebo)
             }

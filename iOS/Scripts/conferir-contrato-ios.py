@@ -441,6 +441,7 @@ def conferir_dtos(
         "RegistrarEventoRespostaDTO",# Resposta de /rpc/registrar_evento
         "EquipeDTO",                 # Struct aninhado em CriteriosDeNotificacaoDTO
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
+        "RegioesAtendidasDTO",       # Parâmetros de /rpc/definir_regioes_atendidas
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
