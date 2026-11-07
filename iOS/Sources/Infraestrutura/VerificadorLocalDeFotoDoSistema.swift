@@ -120,9 +120,13 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
     static func lerCodigosETextos(_ jpeg: Data) throws -> Achados {
         let codigos = VNDetectBarcodesRequest()
         #if targetEnvironment(simulator)
-        // As revisões 3 e 4 do detector (as de aprendizado de máquina, o padrão no aparelho) não acham nada no
-        // simulador, sem erro algum; a 2 é a clássica e acha. No aparelho vale a revisão padrão do sistema.
+        // O simulador não tem Neural Engine. O detector no dispositivo padrão falha com "Could not create
+        // inference context"; na CPU roda, mas as revisões 3 e 4 (de aprendizado de máquina, o padrão no
+        // aparelho) não acham nada, sem erro algum. A revisão 2, clássica, acha. No aparelho vale o padrão.
         codigos.revision = VNDetectBarcodesRequestRevision2
+        if let cpu = MLComputeDevice.allComputeDevices.first(where: { if case .cpu = $0 { true } else { false } }) {
+            codigos.setComputeDevice(cpu, for: .main)
+        }
         #endif
         let texto = VNRecognizeTextRequest()
         texto.recognitionLevel = .accurate
