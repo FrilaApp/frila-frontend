@@ -115,7 +115,8 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
         let textos: [String]
     }
 
-    /// Os dois pedidos do Vision juntos, sobre a mesma imagem.
+    /// Os dois pedidos do Vision sobre a mesma imagem, um de cada vez: juntos, o simulador recusa o
+    /// conjunto com "Could not create inference context".
     static func lerCodigosETextos(_ jpeg: Data) throws -> Achados {
         let codigos = VNDetectBarcodesRequest()
         #if targetEnvironment(simulator)
@@ -128,7 +129,8 @@ public struct VerificadorLocalDeFotoDoSistema: VerificadorLocalDeFoto {
         // Correção de idioma "conserta" dígito em letra e esconderia um telefone: lê o que está escrito.
         texto.usesLanguageCorrection = false
         texto.recognitionLanguages = ["pt-BR", "en-US"]
-        try VNImageRequestHandler(data: jpeg, options: [:]).perform([codigos, texto])
+        try VNImageRequestHandler(data: jpeg, options: [:]).perform([codigos])
+        try VNImageRequestHandler(data: jpeg, options: [:]).perform([texto])
         let linhas = (texto.results ?? []).compactMap { $0.topCandidates(1).first?.string }
         return Achados(temCodigo: !(codigos.results ?? []).isEmpty, textos: linhas)
     }
