@@ -152,6 +152,8 @@ no App Store Connect, Crashlytics e separação de tarefas humanas está em [Pas
       (`uploadSymbols`).
    5. **Envio**: um segundo export, com `destination: upload` autenticado pela chave API, sem recriar
       ou atualizar certificados.
+   Depois do envio, o passo "Gravar o esquema em O que testar" grava o rótulo do esquema em "O que testar" do
+   build pela API (ação `notas-do-build` do `Scripts/app-store-connect.rb`); se falhar, o envio vale e o resumo avisa.
 6. Restaura a lista anterior de keychains e apaga a identidade temporária, os perfis instalados,
    a chave, os segredos, o archive, o `.ipa` e o DerivedData, mesmo quando uma etapa falha.
    Nada vira artefato do Actions, porque o `.ipa` traz o plist do Firebase e a chave publicável do

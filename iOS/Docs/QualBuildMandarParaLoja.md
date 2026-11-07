@@ -17,6 +17,6 @@ Antes de escolher um build para a revisão da Apple, confira o texto das notas. 
 
 O `Scripts/enviar-testflight.sh` (e o workflow TestFlight, que o chama) escreve o rótulo do esquema no log, no topo do resumo da execução da CI e no arquivo `o-que-testar.txt` (pasta de saída do envio, `FRILA_SAIDA`), e chama o `Scripts/conferir-release.sh` com `FRILA_ESQUEMA_ESPERADO=<esquema>`. Se o `.app` compilado não bater (`FRILA_ENVIRONMENT` errado, ou, no Prod, qualquer rastro do selo ou do modo de design), o envio falha com mensagem clara, antes de subir qualquer coisa.
 
-**Por enquanto a gravação em "O que testar" é manual:** depois que o build terminar de processar no App Store Connect, cole o rótulo (do resumo da execução ou do `o-que-testar.txt`) no campo "O que testar" do build. A gravação automática pela API ainda não existe (fica para um PR seguinte).
+**A gravação em "O que testar" é automática:** depois do envio, o passo "Gravar o esquema em O que testar" do workflow TestFlight espera o build ficar processado e grava o rótulo na primeira linha do campo pela API (`Scripts/app-store-connect.rb`, ação `notas-do-build`), sem apagar o que uma pessoa escreveu depois dele. Se a gravação falhar, o envio continua valendo e o resumo da execução avisa em destaque, com o texto para colar à mão (o `o-que-testar.txt` de sempre).
 
 Quem escolhe o build no App Store Connect continua sendo uma pessoa: leia as notas.
