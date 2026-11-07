@@ -1,4 +1,4 @@
-#if FRILA_DESIGN
+#if DEBUG || FRILA_BETA
 import SwiftUI
 
 private struct ExemploDebugEntrada: ViewModifier {
@@ -26,7 +26,21 @@ private struct ExemploDebugEntrada: ViewModifier {
     }
 }
 
+@MainActor
+private struct ExemploDebugEntradaSeAtivo: ViewModifier {
+    private let controle = ControleModoDesign.compartilhado
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if controle.ativo {
+            content.modifier(ExemploDebugEntrada())
+        } else {
+            content
+        }
+    }
+}
+
 extension View {
-    func exemploDebugEntrada() -> some View { modifier(ExemploDebugEntrada()) }
+    func exemploDebugEntrada() -> some View { modifier(ExemploDebugEntradaSeAtivo()) }
 }
 #endif

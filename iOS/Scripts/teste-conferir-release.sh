@@ -331,4 +331,60 @@ for get_task_allow in true false; do
   done
 done
 
+# Trava do esquema (FRILA_ESQUEMA_ESPERADO): o bundle tem de ser o do esquema pedido.
+novo_app_do_esquema() {
+  local nome="$1" ambiente="$2" nome_na_tela="$3" extra_no_binario="${4:-}"
+  local app
+  app="$(novo_app_bom "$nome")"
+  plutil -insert FRILA_ENVIRONMENT -string "$ambiente" "$app/Info.plist"
+  plutil -insert CFBundleDisplayName -string "$nome_na_tela" "$app/Info.plist"
+  [[ -z "$extra_no_binario" ]] || printf '%s\n' "$extra_no_binario" >> "$app/Frila"
+  printf '%s\n' "$app"
+}
+
+com_esquema() {
+  local esquema="$1" app="$2"
+  FRILA_ESQUEMA_ESPERADO="$esquema" "$SCRIPT" "$app" 2>&1
+}
+
+esperar_com_esquema() {
+  local descricao="$1" esquema="$2" app="$3" motivo="${4:-}" saida
+  if saida="$(com_esquema "$esquema" "$app")"; then
+    [[ -z "$motivo" ]] || { echo "FALHA: $descricao deveria reprovar" >&2; exit 1; }
+    [[ "$saida" == *"OK: bundle de Release em conformidade"* ]] || { echo "FALHA: $descricao sem a mensagem de aprovação: $saida" >&2; exit 1; }
+  else
+    [[ -n "$motivo" ]] || { echo "FALHA: $descricao foi reprovado: $saida" >&2; exit 1; }
+    [[ "$saida" == *"$motivo"* ]] || { echo "FALHA: $descricao reprovou pelo motivo errado: $saida" >&2; exit 1; }
+  fi
+}
+
+app="$(novo_app_do_esquema prod-bom frila-prod Frila)"
+esperar_com_esquema "Prod limpo" Frila-Prod "$app"
+
+app="$(novo_app_do_esquema prod-ambiente-dev frila-dev Frila)"
+esperar_com_esquema "Prod com ambiente de teste" Frila-Prod "$app" "o app compilado não é o do esquema Frila-Prod"
+
+app="$(novo_app_do_esquema prod-nome-beta frila-prod "Frila Beta")"
+esperar_com_esquema "Prod com nome Beta" Frila-Prod "$app" "o nome do app na tela inicial deve ser 'Frila'"
+
+for marca in 'BETA · servidor de teste' '-FRILA_MODO_DESIGN' 'frila_modo_design_ativo' 'ControleModoDesign'; do
+  app="$(novo_app_do_esquema "prod-com-${marca//[^A-Za-z]/}" frila-prod Frila "$marca")"
+  esperar_com_esquema "Prod com '$marca' no binário" Frila-Prod "$app" "contém o modo de design ou o selo Beta"
+done
+
+app="$(novo_app_do_esquema beta-bom frila-dev "Frila Beta" 'BETA · servidor de teste')"
+esperar_com_esquema "Beta com selo" Frila-Beta "$app"
+
+app="$(novo_app_do_esquema beta-sem-selo frila-dev "Frila Beta")"
+esperar_com_esquema "Beta sem selo" Frila-Beta "$app" "não traz o selo"
+
+app="$(novo_app_do_esquema beta-nome-prod frila-dev Frila 'BETA · servidor de teste')"
+esperar_com_esquema "Beta com nome da loja" Frila-Beta "$app" "deve ser 'Frila Beta'"
+
+app="$(novo_app_do_esquema beta-ambiente-prod frila-prod "Frila Beta" 'BETA · servidor de teste')"
+esperar_com_esquema "Beta apontando para produção" Frila-Beta "$app" "o app compilado não é o do esquema Frila-Beta"
+
+app="$(novo_app_do_esquema esquema-invalido frila-prod Frila)"
+esperar_com_esquema "esquema desconhecido" Frila-Design "$app" "FRILA_ESQUEMA_ESPERADO deve ser Frila-Beta ou Frila-Prod"
+
 echo "OK: autoteste de conferir-release.sh passou"

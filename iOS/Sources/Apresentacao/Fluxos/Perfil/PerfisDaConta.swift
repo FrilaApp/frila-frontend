@@ -261,6 +261,10 @@ public struct TelaMeuPerfilProfissional: View {
                 .accessibilityIdentifier("perfil-ajuda")
 
                 contaEDados
+
+                #if FRILA_BETA
+                SeloBeta()
+                #endif
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.medio)
@@ -658,6 +662,10 @@ public struct TelaPerfilEstabelecimento: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("estabelecimento-excluir-conta")
+
+                #if FRILA_BETA
+                SeloBeta()
+                #endif
             }.padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)

@@ -399,6 +399,8 @@ jobs:
 
       - name: Conferir o bundle de Release do Frila-Beta
         if: steps.filtro.outputs.build_release == 'true'
+        env:
+          FRILA_ESQUEMA_ESPERADO: Frila-Beta
         run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
 
       - name: Build do Frila-Prod (Supabase frila-prod)
@@ -419,6 +421,8 @@ jobs:
 
       - name: Conferir o bundle de Release do Frila-Prod
         if: steps.filtro.outputs.build_release == 'true'
+        env:
+          FRILA_ESQUEMA_ESPERADO: Frila-Prod
         run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
 
       - name: Testes da parte 2 (interface fora da lista, sem recompilar)

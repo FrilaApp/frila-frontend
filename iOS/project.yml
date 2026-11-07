@@ -11,14 +11,12 @@ configs:
   Debug-Local: debug
   Debug-Dev: debug
   Release-Beta: release
-  Release-Design: release
   Release-Prod: release
 
 configFiles:
   Debug-Local: Configurations/Local.xcconfig
   Debug-Dev: Configurations/Dev.xcconfig
   Release-Beta: Configurations/Beta.xcconfig
-  Release-Design: Configurations/Design.xcconfig
   Release-Prod: Configurations/Prod.xcconfig
 
 packages:
@@ -58,8 +56,6 @@ settings:
     Debug-Dev:
       DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
     Release-Beta:
-      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
-    Release-Design:
       DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
     Release-Prod:
       DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
@@ -308,7 +304,7 @@ targets:
         # declara iPad no UIDeviceFamily e o Xcode passa a exigir as quatro orientações.
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Frila
+        INFOPLIST_KEY_CFBundleDisplayName: $(FRILA_BUNDLE_DISPLAY_NAME)
         INFOPLIST_KEY_CFBundleDevelopmentRegion: pt-BR
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.business
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
@@ -322,6 +318,13 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Sources/App/Frila.entitlements
         PROVISIONING_PROFILE_SPECIFIER: $(FRILA_PROVISIONING_PROFILE_APP)
         OTHER_LDFLAGS: $(inherited) -ObjC
+      configs:
+        # O catálogo traz CFBundleDisplayName="Frila" localizado, que no aparelho vence o do
+        # Info.plist. No Beta ele sai do bundle (os outros textos dele, de localização, são iguais
+        # aos do Info.plist base), e o nome vem de FRILA_BUNDLE_DISPLAY_NAME ("Frila Beta"). O Prod
+        # continua com o catálogo, byte a byte.
+        Release-Beta:
+          EXCLUDED_SOURCE_FILE_NAMES: InfoPlist.xcstrings
 
   FrilaTests:
     type: bundle.unit-test
@@ -399,16 +402,6 @@ schemes:
       config: Release-Beta
     archive:
       config: Release-Beta
-  Frila-Design:
-    build:
-      targets:
-        Frila: all
-    run:
-      config: Release-Design
-    profile:
-      config: Release-Design
-    archive:
-      config: Release-Design
   Frila-Prod:
     build:
       targets:

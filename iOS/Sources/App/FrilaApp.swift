@@ -78,8 +78,8 @@ struct FrilaApp: App {
             Group {
                 switch inicializacao {
                 case let .pronta(dependencias):
-                    #if FRILA_DESIGN
-                    if ProcessInfo.processInfo.arguments.contains("-FRILA_DEMO_ENTRADA") {
+                    #if DEBUG || FRILA_BETA
+                    if ControleModoDesign.compartilhado.ativo, ProcessInfo.processInfo.arguments.contains("-FRILA_DEMO_ENTRADA") {
                         TelaEntrada(viewModel: EntradaViewModel(api: dependencias.api), aoAvancarParaCodigo: { _ in })
                             .disabled(true)
                     } else {
@@ -96,8 +96,8 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
-            #if FRILA_DESIGN
-            .modoDebugDesign()
+            #if DEBUG || FRILA_BETA
+            .modoDebugDesignSeAtivo()
             #endif
             #if DEBUG
             .preferredColorScheme(Self.esquemaDeCorDosArgumentos)
