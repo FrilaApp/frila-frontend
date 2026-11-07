@@ -123,6 +123,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
         #if DEBUG
         /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
         case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
+        /// Vitrine para navegar à mão: a conta de profissional com dados em todas as telas (Vagas, Meus
+        /// turnos, Candidaturas, Conta). `vitrine` é apelido dela nos argumentos de lançamento.
+        case vitrineProfissional = "vitrine-profissional"
+        /// Vitrine para navegar à mão: a casa "Bistrô Ipê" com vagas em todos os estados do painel.
+        case vitrineContratante = "vitrine-contratante"
+        #endif
+
+        #if DEBUG
+        var deVitrine: Bool { self == .vitrineProfissional || self == .vitrineContratante }
         #endif
 
         public var isServidorAntigo: Bool {
@@ -293,19 +302,35 @@ public actor ApiClienteEmMemoria: ApiCliente {
             regioesAdministrativasCadastradas = (try? FixturesDoContrato.carregar("regioes-administrativas", como: [ContratoAPI.RegiaoAdministrativaDTO].self).map { $0.dominio() }) ?? []
             configuracao = try FixturesDoContrato.carregar("configuracao-do-app", como: ContratoAPI.ConfiguracaoDoAppDTO.self).dominio()
             contatoDeExemplo = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()
-            perfilPublicoDeExemplo = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
+            let perfilPublicoBase = try FixturesDoContrato.carregar("perfil-publico", como: ContratoAPI.PerfilPublicoDTO.self).dominio()
+            #if DEBUG
+            if cenario == .vitrineProfissional {
+                // Vitrine: a profissional com histórico de quem trabalha bastante, no lugar dos 7 de 7 das fixtures.
+                perfilPublicoDeExemplo = PerfilPublico(
+                    id: perfilPublicoBase.id, tipo: perfilPublicoBase.tipo, nome: perfilPublicoBase.nome,
+                    funcoes: ["Garçom", "Bartender", "Auxiliar de cozinha", "Churrasqueiro"],
+                    reputacao: Reputacao(positivas: 23, total: 25, taxaComparecimento: 0.96, turnosConsiderados: 27, turnosRealizados: 26)
+                )
+            } else {
+                perfilPublicoDeExemplo = perfilPublicoBase
+            }
+            #else
+            perfilPublicoDeExemplo = perfilPublicoBase
+            #endif
             candidatosDeExemplo = try FixturesDoContrato.carregar("candidatos", como: [ContratoAPI.CandidatoDTO].self).map { $0.dominio() }
             let usuario = try FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio()
             #if DEBUG
             let ehCicloContratante = cenario == .cicloContratanteTurnoConcluido
+            let ehVitrineContratante = cenario == .vitrineContratante
             #else
             let ehCicloContratante = false
+            let ehVitrineContratante = false
             #endif
             if cenario == .primeiroAcesso || cenario == .entrada || cenario == .menorDeIdade || cenario == .codigoErrado || cenario == .codigoExpirado {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || cenario == .equipeDeConfiancaComMembro || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || ehVitrineContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -600,6 +625,40 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 contatos[turnoID] = contato
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
+            #if DEBUG
+            if cenario.deVitrine, let casaDasFixtures = estabelecimentos.first {
+                let vitrine = ehVitrineContratante
+                    ? VitrineDeExemplo.contratante(
+                        agora: relogio.agora, catalogo: catalogo, contato: contatoDeExemplo,
+                        casaDasFixtures: casaDasFixtures, candidatos: candidatosDeExemplo
+                    )
+                    : VitrineDeExemplo.profissional(
+                        agora: relogio.agora, catalogo: catalogo, contato: contatoDeExemplo,
+                        casaDasFixtures: casaDasFixtures, ana: perfilPublicoDeExemplo, perfilBase: perfilProfissional
+                    )
+                self.estabelecimentos = vitrine.estabelecimentos
+                self.vagas = vitrine.vagas
+                self.turnos = vitrine.turnos
+                self.turnosCancelados = vitrine.turnosCancelados
+                self.contatos = vitrine.contatos
+                self.checkins = vitrine.checkins
+                self.checkouts = vitrine.checkouts
+                self.confirmacoesDeCheckin = vitrine.confirmacoesDeCheckin
+                self.cancelamentosPorPosicao = vitrine.cancelamentosPorPosicao
+                self.avaliacoes = vitrine.avaliacoes
+                self.equipesDeConfianca = vitrine.equipes
+                self.bloqueios = vitrine.bloqueios
+                self.profissionaisEscolhidos = vitrine.profissionaisEscolhidos
+                self.posicoesFechadas = vitrine.posicoesFechadas
+                if let perfil = vitrine.perfilProfissional { self.perfilProfissional = perfil }
+                self.candidaturas = vitrine.candidaturas.map {
+                    CandidaturaGuardada(
+                        id: $0.id, vagaID: $0.vagaID, profissional: $0.profissional, daConta: $0.daConta,
+                        estado: $0.estado, criadaEm: $0.criadaEm, turnoID: $0.turnoID
+                    )
+                }
+            }
+            #endif
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
         }
@@ -645,7 +704,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         guard let indice = argumentos.firstIndex(of: "-FRILA_SCENARIO"), argumentos.indices.contains(indice + 1),
-              let cenario = Cenario(rawValue: argumentos[indice + 1]) else {
+              let cenario = Cenario(rawValue: argumentos[indice + 1] == "vitrine" ? Cenario.vitrineProfissional.rawValue : argumentos[indice + 1]) else {
             return ApiClienteEmMemoria(
                 vagas: vagasPersonalizadas,
                 sessaoAtivaInicial: !semSessaoArgumento,
@@ -659,6 +718,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
             DestinoGuardado.salvar(.profissional)
         } else if !sessaoAtiva {
             DestinoGuardado.limpar()
+        }
+        if cenario == .vitrineContratante, let usuario = try? FixturesDoContrato.carregar("usuario", como: ContratoAPI.UsuarioDTO.self).dominio() {
+            // O "turno já avaliado" da casa mora no aparelho, e não na API: a vitrine o grava ali.
+            // Mesma chave de `UserDefaultsArmazenamentoAvaliacoes`, que este módulo não enxerga.
+            let chave = "frila_avaliacao_" + usuario.id.uuidString + "_" + VitrineDeExemplo.turnoAvaliadoDoContratante.uuidString
+            UserDefaults.standard.set(true, forKey: chave)
+            UserDefaults.standard.set(Date(), forKey: chave + "_instante")
         }
         return ApiClienteEmMemoria(
             cenario: cenario,
