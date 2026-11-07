@@ -99,9 +99,8 @@ struct FrilaApp: App {
             #if DEBUG || FRILA_BETA
             .modoDebugDesignSeAtivo()
             #endif
-            #if DEBUG
-            .preferredColorScheme(Self.esquemaDeCorDosArgumentos)
-            #endif
+            // Abre sempre no claro; o escuro é escolha da pessoa (Conta > Aparência). Os argumentos de teste vencem.
+            .aparenciaEscolhida(forcado: Self.esquemaDeCorDosArgumentos)
             // Tema neutro do MidFi: seleção (aba ativa, links, controles) no preenchimento escuro, não no azul do sistema.
             .tint(FrilaCor.primaria)
             // Ao desativar a cena, uma janela opaca acima das folhas e telas modais cobre
@@ -131,6 +130,8 @@ struct FrilaApp: App {
         }
         return nil
     }
+    #else
+    private static var esquemaDeCorDosArgumentos: ColorScheme? { nil }
     #endif
 
     private static func cliente(para ambiente: ConfiguracaoAmbiente) throws(ErroDeConfiguracao) -> any ApiCliente {

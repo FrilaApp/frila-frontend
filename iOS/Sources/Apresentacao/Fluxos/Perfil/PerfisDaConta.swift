@@ -260,6 +260,8 @@ public struct TelaMeuPerfilProfissional: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("perfil-ajuda")
 
+                LinhaDeAparencia()
+
                 contaEDados
 
                 #if FRILA_BETA
@@ -644,6 +646,8 @@ public struct TelaPerfilEstabelecimento: View {
                         ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
                         DivisoriaDeLinha()
                     }
+                    LinhaDeAparencia()
+                    DivisoriaDeLinha()
                     Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
                         RotuloDeLinha(TextosPerfilConta.sair)
                     }
