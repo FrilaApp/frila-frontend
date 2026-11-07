@@ -7,6 +7,10 @@ import FrilaDominio
 public actor ApiClienteEmMemoria: ApiCliente {
     public enum Cenario: String, CaseIterable, Sendable {
         case sucesso = "success"
+        case perfilRicoHabilitado = "perfil-rico-habilitado"
+        case servicosVazios = "servicos-vazios"
+        case servicosSemRede = "servicos-sem-rede"
+        case servicosInclusosRecusados = "servicos-inclusos-recusados"
         case primeiroAcesso = "primeiro-acesso"
         case vagaPreenchida = "vaga-preenchida"
         case inelegivel
@@ -186,6 +190,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var sessaoAtiva = false
     private var conta: Conta?
     private var perfilProfissional: PerfilProfissional?
+    private var servicosDoPerfil: [ServicoNoPerfil]?
     private var tentativasCriacaoPerfil = 0
     private var estabelecimentos: [Estabelecimento]
     private var vagas: [Vaga]
@@ -773,6 +778,43 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         guard let perfilProfissional else { throw erro("nao_encontrado") }
         return perfilProfissional
+    }
+
+    public func especialidades(funcaoID: UUID) async throws -> [Especialidade] {
+        try verificarFalhaGeral()
+        return try FixturesDoContrato.carregar("especialidades-servicos", como: [ContratoAPI.EspecialidadeDTO].self)
+            .map { $0.dominio() }.filter { $0.funcaoID == funcaoID && $0.ativo == true }
+    }
+
+    public func meusServicos() async throws -> [ServicoNoPerfil] {
+        let perfil = try await meuPerfilProfissional()
+        if let servicosDoPerfil { return servicosDoPerfil.filter { item in perfil.funcoes.contains { $0.id == item.id } } }
+        if cenario == .servicosVazios { return [] }
+        return perfil.funcoes.prefix(1).map {
+            ServicoNoPerfil(funcao: $0, servico: ServicoOferecido(funcaoID: $0.id, unidade: .diaria, valorCentavos: 18000, horasIncluidas: 8))
+        }
+    }
+
+    public func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil] {
+        try verificarFalhaGeral()
+        if cenario == .servicosSemRede { throw erro("sem_rede") }
+        if cenario == .servicosInclusosRecusados, servicos.contains(where: { $0.itensInclusos != nil }) { throw erro("campo_invalido", detalhes: "inclui") }
+        let conta = try await minhaConta()
+        guard conta.perfil == .profissional else { throw erro("perfil_incompativel") }
+        guard conta.estado == .ativa else { throw erro("sem_permissao", detalhes: "conta_suspensa") }
+        let perfil = try await meuPerfilProfissional()
+        guard servicos.count <= 10, Set(servicos.map(\.funcaoID)).count == servicos.count else { throw erro("campo_invalido", detalhes: "servicos") }
+        var novos: [ServicoNoPerfil] = []
+        for servico in servicos {
+            guard let funcao = perfil.funcoes.first(where: { $0.id == servico.funcaoID }) else { throw erro("funcao_nao_marcada", detalhes: servico.funcaoID.uuidString) }
+            try servico.validar()
+            let ativas = try await especialidades(funcaoID: funcao.id)
+            let ids = servico.especialidadeIDs ?? []
+            guard ids.allSatisfy({ id in ativas.contains { $0.id == id } }) else { throw erro("campo_invalido", detalhes: "especialidade_ids") }
+            novos.append(ServicoNoPerfil(funcao: funcao, servico: servico, especialidades: ativas.filter { ids.contains($0.id) }))
+        }
+        servicosDoPerfil = novos
+        return novos
     }
 
     public func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
@@ -1952,10 +1994,40 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     // MARK: Aplicativo e dispositivo
 
+    private var recursosConfigurados: RecursosDoApp?
+
+    public func definirRecursos(_ recursos: RecursosDoApp) {
+        self.recursosConfigurados = recursos
+    }
+
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
         try verificarRede()
         if cenario == .atualizacaoObrigatoria {
-            return ConfiguracaoApp(versaoMinima: "99.0.0", versaoRecomendada: "99.0.0", mensagem: configuracao.mensagem, urlDaLoja: configuracao.urlDaLoja)
+            return ConfiguracaoApp(
+                versaoMinima: "99.0.0",
+                versaoRecomendada: "99.0.0",
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: configuracao.recursos
+            )
+        }
+        if let recursosConfigurados {
+            return ConfiguracaoApp(
+                versaoMinima: configuracao.versaoMinima,
+                versaoRecomendada: configuracao.versaoRecomendada,
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: recursosConfigurados
+            )
+        }
+        if cenario == .perfilRicoHabilitado || cenario == .servicosVazios || cenario == .servicosInclusosRecusados {
+            return ConfiguracaoApp(
+                versaoMinima: configuracao.versaoMinima,
+                versaoRecomendada: configuracao.versaoRecomendada,
+                mensagem: configuracao.mensagem,
+                urlDaLoja: configuracao.urlDaLoja,
+                recursos: RecursosDoApp(perfilRico: true)
+            )
         }
         return configuracao
     }

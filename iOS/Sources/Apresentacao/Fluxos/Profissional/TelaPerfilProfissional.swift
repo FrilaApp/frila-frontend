@@ -127,6 +127,13 @@ public struct TelaPerfilProfissional: View {
     @ViewBuilder
     private var formularioViews: some View {
         secaoFuncoes
+        if viewModel.modo == .edicao && viewModel.suportaPerfilRico {
+            NavigationLink {
+                TelaEditarServicos(modelo: viewModel.editorDeServicos())
+            } label: { Text("Editar serviços", bundle: bundleApresentacao).font(FrilaTipo.corpo) }
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("editar-servicos")
+        }
         secaoPontoBase
         secaoHorarios
     }

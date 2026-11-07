@@ -215,17 +215,39 @@ public struct Denuncia: Codable, Equatable, Sendable {
     }
 }
 
+public struct RecursosDoApp: Codable, Equatable, Sendable {
+    public let fotoDePerfil: Bool
+    public let chamadaDireta: Bool
+    public let perfilRico: Bool
+
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
+        self.fotoDePerfil = fotoDePerfil
+        self.chamadaDireta = chamadaDireta
+        self.perfilRico = perfilRico
+    }
+
+    public static let desligados = RecursosDoApp()
+}
+
 public struct ConfiguracaoApp: Codable, Equatable, Sendable {
     public let versaoMinima: String
     public let versaoRecomendada: String
     public let mensagem: String?
     public let urlDaLoja: URL
+    public let recursos: RecursosDoApp
 
-    public init(versaoMinima: String, versaoRecomendada: String, mensagem: String?, urlDaLoja: URL) {
+    public init(
+        versaoMinima: String,
+        versaoRecomendada: String,
+        mensagem: String?,
+        urlDaLoja: URL,
+        recursos: RecursosDoApp? = nil
+    ) {
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem
         self.urlDaLoja = urlDaLoja
+        self.recursos = recursos ?? .desligados
     }
 }
 
@@ -251,6 +273,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func criarConta(_ cadastro: CadastroConta) async throws -> Conta
     func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional
     func meuPerfilProfissional() async throws -> PerfilProfissional
+    func meusServicos() async throws -> [ServicoNoPerfil]
+    func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil]
+    func especialidades(funcaoID: UUID) async throws -> [Especialidade]
     func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional
     /// Troca telefone e/ou e-mail da conta. O backend ainda não oferece a operação (ver o handoff em
     /// `operacao/conta-editar-contato-handoff-backend.md`): `suportaEdicaoDeContato` diz se este cliente a
@@ -394,6 +419,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 }
 
 public extension ApiCliente {
+    func meusServicos() async throws -> [ServicoNoPerfil] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func especialidades(funcaoID: UUID) async throws -> [Especialidade] { throw ErroDaApi(codigo: .respostaInvalida) }
     var suportaEdicaoDeContato: Bool { false }
     func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta {
         throw ErroDaApi(codigo: .respostaInvalida)

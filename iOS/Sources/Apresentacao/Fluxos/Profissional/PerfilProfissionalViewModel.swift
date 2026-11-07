@@ -34,6 +34,7 @@ public final class PerfilProfissionalViewModel {
     public var mensagemDeErro: String?
     public private(set) var perfilSalvo: PerfilProfissional?
     public private(set) var sucesso: Bool = false
+    public private(set) var suportaPerfilRico: Bool = false
 
     private let api: any ApiCliente
     private let buscarPontoBase: (@MainActor (String) async throws -> [MKMapItem])?
@@ -54,6 +55,9 @@ public final class PerfilProfissionalViewModel {
         mensagemDeErro = nil
 
         do {
+            if let config = try? await api.configuracaoDoApp() {
+                suportaPerfilRico = config.recursos.perfilRico
+            }
             funcoesDisponiveis = try await api.funcoes()
             if modo == .edicao {
                 let perfil = try await api.meuPerfilProfissional()
@@ -70,6 +74,8 @@ public final class PerfilProfissionalViewModel {
         modo = .edicao
         await carregar()
     }
+
+    func editorDeServicos() -> ServicosDoProfissionalViewModel { ServicosDoProfissionalViewModel(api: api) }
 
     public func alternarFuncao(_ id: UUID) {
         if funcoesSelecionadas.contains(id) {

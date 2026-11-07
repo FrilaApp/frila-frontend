@@ -131,6 +131,29 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try perfil.dominio() }
     }
 
+    public func meusServicos() async throws -> [ServicoNoPerfil] {
+        let perfil: ContratoAPI.ServicosDoPerfil = try await rpc("meu_perfil_detalhado")
+        return perfil.servicos.map { $0.dominio() }
+    }
+
+    public func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil] {
+        let perfil: ContratoAPI.ServicosDoPerfil = try await rpc("definir_servicos", params: ["servicos": servicos.map(ContratoAPI.ServicoOferecidoDTO.init)])
+        return perfil.servicos.map { $0.dominio() }
+    }
+
+    public func especialidades(funcaoID: UUID) async throws -> [Especialidade] {
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        do {
+            let itens: [ContratoAPI.EspecialidadeDTO] = try await cliente.from("especialidade")
+                .select("id,funcao_id,nome,ativo").eq("funcao_id", value: funcaoID)
+                .eq("ativo", value: true).order("nome").execute().value
+            return itens.map { $0.dominio() }
+        } catch {
+            if Self.comprovaSessaoInvalida(error) { _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada) }
+            throw mapear(error)
+        }
+    }
+
     public func atualizarPerfilProfissional(_ alteracao: AlteracaoPerfilProfissional) async throws -> PerfilProfissional {
         let perfil: ContratoAPI.PerfilProfissionalDTO = try await rpc(
             "atualizar_perfil_profissional",
