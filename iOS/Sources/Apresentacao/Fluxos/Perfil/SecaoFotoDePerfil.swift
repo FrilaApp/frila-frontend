@@ -151,6 +151,8 @@ private struct ConteudoDaFotoDePerfil: View {
 
     private var titulo: String {
         guard let midia = model.midia else { return TextosFotoDePerfil.titulo }
+        // O texto já diz que as fotos estão indisponíveis: o título não pode dizer "publicada".
+        if !model.recursoLigado, midia.estado != .removida { return TextosFotoDePerfil.tituloRecursoDesligado }
         switch midia.estado {
         case .enviando: return TextosFotoDePerfil.tituloEnviando
         case .emAnalise: return TextosFotoDePerfil.tituloEmAnalise

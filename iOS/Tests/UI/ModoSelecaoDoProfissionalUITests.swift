@@ -148,7 +148,7 @@ final class ModoSelecaoDoProfissionalUITests: XCTestCase {
         let app = abrir("candidatura-escolhida", push: "confirmacao", id: turnoID)
 
         XCTAssertTrue(elemento("tela-meu-turno", em: app).waitForExistence(timeout: 15))
-        XCTAssertTrue(app.staticTexts["Você está confirmado"].exists)
+        XCTAssertTrue(app.staticTexts["Turno confirmado"].exists)
         XCTAssertTrue(elemento("como-chegar-do-turno", em: app).waitForExistence(timeout: 10), "a escolha leva ao Como chegar do turno")
         XCTAssertFalse(elemento("contato-do-turno", em: app).exists)
     }

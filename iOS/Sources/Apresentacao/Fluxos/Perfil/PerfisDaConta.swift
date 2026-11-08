@@ -361,7 +361,7 @@ public struct TelaMeuPerfilProfissional: View {
                 .accessibilityAddTraits(.isHeader)
             // Áreas de toque encostadas: nenhuma faixa morta entre os dois contatos.
             VStack(alignment: .leading, spacing: 0) {
-                contato(TextosPerfilConta.telefone, conta.telefone, id: "perfil-telefone", campo: .telefone)
+                contato(TextosPerfilConta.telefone, FormatoDeTelefone.paraExibir(conta.telefone), id: "perfil-telefone", campo: .telefone)
                 contato(TextosPerfilConta.email, conta.email, id: "perfil-email", campo: .email)
             }
         }

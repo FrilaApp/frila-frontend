@@ -10,6 +10,15 @@ public final class ChamadaDiretaViewModel {
     public var valorCentavos = 0 {
         didSet { if valorCentavos != oldValue { totalConfirmado = false } }
     }
+    /// O valor como a pessoa digita, em reais ("180" ou "180,50"). Antes o campo pedia centavos e
+    /// mostrava "018000" para R$ 180,00 (V8 da conferência visual da 1.1).
+    public var valorTexto = "" {
+        didSet {
+            // "180," ainda está sendo digitado: vale 180.
+            let completo = valorTexto.hasSuffix(",") ? String(valorTexto.dropLast()) : valorTexto
+            valorCentavos = ((try? ServicoEmEdicao.centavos(completo)) ?? nil) ?? 0
+        }
+    }
     public var totalConfirmado = false
     public var recado = ""
     public var responsavel = ""
@@ -53,6 +62,37 @@ public final class ChamadaDiretaViewModel {
             && (2 * 3600...16 * 3600).contains(fim.timeIntervalSince(inicio))
     }
 
+    /// O primeiro motivo que impede o envio, para o botão desligado não ficar sem explicação (V7).
+    public var oQueFalta: String? {
+        guard recursoHabilitado, !carregando, !enviando, resultado == nil else { return nil }
+        if valorCentavos <= 0 { return TextosChamadaDireta.faltaValor }
+        if !totalConfirmado { return TextosChamadaDireta.faltaConfirmarTotal }
+        if responsavel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return TextosChamadaDireta.faltaResponsavel }
+        if inicio.timeIntervalSince(agora()) < 2 * 3600 { return TextosChamadaDireta.faltaAntecedencia }
+        if !(2 * 3600...16 * 3600).contains(fim.timeIntervalSince(inicio)) { return TextosChamadaDireta.faltaDuracao }
+        return nil
+    }
+
+    /// Limpa o que a pessoa digita no valor: só algarismos e uma vírgula, até 5 algarismos em
+    /// reais e 2 em centavos. O ponto vira vírgula (teclado em outro idioma).
+    static func valorDigitado(_ texto: String) -> String {
+        var reais = "", centavos = "", temVirgula = false
+        for caractere in texto {
+            if caractere == "," || caractere == "." {
+                temVirgula = true
+            } else if caractere.isASCII, caractere.isNumber {
+                if temVirgula { if centavos.count < 2 { centavos.append(caractere) } }
+                else if reais.count < 5 { reais.append(caractere) }
+            }
+        }
+        guard temVirgula else { return reais }
+        return (reais.isEmpty ? "0" : reais) + "," + centavos
+    }
+
+    static func textoEmReais(_ centavos: Int) -> String {
+        centavos % 100 == 0 ? "\(centavos / 100)" : "\(centavos / 100)," + String(format: "%02d", centavos % 100)
+    }
+
     public func carregar() async {
         guard !carregando, ponto == nil else { return }
         carregando = true
@@ -78,7 +118,7 @@ public final class ChamadaDiretaViewModel {
             regiao = vaga?.regiaoAdministrativa ?? casa.regiaoAdministrativa
             ponto = vaga?.ponto ?? casa.ponto
             responsavel = vaga?.responsavelLocal ?? casa.nome
-            valorCentavos = vaga?.valor.centavos ?? 0
+            valorTexto = vaga.map { Self.textoEmReais($0.valor.centavos) } ?? ""
             refeicao = vaga?.inclusos.refeicao ?? false
             transporte = vaga?.inclusos.transporte ?? false
             materialProprio = vaga?.inclusos.exigeMaterialProprio ?? false

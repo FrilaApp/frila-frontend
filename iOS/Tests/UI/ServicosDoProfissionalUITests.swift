@@ -40,7 +40,7 @@ final class ServicosDoProfissionalUITests: XCTestCase {
         tocar(app.switches["Buffet"], app)
         XCTAssertEqual(app.switches["Buffet"].value as? String, "1")
         tocar(app.buttons["salvar-servicos"], app)
-        XCTAssertTrue(app.staticTexts["servicos-sucesso"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["servicos-sucesso"].waitForExistence(timeout: 10))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         tocar(app.buttons["editar-servicos"], app)
         XCTAssertEqual(app.textFields["valor-servico"].value as? String, "180,00")
@@ -53,7 +53,7 @@ final class ServicosDoProfissionalUITests: XCTestCase {
         app.buttons["A combinar"].tap()
         XCTAssertFalse(app.textFields["valor-servico"].exists)
         tocar(app.buttons["salvar-servicos"], app)
-        XCTAssertTrue(app.staticTexts["servicos-sucesso"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["servicos-sucesso"].waitForExistence(timeout: 10))
     }
 
     func testLimitaEspecialidadesA8SemOferecerInativasOuDeOutraFuncao() {
@@ -64,14 +64,14 @@ final class ServicosDoProfissionalUITests: XCTestCase {
         XCTAssertFalse(app.switches["Especialidade desativada"].exists)
         XCTAssertFalse(app.switches["Coquetelaria"].exists)
         tocar(app.buttons["salvar-servicos"], app)
-        XCTAssertTrue(app.staticTexts["servicos-sucesso"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["servicos-sucesso"].waitForExistence(timeout: 10))
     }
 
     func testServicosOpcionaisPermitemContinuarNasVagas() {
         let app = abrir("servicos-vazios")
         XCTAssertFalse(app.textFields["valor-servico"].exists)
         tocar(app.buttons["salvar-servicos"], app)
-        XCTAssertTrue(app.staticTexts["servicos-sucesso"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["servicos-sucesso"].waitForExistence(timeout: 10))
         app.tabBars.buttons["briefcase"].tap()
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
@@ -83,14 +83,14 @@ final class ServicosDoProfissionalUITests: XCTestCase {
         campo.typeText("Texto sintetico para recusa")
         tocar(app.buttons["salvar-servicos"], app)
         XCTAssertTrue(app.staticTexts["erro-servico-inclui"].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.staticTexts["servicos-sucesso"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["servicos-sucesso"].exists)
         XCTAssertEqual(campo.value as? String, "Texto sintetico para recusa")
     }
 
     func testEditorEmAX5MantemSalvarAcessivel() {
         let app = abrir(ax5: true)
         tocar(app.buttons["salvar-servicos"], app)
-        XCTAssertTrue(app.staticTexts["servicos-sucesso"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["servicos-sucesso"].waitForExistence(timeout: 10))
         let captura = XCTAttachment(screenshot: app.screenshot())
         captura.name = "servicos-ax5"; captura.lifetime = .keepAlways
         add(captura)

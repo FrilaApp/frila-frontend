@@ -48,7 +48,7 @@ public struct TelaApresentacaoERegioes: View {
         .frilaKeyboardDismissScope()
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosApresentacaoERegioes.titulo))
-        .navigationBarTitleDisplayMode(.large)
+        .tituloGrandeForaDeAX()
         .task {
             await viewModel.carregar()
         }

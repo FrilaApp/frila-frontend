@@ -45,12 +45,21 @@ public struct TelaChamadaDireta: View {
                 }
                 .disabled(!viewModel.podeEnviar)
                 .accessibilityIdentifier("enviar-chamada")
+                .accessibilityHint(viewModel.oQueFalta.map { Text(verbatim: $0) } ?? Text(verbatim: ""))
                 .alert(Text(verbatim: TextosChamadaDireta.j7Titulo), isPresented: $viewModel.mostrarJ7) {
                     Button(role: .cancel) { viewModel.mostrarJ7 = false } label: { Text("Cancelar", bundle: bundleApresentacao) }
                     Button {
                         Task { await viewModel.enviar(confirmoRecorrencia: true) }
                     } label: { Text(verbatim: TextosChamadaDireta.j7Confirmar) }
                 } message: { Text(verbatim: TextosChamadaDireta.j7Mensagem) }
+                if let falta = viewModel.oQueFalta {
+                    Text(verbatim: falta)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityHidden(true) // já é a dica do botão no VoiceOver
+                        .accessibilityIdentifier("chamada-o-que-falta")
+                }
             }
         }
         .font(FrilaTipo.corpo)
@@ -77,13 +86,22 @@ public struct TelaChamadaDireta: View {
             LabeledContent { Text(verbatim: viewModel.local) } label: { Text("Local", bundle: bundleApresentacao) }
             DatePicker(selection: $viewModel.inicio) { Text("Início", bundle: bundleApresentacao) }
             DatePicker(selection: $viewModel.fim) { Text("Término", bundle: bundleApresentacao) }
-            TextField(TextosChamadaDireta.responsavel, text: $viewModel.responsavel)
-                .textInputAutocapitalization(.words)
-            TextField(TextosChamadaDireta.valor, value: $viewModel.valorCentavos, format: .number.grouping(.never))
-                .keyboardType(.numberPad)
-                .accessibilityIdentifier("total-chamada-centavos")
-            if let valor = try? Dinheiro(centavos: viewModel.valorCentavos) {
-                Text(verbatim: FormatadorFrila().dinheiro(valor)).font(FrilaTipo.preco)
+            // V9: o Form não mostra o rótulo de um TextField, e o campo preenchido ("Bistrô Ipê",
+            // "0") ficava solto. O rótulo vai acima, visível; o VoiceOver lê o rótulo no próprio campo.
+            CampoRotulado(TextosChamadaDireta.responsavel) {
+                TextField(text: $viewModel.responsavel) { Text(verbatim: TextosChamadaDireta.responsavel) }
+                    .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("responsavel-chamada")
+            }
+            CampoRotulado(TextosChamadaDireta.valor) {
+                HStack(spacing: FrilaEspaco.pequeno) {
+                    Text(verbatim: TextosChamadaDireta.moeda).accessibilityHidden(true)
+                    CampoMascara(texto: $viewModel.valorTexto, placeholder: TextosChamadaDireta.valorExemplo,
+                                 rotuloAcessibilidade: TextosChamadaDireta.valor,
+                                 identificadorAcessibilidade: "total-chamada-centavos", teclado: .decimalPad) { novo, _ in
+                        ChamadaDiretaViewModel.valorDigitado(novo)
+                    }
+                }
             }
             Toggle(isOn: $viewModel.totalConfirmado) { Text(verbatim: TextosChamadaDireta.total) }
                 .accessibilityIdentifier("confirmar-total-chamada")
@@ -95,6 +113,28 @@ public struct TelaChamadaDireta: View {
             if viewModel.recado.count > 300 {
                 Text(verbatim: TextosChamadaDireta.recadoLongo).foregroundStyle(FrilaCor.perigo)
             }
+        }
+    }
+}
+
+/// Rótulo visível acima do campo, dentro do Form. O rótulo some do VoiceOver porque o campo já o lê.
+private struct CampoRotulado<Campo: View>: View {
+    let rotulo: String
+    @ViewBuilder let campo: Campo
+
+    init(_ rotulo: String, @ViewBuilder campo: () -> Campo) {
+        self.rotulo = rotulo
+        self.campo = campo()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text(verbatim: rotulo)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
+            campo
         }
     }
 }

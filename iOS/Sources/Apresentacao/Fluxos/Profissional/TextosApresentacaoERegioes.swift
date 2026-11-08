@@ -17,7 +17,7 @@ enum TextosApresentacaoERegioes {
 
     static let cursosTitulo = String(localized: "Cursos e certificados", bundle: bundleApresentacao)
     static let cursosDica = String(localized: "Ex.: 'Boas práticas de manipulação de alimentos', 'Curso de coquetelaria'.", bundle: bundleApresentacao)
-    static let cursoPrompt = String(localized: "Nome do curso ou certificado", bundle: bundleApresentacao)
+    static let cursoPrompt = String(localized: "Curso ou certificado", bundle: bundleApresentacao)
     static let adicionarCurso = String(localized: "Adicionar curso", bundle: bundleApresentacao)
     static let removerCurso = String(localized: "Remover curso", bundle: bundleApresentacao)
 

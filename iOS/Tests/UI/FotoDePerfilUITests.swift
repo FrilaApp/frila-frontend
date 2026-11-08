@@ -108,6 +108,8 @@ final class FotoDePerfilUITests: XCTestCase {
     func testRecursoDesligadoComFotoSoPermiteRemover() {
         let app = abrir("foto-recurso-desligado")
         XCTAssertTrue(texto("perfil-foto-texto", em: app).contains("indisponíveis por enquanto"))
+        // V21: o título não diz "Foto publicada" quando o texto diz que as fotos estão indisponíveis.
+        XCTAssertEqual(texto("perfil-foto-estado", em: app), "Foto guardada")
         XCTAssertTrue(existe("perfil-foto-remover", em: app))
         XCTAssertFalse(app.buttons["perfil-foto-escolher"].exists)
         XCTAssertFalse(app.buttons["perfil-foto-tentar-outra"].exists)
