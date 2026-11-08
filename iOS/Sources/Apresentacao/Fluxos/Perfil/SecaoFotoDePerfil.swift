@@ -52,10 +52,10 @@ private struct ConteudoDaFotoDePerfil: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Color.clear.frame(height: 0)
-            if model.secaoVisivel {
-                cartao
-            } else if model.falhouAoCarregar {
+            if model.falhouAoCarregar {
                 EstadoErro(verbatim: TextosFotoDePerfil.aviso(.indisponivelAgora)) { Task { await model.carregar() } }
+            } else if model.secaoVisivel {
+                cartao
             }
         }
         .task { await model.carregar() }
