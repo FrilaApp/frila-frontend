@@ -113,6 +113,12 @@ fun AppNavegacao(
     monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
     aoPronto: (() -> Unit)? = null,
+    /**
+     * Trava do selo de confiança (RN14): desligada por padrão até a moderação e os termos serem
+     * validados pelos sócios. Desligada, a rota [Rotas.SELO_CONFIANCA] nem existe no grafo e o
+     * perfil não consulta o estado do selo.
+     */
+    recursoSeloHabilitado: Boolean = false,
 ) {
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
@@ -391,14 +397,16 @@ fun AppNavegacao(
             composable(Rotas.PERFIL) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: PerfilViewModel = koinViewModel()
-                    val viewModelSelo: VerificacaoIdentidadeViewModel = koinViewModel()
-                    val estadoSelo by viewModelSelo.estado.collectAsStateWithLifecycle()
+                    val viewModelSelo: VerificacaoIdentidadeViewModel? =
+                        if (recursoSeloHabilitado) koinViewModel() else null
+                    val estadoSelo = viewModelSelo?.estado?.collectAsStateWithLifecycle()?.value
                     // Ao voltar do fluxo do selo a rota entra de novo em composição e relê o estado.
-                    LaunchedEffect(Unit) { viewModelSelo.carregar() }
+                    LaunchedEffect(viewModelSelo) { viewModelSelo?.carregar() }
                     TelaPerfil(
                         viewModel = viewModel,
-                        verificacaoIdentidade = estadoSelo.verificacao,
-                        podeSolicitarSelo = estadoSelo.podeSolicitar,
+                        recursoSeloHabilitado = recursoSeloHabilitado,
+                        verificacaoIdentidade = estadoSelo?.verificacao,
+                        podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
                         aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
                         aoDeslogar = {
                             guardaBiometrico.liberarAposLimparSessao()
@@ -411,13 +419,15 @@ fun AppNavegacao(
                 }
             }
 
-            composable(Rotas.SELO_CONFIANCA) {
-                RotaProtegida(guardaBiometrico) {
-                    val viewModel: VerificacaoIdentidadeViewModel = koinViewModel()
-                    TelaVerificacaoDocumento(
-                        viewModel = viewModel,
-                        aoVoltar = { navController.popBackStack() },
-                    )
+            if (recursoSeloHabilitado) {
+                composable(Rotas.SELO_CONFIANCA) {
+                    RotaProtegida(guardaBiometrico) {
+                        val viewModel: VerificacaoIdentidadeViewModel = koinViewModel()
+                        TelaVerificacaoDocumento(
+                            viewModel = viewModel,
+                            aoVoltar = { navController.popBackStack() },
+                        )
+                    }
                 }
             }
 
