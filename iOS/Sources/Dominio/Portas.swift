@@ -205,13 +205,17 @@ public struct Denuncia: Codable, Equatable, Sendable {
     public let relato: String
     /// Gerada pelo app: reenviar com a mesma chave devolve o mesmo protocolo.
     public let chave: UUID
+    /// 0.2.54 (CD-RF12): a foto denunciada, pelo `foto_id` que o perfil mostrou. Sem ela, a denúncia
+    /// é sobre o perfil, como antes. Duas denúncias de contas diferentes ocultam a foto no servidor.
+    public let midiaID: UUID?
 
-    public init(alvo: Alvo, turnoID: UUID? = nil, motivo: MotivoDenuncia, relato: String, chave: UUID) {
+    public init(alvo: Alvo, turnoID: UUID? = nil, motivo: MotivoDenuncia, relato: String, chave: UUID, midiaID: UUID? = nil) {
         self.alvo = alvo
         self.turnoID = turnoID
         self.motivo = motivo
         self.relato = relato
         self.chave = chave
+        self.midiaID = midiaID
     }
 }
 

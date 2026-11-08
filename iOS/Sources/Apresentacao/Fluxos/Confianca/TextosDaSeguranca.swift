@@ -17,6 +17,8 @@ enum TextosDaSeguranca {
     static let relatoValidoAcessibilidade = String(localized: "Mínimo de caracteres atendido", bundle: bundleApresentacao)
     static let motivo = String(localized: "Motivo da denúncia", bundle: bundleApresentacao)
     static let relato = String(localized: "Relato", bundle: bundleApresentacao)
+    static let sobreAFoto = String(localized: "A denúncia é sobre a foto de perfil", bundle: bundleApresentacao)
+    static let sobreAFotoExplicacao = String(localized: "Marque se o problema está na foto. A Equipe Frila analisa a foto denunciada.", bundle: bundleApresentacao)
     static let relatoMinimo = String(localized: "O relato deve conter pelo menos 10 caracteres.", bundle: bundleApresentacao)
     static let enviar = String(localized: "Enviar denúncia", bundle: bundleApresentacao)
     static let emergencia = String(localized: "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)", bundle: bundleApresentacao)

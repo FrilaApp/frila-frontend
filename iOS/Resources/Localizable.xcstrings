@@ -1007,6 +1007,16 @@
         }
       }
     },
+    "A denúncia é sobre a foto de perfil": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A denúncia é sobre a foto de perfil"
+          }
+        }
+      }
+    },
     "A foto precisa mostrar você. Logos, desenhos e paisagens não servem como foto de perfil.": {
       "localizations": {
         "pt-BR": {
@@ -6892,6 +6902,16 @@
         }
       }
     },
+    "Marque se o problema está na foto. A Equipe Frila analisa a foto denunciada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marque se o problema está na foto. A Equipe Frila analisa a foto denunciada."
+          }
+        }
+      }
+    },
     "Marque só onde você consegue chegar no horário.": {
       "localizations": {
         "pt-BR": {
@@ -11875,17 +11895,6 @@
         }
       }
     },
-    "Taxa de Serviço da Plataforma (5%):": {
-      "extractionState": "stale",
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Taxa de Serviço da Plataforma (5%):"
-          }
-        }
-      }
-    },
     "Telefone": {
       "extractionState": "stale",
       "localizations": {
@@ -11913,17 +11922,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tempo de experiência"
-          }
-        }
-      }
-    },
-    "Tenho 18 anos ou mais": {
-      "extractionState": "stale",
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tenho 18 anos ou mais"
           }
         }
       }

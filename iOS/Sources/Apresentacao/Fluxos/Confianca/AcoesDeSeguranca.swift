@@ -152,6 +152,20 @@ public struct FolhaDeDenuncia: View {
                         .font(FrilaTipo.corpo)
                         .accessibilityIdentifier("motivo-denuncia")
 
+                        if model.podeDenunciarFoto {
+                            Toggle(isOn: $model.sobreAFoto) {
+                                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                                    Text(verbatim: TextosDaSeguranca.sobreAFoto)
+                                        .font(FrilaTipo.corpo)
+                                        .foregroundStyle(FrilaCor.texto)
+                                    Text(verbatim: TextosDaSeguranca.sobreAFotoExplicacao)
+                                        .font(FrilaTipo.nota)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                }
+                            }
+                            .accessibilityIdentifier("denuncia-sobre-foto")
+                        }
+
                         TextField(TextosDaSeguranca.relato, text: $model.relato, axis: .vertical)
                             .font(FrilaTipo.valorDoCampo)
                             .lineLimit(4...10)
