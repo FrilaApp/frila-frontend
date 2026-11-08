@@ -263,6 +263,28 @@ class TelaVerificacaoDocumentoTest {
     }
 
     @Test
+    fun `consentimento informa a revogacao gratuita e o contato oficial do suporte`() {
+        rule.setContent { FrilaTheme { TelaConsentimentoSelo(aoConfirmar = {}, aoVoltar = {}) } }
+
+        rule.onNodeWithTag("consentimento-revogacao").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("art. 8º, § 5º", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("gratuita", substring = true).assertIsDisplayed()
+        rule.onNodeWithTag("consentimento-contato-suporte").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("suporte@frilabr.com", substring = true).assertIsDisplayed()
+        AuditoriaSemanticaAcessibilidade.assertSemanticaValida(rule.onRoot().fetchSemanticsNode())
+    }
+
+    @Test
+    fun `contato do consentimento vem dos enderecos oficiais e nao de um texto duplicado`() {
+        assertEquals("suporte@frilabr.com", EnderecosOficiais.padrao.emailSuporte)
+        rule.setContent {
+            FrilaTheme { TelaConsentimentoSelo(aoConfirmar = {}, aoVoltar = {}, emailSuporte = "outro@frila.test") }
+        }
+
+        rule.onNodeWithText("outro@frila.test", substring = true).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `confirmar so dispara o callback com a caixa marcada`() {
         var confirmacoes = 0
         rule.setContent {

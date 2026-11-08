@@ -20,7 +20,7 @@ enum class StatusEnvioVerificacao { OCIOSO, ENVIANDO, SUCESSO, ERRO }
  * profissional leu.
  */
 object TermoBiometria {
-    const val VERSAO = "2026-11-06"
+    const val VERSAO = "2026-11-08"
 }
 
 /**
