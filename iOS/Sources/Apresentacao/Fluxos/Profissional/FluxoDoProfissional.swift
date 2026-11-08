@@ -189,9 +189,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                                 destinoDoMeuTurno($0)
                             }
                         case let .chamadaDoAviso(chamadaID):
-                            if let api {
-                                TelaDetalheChamadaRecebida(viewModel: ChamadaRecebidaViewModel(chamadaID: chamadaID, api: api))
-                            }
+                            TelaDetalheChamadaRecebida(viewModel: ChamadaRecebidaViewModel(chamadaID: chamadaID, api: api))
                         case let .avaliacao(turnoID):
                             if let contaID {
                                 DestinoDaAvaliacaoDoAviso(turnoID: turnoID, contaID: contaID, api: api,

@@ -1482,7 +1482,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             fimEm: vaga.periodo.fim,
             valorCentavos: vaga.valor.centavos,
             outraParte: vaga.estabelecimento,
-            tipoEstabelecimento: .restaurante,
+            tipoEstabelecimento: .foodService,
             contaNova: false,
             regiaoAdministrativa: vaga.regiaoAdministrativa,
             distanciaFaixa: .ate5km,
@@ -1525,7 +1525,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             origem: .publicacao, vagaOrigemId: vagaID
         )
         vagas.append(novaVaga)
-        return VagaPublicada(id: novaVaga.id, posicoes: 1, publicadoEm: relogio.agora)
+        return VagaPublicada(vagaID: novaVaga.id, posicoes: [UUID()])
     }
 
     public func definirPreferenciaChamadas(_ alteracao: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas {

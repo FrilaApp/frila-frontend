@@ -322,7 +322,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             "responder_chamada",
             params: ContratoAPI.ResponderChamada(chamadaID: id, resposta: resposta, motivoRecusa: motivoRecusa)
         )
-        return dto.dominio()
+        return try dto.dominio()
     }
 
     public func cancelarChamada(id: UUID) async throws -> Chamada {
@@ -375,7 +375,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
                 aceitaDe: preferencias.aceitaDe?.rawValue
             )
         )
-        return dto.dominio()
+        return try dto.dominio()
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {

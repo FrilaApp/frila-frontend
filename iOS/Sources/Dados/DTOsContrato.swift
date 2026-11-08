@@ -939,12 +939,12 @@ enum ContratoAPI {
         let estado: EstadoChamada
         let recado: String?
         let motivoRecusa: MotivoRecusaChamada?
-        let expiraEm: String
-        let respondidaEm: String?
-        let criadaEm: String
+        let expiraEm: Date
+        let respondidaEm: Date?
+        let criadaEm: Date
         let funcao: FuncaoDTO
-        let inicioEm: String
-        let fimEm: String
+        let inicioEm: Date
+        let fimEm: Date
         let valorCentavos: Int
         let outraParte: PerfilPublicoDTO
 
@@ -972,12 +972,12 @@ enum ContratoAPI {
                 estado: estado,
                 recado: recado,
                 motivoRecusa: motivoRecusa,
-                expiraEm: try ContratoAPI.instante(expiraEm, campo: "expira_em"),
-                respondidaEm: try respondidaEm.flatMap { try ContratoAPI.instante($0, campo: "respondida_em") },
-                criadaEm: try ContratoAPI.instante(criadaEm, campo: "criada_em"),
+                expiraEm: expiraEm,
+                respondidaEm: respondidaEm,
+                criadaEm: criadaEm,
                 funcao: funcao.dominio(),
-                inicioEm: try ContratoAPI.instante(inicioEm, campo: "inicio_em"),
-                fimEm: try ContratoAPI.instante(fimEm, campo: "fim_em"),
+                inicioEm: inicioEm,
+                fimEm: fimEm,
                 valorCentavos: valorCentavos,
                 outraParte: try outraParte.dominio()
             )
@@ -992,12 +992,12 @@ enum ContratoAPI {
         let estado: EstadoChamada
         let recado: String?
         let motivoRecusa: MotivoRecusaChamada?
-        let expiraEm: String
-        let respondidaEm: String?
-        let criadaEm: String
+        let expiraEm: Date
+        let respondidaEm: Date?
+        let criadaEm: Date
         let funcao: FuncaoDTO
-        let inicioEm: String
-        let fimEm: String
+        let inicioEm: Date
+        let fimEm: Date
         let valorCentavos: Int
         let outraParte: PerfilPublicoDTO
         let tipoEstabelecimento: TipoEstabelecimento?
@@ -1045,12 +1045,12 @@ enum ContratoAPI {
                 estado: estado,
                 recado: recado,
                 motivoRecusa: motivoRecusa,
-                expiraEm: try ContratoAPI.instante(expiraEm, campo: "expira_em"),
-                respondidaEm: try respondidaEm.flatMap { try ContratoAPI.instante($0, campo: "respondida_em") },
-                criadaEm: try ContratoAPI.instante(criadaEm, campo: "criada_em"),
+                expiraEm: expiraEm,
+                respondidaEm: respondidaEm,
+                criadaEm: criadaEm,
                 funcao: funcao.dominio(),
-                inicioEm: try ContratoAPI.instante(inicioEm, campo: "inicio_em"),
-                fimEm: try ContratoAPI.instante(fimEm, campo: "fim_em"),
+                inicioEm: inicioEm,
+                fimEm: fimEm,
                 valorCentavos: valorCentavos,
                 outraParte: try outraParte.dominio(),
                 tipoEstabelecimento: tipoEstabelecimento,
@@ -1061,7 +1061,7 @@ enum ContratoAPI {
                 incluiTransporte: incluiTransporte,
                 exigeMaterialProprio: exigeMaterialProprio,
                 local: local,
-                ponto: ponto?.dominio(),
+                ponto: try ponto?.dominio(),
                 responsavelLocal: responsavelLocal,
                 turnoID: turnoID
             )
@@ -1081,12 +1081,12 @@ enum ContratoAPI {
             case responsavelLocal = "responsavel_local"
         }
 
-        func dominio() -> ResultadoChamada {
+        func dominio() throws -> ResultadoChamada {
             ResultadoChamada(
                 chamada: chamada,
                 turnoID: turnoID,
                 local: local,
-                ponto: ponto?.dominio(),
+                ponto: try ponto?.dominio(),
                 responsavelLocal: responsavelLocal
             )
         }

@@ -138,7 +138,7 @@ public final class ChamadaRecebidaViewModel {
     }
 
     private func tratarErroAoResponder(_ apiErro: ErroDaApi) {
-        if apiErro.codigo == .chamadaIndisponivel || apiErro.codigo == .conflito {
+        if apiErro.codigo == .chamadaIndisponivel || apiErro.codigo == .posicaoJaPreenchida || apiErro.codigo == .vagaEncerrada {
             if apiErro.detalhes == "expirada" {
                 mensagemConcorrencia = TextosChamadaDireta.chamadaExpiradaAviso
             } else if apiErro.detalhes == "cancelada" {

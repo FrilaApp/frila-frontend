@@ -82,7 +82,7 @@ public final class AcompanharChamadasViewModel {
 
         do {
             let publicada = try await api.publicarAPartirDaChamada(vagaID: vagaID, chave: chave, modo: .urgencia)
-            vagaPublicadaNovaID = publicada.id
+            vagaPublicadaNovaID = publicada.vagaID
             sucessoMensagem = TextosChamadaDireta.vagaPublicadaSucesso
             await carregar()
         } catch {

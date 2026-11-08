@@ -93,7 +93,7 @@ public struct TelaAcompanharChamadas: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(verbatim: chamada.outraParte.nome)
-                    .font(FrilaTipo.destaque)
+                    .font(FrilaTipo.resumo)
                     .bold()
                 Spacer()
                 Text(verbatim: viewModel.rotuloEstado(chamada.estado))
@@ -127,8 +127,8 @@ public struct TelaAcompanharChamadas: View {
 
     private func corDoEstado(_ estado: EstadoChamada) -> Color {
         switch estado {
-        case .aberta: return FrilaCor.primaria
-        case .aceita: return FrilaCor.verde
+        case .aberta: return FrilaCor.marca
+        case .aceita: return FrilaCor.sucesso
         case .recusada, .cancelada, .expirada, .encerrada: return FrilaCor.textoSecundario
         }
     }

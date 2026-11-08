@@ -22,7 +22,7 @@ public struct TelaDetalheChamadaRecebida: View {
                     Task { await viewModel.carregar() }
                 }
             } else if let msg = viewModel.mensagemConcorrencia {
-                AvisoFrila(verbatim: msg, tom: .aviso)
+                AvisoFrila(verbatim: msg, tom: .alerta)
             } else if let resultado = viewModel.resultado, resultado.chamada.estado == .aceita {
                 sucessoAceite(resultado)
             } else if let resultado = viewModel.resultado, resultado.chamada.estado == .recusada {
@@ -49,7 +49,7 @@ public struct TelaDetalheChamadaRecebida: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(verbatim: detalhe.outraParte.nome)
-                        .font(FrilaTipo.titulo3)
+                        .font(FrilaTipo.tituloDoCartao)
                         .bold()
                     Spacer()
                     if detalhe.contaNova {
@@ -57,8 +57,8 @@ public struct TelaDetalheChamadaRecebida: View {
                             .font(FrilaTipo.nota)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(FrilaCor.laranja.opacity(0.15))
-                            .foregroundStyle(FrilaCor.laranja)
+                            .background(FrilaCor.alerta.opacity(0.15))
+                            .foregroundStyle(FrilaCor.alerta)
                             .clipShape(Capsule())
                     }
                 }
@@ -70,11 +70,11 @@ public struct TelaDetalheChamadaRecebida: View {
                 }
 
                 Text(verbatim: detalhe.funcao.nome)
-                    .font(FrilaTipo.destaque)
-                    .foregroundStyle(FrilaCor.primaria)
+                    .font(FrilaTipo.resumo)
+                    .foregroundStyle(FrilaCor.marca)
 
                 Text(verbatim: viewModel.valorFormatado)
-                    .font(FrilaTipo.titulo2)
+                    .font(FrilaTipo.secao)
                     .bold()
 
                 Text(verbatim: viewModel.intervaloFormatado)
@@ -131,8 +131,8 @@ public struct TelaDetalheChamadaRecebida: View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 Text(verbatim: viewModel.expiraEmFormatado)
-                    .font(FrilaTipo.destaque)
-                    .foregroundStyle(FrilaCor.aviso)
+                    .font(FrilaTipo.resumo)
+                    .foregroundStyle(FrilaCor.alerta)
                 Text(verbatim: TextosChamadaDireta.avisoSeguranca)
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
