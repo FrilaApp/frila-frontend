@@ -26,6 +26,11 @@ extension TextosDoProfissional {
             localized: "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.",
             bundle: bundleApresentacao
         )
+        /// Aviso exibido quando o profissional abre a tela antes de 60 minutos do início (LOJA-M2).
+        static let avisoCheckinAntecipado = String(
+            localized: "O check-in abre 1 hora antes do início do turno.",
+            bundle: bundleApresentacao
+        )
         static let continuar = String(localized: "Continuar", bundle: bundleApresentacao)
         static let agoraNao = String(localized: "Agora não", bundle: bundleApresentacao)
 

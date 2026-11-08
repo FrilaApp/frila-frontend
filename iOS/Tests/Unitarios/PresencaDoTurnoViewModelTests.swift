@@ -84,7 +84,7 @@ private struct Cena {
         _ = try await api.candidatar(vagaID: vaga.id)
         let turno = try #require(try await api.meusTurnos().first)
         let ponto = try await api.base.detalheDaVaga(id: vaga.id).ponto
-        let agora = Date(timeIntervalSince1970: (Date.now.timeIntervalSince1970 - 1_800).rounded(.down))
+        let agora = turno.vaga.periodo.inicio.addingTimeInterval(60)
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
         return Cena(api: api, turno: turno, ponto: ponto, relogio: RelogioDeToque(agora), fila: fila)
     }
@@ -683,6 +683,7 @@ struct TextosDaPresencaTests {
         typealias Textos = TextosDoProfissional.Presenca
         let fixos = [
             Textos.titulo, Textos.fazerCheckin, Textos.fazerCheckout, Textos.explicacaoTitulo, Textos.explicacao,
+            Textos.explicacaoPrecisao, Textos.avisoPrecisaoDesligada, Textos.avisoCheckinAntecipado,
             Textos.continuar, Textos.agoraNao, Textos.lendo, Textos.enviando, Textos.semGPSTitulo,
             Textos.motivoPermissaoNegada, Textos.motivoAproximada, Textos.motivoSemSinal, Textos.motivoImprecisa,
             Textos.motivoEnderecoIndisponivel, Textos.manualExplicacao, Textos.checkinManual,
@@ -708,5 +709,75 @@ struct TextosDaPresencaTests {
         #expect(Textos.checkinVerificado("17:58", metros: 150) == "Check-in verificado às 17:58, a 150 m do endereço.")
         #expect(Textos.checkoutRegistrado("23:02", metros: nil) == "Check-out registrado às 23:02.")
         #expect(Textos.motivoLonge(350) == "O GPS indica que você está a cerca de 350 m do endereço da vaga.")
+    }
+
+    // MARK: LOJA-M2 (Janela de 60 min de Check-in)
+
+    @Test("Check-in a 61 minutos antes do início do turno está desabilitado e marca checkinAntecipadoDemais")
+    @MainActor
+    func checkinAntecipadoDemais() async throws {
+        let cena = try await Cena.montar()
+        let inicio = cena.turno.vaga.periodo.inicio
+        let relogioAntecipado = RelogioDeToque(inicio.addingTimeInterval(-61 * 60))
+        let vm = PresencaDoTurnoViewModel(
+            turno: cena.turno,
+            api: cena.api,
+            localizacao: cena.leitor(),
+            fila: cena.fila,
+            relogio: relogioAntecipado,
+            pontoDaVaga: cena.ponto
+        )
+
+        #expect(!vm.podeFazerCheckin)
+        #expect(vm.checkinAntecipadoDemais)
+
+        await vm.iniciar(.checkin)
+        #expect(vm.etapa == .parada)
+        #expect(cena.api.checkins.isEmpty)
+    }
+
+    @Test("Check-in a exatamente 60 minutos antes do início do turno é permitido")
+    @MainActor
+    func checkinExatamente60MinutosAntes() async throws {
+        let cena = try await Cena.montar()
+        let inicio = cena.turno.vaga.periodo.inicio
+        let relogioExato = RelogioDeToque(inicio.addingTimeInterval(-60 * 60))
+        let vm = PresencaDoTurnoViewModel(
+            turno: cena.turno,
+            api: cena.api,
+            localizacao: cena.leitor(),
+            fila: cena.fila,
+            relogio: relogioExato,
+            pontoDaVaga: cena.ponto
+        )
+
+        #expect(vm.podeFazerCheckin)
+        #expect(!vm.checkinAntecipadoDemais)
+
+        await vm.iniciar(.checkin)
+        #expect(vm.checkin != .naoFeito)
+    }
+
+    @Test("Check-in após o término do turno não é permitido e não é considerado antecipado")
+    @MainActor
+    func checkinAposTerminoDoTurno() async throws {
+        let cena = try await Cena.montar()
+        let fim = cena.turno.vaga.periodo.fim
+        let relogioTardio = RelogioDeToque(fim.addingTimeInterval(1))
+        let vm = PresencaDoTurnoViewModel(
+            turno: cena.turno,
+            api: cena.api,
+            localizacao: cena.leitor(),
+            fila: cena.fila,
+            relogio: relogioTardio,
+            pontoDaVaga: cena.ponto
+        )
+
+        #expect(!vm.podeFazerCheckin)
+        #expect(!vm.checkinAntecipadoDemais)
+
+        await vm.iniciar(.checkin)
+        #expect(vm.etapa == .parada)
+        #expect(cena.api.checkins.isEmpty)
     }
 }

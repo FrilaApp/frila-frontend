@@ -94,7 +94,10 @@ public struct SecaoDePresenca: View {
                     Task { await turno?.avisarACaminho() }
                 }
             }
-            if viewModel.podeFazerCheckin {
+            if viewModel.checkinAntecipadoDemais {
+                AvisoFrila(verbatim: Textos.avisoCheckinAntecipado, tom: .informativo)
+                    .accessibilityIdentifier("aviso-checkin-antecipado")
+            } else if viewModel.podeFazerCheckin {
                 botaoPresencaAtivo(
                     verbatim: Textos.fazerCheckin,
                     identificador: "fazer-checkin"
