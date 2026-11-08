@@ -95,7 +95,7 @@ public final class ChamadaDiretaViewModel {
     /// reais e 2 em centavos. Com vírgula, o ponto é separador de milhar ("R$ 1.500,00" vale 1.500).
     /// Sem vírgula, o ponto só é milhar quando separa grupos de três ("1.500"); senão é a vírgula
     /// decimal de um teclado em outro idioma ("1.50").
-    static func valorDigitado(_ texto: String) -> String {
+    static func valorDigitado(_ texto: String, anterior: String = "") -> String {
         let permitido = texto.filter { ($0.isASCII && $0.isNumber) || $0 == "," || $0 == "." }
         let separador = permitido.firstIndex(of: ",") ?? (Self.pontoDeMilhar(permitido) ? nil : permitido.lastIndex(of: "."))
         guard let separador else { return String(permitido.filter(\.isNumber).prefix(5)) }

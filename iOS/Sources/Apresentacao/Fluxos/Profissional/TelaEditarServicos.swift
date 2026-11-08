@@ -1,10 +1,9 @@
 import FrilaDominio
 import SwiftUI
+import UIKit
 
 public struct TelaEditarServicos: View {
     @State private var modelo: ServicosDoProfissionalViewModel
-    /// O escopo de teclado da tela: o Salvar fecha o teclado por ele, e não por um `resignFirstResponder` global.
-    @State private var teclado = FrilaKeyboardObserver()
     public init(modelo: ServicosDoProfissionalViewModel) { _modelo = State(initialValue: modelo) }
 
     public var body: some View {
@@ -26,7 +25,7 @@ public struct TelaEditarServicos: View {
                 if modelo.sucesso { AvisoFrila("Serviços salvos", tom: .informativo).accessibilityIdentifier("servicos-sucesso") }
                 BotaoPrimario("Salvar alterações", carregando: modelo.salvando) {
                     // V16: com o teclado aberto, o aviso de erro ficava escondido atrás dele.
-                    teclado.dismissKeyboard()
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     Task { await modelo.salvar() }
                 }
                     .disabled(!modelo.carregou || modelo.carregando)
@@ -38,7 +37,7 @@ public struct TelaEditarServicos: View {
         }
         .font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto).background(FrilaCor.fundo)
         .navigationTitle(Text("Editar serviços", bundle: bundleApresentacao))
-        .scrollDismissesKeyboard(.interactively).frilaKeyboardDismissScope(observer: teclado)
+        .scrollDismissesKeyboard(.interactively).frilaKeyboardDismissScope()
         .disabled(modelo.salvando)
         .task { await modelo.carregar() }
         .onChange(of: modelo.rascunhos) { _, _ in modelo.limparSucesso() }
