@@ -111,8 +111,8 @@ public struct TelaChamadaDireta: View {
                     Text(verbatim: TextosChamadaDireta.moeda).accessibilityHidden(true)
                     CampoMascara(texto: $viewModel.valorTexto, placeholder: TextosChamadaDireta.valorExemplo,
                                  rotuloAcessibilidade: TextosChamadaDireta.valor,
-                                 identificadorAcessibilidade: "total-chamada-centavos", teclado: .decimalPad) { novo, _ in
-                        ChamadaDiretaViewModel.valorDigitado(novo)
+                                 identificadorAcessibilidade: "total-chamada-centavos", teclado: .decimalPad) { novo, anterior in
+                        ChamadaDiretaViewModel.valorDigitado(novo, anterior: anterior)
                     }
                 }
             }
