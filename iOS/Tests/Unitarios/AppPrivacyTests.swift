@@ -114,11 +114,11 @@ struct AppPrivacyTests {
         let enderecos = EnderecosOficiais.padrao
 
         #expect(enderecos.termosDeUso.scheme == "https")
-        #expect(enderecos.termosDeUso.host == "frila.netlify.app")
+        #expect(enderecos.termosDeUso.host == "frilabr.com")
         #expect(enderecos.termosDeUso.path == "/termos")
 
         #expect(enderecos.politicaDePrivacidade.scheme == "https")
-        #expect(enderecos.politicaDePrivacidade.host == "frila.netlify.app")
+        #expect(enderecos.politicaDePrivacidade.host == "frilabr.com")
         #expect(enderecos.politicaDePrivacidade.path == "/privacidade")
 
         #expect(enderecos.emailSuporte == "suporte@frilabr.com")

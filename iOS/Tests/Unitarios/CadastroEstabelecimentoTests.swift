@@ -203,6 +203,82 @@ struct CadastroEstabelecimentoTests {
         #expect(await enviados.todos.map(\.regiaoAdministrativa) == ["Águas Claras"])
     }
 
+    private func itemFora(cidade: String, estado: String, latitude: Double, longitude: Double) -> MKMapItem {
+        let marca = MKPlacemark(
+            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            addressDictionary: ["City": cidade, "State": estado, "CountryCode": "BR"]
+        )
+        return MKMapItem(placemark: marca)
+    }
+
+    @Test("Endereço dentro do DF não mostra o aviso de cobertura")
+    func dentroDoDFSemAviso() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        #expect(!vm.foraDoDF)
+        preencher(vm)
+        #expect(!vm.foraDoDF)
+        let marca = MKPlacemark(
+            coordinate: CLLocationCoordinate2D(latitude: -15.7942, longitude: -47.8822),
+            addressDictionary: ["City": "Brasília", "State": "Distrito Federal", "CountryCode": "BR"]
+        )
+        vm.selecionar(MKMapItem(placemark: marca))
+        #expect(!vm.foraDoDF)
+    }
+
+    @Test("Endereço fora do DF avisa, mas o cadastro segue e envia a cidade no lugar da região")
+    func foraDoDFAvisaEPermite() async {
+        let enviados = Enviados()
+        let vm = CadastroEstabelecimentoViewModel { cadastro in
+            await enviados.guardar(cadastro)
+            return Self.criado(cadastro)
+        }
+        vm.nome = "Bar Frila"
+        vm.atualizarDocumento("12345678901")
+        vm.selecionar(itemFora(cidade: "Goiânia", estado: "GO", latitude: -16.6869, longitude: -49.2648))
+        #expect(vm.foraDoDF)
+        #expect(vm.regiaoAdministrativa.isEmpty)
+
+        await vm.salvar()
+
+        #expect(vm.concluido)
+        #expect(vm.erro == nil)
+        #expect(await enviados.todos.map(\.regiaoAdministrativa) == ["Goiânia"])
+    }
+
+    @Test("Fora do DF por unidade federativa, mesmo com o ponto dentro do retângulo do DF (Entorno)")
+    func entornoEmGoias() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        vm.selecionar(itemFora(cidade: "Águas Lindas de Goiás", estado: "GO", latitude: -15.9000, longitude: -48.2800))
+        #expect(vm.foraDoDF)
+    }
+
+    @Test("Sem cidade nem estado do geocodificador, fora do DF envia o texto fixo")
+    func foraDoDFSemCidade() async {
+        let enviados = Enviados()
+        let vm = CadastroEstabelecimentoViewModel { cadastro in
+            await enviados.guardar(cadastro)
+            return Self.criado(cadastro)
+        }
+        preencher(vm)
+        vm.regiaoAdministrativa = ""
+        vm.ponto = .init(latitude: -16.6869, longitude: -49.2648)
+        #expect(vm.foraDoDF)
+        await vm.salvar()
+        #expect(vm.concluido)
+        #expect(await enviados.todos.map(\.regiaoAdministrativa) == ["Fora do Distrito Federal"])
+    }
+
+    @Test("Arrastar o marcador para dentro do DF tira o aviso, e para fora o recoloca")
+    func arrastarMarcador() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        vm.selecionar(itemFora(cidade: "Goiânia", estado: "GO", latitude: -16.6869, longitude: -49.2648))
+        #expect(vm.foraDoDF)
+        vm.ponto = .init(latitude: -15.7942, longitude: -47.8822)
+        #expect(!vm.foraDoDF)
+        vm.ponto = .init(latitude: -16.6869, longitude: -49.2648)
+        #expect(vm.foraDoDF)
+    }
+
     @Test("Sem região administrativa, o erro fica no campo e nada é enviado", arguments: ["", "   "])
     func regiaoAdministrativaObrigatoria(regiao: String) async {
         let enviados = Enviados()

@@ -151,6 +151,13 @@ public struct TelaCadastro: View {
                                 .font(FrilaTipo.nota)
                                 .foregroundStyle(FrilaCor.perigo)
                                 .accessibilityIdentifier("cadastro-erro-nascimento")
+                        } else {
+                            // A maioridade (18+) é conferida só por esta data, sem caixa de autodeclaração (decisão A5 da PO).
+                            Text("Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.", bundle: bundleApresentacao)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("cadastro-nascimento-ajuda")
                         }
                     }
                     .id(CadastroViewModel.CampoCadastro.nascimento)
@@ -180,7 +187,7 @@ public struct TelaCadastro: View {
                             }
                             .accessibilityIdentifier("cadastro-termos")
 
-                            Text("Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)", bundle: bundleApresentacao)
+                            Text("Li e aceito os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)", bundle: bundleApresentacao)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.texto)
                                 .padding(.top, FrilaEspaco.pequeno)

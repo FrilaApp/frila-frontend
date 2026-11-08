@@ -22,6 +22,40 @@ struct PerfilProfissionalViewModelTests {
         return api
     }
 
+    @Test("Ponto base dentro do DF não avisa; fora do DF avisa, e o perfil ainda pode ser salvo (A6)")
+    func pontoBaseForaDoDFAvisaMasPermite() async throws {
+        let api = criarDubleApi()
+        let vm = PerfilProfissionalViewModel(api: api, modo: .criacao)
+        await vm.carregar()
+        #expect(!vm.pontoBaseForaDoDF)
+
+        vm.alternarFuncao(vm.funcoesDisponiveis[0].id)
+        let marca = MKPlacemark(
+            coordinate: CLLocationCoordinate2D(latitude: -16.6869, longitude: -49.2648),
+            addressDictionary: ["City": "Goiânia", "State": "GO", "CountryCode": "BR"]
+        )
+        vm.selecionarSugestao(MKMapItem(placemark: marca))
+        #expect(vm.pontoBase != nil)
+        #expect(vm.pontoBaseForaDoDF)
+
+        vm.adicionarJanela(diaDaSemana: 5, inicio: try HoraDoDia("18:00"), fim: try HoraDoDia("02:00"))
+        #expect(await vm.salvar())
+
+        vm.definirPontoBase(try Coordenada(latitude: -15.8267, longitude: -47.9218), nome: "Guará II")
+        #expect(!vm.pontoBaseForaDoDF)
+    }
+
+    @Test("Ponto base do Entorno, com a unidade federativa de Goiás, avisa mesmo dentro do retângulo do DF (A6)")
+    func pontoBaseDoEntornoAvisa() {
+        let vm = PerfilProfissionalViewModel(api: criarDubleApi(), modo: .criacao)
+        let marca = MKPlacemark(
+            coordinate: CLLocationCoordinate2D(latitude: -15.9000, longitude: -48.2800),
+            addressDictionary: ["City": "Águas Lindas de Goiás", "State": "GO", "CountryCode": "BR"]
+        )
+        vm.selecionarSugestao(MKMapItem(placemark: marca))
+        #expect(vm.pontoBaseForaDoDF)
+    }
+
     @Test("Salvar com uma função, um ponto base e uma janela ativa o perfil (#98 C1)")
     func salvarComFuncaoPontoBaseEJanela() async throws {
         let api = criarDubleApi()

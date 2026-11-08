@@ -311,6 +311,7 @@ struct CatalogoStringsTests {
             "Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.",
             "Enviar código",
             "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade).",
+            "Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).",
             "Entrar",
             "Confirmar código",
             "Voltar",

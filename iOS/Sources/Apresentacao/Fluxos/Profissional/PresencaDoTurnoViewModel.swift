@@ -60,6 +60,9 @@ public final class PresencaDoTurnoViewModel {
     public private(set) var checkout: Situacao
     public private(set) var verificacao: Verificacao
     public private(set) var mensagemDeErro: String?
+    /// A última permissão de localização que o app viu, para avisar antes do toque quando só a
+    /// aproximada foi concedida. `nil` até a primeira leitura.
+    public private(set) var permissaoDaLocalizacao: PermissaoDeLocalizacao?
 
     private let api: any ApiCliente
     private let localizacao: any LeitorDeLocalizacao
@@ -106,7 +109,19 @@ public final class PresencaDoTurnoViewModel {
         }
     }
 
-    public var podeFazerCheckin: Bool { checkin == .naoFeito }
+    public var podeFazerCheckin: Bool {
+        guard checkin == .naoFeito else { return false }
+        let agora = relogio.agora
+        let inicio = turno.vaga.periodo.inicio
+        let fim = turno.vaga.periodo.fim
+        return agora >= inicio.addingTimeInterval(-60 * 60) && agora <= fim
+    }
+
+    /// O check-in abre 60 minutos antes do início previsto do turno. Antes disso o botão fica
+    /// desabilitado e a tela exibe aviso informativo (LOJA-M2).
+    public var checkinAntecipadoDemais: Bool {
+        checkin == .naoFeito && relogio.agora < turno.vaga.periodo.inicio.addingTimeInterval(-60 * 60)
+    }
 
     /// O check-out vem depois do check-in, mesmo que o check-in ainda esteja na fila: a fila sai na
     /// ordem dos toques.
@@ -116,6 +131,17 @@ public final class PresencaDoTurnoViewModel {
     public var aguardandoConfirmacao: Bool {
         guard case let .registrado(feito) = checkin else { return false }
         return feito.manual && verificacao == .pendente
+    }
+
+    /// Com a localização aproximada concedida, o app avisa antes do toque que vai pedir a precisa:
+    /// sem ela não há como medir os 200 m do check-in (RN22, decisão A11 da PO).
+    public var pedePrecisaoAntes: Bool {
+        permissaoDaLocalizacao == .aoUsarAproximada && etapa == .parada && (podeFazerCheckin || podeFazerCheckout)
+    }
+
+    /// Relê a permissão do sistema. A tela chama ao abrir e quando o app volta dos Ajustes.
+    public func atualizarPermissaoDaLocalizacao() async {
+        permissaoDaLocalizacao = await localizacao.permissao()
     }
 
     /// O ponto vem do detalhe da vaga, que a tela do turno já carrega; `meus_turnos` não o traz.
@@ -227,6 +253,7 @@ public final class PresencaDoTurnoViewModel {
         if permissao == .aoUsarAproximada {
             permissao = await localizacao.pedirPrecisaoTemporaria(chave: RegraDePresenca.chaveDaPrecisaoTemporaria)
         }
+        permissaoDaLocalizacao = permissao
         switch permissao {
         case .naoDeterminada, .negada:
             etapa = .semGPS(registro, .permissaoNegada)

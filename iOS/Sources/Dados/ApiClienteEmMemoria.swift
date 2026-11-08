@@ -439,6 +439,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
                      .retirarSemRede, .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
+                case .sucesso, .semRede, .primeiroAcesso, .profissionalServidorAntigo: 30 * 60
                 default: 24 * 60 * 60
                 }
                 let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante) ? Self.copia(vaga, estado: .encerrada) : vaga

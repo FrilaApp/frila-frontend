@@ -17,8 +17,8 @@ public struct EnderecosOficiais: Sendable, Equatable {
 
     /// Constante oficial única que reúne os endereços de Termos de Uso e Política de Privacidade.
     public static let padrao = EnderecosOficiais(
-        termosDeUso: URL(string: "https://frila.netlify.app/termos")!,
-        politicaDePrivacidade: URL(string: "https://frila.netlify.app/privacidade")!,
+        termosDeUso: URL(string: "https://frilabr.com/termos")!,
+        politicaDePrivacidade: URL(string: "https://frilabr.com/privacidade")!,
         emailSuporte: "suporte@frilabr.com"
     )
 }

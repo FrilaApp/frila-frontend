@@ -309,6 +309,10 @@ public struct TelaPerfilProfissional: View {
                 }
                 .accessibilityIdentifier("label-ponto-base-selecionado")
             }
+
+            if viewModel.pontoBaseForaDoDF {
+                AvisoForaDoDF(texto: TextosDeCobertura.profissional, identificador: "aviso-ponto-base-fora-do-df")
+            }
             }
 
             // A ajuda fica a 4 pt do campo: proximidade diz que ela explica o campo e não o bloco seguinte.
