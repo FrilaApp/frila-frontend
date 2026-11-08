@@ -427,6 +427,10 @@ public struct TelaMinhasVagas: View {
                     DestinoDaVagaDoContratante(viewModel: viewModel, acompanhamento: acompanhamento, vagaID: vagaID, api: api, fila: fila, sair: sair)
                 case let .turno(turnoID):
                     TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID, api: api, sair: sair)
+                case let .acompanharChamadas(vagaID):
+                    TelaAcompanharChamadas(viewModel: AcompanharChamadasViewModel(vagaID: vagaID, api: api)) { novaVagaID in
+                        roteador.abrirVaga(id: novaVagaID)
+                    }
                 }
             }
         }
@@ -1050,11 +1054,8 @@ private struct TelaDetalheVagaContratante: View {
                 // CD-RF09: a vaga direta nasce de uma chamada; daqui a casa acompanha, cancela ou publica
                 // para todos quando ninguém aceitou (RN35).
                 if vaga.vaga.origem == .chamadaDireta {
-                    NavigationLink {
-                        TelaAcompanharChamadas(viewModel: AcompanharChamadasViewModel(vagaID: vaga.vaga.id, api: api)) { novaVagaID in
-                            roteadorEfetivo?.abrirVaga(id: novaVagaID)
-                        }
-                    } label: {
+                    // Pela rota da pilha, como o resto de Minhas vagas: o "Ver vaga aberta" troca o caminho.
+                    NavigationLink(value: RotaDoContratante.acompanharChamadas(vagaID: vaga.vaga.id)) {
                         RotuloDeLinha(TextosChamadaDireta.acompanharTitulo)
                             .padding(.horizontal, FrilaEspaco.medio)
                             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao))

@@ -8780,6 +8780,16 @@
         }
       }
     },
+    "O profissional tem até %@ para responder.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O profissional tem até %@ para responder."
+          }
+        }
+      }
+    },
     "O que acontece ao excluir sua conta:": {
       "extractionState": "stale",
       "localizations": {
@@ -8949,16 +8959,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "O turno não pode ultrapassar 16 horas."
-          }
-        }
-      }
-    },
-    "O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
           }
         }
       }
@@ -9806,16 +9806,6 @@
         }
       }
     },
-    "Presença não verificada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Presença não verificada"
-          }
-        }
-      }
-    },
     "Presença não verificada.": {
       "extractionState": "stale",
       "localizations": {
@@ -9823,6 +9813,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença não verificada."
+          }
+        }
+      }
+    },
+    "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
           }
         }
       }
@@ -10813,6 +10813,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Restaurante ou bar"
+          }
+        }
+      }
+    },
+    "Resumo da chamada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumo da chamada"
           }
         }
       }

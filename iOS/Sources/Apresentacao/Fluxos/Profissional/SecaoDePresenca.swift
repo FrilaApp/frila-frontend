@@ -37,7 +37,7 @@ public struct SecaoDePresenca: View {
                 linha(situacao).accessibilityIdentifier("checkout-situacao")
             }
             if viewModel.verificacao == .naoVerificado {
-                AvisoFrila(verbatim: "\(Textos.naoVerificada). \(Textos.naoVerificadaExplicacao)", tom: .alerta)
+                AvisoFrila(verbatim: Textos.naoVerificadaAviso, tom: .alerta)
                     .accessibilityIdentifier("presenca-nao-verificada")
             }
             if let erro = viewModel.mensagemDeErro {
