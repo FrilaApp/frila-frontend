@@ -1,0 +1,16 @@
+{
+  "appInfos": [
+    {"type": "appInfos", "id": "info-no-ar", "attributes": {"appStoreState": "READY_FOR_DISTRIBUTION"}},
+    {"type": "appInfos", "id": "info-1", "attributes": {"appStoreState": "PREPARE_FOR_SUBMISSION"}}
+  ],
+  "appInfoLocalizations": {
+    "info-no-ar": [
+      {"type": "appInfoLocalizations", "id": "loc-no-ar-pt", "attributes": {"locale": "pt-BR", "privacyPolicyUrl": "https://frila.netlify.app/privacidade"}}
+    ],
+    "info-1": [
+      {"type": "appInfoLocalizations", "id": "loc-1-pt", "attributes": {"locale": "pt-BR", "privacyPolicyUrl": "https://frila.netlify.app/privacidade"}},
+      {"type": "appInfoLocalizations", "id": "loc-1-en", "attributes": {"locale": "en-US", "privacyPolicyUrl": null}},
+      {"type": "appInfoLocalizations", "id": "loc-1-es", "attributes": {"locale": "es-MX", "privacyPolicyUrl": "javascript:alert(1)"}}
+    ]
+  }
+}

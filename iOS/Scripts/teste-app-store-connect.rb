@@ -503,6 +503,23 @@ class BetaAppStoreConnectTest < Minitest::Test
     assert_empty @api.escritas
   end
 
+  # As contas de revisão em frilabr.com e as antigas em frila.app são aceitas; outra conta, não.
+  def test_revisao_aceita_as_quatro_contas_de_demonstracao
+    %w[revisao-contratante@frilabr.com revisao-profissional@frilabr.com
+       Revisao-Contratante@FrilaBR.com revisao-contratante@frila.app].each do |usuario|
+      @api = APIBetaDeExemplo.new
+      run_beta('revisao-beta', apply: true, secrets: @secrets.merge('BETA_DEMO_USUARIO'=>usuario))
+      assert_equal usuario, @api.detail['attributes']['demoAccountName']
+      assert @api.escritas.any? { |_, path, _| path == '/v1/betaAppReviewSubmissions' }, "submete com #{usuario}"
+    end
+    @api = APIBetaDeExemplo.new
+    assert_raises(AppStoreConnect::Erro) do
+      run_beta('revisao-beta', apply: true, secrets: @secrets.merge('BETA_DEMO_USUARIO'=>'outro@frilabr.com'))
+    end
+    assert_empty @api.escritas
+    refute_match(/\S+@\S+/, @out.string)
+  end
+
   def test_revisao_existente_nao_duplica_e_preserva_textos
     @api.submission = {'id'=>'review-existing', 'attributes'=>{'betaReviewState'=>'APPROVED'}}
     @api.app_locales = [{'id'=>'locale-existing', 'attributes'=>{'locale'=>'pt-BR', 'description'=>'Descrição existente', 'feedbackEmail'=>'antigo@example.invalid'}}]
@@ -811,5 +828,107 @@ class NotasDoBuildTest < Minitest::Test
     assert_includes comando, 'GITHUB_STEP_SUMMARY'
     assert_includes comando, 'exit 0', 'falha na gravação não derruba o envio já feito'
     refute_match(/\$\{\{\s*inputs\./, comando)
+  end
+end
+
+# Ação privacidade: lê o privacyPolicyUrl de cada appInfo e localização; com aplicar, troca só no
+# appInfo editável. Respostas sintéticas em FixturesAppStoreConnect/privacidade.json; nada vai à Apple.
+class APIPrivacidadeDeExemplo < APIDeExemplo
+  attr_accessor :ignorar_patch
+
+  def initialize
+    super
+    extra = JSON.parse(File.read(File.join(__dir__, 'FixturesAppStoreConnect/privacidade.json')))
+    dados['appInfos'] = extra['appInfos']
+    dados['appInfoLocalizations'] = extra['appInfoLocalizations']
+  end
+
+  def call(req)
+    path, method = req.uri.path, req.method
+    body = req.body ? JSON.parse(req.body) : nil
+    result = if method == 'GET' && path =~ %r{\A/v1/appInfos/([^/]+)/appInfoLocalizations\z}
+      dados['appInfoLocalizations'].fetch($1, [])
+    elsif method == 'PATCH' && path =~ %r{\A/v1/appInfoLocalizations/([^/]+)\z}
+      loc = dados['appInfoLocalizations'].values.flatten.find { |l| l['id'] == $1 }
+      loc['attributes'].merge!(body['data']['attributes']) unless ignorar_patch
+      loc
+    else
+      return super
+    end
+    chamadas << [method, path, body]
+    Struct.new(:code, :body).new('200', JSON.generate({'data'=>result}))
+  end
+
+  def url(local_id)
+    dados['appInfoLocalizations'].values.flatten.find { |l| l['id'] == local_id }['attributes']['privacyPolicyUrl']
+  end
+end
+
+class PrivacidadeTest < Minitest::Test
+  NOVA = 'https://frilabr.com/privacidade'.freeze
+
+  def setup
+    @api = APIPrivacidadeDeExemplo.new
+    @out = StringIO.new
+    @log = AppStoreConnect::Log.new(@out, github: false)
+  end
+
+  def rodar(aplicar: false)
+    client = AppStoreConnect::Client.new(token: -> { 'jwt-falso' }, aplicar: aplicar, transport: @api.method(:call))
+    AppStoreConnect::Job.new(client: client, log: @log, acao: 'privacidade', aplicar: aplicar, emails: '', grupo: 'IGNORADO',
+      sem_referencias_alcool: false, verificacao_idade: true).run
+  end
+
+  def test_sem_aplicar_so_le_cada_app_info_com_estado_e_cada_localizacao
+    rodar
+    assert_empty @api.escritas
+    assert @api.chamadas.all? { |metodo, _, _| metodo == 'GET' }
+    assert_includes @out.string, 'AppInfo info-no-ar: estado=READY_FOR_DISTRIBUTION; localizações=1'
+    assert_includes @out.string, 'AppInfo info-1: estado=PREPARE_FOR_SUBMISSION; localizações=3'
+    assert_includes @out.string, 'AppInfo info-no-ar · pt-BR: privacyPolicyUrl=https://frila.netlify.app/privacidade'
+    assert_includes @out.string, 'AppInfo info-1 · en-US: privacyPolicyUrl=(vazio)'
+    assert_includes @out.string, "Plano: trocar privacyPolicyUrl para #{NOVA} em 3 localização(ões) do appInfo info-1"
+  end
+
+  def test_url_fora_do_padrao_nao_vai_para_o_log
+    rodar
+    assert_includes @out.string, 'AppInfo info-1 · es-MX: privacyPolicyUrl=(fora do padrão; não impresso)'
+    refute_includes @out.string, 'javascript'
+  end
+
+  def test_com_aplicar_troca_so_no_app_info_editavel_e_rele
+    rodar(aplicar: true)
+    patches = @api.escritas
+    assert_equal %w[/v1/appInfoLocalizations/loc-1-pt /v1/appInfoLocalizations/loc-1-en /v1/appInfoLocalizations/loc-1-es], patches.map { |_, path, _| path }
+    assert patches.all? { |metodo, _, body| metodo == 'PATCH' && body['data']['attributes'] == {'privacyPolicyUrl'=>NOVA} }
+    %w[loc-1-pt loc-1-en loc-1-es].each { |loc| assert_equal NOVA, @api.url(loc) }
+    assert_equal 'https://frila.netlify.app/privacidade', @api.url('loc-no-ar-pt'), 'o appInfo no ar não é tocado'
+    assert_includes @out.string, "privacyPolicyUrl confirmado pela API em 3 localização(ões): #{NOVA}"
+    # Rodar de novo não escreve nada.
+    antes = @api.escritas.size
+    rodar(aplicar: true)
+    assert_equal antes, @api.escritas.size
+    assert_includes @out.string, 'Plano: nada a trocar'
+  end
+
+  def test_sem_app_info_editavel_nao_escreve
+    @api.dados['appInfos'].each { |info| info['attributes']['appStoreState'] = 'READY_FOR_DISTRIBUTION' }
+    rodar
+    assert_includes @out.string, 'Plano: nenhuma troca; é preciso um único appInfo em PREPARE_FOR_SUBMISSION (há 0)'
+    assert_raises(AppStoreConnect::Erro) { rodar(aplicar: true) }
+    assert_empty @api.escritas
+  end
+
+  def test_api_que_nao_confirma_a_troca_falha
+    @api.ignorar_patch = true
+    erro = assert_raises(AppStoreConnect::Erro) { rodar(aplicar: true) }
+    assert_includes erro.message, 'A API não confirmou o novo privacyPolicyUrl'
+  end
+
+  def test_workflow_oferece_a_acao_privacidade
+    require 'yaml'
+    workflow = YAML.safe_load(File.read(File.join(__dir__, '../../.github/workflows/app-store-connect.yml')))
+    gatilho = workflow['on'] || workflow[true]
+    assert_includes gatilho['workflow_dispatch']['inputs']['acao']['options'], 'privacidade'
   end
 end

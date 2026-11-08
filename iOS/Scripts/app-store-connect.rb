@@ -150,7 +150,7 @@ module AppStoreConnect
     end
 
     def run
-      raise Erro, 'Ação inválida.' unless %w[conferir grupo-interno classificacao grupo-externo revisao-beta notas-do-build].include?(@acao)
+      raise Erro, 'Ação inválida.' unless %w[conferir grupo-interno classificacao grupo-externo revisao-beta notas-do-build privacidade].include?(@acao)
       @log.info("Ação: #{@acao}; aplicar=#{@aplicar}")
       apps = @client.list('/v1/apps', 'filter[bundleId]'=>BUNDLE, 'fields[apps]'=>'name,bundleId')
       raise Erro, 'App com.frila.org.app não encontrado de forma única.' unless apps.size == 1 && apps[0].dig('attributes','bundleId') == BUNDLE
@@ -163,6 +163,7 @@ module AppStoreConnect
       when 'grupo-externo' then grupo_externo
       when 'revisao-beta' then revisao_beta
       when 'notas-do-build' then notas_do_build
+      when 'privacidade' then privacidade
       end
     end
 
@@ -320,6 +321,10 @@ module AppStoreConnect
         'description'=>'Frila connects businesses and independent professionals for work shifts in Brazil’s Federal District. For adults aged 18 and over.',
         'whatsNew'=>'Test sign-in, registration, job posting, applications, shift tracking, attendance and reviews. Report issues through TestFlight.'}
     }.freeze
+    # As mesmas contas de DemonstracaoContas (DestinoAposEntrada.swift): as novas em frilabr.com e as
+    # antigas em frila.app, que continuam valendo enquanto o Prod não trocar.
+    CONTAS_DEMONSTRACAO = %w[revisao-profissional@frilabr.com revisao-contratante@frilabr.com
+                             revisao-profissional@frila.app revisao-contratante@frila.app].freeze
     NOTAS_BETA = 'Frila-Beta uses the frila-dev test environment. Enter the demo account name supplied in the review credentials on the email screen. Continue to the code screen and enter the six-digit demo code supplied in the password field. No email inbox is required. A professional account applies for shifts; a business account posts jobs. Location is requested for attendance; use the location of the test shift. Accounts and test data must be provisioned in frila-dev before review.'.freeze
 
     def build_beta
@@ -438,7 +443,7 @@ module AppStoreConnect
       nome = @beta_segredos.fetch('BETA_CONTATO_NOME').strip.split(/\s+/, 2)
       raise Erro, 'BETA_CONTATO_NOME precisa conter nome e sobrenome; nenhuma escrita.' unless nome.size == 2
       usuario = @beta_segredos.fetch('BETA_DEMO_USUARIO').strip.downcase
-      unless %w[revisao-profissional@frila.app revisao-contratante@frila.app].include?(usuario) && @beta_segredos.fetch('BETA_DEMO_SENHA').match?(/\A[0-9]{6}\z/)
+      unless CONTAS_DEMONSTRACAO.include?(usuario) && @beta_segredos.fetch('BETA_DEMO_SENHA').match?(/\A[0-9]{6}\z/)
         raise Erro, 'Credenciais devem corresponder ao fluxo de demonstração implementado (conta de revisão e código de seis dígitos); nenhuma escrita.'
       end
       attrs = SEGREDOS_BETA.transform_values { |secret| @beta_segredos.fetch(secret) }
@@ -582,6 +587,58 @@ module AppStoreConnect
         data['relationships'] = {relationship=>{'data'=>{'type'=>relationship == 'app' ? 'apps' : 'builds', 'id'=>id(parent)}}}
         ['POST', "/v1/#{type}", {'data'=>data}]
       end
+    end
+
+    URL_PRIVACIDADE = 'https://frilabr.com/privacidade'.freeze
+    ESTADO_EDITAVEL = 'PREPARE_FOR_SUBMISSION'.freeze
+
+    # Lista o privacyPolicyUrl de cada appInfo (com o estado) e de cada localização. Sem aplicar, só
+    # faz GET. Com aplicar, troca para URL_PRIVACIDADE só no único appInfo editável e relê para confirmar.
+    def privacidade
+      todos = @client.list("/v1/apps/#{id(@app)}/appInfos", 'fields[appInfos]'=>'appStoreState')
+      @log.info('Nenhum appInfo disponível.') if todos.empty?
+      locais = {}
+      todos.each do |info|
+        estado = info.dig('attributes', 'appStoreState')
+        locais[id(info)] = localizacoes_do_info(info)
+        @log.info("AppInfo #{id(info)}: estado=#{estado}; localizações=#{locais[id(info)].size}")
+        locais[id(info)].each do |loc|
+          @log.info("AppInfo #{id(info)} · #{loc.dig('attributes', 'locale')}: privacyPolicyUrl=#{url_para_log(loc.dig('attributes', 'privacyPolicyUrl'))}")
+        end
+      end
+      editaveis = todos.select { |info| info.dig('attributes', 'appStoreState') == ESTADO_EDITAVEL }
+      if editaveis.size != 1
+        @log.info("Plano: nenhuma troca; é preciso um único appInfo em #{ESTADO_EDITAVEL} (há #{editaveis.size})")
+        raise Erro, "É necessário um único appInfo em #{ESTADO_EDITAVEL}; nenhuma escrita." if @aplicar
+        return
+      end
+      info = editaveis.first
+      trocar = locais[id(info)].reject { |loc| loc.dig('attributes', 'privacyPolicyUrl') == URL_PRIVACIDADE }
+      if trocar.empty?
+        @log.info("Plano: nada a trocar; o appInfo #{id(info)} já usa #{URL_PRIVACIDADE} em todas as localizações")
+        return
+      end
+      @log.info("Plano: trocar privacyPolicyUrl para #{URL_PRIVACIDADE} em #{trocar.size} localização(ões) do appInfo #{id(info)}")
+      return unless @aplicar
+      trocar.each do |loc|
+        @client.request('PATCH', "/v1/appInfoLocalizations/#{id(loc)}", {'data'=>{'type'=>'appInfoLocalizations', 'id'=>id(loc),
+          'attributes'=>{'privacyPolicyUrl'=>URL_PRIVACIDADE}}})
+      end
+      depois = localizacoes_do_info(info)
+      unless !depois.empty? && depois.all? { |loc| loc.dig('attributes', 'privacyPolicyUrl') == URL_PRIVACIDADE }
+        raise Erro, 'A API não confirmou o novo privacyPolicyUrl em todas as localizações.'
+      end
+      @log.info("privacyPolicyUrl confirmado pela API em #{depois.size} localização(ões): #{URL_PRIVACIDADE}")
+    end
+
+    def localizacoes_do_info(info)
+      @client.list("/v1/appInfos/#{id(info)}/appInfoLocalizations", 'fields[appInfoLocalizations]'=>'locale,privacyPolicyUrl')
+    end
+
+    # A URL só vai para o log se for um endereço web comum; qualquer outra coisa não é impressa.
+    def url_para_log(url)
+      return '(vazio)' if url.to_s.strip.empty?
+      url.match?(%r{\Ahttps?://[A-Za-z0-9.-]+(?:/[A-Za-z0-9._~/-]*)?\z}) && url.length <= 200 ? url : '(fora do padrão; não impresso)'
     end
 
     def classificacao

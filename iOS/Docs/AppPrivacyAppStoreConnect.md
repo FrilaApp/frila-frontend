@@ -166,12 +166,12 @@ Todas as URLs oficiais foram confirmadas em produção sob protocolo seguro HTTP
 
 | Finalidade | URL Oficial | Consta no App (`iOS/Sources/Apresentacao/EnderecosOficiais.swift`) | Consta na Ficha (`FichaAppStore.md`) |
 |---|---|:---:|:---:|
-| **Termos de Uso** | `https://frila.netlify.app/termos` | Sim (`enderecos.termosDeUso`) | Sim (`https://frila.app/termos` com redirect) |
-| **Política de Privacidade** | `https://frila.netlify.app/privacidade` | Sim (`enderecos.politicaDePrivacidade`) | Sim (`https://frila.app/privacidade` com redirect) |
+| **Termos de Uso** | `https://frilabr.com/termos` | Sim (`enderecos.termosDeUso`) | Sim (`https://frila.app/termos` com redirect) |
+| **Política de Privacidade** | `https://frilabr.com/privacidade` | Sim (`enderecos.politicaDePrivacidade`) | Sim (`https://frila.app/privacidade` com redirect) |
 | **Página de Suporte Web** | `https://frila.app/suporte` | Não (app usa `mailto:`, via `enderecos.urlSuporte`) | Sim (`URL de Suporte`) |
 | **E-mail de Suporte / DPO** | `suporte@frilabr.com` | Sim (`enderecos.emailSuporte`) | Sim |
 
-> **Nota sobre URL e canal de suporte:** A página pública web em `https://frila.app/suporte` é a URL oficial registrada na ficha da App Store (`FichaAppStore.md` e `iOS/Docs/PaginaPublica/suporte.md`). No código do aplicativo, o suporte é acionado nativamente por e-mail via `enderecos.emailSuporte` (`"suporte@frilabr.com"`) e pela propriedade computada `enderecos.urlSuporte` (`"mailto:suporte@frilabr.com"`), sem dependência de requisições HTTP para a rota `/suporte`. As URLs de Termos e Privacidade apontam para a infraestrutura oficial na Netlify (`frila.netlify.app`), conforme alinhado no PR #314.
+> **Nota sobre URL e canal de suporte:** A página pública web em `https://frila.app/suporte` é a URL oficial registrada na ficha da App Store (`FichaAppStore.md` e `iOS/Docs/PaginaPublica/suporte.md`). No código do aplicativo, o suporte é acionado nativamente por e-mail via `enderecos.emailSuporte` (`"suporte@frilabr.com"`) e pela propriedade computada `enderecos.urlSuporte` (`"mailto:suporte@frilabr.com"`), sem dependência de requisições HTTP para a rota `/suporte`. As URLs de Termos e Privacidade apontam para o domínio próprio (`frilabr.com`), o mesmo de `EnderecosOficiais.swift`.
 
 ---
 
