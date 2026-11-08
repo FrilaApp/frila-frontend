@@ -55,9 +55,9 @@ public final class ChamadaRecebidaViewModel {
         do {
             let info = try await api.detalheChamada(id: chamadaID)
             detalhe = info
-            if info.estado == .encerrada {
+            if info.estado == .encerrada || info.estado == .aceita {
                 mensagemConcorrencia = TextosChamadaDireta.chamadaEncerradaAviso
-            } else if info.estado == .expirada {
+            } else if info.estado == .expirada || (info.estado == .aberta && agora() >= info.expiraEm) {
                 mensagemConcorrencia = TextosChamadaDireta.chamadaExpiradaAviso
             } else if info.estado == .cancelada {
                 mensagemConcorrencia = TextosChamadaDireta.chamadaCanceladaAviso
@@ -76,6 +76,10 @@ public final class ChamadaRecebidaViewModel {
     }
 
     public func aceitar() async {
+        if let detalhe, detalhe.estado == .aberta && agora() >= detalhe.expiraEm {
+            mensagemConcorrencia = TextosChamadaDireta.chamadaExpiradaAviso
+            return
+        }
         guard podeResponder else { return }
         respondendo = true
         erro = nil
@@ -108,6 +112,10 @@ public final class ChamadaRecebidaViewModel {
     }
 
     public func recusar() async {
+        if let detalhe, detalhe.estado == .aberta && agora() >= detalhe.expiraEm {
+            mensagemConcorrencia = TextosChamadaDireta.chamadaExpiradaAviso
+            return
+        }
         guard podeResponder else { return }
         respondendo = true
         erro = nil

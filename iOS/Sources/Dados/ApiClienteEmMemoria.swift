@@ -1311,7 +1311,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         // Se a chamada está em estado final ou concorrência
-        if chamadaExistente.estado == .encerrada {
+        if chamadaExistente.estado == .encerrada || chamadaExistente.estado == .aceita || chamadaExistente.estado == .recusada {
             throw erro("chamada_indisponivel", detalhes: "encerrada")
         }
         if chamadaExistente.estado == .cancelada {
