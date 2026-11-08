@@ -3112,6 +3112,16 @@
         }
       }
     },
+    "Check-in manual feito às %@. O contratante não confirmou até o fim do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in manual feito às %@. O contratante não confirmou até o fim do turno."
+          }
+        }
+      }
+    },
     "Check-in manual às %@.": {
       "extractionState": "stale",
       "localizations": {
@@ -8770,6 +8780,16 @@
         }
       }
     },
+    "O profissional tem até %@ para responder.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O profissional tem até %@ para responder."
+          }
+        }
+      }
+    },
     "O que acontece ao excluir sua conta:": {
       "extractionState": "stale",
       "localizations": {
@@ -9797,6 +9817,16 @@
         }
       }
     },
+    "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
+          }
+        }
+      }
+    },
     "Presença verificada.": {
       "extractionState": "stale",
       "localizations": {
@@ -10783,6 +10813,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Restaurante ou bar"
+          }
+        }
+      }
+    },
+    "Resumo da chamada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumo da chamada"
           }
         }
       }
@@ -12575,6 +12615,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Turno encerrado sem check-in."
+          }
+        }
+      }
+    },
+    "Turno não verificado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno não verificado"
           }
         }
       }

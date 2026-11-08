@@ -74,6 +74,56 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         rolarAte(verVaga, em: app)
         XCTAssertTrue(verVaga.waitForExistence(timeout: 10), "publicada, a tela leva à vaga nova")
         XCTAssertFalse(app.buttons["publicar-para-todos-chamada"].exists, "publicar para todos vale uma vez só")
+
+        // O Acompanhar é uma rota da pilha de Minhas vagas: "Ver vaga aberta" troca o caminho pela vaga nova.
+        verVaga.tap()
+        let detalhe = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'funcao-vaga-detalhe-'")).firstMatch
+        XCTAssertTrue(detalhe.waitForExistence(timeout: 10), "o toque leva ao detalhe da vaga aberta para todos")
+        XCTAssertFalse(detalhe.identifier.hasSuffix(vagaComChamadaRecusada), "é a vaga nova, não a vaga direta")
+        XCTAssertFalse(app.navigationBars["Acompanhar chamadas"].exists)
+    }
+
+    // MARK: V11
+
+    /// Enviada a chamada, a folha mostra o resumo, até quando o profissional responde e o caminho para
+    /// acompanhar, onde a chamada recém-enviada aparece aberta (CD-RF09).
+    func testChamadaEnviadaMostraResumoPrazoEAcompanhar() {
+        let app = abrir(["-FRILA_ABRIR_EQUIPE_CONFIANCA", "-FRILA_SCENARIO", "chamada-direta"])
+        let chamar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'chamar-de-novo-'")).firstMatch
+        XCTAssertTrue(chamar.waitForExistence(timeout: 15))
+        rolarAte(chamar, em: app)
+        chamar.tap()
+
+        let valor = app.textFields["total-chamada-centavos"]
+        XCTAssertTrue(valor.waitForExistence(timeout: 10))
+        rolarAte(valor, em: app)
+        valor.tap()
+        valor.typeText("180")
+        let ok = app.buttons.matching(NSPredicate(format: "label ==[c] 'ok'")).firstMatch
+        if ok.exists { ok.tap() }
+        let total = app.switches["confirmar-total-chamada"]
+        rolarAte(total, em: app)
+        total.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let enviar = app.buttons["enviar-chamada"]
+        rolarAte(enviar, em: app)
+        XCTAssertTrue(enviar.isEnabled, "com valor e total confirmado, a chamada sai")
+        enviar.tap()
+
+        let prazo = app.staticTexts["prazo-chamada-enviada"]
+        XCTAssertTrue(prazo.waitForExistence(timeout: 10), "enviada, a folha diz até quando o profissional responde")
+        XCTAssertTrue(prazo.label.hasPrefix("O profissional tem até "), prazo.label)
+        let valorNoResumo = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS '180,00'")).firstMatch
+        XCTAssertTrue(valorNoResumo.exists, "o resumo mostra o valor combinado")
+        XCTAssertFalse(app.buttons["enviar-chamada"].exists, "enviada, o formulário não volta")
+
+        let acompanhar = app.buttons["acompanhar-chamada-enviada"]
+        rolarAte(acompanhar, em: app)
+        XCTAssertTrue(acompanhar.waitForExistence(timeout: 5), "a folha leva a Acompanhar chamadas")
+        acompanhar.tap()
+        XCTAssertTrue(app.navigationBars["Acompanhar chamadas"].waitForExistence(timeout: 10))
+        let cancelar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH[c] 'cancelar-chamada-'")).firstMatch
+        XCTAssertTrue(cancelar.waitForExistence(timeout: 10), "a chamada recém-enviada aparece aberta, com Cancelar")
     }
 
     // MARK: V2, V3 e CD-RF12
@@ -92,7 +142,8 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertTrue(app.buttons["bloquear-chamada"].exists, "CD-RF12: bloquear a partir da chamada")
 
         app.buttons["bloquear-chamada"].tap()
-        let confirmar = app.buttons["confirmar-bloqueio-chamada"]
+        // O botão do alerta aparece duas vezes na árvore, como em SegurancaUITests.
+        let confirmar = app.alerts.buttons["confirmar-bloqueio-chamada"].firstMatch
         XCTAssertTrue(confirmar.waitForExistence(timeout: 5), "bloquear pede confirmação")
         confirmar.tap()
         XCTAssertFalse(app.buttons["bloquear-chamada"].isEnabled, "bloqueada, a casa não é bloqueada de novo")

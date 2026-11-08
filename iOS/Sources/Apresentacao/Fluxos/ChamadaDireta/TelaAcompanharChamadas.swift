@@ -51,10 +51,11 @@ public struct TelaAcompanharChamadas: View {
                     }
                 }
 
-                if let novaVagaID = viewModel.vagaPublicadaNovaID {
+                // Aberto pela folha da chamada (V11), não há para onde levar: fica só o aviso de vaga aberta.
+                if let novaVagaID = viewModel.vagaPublicadaNovaID, let onVerVagaPublicada {
                     Section {
                         BotaoSecundario("Ver vaga aberta") {
-                            onVerVagaPublicada?(novaVagaID)
+                            onVerVagaPublicada(novaVagaID)
                         }
                         .accessibilityIdentifier("ver-vaga-aberta")
                     }

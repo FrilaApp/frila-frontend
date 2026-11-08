@@ -68,8 +68,7 @@ extension TextosDoProfissional {
         static func checkinNaoConfirmado(_ hora: String) -> String {
             String(localized: "Check-in manual feito às \(hora). O contratante não confirmou até o fim do turno.", bundle: bundleApresentacao)
         }
-        static let naoVerificada = String(localized: "Presença não verificada", bundle: bundleApresentacao)
-        static let naoVerificadaExplicacao = String(localized: "O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.", bundle: bundleApresentacao)
+        static let naoVerificadaAviso = String(localized: "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.", bundle: bundleApresentacao)
         static func checkinNaFila(_ hora: String, manual: Bool) -> String {
             manual
                 ? String(localized: "Sem conexão. O check-in manual das \(hora) está guardado neste aparelho e será enviado quando a internet voltar, com esse horário. Depois ele aguarda a confirmação do contratante.", bundle: bundleApresentacao)
