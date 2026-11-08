@@ -335,4 +335,67 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         pergunta.buttons["cancelar-escolha-botao"].firstMatch.tap()
         XCTAssertTrue(escolher.waitForExistence(timeout: 5))
     }
+
+    // MARK: I3 - Perfil rico e novos campos do candidato (CA1 e CA2)
+
+    func testCartaoComPerfilRicoEMinimoPermitemAvaliarESelecionar() {
+        let app = abrirVaga(cenario: "selecao-com-candidatos")
+
+        // 1. Candidato com diária e duração preenchidas (Bruno Tavares):
+        // vê a diária, duração e o detalhe autorizado do serviço (CA1).
+        let servicosDoBruno = app.descendants(matching: .any)["servicos-do-candidato-\(bruno)"]
+        rolarAte(servicosDoBruno, em: app)
+        XCTAssertTrue(servicosDoBruno.waitForExistence(timeout: 10))
+        XCTAssertTrue(servicosDoBruno.label.contains("a diária de 8 h"), servicosDoBruno.label)
+        XCTAssertTrue(servicosDoBruno.label.contains("180"), servicosDoBruno.label)
+        XCTAssertTrue(servicosDoBruno.label.contains("Uniforme próprio"), servicosDoBruno.label)
+
+        // Também vê os campos novos: apresentação, cursos, idiomas
+        let apresentacaoDoBruno = app.descendants(matching: .any)["apresentacao-do-candidato-\(bruno)"]
+        XCTAssertTrue(apresentacaoDoBruno.exists)
+        XCTAssertTrue(apresentacaoDoBruno.label.contains("Garçom e bartender há mais de 5 anos"))
+
+        let cursosDoBruno = app.descendants(matching: .any)["cursos-do-candidato-\(bruno)"]
+        XCTAssertTrue(cursosDoBruno.exists)
+        XCTAssertTrue(cursosDoBruno.label.contains("Boas práticas de manipulação de alimentos"))
+
+        // Abre o perfil público de Bruno e vê os blocos ricos na tela de perfil público
+        let perfilDoBruno = app.buttons["perfil-do-candidato-\(bruno)"]
+        rolarAte(perfilDoBruno, em: app)
+        perfilDoBruno.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-contratante"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-servicos"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-sobre-mim"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-cursos"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        // 2. Candidato sem foto ou apresentação (Carla Menezes, CA2):
+        // abre cartão e perfil, continua podendo avaliar e selecionar sem tela quebrada
+        let dadosDaCarla = app.descendants(matching: .any)["dados-do-candidato-\(carla)"]
+        rolarAte(dadosDaCarla, em: app)
+        XCTAssertTrue(dadosDaCarla.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any)["servicos-do-candidato-\(carla)"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["apresentacao-do-candidato-\(carla)"].exists)
+
+        let perfilDaCarla = app.buttons["perfil-do-candidato-\(carla)"]
+        rolarAte(perfilDaCarla, em: app)
+        perfilDaCarla.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["perfil-publico-contratante"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any)["perfil-publico-servicos"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["perfil-publico-sobre-mim"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        // Seleciona Carla com sucesso, provando que o fluxo não quebra
+        let escolherCarla = app.buttons["escolher-candidato-\(carla)"]
+        rolarAte(escolherCarla, em: app)
+        XCTAssertTrue(escolherCarla.waitForExistence(timeout: 5))
+        escolherCarla.tap()
+        let alerta = app.alerts["Confirmar a escolha?"]
+        XCTAssertTrue(alerta.waitForExistence(timeout: 5))
+        alerta.buttons["confirmar-escolha-botao"].firstMatch.tap()
+
+        let resultado = app.descendants(matching: .any)["resultado-da-escolha"]
+        XCTAssertTrue(resultado.waitForExistence(timeout: 10))
+        XCTAssertTrue(resultado.label.contains("Carla Menezes foi confirmado"))
+    }
 }

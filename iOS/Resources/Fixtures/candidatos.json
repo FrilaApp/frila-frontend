@@ -34,7 +34,30 @@
         "taxa_comparecimento": 0.9,
         "turnos_considerados": 20,
         "turnos_realizados": 18
-      }
+      },
+      "apresentacao": "Garçom e bartender há mais de 5 anos em eventos e restaurantes.",
+      "experiencia_faixa": "de_5_a_10_anos",
+      "onde_trabalhei": "Restaurante no Plano Piloto, eventos corporativos",
+      "cursos": [
+        "Boas práticas de manipulação de alimentos"
+      ],
+      "idiomas": [
+        "portugues",
+        "ingles"
+      ],
+      "servicos": [
+        {
+          "funcao": {
+            "id": "10000000-0000-0000-0000-000000000001",
+            "nome": "Garçom",
+            "categoria": "Salão"
+          },
+          "unidade": "diaria",
+          "valor_centavos": 18000,
+          "horas_incluidas": 8,
+          "inclui": "Uniforme próprio"
+        }
+      ]
     },
     "criada_em": "2026-10-06T15:40:00Z",
     "da_equipe": true
