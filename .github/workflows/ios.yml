@@ -201,6 +201,8 @@ jobs:
           name: xcresult-parte-1
           path: ${{ env.DERIVED_DATA_PATH }}/Logs/Test/Frila-Local.xcresult
           if-no-files-found: warn
+          # A cota de armazenamento de artefatos da organização estourou em 08/11/2026: 2 dias bastam para baixar e ler.
+          retention-days: 2
 
       - name: Apagar segredos e temporários
         if: always()
@@ -456,6 +458,7 @@ jobs:
           name: xcresult-parte-2
           path: ${{ env.DERIVED_DATA_PATH }}/Logs/Test/Frila-Local.xcresult
           if-no-files-found: warn
+          retention-days: 2
 
       - name: Apagar segredos e temporários
         if: always()
