@@ -29,13 +29,17 @@ struct ResumoDaChamadaEnviada: View {
                   TextosChamadaDireta.intervalo(inicio: formatador.dataEHora(inicio), fim: formatador.hora(fim)))
             linha(TextosChamadaDireta.responsavel, responsavel.trimmingCharacters(in: .whitespacesAndNewlines))
         }
-        .accessibilityIdentifier("resumo-chamada-enviada")
         if let api {
             Section {
                 NavigationLink {
                     TelaAcompanharChamadas(viewModel: AcompanharChamadasViewModel(vagaID: chamada.vagaID, api: api))
                 } label: {
-                    RotuloDeLinha(TextosChamadaDireta.acompanharTitulo)
+                    // No Form, o NavigationLink já desenha o chevron do sistema; o `RotuloDeLinha`
+                    // (da lista aberta) somava um segundo e, em AX5, partia "Acompanhar" no meio.
+                    Text(verbatim: TextosChamadaDireta.acompanharTitulo)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityIdentifier("acompanhar-chamada-enviada")
             }

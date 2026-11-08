@@ -101,9 +101,12 @@ final class TmpAuditoriaLotes23UITests: XCTestCase {
         XCTAssertTrue(prazo.waitForExistence(timeout: 10))
         rolarAte(prazo, em: app)
         auditar("resumo-topo", app, grande: grande)
-        let link = app.buttons["acompanhar-chamada-enviada"]
-        rolarAte(link, em: app)
-        XCTAssertTrue(link.exists)
+        let qualquer = app.descendants(matching: .any)["acompanhar-chamada-enviada"]
+        rolarAte(qualquer, em: app)
+        print("AUDITORIA-L23|link|\(grande ? "ax5" : "padrao")|existe=\(qualquer.exists)|tipo=\(qualquer.exists ? qualquer.elementType.rawValue : -1)|botao=\(app.buttons["acompanhar-chamada-enviada"].exists)")
         auditar("resumo-fim", app, grande: grande)
+        XCTAssertTrue(qualquer.exists)
+        qualquer.tap()
+        XCTAssertTrue(app.navigationBars["Acompanhar chamadas"].waitForExistence(timeout: 10), "o link leva ao Acompanhar")
     }
 }
