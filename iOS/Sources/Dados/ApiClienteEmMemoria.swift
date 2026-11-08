@@ -439,7 +439,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
                      .retirarSemRede, .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
-                default: 24 * 60 * 60
+                case .profissionalServidorAntigo: 30 * 60
+                default: 30 * 60
                 }
                 let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante) ? Self.copia(vaga, estado: .encerrada) : vaga
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
@@ -3020,7 +3021,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return DecodificadorErroAPI.mapear(codigo: envelope?.code ?? codigo, detalhes: detalhes ?? envelope?.details)
     }
 
-    private static func noFuturo(_ vaga: Vaga, agora: Date, inicioEm: TimeInterval = 24 * 60 * 60) throws -> Vaga {
+    private static func noFuturo(_ vaga: Vaga, agora: Date, inicioEm: TimeInterval = 30 * 60) throws -> Vaga {
         let inicio = agora.addingTimeInterval(inicioEm)
         let periodo = try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(vaga.periodo.fim.timeIntervalSince(vaga.periodo.inicio)))
         return copia(vaga, periodo: periodo, publicadoEm: agora)
