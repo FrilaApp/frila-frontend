@@ -89,7 +89,7 @@ public struct TelaEntrada: View {
 
                     // Textos legais discretos fora da barra fixa
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text("Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade).", bundle: bundleApresentacao)
+                        Text("Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).", bundle: bundleApresentacao)
                             .font(FrilaTipo.nota)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .tint(FrilaCor.texto)

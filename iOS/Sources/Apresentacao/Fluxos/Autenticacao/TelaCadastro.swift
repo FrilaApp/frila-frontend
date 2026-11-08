@@ -187,7 +187,7 @@ public struct TelaCadastro: View {
                             }
                             .accessibilityIdentifier("cadastro-termos")
 
-                            Text("Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)", bundle: bundleApresentacao)
+                            Text("Li e aceito os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)", bundle: bundleApresentacao)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.texto)
                                 .padding(.top, FrilaEspaco.pequeno)

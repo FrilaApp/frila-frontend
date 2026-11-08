@@ -109,7 +109,19 @@ public final class PresencaDoTurnoViewModel {
         }
     }
 
-    public var podeFazerCheckin: Bool { checkin == .naoFeito }
+    public var podeFazerCheckin: Bool {
+        guard checkin == .naoFeito else { return false }
+        let agora = relogio.agora
+        let inicio = turno.vaga.periodo.inicio
+        let fim = turno.vaga.periodo.fim
+        return agora >= inicio.addingTimeInterval(-60 * 60) && agora <= fim
+    }
+
+    /// O check-in abre 60 minutos antes do início previsto do turno. Antes disso o botão fica
+    /// desabilitado e a tela exibe aviso informativo (LOJA-M2).
+    public var checkinAntecipadoDemais: Bool {
+        checkin == .naoFeito && relogio.agora < turno.vaga.periodo.inicio.addingTimeInterval(-60 * 60)
+    }
 
     /// O check-out vem depois do check-in, mesmo que o check-in ainda esteja na fila: a fila sai na
     /// ordem dos toques.
