@@ -44,11 +44,13 @@ public final class MeuPerfilProfissionalViewModel {
     public private(set) var conta: Conta?
     public private(set) var perfil: PerfilProfissional?
     public private(set) var perfilPublico: PerfilPublico?
+    public private(set) var suportaPerfilRico: Bool = false
     public private(set) var carregando = false
     public private(set) var mensagemErro: String?
     private let carregarConta: @Sendable () async throws -> Conta
     private let carregarPerfil: @Sendable () async throws -> PerfilProfissional
     private let carregarPublico: @Sendable (UUID) async throws -> PerfilPublico
+    private let carregarConfiguracao: (@Sendable () async throws -> ConfiguracaoApp)?
     private let gravarContato: (@Sendable (AlteracaoDeContato) async throws -> Conta)?
 
     /// Só há edição de contato quando o cliente a atende; senão a interface nem a oferece.
@@ -58,6 +60,7 @@ public final class MeuPerfilProfissionalViewModel {
         carregarConta = { try await api.minhaConta() }
         carregarPerfil = { try await api.meuPerfilProfissional() }
         carregarPublico = { try await api.perfilPublico(id: $0) }
+        carregarConfiguracao = { try await api.configuracaoDoApp() }
         if api.suportaEdicaoDeContato {
             gravarContato = { alteracao in try await api.atualizarContato(alteracao) }
         } else {
@@ -68,8 +71,11 @@ public final class MeuPerfilProfissionalViewModel {
     public init(conta: @escaping @Sendable () async throws -> Conta,
                 perfil: @escaping @Sendable () async throws -> PerfilProfissional,
                 publico: @escaping @Sendable (UUID) async throws -> PerfilPublico,
-                gravarContato: (@Sendable (AlteracaoDeContato) async throws -> Conta)? = nil) {
+                gravarContato: (@Sendable (AlteracaoDeContato) async throws -> Conta)? = nil,
+                suportaPerfilRico: Bool = false) {
         carregarConta = conta; carregarPerfil = perfil; carregarPublico = publico
+        carregarConfiguracao = nil
+        self.suportaPerfilRico = suportaPerfilRico
         self.gravarContato = gravarContato
     }
 
@@ -88,6 +94,9 @@ public final class MeuPerfilProfissionalViewModel {
         mensagemErro = nil
         defer { carregando = false }
         do {
+            if let config = try? await carregarConfiguracao?() {
+                suportaPerfilRico = config.recursos.perfilRico
+            }
             let contaNova = try await carregarConta()
             let perfilNovo = try await carregarPerfil()
             let publicoNovo = try await carregarPublico(perfilNovo.id)
@@ -412,15 +421,17 @@ public struct TelaMeuPerfilProfissional: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("perfil-funcoes-horarios")
 
-            DivisoriaDeLinha()
+            if model.suportaPerfilRico {
+                DivisoriaDeLinha()
 
-            NavigationLink {
-                TelaApresentacaoERegioes(api: api)
-            } label: {
-                RotuloDeLinha(TextosApresentacaoERegioes.titulo)
+                NavigationLink {
+                    TelaApresentacaoERegioes(api: api)
+                } label: {
+                    RotuloDeLinha(TextosApresentacaoERegioes.titulo)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-apresentacao-regioes")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("perfil-apresentacao-regioes")
 
             DivisoriaDeLinha()
 
