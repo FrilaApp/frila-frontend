@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       acao:
-        description: "Consultar grupos, revisão beta ou classificação"
+        description: "Consultar grupos, revisão beta, classificação ou URL de privacidade"
         type: choice
-        options: [conferir, grupo-interno, classificacao, grupo-externo, revisao-beta]
+        options: [conferir, grupo-interno, classificacao, grupo-externo, revisao-beta, privacidade]
         default: conferir
         required: true
       aplicar:

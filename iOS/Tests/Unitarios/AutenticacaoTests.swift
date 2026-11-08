@@ -525,13 +525,23 @@ struct AutenticacaoTests {
         #expect(destino == .profissional)
     }
 
-    @Test("DemonstracaoContas aceita apenas os e-mails oficiais de revisão")
+    @Test("DemonstracaoContas aceita as contas de revisão novas (frilabr.com) e antigas (frila.app), e só elas")
     func demonstracaoContasFiltro() {
+        // Novas, em frilabr.com, com espaço nas pontas e maiúsculas.
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-contratante@frilabr.com"))
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-profissional@frilabr.com"))
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao("  Revisao-Contratante@FrilaBR.com\n"))
+        #expect(DemonstracaoContas.ehEmailDeDemonstracao(" REVISAO-PROFISSIONAL@FRILABR.COM "))
+        // Antigas, em frila.app: continuam valendo na 1.1.
         #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-profissional@frila.app"))
         #expect(DemonstracaoContas.ehEmailDeDemonstracao("revisao-contratante@frila.app"))
         #expect(DemonstracaoContas.ehEmailDeDemonstracao("   revisao-profissional@frila.app  "))
+        // Qualquer outro e-mail não é conta de demonstração.
         #expect(!DemonstracaoContas.ehEmailDeDemonstracao("demo@example.com"))
         #expect(!DemonstracaoContas.ehEmailDeDemonstracao("outro@frila.app"))
+        #expect(!DemonstracaoContas.ehEmailDeDemonstracao("outro@frilabr.com"))
+        #expect(!DemonstracaoContas.ehEmailDeDemonstracao("revisao-contratante@frilabr.com.br"))
+        #expect(!DemonstracaoContas.ehEmailDeDemonstracao("revisao-contratante@frilabr.comx"))
     }
 
     @Test("CodigoViewModel: falha de rede ao confirmar código exibe erro e não direciona para cadastro")
