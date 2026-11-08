@@ -41,9 +41,8 @@ public struct TelaChamadaDireta: View {
                 }
             }
             if let chamada = viewModel.resultado {
-                ResumoDaChamadaEnviada(chamada: chamada, valorCentavos: viewModel.valorCentavos,
-                                       inicio: viewModel.inicio, fim: viewModel.fim,
-                                       responsavel: viewModel.responsavel, api: api)
+                let _ = chamada
+                AvisoFrila(verbatim: TextosChamadaDireta.sucesso, tom: .informativo) // MUTACAO
             } else if viewModel.recursoHabilitado {
                 campos
                     .disabled(viewModel.tentativa != nil || viewModel.enviando)

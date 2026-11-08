@@ -429,7 +429,11 @@ public struct TelaMinhasVagas: View {
                     TelaTurnoDoContratante(viewModel: acompanhamento, turnoID: turnoID, api: api, sair: sair)
                 case let .acompanharChamadas(vagaID):
                     TelaAcompanharChamadas(viewModel: AcompanharChamadasViewModel(vagaID: vagaID, api: api)) { novaVagaID in
-                        roteador.abrirVaga(id: novaVagaID)
+                        // A vaga aberta para todos é nova: relê o painel antes, ou o destino não a acha.
+                        Task {
+                            await carregar()
+                            roteador.abrirVaga(id: novaVagaID)
+                        }
                     }
                 }
             }
