@@ -14,6 +14,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -34,6 +37,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -183,6 +187,54 @@ class TelaVerificacaoDocumentoTest {
         rule.onNodeWithContentDescription("Trocar foto: Selfie").performScrollTo().assertIsDisplayed()
         rule.onNodeWithContentDescription("Escolher foto: Frente do documento").assertIsDisplayed()
         AuditoriaSemanticaAcessibilidade.assertSemanticaValida(rule.onRoot().fetchSemanticsNode())
+    }
+
+    @Test
+    fun `FLAG_SECURE fica ligada enquanto a tela de verificacao esta visivel e sai com ela`() {
+        val vm = criarViewModel(corpo = statusJson("nao_exigida"))
+        var janela: android.view.Window? = null
+        var visivel by androidx.compose.runtime.mutableStateOf(true)
+        rule.setContent {
+            janela = LocalContext.current.encontrarActivity()?.window
+            if (visivel) FrilaTheme { TelaVerificacaoDocumento(viewModel = vm, aoVoltar = {}) }
+        }
+        rule.waitForIdle()
+
+        assertNotNull(janela)
+        assertTrue(
+            "FLAG_SECURE deveria estar ligada com a tela visível",
+            janela!!.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0,
+        )
+
+        visivel = false
+        rule.waitForIdle()
+
+        assertTrue(
+            "FLAG_SECURE deveria sair junto com a tela",
+            janela!!.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE == 0,
+        )
+    }
+
+    @Test
+    fun `janela que ja era segura continua segura depois que a tela sai`() {
+        val vm = criarViewModel(corpo = statusJson("nao_exigida"))
+        var janela: android.view.Window? = null
+        var visivel by androidx.compose.runtime.mutableStateOf(true)
+        rule.setContent {
+            janela = LocalContext.current.encontrarActivity()?.window
+            // Uma vez só (remember): a janela já nasce segura por outro motivo, antes da tela do selo.
+            androidx.compose.runtime.remember {
+                janela?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                0
+            }
+            if (visivel) FrilaTheme { TelaVerificacaoDocumento(viewModel = vm, aoVoltar = {}) }
+        }
+        rule.waitForIdle()
+
+        visivel = false
+        rule.waitForIdle()
+
+        assertTrue(janela!!.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0)
     }
 
     @Test
