@@ -90,9 +90,16 @@ public enum DestinoDaConta: Equatable, Sendable {
 }
 
 public enum DemonstracaoContas {
+    /// As contas de revisão da Apple. Na 1.1 valem as novas (`frilabr.com`) e as antigas (`frila.app`,
+    /// domínio que não é nosso): quem decide quem entra é o servidor, e o Prod troca as contas depois
+    /// que este build estiver no TestFlight. As antigas saem numa versão seguinte.
+    static let emails: Set<String> = [
+        "revisao-profissional@frilabr.com", "revisao-contratante@frilabr.com",
+        "revisao-profissional@frila.app", "revisao-contratante@frila.app",
+    ]
+
     public static func ehEmailDeDemonstracao(_ email: String) -> Bool {
-        let limpo = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return limpo == "revisao-profissional@frila.app" || limpo == "revisao-contratante@frila.app"
+        emails.contains(email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
     }
 }
 
