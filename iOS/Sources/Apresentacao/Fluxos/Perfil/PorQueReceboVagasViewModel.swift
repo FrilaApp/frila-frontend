@@ -4,7 +4,8 @@ import Observation
 
 /// "Por que recebo vagas" (RF27, cartão #18): os critérios reais de `criteriosDeNotificacao` e o
 /// pedido de revisão do despacho por `pedirRevisaoDespacho`. O texto explicativo continua sendo do
-/// app; daqui saem só os dados e o protocolo.
+/// app; daqui saem só os dados e o protocolo, o do pedido feito agora ou o que os critérios trazem
+/// desde a 0.2.62.
 @MainActor @Observable
 public final class PorQueReceboVagasViewModel {
     public enum Estado: Equatable, Sendable {
@@ -59,6 +60,10 @@ public final class PorQueReceboVagasViewModel {
         estado = .carregando
         do {
             let criterios = try await carregarCriterios()
+            // 0.2.62: a contestação já feita chega com os critérios, e a tela mostra o protocolo em
+            // vez de oferecer um pedido que o servidor recusaria com 409. Sem o campo (servidor
+            // anterior), nada muda: o protocolo desta sessão e o aviso do 409 continuam valendo.
+            if let contestacao = criterios.contestacao { protocolo = contestacao }
             estado = criterios.semCriterios ? .vazio : .conteudo(criterios)
         } catch let erroApi as ErroDaApi {
             switch erroApi.codigo {

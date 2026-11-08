@@ -1365,19 +1365,24 @@ public struct CriteriosDeNotificacao: Codable, Hashable, Sendable {
     public let equipesDeConfianca: [EquipeDeConfiancaDoProfissional]
     /// Teto de RN23; hoje, 30 minutos.
     public let notificacoesNoMaximoACadaMin: Int
+    /// 0.2.62 (RF27): o protocolo da contestação do despacho que o titular já fez, em análise ou já
+    /// respondida. `nil` se ainda não contestou, ou se o servidor é anterior à 0.2.62 e não manda o campo.
+    public let contestacao: Protocolo?
 
     public init(
         funcoes: [Funcao],
         disponibilidades: [JanelaDeDisponibilidade],
         distanciaMaximaKm: Double,
         equipesDeConfianca: [EquipeDeConfiancaDoProfissional],
-        notificacoesNoMaximoACadaMin: Int
+        notificacoesNoMaximoACadaMin: Int,
+        contestacao: Protocolo? = nil
     ) {
         self.funcoes = funcoes
         self.disponibilidades = disponibilidades
         self.distanciaMaximaKm = distanciaMaximaKm
         self.equipesDeConfianca = equipesDeConfianca
         self.notificacoesNoMaximoACadaMin = notificacoesNoMaximoACadaMin
+        self.contestacao = contestacao
     }
 
     /// Sem função, sem grade e sem equipe: nenhuma vaga chega por notificação, e a tela diz isso em
