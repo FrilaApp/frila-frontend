@@ -41,7 +41,7 @@ struct ConferenciaVisualLote1e4Tests {
         #expect(ChamadaDiretaViewModel.valorDigitado("R$ 1.234,567") == "1234,56")
         #expect(ChamadaDiretaViewModel.valorDigitado("12,3,4") == "12,34")
         #expect(ChamadaDiretaViewModel.valorDigitado(",5") == "0,5")
-        #expect(ChamadaDiretaViewModel.valorDigitado("1234567") == "12345")
+        #expect(ChamadaDiretaViewModel.valorDigitado("1234567", anterior: "123") == "123")
         #expect(ChamadaDiretaViewModel.valorDigitado("abc") == "")
         let (_, model) = try await chamada()
         model.valorTexto = ChamadaDiretaViewModel.valorDigitado("-500")
@@ -67,6 +67,22 @@ struct ConferenciaVisualLote1e4Tests {
         let (_, model) = try await chamada()
         model.valorTexto = ChamadaDiretaViewModel.valorDigitado("R$ 1.500,00")
         #expect(model.valorCentavos == 150_000)
+    }
+
+    @Test("Mais de 5 algarismos em reais: a colagem é recusada e o campo fica como estava, sem cortar")
+    func recusaValorGrandeDemais() async throws {
+        // "1.500.000,00" cortado para 5 algarismos virava 15000,00: 100 vezes menor e plausível.
+        #expect(ChamadaDiretaViewModel.valorDigitado("1.500.000,00", anterior: "180") == "180")
+        #expect(ChamadaDiretaViewModel.valorDigitado("R$ 123.456", anterior: "") == "")
+        #expect(ChamadaDiretaViewModel.valorDigitado("123456,78", anterior: "12,5") == "12,5")
+        // Digitar o 6º algarismo também não muda o campo.
+        #expect(ChamadaDiretaViewModel.valorDigitado("123456", anterior: "12345") == "12345")
+        // O limite de 5 algarismos continua aceito.
+        #expect(ChamadaDiretaViewModel.valorDigitado("99.999,99", anterior: "") == "99999,99")
+        let (_, model) = try await chamada()
+        model.valorTexto = "180"
+        model.valorTexto = ChamadaDiretaViewModel.valorDigitado("1.500.000,00", anterior: model.valorTexto)
+        #expect(model.valorCentavos == 18_000)
     }
 
     @Test("V8: o valor que vem da vaga aparece em reais no campo")

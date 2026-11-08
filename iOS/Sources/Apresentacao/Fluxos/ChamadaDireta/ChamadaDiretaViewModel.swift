@@ -94,12 +94,14 @@ public final class ChamadaDiretaViewModel {
     /// Limpa o que a pessoa digita ou cola no valor: só algarismos e uma vírgula, até 5 algarismos em
     /// reais e 2 em centavos. Com vírgula, o ponto é separador de milhar ("R$ 1.500,00" vale 1.500).
     /// Sem vírgula, o ponto só é milhar quando separa grupos de três ("1.500"); senão é a vírgula
-    /// decimal de um teclado em outro idioma ("1.50").
-    static func valorDigitado(_ texto: String) -> String {
+    /// decimal de um teclado em outro idioma ("1.50"). Com mais de 5 algarismos em reais, devolve o
+    /// `anterior`: cortar "1.500.000,00" em 15000,00 daria um valor 100 vezes menor e plausível.
+    static func valorDigitado(_ texto: String, anterior: String = "") -> String {
         let permitido = texto.filter { ($0.isASCII && $0.isNumber) || $0 == "," || $0 == "." }
         let separador = permitido.firstIndex(of: ",") ?? (Self.pontoDeMilhar(permitido) ? nil : permitido.lastIndex(of: "."))
-        guard let separador else { return String(permitido.filter(\.isNumber).prefix(5)) }
-        let reais = String(permitido[..<separador].filter(\.isNumber).prefix(5))
+        let reais = String((separador.map { permitido[..<$0] } ?? permitido[...]).filter(\.isNumber))
+        guard reais.count <= 5 else { return anterior }
+        guard let separador else { return reais }
         let centavos = String(permitido[permitido.index(after: separador)...].filter(\.isNumber).prefix(2))
         return (reais.isEmpty ? "0" : reais) + "," + centavos
     }
