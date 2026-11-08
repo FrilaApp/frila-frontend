@@ -588,7 +588,10 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
-        let versaoApp = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        try await registrarDispositivo(tokenFCM: tokenFCM, versaoApp: nil)
+    }
+
+    public func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo {
         let resposta: ContratoAPI.DispositivoDTO = try await rpc(
             "registrar_dispositivo",
             params: ContratoAPI.RegistrarDispositivo(tokenFCM: tokenFCM, versaoApp: versaoApp)

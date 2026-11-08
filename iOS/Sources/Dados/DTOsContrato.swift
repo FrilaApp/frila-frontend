@@ -2072,6 +2072,13 @@ enum ContratoAPI {
             case tokenFCM = "token_fcm"
             case versaoApp = "versao_app"
         }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(plataforma, forKey: .plataforma)
+            try container.encode(tokenFCM, forKey: .tokenFCM)
+            try container.encodeIfPresent(versaoApp, forKey: .versaoApp)
+        }
     }
 
     struct RemoverDispositivo: Encodable {

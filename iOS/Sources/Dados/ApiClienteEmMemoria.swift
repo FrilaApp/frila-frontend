@@ -2620,8 +2620,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o
     /// token é único, e registrar o que era de outra conta troca o dono.
     public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        try await registrarDispositivo(tokenFCM: tokenFCM, versaoApp: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")
+    }
+
+    public func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo {
         try verificarRede()
-        ultimaVersaoAppRegistrada = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        ultimaVersaoAppRegistrada = versaoApp ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
         guard let conta else { throw erro("nao_autenticado") }
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }

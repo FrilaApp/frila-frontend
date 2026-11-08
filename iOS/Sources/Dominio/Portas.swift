@@ -477,6 +477,7 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// aparelho). Token em branco é `campoObrigatorio`, e com menos de 20 caracteres,
     /// `campoInvalido`, os dois com `token_fcm` no detalhe.
     func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo
+    func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo
     /// Antes de encerrar a sessão, que é quem autoriza a chamada. Só tira o token da própria conta,
     /// e o token que não estava registrado não é erro.
     func removerDispositivo(tokenFCM: String) async throws
@@ -548,6 +549,10 @@ public protocol ProfissionalRepositorio: Sendable {
 }
 
 public extension ApiCliente {
+    func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo {
+        try await registrarDispositivo(tokenFCM: tokenFCM)
+    }
+
     func resolverServico(termo: String) async throws -> [Funcao] {
         let limpo = termo.trimmingCharacters(in: .whitespacesAndNewlines)
         guard limpo.count >= 2 else { return [] }
