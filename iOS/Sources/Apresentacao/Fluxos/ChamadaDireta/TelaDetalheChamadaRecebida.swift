@@ -30,6 +30,8 @@ public struct TelaDetalheChamadaRecebida: View {
                 sucessoAceite(resultado)
             } else if let resultado = viewModel.resultado, resultado.chamada.estado == .recusada {
                 AvisoFrila(verbatim: TextosChamadaDireta.chamadaRecusadaAviso, tom: .informativo)
+                // Recusar não tira o direito de denunciar ou bloquear quem chamou (CD-RF12, CD-S13).
+                if let detalhe = viewModel.detalhe { acoesDeSeguranca(detalhe.outraParte) }
             } else if let detalhe = viewModel.detalhe {
                 conteudoChamada(detalhe)
             }
@@ -143,7 +145,15 @@ public struct TelaDetalheChamadaRecebida: View {
             .padding(.vertical, 4)
         }
 
-        if viewModel.podeResponder {
+        // Bloqueada a casa, a chamada não se responde mais: o servidor a encerra (`404`, RF26).
+        if bloqueios.contem(detalhe.outraParte) {
+            Section {
+                Text(verbatim: TextosDaSeguranca.voceBloqueouEstabelecimento)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("etiqueta-bloqueio-chamada")
+            }
+        } else if viewModel.podeResponder {
             Section {
                 BotaoPrimario(verbatim: TextosChamadaDireta.aceitarChamada, carregando: viewModel.respondendo) {
                     Task { await viewModel.aceitar() }
@@ -158,12 +168,16 @@ public struct TelaDetalheChamadaRecebida: View {
             }
         }
 
-        // CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
+        acoesDeSeguranca(detalhe.outraParte)
+    }
+
+    /// CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
+    private func acoesDeSeguranca(_ quemChamou: PerfilPublico) -> some View {
         Section {
-            AcoesDeSeguranca(perfil: detalhe.outraParte, api: viewModel.api, bloqueios: bloqueios,
+            AcoesDeSeguranca(perfil: quemChamou, api: viewModel.api, bloqueios: bloqueios,
                              identificadorDenunciar: "denunciar-chamada", identificadorBloquear: "bloquear-chamada",
                              identificadorConfirmarBloqueio: "confirmar-bloqueio-chamada")
-                .id(detalhe.outraParte.id)
+                .id(quemChamou.id)
         }
         .listRowBackground(Color.clear)
     }

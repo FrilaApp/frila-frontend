@@ -175,7 +175,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         /// No Prod o recurso nasce desligado; os cenários da foto o ligam, menos `fotoRecursoDesligado`.
-        var fotoDePerfilLigada: Bool { daFotoDePerfil && self != .fotoRecursoDesligado }
+        /// `denuncia-de-foto` liga o recurso: o `foto_id` só vem com ele ligado (contrato 0.2.54).
+        var fotoDePerfilLigada: Bool { (daFotoDePerfil && self != .fotoRecursoDesligado) || self == .denunciaDeFoto }
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
