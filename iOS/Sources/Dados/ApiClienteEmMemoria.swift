@@ -23,6 +23,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Contestação já respondida: conserva o protocolo original com prazo passado (0.2.36).
         case contestacaoRespondida = "contestacao-respondida"
         case despachoContestacaoJaAberta = "despacho-contestacao-ja-aberta"
+        /// 0.2.62: o profissional já contestou o despacho, e `criterios_de_notificacao` traz o protocolo.
+        case despachoComProtocolo = "despacho-com-protocolo"
         /// Só a lista de vagas falha, com `422 campo_invalido/limite`, um erro que `vagas_abertas` produz no
         /// backend e que não é falta de rede nem de ponto de referência (estado de erro do #104).
         case erroNaLista = "erro-na-lista"
@@ -409,6 +411,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
                         tipo: .contestacao, criadaEm: relogio.agora.addingTimeInterval(-10 * 86400),
                         prazoRespostaAte: DataCivil.deSaoPaulo(relogio.agora, somandoDias: -3)!
                     ) : nil
+                )
+            }
+            if cenario == .despachoComProtocolo, let ativa = conta {
+                revisoesDeDespacho[ativa.id] = Protocolo(
+                    ocorrenciaID: UUID(uuidString: "a0000000-0000-0000-0000-000000000003")!,
+                    tipo: .revisaoDespacho, criadaEm: relogio.agora.addingTimeInterval(-2 * 86400),
+                    prazoRespostaAte: DataCivil.deSaoPaulo(relogio.agora, somandoDias: 3)!
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
@@ -971,6 +980,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// conta é `401`; conta de contratante, `422 perfil_incompativel`; sem perfil profissional,
     /// `404`. A leitura não exige conta ativa, e a suspensa também lê. Funções, grade e equipes saem
     /// na ordem do backend: nome, dia e hora, nome. A distância e o teto são os parâmetros de hoje.
+    /// Desde a 0.2.62 (`20261108010000_criterios_notificacao_contestacao.sql`), traz o protocolo da
+    /// revisão já pedida por esta conta, ou `nil`.
     public func criteriosDeNotificacao() async throws -> CriteriosDeNotificacao {
         try verificarRede()
         guard let conta else { throw erro("nao_autenticado") }
@@ -985,7 +996,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             disponibilidades: perfil.disponibilidades.sorted { ($0.diaDaSemana, $0.inicio) < ($1.diaDaSemana, $1.inicio) },
             distanciaMaximaKm: 15,
             equipesDeConfianca: equipes,
-            notificacoesNoMaximoACadaMin: 30
+            notificacoesNoMaximoACadaMin: 30,
+            contestacao: revisoesDeDespacho[conta.id]
         )
     }
 

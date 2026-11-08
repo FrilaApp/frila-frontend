@@ -230,4 +230,48 @@ struct PorQueReceboVagasViewModelTests {
         #expect(PorQueReceboVagasViewModel.descricaoDistancia(15) == "Até 15 km do seu ponto base.")
         #expect(PorQueReceboVagasViewModel.descricaoDistancia(7.5) == "Até 7,5 km do seu ponto base.")
     }
+
+    // MARK: 0.2.62: contestação nos critérios (RF27)
+
+    @Test("0.2.62: a contestação que chega com os critérios vira o protocolo, e o formulário não é oferecido")
+    func contestacaoDoServidor() async throws {
+        let ja = Self.protocolo()
+        let comContestacao = CriteriosDeNotificacao(
+            funcoes: Self.criterios.funcoes, disponibilidades: Self.criterios.disponibilidades, distanciaMaximaKm: 15,
+            equipesDeConfianca: [], notificacoesNoMaximoACadaMin: 30, contestacao: ja
+        )
+        let vm = PorQueReceboVagasViewModel(criterios: { comContestacao }, pedirRevisao: { _ in Issue.record("não deve pedir de novo"); return Self.protocolo() })
+        await vm.carregar()
+
+        #expect(vm.protocolo == ja)
+        #expect(!vm.podeContestar)
+        vm.abrirFormulario()
+        #expect(!vm.mostrarFormulario)
+    }
+
+    @Test("0.2.62: sem o campo (servidor anterior), o protocolo desta sessão sobrevive a recarregar")
+    func recarregarSemCampoConservaProtocolo() async throws {
+        let enviado = Self.protocolo()
+        let vm = await Self.pronto { _ in enviado }
+        vm.abrirFormulario()
+        vm.relato = "Não recebi a vaga de sexta no Bistrô Ipê"
+        await vm.contestar()
+        #expect(vm.protocolo == enviado)
+
+        await vm.carregar()
+        #expect(vm.protocolo == enviado)
+        #expect(!vm.podeContestar)
+    }
+
+    @Test("0.2.62: pelo dublê, quem já contestou reabre a tela e vê o protocolo, sem formulário")
+    func duble() async throws {
+        let api = ApiClienteEmMemoria(cenario: .despachoComProtocolo)
+        let vm = PorQueReceboVagasViewModel(api: api)
+        await vm.carregar()
+
+        let protocolo = try #require(vm.protocolo)
+        #expect(protocolo.tipo == .revisaoDespacho)
+        #expect(!vm.podeContestar)
+        #expect(vm.criterios != nil)
+    }
 }
