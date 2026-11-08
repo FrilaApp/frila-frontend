@@ -150,7 +150,7 @@ rápidos, nesse tipo de setup.
 
 ## 7. Geração de Artefatos (APK/AAB) e Assinatura de Release (Cartão 59)
 
-A esteira Android (`.github/workflows/android.yml`) gera o APK de depuração (`app-debug.apk`) e o Android App Bundle de produção (`app-release.aab`), publicando ambos como artefatos da execução com retenção de 7 dias.
+A esteira Android (`.github/workflows/android.yml`) gera o APK de depuração (`app-debug.apk`) e o Android App Bundle de produção (`app-release.aab`), publicando ambos como artefatos da execução com retenção de 2 dias (era 7 até 08/11/2026, quando a cota de armazenamento de artefatos da organização estourou).
 
 ### Modo Não Assinado (Padrão em PRs)
 Na ausência dos segredos de release no GitHub Secrets, o Gradle (`android/app/build.gradle.kts:51`) compila o AAB no modo release com minificação R8 e redução de recursos, mas **sem signingConfig**, gerando o AAB não assinado. Isso permite validação contínua da compilação e empacotamento em PRs públicos sem expor credenciais.

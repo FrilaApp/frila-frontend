@@ -77,7 +77,7 @@ Etapas, na ordem:
 14. Gera o `Secrets.xcconfig` de Prod e compila o `Frila-Prod` e confere o bundle (pulado se o PR só mexe em testes ou documentação).
 15. Apaga `Secrets.xcconfig`, plists, produtos de build e temporários, mesmo quando uma etapa falha. O diretório `SourcePackages` fica só até o pós-job de cache salvar os pacotes.
 
-Nenhuma etapa do `ios.yml` assina código (o simulador usa a assinatura local ad-hoc) nem publica artefato. As fases de script do Xcode não exportam variáveis para o log, e o GitHub mascara os segredos.
+Nenhuma etapa do `ios.yml` assina código (o simulador usa a assinatura local ad-hoc). O único artefato é o `xcresult` de cada parte, publicado só quando os testes falham e guardado por 2 dias (desde 08/11/2026, quando a cota de armazenamento de artefatos da organização estourou). As fases de script do Xcode não exportam variáveis para o log, e o GitHub mascara os segredos.
 
 Desde 24/09 a etapa 14 compila com o `frila-prod` ([Dependências externas](ExternalSetup.md), item 9). Se um dos dois secrets de Prod faltar, ela para em `FRILA_SUPABASE_PROD_URL is not set`, de propósito: Prod sem Supabase não compila em silêncio.
 
