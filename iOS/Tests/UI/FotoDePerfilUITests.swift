@@ -138,7 +138,8 @@ final class FotoDePerfilUITests: XCTestCase {
     func testEscolherFotoMostraAvisoPrevioComOpcoes() {
         let app = abrir("foto-sem-foto")
         tocar(app.buttons["perfil-foto-escolher"])
-        let sheet = app.sheets.firstMatch
+        // V22: o aviso prévio é um alerta (era `confirmationDialog`, que no iOS 26 vazava o fundo em AX3).
+        let sheet = app.alerts.firstMatch
         XCTAssertTrue(sheet.waitForExistence(timeout: Espera.aparecer), "O aviso prévio deve abrir")
         XCTAssertTrue(sheet.buttons["Escolher da galeria"].exists)
         anexar(app, "foto-aviso-previo")

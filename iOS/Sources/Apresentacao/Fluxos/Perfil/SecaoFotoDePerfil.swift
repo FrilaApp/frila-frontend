@@ -82,9 +82,9 @@ private struct ConteudoDaFotoDePerfil: View {
                 paraRecortar = nil
             }
         }
-        .confirmationDialog(
-            TextosFotoDePerfil.avisoPrevioTitulo, isPresented: $mostrarAvisoPrevio, titleVisibility: .visible
-        ) {
+        // V22: alerta, e não `confirmationDialog`. No iOS 26 o diálogo vira um balão translúcido preso
+        // ao botão, e em AX3 o texto do cartão vazava por trás das opções. O alerta escurece o fundo.
+        .alert(TextosFotoDePerfil.avisoPrevioTitulo, isPresented: $mostrarAvisoPrevio) {
             if SeletorDeCamera.cameraDisponivel {
                 Button(TextosFotoDePerfil.tirarFoto) { cameraAberta = true }
             }
