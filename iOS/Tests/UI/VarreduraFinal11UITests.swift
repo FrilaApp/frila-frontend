@@ -83,10 +83,15 @@ final class VarreduraFinal11UITests: XCTestCase {
         rolarAte(chamar, em: app)
         chamar.tap()
 
+        XCTAssertTrue(app.navigationBars["Chamar de novo"].waitForExistence(timeout: 10), "Chamar de novo abre o formulário da chamada")
+        // O botão fica no fim do formulário: a lista só cria a linha quando ela aparece.
         let enviar = app.buttons["enviar-chamada"]
-        XCTAssertTrue(enviar.waitForExistence(timeout: 10), "Chamar de novo abre o formulário da chamada")
+        for _ in 0..<6 where !enviar.exists { app.swipeUp() }
+        XCTAssertTrue(enviar.waitForExistence(timeout: 5), "o formulário termina em Enviar chamada")
         XCTAssertFalse(enviar.isEnabled, "sem valor e sem o total confirmado, a chamada não sai")
-        XCTAssertTrue(app.switches["confirmar-total-chamada"].exists, "o total fechado é confirmado a cada chamada")
+        let total = app.switches["confirmar-total-chamada"]
+        for _ in 0..<4 where !total.exists { app.swipeDown() }
+        XCTAssertTrue(total.exists, "o total fechado é confirmado a cada chamada")
     }
 
     func testEquipeSemChamadaDiretaNaoOfereceChamarDeNovo() {
