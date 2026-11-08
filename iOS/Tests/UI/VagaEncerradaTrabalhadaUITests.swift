@@ -37,10 +37,12 @@ final class VagaEncerradaTrabalhadaUITests: XCTestCase {
 
     private func conferir(ax5: Bool) {
         let app = abrirDetalhe(ax5: ax5)
-        let titulo = app.staticTexts["Vaga encerrada"]
-        XCTAssertTrue(titulo.waitForExistence(timeout: 10), "o detalhe da vaga trabalhada diz 'Vaga encerrada'")
-        XCTAssertTrue(app.staticTexts["1 de 1 posição preenchida"].exists)
-        XCTAssertFalse(app.staticTexts["Encerrada, ninguém aceitou"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 10))
+        let comTexto = { (texto: String) in app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", texto)).firstMatch }
+        XCTAssertTrue(comTexto("Vaga encerrada").waitForExistence(timeout: 10), "o detalhe da vaga trabalhada diz 'Vaga encerrada'")
+        // O cenário do dublê tem 2 posições, uma com a Ana Cunha.
+        XCTAssertTrue(comTexto("1 de 2 posições preenchidas").exists)
+        XCTAssertFalse(comTexto("ninguém aceitou").exists)
         capturar("vaga-encerrada-trabalhada-\(ax5 ? "ax5" : "padrao")")
     }
 
