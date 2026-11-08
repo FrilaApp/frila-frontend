@@ -90,7 +90,8 @@ jobs:
           name: frila-android-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
+          # A cota de armazenamento de artefatos da organização estourou em 08/11/2026: 2 dias bastam para baixar e testar.
+          retention-days: 2
 
       - name: Publicar AAB de release
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -98,4 +99,4 @@ jobs:
           name: frila-android-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 2
