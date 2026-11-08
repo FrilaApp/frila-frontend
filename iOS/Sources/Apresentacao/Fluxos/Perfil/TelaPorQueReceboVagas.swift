@@ -9,7 +9,6 @@ public struct TelaPorQueReceboVagas: View {
     /// chegar à tela.
     @State private var viewModel: PorQueReceboVagasViewModel
     @FocusState private var focoNoRelato: Bool
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     public init(viewModel: PorQueReceboVagasViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -198,11 +197,13 @@ public struct TelaPorQueReceboVagas: View {
                     .font(FrilaTipo.nota)
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
                 Spacer()
-                Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
+                // V24: o 10 é o mínimo, não um limite. Acima dele o contador para em "10/10",
+                // com o visto verde, em vez de "40/10", que parecia ter passado do limite.
+                Text(verbatim: Self.contador(viewModel.relato))
                     .font(FrilaTipo.nota.monospacedDigit())
                     .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contador-relato-despacho")
-                    .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosPorQueReceboVagas.relatoValidoAcessibilidade : "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
+                    .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosPorQueReceboVagas.relatoValidoAcessibilidade : Self.contador(viewModel.relato)))
             }
 
             layoutDosBotoes {
@@ -219,12 +220,14 @@ public struct TelaPorQueReceboVagas: View {
         }
     }
 
-    /// Lado a lado, os dois botões se estrangulam nos tamanhos de acessibilidade (QA do #105 na
-    /// conta suspensa): empilham em AX, pelo mesmo `AnyLayout` de `TelaContaSuspensa`.
-    private var layoutDosBotoes: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: FrilaEspaco.pequeno))
-            : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
+    /// Os dois botões empilhados em todos os tamanhos: lado a lado, "Enviar pedido" já quebrava em
+    /// duas linhas no tamanho padrão (V24 da conferência visual da 1.1), e em AX se estrangulavam
+    /// (QA do #105 na conta suspensa).
+    private var layoutDosBotoes: AnyLayout { AnyLayout(VStackLayout(spacing: FrilaEspaco.pequeno)) }
+
+    /// Caracteres do relato até o mínimo de 10: "3/10" e, a partir dele, "10/10".
+    static func contador(_ relato: String) -> String {
+        "\(min(relato.trimmingCharacters(in: .whitespacesAndNewlines).count, 10))/10"
     }
 
     private func cartaoProtocolo(_ protocolo: Protocolo) -> some View {
@@ -244,8 +247,11 @@ public struct TelaPorQueReceboVagas: View {
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: protocolo.ocorrenciaID.uuidString)
+                // V23: o UUID inteiro quebrava deixando um "3" sozinho na linha. O número que o
+                // suporte usa é o curto (contrato 0.2.40), o mesmo da Ajuda no turno: "#A0000000".
+                Text(verbatim: "#" + protocolo.protocoloCurto)
                     .font(FrilaTipo.meta.monospaced())
+                    .textSelection(.enabled)
                     .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("protocolo-revisao-despacho")

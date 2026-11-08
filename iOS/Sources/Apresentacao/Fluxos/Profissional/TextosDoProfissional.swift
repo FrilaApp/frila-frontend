@@ -156,7 +156,7 @@ enum TextosDoProfissional {
         static let verificandoCandidatura = String(localized: "Verificando candidatura…", bundle: bundleApresentacao)
         static let voltarParaLista = String(localized: "Ver outras vagas perto de você", bundle: bundleApresentacao)
 
-        static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
+        static let confirmadoTitulo = String(localized: "Turno confirmado", bundle: bundleApresentacao)
 
         static let preenchidaTitulo = String(localized: "Vaga preenchida", bundle: bundleApresentacao)
         static let estaVagaJaFoiPreenchida = String(localized: "Esta vaga já foi preenchida", bundle: bundleApresentacao)
@@ -209,7 +209,7 @@ enum TextosDoProfissional {
                 String(localized: "Cancelamento registrado.", bundle: bundleApresentacao)
             }
         }
-        static let confirmadoTitulo = String(localized: "Você está confirmado", bundle: bundleApresentacao)
+        static let confirmadoTitulo = String(localized: "Turno confirmado", bundle: bundleApresentacao)
         static let avisoCache = String(localized: "Modo offline: exibindo dados salvos anteriormente.", bundle: bundleApresentacao)
         static let vazioTitulo = String(localized: "Nenhum turno confirmado", bundle: bundleApresentacao)
         static let vazioMensagem = String(localized: "Quando você tiver turnos confirmados, eles aparecerão aqui.", bundle: bundleApresentacao)

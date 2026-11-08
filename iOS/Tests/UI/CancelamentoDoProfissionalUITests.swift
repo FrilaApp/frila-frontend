@@ -118,7 +118,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         tocar(app.buttons["motivo-saude"])
         tocar(app.buttons["voltar-do-cancelamento"])
         XCTAssertTrue(app.buttons["cancelar-turno"].waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Você está confirmado")
+        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno confirmado")
     }
 
     func testSemRedeEntraNaFilaEATelaAvisaQueSeraEnviado() {
@@ -137,7 +137,7 @@ final class CancelamentoDoProfissionalUITests: XCTestCase {
         let naFila = app.descendants(matching: .any)["cancelamento-na-fila"].firstMatch
         XCTAssertTrue(naFila.waitForExistence(timeout: Espera.aparecer))
         XCTAssertFalse(app.buttons["cancelar-turno"].exists)
-        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Você está confirmado")
+        XCTAssertEqual(app.staticTexts["estado-do-turno"].label, "Turno confirmado")
     }
 
     func testCancelamentoComOutroMotivoNoSEMantemConfirmarHittableERecolheTeclado() {

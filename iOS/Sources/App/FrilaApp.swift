@@ -103,6 +103,7 @@ struct FrilaApp: App {
             .aparenciaEscolhida(forcado: Self.esquemaDeCorDosArgumentos)
             // Tema neutro do MidFi: seleção (aba ativa, links, controles) no preenchimento escuro, não no azul do sistema.
             .tint(FrilaCor.primaria)
+            .toggleStyle(.frila)
             // Ao desativar a cena, uma janela opaca acima das folhas e telas modais cobre
             // telefone, endereço e relato antes da foto do seletor de apps (A4).
             .cortinaDePrivacidade()
@@ -778,6 +779,7 @@ private struct EntradaDoApp: View {
 
     /// `-FRILA_PUSH <tipo> -FRILA_PUSH_ID <uuid>`: o toque num push, pelo caminho inteiro do #8, só
     /// contra o dublê. O id vai como `vaga_id` e como `turno_id`, e o roteador usa o que o tipo pede.
+    /// Os avisos de chamada direta levam o id da chamada em `-FRILA_PUSH_CHAMADA_ID` (`chamada_id`).
     /// Com `-FRILA_PUSH_DE_ANTES`, o aviso chegou antes de o aparelho ser da conta e não abre nada.
     /// Com `-FRILA_PUSH_NOTIFICACAO_EM <segundos>`, o payload vai numa notificação local: quem a
     /// mostra e entrega o toque é o sistema, pelo `AppDelegate`, com o app aberto, em segundo plano
@@ -793,6 +795,9 @@ private struct EntradaDoApp: View {
         }
         if let pos = argumentos.firstIndex(of: "-FRILA_PUSH_POSICAO_ID"), argumentos.indices.contains(pos + 1) {
             payload["posicao_id"] = argumentos[pos + 1]
+        }
+        if let chamada = argumentos.firstIndex(of: "-FRILA_PUSH_CHAMADA_ID"), argumentos.indices.contains(chamada + 1) {
+            payload["chamada_id"] = argumentos[chamada + 1]
         }
         if let espera = argumentos.firstIndex(of: "-FRILA_PUSH_NOTIFICACAO_EM"), argumentos.indices.contains(espera + 1),
            let segundos = TimeInterval(argumentos[espera + 1]), segundos > 0 {

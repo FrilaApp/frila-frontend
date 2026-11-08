@@ -108,6 +108,8 @@ final class FotoDePerfilUITests: XCTestCase {
     func testRecursoDesligadoComFotoSoPermiteRemover() {
         let app = abrir("foto-recurso-desligado")
         XCTAssertTrue(texto("perfil-foto-texto", em: app).contains("indisponíveis por enquanto"))
+        // V21: o título não diz "Foto publicada" quando o texto diz que as fotos estão indisponíveis.
+        XCTAssertEqual(texto("perfil-foto-estado", em: app), "Foto guardada")
         XCTAssertTrue(existe("perfil-foto-remover", em: app))
         XCTAssertFalse(app.buttons["perfil-foto-escolher"].exists)
         XCTAssertFalse(app.buttons["perfil-foto-tentar-outra"].exists)
@@ -136,7 +138,8 @@ final class FotoDePerfilUITests: XCTestCase {
     func testEscolherFotoMostraAvisoPrevioComOpcoes() {
         let app = abrir("foto-sem-foto")
         tocar(app.buttons["perfil-foto-escolher"])
-        let sheet = app.sheets.firstMatch
+        // V22: o aviso prévio é um alerta (era `confirmationDialog`, que no iOS 26 vazava o fundo em AX3).
+        let sheet = app.alerts.firstMatch
         XCTAssertTrue(sheet.waitForExistence(timeout: Espera.aparecer), "O aviso prévio deve abrir")
         XCTAssertTrue(sheet.buttons["Escolher da galeria"].exists)
         anexar(app, "foto-aviso-previo")
