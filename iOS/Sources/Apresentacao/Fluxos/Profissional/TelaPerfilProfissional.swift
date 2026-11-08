@@ -130,9 +130,29 @@ public struct TelaPerfilProfissional: View {
         if viewModel.modo == .edicao && viewModel.suportaPerfilRico {
             NavigationLink {
                 TelaEditarServicos(modelo: viewModel.editorDeServicos())
-            } label: { Text("Editar serviços", bundle: bundleApresentacao).font(FrilaTipo.corpo) }
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("editar-servicos")
+            } label: {
+                // V18: a mesma linha da vizinha "Editar apresentação e regiões", com subtítulo e seta.
+                HStack {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        Text("Editar serviços", bundle: bundleApresentacao)
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                        Text("Valores, unidade de preço e o que está incluído", bundle: bundleApresentacao)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
+                }
+                .padding(.vertical, FrilaEspaco.pequeno)
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editar-servicos")
 
             NavigationLink {
                 TelaApresentacaoERegioes(api: viewModel.apiCliente)

@@ -91,6 +91,7 @@ public struct BotaoPrimario: View {
     private let titulo: Text
     private let carregando: Bool
     private let acao: () -> Void
+    @Environment(\.isEnabled) private var habilitado
 
     public init(_ titulo: LocalizedStringKey, carregando: Bool = false, acao: @escaping () -> Void) {
         self.titulo = Text(titulo, bundle: bundleApresentacao)
@@ -103,6 +104,9 @@ public struct BotaoPrimario: View {
         self.carregando = carregando
         self.acao = acao
     }
+
+    /// O carregando também desliga o botão, mas mantém a cor: o indicador já diz o que acontece.
+    private var desligado: Bool { !habilitado && !carregando }
 
     public var body: some View {
         Button(action: acao) {
@@ -118,9 +122,12 @@ public struct BotaoPrimario: View {
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .foregroundStyle(FrilaCor.sobrePrimaria)
+            .foregroundStyle(desligado ? FrilaCor.textoSecundario : FrilaCor.sobrePrimaria)
             // Pílula `.ink` da origem (`dynamicTextInk`), 52 pt (`buttonHeightProminent`).
-            .background(FrilaCor.primaria, in: Capsule())
+            // Desligado (sem ser pelo carregando), vira cinza com borda: preto ou branco cheio
+            // parecia pronto para tocar, e o toque não fazia nada (V7 da conferência visual da 1.1).
+            .background(desligado ? FrilaCor.controle : FrilaCor.primaria, in: Capsule())
+            .overlay { if desligado { Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
             .contentShape(Capsule())
         }
         .buttonStyle(.tatil)

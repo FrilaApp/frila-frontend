@@ -100,7 +100,7 @@ final class ContatoCopiavelUITests: XCTestCase {
         app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.20)).tap()
         XCTAssertTrue(app.staticTexts["perfil-telefone-valor"].waitForExistence(timeout: 3))
         XCTAssertFalse(campo.exists)
-        XCTAssertEqual(app.staticTexts["perfil-telefone-valor"].label, "+5561988887777")
+        XCTAssertEqual(app.staticTexts["perfil-telefone-valor"].label, "(61) 98888-7777")
     }
 
     func testEditarEPressionarReturnGrava() {
@@ -116,7 +116,7 @@ final class ContatoCopiavelUITests: XCTestCase {
         campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
         campo.typeText("61977776666\n")
         XCTAssertTrue(app.staticTexts["perfil-telefone-valor"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.staticTexts["perfil-telefone-valor"].label, "+5561977776666")
+        XCTAssertEqual(app.staticTexts["perfil-telefone-valor"].label, "(61) 97777-6666")
     }
 
     func testSegurarEDeslizarNoMesmoGestoCopia() {

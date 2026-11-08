@@ -82,9 +82,9 @@ private struct ConteudoDaFotoDePerfil: View {
                 paraRecortar = nil
             }
         }
-        .confirmationDialog(
-            TextosFotoDePerfil.avisoPrevioTitulo, isPresented: $mostrarAvisoPrevio, titleVisibility: .visible
-        ) {
+        // V22: alerta, e não `confirmationDialog`. No iOS 26 o diálogo vira um balão translúcido preso
+        // ao botão, e em AX3 o texto do cartão vazava por trás das opções. O alerta escurece o fundo.
+        .alert(TextosFotoDePerfil.avisoPrevioTitulo, isPresented: $mostrarAvisoPrevio) {
             if SeletorDeCamera.cameraDisponivel {
                 Button(TextosFotoDePerfil.tirarFoto) { cameraAberta = true }
             }
@@ -151,6 +151,8 @@ private struct ConteudoDaFotoDePerfil: View {
 
     private var titulo: String {
         guard let midia = model.midia else { return TextosFotoDePerfil.titulo }
+        // O texto já diz que as fotos estão indisponíveis: o título não pode dizer "publicada".
+        if !model.recursoLigado, midia.estado != .removida { return TextosFotoDePerfil.tituloRecursoDesligado }
         switch midia.estado {
         case .enviando: return TextosFotoDePerfil.tituloEnviando
         case .emAnalise: return TextosFotoDePerfil.tituloEmAnalise

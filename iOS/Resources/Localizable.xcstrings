@@ -118,6 +118,16 @@
         }
       }
     },
+    "%@ já tem outro turno confirmado no mesmo horário. Escolha outro candidato.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ já tem outro turno confirmado no mesmo horário. Escolha outro candidato."
+          }
+        }
+      }
+    },
     "%@ não pode assumir este turno agora. Escolha outro candidato.": {
       "extractionState": "stale",
       "localizations": {
@@ -125,6 +135,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ não pode assumir este turno agora. Escolha outro candidato."
+          }
+        }
+      }
+    },
+    "%@ por diária de %lld h": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por diária de %lld h"
           }
         }
       }
@@ -3017,6 +3037,16 @@
         }
       }
     },
+    "Chamar profissional": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamar profissional"
+          }
+        }
+      }
+    },
     "Chamaria de novo?": {
       "extractionState": "stale",
       "localizations": {
@@ -3828,6 +3858,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copiar dados do e-mail"
+          }
+        }
+      }
+    },
+    "Curso ou certificado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Curso ou certificado"
           }
         }
       }
@@ -5970,6 +6010,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foto em análise"
+          }
+        }
+      }
+    },
+    "Foto guardada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto guardada"
           }
         }
       }
@@ -9162,6 +9212,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Para calcular a distância até as vagas. Não é sua localização em tempo real."
+          }
+        }
+      }
+    },
+    "Para enviar, confirme que este é o valor total.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para enviar, confirme que este é o valor total."
+          }
+        }
+      }
+    },
+    "Para enviar, informe o responsável no local.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para enviar, informe o responsável no local."
+          }
+        }
+      }
+    },
+    "Para enviar, informe o valor total.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para enviar, informe o valor total."
+          }
+        }
+      }
+    },
+    "Para enviar, o início precisa ser daqui a 2 horas ou mais.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para enviar, o início precisa ser daqui a 2 horas ou mais."
+          }
+        }
+      }
+    },
+    "Para enviar, o turno precisa ter de 2 a 16 horas.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para enviar, o turno precisa ter de 2 a 16 horas."
           }
         }
       }
@@ -12460,6 +12560,16 @@
         }
       }
     },
+    "Turno confirmado": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno confirmado"
+          }
+        }
+      }
+    },
     "Turno encerrado sem check-in.": {
       "extractionState": "stale",
       "localizations": {
@@ -12870,6 +12980,16 @@
         }
       }
     },
+    "Valor total": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor total"
+          }
+        }
+      }
+    },
     "Valor total em centavos": {
       "localizations": {
         "pt-BR": {
@@ -12887,6 +13007,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Valoração Bruta do Contrato:"
+          }
+        }
+      }
+    },
+    "Valores, unidade de preço e o que está incluído": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valores, unidade de preço e o que está incluído"
           }
         }
       }
@@ -13227,6 +13357,26 @@
         }
       }
     },
+    "Você confirmou %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você confirmou %@."
+          }
+        }
+      }
+    },
+    "Você confirmou %@. Os outros candidatos foram avisados.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você confirmou %@. Os outros candidatos foram avisados."
+          }
+        }
+      }
+    },
     "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.": {
       "extractionState": "stale",
       "localizations": {
@@ -13430,6 +13580,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você trabalharia nesse local de novo?"
+          }
+        }
+      }
+    },
+    "Você vai confirmar %@ nesta vaga.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você vai confirmar %@ nesta vaga."
+          }
+        }
+      }
+    },
+    "Você vai confirmar %@ nesta vaga. É a última posição: os outros candidatos serão avisados de que não foram escolhidos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você vai confirmar %@ nesta vaga. É a última posição: os outros candidatos serão avisados de que não foram escolhidos."
           }
         }
       }
