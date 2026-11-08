@@ -1,0 +1,1 @@
+../iOS/Scripts/contrato-ios-confere.sh

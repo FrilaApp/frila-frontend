@@ -382,6 +382,12 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func resolverServico(termo: String) async throws -> [Funcao]
     func regioesAdministrativas() async throws -> [RegiaoAdministrativa]
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada
+    func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada
+    func cancelarChamada(id: UUID) async throws -> Chamada
+    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo]
+    func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
+    func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada
+    func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
@@ -564,6 +570,30 @@ public extension ApiCliente {
 
     func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado {
         try await meuPerfilDetalhado()
+    }
+
+    func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func cancelarChamada(id: UUID) async throws -> Chamada {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
+        []
+    }
+
+    func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
+        throw ErroDaApi(codigo: .naoEncontrado)
+    }
+
+    func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas {
+        throw ErroDaApi(codigo: .respostaInvalida)
     }
 }
 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Regras de backup legado (< API 31), referenciadas via android:fullBackupContent="@xml/backup_rules"
+  para aparelhos que não suportam data_extraction_rules.xml. Mesmo escopo de exclusão daquele
+  arquivo: sharedpref de sessão e banco de dados de cache ficam de fora do backup automático do
+  Google, por LGPD e RN15.
+
+  Keystore: idem data_extraction_rules.xml — chave de hardware não é um arquivo backupável, não
+  há domínio de exclusão aplicável a ela.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="sessao_segura.xml"/>
+    <exclude domain="database"/>
+</full-backup-content>

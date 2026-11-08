@@ -317,6 +317,67 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         try await rpc("chamar_profissional", params: ContratoAPI.ChamarProfissional(pedido: pedido))
     }
 
+    public func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada {
+        let dto: ContratoAPI.ResultadoChamadaDTO = try await rpc(
+            "responder_chamada",
+            params: ContratoAPI.ResponderChamada(chamadaID: id, resposta: resposta, motivoRecusa: motivoRecusa)
+        )
+        return dto.dominio()
+    }
+
+    public func cancelarChamada(id: UUID) async throws -> Chamada {
+        try await rpc("cancelar_chamada", params: ContratoAPI.CancelarChamada(chamadaID: id))
+    }
+
+    public func minhasChamadas(estado: EstadoChamada? = nil, cursor: String? = nil, limite: Int? = nil) async throws -> [ChamadaResumo] {
+        struct Params: Encodable {
+            let estado: EstadoChamada?
+            let cursor: String?
+            let limite: Int?
+        }
+        let pagina: ContratoAPI.PaginaChamadasDTO = try await rpc(
+            "minhas_chamadas",
+            params: Params(estado: estado, cursor: cursor, limite: limite)
+        )
+        return try pagina.itens.map { try $0.dominio() }
+    }
+
+    public func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
+        struct Params: Encodable {
+            let chamadaID: UUID
+            enum CodingKeys: String, CodingKey { case chamadaID = "chamada_id" }
+        }
+        let dto: ContratoAPI.ChamadaDetalheDTO = try await rpc("detalhe_chamada", params: Params(chamadaID: id))
+        return try dto.dominio()
+    }
+
+    public func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento? = nil) async throws -> VagaPublicada {
+        let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc(
+            "publicar_a_partir_da_chamada",
+            params: ContratoAPI.PublicarAPartirDaChamada(vagaID: vagaID, chave: chave, modo: modo)
+        )
+        return try resposta.dominio()
+    }
+
+    public func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas {
+        let formatador = DateFormatter()
+        formatador.dateFormat = "yyyy-MM-dd"
+        formatador.timeZone = TimeZone(identifier: "America/Sao_Paulo")
+        let dataTexto = preferencias.pausadoAte.map { formatador.string(from: $0) }
+
+        let dto: ContratoAPI.PreferenciaChamadasDTO = try await rpc(
+            "definir_preferencia_chamadas",
+            params: ContratoAPI.DefinirPreferenciaChamadas(
+                aceitaDeQuemJaTrabalhou: preferencias.aceitaDeQuemJaTrabalhou,
+                pausadoAte: dataTexto,
+                removerPausa: preferencias.removerPausa,
+                antecedenciaMinimaH: preferencias.antecedenciaMinimaH,
+                aceitaDe: preferencias.aceitaDe?.rawValue
+            )
+        )
+        return dto.dominio()
+    }
+
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
         let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("publicar_vaga", params: ContratoAPI.NovaVaga(publicacao))
         return resposta.dominio()
@@ -527,9 +588,10 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        let versaoApp = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
         let resposta: ContratoAPI.DispositivoDTO = try await rpc(
             "registrar_dispositivo",
-            params: ContratoAPI.RegistrarDispositivo(tokenFCM: tokenFCM)
+            params: ContratoAPI.RegistrarDispositivo(tokenFCM: tokenFCM, versaoApp: versaoApp)
         )
         return resposta.dominio()
     }
