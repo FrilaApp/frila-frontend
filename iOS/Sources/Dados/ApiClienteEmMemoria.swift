@@ -206,6 +206,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     }
 
     private var chamadasPorChave: [UUID: Chamada] = [:]
+    private var chamadasPorID: [UUID: Chamada] = [:]
+    private var preferenciasDeChamadaArmazenadas = PreferenciaChamadas()
+    public private(set) var ultimaVersaoAppRegistrada: String?
     public private(set) var pedidosChamadaRecebidos: [PedidoChamada] = []
     private var avaliacoes: [UUID: Avaliacao] = [:]
 
@@ -1278,7 +1281,282 @@ public actor ApiClienteEmMemoria: ApiCliente {
                               expiraEm: min(envio.addingTimeInterval(12 * 3600), t.periodo.inicio.addingTimeInterval(-3600)), criadaEm: relogio.agora)
         vagas.append(vaga)
         chamadasPorChave[t.chave] = chamada
+        chamadasPorID[chamada.id] = chamada
         return chamada
+    }
+
+    public func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada? = nil) async throws -> ResultadoChamada {
+        try verificarFalhaGeral()
+        guard cenario.deChamada || configuracao.recursos.chamadaDireta else {
+            throw erro("sem_permissao", detalhes: "recurso_desligado")
+        }
+        guard let chamadaExistente = chamadasPorID[id] ?? chamadasPorChave.values.first(where: { $0.id == id }) else {
+            throw erro("nao_encontrado")
+        }
+
+        // Se já respondida com a mesma resposta: idempotente
+        if chamadaExistente.estado == .recusada, resposta == .recusar {
+            return ResultadoChamada(chamada: chamadaExistente)
+        }
+        if chamadaExistente.estado == .aceita, resposta == .aceitar {
+            let vaga = vagas.first { $0.id == chamadaExistente.vagaID }
+            let turno = turnos.first { $0.vaga.id == chamadaExistente.vagaID }
+            return ResultadoChamada(
+                chamada: chamadaExistente,
+                turnoID: turno?.id,
+                local: vaga?.local,
+                ponto: vaga?.ponto,
+                responsavelLocal: vaga?.responsavelLocal
+            )
+        }
+
+        // Se a chamada está em estado final ou concorrência
+        if chamadaExistente.estado == .encerrada || chamadaExistente.estado == .aceita || chamadaExistente.estado == .recusada {
+            throw erro("chamada_indisponivel", detalhes: "encerrada")
+        }
+        if chamadaExistente.estado == .cancelada {
+            throw erro("chamada_indisponivel", detalhes: "cancelada")
+        }
+        if chamadaExistente.estado == .expirada || relogio.agora >= chamadaExistente.expiraEm {
+            let expirada = Chamada(
+                id: chamadaExistente.id, vagaID: chamadaExistente.vagaID,
+                profissionalID: chamadaExistente.profissionalID,
+                estabelecimentoID: chamadaExistente.estabelecimentoID,
+                estado: .expirada, recado: chamadaExistente.recado,
+                motivoRecusa: chamadaExistente.motivoRecusa,
+                expiraEm: chamadaExistente.expiraEm,
+                respondidaEm: relogio.agora, criadaEm: chamadaExistente.criadaEm
+            )
+            chamadasPorID[id] = expirada
+            throw erro("chamada_indisponivel", detalhes: "expirada")
+        }
+        if chamadaExistente.estado != .aberta {
+            throw erro("chamada_indisponivel")
+        }
+
+        if resposta == .recusar {
+            let recusada = Chamada(
+                id: chamadaExistente.id, vagaID: chamadaExistente.vagaID,
+                profissionalID: chamadaExistente.profissionalID,
+                estabelecimentoID: chamadaExistente.estabelecimentoID,
+                estado: .recusada, recado: chamadaExistente.recado,
+                motivoRecusa: motivoRecusa, expiraEm: chamadaExistente.expiraEm,
+                respondidaEm: relogio.agora, criadaEm: chamadaExistente.criadaEm
+            )
+            chamadasPorID[id] = recusada
+            return ResultadoChamada(chamada: recusada)
+        }
+
+        // Aceite
+        guard let vagaIndex = vagas.firstIndex(where: { $0.id == chamadaExistente.vagaID }) else {
+            throw erro("nao_encontrado")
+        }
+        let vaga = vagas[vagaIndex]
+        if vaga.posicoesAbertas == 0 || vaga.estado == .cancelada || vaga.estado == .encerrada {
+            let encerrada = Chamada(
+                id: chamadaExistente.id, vagaID: chamadaExistente.vagaID,
+                profissionalID: chamadaExistente.profissionalID,
+                estabelecimentoID: chamadaExistente.estabelecimentoID,
+                estado: .encerrada, recado: chamadaExistente.recado,
+                motivoRecusa: chamadaExistente.motivoRecusa, expiraEm: chamadaExistente.expiraEm,
+                respondidaEm: relogio.agora, criadaEm: chamadaExistente.criadaEm
+            )
+            chamadasPorID[id] = encerrada
+            throw erro("chamada_indisponivel", detalhes: "encerrada")
+        }
+
+        let turnoID = UUID()
+        let posicaoID = UUID()
+        let turno = Turno(
+            id: turnoID,
+            posicaoID: posicaoID,
+            vaga: vaga.resumo,
+            contraparte: vaga.estabelecimento,
+            contatoVisivelAte: vaga.periodo.fim.addingTimeInterval(7 * 24 * 3600),
+            verificacao: .pendente,
+            valorAcordado: vaga.valor,
+            podeAvaliar: false
+        )
+        turnos.append(turno)
+
+        let aceita = Chamada(
+            id: chamadaExistente.id, vagaID: chamadaExistente.vagaID,
+            profissionalID: chamadaExistente.profissionalID,
+            estabelecimentoID: chamadaExistente.estabelecimentoID,
+            estado: .aceita, recado: chamadaExistente.recado,
+            motivoRecusa: nil, expiraEm: chamadaExistente.expiraEm,
+            respondidaEm: relogio.agora, criadaEm: chamadaExistente.criadaEm
+        )
+        chamadasPorID[id] = aceita
+
+        // Encerra as outras chamadas abertas para a mesma vaga
+        for (k, ch) in chamadasPorID where ch.vagaID == vaga.id && ch.id != id && ch.estado == .aberta {
+            chamadasPorID[k] = Chamada(
+                id: ch.id, vagaID: ch.vagaID, profissionalID: ch.profissionalID,
+                estabelecimentoID: ch.estabelecimentoID, estado: .encerrada,
+                recado: ch.recado, motivoRecusa: ch.motivoRecusa, expiraEm: ch.expiraEm,
+                respondidaEm: relogio.agora, criadaEm: ch.criadaEm
+            )
+        }
+
+        return ResultadoChamada(
+            chamada: aceita,
+            turnoID: turnoID,
+            local: vaga.local,
+            ponto: vaga.ponto,
+            responsavelLocal: vaga.responsavelLocal
+        )
+    }
+
+    public func cancelarChamada(id: UUID) async throws -> Chamada {
+        try verificarFalhaGeral()
+        guard cenario.deChamada || configuracao.recursos.chamadaDireta else {
+            throw erro("sem_permissao", detalhes: "recurso_desligado")
+        }
+        guard let chamada = chamadasPorID[id] ?? chamadasPorChave.values.first(where: { $0.id == id }) else {
+            throw erro("nao_encontrado")
+        }
+        if chamada.estado == .cancelada { return chamada }
+        if chamada.estado != .aberta {
+            throw erro("chamada_indisponivel")
+        }
+        let cancelada = Chamada(
+            id: chamada.id, vagaID: chamada.vagaID, profissionalID: chamada.profissionalID,
+            estabelecimentoID: chamada.estabelecimentoID, estado: .cancelada,
+            recado: chamada.recado, motivoRecusa: chamada.motivoRecusa, expiraEm: chamada.expiraEm,
+            respondidaEm: relogio.agora, criadaEm: chamada.criadaEm
+        )
+        chamadasPorID[id] = cancelada
+        return cancelada
+    }
+
+    public func minhasChamadas(estado: EstadoChamada? = nil, cursor: String? = nil, limite: Int? = nil) async throws -> [ChamadaResumo] {
+        try verificarFalhaGeral()
+        guard cenario.deChamada || configuracao.recursos.chamadaDireta else {
+            throw erro("sem_permissao", detalhes: "recurso_desligado")
+        }
+        let todas = Array(chamadasPorID.values)
+        let filtradas = todas.filter { ch in
+            if let estado, ch.estado != estado { return false }
+            return true
+        }
+        return filtradas.compactMap { ch in
+            guard let vaga = vagas.first(where: { $0.id == ch.vagaID }) else { return nil }
+            return ChamadaResumo(
+                id: ch.id, vagaID: ch.vagaID, profissionalID: ch.profissionalID,
+                estabelecimentoID: ch.estabelecimentoID, estado: ch.estado,
+                recado: ch.recado, motivoRecusa: ch.motivoRecusa, expiraEm: ch.expiraEm,
+                respondidaEm: ch.respondidaEm, criadaEm: ch.criadaEm,
+                funcao: vaga.funcao, inicioEm: vaga.periodo.inicio, fimEm: vaga.periodo.fim,
+                valorCentavos: vaga.valor.centavos, outraParte: vaga.estabelecimento
+            )
+        }.sorted { $0.criadaEm > $1.criadaEm }
+    }
+
+    public func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
+        try verificarFalhaGeral()
+        guard cenario.deChamada || configuracao.recursos.chamadaDireta else {
+            throw erro("sem_permissao", detalhes: "recurso_desligado")
+        }
+        guard let ch = chamadasPorID[id] ?? chamadasPorChave.values.first(where: { $0.id == id }) else {
+            throw erro("nao_encontrado")
+        }
+        guard let vaga = vagas.first(where: { $0.id == ch.vagaID }) else {
+            throw erro("nao_encontrado")
+        }
+        let turno = turnos.first { $0.vaga.id == vaga.id }
+        let ehAceita = ch.estado == .aceita
+        return ChamadaDetalhe(
+            id: ch.id,
+            vagaID: ch.vagaID,
+            profissionalID: ch.profissionalID,
+            estabelecimentoID: ch.estabelecimentoID,
+            estado: ch.estado,
+            recado: ch.recado,
+            motivoRecusa: ch.motivoRecusa,
+            expiraEm: ch.expiraEm,
+            respondidaEm: ch.respondidaEm,
+            criadaEm: ch.criadaEm,
+            funcao: vaga.funcao,
+            inicioEm: vaga.periodo.inicio,
+            fimEm: vaga.periodo.fim,
+            valorCentavos: vaga.valor.centavos,
+            outraParte: vaga.estabelecimento,
+            tipoEstabelecimento: .foodService,
+            contaNova: false,
+            regiaoAdministrativa: vaga.regiaoAdministrativa,
+            distanciaFaixa: .ate5km,
+            incluiRefeicao: vaga.inclusos.refeicao,
+            incluiTransporte: vaga.inclusos.transporte,
+            exigeMaterialProprio: vaga.inclusos.exigeMaterialProprio,
+            local: ehAceita ? vaga.local : nil,
+            ponto: ehAceita ? vaga.ponto : nil,
+            responsavelLocal: ehAceita ? vaga.responsavelLocal : nil,
+            turnoID: ehAceita ? turno?.id : nil
+        )
+    }
+
+    public func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento? = nil) async throws -> VagaPublicada {
+        try verificarFalhaGeral()
+        guard cenario.deChamada || configuracao.recursos.chamadaDireta else {
+            throw erro("sem_permissao", detalhes: "recurso_desligado")
+        }
+        guard let vaga = vagas.first(where: { $0.id == vagaID }) else {
+            throw erro("nao_encontrado")
+        }
+        if vaga.estado == .cancelada || vaga.estado == .encerrada {
+            throw erro("vaga_encerrada")
+        }
+        // Encerra chamadas abertas da vaga
+        for (k, ch) in chamadasPorID where ch.vagaID == vagaID && ch.estado == .aberta {
+            chamadasPorID[k] = Chamada(
+                id: ch.id, vagaID: ch.vagaID, profissionalID: ch.profissionalID,
+                estabelecimentoID: ch.estabelecimentoID, estado: .encerrada,
+                recado: ch.recado, motivoRecusa: ch.motivoRecusa, expiraEm: ch.expiraEm,
+                respondidaEm: relogio.agora, criadaEm: ch.criadaEm
+            )
+        }
+        let novaVaga = Vaga(
+            id: UUID(), estabelecimento: vaga.estabelecimento, funcao: vaga.funcao,
+            periodo: vaga.periodo, local: vaga.local, regiaoAdministrativa: vaga.regiaoAdministrativa,
+            ponto: vaga.ponto, valor: vaga.valor, posicoes: 1, posicoesAbertas: 1,
+            inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal,
+            modo: modo ?? .urgencia, estado: .publicada, publicadoEm: relogio.agora,
+            origem: .publicacao, vagaOrigemId: vagaID
+        )
+        vagas.append(novaVaga)
+        return VagaPublicada(vagaID: novaVaga.id, posicoes: [UUID()])
+    }
+
+    public func definirPreferenciaChamadas(_ alteracao: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas {
+        try verificarFalhaGeral()
+        guard cenario.deChamada || configuracao.recursos.chamadaDireta else {
+            throw erro("sem_permissao", detalhes: "recurso_desligado")
+        }
+        let novaPausa: Date?
+        if alteracao.removerPausa {
+            novaPausa = nil
+        } else if let pausa = alteracao.pausadoAte {
+            novaPausa = pausa
+        } else {
+            novaPausa = preferenciasDeChamadaArmazenadas.pausadoAte
+        }
+
+        preferenciasDeChamadaArmazenadas = PreferenciaChamadas(
+            aceitaDeQuemJaTrabalhou: alteracao.aceitaDeQuemJaTrabalhou ?? preferenciasDeChamadaArmazenadas.aceitaDeQuemJaTrabalhou,
+            pausadoAte: novaPausa,
+            antecedenciaMinimaH: alteracao.antecedenciaMinimaH ?? preferenciasDeChamadaArmazenadas.antecedenciaMinimaH,
+            aceitaDe: alteracao.aceitaDe ?? preferenciasDeChamadaArmazenadas.aceitaDe
+        )
+        return preferenciasDeChamadaArmazenadas
+    }
+
+    /// Permite aos testes injetar uma chamada direta pronta para simular cenários de recebimento.
+    public func configurarChamadaSimulada(_ chamada: Chamada, vaga: Vaga) {
+        chamadasPorID[chamada.id] = chamada
+        if !vagas.contains(where: { $0.id == vaga.id }) {
+            vagas.append(vaga)
+        }
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
@@ -2342,7 +2620,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Segue `registrar_dispositivo` do backend (`20260926060100_exigir_conta_ativa_escrita.sql`): o
     /// token é único, e registrar o que era de outra conta troca o dono.
     public func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo {
+        try await registrarDispositivo(tokenFCM: tokenFCM, versaoApp: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")
+    }
+
+    public func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo {
         try verificarRede()
+        ultimaVersaoAppRegistrada = versaoApp ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
         guard let conta else { throw erro("nao_autenticado") }
         let token = tokenFCM.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else { throw erro("campo_obrigatorio", detalhes: "token_fcm") }

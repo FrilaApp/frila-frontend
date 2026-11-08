@@ -68,14 +68,14 @@ struct CasoDoAviso: Sendable, CustomTestStringConvertible {
         CasoDoAviso(tipo: "selecao_lembrete", payload: vagaID, contratante: .vaga(vagaID: IDs.vaga)),
         // 0.2.54: a foto não foi publicada. O aviso traz só `tipo` e `midia_id` e não abre tela.
         CasoDoAviso(tipo: "midia_recusada", payload: ["midia_id": IDs.vaga.uuidString.lowercased()]),
-        // 0.2.55: chamadas diretas. O acionamento de telas é adotado em I5b; por ora os avisos são ignorados sem destino.
-        CasoDoAviso(tipo: "chamada_recebida", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
-        CasoDoAviso(tipo: "chamada_lembrete", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
-        CasoDoAviso(tipo: "chamada_aceita", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
-        CasoDoAviso(tipo: "chamada_recusada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
-        CasoDoAviso(tipo: "chamada_expirada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
-        CasoDoAviso(tipo: "chamada_cancelada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
-        CasoDoAviso(tipo: "chamada_encerrada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()]),
+        // 0.2.55 / F4: chamadas diretas adotadas no I5b/I5d.
+        CasoDoAviso(tipo: "chamada_recebida", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], profissional: .chamada(IDs.vaga)),
+        CasoDoAviso(tipo: "chamada_lembrete", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], profissional: .chamada(IDs.vaga)),
+        CasoDoAviso(tipo: "chamada_aceita", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], contratante: .vaga(vagaID: IDs.vaga)),
+        CasoDoAviso(tipo: "chamada_recusada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], contratante: .vaga(vagaID: IDs.vaga)),
+        CasoDoAviso(tipo: "chamada_expirada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], profissional: .chamada(IDs.vaga), contratante: .vaga(vagaID: IDs.vaga)),
+        CasoDoAviso(tipo: "chamada_cancelada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], profissional: .chamada(IDs.vaga)),
+        CasoDoAviso(tipo: "chamada_encerrada", payload: ["chamada_id": IDs.vaga.uuidString.lowercased(), "vaga_id": IDs.vaga.uuidString.lowercased()], profissional: .chamada(IDs.vaga)),
         // 0.2.62: turno não verificado. Leva turno_id e abre o turno para ambos os lados.
         CasoDoAviso(tipo: "turno_nao_verificado", payload: turnoID, profissional: .turno(IDs.turno), contratante: .turno(turnoID: IDs.turno)),
     ]
@@ -227,6 +227,7 @@ struct RoteadorDePushTests {
         (.turno(IDs.turno), .vagas, [.turnoDoAviso(turnoID: IDs.turno)]),
         (.meusTurnos, .turnos, []),
         (.avaliacao(turnoID: IDs.turno), .vagas, [.avaliacao(turnoID: IDs.turno)]),
+        (.chamada(IDs.vaga), .vagas, [.chamadaDoAviso(chamadaID: IDs.vaga)]),
     ] as [(DestinoDoProfissional, AbaDoProfissional, [RotaDoProfissional])])
     func destinosDoProfissional(destino: DestinoDoProfissional, aba: AbaDoProfissional, caminho: [RotaDoProfissional]) {
         profissional.aba = .turnos

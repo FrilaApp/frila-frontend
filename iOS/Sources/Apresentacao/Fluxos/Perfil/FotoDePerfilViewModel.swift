@@ -57,8 +57,9 @@ public final class FotoDePerfilViewModel {
 
     // MARK: O que a tela mostra
 
-    /// A seção só aparece com o recurso ligado ou com uma foto que ainda se pode remover.
-    public var secaoVisivel: Bool { carregou && (recursoLigado || midia != nil) }
+    /// A seção só aparece com o recurso ligado ou com uma foto que ainda se pode remover,
+    /// desde que a leitura não tenha falhado.
+    public var secaoVisivel: Bool { carregou && !falhouAoCarregar && (recursoLigado || midia != nil) }
 
     public var enviandoAgora: Bool { etapa != .ocioso }
 

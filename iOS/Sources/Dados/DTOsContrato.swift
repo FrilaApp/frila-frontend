@@ -840,6 +840,268 @@ enum ContratoAPI {
         }
     }
 
+    struct ResponderChamada: Encodable {
+        let chamadaID: UUID
+        let resposta: RespostaChamada
+        let motivoRecusa: MotivoRecusaChamada?
+
+        enum CodingKeys: String, CodingKey {
+            case resposta
+            case chamadaID = "chamada_id"
+            case motivoRecusa = "motivo_recusa"
+        }
+    }
+
+    struct CancelarChamada: Encodable {
+        let chamadaID: UUID
+
+        enum CodingKeys: String, CodingKey {
+            case chamadaID = "chamada_id"
+        }
+    }
+
+    struct PublicarAPartirDaChamada: Encodable {
+        let vagaID: UUID
+        let chave: UUID
+        let modo: ModoPreenchimento?
+
+        enum CodingKeys: String, CodingKey {
+            case chave, modo
+            case vagaID = "vaga_id"
+        }
+    }
+
+    struct DefinirPreferenciaChamadas: Encodable {
+        let aceitaDeQuemJaTrabalhou: Bool?
+        let pausadoAte: String?
+        let removerPausa: Bool
+        let antecedenciaMinimaH: Int?
+        let aceitaDe: String?
+
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encodeIfPresent(aceitaDeQuemJaTrabalhou, forKey: .aceitaDeQuemJaTrabalhou)
+            if removerPausa {
+                try c.encodeNil(forKey: .pausadoAte)
+            } else if let pausadoAte {
+                try c.encode(pausadoAte, forKey: .pausadoAte)
+            }
+            try c.encodeIfPresent(antecedenciaMinimaH, forKey: .antecedenciaMinimaH)
+            try c.encodeIfPresent(aceitaDe, forKey: .aceitaDe)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case aceitaDeQuemJaTrabalhou = "aceita_de_quem_ja_trabalhou"
+            case pausadoAte = "pausado_ate"
+            case antecedenciaMinimaH = "antecedencia_minima_h"
+            case aceitaDe = "aceita_de"
+        }
+    }
+
+    struct PreferenciaChamadasDTO: Decodable {
+        let aceitaDeQuemJaTrabalhou: Bool
+        let pausadoAte: String?
+        let antecedenciaMinimaH: Int
+        let aceitaDe: String
+
+        enum CodingKeys: String, CodingKey {
+            case aceitaDeQuemJaTrabalhou = "aceita_de_quem_ja_trabalhou"
+            case pausadoAte = "pausado_ate"
+            case antecedenciaMinimaH = "antecedencia_minima_h"
+            case aceitaDe = "aceita_de"
+        }
+
+        func dominio() -> PreferenciaChamadas {
+            let dataPausa: Date?
+            if let pausadoAte {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                fmt.timeZone = TimeZone(identifier: "America/Sao_Paulo")
+                dataPausa = fmt.date(from: pausadoAte)
+            } else {
+                dataPausa = nil
+            }
+            let quem = QuemPodeChamar(rawValue: aceitaDe) ?? .todos
+            return PreferenciaChamadas(
+                aceitaDeQuemJaTrabalhou: aceitaDeQuemJaTrabalhou,
+                pausadoAte: dataPausa,
+                antecedenciaMinimaH: antecedenciaMinimaH,
+                aceitaDe: quem
+            )
+        }
+    }
+
+    struct ChamadaResumoDTO: Decodable {
+        let id: UUID
+        let vagaID: UUID
+        let profissionalID: UUID
+        let estabelecimentoID: UUID
+        let estado: EstadoChamada
+        let recado: String?
+        let motivoRecusa: MotivoRecusaChamada?
+        let expiraEm: Date
+        let respondidaEm: Date?
+        let criadaEm: Date
+        let funcao: FuncaoDTO
+        let inicioEm: Date
+        let fimEm: Date
+        let valorCentavos: Int
+        let outraParte: PerfilPublicoDTO
+
+        enum CodingKeys: String, CodingKey {
+            case id, estado, recado, funcao
+            case vagaID = "vaga_id"
+            case profissionalID = "profissional_id"
+            case estabelecimentoID = "estabelecimento_id"
+            case motivoRecusa = "motivo_recusa"
+            case expiraEm = "expira_em"
+            case respondidaEm = "respondida_em"
+            case criadaEm = "criada_em"
+            case inicioEm = "inicio_em"
+            case fimEm = "fim_em"
+            case valorCentavos = "valor_centavos"
+            case outraParte = "outra_parte"
+        }
+
+        func dominio() throws -> ChamadaResumo {
+            ChamadaResumo(
+                id: id,
+                vagaID: vagaID,
+                profissionalID: profissionalID,
+                estabelecimentoID: estabelecimentoID,
+                estado: estado,
+                recado: recado,
+                motivoRecusa: motivoRecusa,
+                expiraEm: expiraEm,
+                respondidaEm: respondidaEm,
+                criadaEm: criadaEm,
+                funcao: funcao.dominio(),
+                inicioEm: inicioEm,
+                fimEm: fimEm,
+                valorCentavos: valorCentavos,
+                outraParte: try outraParte.dominio()
+            )
+        }
+    }
+
+    struct ChamadaDetalheDTO: Decodable {
+        let id: UUID
+        let vagaID: UUID
+        let profissionalID: UUID
+        let estabelecimentoID: UUID
+        let estado: EstadoChamada
+        let recado: String?
+        let motivoRecusa: MotivoRecusaChamada?
+        let expiraEm: Date
+        let respondidaEm: Date?
+        let criadaEm: Date
+        let funcao: FuncaoDTO
+        let inicioEm: Date
+        let fimEm: Date
+        let valorCentavos: Int
+        let outraParte: PerfilPublicoDTO
+        let tipoEstabelecimento: TipoEstabelecimento?
+        let contaNova: Bool?
+        let regiaoAdministrativa: String
+        let distanciaFaixa: FaixaDistancia?
+        let incluiRefeicao: Bool
+        let incluiTransporte: Bool
+        let exigeMaterialProprio: Bool
+        let local: String?
+        let ponto: CoordenadaDTO?
+        let responsavelLocal: String?
+        let turnoID: UUID?
+
+        enum CodingKeys: String, CodingKey {
+            case id, estado, recado, funcao, local, ponto
+            case vagaID = "vaga_id"
+            case profissionalID = "profissional_id"
+            case estabelecimentoID = "estabelecimento_id"
+            case motivoRecusa = "motivo_recusa"
+            case expiraEm = "expira_em"
+            case respondidaEm = "respondida_em"
+            case criadaEm = "criada_em"
+            case inicioEm = "inicio_em"
+            case fimEm = "fim_em"
+            case valorCentavos = "valor_centavos"
+            case outraParte = "outra_parte"
+            case tipoEstabelecimento = "tipo_estabelecimento"
+            case contaNova = "conta_nova"
+            case regiaoAdministrativa = "regiao_administrativa"
+            case distanciaFaixa = "distancia_faixa"
+            case incluiRefeicao = "inclui_refeicao"
+            case incluiTransporte = "inclui_transporte"
+            case exigeMaterialProprio = "exige_material_proprio"
+            case responsavelLocal = "responsavel_local"
+            case turnoID = "turno_id"
+        }
+
+        func dominio() throws -> ChamadaDetalhe {
+            ChamadaDetalhe(
+                id: id,
+                vagaID: vagaID,
+                profissionalID: profissionalID,
+                estabelecimentoID: estabelecimentoID,
+                estado: estado,
+                recado: recado,
+                motivoRecusa: motivoRecusa,
+                expiraEm: expiraEm,
+                respondidaEm: respondidaEm,
+                criadaEm: criadaEm,
+                funcao: funcao.dominio(),
+                inicioEm: inicioEm,
+                fimEm: fimEm,
+                valorCentavos: valorCentavos,
+                outraParte: try outraParte.dominio(),
+                tipoEstabelecimento: tipoEstabelecimento,
+                contaNova: contaNova ?? false,
+                regiaoAdministrativa: regiaoAdministrativa,
+                distanciaFaixa: distanciaFaixa,
+                incluiRefeicao: incluiRefeicao,
+                incluiTransporte: incluiTransporte,
+                exigeMaterialProprio: exigeMaterialProprio,
+                local: local,
+                ponto: try ponto?.dominio(),
+                responsavelLocal: responsavelLocal,
+                turnoID: turnoID
+            )
+        }
+    }
+
+    struct ResultadoChamadaDTO: Decodable {
+        let chamada: Chamada
+        let turnoID: UUID?
+        let local: String?
+        let ponto: CoordenadaDTO?
+        let responsavelLocal: String?
+
+        enum CodingKeys: String, CodingKey {
+            case chamada, local, ponto
+            case turnoID = "turno_id"
+            case responsavelLocal = "responsavel_local"
+        }
+
+        func dominio() throws -> ResultadoChamada {
+            ResultadoChamada(
+                chamada: chamada,
+                turnoID: turnoID,
+                local: local,
+                ponto: try ponto?.dominio(),
+                responsavelLocal: responsavelLocal
+            )
+        }
+    }
+
+    struct PaginaChamadasDTO: Decodable {
+        let itens: [ChamadaResumoDTO]
+        let proximoCursor: String?
+
+        enum CodingKeys: String, CodingKey {
+            case itens
+            case proximoCursor = "proximo_cursor"
+        }
+    }
+
     struct NovaVaga: Encodable {
         let estabelecimentoID: UUID
         let funcaoID: UUID
@@ -1798,10 +2060,24 @@ enum ContratoAPI {
     struct RegistrarDispositivo: Encodable {
         let tokenFCM: String
         let plataforma = Plataforma.ios
+        let versaoApp: String?
+
+        init(tokenFCM: String, versaoApp: String? = nil) {
+            self.tokenFCM = tokenFCM
+            self.versaoApp = versaoApp
+        }
 
         enum CodingKeys: String, CodingKey {
             case plataforma
             case tokenFCM = "token_fcm"
+            case versaoApp = "versao_app"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(plataforma, forKey: .plataforma)
+            try container.encode(tokenFCM, forKey: .tokenFCM)
+            try container.encodeIfPresent(versaoApp, forKey: .versaoApp)
         }
     }
 
