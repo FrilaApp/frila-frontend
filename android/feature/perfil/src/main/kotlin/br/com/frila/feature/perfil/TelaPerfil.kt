@@ -108,6 +108,11 @@ fun TelaPerfil(
     modifier: Modifier = Modifier,
     aoDeslogar: () -> Unit = {},
     aoAbrirAjuda: () -> Unit = {},
+    /**
+     * Trava do selo (RN14): desligada por padrão até a moderação e os termos serem validados pelos
+     * sócios. Desligada, badge e convite não aparecem, qualquer que seja o estado recebido.
+     */
+    recursoSeloHabilitado: Boolean = false,
     /** Selo "Identidade Verificada" (RN14): estado já lido pelo chamador; nulo esconde o bloco. */
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -260,8 +265,8 @@ fun TelaPerfil(
                 notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
                 paddingValues = paddingInterno,
                 aoAbrirAjuda = aoAbrirAjuda,
-                verificacaoIdentidade = verificacaoIdentidade,
-                podeSolicitarSelo = podeSolicitarSelo,
+                verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
+                podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
                 aoAbrirSelo = aoAbrirSelo,
             )
         }

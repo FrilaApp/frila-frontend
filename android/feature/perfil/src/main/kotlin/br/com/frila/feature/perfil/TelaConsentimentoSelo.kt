@@ -53,6 +53,10 @@ internal object TextosConsentimentoSelo {
         "As imagens vão para um armazenamento privado. O aplicativo só envia, e apenas a moderação consegue ler."
     const val VOLUNTARIO =
         "O selo é voluntário. Você pode usar o Frila sem ele e pode desistir antes de enviar."
+    const val REVOGACAO =
+        "Você pode revogar este consentimento a qualquer momento, de forma gratuita e facilitada " +
+            "(LGPD, art. 8º, § 5º). Para revogar, escreva para o suporte oficial do Frila."
+    const val CONTATO_ROTULO = "Contato do suporte"
     const val CHECKBOX =
         "Li e concordo em fornecer minha selfie e meu documento para verificar minha identidade, " +
             "para esta finalidade."
@@ -72,6 +76,7 @@ fun TelaConsentimentoSelo(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     versaoTermo: String = TermoBiometria.VERSAO,
+    emailSuporte: String = EnderecosOficiais.padrao.emailSuporte,
 ) {
     var marcado by rememberSaveable { mutableStateOf(false) }
 
@@ -119,6 +124,16 @@ fun TelaConsentimentoSelo(
             Text(TextosConsentimentoSelo.USO, style = MaterialTheme.typography.bodyMedium)
             Text(TextosConsentimentoSelo.ARMAZENAMENTO, style = MaterialTheme.typography.bodyMedium)
             Text(TextosConsentimentoSelo.VOLUNTARIO, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = TextosConsentimentoSelo.REVOGACAO,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("consentimento-revogacao"),
+            )
+            Text(
+                text = "${TextosConsentimentoSelo.CONTATO_ROTULO}: $emailSuporte",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("consentimento-contato-suporte"),
+            )
 
             Row(
                 modifier = Modifier
