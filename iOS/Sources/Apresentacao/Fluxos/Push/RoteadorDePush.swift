@@ -12,6 +12,7 @@ public enum DestinoDoProfissional: Equatable, Sendable {
     case turno(UUID)
     case meusTurnos
     case avaliacao(turnoID: UUID)
+    case chamada(UUID)
 
     /// O destino de cada `tipo`, com os ids que o servidor de fato manda nele. Aviso que não é para
     /// quem trabalha, ou sem o id de que a tela precisa, não abre nada.
@@ -41,7 +42,10 @@ public enum DestinoDoProfissional: Equatable, Sendable {
         case .avaliacaoDisponivel:
             guard let turnoID = aviso.turnoID else { return nil }
             self = .avaliacao(turnoID: turnoID)
-        case .chamadaRecebida, .chamadaLembrete, .chamadaAceita, .chamadaRecusada, .chamadaExpirada, .chamadaCancelada, .chamadaEncerrada:
+        case .chamadaRecebida, .chamadaLembrete, .chamadaCancelada, .chamadaExpirada, .chamadaEncerrada:
+            guard let chamadaID = aviso.chamadaID else { return nil }
+            self = .chamada(chamadaID)
+        case .chamadaAceita, .chamadaRecusada:
             return nil
         case .vagaSemElegiveis, .atraso15min, .vagaVazia, .checkin, .checkinManualPendente, .suspensao, .reativacao, .selecaoLembrete,
              .midiaRecusada:
@@ -234,6 +238,9 @@ extension RoteadorDoProfissional {
         case let .avaliacao(turnoID):
             aba = .vagas
             caminho = [.avaliacao(turnoID: turnoID)]
+        case let .chamada(chamadaID):
+            aba = .vagas
+            caminho = [.chamadaDoAviso(chamadaID: chamadaID)]
         }
         avisosAbertos += 1
     }

@@ -23,6 +23,8 @@ public enum RotaDoProfissional: Hashable, Sendable {
     case vagaDoAviso(vagaID: UUID)
     /// O turno de um aviso (#8), que só traz o id: a tela o procura entre os turnos da conta.
     case turnoDoAviso(turnoID: UUID)
+    /// A chamada direta de um aviso (I5b), que abre o detalhe autenticado da chamada.
+    case chamadaDoAviso(chamadaID: UUID)
 }
 
 /// Destinos da pilha de navegação da aba Candidaturas.
@@ -185,6 +187,10 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         case let .turnoDoAviso(turnoID):
                             DestinoDoTurnoDoAviso(turnoID: turnoID, repositorio: repositorioTurnos, verMeusTurnos: { roteador.abrir(.meusTurnos) }) {
                                 destinoDoMeuTurno($0)
+                            }
+                        case let .chamadaDoAviso(chamadaID):
+                            if let api {
+                                TelaDetalheChamadaRecebida(viewModel: ChamadaRecebidaViewModel(chamadaID: chamadaID, api: api))
                             }
                         case let .avaliacao(turnoID):
                             if let contaID {
