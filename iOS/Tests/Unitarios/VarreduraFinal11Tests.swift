@@ -21,8 +21,9 @@ private final class ApiQueGuardaVersao: ApiClienteEncaminhador, @unchecked Senda
 @Suite("Varredura final da 1.1: denúncia da foto, RN29, Chamar de novo e versao_app")
 @MainActor
 struct VarreduraFinal11Tests {
-    private let bruno = UUID(uuidString: "70000000-0000-0000-0000-000000000002")!
-    private let carla = UUID(uuidString: "70000000-0000-0000-0000-000000000003")!
+    /// Os perfis de `candidatos.json` (as candidaturas são as `70000000-…`).
+    private let bruno = UUID(uuidString: "80000000-0000-0000-0000-000000000002")!
+    private let carla = UUID(uuidString: "80000000-0000-0000-0000-000000000003")!
     private let profissionalID = UUID(uuidString: "80000000-0000-0000-0000-000000000001")!
     private let vagaDaCasa = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
 

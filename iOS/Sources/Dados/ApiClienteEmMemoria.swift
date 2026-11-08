@@ -451,7 +451,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .aCaminho: 1 * 60 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
-                case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
+                case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .denunciaDeFoto, .vagaEmSelecao, .candidaturaPendente,
                      .retirarSemRede, .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 case .sucesso, .semRede, .primeiroAcesso, .profissionalServidorAntigo: 30 * 60
                 default: 24 * 60 * 60
@@ -2976,7 +2976,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return candidaturas.first { $0.profissional.id == alvo.id }?.profissional.fotoID
     }
 
-    static let candidatoComFotoID = UUID(uuidString: "70000000-0000-0000-0000-000000000002")!
+    /// O perfil do Bruno (`candidatos.json`): a candidatura dele é a `70000000-…-0002`.
+    static let candidatoComFotoID = UUID(uuidString: "80000000-0000-0000-0000-000000000002")!
     static let fotoDoCandidatoID = UUID(uuidString: "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a10")!
 
     /// O mesmo perfil, com a foto aprovada de exemplo (`denuncia-de-foto`).
