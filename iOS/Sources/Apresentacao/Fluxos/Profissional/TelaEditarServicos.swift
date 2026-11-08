@@ -1,5 +1,6 @@
 import FrilaDominio
 import SwiftUI
+import UIKit
 
 public struct TelaEditarServicos: View {
     @State private var modelo: ServicosDoProfissionalViewModel
@@ -20,8 +21,13 @@ public struct TelaEditarServicos: View {
                         BotaoSecundario("Tentar de novo") { Task { await modelo.carregar() } }
                     }
                 }
-                if modelo.sucesso { Text("Serviços salvos", bundle: bundleApresentacao).accessibilityIdentifier("servicos-sucesso") }
-                BotaoPrimario("Salvar alterações", carregando: modelo.salvando) { Task { await modelo.salvar() } }
+                // V18: o sucesso é um aviso, e não um texto cinza solto acima do botão.
+                if modelo.sucesso { AvisoFrila("Serviços salvos", tom: .informativo).accessibilityIdentifier("servicos-sucesso") }
+                BotaoPrimario("Salvar alterações", carregando: modelo.salvando) {
+                    // V16: com o teclado aberto, o aviso de erro ficava escondido atrás dele.
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    Task { await modelo.salvar() }
+                }
                     .disabled(!modelo.carregou || modelo.carregando)
                     .accessibilityIdentifier("salvar-servicos")
             }
@@ -53,15 +59,16 @@ private struct EditorDeServico: View {
                 Picker(selection: $rascunho.dados.unidade) {
                     ForEach(UnidadePreco.allCases, id: \.self) { Text(verbatim: TextosDosServicos.unidade($0)).tag($0) }
                 } label: { Text("Unidade de preço", bundle: bundleApresentacao) }
-                    .frame(minHeight: 44)
+                    .labelsHidden()
                     .accessibilityIdentifier("unidade-servico")
+                    .campoDeServico("Unidade de preço")
                     .onChange(of: rascunho.dados.unidade) { _, _ in rascunho.trocarUnidade() }
                 if rascunho.dados.unidade == .aCombinar {
                     Text("A combinar: o total será confirmado na chamada.", bundle: bundleApresentacao)
                 } else {
-                    TextField(text: $rascunho.valor) { Text("Valor em reais", bundle: bundleApresentacao) }.keyboardType(.decimalPad).accessibilityIdentifier("valor-servico").campoDeServico("Valor em reais")
+                    TextField(text: $rascunho.valor, prompt: Text("0,00", bundle: bundleApresentacao)) { Text("Valor em reais", bundle: bundleApresentacao) }.keyboardType(.decimalPad).accessibilityIdentifier("valor-servico").campoDeServico("Valor em reais")
                     if [.hora, .diaria, .pacote].contains(rascunho.dados.unidade) {
-                        TextField(text: $rascunho.valorMaximo) { Text("Valor máximo em reais (opcional)", bundle: bundleApresentacao) }.keyboardType(.decimalPad).campoDeServico("Valor máximo em reais (opcional)")
+                        TextField(text: $rascunho.valorMaximo, prompt: Text("0,00", bundle: bundleApresentacao)) { Text("Valor máximo em reais (opcional)", bundle: bundleApresentacao) }.keyboardType(.decimalPad).campoDeServico("Valor máximo em reais (opcional)")
                     }
                     Text("De R$ 10 a R$ 10.000 por unidade.", bundle: bundleApresentacao).font(FrilaTipo.nota)
                 }
@@ -71,20 +78,21 @@ private struct EditorDeServico: View {
                     Text("Não informado", bundle: bundleApresentacao).tag(LevaMaterial?.none)
                     ForEach(LevaMaterial.allCases, id: \.self) { Text(verbatim: TextosDosServicos.material($0)).tag(Optional($0)) }
                 } label: { Text("Leva material?", bundle: bundleApresentacao) }
-                TextField(text: $rascunho.dados.itensInclusos.valorOuVazio, axis: .vertical) {
+                    .labelsHidden()
+                    .accessibilityIdentifier("material-servico")
+                    .campoDeServico("Leva material?")
+                TextField(text: $rascunho.dados.itensInclusos.valorOuVazio, prompt: Text(verbatim: ""), axis: .vertical) {
                     Text("O que está incluído (até 300 caracteres)", bundle: bundleApresentacao)
                 }
                 .accessibilityIdentifier("inclui-servico").campoDeServico("O que está incluído (até 300 caracteres)")
+                if campoComErro == "inclui" { erroDoCampo("inclui") }
                 ForEach(especialidades) { especialidade in
                     Toggle(isOn: selecionada(especialidade.id)) { Text(verbatim: especialidade.nome) }
                         .disabled(!(rascunho.dados.especialidadeIDs ?? []).contains(especialidade.id) && (rascunho.dados.especialidadeIDs?.count ?? 0) >= 8)
                         .frame(minHeight: 44)
                 }
                 if !especialidades.isEmpty { Text("Escolha até 8 especialidades.", bundle: bundleApresentacao).font(FrilaTipo.nota) }
-                if let campoComErro {
-                    Text(verbatim: TextosDosServicos.campo(campoComErro)).foregroundStyle(FrilaCor.perigo)
-                        .accessibilityIdentifier("erro-servico-\(campoComErro)")
-                }
+                if let campoComErro, campoComErro != "inclui" { erroDoCampo(campoComErro) }
             }
         }
         .textFieldStyle(.roundedBorder)
@@ -92,19 +100,25 @@ private struct EditorDeServico: View {
         .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
     }
 
+    private func erroDoCampo(_ campo: String) -> some View {
+        Text(verbatim: TextosDosServicos.campo(campo)).foregroundStyle(FrilaCor.perigo)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("erro-servico-\(campo)")
+    }
+
     @ViewBuilder private var camposDaUnidade: some View {
         switch rascunho.dados.unidade {
         case .diaria:
-            TextField(value: $rascunho.dados.horasIncluidas, format: .number) { Text("Horas incluídas (4 a 12)", bundle: bundleApresentacao) }.keyboardType(.numberPad).accessibilityIdentifier("horas-servico").campoDeServico("Horas incluídas (4 a 12)")
+            TextField(value: $rascunho.dados.horasIncluidas, format: .number, prompt: Text(verbatim: "")) { Text("Horas incluídas (4 a 12)", bundle: bundleApresentacao) }.keyboardType(.numberPad).accessibilityIdentifier("horas-servico").campoDeServico("Horas incluídas (4 a 12)")
         case .hora:
-            TextField(value: $rascunho.dados.minimoHoras, format: .number) { Text("Mínimo de horas (opcional, 1 a 12)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Mínimo de horas (opcional, 1 a 12)")
+            TextField(value: $rascunho.dados.minimoHoras, format: .number, prompt: Text(verbatim: "")) { Text("Mínimo de horas (opcional, 1 a 12)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Mínimo de horas (opcional, 1 a 12)")
         case .evento:
-            TextField(value: $rascunho.dados.duracaoTipicaH, format: .number) { Text("Duração em horas (opcional, 1 a 24)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Duração em horas (opcional, 1 a 24)")
-            TextField(value: $rascunho.dados.atePessoas, format: .number) { Text("Até quantas pessoas (opcional, 1 a 2.000)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Até quantas pessoas (opcional, 1 a 2.000)")
+            TextField(value: $rascunho.dados.duracaoTipicaH, format: .number, prompt: Text(verbatim: "")) { Text("Duração em horas (opcional, 1 a 24)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Duração em horas (opcional, 1 a 24)")
+            TextField(value: $rascunho.dados.atePessoas, format: .number, prompt: Text(verbatim: "")) { Text("Até quantas pessoas (opcional, 1 a 2.000)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Até quantas pessoas (opcional, 1 a 2.000)")
         case .pacote:
-            TextField(text: $rascunho.dados.descricaoPacote.valorOuVazio, axis: .vertical) { Text("Descrição do pacote (até 120 caracteres)", bundle: bundleApresentacao) }.campoDeServico("Descrição do pacote (até 120 caracteres)")
+            TextField(text: $rascunho.dados.descricaoPacote.valorOuVazio, prompt: Text(verbatim: ""), axis: .vertical) { Text("Descrição do pacote (até 120 caracteres)", bundle: bundleApresentacao) }.campoDeServico("Descrição do pacote (até 120 caracteres)")
         case .porPessoa:
-            TextField(value: $rascunho.dados.minimoPessoas, format: .number) { Text("Mínimo de pessoas (1 a 2.000)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Mínimo de pessoas (1 a 2.000)")
+            TextField(value: $rascunho.dados.minimoPessoas, format: .number, prompt: Text(verbatim: "")) { Text("Mínimo de pessoas (1 a 2.000)", bundle: bundleApresentacao) }.keyboardType(.numberPad).campoDeServico("Mínimo de pessoas (1 a 2.000)")
         case .aCombinar: EmptyView()
         }
     }
@@ -129,8 +143,9 @@ private extension Optional where Wrapped == String {
 private extension View {
     func campoDeServico(_ titulo: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(titulo, bundle: bundleApresentacao).font(FrilaTipo.nota)
-            self.frame(minHeight: 44)
+            // O campo já tem o mesmo rótulo para o VoiceOver: o texto visível não é lido duas vezes.
+            Text(titulo, bundle: bundleApresentacao).font(FrilaTipo.nota).accessibilityHidden(true)
+            self.frame(minHeight: 44, alignment: .leading)
         }
     }
 }

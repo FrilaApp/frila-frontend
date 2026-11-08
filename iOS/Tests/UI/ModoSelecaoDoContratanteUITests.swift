@@ -102,7 +102,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let pergunta = app.alerts["Confirmar a escolha?"]
         XCTAssertTrue(pergunta.waitForExistence(timeout: 5))
         let aviso = pergunta.staticTexts.element(boundBy: 1).label
-        XCTAssertTrue(aviso.contains("Bruno Tavares será confirmado nesta vaga"), aviso)
+        XCTAssertTrue(aviso.contains("Você vai confirmar Bruno Tavares nesta vaga"), aviso)
         XCTAssertTrue(aviso.contains("É a última posição: os outros candidatos serão avisados"), aviso)
         pergunta.buttons["cancelar-escolha-botao"].firstMatch.tap()
         XCTAssertTrue(escolher.waitForExistence(timeout: 5))
@@ -115,7 +115,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         // Só ele foi confirmado: a lista de candidatos some, e a posição mostra quem ficou.
         let resultado = app.descendants(matching: .any)["resultado-da-escolha"]
         XCTAssertTrue(resultado.waitForExistence(timeout: 10))
-        XCTAssertTrue(resultado.label.contains("Bruno Tavares foi confirmado, e a vaga está preenchida"), resultado.label)
+        XCTAssertTrue(resultado.label.contains("Você confirmou Bruno Tavares. Os outros candidatos foram avisados"), resultado.label)
         XCTAssertTrue(resultado.label.contains("Os outros candidatos foram avisados"), resultado.label)
         XCTAssertTrue(app.descendants(matching: .any)["selecao-concluida"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["escolher-candidato-\(bruno)"].exists)
@@ -346,7 +346,7 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
         let servicosDoBruno = app.descendants(matching: .any)["servicos-do-candidato-\(bruno)"]
         rolarAte(servicosDoBruno, em: app)
         XCTAssertTrue(servicosDoBruno.waitForExistence(timeout: 10))
-        XCTAssertTrue(servicosDoBruno.label.contains("a diária de 8 h"), servicosDoBruno.label)
+        XCTAssertTrue(servicosDoBruno.label.contains("por diária de 8 h"), servicosDoBruno.label)
         XCTAssertTrue(servicosDoBruno.label.contains("180"), servicosDoBruno.label)
         XCTAssertTrue(servicosDoBruno.label.contains("Uniforme próprio"), servicosDoBruno.label)
 
@@ -396,6 +396,6 @@ final class ModoSelecaoDoContratanteUITests: XCTestCase {
 
         let resultado = app.descendants(matching: .any)["resultado-da-escolha"]
         XCTAssertTrue(resultado.waitForExistence(timeout: 10))
-        XCTAssertTrue(resultado.label.contains("Carla Menezes foi confirmado"))
+        XCTAssertTrue(resultado.label.contains("Você confirmou Carla Menezes"))
     }
 }

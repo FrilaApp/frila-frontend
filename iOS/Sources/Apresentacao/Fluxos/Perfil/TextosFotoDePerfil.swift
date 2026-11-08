@@ -49,6 +49,8 @@ public enum TextosFotoDePerfil {
 
     // MARK: Recurso desligado
     public static let recursoDesligado = String(localized: "Fotos de perfil estão indisponíveis por enquanto. Quando voltarem, você poderá enviar a sua.", bundle: bundleApresentacao)
+    /// V21: com o recurso desligado, o título "Foto publicada" contradizia o texto "indisponíveis".
+    public static let tituloRecursoDesligado = String(localized: "Foto guardada", bundle: bundleApresentacao)
     public static let recursoDesligadoComFoto = String(localized: "Fotos de perfil estão indisponíveis por enquanto. Sua foto fica guardada, e você pode removê-la quando quiser.", bundle: bundleApresentacao)
 
     // MARK: Recorte

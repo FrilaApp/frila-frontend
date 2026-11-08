@@ -41,7 +41,7 @@ final class ServidorDeHojeUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 10))
         let cabecalho = app.staticTexts["estado-do-turno"]
         XCTAssertTrue(cabecalho.waitForExistence(timeout: 10))
-        XCTAssertEqual(cabecalho.label, "Você está confirmado")
+        XCTAssertEqual(cabecalho.label, "Turno confirmado")
 
         // Ações de sempre de um turno confirmado
         XCTAssertTrue(app.descendants(matching: .any)["como-chegar-do-turno"].waitForExistence(timeout: 10))
@@ -137,7 +137,7 @@ final class ServidorDeHojeUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: 15))
         let cabecalho = app.staticTexts["estado-do-turno"]
         XCTAssertTrue(cabecalho.waitForExistence(timeout: 10))
-        XCTAssertEqual(cabecalho.label, "Você está confirmado")
+        XCTAssertEqual(cabecalho.label, "Turno confirmado")
         XCTAssertTrue(app.descendants(matching: .any)["como-chegar-do-turno"].waitForExistence(timeout: 10))
     }
 }

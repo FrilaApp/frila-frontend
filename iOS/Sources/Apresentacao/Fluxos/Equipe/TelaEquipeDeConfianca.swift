@@ -41,7 +41,7 @@ public struct TelaEquipeDeConfianca: View {
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosEquipeDeConfianca.titulo))
-        .navigationBarTitleDisplayMode(.large)
+        .tituloGrandeForaDeAX()
         .toolbarBackground(.hidden, for: .navigationBar)
 
         .task {
