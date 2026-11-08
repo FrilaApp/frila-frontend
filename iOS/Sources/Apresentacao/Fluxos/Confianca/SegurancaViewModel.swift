@@ -55,7 +55,7 @@ public final class SegurancaViewModel {
         let texto = relato.trimmingCharacters(in: .whitespacesAndNewlines)
         // Repetir o mesmo envio depois de perder a resposta conserva a chave. Editar o conteúdo
         // inicia outra denúncia: nunca reutiliza uma chave para um corpo diferente.
-        let midiaID: UUID? = nil // MUTACAO
+        let midiaID = sobreAFoto ? fotoID : nil
         if tentativa?.motivo != motivo || tentativa?.relato != texto || tentativa?.midiaID != midiaID {
             tentativa = Denuncia(alvo: alvo, turnoID: turnoID, motivo: motivo, relato: texto, chave: UUID(), midiaID: midiaID)
         }

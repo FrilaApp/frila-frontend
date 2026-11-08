@@ -1754,7 +1754,7 @@ enum ContratoAPI {
             motivo = denuncia.motivo
             relato = denuncia.relato
             chave = denuncia.chave
-            midiaID = nil // MUTACAO
+            midiaID = denuncia.midiaID
         }
 
         // `turno_id` e `midia_id` (0.2.54) são opcionais no contrato: sem valor, o campo não vai.
