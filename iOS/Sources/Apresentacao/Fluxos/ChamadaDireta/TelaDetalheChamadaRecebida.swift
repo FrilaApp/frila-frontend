@@ -5,6 +5,9 @@ public struct TelaDetalheChamadaRecebida: View {
     @State private var viewModel: ChamadaRecebidaViewModel
     public var onAbrirTurno: ((UUID) -> Void)?
     @Environment(\.dismiss) private var fechar
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
     public init(viewModel: ChamadaRecebidaViewModel, onAbrirTurno: ((UUID) -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
@@ -154,6 +157,15 @@ public struct TelaDetalheChamadaRecebida: View {
                 .accessibilityIdentifier("recusar-chamada")
             }
         }
+
+        // CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
+        Section {
+            AcoesDeSeguranca(perfil: detalhe.outraParte, api: viewModel.api, bloqueios: bloqueios,
+                             identificadorDenunciar: "denunciar-chamada", identificadorBloquear: "bloquear-chamada",
+                             identificadorConfirmarBloqueio: "confirmar-bloqueio-chamada")
+                .id(detalhe.outraParte.id)
+        }
+        .listRowBackground(Color.clear)
     }
 
     @ViewBuilder
