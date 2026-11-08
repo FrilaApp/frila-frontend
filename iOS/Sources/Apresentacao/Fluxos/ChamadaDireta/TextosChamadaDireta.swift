@@ -2,9 +2,17 @@ import Foundation
 
 public enum TextosChamadaDireta {
     public static let titulo = String(localized: "Chamar de novo", bundle: bundleApresentacao)
+    public static let tituloDaFolha = String(localized: "Chamar profissional", bundle: bundleApresentacao)
     public static let enviar = String(localized: "Enviar chamada", bundle: bundleApresentacao)
     public static let responsavel = String(localized: "Responsável no local", bundle: bundleApresentacao)
-    public static let valor = String(localized: "Valor total em centavos", bundle: bundleApresentacao)
+    public static let valor = String(localized: "Valor total", bundle: bundleApresentacao)
+    public static let valorExemplo = String(localized: "0,00", bundle: bundleApresentacao)
+    public static let moeda = String(localized: "R$", bundle: bundleApresentacao)
+    public static let faltaValor = String(localized: "Para enviar, informe o valor total.", bundle: bundleApresentacao)
+    public static let faltaConfirmarTotal = String(localized: "Para enviar, confirme que este é o valor total.", bundle: bundleApresentacao)
+    public static let faltaResponsavel = String(localized: "Para enviar, informe o responsável no local.", bundle: bundleApresentacao)
+    public static let faltaAntecedencia = String(localized: "Para enviar, o início precisa ser daqui a 2 horas ou mais.", bundle: bundleApresentacao)
+    public static let faltaDuracao = String(localized: "Para enviar, o turno precisa ter de 2 a 16 horas.", bundle: bundleApresentacao)
     public static let total = String(localized: "Confirmo que este é o valor total fechado que o profissional recebe pelo trabalho.", bundle: bundleApresentacao)
     public static let recado = String(localized: "Recado opcional (até 300 caracteres)", bundle: bundleApresentacao)
     public static let recadoLongo = String(localized: "O recado deve ter até 300 caracteres.", bundle: bundleApresentacao)

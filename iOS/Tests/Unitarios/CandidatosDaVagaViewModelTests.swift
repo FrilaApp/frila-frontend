@@ -684,7 +684,7 @@ struct CandidatosDaVagaViewModelTests {
         #expect(primeiroServico.itensInclusos == "Uniforme próprio")
 
         let resumo = try #require(TextosDosServicos.resumoDoServico(primeiroServico))
-        #expect(resumo.contains("a diária de 8 h"))
+        #expect(resumo.contains("por diária de 8 h"))
         #expect(resumo.contains("180"))
 
         // Carla Menezes tem perfil mínimo sem campos adicionais (não quebra)

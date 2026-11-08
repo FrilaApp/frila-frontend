@@ -173,7 +173,7 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         // O corpo tem 15 pt de base; no tamanho padrão uma linha mede cerca de 18 pt. Em AX5 a mesma linha
         // precisa ter pelo menos o dobro da altura de uma linha de corpo do tamanho padrão.
         let fontePadrao = UIFont.preferredFont(forTextStyle: .body, compatibleWith: UITraitCollection(preferredContentSizeCategory: .large))
-        for (id, esperado) in [("perfil-telefone", "+5561988887777"), ("perfil-email", "ana.cunha@frila.app")] {
+        for (id, esperado) in [("perfil-telefone", "(61) 98888-7777"), ("perfil-email", "ana.cunha@frila.app")] {
             let rotulo = app.staticTexts["\(id)-rotulo"]
             let valor = app.staticTexts["\(id)-valor"]
             guard rotulo.exists && valor.exists else {

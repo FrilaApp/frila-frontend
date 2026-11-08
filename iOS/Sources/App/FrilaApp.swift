@@ -103,6 +103,7 @@ struct FrilaApp: App {
             .aparenciaEscolhida(forcado: Self.esquemaDeCorDosArgumentos)
             // Tema neutro do MidFi: seleção (aba ativa, links, controles) no preenchimento escuro, não no azul do sistema.
             .tint(FrilaCor.primaria)
+            .toggleStyle(.frila)
             // Ao desativar a cena, uma janela opaca acima das folhas e telas modais cobre
             // telefone, endereço e relato antes da foto do seletor de apps (A4).
             .cortinaDePrivacidade()

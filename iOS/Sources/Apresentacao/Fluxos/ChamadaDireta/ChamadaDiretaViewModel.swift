@@ -4,11 +4,26 @@ import Observation
 
 @MainActor @Observable
 public final class ChamadaDiretaViewModel {
-    public var inicio: Date
+    /// Mudar o início leva o término junto, com a mesma duração dentro de 2 a 16 h (V10).
+    public var inicio: Date {
+        didSet {
+            let duracao = min(max(fim.timeIntervalSince(oldValue), Self.duracaoMinima), Self.duracaoMaxima)
+            fim = inicio.addingTimeInterval(duracao)
+        }
+    }
     public var fim: Date
     public var funcaoID: UUID?
     public var valorCentavos = 0 {
         didSet { if valorCentavos != oldValue { totalConfirmado = false } }
+    }
+    /// O valor como a pessoa digita, em reais ("180" ou "180,50"). Antes o campo pedia centavos e
+    /// mostrava "018000" para R$ 180,00 (V8 da conferência visual da 1.1).
+    public var valorTexto = "" {
+        didSet {
+            // "180," ainda está sendo digitado: vale 180.
+            let completo = valorTexto.hasSuffix(",") ? String(valorTexto.dropLast()) : valorTexto
+            valorCentavos = ((try? ServicoEmEdicao.centavos(completo)) ?? nil) ?? 0
+        }
     }
     public var totalConfirmado = false
     public var recado = ""
@@ -45,12 +60,55 @@ public final class ChamadaDiretaViewModel {
         fim = agora().addingTimeInterval(28 * 3600)
     }
 
+    static let antecedenciaMinima: TimeInterval = 2 * 3600
+    static let duracaoMinima: TimeInterval = 2 * 3600
+    static let duracaoMaxima: TimeInterval = 16 * 3600
+
+    /// O início mais cedo que o seletor oferece: agora + 2 h. Um turno que já começou nem aparece (V10).
+    public var inicioMinimo: Date { agora().addingTimeInterval(Self.antecedenciaMinima) }
+
+    /// O término que o seletor oferece: de 2 a 16 h depois do início.
+    public var faixaDoTermino: ClosedRange<Date> {
+        inicio.addingTimeInterval(Self.duracaoMinima)...inicio.addingTimeInterval(Self.duracaoMaxima)
+    }
+
     public var podeEnviar: Bool {
         !carregando && !enviando && resultado == nil && recursoHabilitado && totalConfirmado
             && funcaoID != nil && ponto != nil && valorCentavos > 0 && recado.count <= 300
             && !responsavel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && inicio.timeIntervalSince(agora()) >= 2 * 3600
             && (2 * 3600...16 * 3600).contains(fim.timeIntervalSince(inicio))
+    }
+
+    /// O primeiro motivo que impede o envio, para o botão desligado não ficar sem explicação (V7).
+    public var oQueFalta: String? {
+        guard recursoHabilitado, !carregando, !enviando, resultado == nil else { return nil }
+        if valorCentavos <= 0 { return TextosChamadaDireta.faltaValor }
+        if !totalConfirmado { return TextosChamadaDireta.faltaConfirmarTotal }
+        if responsavel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return TextosChamadaDireta.faltaResponsavel }
+        if inicio.timeIntervalSince(agora()) < 2 * 3600 { return TextosChamadaDireta.faltaAntecedencia }
+        if !(2 * 3600...16 * 3600).contains(fim.timeIntervalSince(inicio)) { return TextosChamadaDireta.faltaDuracao }
+        return nil
+    }
+
+    /// Limpa o que a pessoa digita no valor: só algarismos e uma vírgula, até 5 algarismos em
+    /// reais e 2 em centavos. O ponto vira vírgula (teclado em outro idioma).
+    static func valorDigitado(_ texto: String) -> String {
+        var reais = "", centavos = "", temVirgula = false
+        for caractere in texto {
+            if caractere == "," || caractere == "." {
+                temVirgula = true
+            } else if caractere.isASCII, caractere.isNumber {
+                if temVirgula { if centavos.count < 2 { centavos.append(caractere) } }
+                else if reais.count < 5 { reais.append(caractere) }
+            }
+        }
+        guard temVirgula else { return reais }
+        return (reais.isEmpty ? "0" : reais) + "," + centavos
+    }
+
+    static func textoEmReais(_ centavos: Int) -> String {
+        centavos % 100 == 0 ? "\(centavos / 100)" : "\(centavos / 100)," + String(format: "%02d", centavos % 100)
     }
 
     public func carregar() async {
@@ -78,7 +136,7 @@ public final class ChamadaDiretaViewModel {
             regiao = vaga?.regiaoAdministrativa ?? casa.regiaoAdministrativa
             ponto = vaga?.ponto ?? casa.ponto
             responsavel = vaga?.responsavelLocal ?? casa.nome
-            valorCentavos = vaga?.valor.centavos ?? 0
+            valorTexto = vaga.map { Self.textoEmReais($0.valor.centavos) } ?? ""
             refeicao = vaga?.inclusos.refeicao ?? false
             transporte = vaga?.inclusos.transporte ?? false
             materialProprio = vaga?.inclusos.exigeMaterialProprio ?? false
