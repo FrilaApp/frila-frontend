@@ -103,4 +103,25 @@ struct DespachoEmMemoriaTests {
         await #expect(throws: ErroDaApi(codigo: .semRede)) { try await api.criteriosDeNotificacao() }
         await #expect(throws: ErroDaApi(codigo: .semRede)) { try await api.pedirRevisaoDespacho(relato: relato) }
     }
+
+    @Test("0.2.62: sem pedido, os critérios trazem contestacao nula; depois do pedido, o mesmo protocolo")
+    func contestacaoNosCriterios() async throws {
+        let api = ApiClienteEmMemoria(relogio: RelogioFixo(agora: agoraDoTeste))
+        #expect(try await api.criteriosDeNotificacao().contestacao == nil)
+
+        let protocolo = try await api.pedirRevisaoDespacho(relato: relato)
+
+        #expect(try await api.criteriosDeNotificacao().contestacao == protocolo)
+    }
+
+    @Test("0.2.62: o cenário despacho-com-protocolo já traz a revisão e recusa um segundo pedido")
+    func cenarioComProtocolo() async throws {
+        let api = ApiClienteEmMemoria(cenario: .despachoComProtocolo, relogio: RelogioFixo(agora: agoraDoTeste))
+        let contestacao = try #require(try await api.criteriosDeNotificacao().contestacao)
+        #expect(contestacao.tipo == .revisaoDespacho)
+        #expect(contestacao.criadaEm < agoraDoTeste)
+        await #expect(throws: ErroDaApi(codigo: .contestacaoJaAberta)) {
+            try await api.pedirRevisaoDespacho(relato: relato)
+        }
+    }
 }
