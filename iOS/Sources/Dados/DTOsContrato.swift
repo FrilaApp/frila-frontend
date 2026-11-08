@@ -1808,9 +1808,11 @@ enum ContratoAPI {
         let distanciaMaximaKm: Double
         let equipesDeConfianca: [EquipeDTO]
         let notificacoesNoMaximoACadaMin: Int
+        /// 0.2.62: opcional; ausente (servidor anterior) e `null` dão `nil`.
+        let contestacao: ProtocoloDTO?
 
         enum CodingKeys: String, CodingKey {
-            case funcoes, disponibilidades
+            case funcoes, disponibilidades, contestacao
             case distanciaMaximaKm = "distancia_maxima_km"
             case equipesDeConfianca = "equipes_de_confianca"
             case notificacoesNoMaximoACadaMin = "notificacoes_no_maximo_a_cada_min"
@@ -1822,7 +1824,8 @@ enum ContratoAPI {
                 disponibilidades: disponibilidades.map { try $0.dominio() },
                 distanciaMaximaKm: distanciaMaximaKm,
                 equipesDeConfianca: equipesDeConfianca.map { EquipeDeConfiancaDoProfissional(estabelecimentoID: $0.estabelecimentoID, nome: $0.nome) },
-                notificacoesNoMaximoACadaMin: notificacoesNoMaximoACadaMin
+                notificacoesNoMaximoACadaMin: notificacoesNoMaximoACadaMin,
+                contestacao: contestacao?.dominio()
             )
         }
     }

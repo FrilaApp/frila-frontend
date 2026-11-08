@@ -78,6 +78,24 @@ struct NotificationServiceTests {
         #expect(FiltroDoPushPorVinculo.decidir(payload: userInfo, vinculoAtivo: Self.outroVinculo) == .manter)
     }
 
+    @Test("0.2.62: o texto neutro é o que o contrato fixa para a extensão")
+    func textoNeutroDoContrato() {
+        #expect(FiltroDoPushPorVinculo.tituloNeutro == "Nova notificação do Frila")
+        #expect(FiltroDoPushPorVinculo.corpoNeutro == "Abra o aplicativo para conferir.")
+    }
+
+    @Test("0.2.62: o payload APNs do #428 (vinculo_id na raiz, ao lado do aps) é conferido como o de data")
+    func vinculoNaRaizDoApns() {
+        let userInfo: [AnyHashable: Any] = [
+            "aps": ["alert": ["title": "Turno não verificado", "body": "A presença no turno não foi confirmada dentro do prazo."], "mutable-content": 1],
+            "tipo": "turno_nao_verificado",
+            "turno_id": "60000000-0000-0000-0000-000000000001",
+            "vinculo_id": Self.outroVinculo.uuidString.lowercased(),
+        ]
+        #expect(FiltroDoPushPorVinculo.decidir(payload: userInfo, vinculoAtivo: Self.vinculoAtivo) == .neutralizar)
+        #expect(FiltroDoPushPorVinculo.decidir(payload: userInfo, vinculoAtivo: Self.outroVinculo) == .manter)
+    }
+
     @Test("O texto neutro não traz nada do aviso original")
     func textoNeutro() {
         #expect(!FiltroDoPushPorVinculo.tituloNeutro.isEmpty)
@@ -117,7 +135,7 @@ struct NotificationServiceTests {
 
         #expect(conteudo.contains("## Roteiro de teste no aparelho"), "Push.md deve conter a seção '## Roteiro de teste no aparelho'")
         #expect(conteudo.contains("Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6)"), "Push.md deve documentar o teste de duas contas no mesmo iPhone para h6RoObK6")
-        #expect(conteudo.contains("Frila — Nova notificação disponível"), "Push.md deve especificar o texto neutro exibido na tela bloqueada")
+        #expect(conteudo.contains("Nova notificação do Frila — Abra o aplicativo para conferir."), "Push.md deve especificar o texto neutro exibido na tela bloqueada")
         #expect(conteudo.contains("com.frila.org.app.notificationservice"), "Push.md deve citar o subsistema de log da extensão no Console.app")
     }
 }
@@ -220,7 +238,7 @@ final class NotificationServiceXCTestCase: XCTestCase {
 
         XCTAssertTrue(conteudo.contains("## Roteiro de teste no aparelho"))
         XCTAssertTrue(conteudo.contains("Duas contas no mesmo iPhone (filtro por vínculo na tela bloqueada - cartão h6RoObK6)"))
-        XCTAssertTrue(conteudo.contains("Frila — Nova notificação disponível"))
+        XCTAssertTrue(conteudo.contains("Nova notificação do Frila — Abra o aplicativo para conferir."))
         XCTAssertTrue(conteudo.contains("com.frila.org.app.notificationservice"))
     }
 }

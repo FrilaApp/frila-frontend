@@ -223,9 +223,10 @@ comparando o `vinculo_id` do payload ao vínculo ativo guardado pelo app no App 
   ou valores para terceiros em posse do dispositivo. O toque no aviso neutro apenas abre o app na raiz,
   sem navegar para telas internas nem expor dados da conta que saiu.
 - **Constantes de texto neutro:**
-  - Título: `FiltroDoPushPorVinculo.tituloNeutro` (`"Frila"`)
-  - Corpo: `FiltroDoPushPorVinculo.corpoNeutro` (`"Nova notificação disponível"`)
-  - *Nota:* Texto provisório marcado como **pendente de aprovação final do time de Design**.
+  - Título: `FiltroDoPushPorVinculo.tituloNeutro` (`"Nova notificação do Frila"`)
+  - Corpo: `FiltroDoPushPorVinculo.corpoNeutro` (`"Abra o aplicativo para conferir."`)
+  - *Fonte:* contrato 0.2.62 (`registrar_dispositivo` e Estado da 0.2.62), que fixou o texto que
+    antes era provisório.
 - **Aviso sem `vinculo_id` (servidores anteriores à 0.2.30):** segue como veio, mantendo a
   compatibilidade com o comportamento legado.
 - **Privacidade e logs:** o `vinculo_id` e os dados do push **nunca são logados**. Apenas o `tipo`
@@ -359,7 +360,7 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
        "vaga_id": "40000000-0000-0000-0000-000000000001"
      }
      ```
-     *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.neutralizar`. Título e corpo originais são substituídos por `"Frila"` e `"Nova notificação disponível"`, e todo o dicionário de dados (`payload`) é esvaziado.
+     *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.neutralizar`. Título e corpo originais são substituídos por `"Nova notificação do Frila"` e `"Abra o aplicativo para conferir."`, e todo o dicionário de dados (`payload`) é esvaziado.
 
    - **Cenário C — Payload legado (sem `vinculo_id`):**
      O payload contém `"mutable-content": 1`, mas **não** possui a chave `vinculo_id` (formato emitido por versões legadas do servidor anteriores à 0.2.30 do contrato):
@@ -425,7 +426,7 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
      da Conta A → o aviso aparece com título e corpo originais.
    - Sair da Conta A e entrar com a Conta B no mesmo aparelho. Bloquear a tela. Aguardar igualmente a confirmação de `registrar_dispositivo` (para as duas contas) antes de bloquear o iPhone; atentar para a ressalva da carência de 60 s para navegação e primeiro plano (`carenciaNaTrocaDeConta`), período no qual avisos para a Conta B não navegam nem abrem em primeiro plano para resguardar o aparelho de mensagens residuais da conta anterior.
    - Enviar push para a Conta A (com o `vinculo_id` da A) → a extensão intercepta na tela bloqueada e
-     o aviso aparece com o texto neutro: `"Frila — Nova notificação disponível"`. O toque abre o app
+     o aviso aparece com o texto neutro: `"Nova notificação do Frila — Abra o aplicativo para conferir."`. O toque abre o app
      sem navegar para dados da Conta A.
    - Enviar push para a Conta B (com o `vinculo_id` da B) → aviso exibido normalmente com título e
      corpo originais. Passada a carência de 60 s para navegação e primeiro plano.
@@ -439,7 +440,7 @@ O que o simulador e o dublê não provam, para rodar num iPhone com o build do T
    - **Origem do `vinculo_id`:** O `vinculo_id` é gerado pelo backend Supabase ao registrar o aparelho (`POST /rest/v1/rpc/registrar_dispositivo`). O app o armazena no App Group na chave `"vinculo_id"` via `VinculoNoGrupoDoApp`. Ao fazer logout (`soltar`), o app apaga esse valor do App Group.
    - **Aguardar confirmação de registro antes do bloqueio:** Tanto na Conta A quanto na Conta B, deve-se aguardar em tela a confirmação de rede de `registrar_dispositivo` antes de bloquear o iPhone. O disparo ocorre na tarefa da view (`FrilaApp.swift:395-401`) e o `vinculo_id` é gravado no App Group (`AparelhoDePush.swift:155, 167-168, 225-227`) somente após a resposta da rede Supabase; bloquear prematuramente pode suspender a execução antes da persistência no App Group, impedindo a extensão de ler o identificador na tela bloqueada.
    - **Carência de 60 s na troca de conta:** Pushes destinados à nova conta (Conta B) respeitam a janela de carência de 60 s (`carenciaNaTrocaDeConta`) para navegação e exibição em primeiro plano (`AparelhoDePush.swift:162-166, 172-177`), impedindo que avisos residuais da conta anterior induzam aberturas de tela indevidas.
-   - **Envio controlado da conta que saiu:** Como a saída da Conta A solicita ao servidor a desassociação do dispositivo (`removerDispositivo`), o backend normal não envia pushes da Conta A para esse aparelho. Para exercitar o filtro de isolamento contra pushes residuais, mensagens atrasadas na rede ou disparos concorrentes, faz-se um envio controlado direcionado ao token do aparelho com o `vinculo_id` antigo da Conta A via console Firebase ou curl HTTP v1. A extensão acionada com `"mutable-content": 1` compara os vínculos e neutraliza o aviso na tela bloqueada, substituindo por `"Frila — Nova notificação disponível"` e esvaziando o payload.
+   - **Envio controlado da conta que saiu:** Como a saída da Conta A solicita ao servidor a desassociação do dispositivo (`removerDispositivo`), o backend normal não envia pushes da Conta A para esse aparelho. Para exercitar o filtro de isolamento contra pushes residuais, mensagens atrasadas na rede ou disparos concorrentes, faz-se um envio controlado direcionado ao token do aparelho com o `vinculo_id` antigo da Conta A via console Firebase ou curl HTTP v1. A extensão acionada com `"mutable-content": 1` compara os vínculos e neutraliza o aviso na tela bloqueada, substituindo por `"Nova notificação do Frila — Abra o aplicativo para conferir."` e esvaziando o payload.
 
 
 6. **Permissão negada.** Negue nos Ajustes e volte ao app: o aviso fixo aparece, e o dispositivo

@@ -64,6 +64,29 @@ struct ContratoDoDespachoTests {
         }
     }
 
+    @Test("0.2.62: sem a chave contestacao (servidor anterior) ou com null, não há protocolo")
+    func contestacaoAusenteOuNula() throws {
+        let semChave = try FixturesDoContrato.carregar("criterios-de-notificacao", como: ContratoAPI.CriteriosDeNotificacaoDTO.self).dominio()
+        #expect(semChave.contestacao == nil)
+        let nula = Data(#"{"funcoes":[],"disponibilidades":[],"distancia_maxima_km":15,"equipes_de_confianca":[],"notificacoes_no_maximo_a_cada_min":30,"contestacao":null}"#.utf8)
+        #expect(try ContratoAPI.decodificador().decode(ContratoAPI.CriteriosDeNotificacaoDTO.self, from: nula).dominio().contestacao == nil)
+    }
+
+    @Test("0.2.62: a contestação do despacho chega como Protocolo, no molde de suspensao.contestacao")
+    func contestacaoPreenchida() throws {
+        let dados = Data(#"{"funcoes":[],"disponibilidades":[],"distancia_maxima_km":15,"equipes_de_confianca":[],"notificacoes_no_maximo_a_cada_min":30,"contestacao":{"ocorrencia_id":"a0000000-0000-0000-0000-000000000003","tipo":"revisao_despacho","criada_em":"2026-10-10T02:05:00Z","prazo_resposta_ate":"2026-10-16"}}"#.utf8)
+        let criterios = try ContratoAPI.decodificador().decode(ContratoAPI.CriteriosDeNotificacaoDTO.self, from: dados).dominio()
+        #expect(criterios.contestacao == (try Esperado.protocolo()))
+    }
+
+    @Test("0.2.62: prazo da contestação fora do formato é erro de conversão, nunca queda")
+    func contestacaoComPrazoInvalido() throws {
+        let dados = Data(#"{"funcoes":[],"disponibilidades":[],"distancia_maxima_km":15,"equipes_de_confianca":[],"notificacoes_no_maximo_a_cada_min":30,"contestacao":{"ocorrencia_id":"a0000000-0000-0000-0000-000000000003","tipo":"revisao_despacho","criada_em":"2026-10-10T02:05:00Z","prazo_resposta_ate":"16/10/2026"}}"#.utf8)
+        #expect(throws: ErroDeConversao(campo: "prazo_resposta_ate")) {
+            try ContratoAPI.decodificador().decode(ContratoAPI.CriteriosDeNotificacaoDTO.self, from: dados).dominio()
+        }
+    }
+
     @Test("Sem função, grade nem equipe, os critérios estão vazios")
     func semCriterios() {
         let vazio = CriteriosDeNotificacao(funcoes: [], disponibilidades: [], distanciaMaximaKm: 15, equipesDeConfianca: [], notificacoesNoMaximoACadaMin: 30)

@@ -101,8 +101,10 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
     func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo { try await base.registrarDispositivo(tokenFCM: tokenFCM) }
+    /// Passa pelo `registrarDispositivo(tokenFCM:)` deste dublê, como fazia a extensão da porta: quem
+    /// sobrescreve só aquele continua vendo o registro. Quem quer espiar a versão sobrescreve este.
     func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo {
-        try await base.registrarDispositivo(tokenFCM: tokenFCM, versaoApp: versaoApp)
+        try await registrarDispositivo(tokenFCM: tokenFCM)
     }
     func removerDispositivo(tokenFCM: String) async throws { try await base.removerDispositivo(tokenFCM: tokenFCM) }
     func registrarEvento(_ registro: RegistroDeEvento) async throws -> Bool { try await base.registrarEvento(registro) }
