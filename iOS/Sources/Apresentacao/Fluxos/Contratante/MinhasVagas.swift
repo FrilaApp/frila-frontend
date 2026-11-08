@@ -1047,6 +1047,21 @@ private struct TelaDetalheVagaContratante: View {
                 }
 
                 CartaoEstadoVaga(vaga: vaga)
+                // CD-RF09: a vaga direta nasce de uma chamada; daqui a casa acompanha, cancela ou publica
+                // para todos quando ninguém aceitou (RN35).
+                if vaga.vaga.origem == .chamadaDireta {
+                    NavigationLink {
+                        TelaAcompanharChamadas(viewModel: AcompanharChamadasViewModel(vagaID: vaga.vaga.id, api: api)) { novaVagaID in
+                            roteadorEfetivo?.abrirVaga(id: novaVagaID)
+                        }
+                    } label: {
+                        RotuloDeLinha(TextosChamadaDireta.acompanharTitulo)
+                            .padding(.horizontal, FrilaEspaco.medio)
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("acompanhar-chamadas-\(vaga.vaga.id)")
+                }
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text(verbatim: TextosMinhasVagas.detalhesPublicados)
                         .font(FrilaTipo.microRotulo)

@@ -36,6 +36,10 @@ public struct SecaoDePresenca: View {
             if let situacao = situacaoDoCheckout {
                 linha(situacao).accessibilityIdentifier("checkout-situacao")
             }
+            if viewModel.verificacao == .naoVerificado {
+                AvisoFrila(verbatim: "\(Textos.naoVerificada). \(Textos.naoVerificadaExplicacao)", tom: .alerta)
+                    .accessibilityIdentifier("presenca-nao-verificada")
+            }
             if let erro = viewModel.mensagemDeErro {
                 AvisoFrila(verbatim: erro, tom: .erro).accessibilityIdentifier("presenca-erro")
             }
@@ -292,6 +296,9 @@ public struct SecaoDePresenca: View {
             let hora = formatador.hora(feito.instante)
             if viewModel.verificacao == .verificado {
                 return LinhaDeSituacao(texto: Textos.checkinVerificado(hora, metros: feito.distanciaMetros), icone: "checkmark.seal.fill", cor: FrilaCor.sucesso)
+            }
+            if viewModel.verificacao == .naoVerificado {
+                return LinhaDeSituacao(texto: Textos.checkinNaoConfirmado(hora), icone: "xmark.seal", cor: FrilaCor.textoSecundario)
             }
             if viewModel.aguardandoConfirmacao {
                 return LinhaDeSituacao(texto: Textos.checkinAguardando(hora), icone: "hourglass", cor: FrilaCor.alerta)
