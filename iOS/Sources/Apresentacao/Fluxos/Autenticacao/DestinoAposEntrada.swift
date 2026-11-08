@@ -90,9 +90,11 @@ public enum DestinoDaConta: Equatable, Sendable {
 }
 
 public enum DemonstracaoContas {
-    /// As contas de revisão da Apple. Na 1.1 valem as novas (`frilabr.com`) e as antigas (`frila.app`,
-    /// domínio que não é nosso): quem decide quem entra é o servidor, e o Prod troca as contas depois
-    /// que este build estiver no TestFlight. As antigas saem numa versão seguinte.
+    /// As contas de revisão da Apple: as novas (`frilabr.com`) e as antigas (`frila.app`, domínio que não
+    /// é nosso). Quem decide quem entra é o servidor. As antigas ficam na lista mesmo depois que o Prod
+    /// trocar as contas: para um e-mail daqui o app nunca pede código por e-mail (entra por
+    /// `entrarDemonstracao` e mostra o erro se o servidor recusar); fora da lista, pediria um código
+    /// enviado ao domínio de terceiro.
     static let emails: Set<String> = [
         "revisao-profissional@frilabr.com", "revisao-contratante@frilabr.com",
         "revisao-profissional@frila.app", "revisao-contratante@frila.app",

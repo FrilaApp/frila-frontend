@@ -919,6 +919,15 @@ class PrivacidadeTest < Minitest::Test
     assert_empty @api.escritas
   end
 
+  def test_dois_app_infos_editaveis_nao_escreve
+    @api.dados['appInfos'].each { |info| info['attributes']['appStoreState'] = 'PREPARE_FOR_SUBMISSION' }
+    rodar
+    assert_includes @out.string, 'Plano: nenhuma troca; é preciso um único appInfo em PREPARE_FOR_SUBMISSION (há 2)'
+    erro = assert_raises(AppStoreConnect::Erro) { rodar(aplicar: true) }
+    assert_includes erro.message, 'É necessário um único appInfo em PREPARE_FOR_SUBMISSION'
+    assert_empty @api.escritas
+  end
+
   def test_api_que_nao_confirma_a_troca_falha
     @api.ignorar_patch = true
     erro = assert_raises(AppStoreConnect::Erro) { rodar(aplicar: true) }
