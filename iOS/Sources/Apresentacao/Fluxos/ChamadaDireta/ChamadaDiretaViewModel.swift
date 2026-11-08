@@ -91,20 +91,26 @@ public final class ChamadaDiretaViewModel {
         return nil
     }
 
-    /// Limpa o que a pessoa digita no valor: só algarismos e uma vírgula, até 5 algarismos em
-    /// reais e 2 em centavos. O ponto vira vírgula (teclado em outro idioma).
-    static func valorDigitado(_ texto: String) -> String {
-        var reais = "", centavos = "", temVirgula = false
-        for caractere in texto {
-            if caractere == "," || caractere == "." {
-                temVirgula = true
-            } else if caractere.isASCII, caractere.isNumber {
-                if temVirgula { if centavos.count < 2 { centavos.append(caractere) } }
-                else if reais.count < 5 { reais.append(caractere) }
-            }
-        }
-        guard temVirgula else { return reais }
+    /// Limpa o que a pessoa digita ou cola no valor: só algarismos e uma vírgula, até 5 algarismos em
+    /// reais e 2 em centavos. Com vírgula, o ponto é separador de milhar ("R$ 1.500,00" vale 1.500).
+    /// Sem vírgula, o ponto só é milhar quando separa grupos de três ("1.500"); senão é a vírgula
+    /// decimal de um teclado em outro idioma ("1.50"). Com mais de 5 algarismos em reais, devolve o
+    /// `anterior`: cortar "1.500.000,00" em 15000,00 daria um valor 100 vezes menor e plausível.
+    static func valorDigitado(_ texto: String, anterior: String = "") -> String {
+        let permitido = texto.filter { ($0.isASCII && $0.isNumber) || $0 == "," || $0 == "." }
+        let separador = permitido.firstIndex(of: ",") ?? (Self.pontoDeMilhar(permitido) ? nil : permitido.lastIndex(of: "."))
+        let reais = String((separador.map { permitido[..<$0] } ?? permitido[...]).filter(\.isNumber))
+        guard reais.count <= 5 else { return anterior }
+        guard let separador else { return reais }
+        let centavos = String(permitido[permitido.index(after: separador)...].filter(\.isNumber).prefix(2))
         return (reais.isEmpty ? "0" : reais) + "," + centavos
+    }
+
+    /// "1.500" e "12.345": cada ponto separa um grupo de três algarismos.
+    private static func pontoDeMilhar(_ texto: String) -> Bool {
+        let grupos = texto.split(separator: ".", omittingEmptySubsequences: false)
+        guard grupos.count > 1, let primeiro = grupos.first, (1...3).contains(primeiro.count) else { return false }
+        return grupos.dropFirst().allSatisfy { $0.count == 3 }
     }
 
     static func textoEmReais(_ centavos: Int) -> String {
