@@ -5,6 +5,9 @@ public struct TelaDetalheChamadaRecebida: View {
     @State private var viewModel: ChamadaRecebidaViewModel
     public var onAbrirTurno: ((UUID) -> Void)?
     @Environment(\.dismiss) private var fechar
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
     public init(viewModel: ChamadaRecebidaViewModel, onAbrirTurno: ((UUID) -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
@@ -140,7 +143,15 @@ public struct TelaDetalheChamadaRecebida: View {
             .padding(.vertical, 4)
         }
 
-        if viewModel.podeResponder {
+        // Bloqueada a casa, a chamada não se responde mais: o servidor a encerra (`404`, RF26).
+        if bloqueios.contem(detalhe.outraParte) {
+            Section {
+                Text(verbatim: TextosDaSeguranca.voceBloqueouEstabelecimento)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("etiqueta-bloqueio-chamada")
+            }
+        } else if viewModel.podeResponder {
             Section {
                 BotaoPrimario(verbatim: TextosChamadaDireta.aceitarChamada, carregando: viewModel.respondendo) {
                     Task { await viewModel.aceitar() }
@@ -154,6 +165,15 @@ public struct TelaDetalheChamadaRecebida: View {
                 .accessibilityIdentifier("recusar-chamada")
             }
         }
+
+        // CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
+        Section {
+            AcoesDeSeguranca(perfil: detalhe.outraParte, api: viewModel.api, bloqueios: bloqueios,
+                             identificadorDenunciar: "denunciar-chamada", identificadorBloquear: "bloquear-chamada",
+                             identificadorConfirmarBloqueio: "confirmar-bloqueio-chamada")
+                .id(detalhe.outraParte.id)
+        }
+        .listRowBackground(Color.clear)
     }
 
     @ViewBuilder

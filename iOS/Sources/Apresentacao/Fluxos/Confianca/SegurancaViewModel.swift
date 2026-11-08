@@ -20,6 +20,8 @@ public final class BloqueiosDaSessao {
 public final class SegurancaViewModel {
     public var motivo: MotivoDenuncia = .assedio
     public var relato = ""
+    /// CD-RF12: a denúncia é sobre a foto de perfil que a tela mostrou (`midia_id`), e não sobre o perfil.
+    public var sobreAFoto = false
     public private(set) var enviando = false
     public private(set) var bloqueando = false
     public private(set) var protocolo: Protocolo?
@@ -28,6 +30,8 @@ public final class SegurancaViewModel {
     public var bloqueado: Bool { bloqueios.alvos.contains(alvo) }
     private let alvo: Alvo
     private let turnoID: UUID?
+    /// O `foto_id` do perfil, quando o servidor mandou a foto (recurso ligado e vínculo de leitura).
+    private let fotoID: UUID?
     private let api: any ApiCliente
     private let bloqueios: BloqueiosDaSessao
     private var tentativa: Denuncia?
@@ -35,9 +39,13 @@ public final class SegurancaViewModel {
     public init(perfil: PerfilPublico, turnoID: UUID? = nil, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
         alvo = Alvo(perfil)
         self.turnoID = turnoID
+        fotoID = perfil.fotoID
         self.api = api
         self.bloqueios = bloqueios
     }
+
+    /// Só há foto para denunciar quando o perfil a trouxe.
+    public var podeDenunciarFoto: Bool { fotoID != nil }
 
     public var relatoValido: Bool { relato.trimmingCharacters(in: .whitespacesAndNewlines).count >= 10 }
 
@@ -47,8 +55,9 @@ public final class SegurancaViewModel {
         let texto = relato.trimmingCharacters(in: .whitespacesAndNewlines)
         // Repetir o mesmo envio depois de perder a resposta conserva a chave. Editar o conteúdo
         // inicia outra denúncia: nunca reutiliza uma chave para um corpo diferente.
-        if tentativa?.motivo != motivo || tentativa?.relato != texto {
-            tentativa = Denuncia(alvo: alvo, turnoID: turnoID, motivo: motivo, relato: texto, chave: UUID())
+        let midiaID = sobreAFoto ? fotoID : nil
+        if tentativa?.motivo != motivo || tentativa?.relato != texto || tentativa?.midiaID != midiaID {
+            tentativa = Denuncia(alvo: alvo, turnoID: turnoID, motivo: motivo, relato: texto, chave: UUID(), midiaID: midiaID)
         }
         guard let tentativa else { return }
         enviando = true

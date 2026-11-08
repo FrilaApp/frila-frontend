@@ -505,13 +505,22 @@ struct CatalogoStringsTests {
         #expect(faltantes.isEmpty, "chaves de v1.1 fora do catálogo: \(faltantes)")
     }
 
+    /// Varredura da 1.1 (A7): textos mortos que contrariam regra não voltam ao catálogo. A taxa de 5%
+    /// contraria a RN01 (o Frila não cobra comissão), e a caixa "Tenho 18 anos ou mais" saiu em 17/10
+    /// (a maioridade vem da data de nascimento e do aceite dos Termos).
+    @Test("Textos mortos que contrariam regra ficam fora do catálogo")
+    func textosMortosQueContrariamRegraFicamForaDoCatalogo() throws {
+        let (chaves, _) = try Self.carregarCatalogo()
+        #expect(!chaves.contains("Taxa de Serviço da Plataforma (5%):"))
+        #expect(!chaves.contains("Tenho 18 anos ou mais"))
+    }
+
     @Test("Chaves dos novos componentes do Lote 1 (SearchCapsule e ProposalBar) estão cadastradas no catálogo pt-BR")
     func componentesLote1EstaoNoCatalogo() throws {
         let (chaves, _) = try Self.carregarCatalogo()
 
         let chavesLote1 = [
             "Valoração Bruta do Contrato:",
-            "Taxa de Serviço da Plataforma (5%):",
             "Repasse Líquido Estimado:",
             "CAPITAL EST.",
             "TOTAL ESTIMADO",

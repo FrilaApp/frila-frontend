@@ -84,6 +84,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Como `selecaoComCandidatos`, com o segundo candidato (Bruno) na equipe de confiança da
         /// casa: `da_equipe` vem `true` só para ele, e a ordem continua a de chegada (0.2.38, D7).
         case selecaoComCandidatoDaEquipe = "selecao-com-candidato-da-equipe"
+        /// Como `selecaoComCandidatos`, com a foto aprovada do segundo candidato (Bruno) no perfil
+        /// público: `foto_id` é o que `denunciar.midia_id` recebe (0.2.54, CD-RF12).
+        case denunciaDeFoto = "denuncia-de-foto"
         /// Conta de contratante com a vaga de seleção que fechou sozinha 24 h antes do início, sem
         /// escolha: vaga `encerrada`, posição `cancelada` e candidaturas `expirada` (RN24).
         case selecaoEncerradaSemEscolha = "selecao-encerrada-sem-escolha"
@@ -158,7 +161,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
 
         /// No Prod o recurso nasce desligado; os cenários da foto o ligam, menos `fotoRecursoDesligado`.
-        var fotoDePerfilLigada: Bool { daFotoDePerfil && self != .fotoRecursoDesligado }
+        /// `denuncia-de-foto` liga o recurso: o `foto_id` só vem com ele ligado (contrato 0.2.54).
+        var fotoDePerfilLigada: Bool { (daFotoDePerfil && self != .fotoRecursoDesligado) || self == .denunciaDeFoto }
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
@@ -167,7 +171,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Os cenários do modo seleção em que a conta é de quem contrata.
         var selecaoDoContratante: Bool {
             self == .selecaoComCandidatos || self == .escolhaPerdeCorrida || self == .selecaoEncerradaSemEscolha
-                || self == .selecaoComCandidatoDaEquipe
+                || self == .selecaoComCandidatoDaEquipe || self == .denunciaDeFoto
         }
 
         /// Os cenários do modo seleção em que a conta é de profissional e já tem candidatura na vaga,
@@ -207,6 +211,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         var turnoID: UUID? = nil
     }
 
+    /// As denúncias aceitas, na ordem: os testes conferem o `midia_id` que chegou (0.2.54).
+    public private(set) var denunciasRecebidas: [Denuncia] = []
     private var chamadasPorChave: [UUID: Chamada] = [:]
     private var chamadasPorID: [UUID: Chamada] = [:]
     private var preferenciasDeChamadaArmazenadas = PreferenciaChamadas()
@@ -446,7 +452,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .aCaminho: 1 * 60 * 60
                 // A vaga de seleção exige mais de 24 h (RN24); a que fechou sozinha já está dentro delas.
                 case .selecaoEncerradaSemEscolha, .candidaturaExpirada: 20 * 60 * 60
-                case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .vagaEmSelecao, .candidaturaPendente,
+                case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .denunciaDeFoto, .vagaEmSelecao, .candidaturaPendente,
                      .retirarSemRede, .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 case .sucesso, .semRede, .primeiroAcesso, .profissionalServidorAntigo: 30 * 60
                 default: 24 * 60 * 60
@@ -515,9 +521,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     // variáveis locais: o `init` do ator não pode deixar o `self` entrar no fechamento.
                     let exemplos = candidatosDeExemplo
                     let estado: EstadoCandidatura = cenario == .selecaoEncerradaSemEscolha ? .expirada : .pendente
+                    let comFoto = cenario == .denunciaDeFoto
                     candidaturas = exemplos.enumerated().map { indice, candidato in
-                        CandidaturaGuardada(
-                            id: candidato.candidaturaID, vagaID: selecao.id, profissional: candidato.profissional, daConta: false,
+                        let profissional = comFoto && candidato.profissional.id == Self.candidatoComFotoID
+                            ? Self.comFoto(candidato.profissional) : candidato.profissional
+                        return CandidaturaGuardada(
+                            id: candidato.candidaturaID, vagaID: selecao.id, profissional: profissional, daConta: false,
                             estado: estado, criadaEm: agora.addingTimeInterval(TimeInterval(indice - exemplos.count) * 60 * 60)
                         )
                     }
@@ -2338,6 +2347,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let gravado = denunciasPorChave[denuncia.chave] { return gravado }
         try validarRelato(denuncia.relato)
         guard existe(denuncia.alvo) else { throw erro("nao_encontrado") }
+        // 0.2.54: `midia_id` tem de ser a foto do próprio alvo; senão, `422 campo_invalido`. A contagem
+        // por denunciante distinto, que oculta a foto na 2ª denúncia, é do servidor: o dublê tem uma conta só.
+        if let midiaID = denuncia.midiaID, fotoID(de: denuncia.alvo) != midiaID {
+            throw erro("campo_invalido", detalhes: "midia_id")
+        }
         if let turnoID = denuncia.turnoID {
             guard let turno = (turnos + turnosCancelados).first(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
             let casa = vagas.first { $0.id == turno.vaga.id }?.estabelecimento.id
@@ -2345,6 +2359,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         let protocolo = try novoProtocolo(.denuncia)
         denunciasPorChave[denuncia.chave] = protocolo
+        denunciasRecebidas.append(denuncia)
         return protocolo
     }
 
@@ -2953,6 +2968,26 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let limpo = relato.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !limpo.isEmpty else { throw erro("campo_obrigatorio", detalhes: "relato") }
         guard limpo.count >= 10 else { throw erro("campo_invalido", detalhes: "relato") }
+    }
+
+    /// O `foto_id` que o perfil público do alvo mostra, quando mostra.
+    private func fotoID(de alvo: Alvo) -> UUID? {
+        guard alvo.tipo == .profissional else { return nil }
+        if alvo.id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo.fotoID }
+        return candidaturas.first { $0.profissional.id == alvo.id }?.profissional.fotoID
+    }
+
+    /// O perfil do Bruno (`candidatos.json`): a candidatura dele é a `70000000-…-0002`.
+    static let candidatoComFotoID = UUID(uuidString: "80000000-0000-0000-0000-000000000002")!
+    static let fotoDoCandidatoID = UUID(uuidString: "5d0f1c2a-7b7e-4c1b-9a55-0c6b2e4f7a10")!
+
+    /// O mesmo perfil, com a foto aprovada de exemplo (`denuncia-de-foto`).
+    static func comFoto(_ p: PerfilPublico) -> PerfilPublico {
+        PerfilPublico(id: p.id, tipo: p.tipo, nome: p.nome, funcoes: p.funcoes, reputacao: p.reputacao,
+                      fotoURL: urlDaFotoDeExemplo, fotoID: fotoDoCandidatoID, apresentacao: p.apresentacao,
+                      experienciaFaixa: p.experienciaFaixa, ondeTrabalhei: p.ondeTrabalhei, cursos: p.cursos,
+                      idiomas: p.idiomas, servicos: p.servicos, regioes: p.regioes, atendeTodoDF: p.atendeTodoDF,
+                      noFrilaDesde: p.noFrilaDesde)
     }
 
     /// O profissional de exemplo, que o painel mostra nas posições, ou uma casa que o dublê conhece.

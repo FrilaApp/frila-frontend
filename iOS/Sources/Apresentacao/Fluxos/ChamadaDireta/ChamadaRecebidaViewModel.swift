@@ -14,7 +14,8 @@ public final class ChamadaRecebidaViewModel {
     public var mostrarRecusa = false
     public var motivoSelecionado: MotivoRecusaChamada?
 
-    private let api: any ApiCliente
+    /// Interno: a tela usa o mesmo cliente nas ações de segurança (CD-RF12).
+    let api: any ApiCliente
     private let agora: @Sendable () -> Date
     private let formatador = FormatadorFrila()
 

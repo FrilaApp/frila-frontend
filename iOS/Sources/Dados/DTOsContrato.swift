@@ -1745,6 +1745,7 @@ enum ContratoAPI {
         let motivo: MotivoDenuncia
         let relato: String
         let chave: UUID
+        let midiaID: UUID?
 
         init(_ denuncia: Denuncia) {
             alvoTipo = denuncia.alvo.tipo
@@ -1753,14 +1754,16 @@ enum ContratoAPI {
             motivo = denuncia.motivo
             relato = denuncia.relato
             chave = denuncia.chave
+            midiaID = denuncia.midiaID
         }
 
-        // `turno_id` é opcional no contrato: sem turno, o campo não vai.
+        // `turno_id` e `midia_id` (0.2.54) são opcionais no contrato: sem valor, o campo não vai.
         enum CodingKeys: String, CodingKey {
             case motivo, relato, chave
             case alvoTipo = "alvo_tipo"
             case alvoID = "alvo_id"
             case turnoID = "turno_id"
+            case midiaID = "midia_id"
         }
     }
 
