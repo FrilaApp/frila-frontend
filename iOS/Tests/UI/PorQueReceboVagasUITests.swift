@@ -99,7 +99,9 @@ final class PorQueReceboVagasUITests: XCTestCase {
         let protocolo = app.descendants(matching: .any)["protocolo-revisao-despacho"]
         rolarAte(protocolo, em: app)
         XCTAssertTrue(protocolo.waitForExistence(timeout: 10), "o protocolo da contestação já feita deve aparecer")
-        XCTAssertEqual(protocolo.label, "A0000000-0000-0000-0000-000000000003", "o protocolo deve ser o da ocorrência que o servidor devolveu")
+        // V23 da conferência visual da 1.1: o número curto (contrato 0.2.40) da ocorrência
+        // A0000000-0000-0000-0000-000000000003, e não o UUID inteiro, que quebrava a linha.
+        XCTAssertEqual(protocolo.label, "#A0000000", "o protocolo deve ser o da ocorrência que o servidor devolveu")
         XCTAssertTrue(app.descendants(matching: .any)["status-revisao-enviada"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["prazo-resposta-revisao"].exists, "o prazo de resposta deve aparecer")
         XCTAssertFalse(app.buttons["botao-contestar-despacho"].exists, "com contestação aberta, não há outro pedido")

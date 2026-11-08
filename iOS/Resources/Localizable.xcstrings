@@ -3037,6 +3037,16 @@
         }
       }
     },
+    "Chamar profissional": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamar profissional"
+          }
+        }
+      }
+    },
     "Chamaria de novo?": {
       "extractionState": "stale",
       "localizations": {

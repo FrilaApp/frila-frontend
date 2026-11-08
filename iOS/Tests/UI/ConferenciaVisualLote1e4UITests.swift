@@ -59,7 +59,8 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
         rolarAte(chamar, app)
         chamar.tap()
         // O Form só cria o botão do fim quando ele entra na tela.
-        XCTAssertTrue(app.navigationBars["Chamar de novo"].waitForExistence(timeout: 10))
+        // V12: a folha diz o que faz, mesmo na primeira chamada.
+        XCTAssertTrue(app.navigationBars["Chamar profissional"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.textFields["total-chamada-centavos"].waitForExistence(timeout: 10))
     }
 

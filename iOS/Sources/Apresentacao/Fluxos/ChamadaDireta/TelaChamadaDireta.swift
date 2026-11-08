@@ -66,7 +66,8 @@ public struct TelaChamadaDireta: View {
         .foregroundStyle(FrilaCor.texto)
         .scrollContentBackground(.hidden)
         .background(FrilaCor.fundo)
-        .navigationTitle(Text(verbatim: TextosChamadaDireta.titulo))
+        // V12: "Chamar de novo" fica no botão de quem já trabalhou com a casa; a folha diz o que faz.
+        .navigationTitle(Text(verbatim: TextosChamadaDireta.tituloDaFolha))
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { fechar() } label: { Text("Fechar", bundle: bundleApresentacao) }
@@ -84,8 +85,11 @@ public struct TelaChamadaDireta: View {
                 }
             } label: { Text("Função", bundle: bundleApresentacao) }
             LabeledContent { Text(verbatim: viewModel.local) } label: { Text("Local", bundle: bundleApresentacao) }
-            DatePicker(selection: $viewModel.inicio) { Text("Início", bundle: bundleApresentacao) }
-            DatePicker(selection: $viewModel.fim) { Text("Término", bundle: bundleApresentacao) }
+            // V10: o seletor não oferece horário que já passou nem a menos de 2 h.
+            DatePicker(selection: $viewModel.inicio, in: viewModel.inicioMinimo...) { Text("Início", bundle: bundleApresentacao) }
+                .accessibilityIdentifier("inicio-chamada")
+            DatePicker(selection: $viewModel.fim, in: viewModel.faixaDoTermino) { Text("Término", bundle: bundleApresentacao) }
+                .accessibilityIdentifier("termino-chamada")
             // V9: o Form não mostra o rótulo de um TextField, e o campo preenchido ("Bistrô Ipê",
             // "0") ficava solto. O rótulo vai acima, visível; o VoiceOver lê o rótulo no próprio campo.
             CampoRotulado(TextosChamadaDireta.responsavel) {
