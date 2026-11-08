@@ -473,6 +473,37 @@ struct FotoPerfilTests {
         #expect(!comFoto.podeEscolherFoto && !comFoto.podePedirNovaAnalise)
     }
 
+    @Test("Controle de erro e visibilidade por estado da feature flag (chave off + falha, chave off + foto, chave on + falha)")
+    @MainActor func controleDeErroEVisibilidadePorFeatureFlag() async {
+        // 1. Chave off + RPC minhas_midias falha: sem seção e sem erro visível
+        let apiOffFalha = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        let modelOffFalha = FotoDePerfilViewModel(api: apiOffFalha, ferramentas: Self.ferramentas())
+        await modelOffFalha.carregar()
+        #expect(!modelOffFalha.recursoLigado)
+        #expect(!modelOffFalha.falhouAoCarregar, "Com chave desligada, falha de RPC não deve marcar falhouAoCarregar")
+        #expect(!modelOffFalha.secaoVisivel, "Com chave desligada e sem foto, a seção não fica visível")
+        #expect(modelOffFalha.aviso == nil)
+
+        // 2. Chave off + foto existente: continua dando a opção de remover, sem escolher nova foto
+        let apiOffComFoto = ApiClienteEmMemoria(cenario: .fotoRecursoDesligado)
+        let modelOffComFoto = FotoDePerfilViewModel(api: apiOffComFoto, ferramentas: Self.ferramentas())
+        await modelOffComFoto.carregar()
+        #expect(!modelOffComFoto.recursoLigado)
+        #expect(modelOffComFoto.secaoVisivel, "Foto existente mantém seção visível mesmo com chave desligada")
+        #expect(modelOffComFoto.podeRemover, "Usuário pode remover seu próprio dado")
+        #expect(!modelOffComFoto.podeEscolherFoto, "Não pode escolher nova foto com chave desligada")
+        #expect(!modelOffComFoto.falhouAoCarregar)
+
+        // 3. Chave on + falha de RPC: erro visível (falhouAoCarregar = true) e seção sem cartão
+        let apiOnFalha = ApiClienteEmMemoria(cenario: .contaSuspensa)
+        await apiOnFalha.definirRecursos(RecursosDoApp(fotoDePerfil: true, chamadaDireta: false))
+        let modelOnFalha = FotoDePerfilViewModel(api: apiOnFalha, ferramentas: Self.ferramentas())
+        await modelOnFalha.carregar()
+        #expect(modelOnFalha.recursoLigado)
+        #expect(modelOnFalha.falhouAoCarregar, "Com chave ligada, falha de carregamento deve ser sinalizada")
+        #expect(!modelOnFalha.secaoVisivel, "Com falha de carregamento, o cartão não é exibido")
+    }
+
     @Test("Cada um dos sete estados diz o que pode fazer")
     @MainActor func acoesPorEstado() async {
         let esperado: [(ApiClienteEmMemoria.Cenario, EstadoMidia, escolher: Bool, analise: Bool, remover: Bool)] = [
