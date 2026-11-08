@@ -111,14 +111,14 @@ Versão inicial do Frila no Distrito Federal:
 
 ## 3. URLs Oficiais (Página Pública)
 
-Enquanto não houver domínio próprio (ver `DiarioDeConfiguracao.md`, linha 4), as URLs públicas em HTTPS ficam em `frila.netlify.app`. Os textos correspondentes estão em `iOS/Docs/PaginaPublica/`:
+As URLs públicas em HTTPS ficam no domínio próprio `frilabr.com`, o mesmo de `iOS/Sources/Apresentacao/EnderecosOficiais.swift`. Os textos correspondentes estão em `iOS/Docs/PaginaPublica/`:
 
 | Campo no App Store Connect | URL Oficial | Arquivo Fonte no Repositório | Descrição do Conteúdo |
 |---|---|---|---|
-| **URL de Suporte (*Support URL*)** | `https://frila.netlify.app/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suporte@frilabr.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
-| **URL de Marketing (*Marketing URL*)** | `https://frila.netlify.app` | Página inicial do site (sem arquivo próprio no repositório) | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
-| **URL de Privacidade (*Privacy Policy URL*)** | `https://frila.netlify.app/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
-| **Termos de Uso (*Terms of Use / EULA*)** | `https://frila.netlify.app/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
+| **URL de Suporte (*Support URL*)** | `https://frilabr.com/suporte` | `iOS/Docs/PaginaPublica/suporte.md` | Canal de ajuda, e-mail oficial de contato (`suporte@frilabr.com`), procedimentos de denúncia e FAQ (página pública confirmada e mesclada no PR 215). |
+| **URL de Marketing (*Marketing URL*)** | `https://frilabr.com` | Página inicial do site (sem arquivo próprio no repositório) | Página institucional de apresentação do aplicativo e funcionalidades para o DF. |
+| **URL de Privacidade (*Privacy Policy URL*)** | `https://frilabr.com/privacidade` | `iOS/Docs/PaginaPublica/privacidade.md` | Política formal de privacidade em conformidade com o Art. 37 da LGPD (Lei nº 13.709/2018). |
+| **Termos de Uso (*Terms of Use / EULA*)** | `https://frilabr.com/termos` | `iOS/Docs/PaginaPublica/termos.md` | Termos de serviço, declaração de maioridade 18+, ausência de vínculo e regras operacionais. |
 
 > **Conferência com o código-fonte:** [`EnderecosOficiais.swift`](../Sources/Apresentacao/EnderecosOficiais.swift), linhas 19–23 (`termosDeUso`, `politicaDePrivacidade`, `emailSuporte` e propriedade computada `urlSuporte`).
 >
@@ -153,7 +153,7 @@ A ordem segue a documentação da Apple. Conferir na tela real da App Store Conn
 | Chance-Based Activities | Gambling / Loot Boxes | Não | — |
 | Chance-Based Activities | Simulated Gambling / Contests | Nenhum | Não há sorteio nem competição entre usuários. |
 | Additional Information | Age Categories and Override | **Override to Higher Age Rating: 18+** | Não marcar *Made for Kids*. Os termos exigem 18 anos; a Apple pede override quando o contrato tem idade mínima acima da calculada. |
-| Additional Information | Age Suitability URL | Em branco por ora | Opcional. Preencher com `https://frila.netlify.app/termos` quando a página dos termos com a classificação estiver no ar. |
+| Additional Information | Age Suitability URL | Em branco por ora | Opcional. Preencher com `https://frilabr.com/termos` quando a página dos termos com a classificação estiver no ar. |
 
 ### 4.2 Classificação Etária Resultante
 - **Calculada pelas respostas:** 4+ (nenhum tema sensível).
@@ -233,7 +233,7 @@ Os identificadores e códigos fixos são mantidos confidenciais e cadastrados di
 | **Sem "grátis" no nome/subtítulo** | Diretriz 2.3.7 da Apple | Conforme | O nome e o subtítulo não contêm termos como "grátis", "free", preços ou símbolos de moeda. |
 | **Precisão de funcionalidades** | Diretriz 2.3.1 da Apple | Conforme | Todas as funcionalidades descritas existem no código (`iOS/Sources/`): urgência, seleção, check-in, equipe de confiança e bloqueio. |
 | **Diretriz 1.2 (Moderação e UGC)** | Diretriz 1.2 da Apple | Alinhamento operacional pendente | Descrição inclui botão de denúncia e bloqueio mútuo (`AcoesDeSeguranca.swift:20-164`). Moderação de denúncias: o mais breve possível, com triagem em até 5 dias úteis e resposta formal em até 15 dias corridos (decisão do Cauê em 15/10/2026). O perfil e o suporte de turno já utilizam a redação da triagem (`PerfisDaConta.swift:16` e `TextosDoSuporte.swift:7`); os fluxos de contestação de despacho (`TextosPorQueReceboVagas.swift:29`) e suspensão (`TextosContaSuspensa.swift:10`) ainda informam "em até 5 dias úteis" (alinhamento pendente em missão própria). |
-| **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme (piloto) | Textos públicos com canal oficial do titular; URLs em HTTPS no Netlify (`frila.netlify.app`), domínio próprio fica para quando o produto crescer. |
+| **Privacidade e LGPD** | Diretriz 5.1 e `LGPD.md` | Conforme (piloto) | Textos públicos com canal oficial do titular; URLs em HTTPS no domínio próprio (`frilabr.com`). |
 | **Sem plataformas concorrentes** | Diretriz 2.3.10 da Apple | Conforme | Ausência de menção a plataformas concorrentes (Android, Google Play). |
 | **Sem preços na descrição** | Diretriz 2.3 da Apple | Conforme | Ausência de preços ou valores monetários na descrição geral. |
 | **Sem afirmações inverificáveis** | Diretriz 2.3 da Apple | Conforme | Ausência de afirmações superlativas ou inverificáveis ("o melhor", "número 1"). |
