@@ -461,16 +461,29 @@ struct FotoPerfilTests {
         await semFoto.carregar()
         #expect(semFoto.secaoVisivel && semFoto.podeEscolherFoto && !semFoto.podeRemover)
 
-        // O Prod nasce desligado: sem foto, a entrada some.
+        // O Prod nasce desligado: sem foto, a entrada some e não marca falha.
         let desligado = FotoDePerfilViewModel(api: ApiClienteEmMemoria(), ferramentas: Self.ferramentas())
         await desligado.carregar()
         #expect(!desligado.secaoVisivel && !desligado.podeEscolherFoto)
+        #expect(!desligado.falhouAoCarregar)
 
         // Desligado com foto: aparece só para remover, sem escolher nem pedir análise.
         let comFoto = FotoDePerfilViewModel(api: ApiClienteEmMemoria(cenario: .fotoRecursoDesligado), ferramentas: Self.ferramentas())
         await comFoto.carregar()
         #expect(comFoto.secaoVisivel && comFoto.podeRemover)
         #expect(!comFoto.podeEscolherFoto && !comFoto.podePedirNovaAnalise)
+        #expect(!comFoto.falhouAoCarregar)
+    }
+
+    @Test("Com o recurso desligado, falha em minhas_midias não levanta erro na tela (EMAIL #52252)")
+    @MainActor func falhaEmMinhasMidiasComRecursoDesligadoNaoGeraErro() async {
+        let api = ApiClienteEmMemoria()
+        await api.definirRedeCaida(true)
+        let model = FotoDePerfilViewModel(api: api, ferramentas: Self.ferramentas())
+        await model.carregar()
+        #expect(!model.secaoVisivel)
+        #expect(!model.falhouAoCarregar)
+        #expect(model.aviso == nil)
     }
 
     @Test("Cada um dos sete estados diz o que pode fazer")

@@ -90,7 +90,7 @@ public final class FotoDePerfilViewModel {
             recursoLigado = (try? await api.configuracaoDoApp().recursos.fotoDePerfil) ?? false
             aplicar(try await api.minhasMidias())
         } catch {
-            falhouAoCarregar = midia == nil
+            falhouAoCarregar = recursoLigado && (midia == nil)
         }
     }
 

@@ -54,7 +54,7 @@ private struct ConteudoDaFotoDePerfil: View {
             Color.clear.frame(height: 0)
             if model.secaoVisivel {
                 cartao
-            } else if model.falhouAoCarregar {
+            } else if model.recursoLigado && model.falhouAoCarregar {
                 EstadoErro(verbatim: TextosFotoDePerfil.aviso(.indisponivelAgora)) { Task { await model.carregar() } }
             }
         }
