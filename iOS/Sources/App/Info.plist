@@ -6,6 +6,8 @@
 	<false/>
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	<key>FirebaseCrashlyticsCollectionEnabled</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>O Frila precisa da câmera para você tirar sua foto de perfil.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

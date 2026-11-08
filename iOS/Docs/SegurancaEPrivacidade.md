@@ -38,8 +38,10 @@ Regra desta auditoria: nenhum arquivo de segredo foi aberto (`Secrets.xcconfig`,
    `NotificationService.swift:29`, `MedicaoDeDesempenho.swift:61,67`, `MedicaoDeAbertura.swift:30`).
    Nenhum `print`/`NSLog`/`os_log` (`SegurancaDoCodigoTests`). Erros da API chegam ao log e ao
    Crashlytics só como código (`DecodificadorErroAPI.swift`, `SupabaseApiCliente.swift:490` registra
-   apenas o nome do tipo do erro). Crashlytics recebe só `codigo`, `rpc` e `duracao_ns`
-   (`TelemetriaCrashlytics.swift:44-47`); sem `setUserID`, sem `log`, sem valores customizados.
+   apenas o nome do tipo do erro). Na 1.1 o Crashlytics não recebe nada (coleta
+   desligada no `Info.plist`, [CrashReporting](CrashReporting.md)); com a coleta ligada, recebe só
+   `codigo`, `rpc` e `duracao_ns` (`DestinoCrashlytics` em `TelemetriaCrashlytics.swift`); sem
+   `setUserID`, sem `log`, sem valores customizados.
 2. **Armazenamento.**
    - Keychain do app (token de push + vínculo): `AfterFirstUnlockThisDeviceOnly`
      (`ArmazenamentoKeychain.swift:17`). Sessão do SDK: ver A2.
