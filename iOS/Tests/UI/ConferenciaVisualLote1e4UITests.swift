@@ -58,7 +58,9 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
         XCTAssertTrue(chamar.waitForExistence(timeout: 15), "o botão Chamar de novo da Equipe")
         rolarAte(chamar, app)
         chamar.tap()
-        XCTAssertTrue(app.buttons["enviar-chamada"].waitForExistence(timeout: 10))
+        // O Form só cria o botão do fim quando ele entra na tela.
+        XCTAssertTrue(app.navigationBars["Chamar de novo"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["total-chamada-centavos"].waitForExistence(timeout: 10))
     }
 
     private func ligar(_ interruptor: XCUIElement, _ app: XCUIApplication) {
@@ -115,14 +117,16 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
     func testV7V8V9ChamadaDiretaRotulosValorEmReaisEBotaoDesligado() {
         let app = abrir(["-FRILA_ABRIR_EQUIPE_CONFIANCA", "-FRILA_SCENARIO", "chamada-direta"])
         abrirChamada(app)
-        // V9: rótulos visíveis acima dos campos.
-        XCTAssertTrue(app.staticTexts["Responsável no local"].exists)
-        XCTAssertTrue(app.staticTexts["Valor total"].exists)
+        // V9: cada campo diz o que é. O rótulo visível fica fora do VoiceOver; o campo o lê.
+        XCTAssertEqual(app.textFields["responsavel-chamada"].label, "Responsável no local")
+        XCTAssertEqual(app.textFields["total-chamada-centavos"].label, "Valor total")
+        capturar("V9-chamada-campos-claro")
         // V7: desligado, o botão diz o que falta.
         let enviar = app.buttons["enviar-chamada"]
+        rolarAte(enviar, app)
+        XCTAssertTrue(enviar.waitForExistence(timeout: 5))
         XCTAssertFalse(enviar.isEnabled)
         let falta = app.staticTexts["chamada-o-que-falta"]
-        rolarAte(enviar, app)
         XCTAssertTrue(falta.exists)
         XCTAssertEqual(falta.label, "Para enviar, informe o valor total.")
         capturar("V7-V9-chamada-vazia-claro")
@@ -140,6 +144,7 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
         capturar("V8-valor-180-claro")
         app.toolbars.buttons["OK"].firstMatch.tap()
 
+        rolarAte(enviar, app)
         XCTAssertEqual(falta.label, "Para enviar, confirme que este é o valor total.")
         ligar(app.switches["confirmar-total-chamada"], app)
         rolarAte(enviar, app)
@@ -173,7 +178,7 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
 
     // MARK: V16, V17 e V18: serviços
 
-    func testV16V17V18EditorDeServicos() {
+    func testV17V18EditorDeServicos() {
         let app = abrir(["-FRILA_SCENARIO", "perfil-rico-habilitado", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
         let editar = app.buttons["editar-servicos"]
         XCTAssertTrue(editar.waitForExistence(timeout: 15))
@@ -182,19 +187,28 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
         capturar("V18-funcoes-horarios-claro")
         editar.tap()
         XCTAssertTrue(app.buttons["salvar-servicos"].waitForExistence(timeout: 10))
-        // V17: os seletores dizem do que se trata.
-        XCTAssertTrue(app.staticTexts["Unidade de preço"].firstMatch.exists)
+        // V17: os seletores dizem do que se trata (o rótulo visível fica fora do VoiceOver; o seletor o lê).
+        let unidade = app.buttons["unidade-servico"].firstMatch
+        XCTAssertTrue(unidade.waitForExistence(timeout: 5))
+        XCTAssertTrue(unidade.label.contains("Unidade de preço"), unidade.label)
         capturar("V17-editar-servicos-claro")
         let material = app.buttons["material-servico"].firstMatch
         rolarAte(material, app)
-        XCTAssertTrue(app.staticTexts["Leva material?"].firstMatch.isHittable)
+        XCTAssertTrue(material.label.contains("Leva material?"), material.label)
         capturar("V17-editar-servicos-claro-2")
+    }
 
-        // V16: o erro do "O que está incluído" aparece com o teclado fechado.
-        let inclui = app.textViews["inclui-servico"].exists ? app.textViews["inclui-servico"] : app.textFields["inclui-servico"]
+    func testV16ErroDoQueEstaIncluidoComTecladoFechado() {
+        let app = abrir(["-FRILA_SCENARIO", "servicos-inclusos-recusados", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
+        let editar = app.buttons["editar-servicos"]
+        XCTAssertTrue(editar.waitForExistence(timeout: 15))
+        rolarAte(editar, app)
+        editar.tap()
+        XCTAssertTrue(app.buttons["salvar-servicos"].waitForExistence(timeout: 10))
+        let inclui = app.descendants(matching: .any).matching(identifier: "inclui-servico").firstMatch
         rolarAte(inclui, app)
         inclui.tap()
-        inclui.typeText("Pix 61999998888")
+        inclui.typeText("Texto sintetico para recusa")
         let salvar = app.buttons["salvar-servicos"]
         rolarAte(salvar, app)
         salvar.tap()
@@ -259,15 +273,32 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
         XCTAssertTrue(escolher.waitForExistence(timeout: 10))
         rolarAte(escolher, app)
         escolher.tap()
-        RunLoop.current.run(until: Date().addingTimeInterval(1))
+        let alerta = app.alerts.firstMatch
+        XCTAssertTrue(alerta.waitForExistence(timeout: 5), "o aviso prévio é um alerta, com o fundo escurecido")
+        XCTAssertTrue(alerta.buttons["Escolher da galeria"].exists)
         capturar("V22-foto-aviso-previo-ax3")
     }
 
     // MARK: V23 e V24: contestação
 
+    private func contestar(_ app: XCUIApplication) -> XCUIElement {
+        let contestar = app.buttons["botao-contestar-despacho"]
+        XCTAssertTrue(contestar.waitForExistence(timeout: 15))
+        rolarAte(contestar, app)
+        contestar.tap()
+        let campo = app.descendants(matching: .any)["campo-relato-despacho"].firstMatch
+        XCTAssertTrue(campo.waitForExistence(timeout: 5))
+        campo.tap()
+        campo.typeText("Recebo vagas longe da minha região de trabalho.")
+        let enviar = app.buttons["botao-enviar-revisao"]
+        rolarAte(enviar, app)
+        return enviar
+    }
+
     func testV23ProtocoloCurto() {
         for ax3 in [false, true] {
-            let app = abrir(["-FRILA_SCENARIO", "despacho-com-protocolo", "-FRILA_ABRIR_POR_QUE_RECEBO_VAGAS"], ax3: ax3)
+            let app = abrir(["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_POR_QUE_RECEBO_VAGAS"], ax3: ax3)
+            tocarFechandoTeclado(contestar(app), em: app)
             let protocolo = app.descendants(matching: .any)["protocolo-revisao-despacho"]
             XCTAssertTrue(protocolo.waitForExistence(timeout: 15))
             XCTAssertTrue(protocolo.label.range(of: #"^#[0-9A-F]{8}$"#, options: .regularExpression) != nil, protocolo.label)
@@ -279,16 +310,7 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
 
     func testV24FormularioDaContestacao() {
         let app = abrir(["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_POR_QUE_RECEBO_VAGAS"])
-        let contestar = app.buttons["botao-contestar-despacho"]
-        XCTAssertTrue(contestar.waitForExistence(timeout: 15))
-        rolarAte(contestar, app)
-        contestar.tap()
-        let campo = app.descendants(matching: .any)["campo-relato-despacho"].firstMatch
-        XCTAssertTrue(campo.waitForExistence(timeout: 5))
-        campo.tap()
-        campo.typeText("Recebo vagas longe da minha região de trabalho.")
-        let enviar = app.buttons["botao-enviar-revisao"]
-        rolarAte(enviar, app)
+        let enviar = contestar(app)
         let cancelar = app.buttons.matching(NSPredicate(format: "label == 'Cancelar'")).firstMatch
         XCTAssertGreaterThanOrEqual(cancelar.frame.minY, enviar.frame.maxY - 1, "os botões empilhados")
         capturar("V24-formulario-preenchido-claro")

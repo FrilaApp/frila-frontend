@@ -91,6 +91,8 @@ public struct TelaChamadaDireta: View {
             CampoRotulado(TextosChamadaDireta.responsavel) {
                 TextField(text: $viewModel.responsavel) { Text(verbatim: TextosChamadaDireta.responsavel) }
                     .textInputAutocapitalization(.words)
+                    // Preenchido ("Bistrô Ipê"), o campo ficava sem nome no VoiceOver.
+                    .accessibilityLabel(Text(verbatim: TextosChamadaDireta.responsavel))
                     .accessibilityIdentifier("responsavel-chamada")
             }
             CampoRotulado(TextosChamadaDireta.valor) {
