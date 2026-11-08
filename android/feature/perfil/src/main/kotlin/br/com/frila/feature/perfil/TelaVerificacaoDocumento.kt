@@ -1,6 +1,11 @@
 package br.com.frila.feature.perfil
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.net.Uri
+import android.view.Window
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -106,6 +112,14 @@ fun TelaVerificacaoDocumento(
     }
 
     LaunchedEffect(Unit) { viewModel.carregar() }
+
+    // RN15: documento e selfie não podem aparecer na miniatura dos apps recentes nem em captura de
+    // tela. Vale para a tela inteira (consentimento incluso) e sai junto com ela.
+    DisposableEffect(contexto) {
+        val janela = contexto.encontrarActivity()?.window
+        val desfazer = janela?.protegerContraCaptura()
+        onDispose { desfazer?.invoke() }
+    }
 
     val precisaConsentir = estado.carga == StatusCargaVerificacao.PRONTO &&
         estado.podeSolicitar && estado.precisaConsentimento
@@ -305,4 +319,24 @@ private fun LinhaDeParte(parte: TipoParteEvidencia, escolhida: Boolean, aoEscolh
             )
         }
     }
+}
+
+/** Sobe a cadeia de [ContextWrapper] até a [Activity] que hospeda a composição; `null` se não houver. */
+internal fun Context.encontrarActivity(): Activity? {
+    var atual: Context? = this
+    while (atual is ContextWrapper) {
+        if (atual is Activity) return atual
+        atual = atual.baseContext
+    }
+    return null
+}
+
+/**
+ * Liga `FLAG_SECURE` na janela e devolve o desfazer. Se a janela já era segura por outro motivo, o
+ * desfazer não a destrava.
+ */
+internal fun Window.protegerContraCaptura(): () -> Unit {
+    val jaEraSegura = attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0
+    addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    return { if (!jaEraSegura) clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
 }

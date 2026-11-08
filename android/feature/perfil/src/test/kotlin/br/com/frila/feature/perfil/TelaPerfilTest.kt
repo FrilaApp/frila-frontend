@@ -716,6 +716,7 @@ class TelaPerfilTest {
         status: br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade?,
         podeSolicitar: Boolean = false,
         aoAbrirSelo: () -> Unit = {},
+        recursoHabilitado: Boolean = true,
     ) {
         runBlocking {
             val viewModel = criarViewModel()
@@ -725,6 +726,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoSeloHabilitado = recursoHabilitado,
                         verificacaoIdentidade = status?.let {
                             br.com.frila.core.dominio.modelo.VerificacaoIdentidade(
                                 status = it,
@@ -773,6 +775,55 @@ class TelaPerfilTest {
         rule.onNodeWithTag("selo-em-analise").performScrollTo().assertIsDisplayed()
         rule.onAllNodesWithTag("selo-obter").assertCountEquals(0)
         rule.onAllNodesWithTag("selo-identidade-verificada").assertCountEquals(0)
+    }
+
+    @Test
+    fun recursoDesligadoEscondeOConviteMesmoComEstadoElegivel() {
+        mostrarPerfilComSelo(
+            br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.NAO_EXIGIDA,
+            podeSolicitar = true,
+            recursoHabilitado = false,
+        )
+
+        rule.onAllNodesWithTag("selo-obter").assertCountEquals(0)
+        rule.onAllNodesWithTag("selo-convite").assertCountEquals(0)
+        rule.onNodeWithText("Reputação").assertIsDisplayed()
+    }
+
+    @Test
+    fun recursoDesligadoEscondeOBadgeMesmoComSeloAprovado() {
+        mostrarPerfilComSelo(
+            br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.APROVADA,
+            recursoHabilitado = false,
+        )
+
+        rule.onAllNodesWithTag("selo-identidade-verificada").assertCountEquals(0)
+        rule.onNodeWithText("Reputação").assertIsDisplayed()
+    }
+
+    @Test
+    fun recursoDesligadoPorPadraoNaoMostraConviteNemBadge() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificacaoIdentidade = br.com.frila.core.dominio.modelo.VerificacaoIdentidade(
+                            status = br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade.APROVADA,
+                            identidadeVerificada = true,
+                        ),
+                        podeSolicitarSelo = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+        }
+
+        rule.onAllNodesWithTag("selo-identidade-verificada").assertCountEquals(0)
+        rule.onAllNodesWithTag("selo-obter").assertCountEquals(0)
     }
 
     @Test
