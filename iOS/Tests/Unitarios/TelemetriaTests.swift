@@ -229,10 +229,47 @@ struct TelemetriaTests {
     }
 
     private func prepararTurno(api: ApiClienteEmMemoria) async throws -> Turno {
-        if let turno = try await api.meusTurnos().first { return turno }
-        let vaga = try #require(try await api.vagasAbertas().first)
-        _ = try await api.candidatar(vagaID: vaga.id)
-        return try #require(try await api.meusTurnos().first)
+        let turnoOriginal: Turno
+        if let t = try await api.meusTurnos().first {
+            turnoOriginal = t
+        } else {
+            let vaga = try #require(try await api.vagasAbertas().first)
+            _ = try await api.candidatar(vagaID: vaga.id)
+            turnoOriginal = try #require(try await api.meusTurnos().first)
+        }
+        let agora = Date.now
+        let inicio = agora.addingTimeInterval(-5 * 60)
+        let fim = agora.addingTimeInterval(4 * 3600)
+        let periodo = try Periodo(inicio: inicio, fim: fim)
+        let vaga = VagaResumo(
+            id: turnoOriginal.vaga.id,
+            funcao: turnoOriginal.vaga.funcao,
+            local: turnoOriginal.vaga.local,
+            regiaoAdministrativa: turnoOriginal.vaga.regiaoAdministrativa,
+            periodo: periodo,
+            valor: turnoOriginal.vaga.valor,
+            origem: turnoOriginal.vaga.origem,
+            vagaOrigemId: turnoOriginal.vaga.vagaOrigemId
+        )
+        return Turno(
+            id: turnoOriginal.id,
+            posicaoID: turnoOriginal.posicaoID,
+            vaga: vaga,
+            contraparte: turnoOriginal.contraparte,
+            contatoVisivelAte: turnoOriginal.contatoVisivelAte,
+            aCaminhoEm: turnoOriginal.aCaminhoEm,
+            checkin: turnoOriginal.checkin,
+            checkout: turnoOriginal.checkout,
+            verificacao: turnoOriginal.verificacao,
+            valorAcordado: turnoOriginal.valorAcordado,
+            podeAvaliar: turnoOriginal.podeAvaliar,
+            contato: turnoOriginal.contato,
+            estado: turnoOriginal.estado,
+            avaliacao: turnoOriginal.avaliacao,
+            avaliacaoInformada: turnoOriginal.avaliacaoInformada,
+            cancelamento: turnoOriginal.cancelamento,
+            avaliacaoLidaEm: turnoOriginal.avaliacaoLidaEm
+        )
     }
 
     @Test("Evento 2: cadastro_concluido é emitido unicamente ao criar conta sem dados pessoais (RN15)")

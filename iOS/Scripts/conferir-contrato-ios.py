@@ -495,6 +495,7 @@ def conferir_dtos(
         "SuspensaoDTO",              # Struct aninhado em SituacaoDaContaDTO
         "RecursosDoAppDTO",          # Struct aninhado em ConfiguracaoDoAppDTO (aditivo 0.2.60 para feature flag)
         "RegioesAtendidasDTO",       # Parâmetros de /rpc/definir_regioes_atendidas
+        "PaginaChamadasDTO",         # Resposta paginada de /rpc/minhas_chamadas (0.2.56)
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)

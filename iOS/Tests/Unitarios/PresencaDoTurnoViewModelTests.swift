@@ -79,14 +79,32 @@ private struct Cena {
     var toque: Date { relogio.agora }
 
     static func montar() async throws -> Cena {
-        let api = ApiDePresenca()
-        let vaga = try #require(try await api.vagasAbertas().first)
-        _ = try await api.candidatar(vagaID: vaga.id)
+        let baseAgora = Date(timeIntervalSince1970: (Date.now.timeIntervalSince1970 - 1_800).rounded(.down))
+        let relogio = RelogioDeToque(baseAgora)
+        let baseApi = ApiClienteEmMemoria(relogio: relogio)
+        let lista = try #require(try await baseApi.vagasAbertas().first)
+        let vagaInicial = try await baseApi.detalheDaVaga(id: lista.id)
+        let duracao = vagaInicial.periodo.fim.timeIntervalSince(vagaInicial.periodo.inicio)
+        let inicioEmCurso = baseAgora.addingTimeInterval(10 * 60)
+        let periodoEmCurso = try Periodo(inicio: inicioEmCurso, fim: inicioEmCurso.addingTimeInterval(duracao))
+        let vagaEmCurso = Vaga(
+            id: vagaInicial.id, estabelecimento: vagaInicial.estabelecimento, funcao: vagaInicial.funcao,
+            periodo: periodoEmCurso, local: vagaInicial.local, regiaoAdministrativa: vagaInicial.regiaoAdministrativa,
+            ponto: vagaInicial.ponto, distanciaKm: vagaInicial.distanciaKm, valor: vagaInicial.valor,
+            posicoes: vagaInicial.posicoes, posicoesAbertas: vagaInicial.posicoesAbertas,
+            inclusos: vagaInicial.inclusos, responsavelLocal: vagaInicial.responsavelLocal,
+            traje: vagaInicial.traje, participaRateio: vagaInicial.participaRateio,
+            observacoes: vagaInicial.observacoes, modo: vagaInicial.modo, estado: vagaInicial.estado,
+            oculta: vagaInicial.oculta, publicadoEm: vagaInicial.publicadoEm,
+            origem: vagaInicial.origem, vagaOrigemId: vagaInicial.vagaOrigemId
+        )
+        let apiMemoria = ApiClienteEmMemoria(relogio: relogio, vagas: [vagaEmCurso])
+        let api = ApiDePresenca(base: apiMemoria)
+        _ = try await api.candidatar(vagaID: vagaEmCurso.id)
         let turno = try #require(try await api.meusTurnos().first)
-        let ponto = try await api.base.detalheDaVaga(id: vaga.id).ponto
-        let agora = turno.vaga.periodo.inicio.addingTimeInterval(60)
+        let ponto = vagaEmCurso.ponto
         let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
-        return Cena(api: api, turno: turno, ponto: ponto, relogio: RelogioDeToque(agora), fila: fila)
+        return Cena(api: api, turno: turno, ponto: ponto, relogio: relogio, fila: fila)
     }
 
     func leitor(
