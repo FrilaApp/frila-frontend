@@ -96,6 +96,29 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertTrue(confirmar.waitForExistence(timeout: 5), "bloquear pede confirmação")
         confirmar.tap()
         XCTAssertFalse(app.buttons["bloquear-chamada"].isEnabled, "bloqueada, a casa não é bloqueada de novo")
+        XCTAssertTrue(app.descendants(matching: .any)["etiqueta-bloqueio-chamada"].waitForExistence(timeout: 5),
+                      "a tela diz que a casa foi bloqueada")
+        XCTAssertFalse(app.buttons["aceitar-chamada"].exists, "bloqueada, a chamada não se aceita mais (o servidor a encerra)")
+        XCTAssertFalse(app.buttons["recusar-chamada"].exists)
+    }
+
+    /// Recusar não tira o direito de denunciar ou bloquear quem chamou (CD-RF12, CD-S13).
+    func testDepoisDeRecusarDenunciarEBloquearContinuam() {
+        let app = abrir(["-FRILA_SCENARIO", "chamada-recebida", "-FRILA_PUSH", "chamada_recebida",
+                         "-FRILA_PUSH_CHAMADA_ID", chamadaRecebida])
+        let recusar = app.buttons["recusar-chamada"]
+        rolarAte(recusar, em: app)
+        XCTAssertTrue(recusar.waitForExistence(timeout: 15))
+        recusar.tap()
+        let confirmar = app.buttons["confirmar-recusa-chamada"]
+        XCTAssertTrue(confirmar.waitForExistence(timeout: 5), "recusar abre a folha com o motivo opcional")
+        confirmar.tap()
+
+        XCTAssertFalse(app.buttons["aceitar-chamada"].waitForExistence(timeout: 3), "recusada, a chamada não se responde de novo")
+        let denunciar = app.buttons["denunciar-chamada"]
+        rolarAte(denunciar, em: app)
+        XCTAssertTrue(denunciar.waitForExistence(timeout: 5), "depois de recusar, ainda dá para denunciar")
+        XCTAssertTrue(app.buttons["bloquear-chamada"].exists, "e para bloquear")
     }
 
     func testPreferenciasDeChamadaAparecemComAChaveLigada() {
