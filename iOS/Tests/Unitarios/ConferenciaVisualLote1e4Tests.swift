@@ -38,7 +38,7 @@ struct ConferenciaVisualLote1e4Tests {
     @Test("V8 e RN29: o campo só guarda algarismos e uma vírgula; '-500' vira 500, nunca negativo")
     func valorDigitadoSoAceitaAlgarismos() async throws {
         #expect(ChamadaDiretaViewModel.valorDigitado("-500") == "500")
-        #expect(ChamadaDiretaViewModel.valorDigitado("R$ 1.234,567") == "1,23")
+        #expect(ChamadaDiretaViewModel.valorDigitado("R$ 1.234,567") == "1234,56")
         #expect(ChamadaDiretaViewModel.valorDigitado("12,3,4") == "12,34")
         #expect(ChamadaDiretaViewModel.valorDigitado(",5") == "0,5")
         #expect(ChamadaDiretaViewModel.valorDigitado("1234567") == "12345")
@@ -49,6 +49,24 @@ struct ConferenciaVisualLote1e4Tests {
         // Mesmo um texto que não passou pela máscara não deixa o valor negativo.
         model.valorTexto = "-500"
         #expect(model.valorCentavos == 0)
+    }
+
+    @Test("Valor colado com ponto de milhar: 'R$ 1.500,00' vale R$ 1.500,00, e não R$ 1,50")
+    func valorColadoComPontoDeMilhar() async throws {
+        // Com vírgula, o ponto é separador de milhar.
+        #expect(ChamadaDiretaViewModel.valorDigitado("R$ 1.500,00") == "1500,00")
+        #expect(ChamadaDiretaViewModel.valorDigitado("1.500,5") == "1500,5")
+        #expect(ChamadaDiretaViewModel.valorDigitado("12.345,67") == "12345,67")
+        // Sem vírgula, o ponto só é milhar quando separa grupos de três algarismos.
+        #expect(ChamadaDiretaViewModel.valorDigitado("1.500") == "1500")
+        #expect(ChamadaDiretaViewModel.valorDigitado("12.345") == "12345")
+        // Fora disso, o ponto continua sendo a vírgula decimal (teclado em outro idioma).
+        #expect(ChamadaDiretaViewModel.valorDigitado("1.50") == "1,50")
+        #expect(ChamadaDiretaViewModel.valorDigitado("1.5") == "1,5")
+        #expect(ChamadaDiretaViewModel.valorDigitado("180.") == "180,")
+        let (_, model) = try await chamada()
+        model.valorTexto = ChamadaDiretaViewModel.valorDigitado("R$ 1.500,00")
+        #expect(model.valorCentavos == 150_000)
     }
 
     @Test("V8: o valor que vem da vaga aparece em reais no campo")
