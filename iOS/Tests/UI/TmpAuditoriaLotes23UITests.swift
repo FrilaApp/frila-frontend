@@ -103,7 +103,7 @@ final class TmpAuditoriaLotes23UITests: XCTestCase {
         auditar("resumo-topo", app, grande: grande)
         let qualquer = app.descendants(matching: .any)["acompanhar-chamada-enviada"]
         rolarAte(qualquer, em: app)
-        print("AUDITORIA-L23|link|\(grande ? "ax5" : "padrao")|existe=\(qualquer.exists)|tipo=\(qualquer.exists ? qualquer.elementType.rawValue : -1)|botao=\(app.buttons["acompanhar-chamada-enviada"].exists)")
+        print("AUDITORIA-L23|link|\(grande ? "ax5" : "padrao")|existe=\(qualquer.exists)|tipo=\(qualquer.exists ? Int(qualquer.elementType.rawValue) : -1)|botao=\(app.buttons["acompanhar-chamada-enviada"].exists)")
         auditar("resumo-fim", app, grande: grande)
         XCTAssertTrue(qualquer.exists)
         qualquer.tap()
