@@ -151,8 +151,9 @@ public actor AparelhoDePush {
         contaAtiva = contaID
         guard let atual = guardado() else { return .semToken }
         let dispositivo: Dispositivo
+        let versaoApp = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         do {
-            dispositivo = try await api.registrarDispositivo(tokenFCM: atual.token)
+            dispositivo = try await api.registrarDispositivo(tokenFCM: atual.token, versaoApp: versaoApp)
         } catch {
             return .falhou(error as? ErroDaApi ?? ErroDaApi(codigo: .desconhecido))
         }
