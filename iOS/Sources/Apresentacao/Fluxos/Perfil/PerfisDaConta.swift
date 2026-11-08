@@ -45,6 +45,7 @@ public final class MeuPerfilProfissionalViewModel {
     public private(set) var perfil: PerfilProfissional?
     public private(set) var perfilPublico: PerfilPublico?
     public private(set) var suportaPerfilRico: Bool = false
+    public private(set) var suportaChamadaDireta: Bool = false
     public private(set) var carregando = false
     public private(set) var mensagemErro: String?
     private let carregarConta: @Sendable () async throws -> Conta
@@ -72,10 +73,12 @@ public final class MeuPerfilProfissionalViewModel {
                 perfil: @escaping @Sendable () async throws -> PerfilProfissional,
                 publico: @escaping @Sendable (UUID) async throws -> PerfilPublico,
                 gravarContato: (@Sendable (AlteracaoDeContato) async throws -> Conta)? = nil,
-                suportaPerfilRico: Bool = false) {
+                suportaPerfilRico: Bool = false,
+                suportaChamadaDireta: Bool = false) {
         carregarConta = conta; carregarPerfil = perfil; carregarPublico = publico
         carregarConfiguracao = nil
         self.suportaPerfilRico = suportaPerfilRico
+        self.suportaChamadaDireta = suportaChamadaDireta
         self.gravarContato = gravarContato
     }
 
@@ -96,6 +99,7 @@ public final class MeuPerfilProfissionalViewModel {
         do {
             if let config = try? await carregarConfiguracao?() {
                 suportaPerfilRico = config.recursos.perfilRico
+                suportaChamadaDireta = config.recursos.chamadaDireta
             }
             let contaNova = try await carregarConta()
             let perfilNovo = try await carregarPerfil()
@@ -431,6 +435,18 @@ public struct TelaMeuPerfilProfissional: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("perfil-apresentacao-regioes")
+            }
+
+            if model.suportaChamadaDireta {
+                DivisoriaDeLinha()
+
+                NavigationLink {
+                    TelaPreferenciasDeChamada(api: api)
+                } label: {
+                    RotuloDeLinha(TextosChamadaDireta.preferenciasTitulo)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-preferencias-chamada")
             }
 
             DivisoriaDeLinha()

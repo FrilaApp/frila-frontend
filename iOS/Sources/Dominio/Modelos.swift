@@ -1571,3 +1571,189 @@ public struct RecursosDoApp: Codable, Equatable, Sendable {
 
     public static let desligados = RecursosDoApp()
 }
+
+// MARK: - Chamada Direta e Preferências (I5b, I5c, I5d · Contrato 0.2.56/0.2.62)
+
+public enum RespostaChamada: String, Codable, Sendable {
+    case aceitar
+    case recusar
+}
+
+public enum FaixaDistancia: String, Codable, Sendable {
+    case ate5km = "ate_5_km"
+    case de5a15km = "de_5_a_15_km"
+    case maisDe15km = "mais_de_15_km"
+
+    public var rotulo: String {
+        switch self {
+        case .ate5km: return "Até 5 km"
+        case .de5a15km: return "De 5 a 15 km"
+        case .maisDe15km: return "Mais de 15 km"
+        }
+    }
+}
+
+public struct ResultadoChamada: Codable, Equatable, Sendable {
+    public let chamada: Chamada
+    public let turnoID: UUID?
+    public let local: String?
+    public let ponto: Coordenada?
+    public let responsavelLocal: String?
+
+    public init(chamada: Chamada, turnoID: UUID? = nil, local: String? = nil, ponto: Coordenada? = nil, responsavelLocal: String? = nil) {
+        self.chamada = chamada
+        self.turnoID = turnoID
+        self.local = local
+        self.ponto = ponto
+        self.responsavelLocal = responsavelLocal
+    }
+}
+
+public struct ChamadaResumo: Codable, Equatable, Sendable, Identifiable {
+    public let id: UUID
+    public let vagaID: UUID
+    public let profissionalID: UUID
+    public let estabelecimentoID: UUID
+    public let estado: EstadoChamada
+    public let recado: String?
+    public let motivoRecusa: MotivoRecusaChamada?
+    public let expiraEm: Date
+    public let respondidaEm: Date?
+    public let criadaEm: Date
+    public let funcao: Funcao
+    public let inicioEm: Date
+    public let fimEm: Date
+    public let valorCentavos: Int
+    public let outraParte: PerfilPublico
+
+    public init(id: UUID, vagaID: UUID, profissionalID: UUID, estabelecimentoID: UUID,
+                estado: EstadoChamada, recado: String? = nil, motivoRecusa: MotivoRecusaChamada? = nil,
+                expiraEm: Date, respondidaEm: Date? = nil, criadaEm: Date,
+                funcao: Funcao, inicioEm: Date, fimEm: Date, valorCentavos: Int,
+                outraParte: PerfilPublico) {
+        self.id = id
+        self.vagaID = vagaID
+        self.profissionalID = profissionalID
+        self.estabelecimentoID = estabelecimentoID
+        self.estado = estado
+        self.recado = recado
+        self.motivoRecusa = motivoRecusa
+        self.expiraEm = expiraEm
+        self.respondidaEm = respondidaEm
+        self.criadaEm = criadaEm
+        self.funcao = funcao
+        self.inicioEm = inicioEm
+        self.fimEm = fimEm
+        self.valorCentavos = valorCentavos
+        self.outraParte = outraParte
+    }
+}
+
+public struct ChamadaDetalhe: Codable, Equatable, Sendable, Identifiable {
+    public let id: UUID
+    public let vagaID: UUID
+    public let profissionalID: UUID
+    public let estabelecimentoID: UUID
+    public let estado: EstadoChamada
+    public let recado: String?
+    public let motivoRecusa: MotivoRecusaChamada?
+    public let expiraEm: Date
+    public let respondidaEm: Date?
+    public let criadaEm: Date
+    public let funcao: Funcao
+    public let inicioEm: Date
+    public let fimEm: Date
+    public let valorCentavos: Int
+    public let outraParte: PerfilPublico
+    public let tipoEstabelecimento: TipoEstabelecimento?
+    public let contaNova: Bool
+    public let regiaoAdministrativa: String
+    public let distanciaFaixa: FaixaDistancia?
+    public let incluiRefeicao: Bool
+    public let incluiTransporte: Bool
+    public let exigeMaterialProprio: Bool
+    public let local: String?
+    public let ponto: Coordenada?
+    public let responsavelLocal: String?
+    public let turnoID: UUID?
+
+    public init(id: UUID, vagaID: UUID, profissionalID: UUID, estabelecimentoID: UUID,
+                estado: EstadoChamada, recado: String? = nil, motivoRecusa: MotivoRecusaChamada? = nil,
+                expiraEm: Date, respondidaEm: Date? = nil, criadaEm: Date,
+                funcao: Funcao, inicioEm: Date, fimEm: Date, valorCentavos: Int,
+                outraParte: PerfilPublico, tipoEstabelecimento: TipoEstabelecimento? = nil,
+                contaNova: Bool = false, regiaoAdministrativa: String,
+                distanciaFaixa: FaixaDistancia? = nil, incluiRefeicao: Bool = false,
+                incluiTransporte: Bool = false, exigeMaterialProprio: Bool = false,
+                local: String? = nil, ponto: Coordenada? = nil,
+                responsavelLocal: String? = nil, turnoID: UUID? = nil) {
+        self.id = id
+        self.vagaID = vagaID
+        self.profissionalID = profissionalID
+        self.estabelecimentoID = estabelecimentoID
+        self.estado = estado
+        self.recado = recado
+        self.motivoRecusa = motivoRecusa
+        self.expiraEm = expiraEm
+        self.respondidaEm = respondidaEm
+        self.criadaEm = criadaEm
+        self.funcao = funcao
+        self.inicioEm = inicioEm
+        self.fimEm = fimEm
+        self.valorCentavos = valorCentavos
+        self.outraParte = outraParte
+        self.tipoEstabelecimento = tipoEstabelecimento
+        self.contaNova = contaNova
+        self.regiaoAdministrativa = regiaoAdministrativa
+        self.distanciaFaixa = distanciaFaixa
+        self.incluiRefeicao = incluiRefeicao
+        self.incluiTransporte = incluiTransporte
+        self.exigeMaterialProprio = exigeMaterialProprio
+        self.local = local
+        self.ponto = ponto
+        self.responsavelLocal = responsavelLocal
+        self.turnoID = turnoID
+    }
+}
+
+public enum QuemPodeChamar: String, Codable, CaseIterable, Sendable {
+    case todos
+    case soCnpj = "so_cnpj"
+}
+
+public struct PreferenciaChamadas: Codable, Equatable, Sendable {
+    public let aceitaDeQuemJaTrabalhou: Bool
+    public let pausadoAte: Date?
+    public let antecedenciaMinimaH: Int
+    public let aceitaDe: QuemPodeChamar
+
+    public init(aceitaDeQuemJaTrabalhou: Bool = true,
+                pausadoAte: Date? = nil,
+                antecedenciaMinimaH: Int = 6,
+                aceitaDe: QuemPodeChamar = .todos) {
+        self.aceitaDeQuemJaTrabalhou = aceitaDeQuemJaTrabalhou
+        self.pausadoAte = pausadoAte
+        self.antecedenciaMinimaH = antecedenciaMinimaH
+        self.aceitaDe = aceitaDe
+    }
+}
+
+public struct AlteracaoPreferenciaChamadas: Codable, Equatable, Sendable {
+    public let aceitaDeQuemJaTrabalhou: Bool?
+    public let pausadoAte: Date?
+    public let removerPausa: Bool
+    public let antecedenciaMinimaH: Int?
+    public let aceitaDe: QuemPodeChamar?
+
+    public init(aceitaDeQuemJaTrabalhou: Bool? = nil,
+                pausadoAte: Date? = nil,
+                removerPausa: Bool = false,
+                antecedenciaMinimaH: Int? = nil,
+                aceitaDe: QuemPodeChamar? = nil) {
+        self.aceitaDeQuemJaTrabalhou = aceitaDeQuemJaTrabalhou
+        self.pausadoAte = pausadoAte
+        self.removerPausa = removerPausa
+        self.antecedenciaMinimaH = antecedenciaMinimaH
+        self.aceitaDe = aceitaDe
+    }
+}

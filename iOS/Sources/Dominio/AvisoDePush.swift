@@ -47,12 +47,14 @@ public struct AvisoDePush: Equatable, Sendable {
     public let vagaID: UUID?
     public let turnoID: UUID?
     public let posicaoID: UUID?
+    public let chamadaID: UUID?
 
-    public init(tipo: TipoDeAviso, vagaID: UUID? = nil, turnoID: UUID? = nil, posicaoID: UUID? = nil) {
+    public init(tipo: TipoDeAviso, vagaID: UUID? = nil, turnoID: UUID? = nil, posicaoID: UUID? = nil, chamadaID: UUID? = nil) {
         self.tipo = tipo
         self.vagaID = vagaID
         self.turnoID = turnoID
         self.posicaoID = posicaoID
+        self.chamadaID = chamadaID
     }
 
     /// Lê o `userInfo` da notificação: o FCM entrega os campos de `data` na raiz, todos como texto,
@@ -61,7 +63,7 @@ public struct AvisoDePush: Equatable, Sendable {
     public init?(payload: [AnyHashable: Any]) {
         guard let texto = payload["tipo"] as? String, let tipo = TipoDeAviso(rawValue: texto) else { return nil }
         func id(_ chave: String) -> UUID? { (payload[chave] as? String).flatMap(UUID.init(uuidString:)) }
-        self.init(tipo: tipo, vagaID: id("vaga_id"), turnoID: id("turno_id"), posicaoID: id("posicao_id"))
+        self.init(tipo: tipo, vagaID: id("vaga_id"), turnoID: id("turno_id"), posicaoID: id("posicao_id"), chamadaID: id("chamada_id"))
     }
 
     /// Os campos de `data` como o servidor os envia.
@@ -70,6 +72,7 @@ public struct AvisoDePush: Equatable, Sendable {
         campos["vaga_id"] = vagaID?.uuidString.lowercased()
         campos["turno_id"] = turnoID?.uuidString.lowercased()
         campos["posicao_id"] = posicaoID?.uuidString.lowercased()
+        campos["chamada_id"] = chamadaID?.uuidString.lowercased()
         return campos
     }
 }

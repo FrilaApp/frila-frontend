@@ -382,6 +382,12 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func resolverServico(termo: String) async throws -> [Funcao]
     func regioesAdministrativas() async throws -> [RegiaoAdministrativa]
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada
+    func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada
+    func cancelarChamada(id: UUID) async throws -> Chamada
+    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo]
+    func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
+    func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada
+    func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
@@ -471,6 +477,7 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// aparelho). Token em branco é `campoObrigatorio`, e com menos de 20 caracteres,
     /// `campoInvalido`, os dois com `token_fcm` no detalhe.
     func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo
+    func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo
     /// Antes de encerrar a sessão, que é quem autoriza a chamada. Só tira o token da própria conta,
     /// e o token que não estava registrado não é erro.
     func removerDispositivo(tokenFCM: String) async throws
@@ -542,6 +549,10 @@ public protocol ProfissionalRepositorio: Sendable {
 }
 
 public extension ApiCliente {
+    func registrarDispositivo(tokenFCM: String, versaoApp: String?) async throws -> Dispositivo {
+        try await registrarDispositivo(tokenFCM: tokenFCM)
+    }
+
     func resolverServico(termo: String) async throws -> [Funcao] {
         let limpo = termo.trimmingCharacters(in: .whitespacesAndNewlines)
         guard limpo.count >= 2 else { return [] }
@@ -564,6 +575,30 @@ public extension ApiCliente {
 
     func definirRegioesAtendidas(_ regioes: RegioesAtendidas) async throws -> PerfilProfissionalDetalhado {
         try await meuPerfilDetalhado()
+    }
+
+    func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func cancelarChamada(id: UUID) async throws -> Chamada {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
+        []
+    }
+
+    func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
+        throw ErroDaApi(codigo: .naoEncontrado)
+    }
+
+    func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas {
+        throw ErroDaApi(codigo: .respostaInvalida)
     }
 }
 
