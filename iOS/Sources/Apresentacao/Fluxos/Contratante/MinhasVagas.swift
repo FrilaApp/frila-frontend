@@ -5,7 +5,7 @@ import SwiftUI
 private final class MarcadorMinhasVagas: NSObject {}
 private let bundleMinhasVagas = Bundle(for: MarcadorMinhasVagas.self)
 
-private enum TextosMinhasVagas {
+enum TextosMinhasVagas {
     static let titulo = String(localized: "Minhas vagas", bundle: bundleMinhasVagas)
     static let emAlerta = String(localized: "Precisa de atenção", bundle: bundleMinhasVagas)
     static let hoje = String(localized: "Hoje", bundle: bundleMinhasVagas)
@@ -47,6 +47,9 @@ private enum TextosMinhasVagas {
     static let vagaPreenchida = String(localized: "Vaga preenchida", bundle: bundleMinhasVagas)
     static let todasPosicoesConfirmadas = String(localized: "Todas as posições foram confirmadas.", bundle: bundleMinhasVagas)
     static let encerradaNinguemAceitou = String(localized: "Encerrada, ninguém aceitou", bundle: bundleMinhasVagas)
+    static let vagaEncerrada = String(localized: "Vaga encerrada", bundle: bundleMinhasVagas)
+    static let posicaoPreenchidaDeUma = String(localized: "1 de 1 posição preenchida", bundle: bundleMinhasVagas)
+    static let posicoesPreenchidas = String(localized: "%d de %d posições preenchidas", bundle: bundleMinhasVagas)
     static let vagaCancelada = String(localized: "Vaga cancelada", bundle: bundleMinhasVagas)
     static let vagaCanceladaCorpo = String(localized: "Ela saiu da lista e não é mais enviada aos profissionais.", bundle: bundleMinhasVagas)
 }
@@ -881,15 +884,26 @@ private struct CartaoEstadoVaga: View {
         .cartaoFrila()
     }
 
-    private var textosEstado: (String, String?) {
+    private var textosEstado: (String, String?) { TextosMinhasVagas.estadoDoDetalhe(vaga) }
+}
+
+extension TextosMinhasVagas {
+    /// Título e corpo do cartão de estado no detalhe da vaga.
+    static func estadoDoDetalhe(_ vaga: VagaNoPainel) -> (String, String?) {
         let total = vaga.posicoes.count
         let confirmadas = vaga.posicoes.filter { $0.estado == .confirmada || $0.estado == .cumprida }.count
 
         if vaga.estado == .cancelada {
             return (TextosMinhasVagas.vagaCancelada, TextosMinhasVagas.vagaCanceladaCorpo)
         }
+        // O backend encerra toda vaga cujo turno terminou, inclusive a trabalhada (posições cumpridas):
+        // "encerrada" não quer dizer que ninguém aceitou (E2E do Prod, 08/11/2026).
         if vaga.estado == .encerrada {
-            return (TextosMinhasVagas.encerradaNinguemAceitou, nil)
+            guard confirmadas > 0 else { return (TextosMinhasVagas.encerradaNinguemAceitou, nil) }
+            let corpo = total == 1
+                ? TextosMinhasVagas.posicaoPreenchidaDeUma
+                : String(format: TextosMinhasVagas.posicoesPreenchidas, confirmadas, total)
+            return (TextosMinhasVagas.vagaEncerrada, corpo)
         }
         if confirmadas == total && total > 0 {
             return (TextosMinhasVagas.vagaPreenchida, TextosMinhasVagas.todasPosicoesConfirmadas)

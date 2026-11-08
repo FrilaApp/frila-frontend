@@ -53,6 +53,64 @@ struct MinhasVagasTests {
         ) { painel }
     }
 
+    private func posicao(_ estado: EstadoPosicao) -> PosicaoNoPainel {
+        PosicaoNoPainel(id: UUID(), estado: estado, profissional: nil, turnoID: nil, verificacao: nil, emAtraso: false)
+    }
+
+    /// E2E do Prod, 08/11/2026 (vaga e415fe59): o fechamento do backend marca como `encerrada` toda vaga
+    /// cujo turno terminou, e as posições trabalhadas como `cumprida`. O detalhe dizia "Encerrada, ninguém
+    /// aceitou" numa vaga preenchida e trabalhada.
+    @Test("Vaga encerrada com a posição cumprida diz 'Vaga encerrada' e '1 de 1 posição preenchida', e não 'ninguém aceitou'")
+    func encerradaComPosicaoCumprida() throws {
+        let trabalhada = try vaga(id: "73000000-0000-0000-0000-000000000021", inicioEm: -7_200, estado: .encerrada,
+                                  posicoes: [posicao(.cumprida)])
+        let estado = TextosMinhasVagas.estadoDoDetalhe(trabalhada)
+        #expect(estado.0 == "Vaga encerrada")
+        #expect(estado.1 == "1 de 1 posição preenchida")
+    }
+
+    @Test("Vaga encerrada com parte das posições cumpridas conta as preenchidas no plural")
+    func encerradaComParteCumprida() throws {
+        let uma = try vaga(id: "73000000-0000-0000-0000-000000000022", inicioEm: -7_200, estado: .encerrada,
+                           posicoes: [posicao(.cumprida), posicao(.cancelada)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(uma).0 == "Vaga encerrada")
+        #expect(TextosMinhasVagas.estadoDoDetalhe(uma).1 == "1 de 2 posições preenchidas")
+        let duas = try vaga(id: "73000000-0000-0000-0000-000000000023", inicioEm: -7_200, estado: .encerrada,
+                            posicoes: [posicao(.cumprida), posicao(.cumprida), posicao(.cancelada)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(duas).1 == "2 de 3 posições preenchidas")
+        let confirmadaAindaNaoFechada = try vaga(id: "73000000-0000-0000-0000-000000000026", inicioEm: -7_200, estado: .encerrada,
+                                                posicoes: [posicao(.confirmada), posicao(.confirmada)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(confirmadaAindaNaoFechada).1 == "2 de 2 posições preenchidas")
+    }
+
+    @Test("Vaga encerrada sem nenhuma posição confirmada ou cumprida (0 de N) continua 'Encerrada, ninguém aceitou'")
+    func encerradaSemNinguem() throws {
+        for posicoes in [[posicao(.cancelada)], [posicao(.cancelada), posicao(.cancelada)], []] {
+            let vazia = try vaga(id: "73000000-0000-0000-0000-000000000024", inicioEm: -7_200, estado: .encerrada,
+                                 posicoes: posicoes)
+            let estado = TextosMinhasVagas.estadoDoDetalhe(vazia)
+            #expect(estado.0 == "Encerrada, ninguém aceitou")
+            #expect(estado.1 == nil)
+        }
+    }
+
+    @Test("Os outros estados do detalhe não mudam")
+    func outrosEstadosDoDetalhe() throws {
+        let preenchida = try vaga(id: "73000000-0000-0000-0000-000000000027", inicioEm: 3_600, estado: .preenchida,
+                                  posicoes: [posicao(.confirmada)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(preenchida).0 == "Vaga preenchida")
+        #expect(TextosMinhasVagas.estadoDoDetalhe(preenchida).1 == "Todas as posições foram confirmadas.")
+        let aberta = try vaga(id: "73000000-0000-0000-0000-000000000025", inicioEm: 3_600,
+                              posicoes: [posicao(.confirmada), posicao(.aberta)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(aberta).0 == "1 de 2 posições confirmada")
+        #expect(TextosMinhasVagas.estadoDoDetalhe(aberta).1 == "As posições abertas continuam na lista até o início do turno.")
+        let ninguem = try vaga(id: "73000000-0000-0000-0000-000000000028", inicioEm: 3_600, posicoes: [posicao(.aberta)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(ninguem).0 == TextosMinhasVagas.abertaNinguemAceitou)
+        let cancelada = try vaga(id: "73000000-0000-0000-0000-000000000029", inicioEm: -7_200, estado: .cancelada,
+                                 posicoes: [posicao(.cumprida)])
+        #expect(TextosMinhasVagas.estadoDoDetalhe(cancelada).0 == TextosMinhasVagas.vagaCancelada)
+    }
+
     @Test("Republicação no detalhe usa o relógio recebido pelo painel")
     func podeRepublicarComRelogioInjetado() throws {
         let futura = try vaga(id: "73000000-0000-0000-0000-000000000011", inicioEm: 3600)
