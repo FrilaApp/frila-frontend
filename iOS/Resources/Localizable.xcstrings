@@ -259,6 +259,16 @@
         }
       }
     },
+    "%d de %d posições preenchidas": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d de %d posições preenchidas"
+          }
+        }
+      }
+    },
     "%d de %d preenchidas": {
       "extractionState": "stale",
       "localizations": {
@@ -686,6 +696,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "1 de %d posições confirmada"
+          }
+        }
+      }
+    },
+    "1 de 1 posição preenchida": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 de 1 posição preenchida"
           }
         }
       }
