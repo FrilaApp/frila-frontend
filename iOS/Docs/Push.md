@@ -292,7 +292,7 @@ xcrun simctl push <UDID> com.frila.org.app Tests/Fixtures/Push/vaga.apns
 
 #### Passo a passo de simulação local da extensão (NSE)
 
-Para validar localmente a extensão de notificação e o comportamento do `FiltroDoPushPorVinculo`:
+Para preparar localmente os cenários da extensão de notificação e do `FiltroDoPushPorVinculo` (no simulador, o `simctl push` não executa a extensão, veja o passo 3; a decisão do filtro se prova nos testes unitários e no aparelho):
 
 1. **Validar sintaxe das fixtures:**
    Execute a validação estática de todos os arquivos `.apns` em `Tests/Fixtures/Push/`:
@@ -361,7 +361,7 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
      }
      ```
      *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.neutralizar`. Título e corpo originais são substituídos por `"Nova notificação do Frila"` e `"Abra o aplicativo para conferir."`, e todo o dicionário de dados (`payload`) é esvaziado.
-     *No simulador:* com iOS 26.5, o `simctl push` não executa a extensão, e o cenário B chega com o texto original. A neutralização se prova no aparelho (passo 5 do roteiro abaixo) e nos testes unitários do `FiltroDoPushPorVinculo` (`NotificationServiceTests`). Prova: `orquestracao/retornos/F-R2-push-vinculo.md`.
+     *No simulador:* com iOS 26.5, o `simctl push` não executa a extensão, e o cenário B chega com o texto original. A neutralização se prova no aparelho (passo 5 do roteiro abaixo) e nos testes unitários do `FiltroDoPushPorVinculo` (`NotificationServiceTests`). Conferido em 08/11/2026 no simulador com iOS 26.5: com `mutable-content` e `vinculo_id` diferente, o aviso chegou com o texto original, sinal de que a extensão não rodou.
 
    - **Cenário C — Payload legado (sem `vinculo_id`):**
      O payload contém `"mutable-content": 1`, mas **não** possui a chave `vinculo_id` (formato emitido por versões legadas do servidor anteriores à 0.2.30 do contrato):
@@ -392,7 +392,7 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
    # Diretamente via xcrun simctl:
    xcrun simctl push <UDID> com.frila.org.app Tests/Fixtures/Push/meu-push.apns
    ```
-   No simulador com iOS 26.5, o `simctl push` (e o script, que o usa) entrega o aviso direto ao sistema, sem passar pela extensão: o log `com.frila.org.app.notificationservice` fica vazio e nenhum cenário é neutralizado. Serve para conferir a chegada e o toque, não o filtro por vínculo.
+   No simulador com iOS 26.5, o `simctl push` (e o script, que o usa) entrega o aviso direto ao sistema, sem passar pela extensão: nenhum cenário é neutralizado, e o de `vinculo_id` diferente chega com o texto original. Serve para conferir a chegada e o toque, não o filtro por vínculo. No aparelho, o log da extensão (`com.frila.org.app.notificationservice`) sai no nível `.info` (`NotificationService.swift:28`): use `log stream --level info` para vê-lo.
 
 4. **Testes unitários automatizados da extensão:**
    A prova automatizada da lógica de neutralização, gravação e leitura no App Group é executada via testes unitários no alvo `FrilaTests` (esquema `Frila-Local`).
