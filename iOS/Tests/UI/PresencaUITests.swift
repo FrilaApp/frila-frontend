@@ -139,6 +139,26 @@ final class PresencaUITests: XCTestCase {
         salvarCaptura(app.screenshot(), nome: "a-caminho-enviado-padrao.png")
     }
 
+    /// LOJA-M2: Quando o turno começa a mais de 60 min, o check-in não fica disponível e
+    /// a tela exibe o aviso informativo de abertura antecipada.
+    func testTurnoComMaisDe60MinutosNaoOfereceCheckinEMostraAviso() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FRILA_SCENARIO", "turno-confirmado-perto", "-FRILA_LOCALIZACAO", "perto", "-FRILA_CACHE_VAZIO_UI_TEST"]
+        AjudanteDeLancamentoUITests.preparar(app)
+        app.launch()
+        let meusTurnos = app.tabBars.buttons["Meus turnos"]
+        XCTAssertTrue(meusTurnos.waitForExistence(timeout: Espera.aparecer))
+        tocar(meusTurnos)
+        let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
+        XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer))
+        tocar(turno)
+        XCTAssertTrue(app.descendants(matching: .any)["tela-meu-turno"].waitForExistence(timeout: Espera.aparecer))
+
+        XCTAssertFalse(app.buttons["fazer-checkin"].exists, "botão de check-in não deve aparecer antes de 60 min do turno")
+        let aviso = app.descendants(matching: .any)["aviso-checkin-antecipado"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer), "aviso de check-in abre 1 hora antes deve ser exibido")
+    }
+
     func testBotaoEstouACaminhoEmAX5() {
         let app = abrirMeuTurno(cenario: "a-caminho", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         let botaoACaminho = app.buttons["botao-a-caminho"]

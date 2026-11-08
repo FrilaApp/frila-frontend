@@ -1768,15 +1768,6 @@
         }
       }
     },
-<<<<<<< HEAD
-    "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade)." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade)."
-=======
     "Ainda não passaram 15 minutos do início do turno.": {
       "extractionState": "stale",
       "localizations": {
@@ -1784,37 +1775,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ainda não passaram 15 minutos do início do turno."
->>>>>>> origin/main
           }
         }
       }
     },
-<<<<<<< HEAD
-    "Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade)." : {
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade)."
-          }
-        }
-      }
-    },
-    "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ao continuar, você aceita os Termos de Uso e a Política de Privacidade."
-=======
     "Ainda sem avaliações.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Ainda sem avaliações."
->>>>>>> origin/main
           }
         }
       }
@@ -1994,11 +1964,22 @@
       }
     },
     "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade).": {
+      "extractionState": "stale",
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Ao continuar, você aceita os [Termos de Uso](https://frila.netlify.app/termos) e a [Política de Privacidade](https://frila.netlify.app/privacidade)."
+          }
+        }
+      }
+    },
+    "Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade)."
           }
         }
       }
@@ -6043,15 +6024,6 @@
         }
       }
     },
-<<<<<<< HEAD
-    "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)"
-=======
     "Frequência": {
       "extractionState": "stale",
       "localizations": {
@@ -6059,36 +6031,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Frequência"
->>>>>>> origin/main
           }
         }
       }
     },
-<<<<<<< HEAD
-    "Li e aceito os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)" : {
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Li e aceito os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)"
-          }
-        }
-      }
-    },
-    "Li e aceito os Termos de uso e a Política de privacidade" : {
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Li e aceito os Termos de uso e a Política de privacidade"
-=======
     "Frila": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Frila"
->>>>>>> origin/main
           }
         }
       }
@@ -6693,11 +6645,22 @@
       }
     },
     "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)": {
+      "extractionState": "stale",
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Li e aceito os [Termos de uso](https://frila.netlify.app/termos) e a [Política de privacidade](https://frila.netlify.app/privacidade)"
+          }
+        }
+      }
+    },
+    "Li e aceito os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Li e aceito os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)"
           }
         }
       }
@@ -7659,33 +7622,12 @@
         }
       }
     },
-<<<<<<< HEAD
-    "O check-in abre 1 hora antes do início do turno." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O check-in abre 1 hora antes do início do turno."
-          }
-        }
-      }
-    },
-    "O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido."
-=======
     "Não conseguimos analisar sua foto agora. Peça uma nova análise ou tente outra foto.": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Não conseguimos analisar sua foto agora. Peça uma nova análise ou tente outra foto."
->>>>>>> origin/main
           }
         }
       }
@@ -8480,6 +8422,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "O aviso a caminho só pode ser enviado de 3 horas antes até 15 minutos após o início do turno."
+          }
+        }
+      }
+    },
+    "O check-in abre 1 hora antes do início do turno.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O check-in abre 1 hora antes do início do turno."
           }
         }
       }
