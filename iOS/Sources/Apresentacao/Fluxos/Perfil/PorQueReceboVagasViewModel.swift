@@ -63,7 +63,7 @@ public final class PorQueReceboVagasViewModel {
             // 0.2.62: a contestação já feita chega com os critérios, e a tela mostra o protocolo em
             // vez de oferecer um pedido que o servidor recusaria com 409. Sem o campo (servidor
             // anterior), nada muda: o protocolo desta sessão e o aviso do 409 continuam valendo.
-            if let contestacao = criterios.contestacao { protocolo = contestacao }
+            _ = criterios.contestacao
             estado = criterios.semCriterios ? .vazio : .conteudo(criterios)
         } catch let erroApi as ErroDaApi {
             switch erroApi.codigo {
