@@ -62,6 +62,21 @@ case "$criptografia" in
   *) falhar "ITSAppUsesNonExemptEncryption deve ser o booleano false (encontrado: $criptografia)" ;;
 esac
 
+# C1 (08/11/2026): a 1.1 não envia nada ao Crashlytics (falta base legal para transferir ao Google
+# nos EUA). Sem a chave o SDK coleta por padrão, então ela tem de existir e ser o booleano false.
+crashlytics="$(python3 - "$info_plist" <<'PYCRASHLYTICS'
+import plistlib, sys
+with open(sys.argv[1], "rb") as arquivo:
+    valor = plistlib.load(arquivo).get("FirebaseCrashlyticsCollectionEnabled", "ausente")
+print("ok" if valor is False else ("ausente" if valor == "ausente" else f"{type(valor).__name__} {valor!r}"))
+PYCRASHLYTICS
+)"
+case "$crashlytics" in
+  ok) ;;
+  ausente) falhar "Info.plist não define FirebaseCrashlyticsCollectionEnabled: sem ela o Crashlytics coleta e envia" ;;
+  *) falhar "FirebaseCrashlyticsCollectionEnabled deve ser o booleano false (encontrado: $crashlytics)" ;;
+esac
+
 chave_localizacao_sempre="$(
   plutil -convert json -o - "$info_plist" |
     awk 'match($0, /"NSLocationAlways[^"]*"/) { print substr($0, RSTART + 1, RLENGTH - 2); exit }'

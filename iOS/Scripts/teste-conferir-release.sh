@@ -44,6 +44,7 @@ novo_app_bom() {
   plutil -insert CFBundleIconName -string AppIcon "$plist"
   cp "$TMPDIR_TESTE/catalogo/Assets.car" "$app/Assets.car"
   plutil -insert ITSAppUsesNonExemptEncryption -bool NO "$plist"
+  plutil -insert FirebaseCrashlyticsCollectionEnabled -bool NO "$plist"
   plutil -insert NSLocationWhenInUseUsageDescription -string 'localização em uso' "$plist"
   plutil -insert NSLocationTemporaryUsageDescriptionDictionary -json '{"CheckIn": "precisão no check-in"}' "$plist"
   plutil -insert UIDeviceFamily -array "$plist"
@@ -156,6 +157,19 @@ esperar_reprovacao "ícone sem imagem compilada" "não encontrado como imagem em
 app="$(novo_app_bom catalogo-invalido)"
 printf 'catálogo inválido' > "$app/Assets.car"
 esperar_reprovacao "catálogo inválido" "não foi possível conferir o ícone" "$app"
+
+# C1: o Crashlytics só fica desligado com a chave presente e igual ao booleano false.
+app="$(novo_app_bom crashlytics-ausente)"
+plutil -remove FirebaseCrashlyticsCollectionEnabled "$app/Info.plist"
+esperar_reprovacao "Crashlytics sem a chave" "Info.plist não define FirebaseCrashlyticsCollectionEnabled" "$app"
+
+app="$(novo_app_bom crashlytics-ligado)"
+plutil -replace FirebaseCrashlyticsCollectionEnabled -bool YES "$app/Info.plist"
+esperar_reprovacao "Crashlytics ligado" "FirebaseCrashlyticsCollectionEnabled deve ser o booleano false (encontrado: bool True)" "$app"
+
+app="$(novo_app_bom crashlytics-texto)"
+plutil -replace FirebaseCrashlyticsCollectionEnabled -string NO "$app/Info.plist"
+esperar_reprovacao "Crashlytics como texto" "FirebaseCrashlyticsCollectionEnabled deve ser o booleano false (encontrado: str 'NO')" "$app"
 
 app="$(novo_app_bom sem-criptografia)"
 plutil -remove ITSAppUsesNonExemptEncryption "$app/Info.plist"
