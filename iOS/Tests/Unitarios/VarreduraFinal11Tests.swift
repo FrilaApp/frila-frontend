@@ -44,6 +44,7 @@ struct VarreduraFinal11Tests {
     @Test("Com a foto no perfil, marcar 'sobre a foto' manda o foto_id que a tela mostrou")
     func denunciaAFotoDoPerfil() async throws {
         let api = ApiClienteEmMemoria(cenario: .denunciaDeFoto)
+        #expect(try await api.configuracaoDoApp().recursos.fotoDePerfil, "o foto_id só vem com o recurso ligado (0.2.54)")
         let perfil = try await api.perfilPublico(id: bruno)
         #expect(perfil.fotoID == ApiClienteEmMemoria.fotoDoCandidatoID)
 

@@ -83,15 +83,15 @@ final class VarreduraFinal11UITests: XCTestCase {
         rolarAte(chamar, em: app)
         chamar.tap()
 
-        XCTAssertTrue(app.navigationBars["Chamar de novo"].waitForExistence(timeout: 10), "Chamar de novo abre o formulário da chamada")
-        // O botão fica no fim do formulário: a lista só cria a linha quando ela aparece.
+        // Pelo identificador, não pelo título: o título da folha muda com o #712 ("Chamar profissional").
+        // A lista só cria a linha quando ela aparece, então rola até cada uma.
+        let total = app.switches["confirmar-total-chamada"]
+        for _ in 0..<6 where !total.waitForExistence(timeout: 2) { app.swipeUp() }
+        XCTAssertTrue(total.exists, "Chamar de novo abre o formulário, que pede confirmar o total a cada chamada")
         let enviar = app.buttons["enviar-chamada"]
         for _ in 0..<6 where !enviar.exists { app.swipeUp() }
         XCTAssertTrue(enviar.waitForExistence(timeout: 5), "o formulário termina em Enviar chamada")
         XCTAssertFalse(enviar.isEnabled, "sem valor e sem o total confirmado, a chamada não sai")
-        let total = app.switches["confirmar-total-chamada"]
-        for _ in 0..<4 where !total.exists { app.swipeDown() }
-        XCTAssertTrue(total.exists, "o total fechado é confirmado a cada chamada")
     }
 
     func testEquipeSemChamadaDiretaNaoOfereceChamarDeNovo() {

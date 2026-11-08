@@ -143,7 +143,15 @@ public struct TelaDetalheChamadaRecebida: View {
             .padding(.vertical, 4)
         }
 
-        if viewModel.podeResponder {
+        // Bloqueada a casa, a chamada não se responde mais: o servidor a encerra (`404`, RF26).
+        if bloqueios.contem(detalhe.outraParte) {
+            Section {
+                Text(verbatim: TextosDaSeguranca.voceBloqueouEstabelecimento)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("etiqueta-bloqueio-chamada")
+            }
+        } else if viewModel.podeResponder {
             Section {
                 BotaoPrimario(verbatim: TextosChamadaDireta.aceitarChamada, carregando: viewModel.respondendo) {
                     Task { await viewModel.aceitar() }
