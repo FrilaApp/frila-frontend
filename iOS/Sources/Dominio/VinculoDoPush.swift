@@ -70,9 +70,9 @@ public enum FiltroDoPushPorVinculo {
     public static let chaveDoVinculo = "vinculo_id"
 
     /// O texto do aviso de outra conta. Neutro de propósito: só diz que há algo no app, sem o tipo
-    /// nem o destino. Constante provisória pendente de aprovação do Design (cartão h6RoObK6 / #253).
-    public static let tituloNeutro = "Frila"
-    public static let corpoNeutro = "Nova notificação disponível"
+    /// nem o destino. É o texto que o contrato 0.2.62 fixa para a extensão (RN15, `registrar_dispositivo`).
+    public static let tituloNeutro = "Nova notificação do Frila"
+    public static let corpoNeutro = "Abra o aplicativo para conferir."
 
     public enum Decisao: Equatable, Sendable {
         case manter

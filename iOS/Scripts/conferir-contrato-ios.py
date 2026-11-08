@@ -519,9 +519,6 @@ def conferir_dtos(
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
     EXCECOES_OPCIONAIS_DOCUMENTADAS = {
-        "CriteriosDeNotificacao": {
-            "contestacao": "Pendente de adoção no PR de contestação do despacho (contrato 0.2.62, RF27)",
-        },
         # O perfil público ganhou, na F2 (0.2.53), os campos do "perfil que explica"; o iOS adota
         # primeiro só a foto (F3, 0.2.54): `foto_url` e `foto_id` estão mapeados.
         "PerfilPublico": {

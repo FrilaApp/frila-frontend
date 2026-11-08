@@ -40,7 +40,7 @@ struct DocumentacaoPushTests {
             "da Conta A → o aviso aparece com título e corpo originais.",
             "Sair da Conta A e entrar com a Conta B no mesmo aparelho. Bloquear a tela.",
             "Enviar push para a Conta A (com o `vinculo_id` da A)",
-            "o aviso aparece com o texto neutro: `\"Frila — Nova notificação disponível\"`.",
+            "o aviso aparece com o texto neutro: `\"Nova notificação do Frila — Abra o aplicativo para conferir.\"`.",
             "sem navegar para dados da Conta A.",
             "Enviar push para a Conta B (com o `vinculo_id` da B) → aviso exibido normalmente com título e",
             "corpo originais.",

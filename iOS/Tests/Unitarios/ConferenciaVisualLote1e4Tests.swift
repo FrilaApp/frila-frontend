@@ -91,6 +91,32 @@ struct ConferenciaVisualLote1e4Tests {
         #expect(!model.podeEnviar)
     }
 
+    // MARK: V10: horários que dá para escolher
+
+    @Test("V10: o início mais cedo é agora + 2 h, e o término fica de 2 a 16 h depois do início")
+    func horariosDaChamada() async throws {
+        let agora = Date(timeIntervalSince1970: 1_800_000_000)
+        let api = ApiClienteEmMemoria(cenario: .chamadaDireta)
+        let casa = try #require(try await api.meusEstabelecimentos().first)
+        let model = ChamadaDiretaViewModel(api: api, profissionalID: profissionalID, estabelecimentoID: casa.id,
+                                           agora: { agora })
+        #expect(model.inicioMinimo == agora.addingTimeInterval(2 * 3600))
+        #expect(model.inicio >= model.inicioMinimo, "o padrão é amanhã, nunca agora")
+        #expect(model.faixaDoTermino.lowerBound == model.inicio.addingTimeInterval(2 * 3600))
+        #expect(model.faixaDoTermino.upperBound == model.inicio.addingTimeInterval(16 * 3600))
+    }
+
+    @Test("V10: mudar o início leva o término junto, com a mesma duração, sempre de 2 a 16 h")
+    func terminoAcompanhaOInicio() async throws {
+        let (_, model) = try await chamada()
+        model.fim = model.inicio.addingTimeInterval(5 * 3600)
+        model.inicio = model.inicio.addingTimeInterval(3 * 3600)
+        #expect(model.fim.timeIntervalSince(model.inicio) == 5 * 3600)
+        model.fim = model.inicio.addingTimeInterval(30 * 3600)
+        model.inicio = model.inicio.addingTimeInterval(60)
+        #expect(model.fim.timeIntervalSince(model.inicio) == 16 * 3600)
+    }
+
     // MARK: V13 e V14: texto neutro e sem repetir
 
     @Test("V13: nenhum texto da escolha concorda o gênero com o nome da pessoa")

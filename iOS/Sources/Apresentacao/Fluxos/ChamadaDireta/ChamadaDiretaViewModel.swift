@@ -4,7 +4,13 @@ import Observation
 
 @MainActor @Observable
 public final class ChamadaDiretaViewModel {
-    public var inicio: Date
+    /// Mudar o início leva o término junto, com a mesma duração dentro de 2 a 16 h (V10).
+    public var inicio: Date {
+        didSet {
+            let duracao = min(max(fim.timeIntervalSince(oldValue), Self.duracaoMinima), Self.duracaoMaxima)
+            fim = inicio.addingTimeInterval(duracao)
+        }
+    }
     public var fim: Date
     public var funcaoID: UUID?
     public var valorCentavos = 0 {
@@ -52,6 +58,18 @@ public final class ChamadaDiretaViewModel {
         self.agora = agora
         inicio = agora().addingTimeInterval(24 * 3600)
         fim = agora().addingTimeInterval(28 * 3600)
+    }
+
+    static let antecedenciaMinima: TimeInterval = 2 * 3600
+    static let duracaoMinima: TimeInterval = 2 * 3600
+    static let duracaoMaxima: TimeInterval = 16 * 3600
+
+    /// O início mais cedo que o seletor oferece: agora + 2 h. Um turno que já começou nem aparece (V10).
+    public var inicioMinimo: Date { agora().addingTimeInterval(Self.antecedenciaMinima) }
+
+    /// O término que o seletor oferece: de 2 a 16 h depois do início.
+    public var faixaDoTermino: ClosedRange<Date> {
+        inicio.addingTimeInterval(Self.duracaoMinima)...inicio.addingTimeInterval(Self.duracaoMaxima)
     }
 
     public var podeEnviar: Bool {

@@ -91,6 +91,24 @@ final class PorQueReceboVagasUITests: XCTestCase {
         XCTAssertFalse(app.buttons["botao-contestar-despacho"].exists, "reabrir conserva o protocolo e não oferece outro pedido")
     }
 
+    /// 0.2.62 (RF27): quem já contestou abre a tela e vê o protocolo que o servidor devolve com os
+    /// critérios, sem o botão de contestar e sem precisar esbarrar no 409.
+    func testContestacaoDoServidorMostraProtocoloSemOferecerNovoPedido() {
+        let app = abrirFolha(cenario: "despacho-com-protocolo")
+
+        let protocolo = app.descendants(matching: .any)["protocolo-revisao-despacho"]
+        rolarAte(protocolo, em: app)
+        XCTAssertTrue(protocolo.waitForExistence(timeout: 10), "o protocolo da contestação já feita deve aparecer")
+        // V23 da conferência visual da 1.1: o número curto (contrato 0.2.40) da ocorrência
+        // A0000000-0000-0000-0000-000000000003, e não o UUID inteiro, que quebrava a linha.
+        XCTAssertEqual(protocolo.label, "#A0000000", "o protocolo deve ser o da ocorrência que o servidor devolveu")
+        XCTAssertTrue(app.descendants(matching: .any)["status-revisao-enviada"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["prazo-resposta-revisao"].exists, "o prazo de resposta deve aparecer")
+        XCTAssertFalse(app.buttons["botao-contestar-despacho"].exists, "com contestação aberta, não há outro pedido")
+        XCTAssertFalse(app.descendants(matching: .any)["campo-relato-despacho"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["status-revisao-ja-aberta"].exists, "o protocolo dispensa o aviso do 409")
+    }
+
     func testContestacaoJaAbertaExplica409EImpedeNovoPedidoAoReabrir() {
         let app = abrirFolha(cenario: "despacho-contestacao-ja-aberta")
         let contestar = app.buttons["botao-contestar-despacho"]

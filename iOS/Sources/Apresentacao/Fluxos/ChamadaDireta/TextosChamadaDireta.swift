@@ -2,6 +2,7 @@ import Foundation
 
 public enum TextosChamadaDireta {
     public static let titulo = String(localized: "Chamar de novo", bundle: bundleApresentacao)
+    public static let tituloDaFolha = String(localized: "Chamar profissional", bundle: bundleApresentacao)
     public static let enviar = String(localized: "Enviar chamada", bundle: bundleApresentacao)
     public static let responsavel = String(localized: "Responsável no local", bundle: bundleApresentacao)
     public static let valor = String(localized: "Valor total", bundle: bundleApresentacao)
