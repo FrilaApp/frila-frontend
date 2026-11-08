@@ -40,7 +40,7 @@ public final class MeuTurnoViewModel {
 
     public var cancelado: Bool { turno.cancelado || cancelamentoLocal != nil }
     /// O turno terminou sem a presença verificada (`nao_verificado`, aviso `turno_nao_verificado`).
-    public var naoVerificado: Bool { false } // MUTACAO
+    public var naoVerificado: Bool { !cancelado && verificacaoDaPresenca == .naoVerificado }
     public var permiteAcoesDoTurno: Bool { !cancelado }
     public var cancelamento: CancelamentoDoTurno? { cancelamentoLocal ?? (cancelado ? turno.cancelamento : nil) }
 
