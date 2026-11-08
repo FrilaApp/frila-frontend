@@ -4,8 +4,30 @@ Decisão do cartão #198: **Firebase Crashlytics** substitui MetricKit + Organiz
 `ColetorMetricKit` foi removido para não duplicar a coleta de diagnósticos nem manter um
 relatório local que não chegava ao time.
 
+## Na 1.1, o envio está desligado (C1, 08/11/2026)
+
+Decisão do Cauê: falta base legal para transferir dados de falha ao Google nos EUA (parecer
+jurídico de 08/11/2026 sobre transferências a fornecedores). Por isso, a 1.1:
+
+- traz `FirebaseCrashlyticsCollectionEnabled` = `false` no `Sources/App/Info.plist`. O SDK não envia
+  relatórios de falha. O Firebase Sessions, que vem com o Crashlytics, só envia quando algum produto
+  tem a coleta ligada (`FirebaseSessions.swift`, `isAnyDataCollectionEnabled`, SDK 12.19.2), então
+  também não envia;
+- apaga a cada abertura os relatórios que o SDK guarda no aparelho com a coleta desligada
+  (`deleteUnsentReports()` em `RelatorioDeFalhas.iniciarSeConfigurado`);
+- não grava nenhum erro da API: a `TelemetriaCrashlytics` só chama o `DestinoCrashlytics` com a
+  coleta ligada (`CrashlyticsDesligadoTests`);
+- mantém o `FirebaseApp` configurado, porque o push (FCM) depende dele, e mantém o pacote do
+  Crashlytics e o envio dos dSYMs (símbolos de depuração, não dado pessoal);
+- reprova no `Scripts/conferir-release.sh` o Release sem a chave ou com ela diferente de `false`.
+
+**A 1.0 continua mandando até a pessoa atualizar:** a chave fica no `Info.plist`, e não há
+interruptor remoto. Enquanto isso, o manifesto e o *App Privacy* seguem declarando *Crash Data*.
+Com a coleta desligada, o botão **Forçar falha** e o ensaio de falha do TestFlight não chegam mais
+ao painel. Religar fica para a 1.2, com consentimento no app ou com o aditivo da ANPD.
+
 O aplicativo integra apenas dois produtos do Firebase (`iOS/project.yml:124-127`):
-- **FirebaseCrashlytics** (`iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift:1-2`): coleta e relatório de falhas e telemetria mínima de erros não fatais da API.
+- **FirebaseCrashlytics** (`iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift:1-2`): relatório de falhas e telemetria mínima de erros não fatais da API, com o envio desligado na 1.1 (seção acima).
 - **FirebaseMessaging** (`iOS/Sources/Infraestrutura/CanalDePushDoAparelho.swift:1`): exclusivamente para ciclo de vida de tokens e entrega de notificações push ([Push](Push.md)).
 
 Analytics não faz parte da integração nem é utilizado.
@@ -44,7 +66,7 @@ Há isolamento estrito entre os produtos e seus propósitos: o Crashlytics não 
 
 ## Dados permitidos nos eventos não fatais
 
-`TelemetryReporter` registra apenas `codigo`, `rpc` e `duracao_ns` em erros da API. Não usar
+Com a coleta ligada (1.0; desligada na 1.1), `TelemetryReporter` registra apenas `codigo`, `rpc` e `duracao_ns` em erros da API. Não usar
 `setUserID`, `setCustomValue` ou logs com nome, e-mail, telefone, token, corpo de resposta,
 coordenada ou qualquer outro dado pessoal. O SDK usa somente seu identificador de instalação
 aleatório; o app não associa esse identificador a uma pessoa.
