@@ -361,7 +361,7 @@ Para validar localmente a extensão de notificação e o comportamento do `Filtr
      }
      ```
      *Comportamento esperado:* O `FiltroDoPushPorVinculo` decide `.neutralizar`. Título e corpo originais são substituídos por `"Nova notificação do Frila"` e `"Abra o aplicativo para conferir."`, e todo o dicionário de dados (`payload`) é esvaziado.
-     *No simulador:* com iOS 26.5, o `simctl push` não executa a extensão, e o cenário B chega com o texto original. A neutralização se prova no aparelho (passo 5 do roteiro abaixo) e nos testes unitários do `FiltroDoPushPorVinculo` (`NotificationServiceTests`). Prova: `orquestracao/retornos/F-R2-push-vinculo.md`.
+     *No simulador:* com iOS 26.5, o `simctl push` não executa a extensão, e o cenário B chega com o texto original. A neutralização se prova no aparelho (passo 5 do roteiro abaixo) e nos testes unitários do `FiltroDoPushPorVinculo` (`NotificationServiceTests`). Conferido em 08/11/2026 no simulador com iOS 26.5: com `mutable-content` e `vinculo_id` diferente, o aviso chegou com o texto original, e o log da extensão ficou vazio.
 
    - **Cenário C — Payload legado (sem `vinculo_id`):**
      O payload contém `"mutable-content": 1`, mas **não** possui a chave `vinculo_id` (formato emitido por versões legadas do servidor anteriores à 0.2.30 do contrato):
