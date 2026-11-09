@@ -287,11 +287,9 @@ public struct FolhaSuporteTurno: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if let motivo = viewModel.motivo {
-                        Text(verbatim: motivo.rotulo)
-                            .font(FrilaTipo.meta.bold())
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                    }
+                    Text(verbatim: viewModel.motivo.rotulo)
+                        .font(FrilaTipo.meta.bold())
+                        .foregroundStyle(FrilaCor.textoSecundario)
 
                     if !viewModel.relato.isEmpty {
                         Text(verbatim: viewModel.relato)
