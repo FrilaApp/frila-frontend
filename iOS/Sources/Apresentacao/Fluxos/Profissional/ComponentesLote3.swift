@@ -27,10 +27,10 @@ public enum EtapaDoTurno: Int, CaseIterable, Sendable {
 
     public var rotulo: String {
         switch self {
-        case .confirmado: return "Confirmado"
-        case .aCaminho: return "A caminho"
-        case .presenca: return "Presença"
-        case .concluido: return "Concluído"
+        case .confirmado: return String(localized: "Confirmado", bundle: bundleApresentacao)
+        case .aCaminho: return String(localized: "A caminho", bundle: bundleApresentacao)
+        case .presenca: return String(localized: "Presença", bundle: bundleApresentacao)
+        case .concluido: return String(localized: "Concluído", bundle: bundleApresentacao)
         }
     }
 }
@@ -93,7 +93,7 @@ public struct CardStatusTurno: View {
     public let valorFormatado: String
 
     public init(
-        selo: String = "Concluído",
+        selo: String? = nil,
         estiloDoSelo: SeloDeStatus.Estilo = .contorno,
         nomeDaCasa: String,
         dataTexto: String,
@@ -101,7 +101,7 @@ public struct CardStatusTurno: View {
         etapaAtual: EtapaDoTurno = .concluido,
         valorFormatado: String
     ) {
-        self.selo = selo
+        self.selo = selo ?? String(localized: "Concluído", bundle: bundleApresentacao)
         self.estiloDoSelo = estiloDoSelo
         self.nomeDaCasa = nomeDaCasa
         self.dataTexto = dataTexto
