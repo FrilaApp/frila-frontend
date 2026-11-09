@@ -7809,6 +7809,16 @@
         }
       }
     },
+    "Nenhuma vaga de %@ até %lld km neste %@.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga de %@ até %lld km neste %@."
+          }
+        }
+      }
+    },
     "Nenhuma vaga encontrada com estes filtros.": {
       "localizations": {
         "pt-BR": {
