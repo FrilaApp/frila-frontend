@@ -46,7 +46,7 @@ public struct TelaAvaliacao: View {
 
                 // Pergunta como título da tela
                 Text(verbatim: viewModel.pergunta)
-                    .font(FrilaTipo.titulo)
+                    .font(FrilaTipo.tituloDaTela)
                     .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)

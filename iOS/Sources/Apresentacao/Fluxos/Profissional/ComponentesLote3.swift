@@ -143,7 +143,7 @@ public struct CardStatusTurno: View {
 
             HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: valorFormatado)
-                    .font(FrilaTipo.destaque)
+                    .font(FrilaTipo.valorEmDestaque)
                     .foregroundStyle(FrilaCor.texto)
                 Text("faturados", bundle: bundleApresentacao)
                     .font(FrilaTipo.meta)

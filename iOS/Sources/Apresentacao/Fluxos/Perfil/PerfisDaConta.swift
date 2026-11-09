@@ -282,14 +282,14 @@ public struct TelaMeuPerfilProfissional: View {
                 chavePix = model.conta?.email ?? "ju.ramos@email.com"
             }
             if let disponibilidades = model.perfil?.disponibilidades, !disponibilidades.isEmpty {
-                let dias = Set(disponibilidades.map(\.diaSemana))
+                let dias = Set(disponibilidades.map(\.diaDaSemana))
                 if !dias.isEmpty { diasSelecionados = dias }
             }
         }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
         .navigationDestination(isPresented: $mostrarFluxoExclusao) {
-            TelaExclusaoDeConta(api: api, sair: sair)
+            TelaExclusaoDeConta(viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair))
         }
         .confirmationDialog(
             Text("Sair da conta?", bundle: bundleApresentacao),
@@ -327,7 +327,7 @@ public struct TelaMeuPerfilProfissional: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
             // Título "Perfil" em Prodigy Sans
             Text("Perfil", bundle: bundleApresentacao)
-                .font(FrilaTipo.titulo)
+                .font(FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -370,7 +370,7 @@ public struct TelaMeuPerfilProfissional: View {
                     .font(.title3.weight(.bold))
                     .foregroundStyle(FrilaCor.texto)
 
-                let textoReputacao = model.perfilPublico?.reputacao.map { SeloReputacao.descricao($0) }
+                let textoReputacao = model.perfilPublico.map { SeloReputacao.descricao($0.reputacao) }
                     ?? String(localized: "98% das casas chamariam de novo", bundle: bundleApresentacao)
                 Text(verbatim: textoReputacao)
                     .font(FrilaTipo.meta)
@@ -392,7 +392,7 @@ public struct TelaMeuPerfilProfissional: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
 
                 let nomes = model.perfil?.funcoes.map(\.nome) ?? ["Bartender", "Garçom"]
-                FlowLayout(spacing: FrilaEspaco.compacto) {
+                FrilaFlowLayout(horizontalSpacing: FrilaEspaco.compacto, verticalSpacing: FrilaEspaco.compacto) {
                     ForEach(nomes, id: \.self) { nome in
                         Text(verbatim: nome)
                             .font(FrilaTipo.meta.weight(.medium))
@@ -418,7 +418,7 @@ public struct TelaMeuPerfilProfissional: View {
                     .hidden()
                     .frame(height: 0)
                     .accessibilityIdentifier("perfil-funcoes-valor")
-                Text("%lld horários cadastrados", model.perfil?.disponibilidades.count ?? 0, bundle: bundleApresentacao)
+                Text("\(model.perfil?.disponibilidades.count ?? 0) horários cadastrados", bundle: bundleApresentacao)
                     .hidden()
                     .frame(height: 0)
                     .accessibilityIdentifier("perfil-horarios-valor")
@@ -457,7 +457,7 @@ public struct TelaMeuPerfilProfissional: View {
                     Slider(value: $raioKm, in: 1...10, step: 1)
                         .tint(FrilaCor.acao)
                         .accessibilityLabel(Text("Raio", bundle: bundleApresentacao))
-                    Text("Até %lld km", Int(raioKm), bundle: bundleApresentacao)
+                    Text("Até \(Int(raioKm)) km", bundle: bundleApresentacao)
                         .font(FrilaTipo.rotuloSecundario)
                         .foregroundStyle(FrilaCor.texto)
                         .frame(minWidth: 72, alignment: .trailing)
@@ -515,7 +515,7 @@ public struct TelaMeuPerfilProfissional: View {
                     ("Noite", "Noite"),
                     ("Madrugada", "Madrugada")
                 ]
-                FlowLayout(spacing: FrilaEspaco.compacto) {
+                FrilaFlowLayout(horizontalSpacing: FrilaEspaco.compacto, verticalSpacing: FrilaEspaco.compacto) {
                     ForEach(periodos, id: \.chave) { item in
                         let selecionado = periodosSelecionados.contains(item.chave)
                         Button {
