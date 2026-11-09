@@ -215,6 +215,16 @@
         }
       }
     },
+    "%@, remover filtro": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, remover filtro"
+          }
+        }
+      }
+    },
     "%d candidatos aguardando sua escolha": {
       "extractionState": "stale",
       "localizations": {
@@ -468,6 +478,26 @@
         }
       }
     },
+    "%lld escolhida. Cada toque já salva.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld escolhida. Cada toque já salva."
+          }
+        }
+      }
+    },
+    "%lld escolhidas. Cada toque já salva.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld escolhidas. Cada toque já salva."
+          }
+        }
+      }
+    },
     "%lld funções selecionadas": {
       "extractionState": "stale",
       "localizations": {
@@ -475,6 +505,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld funções selecionadas"
+          }
+        }
+      }
+    },
+    "%lld h à noite": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld h à noite"
           }
         }
       }
@@ -569,6 +609,16 @@
         }
       }
     },
+    "%lld vagas até %lld km do seu ponto base": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld vagas até %lld km do seu ponto base"
+          }
+        }
+      }
+    },
     "%lld vagas carregadas, pela distância do seu ponto base.": {
       "extractionState": "stale",
       "localizations": {
@@ -587,6 +637,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld vagas, pela distância do seu ponto base."
+          }
+        }
+      }
+    },
+    "%lld%% trabalhariam aqui de novo": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% trabalhariam aqui de novo"
           }
         }
       }
@@ -631,6 +691,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "**Sem horários disponíveis, você não recebe avisos de vagas.** Você pode definir seus horários depois."
+          }
+        }
+      }
+    },
+    "+ gorjeta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+ gorjeta"
+          }
+        }
+      }
+    },
+    "+ gorjeta distribuída no fim da noite": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+ gorjeta distribuída no fim da noite"
           }
         }
       }
@@ -710,6 +790,16 @@
         }
       }
     },
+    "1 escolhida. Cada toque já salva.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 escolhida. Cada toque já salva."
+          }
+        }
+      }
+    },
     "1 função selecionada": {
       "extractionState": "stale",
       "localizations": {
@@ -761,6 +851,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "1 posição aberta, confirmação imediata se elegível"
+          }
+        }
+      }
+    },
+    "1 vaga até %lld km do seu ponto base": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vaga até %lld km do seu ponto base"
           }
         }
       }
@@ -982,6 +1082,16 @@
         }
       }
     },
+    "A casa escolhe entre os interessados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A casa escolhe entre os interessados"
+          }
+        }
+      }
+    },
     "A chamada direta está indisponível no momento.": {
       "localizations": {
         "pt-BR": {
@@ -1096,6 +1206,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço."
+          }
+        }
+      }
+    },
+    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa."
+          }
+        }
+      }
+    },
+    "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes."
           }
         }
       }
@@ -2621,6 +2751,16 @@
         }
       }
     },
+    "Buscar vagas por casa ou função": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar vagas por casa ou função"
+          }
+        }
+      }
+    },
     "CAPITAL EST.": {
       "extractionState": "stale",
       "localizations": {
@@ -2928,6 +3068,16 @@
         }
       }
     },
+    "Candidaturas ficam em Turnos enquanto a casa escolhe.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Candidaturas ficam em Turnos enquanto a casa escolhe."
+          }
+        }
+      }
+    },
     "Carregando": {
       "localizations": {
         "pt-BR": {
@@ -2988,6 +3138,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cartão de vaga: sem avaliações"
+          }
+        }
+      }
+    },
+    "Casa verificada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Casa verificada"
           }
         }
       }
@@ -3409,6 +3569,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conecte-se à internet para carregar as vagas."
+          }
+        }
+      }
+    },
+    "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos."
           }
         }
       }
@@ -5144,6 +5314,16 @@
         }
       }
     },
+    "Escolher endereço": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher endereço"
+          }
+        }
+      }
+    },
     "Escolher foto": {
       "localizations": {
         "pt-BR": {
@@ -5588,6 +5768,26 @@
         }
       }
     },
+    "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
+          }
+        }
+      }
+    },
+    "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
+          }
+        }
+      }
+    },
     "Este estabelecimento ainda não tem turnos concluídos no Frila.": {
       "extractionState": "manual",
       "localizations": {
@@ -6001,6 +6201,16 @@
         }
       }
     },
+    "Filtros (%lld)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtros (%lld)"
+          }
+        }
+      }
+    },
     "Fim": {
       "extractionState": "stale",
       "localizations": {
@@ -6019,6 +6229,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foi rápido: outra pessoa aceitou antes. Nada muda na sua reputação."
+          }
+        }
+      }
+    },
+    "Fora do Distrito Federal": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora do Distrito Federal"
           }
         }
       }
@@ -6939,6 +7159,16 @@
         }
       }
     },
+    "Madrugada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Madrugada"
+          }
+        }
+      }
+    },
     "Mais de 10 anos": {
       "localizations": {
         "pt-BR": {
@@ -6967,6 +7197,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mais opções: traje, rateio e observações"
+          }
+        }
+      }
+    },
+    "Mais procuradas agora": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais procuradas agora"
+          }
+        }
+      }
+    },
+    "Manhã": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manhã"
           }
         }
       }
@@ -7474,6 +7724,16 @@
         }
       }
     },
+    "Nenhuma escolhida. Cada toque já salva.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma escolhida. Cada toque já salva."
+          }
+        }
+      }
+    },
     "Nenhuma função cadastrada.": {
       "extractionState": "stale",
       "localizations": {
@@ -7481,6 +7741,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhuma função cadastrada."
+          }
+        }
+      }
+    },
+    "Nenhuma função com “%@”.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma função com “%@”."
           }
         }
       }
@@ -7525,6 +7795,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhuma vaga com esses filtros."
+          }
+        }
+      }
+    },
+    "Nenhuma vaga com “%@” até %lld km nestes filtros.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga com “%@” até %lld km nestes filtros."
+          }
+        }
+      }
+    },
+    "Nenhuma vaga encontrada com estes filtros.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga encontrada com estes filtros."
           }
         }
       }
@@ -7580,6 +7870,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No máximo uma notificação a cada %lld minutos."
+          }
+        }
+      }
+    },
+    "Noite": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noite"
           }
         }
       }
@@ -9058,6 +9358,16 @@
         }
       }
     },
+    "Onde e quando você quer faturar?": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde e quando você quer faturar?"
+          }
+        }
+      }
+    },
     "Onde já trabalhei": {
       "localizations": {
         "pt-BR": {
@@ -9174,6 +9484,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Outra pessoa da sua equipe preencheu a última posição antes. Atualizamos a lista."
+          }
+        }
+      }
+    },
+    "Outras": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outras"
           }
         }
       }
@@ -9322,6 +9642,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Para enviar, o turno precisa ter de 2 a 16 horas."
+          }
+        }
+      }
+    },
+    "Para ver vagas, basta o ponto base. O resto dá para mudar depois, no Perfil.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para ver vagas, basta o ponto base. O resto dá para mudar depois, no Perfil."
           }
         }
       }
@@ -9594,6 +9924,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Por que recebo vagas"
+          }
+        }
+      }
+    },
+    "Por seleção": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por seleção"
           }
         }
       }
@@ -10120,6 +10460,16 @@
         }
       }
     },
+    "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço."
+          }
+        }
+      }
+    },
     "Quando você tiver turnos confirmados, eles aparecerão aqui.": {
       "extractionState": "stale",
       "localizations": {
@@ -10149,6 +10499,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quarta-feira"
+          }
+        }
+      }
+    },
+    "Quem aceita primeiro fica com o turno, na hora. Ele aparece em Turnos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem aceita primeiro fica com o turno, na hora. Ele aparece em Turnos."
           }
         }
       }
@@ -10257,6 +10617,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quer explicar melhor? (opcional)"
+          }
+        }
+      }
+    },
+    "Quero me candidatar": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quero me candidatar"
           }
         }
       }
@@ -11050,6 +11420,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salvar preferências"
+          }
+        }
+      }
+    },
+    "Se aceitar, o turno é seu.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se aceitar, o turno é seu."
           }
         }
       }
@@ -12055,6 +12435,16 @@
         }
       }
     },
+    "Tarde": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarde"
+          }
+        }
+      }
+    },
     "Telefone": {
       "extractionState": "stale",
       "localizations": {
@@ -12147,6 +12537,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tente de novo."
+          }
+        }
+      }
+    },
+    "Tente outra busca ou mude os filtros.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente outra busca ou mude os filtros."
+          }
+        }
+      }
+    },
+    "Tente outra busca.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tente outra busca."
           }
         }
       }
@@ -12473,6 +12883,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Traje, rateio dos 10% e observações"
+          }
+        }
+      }
+    },
+    "Traje: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traje: %@"
           }
         }
       }
@@ -13144,6 +13564,16 @@
         }
       }
     },
+    "Ver detalhes da vaga": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver detalhes da vaga"
+          }
+        }
+      }
+    },
     "Ver menos": {
       "localizations": {
         "pt-BR": {
@@ -13241,6 +13671,16 @@
         }
       }
     },
+    "Ver todas as funções": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver todas as funções"
+          }
+        }
+      }
+    },
     "Ver tudo (%@)": {
       "localizations": {
         "pt-BR": {
@@ -13269,6 +13709,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver vaga aberta"
+          }
+        }
+      }
+    },
+    "Ver vagas na minha área": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver vagas na minha área"
+          }
+        }
+      }
+    },
+    "Ver vagas à noite": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver vagas à noite"
           }
         }
       }
@@ -13836,6 +14296,16 @@
         }
       }
     },
+    "das %@ às %@ (%lld h de turno)": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das %@ às %@ (%lld h de turno)"
+          }
+        }
+      }
+    },
     "dd/mm/aaaa": {
       "extractionState": "stale",
       "localizations": {
@@ -13865,6 +14335,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "do domingo"
+          }
+        }
+      }
+    },
+    "do seu ponto base": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "do seu ponto base"
           }
         }
       }
@@ -14171,76 +14651,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "⌘K"
-          }
-        }
-      }
-    },
-    "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos."
-          }
-        }
-      }
-    },
-    "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
-          }
-        }
-      }
-    },
-    "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
-          }
-        }
-      }
-    },
-    "Fora do Distrito Federal": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fora do Distrito Federal"
-          }
-        }
-      }
-    },
-    "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço."
-          }
-        }
-      }
-    },
-    "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes."
-          }
-        }
-      }
-    },
-    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa."
           }
         }
       }
