@@ -60,7 +60,7 @@ final class CapturasLote1UITests: XCTestCase {
 
     func testT2SemVagas() {
         let app = iniciar(extra: ["-FRILA_SCENARIO", "painel-vazio"])
-        let vazio = app.descendants(matching: .any)["estado-sem-vagas"]
+        let vazio = app.descendants(matching: .any)["vagas-vazio"]
         XCTAssertTrue(vazio.waitForExistence(timeout: 10), "O estado sem vagas deve aparecer")
         capturar("lote1-t2-sem-vagas")
     }
@@ -71,7 +71,7 @@ final class CapturasLote1UITests: XCTestCase {
         XCTAssertTrue(busca.waitForExistence(timeout: 10))
         busca.tap()
         busca.typeText("xyz999naoexiste")
-        let semResultado = app.descendants(matching: .any)["estado-busca-sem-resultado"]
+        let semResultado = app.descendants(matching: .any)["vagas-busca-sem-resultado"]
         XCTAssertTrue(semResultado.waitForExistence(timeout: 5), "O estado busca sem resultado deve aparecer")
         capturar("lote1-t2-busca-sem-resultado")
     }
@@ -80,7 +80,7 @@ final class CapturasLote1UITests: XCTestCase {
 
     func testT2bFiltros() {
         let app = iniciar(extra: ["-FRILA_SCENARIO", "success"])
-        let botaoFiltro = app.buttons["botao-filtro-vagas"]
+        let botaoFiltro = app.buttons["filtro-abrir"]
         XCTAssertTrue(botaoFiltro.waitForExistence(timeout: 10))
         botaoFiltro.tap()
         let folha = app.descendants(matching: .any)["folha-filtros-t2b"]
@@ -115,20 +115,14 @@ final class CapturasLote1UITests: XCTestCase {
     // MARK: - T1: Perfil Profissional
 
     func testT1PerfilPadrao() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success"])
-        let conta = app.tabBars.buttons["Conta"]
-        XCTAssertTrue(conta.waitForExistence(timeout: 10), "A aba Conta deve existir")
-        conta.tap()
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
         let perfil = app.descendants(matching: .any)["tela-perfil-profissional"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10), "O perfil profissional deve abrir")
         capturar("lote1-t1-perfil-padrao")
     }
 
     func testT1PerfilAX5() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success"], ax5: true)
-        let conta = app.tabBars.buttons["Conta"]
-        XCTAssertTrue(conta.waitForExistence(timeout: 10))
-        conta.tap()
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"], ax5: true)
         let perfil = app.descendants(matching: .any)["tela-perfil-profissional"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
         capturar("lote1-t1-perfil-ax5")
@@ -137,31 +131,25 @@ final class CapturasLote1UITests: XCTestCase {
     // MARK: - T1b: Escolher Funções
 
     func testT1bEscolherFuncoes() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success"])
-        let conta = app.tabBars.buttons["Conta"]
-        XCTAssertTrue(conta.waitForExistence(timeout: 10))
-        conta.tap()
-        let adicionar = app.buttons["adicionar-funcao"]
-        XCTAssertTrue(adicionar.waitForExistence(timeout: 10))
-        adicionar.tap()
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
+        let expandir = app.buttons["botao-expandir-funcoes"]
+        XCTAssertTrue(expandir.waitForExistence(timeout: 10))
+        expandir.tap()
         let sheet = app.descendants(matching: .any)["tela-escolher-funcoes"]
         XCTAssertTrue(sheet.waitForExistence(timeout: 5), "A folha T1b de funções deve abrir")
         capturar("lote1-t1b-escolher-funcoes")
     }
 
     func testT1bSemResultado() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success"])
-        let conta = app.tabBars.buttons["Conta"]
-        XCTAssertTrue(conta.waitForExistence(timeout: 10))
-        conta.tap()
-        let adicionar = app.buttons["adicionar-funcao"]
-        XCTAssertTrue(adicionar.waitForExistence(timeout: 10))
-        adicionar.tap()
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
+        let expandir = app.buttons["botao-expandir-funcoes"]
+        XCTAssertTrue(expandir.waitForExistence(timeout: 10))
+        expandir.tap()
         let busca = app.textFields["campo-busca-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5))
         busca.tap()
         busca.typeText("xyz999naoexiste")
-        let semResultado = app.descendants(matching: .any)["estado-busca-sem-resultado"]
+        let semResultado = app.descendants(matching: .any)["estado-sem-resultado-funcoes"]
         XCTAssertTrue(semResultado.waitForExistence(timeout: 5), "O estado sem resultado da busca de função deve aparecer")
         capturar("lote1-t1b-sem-resultado")
     }
