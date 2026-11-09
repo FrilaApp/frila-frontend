@@ -220,7 +220,7 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             if viewModel.carregando {
                                 ProgressView()
-                                    .tint(FrilaCor.sobrePrimaria)
+                                    .tint(FrilaCor.sobreAcao)
                                 Text(verbatim: TextosRepublicarPosicoesRestantes.republicando)
                             } else {
                                 Image(systemName: "bolt.fill")
@@ -228,17 +228,17 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                                 Text(verbatim: TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
                             }
                         }
-                        .font(FrilaTipo.meta.weight(.semibold))
+                        .font(FrilaTipo.botaoPrimario)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, FrilaEspaco.medio)
+                        .padding(.horizontal, FrilaEspaco.grande)
                         .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                         .contentShape(Capsule())
                     }
-                    // Pílula escura do MidFi, como o botão principal.
-                    .buttonStyle(.plain)
-                    .foregroundStyle(FrilaCor.sobrePrimaria)
-                    .background(FrilaCor.primaria, in: Capsule())
+                    .buttonStyle(.tatil)
+                    .foregroundStyle(viewModel.carregando ? FrilaCor.textoSecundario : FrilaCor.sobreAcao)
+                    .background(viewModel.carregando ? FrilaCor.controle : FrilaCor.acao, in: Capsule())
+                    .overlay { if viewModel.carregando { Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
                     .disabled(viewModel.carregando)
                     .accessibilityIdentifier(idAcessibilidade)
                 }

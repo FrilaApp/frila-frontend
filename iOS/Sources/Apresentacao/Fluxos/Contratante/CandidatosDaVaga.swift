@@ -529,7 +529,7 @@ public struct SecaoDeCandidatos: View {
                             Image(systemName: "checkmark.seal.fill")
                         }
                         .font(FrilaTipo.nota.weight(.semibold))
-                        .foregroundStyle(FrilaCor.marca)
+                        .foregroundStyle(FrilaCor.texto)
                         .padding(.horizontal, FrilaEspaco.compacto)
                         .padding(.vertical, FrilaEspaco.minimo)
                         .background(FrilaCor.marca.opacity(0.12), in: Capsule())
@@ -591,7 +591,7 @@ public struct SecaoDeCandidatos: View {
                     if let resumo = TextosDosServicos.resumoDoServico(servico.servico) {
                         Text(verbatim: resumo)
                             .font(FrilaTipo.meta.weight(.semibold))
-                            .foregroundStyle(FrilaCor.marca)
+                            .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if let inclui = servico.servico.itensInclusos, !inclui.isEmpty {

@@ -52,7 +52,7 @@ struct ResumoDaChamadaEnviada: View {
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
             Text(verbatim: valor)
-                .font(FrilaTipo.corpo)
+                .font(rotulo == TextosChamadaDireta.valor ? FrilaTipo.valorDoRodape : FrilaTipo.corpo)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
         }
