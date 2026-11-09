@@ -438,30 +438,6 @@ private struct EntradaDoApp: View {
                 TelaPerfilPublicoParaTeste(api: api)
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_DETALHE_LICENCA") {
                 TelaDetalheLicencaParaTeste()
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PONTO_BASE") {
-                NavigationStack { TelaEscolhaPontoBase(aoConcluir: {}) }
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PONTO_BASE_VAZIO") {
-                NavigationStack { TelaEscolhaPontoBase(buscaInicial: "SQS 999", selecionadoID: nil) }
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_FILTROS_VAGAS") {
-                NavigationStack { TelaFiltrosVagas() }
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_T6B_CODIGO") {
-                TelaCodigo(viewModel: CodigoViewModel(api: api, email: "ju.ramos@email.com"), aoVoltar: {}, aoConcluir: { _ in })
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_T6C_NOME") {
-                NavigationStack { TelaDizerNome(nomeInicial: "Juliana Ramos") }
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_PERFIL_CASA") {
-                NavigationStack { TelaPerfilDaCasa() }
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_VAGA_CANDIDATURA") {
-                NavigationStack { TelaVagaComCandidatura() }
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CANCELAR_TURNO") {
-                FolhaCancelarTurno()
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CANCELAR_TURNO_COMECOU") {
-                FolhaCancelarTurno(horarioJaComecou: true)
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CHAT_SUPORTE") {
-                TelaChatSuporte()
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CHAT_SUPORTE_ENVIADA") {
-                TelaChatSuporte(seloTurno: nil, quandoTexto: "Sáb 14/11", horarioTexto: "18:00 às 00:00", assunto: "Presença não confirmada", mensagensIniciais: ["Trabalhei o turno todo, mas a presença não foi marcada."])
-            } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_RESUMO_TURNO") {
-                NavigationStack { TelaResumoTurno() }
             } else if ProcessInfo.processInfo.arguments.contains("-FRILA_ABRIR_CATALOGO") {
                 catalogo
             } else {

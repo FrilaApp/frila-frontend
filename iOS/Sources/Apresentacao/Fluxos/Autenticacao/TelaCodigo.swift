@@ -29,20 +29,29 @@ public struct TelaCodigo: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // Bloco do título e subtítulo (T6b · Confira seu e-mail)
                         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                            Text(verbatim: TextosLote4.confiraSeuEmail)
+                            Text("Confira seu e-mail", bundle: bundleApresentacao)
                                 .font(FrilaTipo.tituloGrande)
                                 .foregroundStyle(FrilaCor.texto)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
 
-                            Text(verbatim: TextosLote4.mandamosCodigoPara(viewModel.email))
+                            Text(String(format: String(localized: "Digite o código de 6 dígitos enviado para %@.", bundle: bundleApresentacao), viewModel.email))
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                                 .fixedSize(horizontal: false, vertical: true)
+
+                            Button(action: aoVoltar) {
+                                Text("Trocar e-mail", bundle: bundleApresentacao)
+                                    .font(FrilaTipo.corpo.weight(.semibold))
+                                    .foregroundStyle(FrilaCor.texto)
+                                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
 
                         // Rótulo do campo Código
-                        Text(verbatim: TextosLote4.codigo)
+                        Text("Código de acesso", bundle: bundleApresentacao)
                             .font(FrilaTipo.rotuloDoCampo)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .padding(.top, FrilaEspaco.medio)
@@ -230,7 +239,7 @@ public struct TelaCodigo: View {
     @ViewBuilder
     private var blocoReenvio: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: TextosLote4.vejaSpam)
+            Text("Não chegou? Veja a caixa de spam.", bundle: bundleApresentacao)
                 .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
@@ -248,7 +257,7 @@ public struct TelaCodigo: View {
                 Button(action: {
                     Task {
                         await viewModel.reenviarCodigo()
-                        UIAccessibility.post(notification: .announcement, argument: TextosLote4.codigoReenviado)
+                        UIAccessibility.post(notification: .announcement, argument: String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao))
                     }
                 }) {
                     HStack(spacing: FrilaEspaco.pequeno) {
@@ -256,7 +265,7 @@ public struct TelaCodigo: View {
                             ProgressView()
                                 .controlSize(.small)
                         }
-                        Text(verbatim: TextosLote4.reenviarCodigo)
+                        Text("Reenviar código", bundle: bundleApresentacao)
                             .font(FrilaTipo.corpo.weight(.semibold))
                             .foregroundStyle(FrilaCor.texto)
                     }
