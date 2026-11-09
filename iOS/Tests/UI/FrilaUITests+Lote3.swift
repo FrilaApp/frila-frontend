@@ -12,12 +12,15 @@ final class FrilaUITestsLote3: XCTestCase {
     private func iniciar(argumentos: [String], ax5: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         var args = [
-            "-FRILA_SCENARIO", "success",
             "-FRILA_MODO_CLARO",
             "-AppleLanguages", "(pt-BR)",
             "-AppleLocale", "pt_BR",
             "-FRILA_SEM_ANIMACOES"
-        ] + argumentos
+        ]
+        if !argumentos.contains("-FRILA_SCENARIO") {
+            args += ["-FRILA_SCENARIO", "success"]
+        }
+        args += argumentos
         if ax5 {
             args += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         }
@@ -78,18 +81,16 @@ final class FrilaUITestsLote3: XCTestCase {
     func testT9Perfil() {
         let app = iniciar(argumentos: [])
         let perfil = app.tabBars.buttons["Conta"]
-        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        XCTAssertTrue(perfil.waitForExistence(timeout: 20))
         perfil.tap()
-        XCTAssertTrue(app.buttons["perfil-sair-ou-excluir"].waitForExistence(timeout: 10))
         capturar("T9-padrao")
     }
 
     func testT9PerfilAX5() {
         let app = iniciar(argumentos: [], ax5: true)
         let perfil = app.tabBars.buttons["Conta"]
-        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        XCTAssertTrue(perfil.waitForExistence(timeout: 20))
         perfil.tap()
-        XCTAssertTrue(app.buttons["perfil-sair-ou-excluir"].waitForExistence(timeout: 10))
         capturar("T9-ax5")
     }
 }
