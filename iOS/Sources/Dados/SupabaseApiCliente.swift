@@ -773,6 +773,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     /// Funções RPC do contrato estritamente de consulta (idempotentes e seguras para retentativa).
     /// Chamadas com efeito colateral (candidaturas, publicações, check-in, etc.) nunca entram aqui.
     public static let rpcsDeLeitura: Set<String> = [
+        "validar_codigo_checkin",
         "minha_conta",
         "meu_perfil_profissional",
         "criterios_de_notificacao",

@@ -1511,7 +1511,7 @@ enum ContratoAPI {
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(localizacaoSimulada, forKey: .localizacaoSimulada)
-            try container.encode(precisaoMetros, forKey: .precisaoMetros)
+            try container.encodeIfPresent(precisaoMetros, forKey: .precisaoMetros)
             try container.encode(saltoDePosicao, forKey: .saltoDePosicao)
         }
     }

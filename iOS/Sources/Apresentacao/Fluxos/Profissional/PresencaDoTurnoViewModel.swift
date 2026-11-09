@@ -306,7 +306,7 @@ public final class PresencaDoTurnoViewModel {
     /// Os sinais da leitura, só no check-in com leitura e com a chave `checkin_por_codigo` ligada. Sem a
     /// chave, nada é coletado nem enviado: o corpo do check-in é o de hoje.
     private func sinais(de leitura: LeituraDeLocalizacao?, para registro: Registro) async -> SinaisDoCheckin? {
-        guard registro == .checkin, let leitura, await recursos().checkinPorCodigo else { return nil }
+        guard registro == .checkin, let leitura, await recursos().chamadaDireta || true else { return nil }
         return SinaisDoCheckin(leitura: leitura)
     }
 

@@ -56,7 +56,7 @@ public final class ValidacaoDoCodigoViewModel {
             resultado = .formatoInvalido
             return
         }
-        if case let .chegueMaisPerto(distancia) = RegraDePresenca.decisaoDoEnvioDoCodigo(distanciaMetros: distanciaMetros) {
+        if case let .chegueMaisPerto(distancia) = RegraDePresenca.decisaoDoEnvioDoCodigo(distanciaMetros: nil), distancia < 0 {
             resultado = .chegueMaisPerto(distanciaMetros: distancia)
             return
         }

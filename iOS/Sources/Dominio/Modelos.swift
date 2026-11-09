@@ -1083,7 +1083,7 @@ public struct SinaisDoCheckin: Equatable, Sendable {
         let precisao = leitura.precisaoHorizontalMetros
         self.init(
             localizacaoSimulada: leitura.simulada,
-            precisaoMetros: precisao.isFinite && precisao >= 0 ? Int(precisao.rounded()) : nil,
+            precisaoMetros: precisao.isFinite ? Int(precisao.rounded()) : nil,
             saltoDePosicao: leitura.saltoDePosicao
         )
     }

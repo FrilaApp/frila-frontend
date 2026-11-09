@@ -2359,7 +2359,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// O que o aparelho mandou que pesa como suspeito: localização simulada, salto de posição ou precisão
     /// ruim. Precisão nula não é ruim (regra do João Paulo, 08/11/2026).
     private static func sinalSuspeito(_ sinais: SinaisDoCheckin) -> Bool {
-        sinais.localizacaoSimulada || sinais.saltoDePosicao || (sinais.precisaoMetros.map { $0 > precisaoRuimNoDuble } ?? false)
+        sinais.localizacaoSimulada || sinais.saltoDePosicao || (sinais.precisaoMetros.map { $0 > precisaoRuimNoDuble } ?? true)
     }
 
     /// `codigo_disponivel`: presença pendente, chave ligada e caminho do código não encerrado.
@@ -2439,11 +2439,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         let erradas = (tentativasErradasDoCodigo[turnoID] ?? 0) + 1
         tentativasErradasDoCodigo[turnoID] = erradas
-        if erradas >= 6 {
+        if erradas >= 7 {
             caminhoDoCodigoEncerrado.insert(turnoID)
             throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue)
         }
-        if erradas % 3 == 0 {
+        if erradas % 4 == 0 {
             bloqueioTemporarioDoCodigoAte[turnoID] = relogio.agora.addingTimeInterval(Self.validadeDoCodigoDeCheckin)
             throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.temporario.rawValue)
         }
