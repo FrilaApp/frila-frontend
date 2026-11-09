@@ -59,7 +59,7 @@ final class CapturasLote1UITests: XCTestCase {
     }
 
     func testT2SemVagas() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "painel-vazio"])
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_RELOGIO_AGORA", "2027-01-01T00:00:00Z"])
         let vazio = app.descendants(matching: .any)["vagas-vazio"]
         XCTAssertTrue(vazio.waitForExistence(timeout: 10), "O estado sem vagas deve aparecer")
         capturar("lote1-t2-sem-vagas")
@@ -83,8 +83,8 @@ final class CapturasLote1UITests: XCTestCase {
         let botaoFiltro = app.buttons["filtro-abrir"]
         XCTAssertTrue(botaoFiltro.waitForExistence(timeout: 10))
         botaoFiltro.tap()
-        let folha = app.descendants(matching: .any)["folha-filtros-t2b"]
-        XCTAssertTrue(folha.waitForExistence(timeout: 5), "A folha de filtros T2b deve abrir")
+        let catalogo = app.buttons["Ver catálogo"]
+        XCTAssertTrue(catalogo.waitForExistence(timeout: 5), "A folha de filtros T2b deve abrir")
         capturar("lote1-t2b-filtros")
     }
 
@@ -135,8 +135,8 @@ final class CapturasLote1UITests: XCTestCase {
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let sheet = app.descendants(matching: .any)["tela-escolher-funcoes"]
-        XCTAssertTrue(sheet.waitForExistence(timeout: 5), "A folha T1b de funções deve abrir")
+        let busca = app.textFields["campo-buscar-funcao"]
+        XCTAssertTrue(busca.waitForExistence(timeout: 5), "A folha T1b de funções deve abrir")
         capturar("lote1-t1b-escolher-funcoes")
     }
 
@@ -145,7 +145,7 @@ final class CapturasLote1UITests: XCTestCase {
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let busca = app.textFields["campo-busca-funcao"]
+        let busca = app.textFields["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5))
         busca.tap()
         busca.typeText("xyz999naoexiste")
