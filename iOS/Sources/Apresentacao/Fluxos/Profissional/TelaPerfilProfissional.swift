@@ -50,6 +50,13 @@ public struct TelaPerfilProfissional: View {
                     pedidoDeRolagem = nil
                 }
         }
+        .sheet(isPresented: $sheetFuncoesAberta) {
+            TelaEscolherFuncoes(
+                funcoes: funcoesExibidas,
+                selecionadas: viewModel.funcoesSelecionadas,
+                alternar: { viewModel.alternarFuncao($0) }
+            )
+        }
     }
 
     private var corpoComRolagem: some View {
@@ -61,7 +68,7 @@ public struct TelaPerfilProfissional: View {
             .accessibilityIdentifier("tela-perfil-profissional")
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.compacto)
-            .padding(.bottom, FrilaEspaco.grande)
+            .padding(.bottom, FrilaEspaco.enorme * 2)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -70,13 +77,6 @@ public struct TelaPerfilProfissional: View {
         .background(FrilaCor.fundo)
         .navigationTitle(viewModel.modo == .criacao ? "" : TextosDoProfissional.Perfil.titulo)
         .navigationBarTitleDisplayMode(viewModel.modo == .criacao ? .inline : .large)
-        .sheet(isPresented: $sheetFuncoesAberta) {
-            TelaEscolherFuncoes(
-                funcoes: funcoesExibidas,
-                selecionadas: viewModel.funcoesSelecionadas,
-                alternar: { viewModel.alternarFuncao($0) }
-            )
-        }
         .task {
             #if DEBUG
             if estadoCapturaDebug != nil {
@@ -256,10 +256,11 @@ public struct TelaPerfilProfissional: View {
                             Text(verbatim: funcao.nome)
                                 .font(FrilaTipo.meta.weight(.medium))
                                 .padding(.horizontal, FrilaEspaco.faixa)
-                                .frame(height: 36)
+                                .padding(.vertical, FrilaEspaco.compacto)
+                                .frame(minHeight: 36)
                                 .foregroundStyle(selecionada ? FrilaCor.sobreSelecao : FrilaCor.texto)
-                                .background(selecionada ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
-                                .overlay(Capsule().strokeBorder(selecionada ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                                .background(selecionada ? FrilaCor.selecao : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(selecionada ? Color.clear : FrilaCor.borda, lineWidth: 1))
                                 .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionada)
                                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                                 .contentShape(Rectangle())
@@ -278,8 +279,8 @@ public struct TelaPerfilProfissional: View {
                     .underline()
                     .foregroundStyle(FrilaCor.texto)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
             }
+            .contentShape(Rectangle())
             .buttonStyle(.plain)
             .accessibilityIdentifier("botao-expandir-funcoes")
         }
@@ -320,9 +321,11 @@ public struct TelaPerfilProfissional: View {
                             viewModel.selecionarSugestao(item)
                         } label: {
                             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                                Text(verbatim: item.name ?? "")
-                                    .font(FrilaTipo.meta.weight(.semibold))
-                                    .foregroundStyle(FrilaCor.texto)
+                                if let nome = item.name {
+                                    Text(verbatim: nome)
+                                        .font(FrilaTipo.meta.weight(.semibold))
+                                        .foregroundStyle(FrilaCor.texto)
+                                }
                                 if let title = item.placemark.title {
                                     Text(verbatim: title)
                                         .font(FrilaTipo.nota)
@@ -445,10 +448,11 @@ public struct TelaPerfilProfissional: View {
                             Text(verbatim: periodo)
                                 .font(FrilaTipo.meta.weight(.medium))
                                 .padding(.horizontal, FrilaEspaco.faixa)
-                                .frame(height: 36)
+                                .padding(.vertical, FrilaEspaco.compacto)
+                                .frame(minHeight: 36)
                                 .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
-                                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
-                                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
                                 .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
                                 .frame(minHeight: FrilaMetrica.alvoMinimo)
                                 .contentShape(Rectangle())
@@ -566,9 +570,11 @@ public struct TelaPerfilProfissional: View {
                             viewModel.selecionarSugestao(item)
                         } label: {
                             VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                                Text(verbatim: item.name ?? "")
-                                    .font(FrilaTipo.meta.weight(.semibold))
-                                    .foregroundStyle(FrilaCor.texto)
+                                if let nome = item.name {
+                                    Text(verbatim: nome)
+                                        .font(FrilaTipo.meta.weight(.semibold))
+                                        .foregroundStyle(FrilaCor.texto)
+                                }
                                 if let title = item.placemark.title {
                                     Text(verbatim: title)
                                         .font(FrilaTipo.nota)

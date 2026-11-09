@@ -120,9 +120,9 @@ public struct TelaEscolherFuncoes: View {
                 }
             }
             .padding(.horizontal, FrilaEspaco.medio)
-            .frame(height: 48)
-            .background(FrilaCor.superficie, in: Capsule())
-            .overlay(Capsule().strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .frame(minHeight: 48)
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
 
             Text(verbatim: textoApoioContagem)
                 .font(FrilaTipo.nota)
@@ -149,10 +149,11 @@ public struct TelaEscolherFuncoes: View {
                             Text(verbatim: funcao.nome)
                                 .font(FrilaTipo.chip)
                                 .padding(.horizontal, FrilaEspaco.medio)
-                                .frame(height: 36)
+                                .padding(.vertical, FrilaEspaco.compacto)
+                                .frame(minHeight: 36)
                                 .foregroundStyle(selecionada ? FrilaCor.sobreSelecao : FrilaCor.texto)
-                                .background(selecionada ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
-                                .overlay(Capsule().strokeBorder(selecionada ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                                .background(selecionada ? FrilaCor.selecao : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(selecionada ? Color.clear : FrilaCor.borda, lineWidth: 1))
                                 .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionada)
                         }
                         .buttonStyle(.plain)
