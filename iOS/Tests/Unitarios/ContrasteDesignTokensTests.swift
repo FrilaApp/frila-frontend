@@ -1,5 +1,8 @@
 import Foundation
+@testable import FrilaApresentacao
+import SwiftUI
 import Testing
+import UIKit
 
 /// Teste automatizado de contraste WCAG 2.1 AA dos tokens de design (Design System).
 ///
@@ -415,6 +418,45 @@ struct ContrasteDesignTokensTests {
         }
 
         #expect(falhas.isEmpty, "Componentes ou ícones com contraste abaixo de 3,0:1: \(falhas)")
+    }
+
+    /// Cor do `SwiftUI.Color` no modo pedido, em sRGB.
+    @MainActor
+    private static func resolver(_ cor: Color, escuro: Bool) -> CorSRGB {
+        let traits = UITraitCollection(userInterfaceStyle: escuro ? .dark : .light)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(cor).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return CorSRGB(r: Double(r), g: Double(g), b: Double(b), alpha: Double(a))
+    }
+
+    /// Pele nova (B-L0): a `acao` sobre o fundo dá 2,9:1 e não pode ser texto. O texto da `FrilaEditorialTag` ficava
+    /// nela, sobre a própria marca a 12% (2,5:1). Este par guarda que o texto padrão da tag continue legível (4,5:1)
+    /// sobre o preenchimento dela, composto sobre o fundo, nos dois modos.
+    @Test("O texto padrão da FrilaEditorialTag atende 4,5:1 sobre o preenchimento da tag, e o laranja não é o texto")
+    @MainActor
+    func textoDaTagEditorial() throws {
+        let tokens = try Self.carregarTokensDoCatalogo()
+        let fundoDaTela = try #require(tokens["Surface"])
+        let acao = try #require(tokens["BrandAccent"])
+        for escuro in [false, true] {
+            let tela = escuro ? fundoDaTela.escuro : fundoDaTela.claro
+            let tinta = Self.resolver(FrilaEditorialTag.corDoFundo(isDark: escuro), escuro: escuro)
+            // Composição do preenchimento (marca com alfa) sobre o fundo da tela.
+            let fundo = CorSRGB(
+                r: tinta.r * tinta.alpha + tela.r * (1 - tinta.alpha),
+                g: tinta.g * tinta.alpha + tela.g * (1 - tinta.alpha),
+                b: tinta.b * tinta.alpha + tela.b * (1 - tinta.alpha),
+                alpha: 1
+            )
+            let texto = Self.resolver(FrilaEditorialTag.corDoTextoPadrao, escuro: escuro)
+            let razao = texto.razaoDeContraste(contra: fundo)
+            let modo = escuro ? "escuro" : "claro"
+            #expect(razao >= 4.5, "texto da tag sobre o próprio fundo (\(modo)): \(String(format: "%.2f", razao)):1 < 4,5:1")
+            let ehLaranja = abs(texto.r - (escuro ? acao.escuro : acao.claro).r) < 0.01
+                && abs(texto.g - (escuro ? acao.escuro : acao.claro).g) < 0.01
+                && abs(texto.b - (escuro ? acao.escuro : acao.claro).b) < 0.01
+            #expect(!ehLaranja, "o laranja da ação não pode ser o texto da tag (\(modo))")
+        }
     }
 
     @Test("Guarda estrita das exceções e restrições de uso: BrandAccent é apenas acento e não texto corrido")

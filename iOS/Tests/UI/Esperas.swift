@@ -148,7 +148,7 @@ func textoDeDinheiro(_ valor: Int) -> NSPredicate {
     )
 }
 
-/// O preço composto (`FrilaPriceTag`: moeda na marca, Jost, leitura em bloco) chega ao XCUITest como um
+/// O preço composto (`FrilaPriceTag`: moeda na marca, Prodigy Sans, leitura em bloco) chega ao XCUITest como um
 /// elemento só, de tipo "outro" e rótulo "R$ 160" (espaço inseparável depois de "R$"), e não como
 /// `StaticText`. O atalho (botão) tem outro rótulo ("160 reais por turno"), então não entra aqui.
 func textoDoPreco(_ valor: Int) -> NSPredicate {
