@@ -353,7 +353,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         vagas: [Vaga]? = nil,
         sessaoAtivaInicial: Bool = false,
         erroSimuladoRepublicarPosicoesRestantes: ErroDaApi? = nil,
-        simularFalhaTransitoriaRepublicar: Bool = false
+        simularFalhaTransitoriaRepublicar: Bool = false,
+        chamadaDiretaDesligada: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
@@ -373,7 +374,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 urlDaLoja: configuracaoBase.urlDaLoja,
                 recursos: RecursosDoApp(
                     fotoDePerfil: cenario.fotoDePerfilLigada,
-                    chamadaDireta: cenario.deChamada || cenario == .chamadaRecebida,
+                    // `chamadaDiretaDesligada`: a chave desligada depois que a vaga direta já existe.
+                    chamadaDireta: !chamadaDiretaDesligada && (cenario.deChamada || cenario == .chamadaRecebida),
                     perfilRico: perfilRicoHabilitado
                 )
             )
@@ -822,7 +824,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             vagas: vagasPersonalizadas,
             sessaoAtivaInicial: sessaoAtiva,
             erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
-            simularFalhaTransitoriaRepublicar: falhaTransitoria
+            simularFalhaTransitoriaRepublicar: falhaTransitoria,
+            // A chave do servidor desligada num cenário que já tem vaga direta (RN46).
+            chamadaDiretaDesligada: argumentos.contains("-FRILA_CHAMADA_DIRETA_DESLIGADA")
         )
     }
     #endif
