@@ -63,6 +63,12 @@ public final class PresencaDoTurnoViewModel {
     /// A última permissão de localização que o app viu, para avisar antes do toque quando só a
     /// aproximada foi concedida. `nil` até a primeira leitura.
     public private(set) var permissaoDaLocalizacao: PermissaoDeLocalizacao?
+    /// A chave `checkin_por_codigo` do servidor, já lida (`carregarRecursos`). Desligada, nada do código aparece.
+    public private(set) var checkinPorCodigoLigado = false
+    /// `codigo_disponivel` do último `fazer_checkin`; `nil` enquanto o app não o viu (check-in da fila ou de outra abertura).
+    public private(set) var codigoDisponivel: Bool?
+    /// O caminho do código fechou para este turno (`codigo_bloqueado` `encerrado`): vale a confirmação manual da casa.
+    public private(set) var caminhoDoCodigoEncerrado = false
 
     private let api: any ApiCliente
     private let localizacao: any LeitorDeLocalizacao
@@ -74,6 +80,8 @@ public final class PresencaDoTurnoViewModel {
     /// Os recursos do servidor, lidos só na hora de montar o check-in com leitura de GPS. Os `sinais` do
     /// check-in por código só saem com `checkinPorCodigo` ligado (0.2.68); por padrão, desligado.
     private let recursos: @Sendable () async -> RecursosDoApp
+    /// Os recursos, lidos uma vez por abertura da tela do turno (os `sinais` e as telas do código usam a mesma leitura).
+    private var recursosLidos: RecursosDoApp?
     private var pontoDaVaga: Coordenada?
     private var toque: Date?
     private var jaEmitiuCheckinConcluido = false
@@ -105,6 +113,55 @@ public final class PresencaDoTurnoViewModel {
         checkin = turno.checkin.map { .registrado(RegistroFeito(instante: $0.instante, distanciaMetros: $0.distanciaMetros, manual: $0.tipo == .manual)) } ?? .naoFeito
         checkout = turno.checkout.map { .registrado(RegistroFeito(instante: $0.instante, distanciaMetros: $0.distanciaMetros, manual: false)) } ?? .naoFeito
         verificacao = turno.verificacao
+    }
+
+    /// Lê a chave do servidor uma vez e a guarda: `checkin_por_codigo` liga os sinais e as telas do código.
+    public func carregarRecursos() async {
+        checkinPorCodigoLigado = await recursosDoApp().checkinPorCodigo
+    }
+
+    private func recursosDoApp() async -> RecursosDoApp {
+        if let recursosLidos { return recursosLidos }
+        let lidos = await recursos()
+        recursosLidos = lidos
+        return lidos
+    }
+
+    /// Check-in feito e ainda pendente, com a chave ligada e o caminho do código aberto: a tela oferece a
+    /// leitura do código da casa, ao lado do aviso de que a casa também pode confirmar a chegada.
+    public var podeLerOCodigo: Bool {
+        guard checkinPorCodigoLigado, verificacao == .pendente, codigoDisponivel != false, !caminhoDoCodigoEncerrado else { return false }
+        if case .registrado = checkin { return true }
+        return false
+    }
+
+    /// A validação deu certo: a presença fica verificada pelo código, e a tela do turno é relida.
+    public func aoValidarOCodigo(_ registro: ResultadoRegistro) {
+        verificacao = registro.verificacao
+        checkin = .registrado(RegistroFeito(instante: registro.registradoEm, distanciaMetros: nil, manual: false))
+        aoRegistrar()
+    }
+
+    /// `checkin_ja_confirmado`: outra leitura ou a casa chegou antes. Relê o turno, que já vem verificado.
+    public func aoJaVerificadoPeloCodigo() { aoRegistrar() }
+
+    /// O caminho do código fechou: some a leitura, e fica a confirmação manual da casa.
+    public func aoEncerrarOCaminhoDoCodigo() { caminhoDoCodigoEncerrado = true }
+
+    /// A distância até o ponto da vaga, medida agora, para a validação do código. `nil` sem posição
+    /// (permissão que não é a precisa, GPS sem sinal, ponto da vaga indisponível): o servidor valida e marca
+    /// o turno de confiança baixa. A imprecisão da leitura não desconta, como no servidor.
+    public func medirDistanciaParaOCodigo() async -> Int? {
+        guard await localizacao.permissao() == .aoUsarPrecisa, let ponto = await pontoDaVagaOuBuscar() else { return nil }
+        guard let leitura = try? await localizacao.lerUmaVez(
+            tempoLimite: RegraDePresenca.tempoLimiteDaLeitura, precisaoSuficienteMetros: RegraDePresenca.precisaoHorizontalMaximaMetros
+        ) else { return nil }
+        return Int(leitura.coordenada.distancia(emMetrosDe: ponto).rounded())
+    }
+
+    /// A leitura do código deste turno, com a medição da distância ligada ao leitor de localização.
+    public func criarValidacaoDoCodigo() -> ValidacaoDoCodigoViewModel {
+        ValidacaoDoCodigoViewModel(turnoID: turno.id, api: api, medirDistancia: { [weak self] in await self?.medirDistanciaParaOCodigo() })
     }
 
     public var ocupado: Bool {
@@ -306,7 +363,7 @@ public final class PresencaDoTurnoViewModel {
     /// Os sinais da leitura, só no check-in com leitura e com a chave `checkin_por_codigo` ligada. Sem a
     /// chave, nada é coletado nem enviado: o corpo do check-in é o de hoje.
     private func sinais(de leitura: LeituraDeLocalizacao?, para registro: Registro) async -> SinaisDoCheckin? {
-        guard registro == .checkin, let leitura, await recursos().checkinPorCodigo else { return nil }
+        guard registro == .checkin, let leitura, await recursosDoApp().checkinPorCodigo else { return nil }
         return SinaisDoCheckin(leitura: leitura)
     }
 
@@ -324,6 +381,7 @@ public final class PresencaDoTurnoViewModel {
             switch registro {
             case .checkin:
                 checkin = .registrado(feito)
+                codigoDisponivel = resultado.codigoDisponivel
                 if !jaEmitiuCheckinConcluido {
                     jaEmitiuCheckinConcluido = true
                     await telemetria?.registrar(.checkinConcluido, turnoID: turno.id, ocorridoEm: feito.instante)

@@ -9,7 +9,7 @@
 	<key>FirebaseCrashlyticsCollectionEnabled</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>O Frila precisa da câmera para você tirar sua foto de perfil.</string>
+	<string>O Frila usa a câmera para tirar a sua foto de perfil e para ler o código do check-in.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O Frila usa sua localização só quando você toca em fazer check-in ou check-out, para medir a distância até o endereço da vaga. Só a distância é enviada.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>

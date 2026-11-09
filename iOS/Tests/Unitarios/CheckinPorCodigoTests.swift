@@ -206,6 +206,9 @@ struct CheckinPorCodigoNoDubleTests {
             ("localização simulada", SinaisDoCheckin(localizacaoSimulada: true, precisaoMetros: 10, saltoDePosicao: false), 50),
             ("salto de posição", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: true), 50),
             ("precisão ruim", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 101, saltoDePosicao: false), 50),
+            ("precisão de 100 m já é ruim (>= 100, como no servidor)", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 100, saltoDePosicao: false), 50),
+            ("as duas bordas do servidor juntas: precisão 100 e 150 m", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 100, saltoDePosicao: false), 150),
+            ("faixa de 150 a 200 m, na borda de baixo (150 inclusive)", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 150),
             ("faixa de 150 a 200 m, sem sinais do aparelho", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 151),
             ("faixa de 150 a 200 m, no limite", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 200),
             ("faixa de 150 a 200 m, app sem sinais", nil, 180)
@@ -223,14 +226,14 @@ struct CheckinPorCodigoNoDubleTests {
         }
     }
 
-    @Test("sem sinal suspeito, a até 150 m o check-in verifica pelo GPS, e precisão nula não é precisão ruim")
+    @Test("sem sinal suspeito, abaixo de 150 m o check-in verifica pelo GPS, e precisão nula não é precisão ruim")
     func semSinalSuspeito() async throws {
-        let normal = SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 100, saltoDePosicao: false)
+        let normal = SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 99, saltoDePosicao: false)
         let nula = SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: nil, saltoDePosicao: false)
-        for (nome, sinais) in [("precisão no limite de 100 m", normal), ("precisão nula", nula)] {
+        for (nome, sinais) in [("precisão de 99 m, logo abaixo do limite", normal), ("precisão nula", nula)] {
             let api = profissional()
             let registro = try await api.fazerCheckin(
-                turnoID: turnoDoProfissionalNoCodigo, distanciaMetros: 150, registradoEm: inicioDoCodigo, sinais: sinais
+                turnoID: turnoDoProfissionalNoCodigo, distanciaMetros: 149, registradoEm: inicioDoCodigo, sinais: sinais
             )
             #expect(registro.verificacao == .verificado, "\(nome)")
             #expect(registro.tipo == .geolocalizado, "\(nome)")
