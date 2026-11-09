@@ -61,7 +61,7 @@ final class CapturasLote5UITests: XCTestCase {
 
     // 2. CandidatosDaVaga (com selo 'da equipe')
     private func candidatosDaVaga(ax5: Bool) {
-        let app = iniciar(argumentos: ["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "selecao-com-candidatos"], ax5: ax5)
+        let app = iniciar(argumentos: ["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "selecao-com-candidato-da-equipe"], ax5: ax5)
         let vagaID = "40000000-0000-0000-0000-000000000001"
         let cartao = app.buttons["vaga-contratante-\(vagaID)"]
         XCTAssertTrue(cartao.waitForExistence(timeout: 15))
@@ -70,6 +70,7 @@ final class CapturasLote5UITests: XCTestCase {
         XCTAssertTrue(candidatos.waitForExistence(timeout: 10))
         let selo = app.staticTexts["Da sua equipe"]
         rolarAte(selo, em: app)
+        XCTAssertTrue(selo.waitForExistence(timeout: 10))
         RunLoop.current.run(until: Date().addingTimeInterval(0.8))
         capturar(app.screenshot(), nome: "candidatos-da-vaga-\(ax5 ? "ax5" : "padrao")")
     }
@@ -109,8 +110,7 @@ final class CapturasLote5UITests: XCTestCase {
             "-FRILA_PUSH", "chamada_recebida",
             "-FRILA_PUSH_CHAMADA_ID", "c2000000-0000-0000-0000-000000000001"
         ], ax5: ax5)
-        let aceitar = app.buttons["aceitar-chamada"]
-        XCTAssertTrue(aceitar.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Bistrô Ipê"].waitForExistence(timeout: 15))
         RunLoop.current.run(until: Date().addingTimeInterval(0.8))
         capturar(app.screenshot(), nome: "detalhe-chamada-recebida-\(ax5 ? "ax5" : "padrao")")
     }
