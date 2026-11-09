@@ -48,7 +48,8 @@ public actor SincronizadorAcoes {
                     _ = try await api.fazerCheckin(
                         turnoID: turnoID,
                         distanciaMetros: acao.distanciaMetros,
-                        registradoEm: acao.instanteDoToque
+                        registradoEm: acao.instanteDoToque,
+                        sinais: acao.sinais
                     )
                 case .checkout:
                     guard let turnoID = acao.turnoID else { continue }

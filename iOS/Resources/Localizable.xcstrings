@@ -884,6 +884,26 @@
         }
       }
     },
+    "A casa também pode confirmar a sua chegada pelo painel dela.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A casa também pode confirmar a sua chegada pelo painel dela."
+          }
+        }
+      }
+    },
+    "A câmera não está liberada. Digite o código ou libere a câmera em Ajustes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A câmera não está liberada. Digite o código ou libere a câmera em Ajustes."
+          }
+        }
+      }
+    },
     "A Equipe Frila ocultou esta vaga. Você vê os candidatos, mas só pode escolher depois que ela for reexibida.": {
       "extractionState": "stale",
       "localizations": {
@@ -913,6 +933,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "A Equipe Frila vai responder por e-mail dentro do prazo informado."
+          }
+        }
+      }
+    },
+    "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada."
           }
         }
       }
@@ -2088,6 +2118,16 @@
         }
       }
     },
+    "Aponte a câmera para o QR que a casa mostra.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aponte a câmera para o QR que a casa mostra."
+          }
+        }
+      }
+    },
     "Apresentação atualizada com sucesso.": {
       "localizations": {
         "pt-BR": {
@@ -2650,6 +2690,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro."
+          }
+        }
+      }
+    },
+    "Conferindo a sua posição…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo a sua posição…"
+          }
+        }
+      }
+    },
+    "Conferindo o código…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo o código…"
           }
         }
       }
@@ -3932,12 +3992,52 @@
         }
       }
     },
+    "Código da casa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código da casa"
+          }
+        }
+      }
+    },
+    "Código de 6 números": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de 6 números"
+          }
+        }
+      }
+    },
     "Código de acesso": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Código de acesso"
+          }
+        }
+      }
+    },
+    "Código de chegada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de chegada"
+          }
+        }
+      }
+    },
+    "Código de chegada: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de chegada: %@"
           }
         }
       }
@@ -4321,6 +4421,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diga como chegar: a entrada, a portaria ou um ponto de referência. Aparece no detalhe da vaga e no Como chegar do turno."
+          }
+        }
+      }
+    },
+    "Digitar o código da casa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitar o código da casa"
+          }
+        }
+      }
+    },
+    "Digitar os números": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitar os números"
           }
         }
       }
@@ -5223,6 +5343,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Essa foto não pôde ser enviada. Tente outra foto."
+          }
+        }
+      }
+    },
+    "Esse código não vale. Confira com a casa e digite de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esse código não vale. Confira com a casa e digite de novo."
           }
         }
       }
@@ -6234,6 +6364,16 @@
         }
       }
     },
+    "Gerando o código…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando o código…"
+          }
+        }
+      }
+    },
     "Histórico de turnos": {
       "extractionState": "stale",
       "localizations": {
@@ -6713,6 +6853,16 @@
         }
       }
     },
+    "Ler o QR": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ler o QR"
+          }
+        }
+      }
+    },
     "Leva material?": {
       "extractionState": "manual",
       "localizations": {
@@ -7151,6 +7301,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modo urgência"
+          }
+        }
+      }
+    },
+    "Mostre este código a quem chegou. A pessoa digita os 6 números ou lê o QR com a câmera.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostre este código a quem chegou. A pessoa digita os 6 números ou lê o QR com a câmera."
           }
         }
       }
@@ -7771,6 +7931,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não contou como falta."
+          }
+        }
+      }
+    },
+    "Não deu para gerar o código. Confira a conexão e tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não deu para gerar o código. Confira a conexão e tente de novo."
+          }
+        }
+      }
+    },
+    "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo."
           }
         }
       }
@@ -8436,6 +8616,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Número do protocolo"
+          }
+        }
+      }
+    },
+    "O código não vale mais neste turno. Confirme a chegada pelo botão abaixo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código não vale mais neste turno. Confirme a chegada pelo botão abaixo."
+          }
+        }
+      }
+    },
+    "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
+    "O código tem 6 números.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código tem 6 números."
+          }
+        }
+      }
+    },
+    "O código venceu. Gerando outro…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código venceu. Gerando outro…"
           }
         }
       }
@@ -9490,6 +9710,16 @@
         }
       }
     },
+    "Peça o código à casa. Digite os 6 números ou leia o QR que ela mostra.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça o código à casa. Digite os 6 números ou leia o QR que ela mostra."
+          }
+        }
+      }
+    },
     "Pode citar tipos de lugar ('buffet de casamento', 'bar no Sudoeste'). Evite nome e telefone de outras pessoas.": {
       "localizations": {
         "pt-BR": {
@@ -10051,6 +10281,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Publique uma vaga e avisamos os profissionais da função perto do local."
+          }
+        }
+      }
+    },
+    "QR com o mesmo código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR com o mesmo código"
           }
         }
       }
@@ -12940,6 +13180,16 @@
         }
       }
     },
+    "Vale por mais %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale por mais %@"
+          }
+        }
+      }
+    },
     "Validação do cliente": {
       "localizations": {
         "pt-BR": {
@@ -13445,6 +13695,16 @@
         }
       }
     },
+    "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
     "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.": {
       "extractionState": "stale",
       "localizations": {
@@ -13463,6 +13723,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você escolhe quem vai trabalhar. A vaga fecha sozinha 24 horas antes do início se ninguém for escolhido."
+          }
+        }
+      }
+    },
+    "Você está a %lld m do local. Chegue mais perto e tente de novo: o código não foi enviado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você está a %lld m do local. Chegue mais perto e tente de novo: o código não foi enviado."
           }
         }
       }

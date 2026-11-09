@@ -12,6 +12,9 @@ public actor LeitorDeLocalizacaoSimulado: LeitorDeLocalizacao {
         case semSinal = "sem-sinal"
         case imprecisa
         case aproximada
+        /// A 50 m da vaga, mas com a localização marcada como simulada por software (`isSimulatedBySoftware`):
+        /// com a chave `checkin_por_codigo` ligada, o check-in fica pendente e pede o código da casa (0.2.68).
+        case simulada
     }
 
     private var permissaoAtual: PermissaoDeLocalizacao
@@ -81,6 +84,14 @@ public extension LeitorDeLocalizacaoSimulado {
             self.init(permissao: .naoDeterminada, resultado: .success(Self.leitura(a: 150, de: pontoDaVaga, precisaoMetros: 180)))
         case .aproximada:
             self.init(permissao: .naoDeterminada, respostaAoPedido: .aoUsarAproximada, resultado: .failure(.semSinal))
+        case .simulada:
+            let perto = Self.leitura(a: 50, de: pontoDaVaga)
+            self.init(
+                permissao: .naoDeterminada,
+                resultado: .success(LeituraDeLocalizacao(
+                    coordenada: perto.coordenada, precisaoHorizontalMetros: perto.precisaoHorizontalMetros, simulada: true
+                ))
+            )
         }
     }
 

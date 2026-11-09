@@ -370,8 +370,8 @@ public final class PresencaDoTurnoViewModel {
     private func enviar(_ registro: Registro, distanciaMetros: Int?, toque: Date, leitura: LeituraDeLocalizacao? = nil) async {
         etapa = .enviando(registro)
         defer { etapa = .parada }
+        let sinaisDoToque = await sinais(de: leitura, para: registro)
         do {
-            let sinaisDoToque = await sinais(de: leitura, para: registro)
             let resultado = switch registro {
             case .checkin: try await api.fazerCheckin(turnoID: turno.id, distanciaMetros: distanciaMetros, registradoEm: toque, sinais: sinaisDoToque)
             case .checkout: try await api.fazerCheckout(turnoID: turno.id, distanciaMetros: distanciaMetros, registradoEm: toque)
@@ -400,7 +400,7 @@ public final class PresencaDoTurnoViewModel {
             ))
             aoRegistrar()
         } catch let erro as ErroDaApi where erro.codigo == .semRede {
-            await guardarNaFila(registro, distanciaMetros: distanciaMetros, toque: toque)
+            await guardarNaFila(registro, distanciaMetros: distanciaMetros, toque: toque, sinais: sinaisDoToque)
         } catch let erro as ErroDaApi {
             mensagemDeErro = Self.mensagem(erro)
         } catch {
@@ -408,7 +408,7 @@ public final class PresencaDoTurnoViewModel {
         }
     }
 
-    private func guardarNaFila(_ registro: Registro, distanciaMetros: Int?, toque: Date) async {
+    private func guardarNaFila(_ registro: Registro, distanciaMetros: Int?, toque: Date, sinais: SinaisDoCheckin?) async {
         guard let fila else {
             mensagemDeErro = TextosDoProfissional.Lista.semConexaoMensagem
             return
@@ -418,7 +418,8 @@ public final class PresencaDoTurnoViewModel {
             turnoID: turno.id,
             instanteDoToque: toque,
             chave: UUID(),
-            distanciaMetros: distanciaMetros
+            distanciaMetros: distanciaMetros,
+            sinais: sinais
         )
         do {
             try await fila.enfileirar(acao)

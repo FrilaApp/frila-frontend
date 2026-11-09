@@ -776,6 +776,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     valorAcordado: vaga.valor, podeAvaliar: false, contato: contato
                 )]
                 contatos[turnoID] = contato
+                // O código que a casa já gerou: o profissional o digita sem precisar da conta da casa (testes de interface).
+                codigosDeCheckin[turnoID] = CodigoEmitido(
+                    codigo: Self.codigosDeExemplo[0], expiraEm: relogio.agora.addingTimeInterval(Self.validadeDoCodigoDeCheckin)
+                )
             }
             if cenario == .chamadaRecebida || cenario == .chamadasEnviadas, let vaga = self.vagas.first {
                 let agora = relogio.agora

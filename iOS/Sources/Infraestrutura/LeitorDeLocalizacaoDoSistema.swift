@@ -102,12 +102,15 @@ public final class LeitorDeLocalizacaoDoSistema: NSObject, LeitorDeLocalizacao {
 
     private func recebeu(latitude: Double, longitude: Double, precisao: Double, instante: Date, simulada: Bool) {
         guard var emCurso = leitura else { return }
+        // Os sinais do check-in por código valem para o toque inteiro: uma leitura simulada marca a leitura
+        // final mesmo que ela seja descartada abaixo (precisão inválida, posição guardada) ou não seja a melhor.
+        if simulada, !emCurso.simulada {
+            emCurso.simulada = true
+            leitura = emCurso
+        }
         // Precisão negativa é posição inválida; posição anterior ao toque é a guardada pelo sistema.
         guard precisao >= 0, instante >= emCurso.inicio.addingTimeInterval(-5),
               let coordenada = try? Coordenada(latitude: latitude, longitude: longitude) else { return }
-        // Os sinais do check-in por código valem para o toque inteiro: uma leitura simulada ou um salto
-        // entre duas leituras marca a leitura final, mesmo que ela não seja a que chegou naquela hora.
-        emCurso.simulada = emCurso.simulada || simulada
         let atual = (coordenada: coordenada, precisaoMetros: precisao, instante: instante)
         if let anterior = emCurso.anterior, SaltoDePosicao.houve(de: anterior, para: atual) { emCurso.saltou = true }
         emCurso.anterior = atual
@@ -140,7 +143,8 @@ extension LeitorDeLocalizacaoDoSistema: CLLocationManagerDelegate {
         guard let ultima = locations.last else { return }
         let (latitude, longitude) = (ultima.coordinate.latitude, ultima.coordinate.longitude)
         let (precisao, instante) = (ultima.horizontalAccuracy, ultima.timestamp)
-        let simulada = ultima.sourceInformation?.isSimulatedBySoftware ?? false
+        // Qualquer leitura do lote simulada marca o toque, e não só a última.
+        let simulada = locations.contains { $0.sourceInformation?.isSimulatedBySoftware == true }
         Task { @MainActor in
             self.recebeu(latitude: latitude, longitude: longitude, precisao: precisao, instante: instante, simulada: simulada)
         }
