@@ -2,10 +2,8 @@ import FrilaDominio
 import SwiftUI
 import UIKit
 
-/// Check-in e check-out dentro de Meu turno (#17): o que já foi registrado, o botão do próximo
-/// registro, a explicação antes do pedido de permissão e a saída manual quando o GPS não serve.
-/// É a seção "Chegada" do quadro "TurnoHoje" do MidFi (e o aviso de falha do "AlertaAtraso"):
-/// cartão com rótulo em caixa alta, linhas de estado, botão escuro e ações de apoio.
+/// Check-in e check-out dentro de Meu turno (T8, RF13, RN22): o que já foi registrado,
+/// o botão do próximo registro, a explicação antes do pedido de permissão e a saída manual quando o GPS não serve.
 public struct SecaoDePresenca: View {
     private typealias Textos = TextosDoProfissional.Presenca
 
@@ -22,11 +20,6 @@ public struct SecaoDePresenca: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            Text(verbatim: Textos.titulo)
-                .font(FrilaTipo.secao)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-
             if let aCaminho = situacaoACaminho {
                 linha(aCaminho).accessibilityIdentifier("a-caminho-situacao")
             }
@@ -57,11 +50,8 @@ public struct SecaoDePresenca: View {
             acoes
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("presenca-do-turno")
-        // O que muda sem toque na região (resultado, falha do GPS) é dito pelo VoiceOver, e o foco
-        // vai para o aviso que pede uma decisão.
         .onChange(of: viewModel.etapa) { _, nova in
             switch nova {
             case .explicando, .semGPS: focoNoAviso = true
@@ -69,7 +59,6 @@ public struct SecaoDePresenca: View {
             }
         }
         .task { await viewModel.atualizarPermissaoDaLocalizacao() }
-        // Voltando dos Ajustes, a permissão pode ter mudado.
         .onChange(of: fase) { _, nova in
             if nova == .active { Task { await viewModel.atualizarPermissaoDaLocalizacao() } }
         }
@@ -78,7 +67,7 @@ public struct SecaoDePresenca: View {
         .onChange(of: viewModel.checkout) { _, _ in anunciar(situacaoDoCheckout?.texto) }
     }
 
-    // MARK: Ações
+    // MARK: - Ações
 
     @ViewBuilder
     private var acoes: some View {
@@ -89,25 +78,9 @@ public struct SecaoDePresenca: View {
                     .accessibilityIdentifier("aviso-precisao-desligada")
                 linkParaAjustes
             }
-            if turno?.podeExibirBotaoACaminho == true {
-                botaoPresencaInativo(
-                    verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
-                    identificador: "botao-a-caminho",
-                    desabilitado: turno?.avisandoACaminho == true
-                ) {
-                    Task { await turno?.avisarACaminho() }
-                }
-            }
             if viewModel.checkinAntecipadoDemais {
                 AvisoFrila(verbatim: Textos.avisoCheckinAntecipado, tom: .informativo)
                     .accessibilityIdentifier("aviso-checkin-antecipado")
-            } else if viewModel.podeFazerCheckin {
-                botaoPresencaAtivo(
-                    verbatim: Textos.fazerCheckin,
-                    identificador: "fazer-checkin"
-                ) {
-                    Task { await viewModel.iniciar(.checkin) }
-                }
             } else if viewModel.podeFazerCheckout {
                 botaoPresencaAtivo(
                     verbatim: Textos.fazerCheckout,
@@ -117,50 +90,56 @@ public struct SecaoDePresenca: View {
                 }
             }
         case .explicando:
-            aviso(titulo: Textos.explicacaoTitulo, textos: [Textos.explicacao, Textos.explicacaoPrecisao], identificador: "explicacao-localizacao")
-            botaoPresencaAtivo(
-                verbatim: Textos.continuar,
-                identificador: "permitir-localizacao"
-            ) {
-                Task { await viewModel.continuarComPermissao() }
+            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                aviso(titulo: Textos.explicacaoTitulo, textos: [Textos.explicacao, Textos.explicacaoPrecisao], identificador: "explicacao-localizacao")
+                botaoPresencaAtivo(
+                    verbatim: Textos.continuar,
+                    identificador: "permitir-localizacao"
+                ) {
+                    Task { await viewModel.continuarComPermissao() }
+                }
+                botaoPresencaInativo(
+                    verbatim: Textos.agoraNao,
+                    identificador: "cancelar-presenca"
+                ) {
+                    viewModel.cancelar()
+                }
             }
-            botaoPresencaInativo(
-                verbatim: Textos.agoraNao,
-                identificador: "cancelar-presenca"
-            ) {
-                viewModel.cancelar()
-            }
+            .cartaoFrila()
         case .lendo:
             progresso(Textos.lendo)
         case .enviando:
             progresso(Textos.enviando)
         case let .semGPS(registro, motivo):
-            aviso(
-                titulo: Textos.semGPSTitulo,
-                textos: [texto(motivo), registro == .checkin ? Textos.manualExplicacao : Textos.saidaSemLocalizacaoExplicacao],
-                identificador: "sem-gps"
-            )
-            botaoPresencaAtivo(
-                verbatim: registro == .checkin ? Textos.checkinManual : Textos.saidaSemLocalizacao,
-                identificador: "registro-manual"
-            ) {
-                Task { await viewModel.registrarSemGPS() }
+            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                aviso(
+                    titulo: Textos.semGPSTitulo,
+                    textos: [texto(motivo), registro == .checkin ? Textos.manualExplicacao : Textos.saidaSemLocalizacaoExplicacao],
+                    identificador: "sem-gps"
+                )
+                botaoPresencaAtivo(
+                    verbatim: registro == .checkin ? Textos.checkinManual : Textos.saidaSemLocalizacao,
+                    identificador: "registro-manual"
+                ) {
+                    Task { await viewModel.registrarSemGPS() }
+                }
+                botaoPresencaInativo(
+                    verbatim: Textos.tentarGPS,
+                    identificador: "tentar-gps"
+                ) {
+                    Task { await viewModel.tentarGPSDeNovo() }
+                }
+                if motivo == .permissaoNegada || motivo == .localizacaoAproximada {
+                    linkParaAjustes
+                }
+                botaoPresencaInativo(
+                    verbatim: Textos.agoraNao,
+                    identificador: "cancelar-presenca"
+                ) {
+                    viewModel.cancelar()
+                }
             }
-            botaoPresencaInativo(
-                verbatim: Textos.tentarGPS,
-                identificador: "tentar-gps"
-            ) {
-                Task { await viewModel.tentarGPSDeNovo() }
-            }
-            if motivo == .permissaoNegada || motivo == .localizacaoAproximada {
-                linkParaAjustes
-            }
-            botaoPresencaInativo(
-                verbatim: Textos.agoraNao,
-                identificador: "cancelar-presenca"
-            ) {
-                viewModel.cancelar()
-            }
+            .cartaoFrila()
         }
     }
 
@@ -170,6 +149,7 @@ public struct SecaoDePresenca: View {
             Link(destination: ajustes) {
                 Text(verbatim: Textos.abrirAjustes)
                     .font(FrilaTipo.meta.weight(.semibold))
+                    .underline()
                     .foregroundStyle(FrilaCor.texto)
             }
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
@@ -187,19 +167,19 @@ public struct SecaoDePresenca: View {
         Button(action: acao) {
             Group {
                 if carregando {
-                    ProgressView().tint(FrilaCor.sobreSelecao)
+                    ProgressView().tint(FrilaCor.sobreAcao)
                 } else {
                     Text(verbatim: titulo)
-                        .font(FrilaTipo.botao)
+                        .font(FrilaTipo.rotuloSecundario)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-            .foregroundStyle(FrilaCor.sobreSelecao)
-            .background(FrilaCor.selecao, in: Capsule())
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .foregroundStyle(FrilaCor.sobreAcao)
+            .background(FrilaCor.acao, in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
@@ -216,15 +196,15 @@ public struct SecaoDePresenca: View {
     ) -> some View {
         Button(action: acao) {
             Text(verbatim: titulo)
-                .font(FrilaTipo.botao)
+                .font(FrilaTipo.rotuloSecundario)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, FrilaEspaco.grande)
                 .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                 .foregroundStyle(FrilaCor.texto)
                 .background(FrilaCor.superficie, in: Capsule())
-                .overlay(Capsule().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
                 .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
@@ -236,7 +216,7 @@ public struct SecaoDePresenca: View {
     private func aviso(titulo: String, textos: [String], identificador: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: titulo)
-                .font(FrilaTipo.rotuloDoCampo)
+                .font(FrilaTipo.meta.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityFocused($focoNoAviso)
                 .accessibilityIdentifier(identificador)
@@ -256,7 +236,7 @@ public struct SecaoDePresenca: View {
         .accessibilityIdentifier("presenca-em-andamento")
     }
 
-    // MARK: Situação
+    // MARK: - Situação
 
     private struct LinhaDeSituacao {
         let texto: String
@@ -264,7 +244,6 @@ public struct SecaoDePresenca: View {
         let cor: Color
     }
 
-    /// Ícone e texto dizem a situação; a cor só acompanha.
     private func linha(_ situacao: LinhaDeSituacao) -> some View {
         Label {
             Text(verbatim: situacao.texto)
@@ -310,11 +289,11 @@ public struct SecaoDePresenca: View {
     private var situacaoDoCheckout: LinhaDeSituacao? {
         switch viewModel.checkout {
         case .naoFeito:
-            nil
+            return nil
         case let .naFila(feito):
-            LinhaDeSituacao(texto: Textos.checkoutNaFila(formatador.hora(feito.instante)), icone: "wifi.slash", cor: FrilaCor.alerta)
+            return LinhaDeSituacao(texto: Textos.checkoutNaFila(formatador.hora(feito.instante)), icone: "wifi.slash", cor: FrilaCor.alerta)
         case let .registrado(feito):
-            LinhaDeSituacao(texto: Textos.checkoutRegistrado(formatador.hora(feito.instante), metros: feito.distanciaMetros), icone: "checkmark.circle.fill", cor: FrilaCor.texto)
+            return LinhaDeSituacao(texto: Textos.checkoutRegistrado(formatador.hora(feito.instante), metros: feito.distanciaMetros), icone: "checkmark.circle.fill", cor: FrilaCor.texto)
         }
     }
 

@@ -121,7 +121,7 @@ public struct LinhaDeEtapasDoTurno: View {
                     .frame(width: 12, height: 12)
             } else {
                 Circle()
-                    .strokeBorder(FrilaCor.bordaControle, lineWidth: 2)
+                    .strokeBorder(FrilaCor.borda, lineWidth: 2)
                     .background(Circle().fill(FrilaCor.superficie))
                     .frame(width: 12, height: 12)
             }
