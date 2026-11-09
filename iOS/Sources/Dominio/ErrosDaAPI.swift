@@ -47,6 +47,11 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case profissionalIndisponivel = "profissional_indisponivel"
     case limiteDeChamadas = "limite_de_chamadas"
     case recursoDesligado = "recurso_desligado"
+    /// `422`, check-in por código (0.2.68): um código só, sem dizer se estava errado, vencido, de outro
+    /// turno ou se a distância passou de 100 m. Cada recusa conta como tentativa errada.
+    case codigoInvalido = "codigo_invalido"
+    /// `409`, check-in por código (0.2.68): `details` `temporario` ou `encerrado`.
+    case codigoBloqueado = "codigo_bloqueado"
     case cursorInvalido = "cursor_invalido"
     case semRede = "sem_rede"
     case respostaInvalida = "resposta_invalida"
@@ -63,7 +68,22 @@ public enum MotivoRepublicacaoIndisponivel: String, Codable, CaseIterable, Senda
     case jaRepublicada = "ja_republicada"
 }
 
+/// Quanto o caminho do código está fechado no turno (`409 codigo_bloqueado`, 0.2.68).
+public enum BloqueioDoCodigo: String, Equatable, Sendable {
+    /// 3 erradas: espere o tempo configurado (hoje 5 minutos).
+    case temporario
+    /// A sexta errada: o código fecha para o turno, sem nova espera, e vale a confirmação manual.
+    case encerrado
+}
+
 public extension ErroDaApi {
+    /// O bloqueio do `409 codigo_bloqueado`; `nil` em outro erro. Sem `details` conhecido, vale o mais
+    /// restritivo (`encerrado`), para o app não prometer uma nova tentativa que o servidor não dá.
+    var bloqueioDoCodigo: BloqueioDoCodigo? {
+        guard codigo == .codigoBloqueado else { return nil }
+        return detalhes.flatMap(BloqueioDoCodigo.init(rawValue:)) ?? .encerrado
+    }
+
     /// `403 sem_permissao` com `details: recurso_desligado` (contrato 0.2.54, RN46): o recurso está
     /// desligado no servidor. O código solto `recurso_desligado` vale o mesmo.
     var recursoDesligado: Bool {

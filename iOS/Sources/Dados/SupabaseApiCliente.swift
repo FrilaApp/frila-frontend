@@ -461,7 +461,18 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
-        try await registrarPresenca("fazer_checkin", turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+        try await fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm, sinais: nil)
+    }
+
+    public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, sinais: SinaisDoCheckin?) async throws -> ResultadoRegistro {
+        let params = ContratoAPI.RegistroDeCheckin(
+            presenca: ContratoAPI.RegistroDePresenca(
+                turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: ContratoAPI.texto(registradoEm)
+            ),
+            sinais: sinais.map(ContratoAPI.SinaisDoCheckinDTO.init)
+        )
+        let resposta: ContratoAPI.ResultadoRegistroDTO = try await rpc("fazer_checkin", params: params)
+        return resposta.dominio()
     }
 
     public func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
@@ -477,6 +488,19 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro {
         let resposta: ContratoAPI.ResultadoRegistroDTO = try await rpc("confirmar_checkin_manual", params: ContratoAPI.ID("turno_id", turnoID))
+        return resposta.dominio()
+    }
+
+    public func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin {
+        let resposta: ContratoAPI.CodigoDeCheckinDTO = try await rpc("gerar_codigo_checkin", params: ContratoAPI.ID("turno_id", turnoID))
+        return resposta.dominio()
+    }
+
+    /// Fora de `rpcsDeLeitura` de propósito: a tentativa errada fica gravada no servidor, e repetir sozinho
+    /// contaria outra e anteciparia o bloqueio (0.2.69).
+    public func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro {
+        let params = ContratoAPI.ValidarCodigoDeCheckin(turnoID: turnoID, codigo: codigo, distanciaMetros: distanciaMetros)
+        let resposta: ContratoAPI.ResultadoRegistroDTO = try await rpc("validar_codigo_checkin", params: params)
         return resposta.dominio()
     }
 

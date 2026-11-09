@@ -12,6 +12,19 @@ public final class LeitorDeLocalizacaoDoSistema: NSObject, LeitorDeLocalizacao {
         let precisaoSuficienteMetros: Double
         let inicio: Date
         var melhor: LeituraDeLocalizacao?
+        /// A leitura anterior do mesmo toque, para o salto de posição.
+        var anterior: (coordenada: Coordenada, precisaoMetros: Double, instante: Date)?
+        /// Alguma leitura do toque veio simulada por software (0.2.68).
+        var simulada = false
+        var saltou = false
+
+        /// A leitura com os sinais do toque inteiro, e não só os da hora em que ela chegou.
+        func comSinais(_ leitura: LeituraDeLocalizacao) -> LeituraDeLocalizacao {
+            LeituraDeLocalizacao(
+                coordenada: leitura.coordenada, precisaoHorizontalMetros: leitura.precisaoHorizontalMetros,
+                simulada: simulada, saltoDePosicao: saltou
+            )
+        }
     }
 
     private let gerenciador = CLLocationManager()
@@ -74,7 +87,7 @@ public final class LeitorDeLocalizacaoDoSistema: NSObject, LeitorDeLocalizacao {
 
     private func encerrarNoPrazo() {
         guard let leitura else { return }
-        concluir(leitura.melhor.map { .success($0) } ?? .failure(.tempoEsgotado))
+        concluir(leitura.melhor.map { .success(leitura.comSinais($0)) } ?? .failure(.tempoEsgotado))
     }
 
     /// Sempre para o GPS antes de devolver: a leitura não sobrevive ao toque que a pediu.
@@ -87,17 +100,21 @@ public final class LeitorDeLocalizacaoDoSistema: NSObject, LeitorDeLocalizacao {
         emCurso.continuacao.resume(returning: resultado)
     }
 
-    private func recebeu(latitude: Double, longitude: Double, precisao: Double, instante: Date) {
+    private func recebeu(latitude: Double, longitude: Double, precisao: Double, instante: Date, simulada: Bool) {
         guard var emCurso = leitura else { return }
         // Precisão negativa é posição inválida; posição anterior ao toque é a guardada pelo sistema.
         guard precisao >= 0, instante >= emCurso.inicio.addingTimeInterval(-5),
               let coordenada = try? Coordenada(latitude: latitude, longitude: longitude) else { return }
+        // Os sinais do check-in por código valem para o toque inteiro: uma leitura simulada ou um salto
+        // entre duas leituras marca a leitura final, mesmo que ela não seja a que chegou naquela hora.
+        emCurso.simulada = emCurso.simulada || simulada
+        let atual = (coordenada: coordenada, precisaoMetros: precisao, instante: instante)
+        if let anterior = emCurso.anterior, SaltoDePosicao.houve(de: anterior, para: atual) { emCurso.saltou = true }
+        emCurso.anterior = atual
         let nova = LeituraDeLocalizacao(coordenada: coordenada, precisaoHorizontalMetros: precisao)
-        if emCurso.melhor.map({ precisao < $0.precisaoHorizontalMetros }) ?? true {
-            emCurso.melhor = nova
-            leitura = emCurso
-        }
-        if precisao <= emCurso.precisaoSuficienteMetros { concluir(.success(nova)) }
+        if emCurso.melhor.map({ precisao < $0.precisaoHorizontalMetros }) ?? true { emCurso.melhor = nova }
+        leitura = emCurso
+        if precisao <= emCurso.precisaoSuficienteMetros { concluir(.success(emCurso.comSinais(nova))) }
     }
 
     private func falhou(negada: Bool, semPosicaoAinda: Bool) {
@@ -123,7 +140,10 @@ extension LeitorDeLocalizacaoDoSistema: CLLocationManagerDelegate {
         guard let ultima = locations.last else { return }
         let (latitude, longitude) = (ultima.coordinate.latitude, ultima.coordinate.longitude)
         let (precisao, instante) = (ultima.horizontalAccuracy, ultima.timestamp)
-        Task { @MainActor in self.recebeu(latitude: latitude, longitude: longitude, precisao: precisao, instante: instante) }
+        let simulada = ultima.sourceInformation?.isSimulatedBySoftware ?? false
+        Task { @MainActor in
+            self.recebeu(latitude: latitude, longitude: longitude, precisao: precisao, instante: instante, simulada: simulada)
+        }
     }
 
     public nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
