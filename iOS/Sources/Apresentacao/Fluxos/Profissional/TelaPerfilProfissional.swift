@@ -15,6 +15,10 @@ public struct TelaPerfilProfissional: View {
     @FocusState private var focoNoPontoBase: Bool
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
+    @State private var sheetFuncoesAberta = false
+    @State private var raioKm: Double = 5.0
+    @State private var diasSelecionados: Set<Int> = [6]
+    @State private var periodosSelecionados: Set<String> = ["Noite"]
 
     public init(viewModel: PerfilProfissionalViewModel, aoSalvar: @escaping () -> Void = {}) {
         _viewModel = State(initialValue: viewModel)
@@ -64,8 +68,15 @@ public struct TelaPerfilProfissional: View {
         .scrollDismissesKeyboard(.interactively)
         .frilaKeyboardDismissScope()
         .background(FrilaCor.fundo)
-        .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle(viewModel.modo == .criacao ? "" : TextosDoProfissional.Perfil.titulo)
+        .navigationBarTitleDisplayMode(viewModel.modo == .criacao ? .inline : .large)
+        .sheet(isPresented: $sheetFuncoesAberta) {
+            TelaEscolherFuncoes(
+                funcoes: funcoesExibidas,
+                selecionadas: viewModel.funcoesSelecionadas,
+                alternar: { viewModel.alternarFuncao($0) }
+            )
+        }
         .task {
             #if DEBUG
             if estadoCapturaDebug != nil {
@@ -126,60 +137,328 @@ public struct TelaPerfilProfissional: View {
 
     @ViewBuilder
     private var formularioViews: some View {
-        secaoFuncoes
-        if viewModel.modo == .edicao && viewModel.suportaPerfilRico {
-            NavigationLink {
-                TelaEditarServicos(modelo: viewModel.editorDeServicos())
-            } label: {
-                // V18: a mesma linha da vizinha "Editar apresentação e regiões", com subtítulo e seta.
-                HStack {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        Text("Editar serviços", bundle: bundleApresentacao)
-                            .font(FrilaTipo.corpo.weight(.semibold))
-                            .foregroundStyle(FrilaCor.texto)
-                        Text("Valores, unidade de preço e o que está incluído", bundle: bundleApresentacao)
-                            .font(FrilaTipo.nota)
+        if viewModel.modo == .criacao {
+            formularioCriacaoT1
+        } else {
+            secaoFuncoes
+            if viewModel.modo == .edicao && viewModel.suportaPerfilRico {
+                NavigationLink {
+                    TelaEditarServicos(modelo: viewModel.editorDeServicos())
+                } label: {
+                    // V18: a mesma linha da vizinha "Editar apresentação e regiões", com subtítulo e seta.
+                    HStack {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                            Text("Editar serviços", bundle: bundleApresentacao)
+                                .font(FrilaTipo.corpo.weight(.semibold))
+                                .foregroundStyle(FrilaCor.texto)
+                            Text("Valores, unidade de preço e o que está incluído", bundle: bundleApresentacao)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
+                    }
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editar-servicos")
+
+                NavigationLink {
+                    TelaApresentacaoERegioes(api: viewModel.apiCliente)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                            Text(verbatim: TextosApresentacaoERegioes.editarApresentacao)
+                                .font(FrilaTipo.corpo.weight(.semibold))
+                                .foregroundStyle(FrilaCor.texto)
+                            Text(verbatim: TextosApresentacaoERegioes.linkApresentacaoSubtitulo)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(FrilaTipo.meta.weight(.semibold))
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(FrilaTipo.meta.weight(.semibold))
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("link-editar-apresentacao")
+            }
+            secaoPontoBase
+            secaoHorarios
+        }
+    }
+
+    // MARK: - Formulário Criação T1
+
+    @ViewBuilder
+    private var formularioCriacaoT1: some View {
+        ilustracaoPlaceholder
+        cabecalhoT1
+        secaoFuncoesT1
+        secaoPontoBaseT1
+        secaoDiasT1
+        secaoPeriodosT1
+    }
+
+    private var ilustracaoPlaceholder: some View {
+        RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+            .strokeBorder(FrilaCor.borda, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+            .aspectRatio(171.0 / 56.0, contentMode: .fit)
+            .accessibilityHidden(true)
+    }
+
+    private var cabecalhoT1: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text("Onde e quando você quer faturar?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDaTela)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+            Text("Para ver vagas, basta o ponto base. O resto dá para mudar depois, no Perfil.", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var funcoesPrincipais: [Funcao] {
+        let canonical = ["Bartender", "Garçom", "Auxiliar de cozinha", "Caixa"]
+        let encontradas = canonical.compactMap { nome in
+            funcoesExibidas.first { $0.nome.localizedCaseInsensitiveCompare(nome) == .orderedSame }
+        }
+        if !encontradas.isEmpty { return encontradas }
+        return Array(funcoesExibidas.prefix(4))
+    }
+
+    private var secaoFuncoesT1: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text("Funções", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: FrilaEspaco.pequeno) {
+                    ForEach(funcoesPrincipais) { funcao in
+                        let selecionada = viewModel.funcoesSelecionadas.contains(funcao.id)
+                        Button {
+                            viewModel.alternarFuncao(funcao.id)
+                        } label: {
+                            Text(verbatim: funcao.nome)
+                                .font(FrilaTipo.meta.weight(.medium))
+                                .padding(.horizontal, FrilaEspaco.faixa)
+                                .frame(height: 36)
+                                .foregroundStyle(selecionada ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                                .background(selecionada ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
+                                .overlay(Capsule().strokeBorder(selecionada ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionada)
+                                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selecionada ? .isSelected : [])
+                    }
+                }
+            }
+
+            Button {
+                sheetFuncoesAberta = true
+            } label: {
+                Text("Ver todas as funções", bundle: bundleApresentacao)
+                    .font(FrilaTipo.corpo)
+                    .underline()
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("botao-expandir-funcoes")
+        }
+    }
+
+    private var secaoPontoBaseT1: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosDoProfissional.Perfil.pontoBase)
+                .font(FrilaTipo.nota.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityLabel(Text(verbatim: TextosDoProfissional.Perfil.pontoBase))
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("titulo-secao-ponto-base")
+
+            FrilaSearchBar(
+                texto: $viewModel.enderecoTexto,
+                foco: $focoNoPontoBase,
+                icone: "mappin",
+                rotulo: TextosDoProfissional.Perfil.buscarPontoBase,
+                idDoCampo: "perfil_ponto_base",
+                identificador: "campo-ponto-base",
+                submitLabel: .search,
+                acao: FrilaSearchBarAcao(
+                    icone: "magnifyingglass",
+                    rotulo: TextosDoProfissional.Perfil.buscar,
+                    identificador: "botao-buscar-endereco",
+                    carregando: viewModel.carregandoBusca
+                ) {
+                    Task { await viewModel.buscarEndereco() }
+                },
+                aoEnviar: { Task { await viewModel.buscarEndereco() } }
+            )
+
+            if !viewModel.sugestoes.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(viewModel.sugestoes.prefix(5).enumerated()), id: \.offset) { index, item in
+                        Button {
+                            viewModel.selecionarSugestao(item)
+                        } label: {
+                            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                                Text(verbatim: item.name ?? "")
+                                    .font(FrilaTipo.meta.weight(.semibold))
+                                    .foregroundStyle(FrilaCor.texto)
+                                if let title = item.placemark.title {
+                                    Text(verbatim: title)
+                                        .font(FrilaTipo.nota)
+                                        .foregroundStyle(FrilaCor.textoSecundario)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
+                            .padding(.horizontal, FrilaEspaco.medio)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("sugestao-endereco-\(index)")
+
+                        if index < min(viewModel.sugestoes.count, 5) - 1 {
+                            Divider()
+                                .overlay(FrilaCor.divisoria)
+                                .padding(.leading, FrilaEspaco.medio)
+                        }
+                    }
+                }
+                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                        .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
+                )
+            }
+
+            if viewModel.pontoBase != nil {
+                Label {
+                    Text(verbatim: TextosDoProfissional.Perfil.pontoBaseSalvo)
+                        .font(FrilaTipo.nota)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FrilaCor.texto)
                         .accessibilityHidden(true)
                 }
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
+                .accessibilityIdentifier("label-ponto-base-selecionado")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("editar-servicos")
 
-            NavigationLink {
-                TelaApresentacaoERegioes(api: viewModel.apiCliente)
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        Text(verbatim: TextosApresentacaoERegioes.editarApresentacao)
-                            .font(FrilaTipo.corpo.weight(.semibold))
-                            .foregroundStyle(FrilaCor.texto)
-                        Text(verbatim: TextosApresentacaoERegioes.linkApresentacaoSubtitulo)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                }
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
+            if viewModel.pontoBaseForaDoDF {
+                AvisoForaDoDF(texto: TextosDeCobertura.profissional, identificador: "aviso-ponto-base-fora-do-df")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("link-editar-apresentacao")
+
+            HStack(spacing: FrilaEspaco.medio) {
+                Slider(value: $raioKm, in: 1...10, step: 1)
+                    .accessibilityLabel(Text("Raio", bundle: bundleApresentacao))
+                    .accessibilityValue(String(localized: "Até \(Int(raioKm)) km", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("slider-raio")
+                Text("Até \(Int(raioKm)) km", bundle: bundleApresentacao)
+                    .font(FrilaTipo.corpo.weight(.semibold))
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(minWidth: 80, alignment: .trailing)
+            }
+            .padding(.top, FrilaEspaco.minimo)
         }
-        secaoPontoBase
-        secaoHorarios
+    }
+
+    private let diasAbreviados = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+    private let diasCompletos = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
+
+    private var secaoDiasT1: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text("Dias", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(0..<7) { dia in
+                        let selecionado = diasSelecionados.contains(dia)
+                        Button {
+                            if diasSelecionados.contains(dia) {
+                                diasSelecionados.remove(dia)
+                            } else {
+                                diasSelecionados.insert(dia)
+                            }
+                        } label: {
+                            Text(verbatim: diasAbreviados[dia])
+                                .font(FrilaTipo.nota.weight(.medium))
+                                .frame(width: 44, height: 40)
+                                .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
+                                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(verbatim: diasCompletos[dia]))
+                        .accessibilityAddTraits(selecionado ? .isSelected : [])
+                    }
+                }
+            }
+        }
+    }
+
+    private let periodosDisponiveis = ["Manhã", "Tarde", "Noite", "Madrugada"]
+
+    private var secaoPeriodosT1: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text("Períodos", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota.weight(.semibold))
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("titulo-secao-horarios")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: FrilaEspaco.pequeno) {
+                    ForEach(periodosDisponiveis, id: \.self) { periodo in
+                        let selecionado = periodosSelecionados.contains(periodo)
+                        Button {
+                            if periodosSelecionados.contains(periodo) {
+                                periodosSelecionados.remove(periodo)
+                            } else {
+                                periodosSelecionados.insert(periodo)
+                            }
+                        } label: {
+                            Text(verbatim: periodo)
+                                .font(FrilaTipo.meta.weight(.medium))
+                                .padding(.horizontal, FrilaEspaco.faixa)
+                                .frame(height: 36)
+                                .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
+                                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
+                                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selecionado ? .isSelected : [])
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Estado de erro de carga
@@ -419,12 +698,12 @@ public struct TelaPerfilProfissional: View {
 
             BotaoPrimario(
                 verbatim: viewModel.modo == .criacao
-                    ? TextosDoProfissional.Perfil.salvarCriacao
+                    ? String(localized: "Ver vagas na minha área", bundle: bundleApresentacao)
                     : TextosDoProfissional.Perfil.salvarEdicao,
                 carregando: viewModel.salvando
             ) {
                 // Um horário com só um dos lados escolhido nunca é gravado por conta própria: a pessoa completa ou descarta.
-                if rascunhoDeHorarioIncompleto {
+                if viewModel.modo == .edicao && rascunhoDeHorarioIncompleto {
                     avisoDeRascunhoDeHorario = true
                     return
                 }

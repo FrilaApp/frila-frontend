@@ -4463,6 +4463,16 @@
         }
       }
     },
+    "Dias": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dias"
+          }
+        }
+      }
+    },
     "Dicas para a foto": {
       "localizations": {
         "pt-BR": {
@@ -6201,12 +6211,32 @@
         }
       }
     },
+    "Filtros": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtros"
+          }
+        }
+      }
+    },
     "Filtros (%lld)": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Filtros (%lld)"
+          }
+        }
+      }
+    },
+    "Filtros, %lld aplicados": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtros, %lld aplicados"
           }
         }
       }
@@ -6677,6 +6707,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Incluir na equipe"
+          }
+        }
+      }
+    },
+    "Incluso: jantar e transporte de volta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso: jantar e transporte de volta"
           }
         }
       }
@@ -9819,6 +9859,16 @@
         }
       }
     },
+    "Períodos": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Períodos"
+          }
+        }
+      }
+    },
     "Pesquisa o endereço digitado e atualiza o mapa": {
       "extractionState": "stale",
       "localizations": {
@@ -10725,6 +10775,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "R$ 0,00"
+          }
+        }
+      }
+    },
+    "Raio": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raio"
           }
         }
       }
@@ -14552,6 +14612,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "sim"
+          }
+        }
+      }
+    },
+    "sábado de manhã": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sábado de manhã"
           }
         }
       }
