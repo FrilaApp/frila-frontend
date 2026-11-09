@@ -201,6 +201,13 @@ def extrair_enums_swift(sources_dir: pathlib.Path) -> dict[str, set[str]]:
 # primeira fatia adotada no iOS; o resto do perfil entra na F2.
 PENDENTE_F2 = "Pendente de adoção na fatia F2 (perfil que explica, contrato 0.2.53)."
 
+# Check-in por código (contrato 0.2.68): a F12a só espelha o contrato 0.2.70; a F12b adota no iOS e
+# tira estas exceções.
+PENDENTE_F12B = (
+    "Pendente de adoção na F12b (check-in por código, contrato 0.2.68; "
+    "cartão https://trello.com/c/9e0ZWzz7)."
+)
+
 
 def conferir_rpcs(
     doc: dict, sources_dir: pathlib.Path
@@ -263,6 +270,8 @@ def conferir_rpcs(
         "detalhe_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
         "minhas_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
         "publicar_a_partir_da_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "gerar_codigo_checkin": PENDENTE_F12B,
+        "validar_codigo_checkin": PENDENTE_F12B,
     }
 
     faltando = openapi_rpcs - swift_rpcs
@@ -304,6 +313,12 @@ ENUMS_NAO_CONSUMIDOS_PELO_APP = {
     "Idioma": PENDENTE_F2,
     "LevaMaterial": PENDENTE_F2,
     "UnidadePreco": PENDENTE_F2,
+}
+
+# Casos novos de enums que o app já usa, ainda não adotados. Até a adoção, o app lê o caso como
+# valor desconhecido (o `TipoRegistro` desconhecido vira `manual`, como no app 1.0 e no 1.1).
+CASOS_DE_ENUM_NAO_CONSUMIDOS_PELO_APP = {
+    "TipoRegistro": {"codigo": PENDENTE_F12B},
 }
 
 
@@ -349,6 +364,12 @@ def conferir_enums(doc: dict, swift_enums: dict[str, set[str]]) -> tuple[list[st
             # Galeria e currículo descartados (decisão de produto, contrato 0.2.61): tolerância a tipos desconhecidos do servidor
             faltando -= {"curriculo", "foto_local", "foto_trabalho"}
             extras -= {"fotoPerfil"}
+        casos_pendentes = CASOS_DE_ENUM_NAO_CONSUMIDOS_PELO_APP.get(o_name, {})
+        for caso in sorted(faltando & casos_pendentes.keys()):
+            avisos.append(
+                f"Enum {o_name} ({s_name}): caso '{caso}' do contrato pendente de adoção ({casos_pendentes[caso]})"
+            )
+        faltando -= casos_pendentes.keys()
         if faltando:
             erros.append(
                 f"Enum {o_name} ({s_name}): casos do contrato faltando no Swift: {sorted(faltando)}"
@@ -416,6 +437,8 @@ def conferir_erros(
             "Erro de verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo pendente de adoção no cliente iOS."
         ),
+        "codigo_bloqueado": PENDENTE_F12B,
+        "codigo_invalido": PENDENTE_F12B,
     }
 
     faltando = codigos_contrato - codigos_swift
@@ -515,6 +538,8 @@ def conferir_dtos(
             "pendente de adoção no cliente iOS."
         ),
         "PreferenciaChamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "CodigoDeCheckin": PENDENTE_F12B,
+        "SinaisDoCheckin": PENDENTE_F12B,
     }
 
     # 5.3 Exceções documentadas para campos não mapeados no app (P6 e descontinuações)
@@ -549,6 +574,11 @@ def conferir_dtos(
                 "Descontinuado no contrato 0.2.49 (decisão de produto de 04/11/2026: contato fora do app); "
                 "o app iOS deixou de ler e armazenar contatos em conformidade com a Fase 2 (issue #396)."
             )
+        },
+        "RecursosDoApp": {"checkin_por_codigo": PENDENTE_F12B},
+        "ResultadoRegistro": {
+            "codigo_disponivel": PENDENTE_F12B,
+            "codigo_exigido": PENDENTE_F12B,
         },
         "ResultadoConfirmacao": {
             "contato": (
