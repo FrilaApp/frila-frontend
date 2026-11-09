@@ -462,15 +462,15 @@ public struct TelaMeusTurnos: View {
                     .fill(FrilaCor.superficie)
                     .frame(width: 88, height: 88)
                 Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 38))
+                    .font(FrilaTipo.tituloDaTela)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
 
             VStack(spacing: FrilaEspaco.minimo) {
-                Text("Nenhum turno confirmado", bundle: bundleApresentacao)
+                Text(verbatim: TextosDoProfissional.Turnos.vazioTitulo)
                     .font(FrilaTipo.tituloDoCartao)
                     .foregroundStyle(FrilaCor.texto)
-                Text("Quando você for contratado para uma vaga, seus turnos aparecerão aqui.", bundle: bundleApresentacao)
+                Text(verbatim: TextosDoProfissional.Turnos.vazioMensagem)
                     .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .multilineTextAlignment(.center)

@@ -35,7 +35,7 @@ public struct TelaMeuTurno: View {
     private var etapaAtual: EtapaDoTurno {
         if viewModel.cancelado { return .confirmado }
         if viewModel.jaAvaliado || viewModel.podeAvaliar { return .concluido }
-        if viewModel.temCheckout { return .concluido }
+        if viewModel.turno.checkout != nil || viewModel.presenca?.checkout != .naoFeito { return .concluido }
         if viewModel.temCheckin { return .presenca }
         if viewModel.aCaminhoEm != nil || viewModel.avisandoACaminho { return .aCaminho }
         return .confirmado
