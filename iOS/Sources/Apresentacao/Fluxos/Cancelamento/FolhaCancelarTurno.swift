@@ -110,7 +110,7 @@ public struct FolhaCancelarTurno: View {
                         } label: {
                             Text(verbatim: TextosLote4.limparMotivo)
                                 .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.marca)
+                                .foregroundStyle(FrilaCor.texto)
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("cancelar-turno-limpar-motivo")
@@ -127,9 +127,9 @@ public struct FolhaCancelarTurno: View {
                                 .font(FrilaTipo.corpo)
                                 .padding(.horizontal, FrilaEspaco.medio)
                                 .frame(minHeight: FrilaMetrica.alvoMinimo)
-                                .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+                                .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
                                 .background(
-                                    selecionado ? FrilaCor.primaria : FrilaCor.controle,
+                                    selecionado ? FrilaCor.selecao : FrilaCor.controle,
                                     in: Capsule()
                                 )
                                 .overlay(

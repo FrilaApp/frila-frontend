@@ -192,7 +192,7 @@ public struct TelaFiltrosVagas: View {
             } label: {
                 Text(verbatim: TextosLote4.verTodasFuncoes)
                     .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
             }
             .buttonStyle(.plain)
@@ -243,9 +243,9 @@ public struct TelaFiltrosVagas: View {
                                 .font(FrilaTipo.corpo)
                                 .padding(.horizontal, FrilaEspaco.medio)
                                 .frame(minHeight: FrilaMetrica.alvoMinimo)
-                                .foregroundStyle(selecionada ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+                                .foregroundStyle(selecionada ? FrilaCor.sobreSelecao : FrilaCor.texto)
                                 .background(
-                                    selecionada ? FrilaCor.primaria : FrilaCor.controle,
+                                    selecionada ? FrilaCor.selecao : FrilaCor.controle,
                                     in: Capsule()
                                 )
                                 .overlay(
@@ -290,9 +290,9 @@ public struct TelaFiltrosVagas: View {
                 .font(FrilaTipo.corpo)
                 .padding(.horizontal, FrilaEspaco.medio)
                 .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+                .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
                 .background(
-                    selecionado ? FrilaCor.primaria : FrilaCor.controle,
+                    selecionado ? FrilaCor.selecao : FrilaCor.controle,
                     in: Capsule()
                 )
                 .overlay(

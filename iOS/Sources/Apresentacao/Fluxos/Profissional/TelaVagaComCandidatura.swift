@@ -279,7 +279,7 @@ public struct TelaVagaComCandidatura: View {
             // Pino da casa
             Image(systemName: "mappin.circle.fill")
                 .font(FrilaTipo.tituloDoDetalhe)
-                .foregroundStyle(FrilaCor.marca)
+                .foregroundStyle(FrilaCor.texto)
                 .position(x: 230, y: 44)
         }
         .frame(height: 96)
