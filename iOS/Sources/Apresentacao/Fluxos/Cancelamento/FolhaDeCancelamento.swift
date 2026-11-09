@@ -164,8 +164,11 @@ public struct FolhaDeCancelamento: View {
                         .padding(.vertical, FrilaEspaco.pequeno)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                         .foregroundStyle(viewModel.podeConfirmar ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
-                        .background(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle, in: Capsule())
-                        .contentShape(Capsule())
+                        .background(
+                            RoundedRectangle(cornerRadius: FrilaMetrica.alturaDoCampo / 2, style: .continuous)
+                                .fill(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle)
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: FrilaMetrica.alturaDoCampo / 2, style: .continuous))
                     }
                     .buttonStyle(.tatil)
                     .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
