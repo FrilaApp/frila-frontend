@@ -26,7 +26,7 @@ public struct TelaEntrada: View {
                 // Título e apoio editorial
                 VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                     Text("Turnos rápidos perto de você, sem burocracia.", bundle: bundleApresentacao)
-                        .font(FrilaTipo.titulo)
+                        .font(FrilaTipo.tituloDaTela)
                         .foregroundStyle(FrilaCor.texto)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -135,16 +135,15 @@ public struct TelaEntrada: View {
             return
         }
 
-        guard ValidacaoEmail.ehValido(emailLimpo) else {
-            erroLocal = String(localized: "E-mail inválido. Confira se digitou corretamente.", bundle: bundleApresentacao)
+        guard viewModel.emailValido else {
+            erroLocal = String(localized: "Confira o e-mail. Use um endereço como nome@exemplo.com.", bundle: bundleApresentacao)
             return
         }
 
         erroLocal = nil
         Task {
-            let resultado = await viewModel.enviarCodigo(para: emailLimpo)
-            if resultado {
-                aoAvancarParaCodigo(emailLimpo)
+            if await viewModel.solicitarCodigo() {
+                aoAvancarParaCodigo(viewModel.email)
             }
         }
     }

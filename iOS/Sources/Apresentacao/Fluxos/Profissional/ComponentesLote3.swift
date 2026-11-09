@@ -77,7 +77,7 @@ public struct LinhaDeEtapas: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: "Etapa atual: \(etapaAtual.rotulo)"))
+        .accessibilityLabel(Text(verbatim: etapaAtual.rotulo))
     }
 }
 
@@ -115,7 +115,7 @@ public struct CardStatusTurno: View {
             SeloDeStatus(verbatim: selo, estilo: estiloDoSelo)
 
             Text(verbatim: nomeDaCasa)
-                .font(FrilaTipo.nome)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .padding(.top, FrilaEspaco.minimo)
 

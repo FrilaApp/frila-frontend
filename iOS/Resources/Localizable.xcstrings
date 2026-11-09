@@ -7846,6 +7846,17 @@
         }
       }
     },
+    "Novo e-mail profissional": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novo e-mail profissional"
+          }
+        }
+      }
+    },
     "Novo período": {
       "extractionState": "stale",
       "localizations": {

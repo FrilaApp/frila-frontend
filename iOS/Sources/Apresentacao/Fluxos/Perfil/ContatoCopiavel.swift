@@ -459,7 +459,7 @@ struct ContatoCopiavel: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { larguraDoValor = $0 }
             if copiado {
                 TextoRolante(texto: TextosPerfilConta.copiado, identificador: "\(id)-copiado")
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.primaria)
             } else {
                 TextoRolante(texto: valorExibido, identificador: "\(id)-valor", quebraLinha: true)
                     .foregroundStyle(FrilaCor.texto)
