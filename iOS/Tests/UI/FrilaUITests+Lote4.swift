@@ -33,7 +33,7 @@ final class FrilaUITestsLote4: XCTestCase {
         anexo.name = nome
         anexo.lifetime = .keepAlways
         add(anexo)
-        let pasta = ProcessInfo.processInfo.environment["FRILA_CAPTURAS_DIR"] ?? ProcessInfo.processInfo.environment["FRILA_CAPTURAS"]
+        let pasta = ProcessInfo.processInfo.environment["FRILA_CAPTURAS_DIR"] ?? ProcessInfo.processInfo.environment["TEST_RUNNER_FRILA_CAPTURAS_DIR"] ?? ProcessInfo.processInfo.environment["FRILA_CAPTURAS"]
         if let pasta, !pasta.isEmpty {
             try? FileManager.default.createDirectory(atPath: pasta, withIntermediateDirectories: true)
             try? captura.pngRepresentation.write(to: URL(fileURLWithPath: "\(pasta)/\(nome).png"))
