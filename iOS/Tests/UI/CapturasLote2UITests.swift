@@ -70,7 +70,7 @@ final class CapturasLote2UITests: XCTestCase {
     // MARK: - T4: Meu Turno (antes de sair)
 
     private func fluxoMeuTurnoT4(ax5: Bool) {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "turno-confirmado-perto", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "a-caminho", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
         let telaTurnos = app.descendants(matching: .any)["tela-meus-turnos"]
         XCTAssertTrue(telaTurnos.waitForExistence(timeout: 10), "A tela Meus turnos deve abrir")
 
@@ -90,7 +90,7 @@ final class CapturasLote2UITests: XCTestCase {
     // MARK: - T8: Meu Turno (a caminho / presença)
 
     private func fluxoMeuTurnoT8(ax5: Bool) {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "turno-confirmado-perto", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "a-caminho", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
         let telaTurnos = app.descendants(matching: .any)["tela-meus-turnos"]
         XCTAssertTrue(telaTurnos.waitForExistence(timeout: 10), "A tela Meus turnos deve abrir")
 
