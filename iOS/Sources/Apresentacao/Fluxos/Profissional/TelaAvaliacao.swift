@@ -55,8 +55,8 @@ public struct TelaAvaliacao: View {
                 // Escolha binária: Sim, com certeza / Não
                 areaDeEscolha
 
-                // Confirmação visível após resposta e link para vagas
-                blocoResposta
+                // Ação de envio e conclusão
+                botaoDeAcao
 
                 // Avisos de estado da API / fila offline
                 avisosDeEstado
@@ -77,7 +77,7 @@ public struct TelaAvaliacao: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle("")
+        .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
@@ -96,30 +96,36 @@ public struct TelaAvaliacao: View {
     private func botaoOpcao(rotulo: String, valor: Bool) -> some View {
         let selecionado = viewModel.resposta == valor
         return Button {
-            guard !viewModel.salvando else { return }
+            guard !viewModel.salvando && !viewModel.jaAvaliado else { return }
             viewModel.resposta = valor
-            Task {
-                _ = await viewModel.salvar()
-            }
         } label: {
-            Text(verbatim: rotulo)
-                .font(FrilaTipo.rotuloSecundario)
-                .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
-                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
-                .contentShape(Capsule())
+            HStack(spacing: FrilaEspaco.minimo) {
+                if selecionado {
+                    Image(systemName: "checkmark")
+                        .font(FrilaTipo.meta.weight(.bold))
+                        .foregroundStyle(FrilaCor.sobrePrimaria)
+                        .accessibilityIdentifier(valor ? "icone-checkmark-sim" : "icone-checkmark-nao")
+                }
+                Text(verbatim: rotulo)
+                    .font(FrilaTipo.rotuloSecundario)
+                    .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+            }
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+            .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
+            .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
-        .disabled(viewModel.salvando)
+        .disabled(viewModel.salvando || viewModel.jaAvaliado)
+        .accessibilityLabel(Text(valor ? "Sim" : "Não", bundle: bundleApresentacao))
         .accessibilityAddTraits(selecionado ? [.isSelected] : [])
-        .accessibilityIdentifier(valor ? "opcao-sim" : "opcao-nao")
+        .accessibilityIdentifier(valor ? "resposta-sim" : "resposta-nao")
     }
 
     @ViewBuilder
-    private var blocoResposta: some View {
-        if viewModel.resposta != nil || viewModel.sucesso || viewModel.jaAvaliado {
+    private var botaoDeAcao: some View {
+        if viewModel.sucesso {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 Text("Resposta registrada.", bundle: bundleApresentacao)
                     .font(FrilaTipo.rotuloSecundario)
@@ -136,6 +142,27 @@ public struct TelaAvaliacao: View {
                 }
                 .accessibilityIdentifier("botao-concluir-avaliacao")
             }
+        } else if !viewModel.jaAvaliado {
+            VStack(spacing: FrilaEspaco.pequeno) {
+                if viewModel.resposta == nil {
+                    Text(verbatim: TextosDoProfissional.Avaliacao.dicaEscolhaResposta)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .accessibilityIdentifier("dica-escolha-resposta-avaliacao")
+                }
+
+                BotaoPrimario(
+                    verbatim: TextosDoProfissional.Avaliacao.botaoEnviar,
+                    carregando: viewModel.salvando
+                ) {
+                    Task {
+                        _ = await viewModel.salvar()
+                    }
+                }
+                .disabled(viewModel.resposta == nil || viewModel.salvando)
+                .accessibilityIdentifier("botao-enviar-avaliacao")
+            }
         }
     }
 
@@ -151,6 +178,9 @@ public struct TelaAvaliacao: View {
 
         if let sucesso = viewModel.mensagemDeSucesso {
             AvisoFrila(verbatim: sucesso, tom: .informativo)
+                .accessibilityIdentifier("aviso-sucesso-avaliacao")
+        } else if viewModel.sucesso {
+            AvisoFrila(verbatim: TextosDoProfissional.Avaliacao.avaliadoSucesso, tom: .informativo)
                 .accessibilityIdentifier("aviso-sucesso-avaliacao")
         }
 

@@ -45,8 +45,8 @@ final class FrilaUITestsLote3: XCTestCase {
         let app = iniciar(argumentos: ["-FRILA_ABRIR_AVALIACAO_UI_TEST"])
         XCTAssertTrue(app.descendants(matching: .any)["tela-avaliacao"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["pergunta-avaliacao"].exists)
-        XCTAssertTrue(app.buttons["opcao-sim"].exists)
-        XCTAssertTrue(app.buttons["opcao-nao"].exists)
+        XCTAssertTrue(app.buttons["resposta-sim"].exists)
+        XCTAssertTrue(app.buttons["resposta-nao"].exists)
         capturar("T5-padrao")
     }
 
