@@ -14244,7 +14244,503 @@
           }
         }
       }
+    },
+    "%@ faturados em %lld turnos": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ faturados em %2$lld turnos"
+          }
+        }
+      }
+    },
+    "%@ faturados em 1 turno": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ faturados em 1 turno"
+          }
+        }
+      }
+    },
+    "+ gorjeta": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+ gorjeta"
+          }
+        }
+      }
+    },
+    "A caminho": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A caminho"
+          }
+        }
+      }
+    },
+    "A localização é lida só neste toque.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização é lida só neste toque."
+          }
+        }
+      }
+    },
+    "A presença não foi marcada. A localização lida está a mais de 50 m do %@. Aproxime-se do local e tente de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A presença não foi marcada. A localização lida está a mais de 50 m do %1$@. Aproxime-se do local e tente de novo."
+          }
+        }
+      }
+    },
+    "A presença não foi marcada. O Frila não tem acesso à sua localização. Permita em Ajustes e toque de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A presença não foi marcada. O Frila não tem acesso à sua localização. Permita em Ajustes e toque de novo."
+          }
+        }
+      }
+    },
+    "A presença não foi marcada. Sem sinal de internet, nada saiu do seu celular. Toque de novo quando o sinal voltar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A presença não foi marcada. Sem sinal de internet, nada saiu do seu celular. Toque de novo quando o sinal voltar."
+          }
+        }
+      }
+    },
+    "Aguardando a casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando a casa"
+          }
+        }
+      }
+    },
+    "Avaliar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaliar"
+          }
+        }
+      }
+    },
+    "Concluído": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluído"
+          }
+        }
+      }
+    },
+    "Conferindo se a presença foi marcada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo se a presença foi marcada."
+          }
+        }
+      }
+    },
+    "Confirmado": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmado"
+          }
+        }
+      }
+    },
+    "Denunciar problema": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denunciar problema"
+          }
+        }
+      }
+    },
+    "Desistir sem penalidade": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desistir sem penalidade"
+          }
+        }
+      }
+    },
+    "Entre pela lateral do bloco.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre pela lateral do bloco."
+          }
+        }
+      }
+    },
+    "Etapa atual: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa atual: %1$@"
+          }
+        }
+      }
+    },
+    "Etapas do turno": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapas do turno"
+          }
+        }
+      }
+    },
+    "Falar com o suporte": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falar com o suporte"
+          }
+        }
+      }
+    },
+    "Histórico": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Histórico"
+          }
+        }
+      }
+    },
+    "MARCAR PRESENÇA": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MARCAR PRESENÇA"
+          }
+        }
+      }
+    },
+    "Marcar presença": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcar presença"
+          }
+        }
+      }
+    },
+    "O horário começou às %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O horário começou às %1$@."
+          }
+        }
+      }
+    },
+    "Orientações da casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orientações da casa"
+          }
+        }
+      }
+    },
+    "Os turnos que você aceitar e as suas candidaturas aparecem aqui.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os turnos que você aceitar e as suas candidaturas aparecem aqui."
+          }
+        }
+      }
+    },
+    "Pedir suporte": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pedir suporte"
+          }
+        }
+      }
+    },
+    "Precisa de você": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precisa de você"
+          }
+        }
+      }
+    },
+    "Presença marcada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença marcada"
+          }
+        }
+      }
+    },
+    "Presença não confirmada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não confirmada"
+          }
+        }
+      }
+    },
+    "Procure o encarregado Marcos no balcão principal.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procure o encarregado Marcos no balcão principal."
+          }
+        }
+      }
+    },
+    "Próximos": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximos"
+          }
+        }
+      }
+    },
+    "Sair do turno": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair do turno"
+          }
+        }
+      }
+    },
+    "Sem sinal de internet? A casa pode marcar sua presença no painel dela.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem sinal de internet? A casa pode marcar sua presença no painel dela."
+          }
+        }
+      }
+    },
+    "Seu turno é %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu turno é %1$@"
+          }
+        }
+      }
+    },
+    "Seu turno é hoje": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu turno é hoje"
+          }
+        }
+      }
+    },
+    "Toque ao chegar. A localização é lida só neste toque.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque ao chegar. A localização é lida só neste toque."
+          }
+        }
+      }
+    },
+    "Turnos": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turnos"
+          }
+        }
+      }
+    },
+    "Vaga fechou": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga fechou"
+          }
+        }
+      }
+    },
+    "Ver como chegar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver como chegar"
+          }
+        }
+      }
+    },
+    "Ver vagas na minha área": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver vagas na minha área"
+          }
+        }
+      }
+    },
+    "Você ainda não tem turnos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você ainda não tem turnos."
+          }
+        }
+      }
+    },
+    "Você chegou ao %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você chegou ao %1$@."
+          }
+        }
+      }
+    },
+    "Você foi escolhida": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você foi escolhida"
+          }
+        }
+      }
+    },
+    "Vá de camisa preta e calça escura.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vá de camisa preta e calça escura."
+          }
+        }
+      }
+    },
+    "do seu ponto base": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "do seu ponto base"
+          }
+        }
+      }
     }
+
   },
   "version": "1.0"
 }
