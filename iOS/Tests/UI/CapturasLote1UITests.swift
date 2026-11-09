@@ -67,9 +67,9 @@ final class CapturasLote1UITests: XCTestCase {
         if cozinheiro.waitForExistence(timeout: 5) {
             cozinheiro.tap()
         }
-        let aplicar = app.buttons["Aplicar filtros"]
-        if aplicar.waitForExistence(timeout: 5) {
-            aplicar.tap()
+        let concluir = app.buttons["filtro-concluir"]
+        if concluir.waitForExistence(timeout: 5) {
+            concluir.tap()
         }
         let vazio = app.descendants(matching: .any)["vagas-vazio"]
         XCTAssertTrue(vazio.waitForExistence(timeout: 5), "O estado sem vagas deve aparecer")
@@ -146,7 +146,7 @@ final class CapturasLote1UITests: XCTestCase {
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let busca = app.descendants(matching: .textField)["campo-buscar-funcao"]
+        let busca = app.descendants(matching: .any)["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5), "A folha T1b de funções deve abrir")
         capturar("lote1-t1b-escolher-funcoes")
     }
@@ -156,7 +156,7 @@ final class CapturasLote1UITests: XCTestCase {
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let busca = app.descendants(matching: .textField)["campo-buscar-funcao"]
+        let busca = app.descendants(matching: .any)["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5))
         busca.tap()
         busca.typeText("xyz999naoexiste")
