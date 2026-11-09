@@ -54,7 +54,9 @@ enum TextosDoAcompanhamento {
             String(format: checkinNoLocal, hora)
         case .manual:
             String(format: checkinManual, hora)
-        case .none:
+        case .codigo, .none:
+            // Presença verificada pelo código: a casa vê "Check-in às HH:MM" (desenho do check-in por código,
+            // seção 6). O texto próprio espera o desenho.
             String(format: checkinGenerico, hora)
         }
     }
