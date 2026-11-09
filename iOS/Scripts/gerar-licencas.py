@@ -38,6 +38,8 @@ DERIVED_DATA_PADRAO = pathlib.Path.home() / "Library" / "Developer" / "Xcode" / 
 FONTES_EMBUTIDAS = (
     {"id": "jost", "nome": "Jost", "versao": "3.710", "arquivo": "Jost.ttf",
      "licenca": "Jost-OFL.txt", "url": "https://github.com/google/fonts/tree/main/ofl/jost"},
+    {"id": "prodigy-sans", "nome": "Prodigy Sans", "versao": "1.001", "arquivo": "ProdigySans-Bold.ttf",
+     "licenca": "ProdigySans-Bold-OFL.txt", "url": "https://github.com/weiweihuanghuang/Prodigy-Sans"},
 )
 
 ARQUIVO_DE_LICENCA = re.compile(r"^(licen[cs]e|copying)(\.(txt|md))?$", re.IGNORECASE)

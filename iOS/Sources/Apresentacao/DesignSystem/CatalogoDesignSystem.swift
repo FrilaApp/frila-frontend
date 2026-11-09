@@ -231,21 +231,21 @@ public struct CatalogoDesignSystem: View {
     /// Cada amostra mostra o token do app, a função da origem e os hex claro/escuro (`ParidadeDeCoresDesignTests`).
     private static let amostras: [(nome: String, origem: String, cor: Color, hex: String)] = [
         // nome: token do app (`FrilaCor.<nome>`); origem: função do `FrilaColor`.
-        ("fundo", "dynamicCanvas", FrilaCor.fundo, "#FFFFFF · #111111"),
-        ("superficie", "dynamicFormCardSurface", FrilaCor.superficie, "#FAFAFA · #171717"),
-        ("superficieDoCampo", "dynamicFormFieldSurface", FrilaCor.superficieDoCampo, "#F5F5F5 · #1C1C1C"),
-        ("controle", "dynamicInputBg", FrilaCor.controle, "#F2F2F0 · #23221F"),
-        ("texto", "dynamicTextPrimary", FrilaCor.texto, "#1B1A18 · #F5F4F0"),
-        ("textoSecundario", "dynamicFormTextMuted", FrilaCor.textoSecundario, "#6B6B6B · #A3A3A3"),
-        ("primaria", "dynamicTextInk", FrilaCor.primaria, "#090908 · #FFFFFF"),
-        ("selecao", "primarySelection", FrilaCor.selecao, "#C9470F"),
-        ("marca", "dynamicBrandAccent", FrilaCor.marca, "#EA5A36 · #F26643"),
+        ("fundo", "dynamicCanvas", FrilaCor.fundo, "#F9F6F4 · #111111"),
+        ("superficie", "dynamicFormCardSurface", FrilaCor.superficie, "#FFFFFF · #171717"),
+        ("superficieDoCampo", "dynamicFormFieldSurface", FrilaCor.superficieDoCampo, "#FFFFFF · #1C1C1C"),
+        ("controle", "dynamicInputBg", FrilaCor.controle, "#F1EEEA · #23221F"),
+        ("texto", "dynamicTextPrimary", FrilaCor.texto, "#111111 · #F5F4F0"),
+        ("textoSecundario", "dynamicFormTextMuted", FrilaCor.textoSecundario, "#5A5A58 · #A3A3A3"),
+        ("primaria", "dynamicTextInk", FrilaCor.primaria, "#111111 · #FFFFFF"),
+        ("selecao", "dynamicTextInk", FrilaCor.selecao, "#111111 · #FFFFFF"),
+        ("marca", "dynamicBrandAccent", FrilaCor.marca, "#F46700 · #F46700"),
         ("sucesso", "dynamicVerified", FrilaCor.sucesso, "#007A33 · #4ADE80"),
         ("alerta", "dynamicWarningText", FrilaCor.alerta, "#9E5C00 · #FBBF24"),
         ("perigo", "dynamicError", FrilaCor.perigo, "#D82020 · #F87171"),
-        ("divisoria", "dynamicHairline", FrilaCor.divisoria, "#E5E5E3 · #2E2D29"),
-        ("borda", "dynamicBorder", FrilaCor.borda, "#CECECB · #44433E"),
-        ("bordaDoCampo", "dynamicFormFieldBorder", FrilaCor.bordaDoCampo, "#8C8C8C · #6A6A6A")
+        ("divisoria", "dynamicHairline", FrilaCor.divisoria, "#E5E3DD · #2E2D29"),
+        ("borda", "dynamicBorder", FrilaCor.borda, "#E5E3DD · #44433E"),
+        ("bordaDoCampo", "dynamicFormFieldBorder", FrilaCor.bordaDoCampo, "#918F8A · #6A6A6A")
     ]
 
     private var paleta: some View {
