@@ -44,30 +44,21 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: estaNoFimDaRolagem ? FrilaEspaco.medio : 0) {
-                        if estaNoFimDaRolagem {
+                if estaNoFimDaRolagem {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .center, spacing: FrilaEspaco.medio) {
                             precoEmColuna
-                        } else {
-                            precoEmColuna
-                                .frame(width: 0, height: 0)
-                                .opacity(0)
+                            Spacer(minLength: 0)
+                            botaoView
+                                .frame(minWidth: 150)
                         }
-                        Spacer(minLength: 0)
-                        botaoView
-                            .frame(maxWidth: estaNoFimDaRolagem ? nil : .infinity)
-                            .frame(minWidth: estaNoFimDaRolagem ? 150 : nil)
-                    }
-                    VStack(alignment: .leading, spacing: estaNoFimDaRolagem ? FrilaEspaco.pequeno : 0) {
-                        if estaNoFimDaRolagem {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                             precoEmColuna
-                        } else {
-                            precoEmColuna
-                                .frame(width: 0, height: 0)
-                                .opacity(0)
+                            botaoView.frame(maxWidth: .infinity)
                         }
-                        botaoView.frame(maxWidth: .infinity)
                     }
+                } else {
+                    botaoView.frame(maxWidth: .infinity)
                 }
 
                 if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {
