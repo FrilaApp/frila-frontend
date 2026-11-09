@@ -64,6 +64,11 @@ extension TextosDoProfissional {
         static func checkinSemVerificacao(_ hora: String) -> String {
             String(localized: "Check-in feito às \(hora), sem verificação.", bundle: bundleApresentacao)
         }
+        /// 0.2.62 (`turno_nao_verificado`): o turno terminou sem a presença confirmada.
+        static func checkinNaoConfirmado(_ hora: String) -> String {
+            String(localized: "Check-in manual feito às \(hora). O contratante não confirmou até o fim do turno.", bundle: bundleApresentacao)
+        }
+        static let naoVerificadaAviso = String(localized: "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.", bundle: bundleApresentacao)
         static func checkinNaFila(_ hora: String, manual: Bool) -> String {
             manual
                 ? String(localized: "Sem conexão. O check-in manual das \(hora) está guardado neste aparelho e será enviado quando a internet voltar, com esse horário. Depois ele aguarda a confirmação do contratante.", bundle: bundleApresentacao)
@@ -109,4 +114,9 @@ enum TextosDaFila {
             TextosDoCancelamento.falhaGenerica
         }
     }
+}
+
+extension TextosDoProfissional.Turnos {
+    /// Título do Meu turno quando o turno terminou como não verificado (0.2.62).
+    static let naoVerificadoTitulo = String(localized: "Turno não verificado", bundle: bundleApresentacao)
 }
