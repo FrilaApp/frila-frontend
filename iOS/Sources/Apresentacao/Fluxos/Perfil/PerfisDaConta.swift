@@ -224,7 +224,7 @@ private struct ContainerDaConta<Conteudo: View>: View {
     }
 }
 
-/// Perfil do profissional (T9 do protótipo): perfil contínuo, com resumo e edição no mesmo lugar.
+/// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
@@ -234,16 +234,8 @@ public struct TelaMeuPerfilProfissional: View {
     public let enderecos: EnderecosOficiais
     @State private var mostrarExplicacao = false
     @State private var mostrarAjuda = false
-    @State private var mostrarConfirmacaoSair = false
-    @State private var mostrarConfirmacaoExcluir = false
-    @State private var mostrarFluxoExclusao = false
-    @State private var mostrandoTrocaEmail = false
-    @State private var novoEmail = ""
-    @State private var chavePix = ""
-    @State private var raioKm: Double = 5.0
-    @State private var diasSelecionados: Set<Int> = [7] // 1 (Dom) .. 7 (Sáb)
-    @State private var periodosSelecionados: Set<String> = ["Noite"]
-    @State private var anuncioAcessibilidade: String = ""
+    @State private var copiaDeContato = CopiaDeContato()
+    @State private var edicao = EdicaoDeContato()
 
     public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
         self.api = api
@@ -255,494 +247,216 @@ public struct TelaMeuPerfilProfissional: View {
     }
 
     public var body: some View {
+        conteudoDaTela
+    }
+
+    private var perfilCarregado: Bool {
+        !model.carregando && model.mensagemErro == nil && model.conta != nil && model.perfil != nil
+    }
+
+    private var conteudoDaTela: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
                 if model.carregando {
                     EstadoCarregando()
                 } else if let erro = model.mensagemErro {
                     EstadoErro(verbatim: erro) { Task { await model.carregar() } }
-                } else {
-                    conteudoPrincipal
+                } else if let conta = model.conta, let perfil = model.perfil {
+                    identidade(conta)
+                    SecaoFotoDePerfil(api: api)
+                    historico
+                    configuracao(perfil)
                 }
+
+                Button { mostrarAjuda = true } label: {
+                    RotuloDeLinha(TextosPerfilConta.ajuda)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-ajuda")
+
+                LinhaDeAparencia()
+
+                contaEDados
+
+                #if FRILA_BETA
+                SeloBeta()
+                #endif
             }
             .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.top, FrilaEspaco.compacto)
-            .padding(.bottom, FrilaEspaco.enorme)
-            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, FrilaEspaco.medio)
+            .padding(.bottom, FrilaEspaco.grande)
         }
-        .scrollDismissesKeyboard(.interactively)
-        .background(FrilaCor.fundo.ignoresSafeArea())
+        .background(FrilaCor.fundo)
         .frilaKeyboardDismissScope()
-        .navigationTitle("")
+        .navigationTitle(Text(verbatim: TextosPerfilConta.meuPerfil))
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await model.carregar()
-            if chavePix.isEmpty {
-                chavePix = model.conta?.email ?? "ju.ramos@email.com"
-            }
-            if let disponibilidades = model.perfil?.disponibilidades, !disponibilidades.isEmpty {
-                let dias = Set(disponibilidades.map(\.diaDaSemana))
-                if !dias.isEmpty { diasSelecionados = dias }
-            }
-        }
+        .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
-        .navigationDestination(isPresented: $mostrarFluxoExclusao) {
-            TelaExclusaoDeConta(viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair))
-        }
-        .confirmationDialog(
-            Text("Sair da conta?", bundle: bundleApresentacao),
-            isPresented: $mostrarConfirmacaoSair,
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) { sair() } label: {
-                Text("Sair da conta", bundle: bundleApresentacao)
-            }
-            Button(role: .cancel) {} label: {
-                Text("Cancelar", bundle: bundleApresentacao)
-            }
-        } message: {
-            Text("Para entrar de novo, a gente manda um código ao seu e-mail.", bundle: bundleApresentacao)
-        }
-        .confirmationDialog(
-            Text("Excluir conta definitivamente?", bundle: bundleApresentacao),
-            isPresented: $mostrarConfirmacaoExcluir,
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                mostrarFluxoExclusao = true
-            } label: {
-                Text("Excluir conta definitivamente", bundle: bundleApresentacao)
-            }
-            Button(role: .cancel) {} label: {
-                Text("Cancelar", bundle: bundleApresentacao)
-            }
-        } message: {
-            Text("Você perde sua reputação de 98%. Não dá para desfazer.", bundle: bundleApresentacao)
+        .sensoryFeedback(.success, trigger: copiaDeContato.copias)
+        .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.35), trigger: copiaDeContato.aberturas)
+        .onDisappear {
+            copiaDeContato.limpar()
+            edicao.cancelar()
         }
     }
 
-    private var conteudoPrincipal: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-            // Título "Perfil" em Prodigy Sans
-            Text("Perfil", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDaTela)
+    private func contato(_ titulo: String, _ valor: String, id: String, campo: CampoDeContato) -> some View {
+        ContatoCopiavel(
+            titulo: titulo, valor: valor, id: id, campo: campo, copia: copiaDeContato,
+            acoes: model.podeEditarContato ? [.copiar, .editar] : [.copiar],
+            edicao: edicao,
+            aoAcionar: { acao in
+                if acao == .editar { edicao.iniciar(campo, valor: valor) }
+            },
+            aoConfirmarEdicao: confirmarEdicao
+        )
+    }
+
+    /// Return confirma. Valor inválido não faz nada e segue editando; igual ao atual só fecha; novo grava.
+    private func confirmarEdicao() {
+        guard let campo = edicao.campo, !edicao.salvando, let conta = model.conta,
+              let novo = EdicaoDeContato.normalizar(campo, edicao.rascunho) else { return }
+        guard novo != (campo == .telefone ? conta.telefone : conta.email) else { return edicao.encerrar() }
+        edicao.comecarASalvar()
+        Task {
+            await model.atualizarContato(AlteracaoDeContato(
+                telefone: campo == .telefone ? novo : nil,
+                email: campo == .email ? novo : nil
+            ))
+            edicao.encerrar()
+        }
+    }
+
+    /// Seção que reúne dados e conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
+    /// irreversíveis não devem ser acionadas por exploração na raiz da Conta.
+    private var contaEDados: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: TextosPerfilConta.contaEDados)
+                .font(FrilaTipo.resumo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
-
-            // Card de perfil: avatar circular de 64 px, nome e reputação
-            cardPerfil
-
-            // Preferências de trabalho (Funções, Ponto base, Dias, Períodos)
-            secaoPreferenciasTrabalho
-
-            // Grupos da conta (E-mail profissional, Chave Pix)
-            secaoConta
-
-            // Links legais e institucionais
-            linksInstitucionais
-
-            // Ações discretas no fim: Sair e Excluir conta
-            acoesFinais
+            ContainerDaConta {
+                if perfilCarregado {
+                    ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
+                    DivisoriaDeLinha()
+                }
+                NavigationLink {
+                    TelaSairOuExcluirConta(api: api, sair: sair)
+                } label: {
+                    RotuloDeLinha(TextosPerfilConta.sairOuExcluir)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-sair-ou-excluir")
+            }
         }
     }
 
-    private var cardPerfil: some View {
-        HStack(spacing: FrilaEspaco.medio) {
-            // Avatar circular de 64 px
-            ZStack {
-                Circle()
-                    .fill(FrilaCor.fundo)
-                    .frame(width: 64, height: 64)
-                    .overlay(
-                        Circle().strokeBorder(FrilaCor.borda, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                    )
-                Image(systemName: "person.fill")
-                    .font(.title2)
-                    .foregroundStyle(FrilaCor.textoSecundario)
+    private func identidade(_ conta: Conta) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text(verbatim: conta.nome)
+                .font(FrilaTipo.secao)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            // Áreas de toque encostadas: nenhuma faixa morta entre os dois contatos.
+            VStack(alignment: .leading, spacing: 0) {
+                contato(TextosPerfilConta.telefone, FormatoDeTelefone.paraExibir(conta.telefone), id: "perfil-telefone", campo: .telefone)
+                contato(TextosPerfilConta.email, conta.email, id: "perfil-email", campo: .email)
             }
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                let nome = model.conta?.nome ?? "Juliana Ramos"
-                Text(verbatim: nome)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(FrilaCor.texto)
-
-                let textoReputacao = model.perfilPublico.map { SeloReputacao.descricao($0.reputacao) }
-                    ?? String(localized: "98% das casas chamariam de novo", bundle: bundleApresentacao)
-                Text(verbatim: textoReputacao)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            }
-            Spacer()
         }
-        .padding(FrilaEspaco.medio)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var secaoPreferenciasTrabalho: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-            // Funções
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("Funções", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-
-                let nomes = model.perfil?.funcoes.map(\.nome) ?? ["Bartender", "Garçom"]
-                FrilaFlowLayout(horizontalSpacing: FrilaEspaco.compacto, verticalSpacing: FrilaEspaco.compacto) {
-                    ForEach(nomes, id: \.self) { nome in
-                        Text(verbatim: nome)
-                            .font(FrilaTipo.meta.weight(.medium))
-                            .padding(.horizontal, FrilaEspaco.faixa)
-                            .frame(minHeight: FrilaMetrica.alturaDoChip)
-                            .foregroundStyle(FrilaCor.sobreSelecao)
-                            .background(FrilaCor.selecao, in: Capsule())
-                    }
+    private var historico: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            Text("Seu histórico", bundle: bundleApresentacao)
+                .font(FrilaTipo.resumo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+            ContainerDaConta {
+                if let reputacao = model.perfilPublico?.reputacao {
+                    SeloReputacao(reputacao)
+                        .padding(.vertical, FrilaEspaco.medio)
+                    DivisoriaDeLinha()
                 }
-
-                NavigationLink {
-                    TelaPerfilProfissional(api: api, modo: .edicao)
-                } label: {
-                    Text("Ver todas as funções", bundle: bundleApresentacao)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .underline()
+                NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
+                    RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
                 }
-                .accessibilityIdentifier("perfil-funcoes-horarios")
-
-                // Preserva os identificadores esperados por testes de UI existentes
-                Text(verbatim: nomes.joined(separator: ", "))
-                    .hidden()
-                    .frame(height: 0)
-                    .accessibilityIdentifier("perfil-funcoes-valor")
-                Text("\(model.perfil?.disponibilidades.count ?? 0) horários cadastrados", bundle: bundleApresentacao)
-                    .hidden()
-                    .frame(height: 0)
-                    .accessibilityIdentifier("perfil-horarios-valor")
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-historico-turnos")
             }
+        }
+    }
 
-            // Ponto base
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("Ponto base", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-
-                NavigationLink {
-                    TelaPerfilProfissional(api: api, modo: .edicao)
-                } label: {
-                    HStack(spacing: FrilaEspaco.compacto) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .font(FrilaTipo.meta)
+    private func configuracao(_ perfil: PerfilProfissional) -> some View {
+        ContainerDaConta {
+            NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        Text(verbatim: TextosPerfilConta.funcoesHorarios)
+                            .font(FrilaTipo.tituloDoCartao)
                             .foregroundStyle(FrilaCor.texto)
-                        Text(verbatim: model.perfil?.pontoBase != nil ? "SQS 308, Bloco C, Asa Sul" : "Escolher endereço")
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
-                        Spacer()
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: FrilaEspaco.pequeno)
                         Image(systemName: "chevron.right")
                             .font(FrilaTipo.meta.weight(.semibold))
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .frame(height: FrilaMetrica.alturaDoCampo)
-                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
-                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-
-                // Raio: slider de 1 a 10 km
-                HStack(spacing: FrilaEspaco.medio) {
-                    Slider(value: $raioKm, in: 1...10, step: 1)
-                        .tint(FrilaCor.acao)
-                        .accessibilityLabel(Text("Raio", bundle: bundleApresentacao))
-                    Text("Até \(Int(raioKm)) km", bundle: bundleApresentacao)
-                        .font(FrilaTipo.rotuloSecundario)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minWidth: 72, alignment: .trailing)
-                }
-            }
-
-            // Dias
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("Dias", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-
-                let dias: [(id: Int, abrev: LocalizedStringKey, nome: String)] = [
-                    (1, "Dom", "Domingo"),
-                    (2, "Seg", "Segunda-feira"),
-                    (3, "Ter", "Terça-feira"),
-                    (4, "Qua", "Quarta-feira"),
-                    (5, "Qui", "Quinta-feira"),
-                    (6, "Sex", "Sexta-feira"),
-                    (7, "Sáb", "Sábado")
-                ]
-                HStack(spacing: 4) {
-                    ForEach(dias, id: \.id) { dia in
-                        let selecionado = diasSelecionados.contains(dia.id)
-                        Button {
-                            if selecionado {
-                                diasSelecionados.remove(dia.id)
-                            } else {
-                                diasSelecionados.insert(dia.id)
-                            }
-                            anunciarSalvo()
-                        } label: {
-                            Text(dia.abrev, bundle: bundleApresentacao)
-                                .font(FrilaTipo.meta.weight(.medium))
-                                .frame(maxWidth: .infinity, minHeight: 40)
-                                .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-                                .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 20))
-                                .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(Text(verbatim: dia.nome))
+                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                        let funcoes = perfil.funcoes.map(\.nome).joined(separator: ", ")
+                        Text(verbatim: funcoes.isEmpty ? TextosPerfilConta.naoInformado : funcoes)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .accessibilityIdentifier("perfil-funcoes-valor")
+                        Text(verbatim: perfil.disponibilidades.isEmpty
+                             ? TextosPerfilConta.naoInformado
+                             : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao))
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityIdentifier("perfil-horarios-valor")
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(.vertical, FrilaEspaco.medio)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-
-            // Períodos
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("Períodos", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-
-                let periodos: [(chave: String, rotulo: LocalizedStringKey)] = [
-                    ("Manhã", "Manhã"),
-                    ("Tarde", "Tarde"),
-                    ("Noite", "Noite"),
-                    ("Madrugada", "Madrugada")
-                ]
-                FrilaFlowLayout(horizontalSpacing: FrilaEspaco.compacto, verticalSpacing: FrilaEspaco.compacto) {
-                    ForEach(periodos, id: \.chave) { item in
-                        let selecionado = periodosSelecionados.contains(item.chave)
-                        Button {
-                            if selecionado {
-                                periodosSelecionados.remove(item.chave)
-                            } else {
-                                periodosSelecionados.insert(item.chave)
-                            }
-                            anunciarSalvo()
-                        } label: {
-                            Text(item.rotulo, bundle: bundleApresentacao)
-                                .font(FrilaTipo.meta.weight(.medium))
-                                .padding(.horizontal, FrilaEspaco.faixa)
-                                .frame(minHeight: FrilaMetrica.alturaDoChip)
-                                .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-                                .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
-                                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
-
-    private var secaoConta: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-            // E-mail profissional
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("E-mail profissional", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-
-                let email = model.conta?.email ?? "ju.ramos@email.com"
-                Text(verbatim: email)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("perfil-email")
-
-                Button {
-                    mostrandoTrocaEmail.toggle()
-                } label: {
-                    Text("Trocar e-mail por código", bundle: bundleApresentacao)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .underline()
-                }
-
-                if mostrandoTrocaEmail {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        TextField(text: $novoEmail) {
-                            Text("Novo e-mail profissional", bundle: bundleApresentacao)
-                        }
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .padding(.horizontal, FrilaEspaco.medio)
-                        .frame(height: FrilaMetrica.alturaDoCampo)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
-                        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
-
-                        HStack(spacing: FrilaEspaco.medio) {
-                            BotaoSecundario("Receber código") {
-                                mostrandoTrocaEmail = false
-                            }
-                            Button {
-                                mostrandoTrocaEmail = false
-                            } label: {
-                                Text("Cancelar", bundle: bundleApresentacao)
-                                    .font(FrilaTipo.corpo)
-                                    .foregroundStyle(FrilaCor.textoSecundario)
-                            }
-                        }
-                    }
-                    .padding(.top, FrilaEspaco.minimo)
-                }
-            }
-
-            // Chave Pix
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("Chave Pix", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-
-                TextField(text: $chavePix) {
-                    Text("Chave Pix", bundle: bundleApresentacao)
-                }
-                .textContentType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .padding(.horizontal, FrilaEspaco.medio)
-                .frame(height: FrilaMetrica.alturaDoCampo)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
-                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
-                .onSubmit { anunciarSalvo() }
-            }
-
-            // Preserva identificador de telefone para testes de acessibilidade
-            if let telefone = model.conta?.telefone {
-                Text(verbatim: FormatoDeTelefone.paraExibir(telefone))
-                    .hidden()
-                    .frame(height: 0)
-                    .accessibilityIdentifier("perfil-telefone")
-            }
-        }
-    }
-
-    private var linksInstitucionais: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                mostrarAjuda = true
-            } label: {
-                Text("Ajuda e regras da comunidade", bundle: bundleApresentacao)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .accessibilityIdentifier("perfil-ajuda")
-
-            Link(destination: enderecos.termosDeUso) {
-                Text("Termos de uso", bundle: bundleApresentacao)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .accessibilityIdentifier("perfil-termos")
-
-            Link(destination: enderecos.politicaDePrivacidade) {
-                Text("Política de privacidade", bundle: bundleApresentacao)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .accessibilityIdentifier("perfil-privacidade")
-
-            // Mantém links e fluxos existentes da conta para testes automatizados
-            NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
-                Text(verbatim: TextosHistoricoDeTurnos.titulo)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .accessibilityIdentifier("perfil-historico-turnos")
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("perfil-funcoes-horarios")
 
             if model.suportaPerfilRico {
-                NavigationLink { TelaApresentacaoERegioes(api: api) } label: {
-                    Text(verbatim: TextosApresentacaoERegioes.titulo)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .underline()
-                        .frame(minHeight: 48, alignment: .leading)
+                DivisoriaDeLinha()
+
+                NavigationLink {
+                    TelaApresentacaoERegioes(api: api)
+                } label: {
+                    RotuloDeLinha(TextosApresentacaoERegioes.titulo)
                 }
+                .buttonStyle(.plain)
                 .accessibilityIdentifier("perfil-apresentacao-regioes")
             }
 
             if model.suportaChamadaDireta {
-                NavigationLink { TelaPreferenciasDeChamada(api: api) } label: {
-                    Text(verbatim: TextosChamadaDireta.preferenciasTitulo)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .underline()
-                        .frame(minHeight: 48, alignment: .leading)
+                DivisoriaDeLinha()
+
+                NavigationLink {
+                    TelaPreferenciasDeChamada(api: api)
+                } label: {
+                    RotuloDeLinha(TextosChamadaDireta.preferenciasTitulo)
                 }
+                .buttonStyle(.plain)
                 .accessibilityIdentifier("perfil-preferencias-chamada")
             }
 
+            DivisoriaDeLinha()
+
             Button { mostrarExplicacao = true } label: {
-                Text(verbatim: TextosPerfilConta.porQueRecebo)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
+                RotuloDeLinha(TextosPerfilConta.porQueRecebo)
             }
+            .buttonStyle(.plain)
             .accessibilityIdentifier("perfil-por-que-recebo")
-
-            LinhaDeAparencia()
-                .padding(.vertical, FrilaEspaco.minimo)
         }
-    }
-
-    private var acoesFinais: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                mostrarConfirmacaoSair = true
-            } label: {
-                Text("Sair da conta", bundle: bundleApresentacao)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .accessibilityIdentifier("perfil-sair-da-conta")
-
-            Button {
-                mostrarConfirmacaoExcluir = true
-            } label: {
-                Text("Excluir conta definitivamente", bundle: bundleApresentacao)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .accessibilityIdentifier("perfil-excluir-conta-definitivamente")
-
-            // Preserva navegação para TelaSairOuExcluirConta para testes de UI que a utilizam
-            NavigationLink {
-                TelaSairOuExcluirConta(api: api, sair: sair)
-            } label: {
-                Text(verbatim: TextosPerfilConta.sairOuExcluir)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .underline()
-                    .frame(minHeight: 48, alignment: .leading)
-            }
-            .hidden()
-            .frame(height: 0)
-            .accessibilityIdentifier("perfil-sair-ou-excluir")
-        }
-        .padding(.top, FrilaEspaco.medio)
-    }
-
-    private func anunciarSalvo() {
-        anuncioAcessibilidade = "salvo"
     }
 
     /// A folha "Por que recebo vagas" (RF27, #18): texto aprovado, critérios reais e "Contestar".
