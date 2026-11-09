@@ -222,7 +222,7 @@ public struct TelaMeusTurnos: View {
                             Text(verbatim: turno.contraparte.nome)
                                 .font(FrilaTipo.tituloDoCartao)
                                 .foregroundStyle(FrilaCor.texto)
-                            Text(verbatim: "94% trabalhariam aqui de novo")
+                            Text(verbatim: TextosDoProfissional.reputacaoDoEstabelecimento(turno.contraparte.reputacao))
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                         }
@@ -235,7 +235,7 @@ public struct TelaMeusTurnos: View {
                             )
                             LinhaDoTurnoComIcone(
                                 icone: "mappin",
-                                texto: "\(formatador.distancia(turno.vaga.distanciaKm)) do seu ponto base"
+                                texto: turno.vaga.local
                             )
                         }
                         .padding(.vertical, FrilaEspaco.fio)
@@ -247,14 +247,14 @@ public struct TelaMeusTurnos: View {
 
                         HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
                             Text(verbatim: formatador.dinheiro(turno.valorAcordado))
-                                .font(FrilaTipo.dinheiroGrande)
+                                .font(FrilaTipo.valorEmDestaque)
                                 .foregroundStyle(FrilaCor.texto)
                             Text("+ gorjeta", bundle: bundleApresentacao)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.texto)
                         }
 
-                        Text(verbatim: "Incluso: jantar e transporte de volta")
+                        Text("Refeição e transporte inclusos", bundle: bundleApresentacao)
                             .font(FrilaTipo.meta)
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
@@ -273,7 +273,7 @@ public struct TelaMeusTurnos: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()
-            .frilaElevacao(.suave)
+            .elevacaoFrila(.suave)
             .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
         }
     }
@@ -344,7 +344,7 @@ public struct TelaMeusTurnos: View {
                                 Text(verbatim: turno.contraparte.nome)
                                     .font(FrilaTipo.tituloDoCartao)
                                     .foregroundStyle(FrilaCor.texto)
-                                Text(verbatim: "96% trabalhariam aqui de novo")
+                                Text(verbatim: TextosDoProfissional.reputacaoDoEstabelecimento(turno.contraparte.reputacao))
                                     .font(FrilaTipo.meta)
                                     .foregroundStyle(FrilaCor.textoSecundario)
                             }
@@ -357,7 +357,7 @@ public struct TelaMeusTurnos: View {
                                 )
                                 LinhaDoTurnoComIcone(
                                     icone: "mappin",
-                                    texto: "\(formatador.distancia(turno.vaga.distanciaKm)) do seu ponto base"
+                                    texto: turno.vaga.local
                                 )
                             }
                             .padding(.vertical, FrilaEspaco.fio)
@@ -368,10 +368,10 @@ public struct TelaMeusTurnos: View {
                                 .accessibilityHidden(true)
 
                             Text(verbatim: formatador.dinheiro(turno.valorAcordado))
-                                .font(FrilaTipo.dinheiroGrande)
+                                .font(FrilaTipo.valorEmDestaque)
                                 .foregroundStyle(FrilaCor.texto)
 
-                            Text(verbatim: "Incluso: transporte de volta")
+                            Text("Transporte incluso", bundle: bundleApresentacao)
                                 .font(FrilaTipo.meta)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                         }
@@ -399,7 +399,7 @@ public struct TelaMeusTurnos: View {
 
             HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: formatador.dinheiro(totalFaturado))
-                    .font(FrilaTipo.dinheiroGrande)
+                    .font(FrilaTipo.valorEmDestaque)
                     .foregroundStyle(FrilaCor.texto)
                 Text(verbatim: "\(turnos.count) \(turnos.count == 1 ? "turno" : "turnos")")
                     .font(FrilaTipo.meta)
@@ -448,7 +448,7 @@ public struct TelaMeusTurnos: View {
                     .frame(width: 96, height: 96)
                     .overlay(RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                 Image(systemName: "calendar.badge.clock")
-                    .font(FrilaTipo.dinheiroGrande)
+                    .font(FrilaTipo.tituloDaTela)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
             .padding(.bottom, FrilaEspaco.minimo)

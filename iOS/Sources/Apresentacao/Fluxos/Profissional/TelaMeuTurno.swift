@@ -95,7 +95,7 @@ public struct TelaMeuTurno: View {
 
                         SecaoComoChegar(
                             endereco: viewModel.turno.vaga.local,
-                            distanciaTexto: formatador.distancia(viewModel.turno.vaga.distanciaKm),
+                            distanciaTexto: viewModel.turno.vaga.regiaoAdministrativa.isEmpty ? nil : viewModel.turno.vaga.regiaoAdministrativa,
                             urlMapas: viewModel.urlMapas
                         )
                         .accessibilityIdentifier("como-chegar-do-turno")
@@ -131,7 +131,7 @@ public struct TelaMeuTurno: View {
                     },
                     aoDenunciar: {
                         suporteModel = SuporteTurnoViewModel(
-                            dados: ContextoSuporteTurno(turno: viewModel.turno, assunto: "Denúncia"),
+                            dados: ContextoSuporteTurno(turno: viewModel.turno),
                             api: viewModel.api
                         )
                     }

@@ -216,9 +216,7 @@ public struct MiniaturaMapaVisual: View {
     public init() {}
 
     public var body: some View {
-        GeometryReader { proxy in
-            let w = proxy.size.width
-            let h = proxy.size.height
+        GeometryReader { _ in
             Canvas { context, size in
                 var ruas = Path()
                 ruas.move(to: CGPoint(x: -10, y: size.height * 0.25))
