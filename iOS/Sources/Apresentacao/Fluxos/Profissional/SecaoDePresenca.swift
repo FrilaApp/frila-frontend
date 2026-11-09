@@ -203,8 +203,8 @@ public struct SecaoDePresenca: View {
             .padding(.vertical, destaqueGrande ? FrilaEspaco.medio : FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: destaqueGrande ? 64 : FrilaMetrica.alturaDoCampo)
             .foregroundStyle(FrilaCor.sobreAcao)
-            .background(FrilaCor.acao, in: Capsule())
-            .contentShape(Capsule())
+            .background(FrilaCor.acao, in: RoundedRectangle(cornerRadius: destaqueGrande ? 32 : 24, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: destaqueGrande ? 32 : 24, style: .continuous))
         }
         .buttonStyle(.tatil)
         .disabled(carregando)
@@ -227,9 +227,9 @@ public struct SecaoDePresenca: View {
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .foregroundStyle(FrilaCor.texto)
-                .background(FrilaCor.superficie, in: Capsule())
-                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                .contentShape(Capsule())
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
         .buttonStyle(.tatil)
         .disabled(desabilitado)
