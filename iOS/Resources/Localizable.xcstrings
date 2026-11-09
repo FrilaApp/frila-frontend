@@ -1100,26 +1100,6 @@
         }
       }
     },
-    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa."
-          }
-        }
-      }
-    },
-    "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes."
-          }
-        }
-      }
-    },
     "A nova análise já foi pedida. Se a foto continuar sem aparecer, tente outra foto.": {
       "localizations": {
         "pt-BR": {
@@ -3433,16 +3413,6 @@
         }
       }
     },
-    "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos."
-          }
-        }
-      }
-    },
     "Conferindo a foto…": {
       "localizations": {
         "pt-BR": {
@@ -3519,7 +3489,6 @@
       }
     },
     "Confira seu e-mail": {
-      "extractionState": "manual",
       "localizations": {
         "pt-BR": {
           "stringUnit": {
@@ -5629,26 +5598,6 @@
         }
       }
     },
-    "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
-          }
-        }
-      }
-    },
-    "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
-          }
-        }
-      }
-    },
     "Este estabelecimento ainda não tem turnos concluídos no Frila.": {
       "extractionState": "manual",
       "localizations": {
@@ -6080,16 +6029,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foi rápido: outra pessoa aceitou antes. Nada muda na sua reputação."
-          }
-        }
-      }
-    },
-    "Fora do Distrito Federal": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fora do Distrito Federal"
           }
         }
       }
@@ -7774,7 +7713,6 @@
       }
     },
     "Não chegou? Veja a caixa de spam.": {
-      "extractionState": "manual",
       "localizations": {
         "pt-BR": {
           "stringUnit": {
@@ -9054,17 +8992,6 @@
         }
       }
     },
-    "O turno não foi cancelado: cancelar vale só até o início do horário. Para sair do turno, fale com o suporte.": {
-      "extractionState": "manual",
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O turno não foi cancelado: cancelar vale só até o início do horário. Para sair do turno, fale com o suporte."
-          }
-        }
-      }
-    },
     "O turno não pode ultrapassar 16 horas.": {
       "extractionState": "stale",
       "localizations": {
@@ -10213,16 +10140,6 @@
         }
       }
     },
-    "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço."
-          }
-        }
-      }
-    },
     "Quando você tiver turnos confirmados, eles aparecerão aqui.": {
       "extractionState": "stale",
       "localizations": {
@@ -11092,17 +11009,6 @@
         }
       }
     },
-    "Sair do turno": {
-      "extractionState": "manual",
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sair do turno"
-          }
-        }
-      }
-    },
     "Sair ou excluir conta": {
       "extractionState": "stale",
       "localizations": {
@@ -11719,17 +11625,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seu perfil de profissional"
-          }
-        }
-      }
-    },
-    "Seu turno já começou": {
-      "extractionState": "manual",
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seu turno já começou"
           }
         }
       }
@@ -14296,6 +14191,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "⌘K"
+          }
+        }
+      }
+    },
+    "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos."
+          }
+        }
+      }
+    },
+    "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
+          }
+        }
+      }
+    },
+    "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
+          }
+        }
+      }
+    },
+    "Fora do Distrito Federal": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora do Distrito Federal"
+          }
+        }
+      }
+    },
+    "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço."
+          }
+        }
+      }
+    },
+    "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes."
+          }
+        }
+      }
+    },
+    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa."
           }
         }
       }
