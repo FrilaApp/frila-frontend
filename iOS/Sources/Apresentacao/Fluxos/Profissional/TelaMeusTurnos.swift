@@ -77,11 +77,11 @@ public struct CartaoMeuTurno: View {
 }
 
 /// Tela de Meus Turnos da pele nova (T7): "Turnos" com quatro seções ordenadas:
-/// 1. "Hoje": card de destaque com botão primário laranja "Estou a caminho";
+/// 1. "Hoje": card de destaque com elevacaoFrila(.suave) e botão primário laranja;
 /// 2. "Precisa de você": itens pendentes de avaliação ou verificação;
-/// 3. "Próximos": turnos confirmados em datas futuras;
+/// 3. "Próximos": turnos confirmados ou cancelados;
 /// 4. "Histórico": total faturado no cabeçalho e lista de turnos concluídos.
-/// Quando vazia, exibe o estado vazio (T7-sem-turnos).
+/// Quando vazia, exibe o estado vazio ilustrado (T7-sem-turnos).
 public struct TelaMeusTurnos: View {
     @Bindable private var viewModel: MeusTurnosViewModel
     private let abrir: (Turno) -> Void
@@ -258,8 +258,11 @@ public struct TelaMeusTurnos: View {
                             .font(FrilaTipo.meta)
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
 
                 if turno.aCaminhoEm == nil && turno.checkin == nil {
                     BotaoPrimario("Estou a caminho") { abrir(turno) }
@@ -274,7 +277,6 @@ public struct TelaMeusTurnos: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()
             .elevacaoFrila(.suave)
-            .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
         }
     }
 
@@ -290,33 +292,39 @@ public struct TelaMeusTurnos: View {
             VStack(spacing: FrilaEspaco.compacto) {
                 ForEach(turnos) { turno in
                     VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                        Button { abrir(turno) } label: {
+                            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                                if turno.podeAvaliar {
+                                    SeloDeStatus("Concluído", estilo: .contorno)
+                                }
+                                Text(verbatim: turno.contraparte.nome)
+                                    .font(FrilaTipo.tituloDoCartao)
+                                    .foregroundStyle(FrilaCor.texto)
+                                Text(verbatim: "\(formatadorDataCurta(turno.vaga.periodo.inicio)) \(formatadorHora(turno.vaga.periodo))")
+                                    .font(FrilaTipo.meta)
+                                    .foregroundStyle(FrilaCor.texto)
+                                if turno.verificacao == .naoVerificado {
+                                    Text("Presença não confirmada", bundle: bundleApresentacao)
+                                        .font(FrilaTipo.meta)
+                                        .foregroundStyle(FrilaCor.texto)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
+
                         if turno.podeAvaliar {
-                            SeloDeStatus("Concluído", estilo: .contorno)
-                            Text(verbatim: turno.contraparte.nome)
-                                .font(FrilaTipo.tituloDoCartao)
-                                .foregroundStyle(FrilaCor.texto)
-                            Text(verbatim: "\(formatadorDataCurta(turno.vaga.periodo.inicio)) \(formatadorHora(turno.vaga.periodo))")
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.texto)
                             BotaoSecundario("Avaliar") { abrir(turno) }
                                 .accessibilityIdentifier("avaliar-turno-\(turno.id.uuidString)")
                         } else if turno.verificacao == .naoVerificado {
-                            Text(verbatim: turno.contraparte.nome)
-                                .font(FrilaTipo.tituloDoCartao)
-                                .foregroundStyle(FrilaCor.texto)
-                            Text(verbatim: "\(formatadorDataCurta(turno.vaga.periodo.inicio)) \(formatadorHora(turno.vaga.periodo))")
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.texto)
-                            Text("Presença não confirmada", bundle: bundleApresentacao)
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.texto)
                             BotaoSecundario("Falar com o suporte") { abrir(turno) }
                                 .accessibilityIdentifier("suporte-turno-\(turno.id.uuidString)")
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .cartaoFrila()
-                    .accessibilityIdentifier("precisa-turno-\(turno.id.uuidString)")
                 }
             }
         }
@@ -336,7 +344,17 @@ public struct TelaMeusTurnos: View {
                     Button { abrir(turno) } label: {
                         VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
                             HStack {
-                                SeloDeStatus("Confirmado", estilo: .destaque, icone: "checkmark")
+                                if turno.cancelado {
+                                    Label {
+                                        Text(verbatim: TextosDoProfissional.Turnos.canceladoTitulo)
+                                    } icon: {
+                                        Image(systemName: "xmark.circle")
+                                    }
+                                    .font(FrilaTipo.meta.weight(.semibold))
+                                    .foregroundStyle(FrilaCor.texto)
+                                } else {
+                                    SeloDeStatus("Confirmado", estilo: .destaque, icone: "checkmark")
+                                }
                                 Spacer()
                             }
 
@@ -355,17 +373,11 @@ public struct TelaMeusTurnos: View {
                                     icone: "calendar",
                                     texto: "\(formatadorDataCurta(turno.vaga.periodo.inicio)) \(formatadorHora(turno.vaga.periodo))"
                                 )
-                                LinhaDoTurnoComIcone(
-                                    icone: "mappin",
-                                    texto: turno.vaga.local
-                                )
+                                LinhaDoTurnoComIcone(icone: "mappin", texto: turno.vaga.local)
                             }
                             .padding(.vertical, FrilaEspaco.fio)
 
-                            Rectangle()
-                                .fill(FrilaCor.borda)
-                                .frame(height: 1)
-                                .accessibilityHidden(true)
+                            Rectangle().fill(FrilaCor.borda).frame(height: 1).accessibilityHidden(true)
 
                             Text(verbatim: formatador.dinheiro(turno.valorAcordado))
                                 .font(FrilaTipo.valorEmDestaque)
@@ -377,6 +389,7 @@ public struct TelaMeusTurnos: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .cartaoFrila()
+                        .accessibilityElement(children: .combine)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
@@ -431,49 +444,55 @@ public struct TelaMeusTurnos: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier("historico-turno-\(turno.id.uuidString)")
+                    .accessibilityIdentifier("meu-turno-\(turno.id.uuidString)")
                 }
             }
             .cartaoFrila()
         }
     }
 
-    // MARK: - Estado Vazio (T7-sem-turnos)
+    // MARK: - Estado Vazio
 
     private var estadoVazio: some View {
-        VStack(spacing: FrilaEspaco.compacto) {
+        VStack(alignment: .center, spacing: FrilaEspaco.medio) {
+            Spacer(minLength: FrilaEspaco.medio)
+
             ZStack {
-                RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
+                Circle()
                     .fill(FrilaCor.superficie)
-                    .frame(width: 96, height: 96)
-                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .frame(width: 88, height: 88)
                 Image(systemName: "calendar.badge.clock")
-                    .font(FrilaTipo.tituloDaTela)
+                    .font(.system(size: 38))
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
-            .padding(.bottom, FrilaEspaco.minimo)
-            .accessibilityHidden(true)
 
-            Text("Você ainda não tem turnos.", bundle: bundleApresentacao)
-                .font(FrilaTipo.corpo.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-                .multilineTextAlignment(.center)
-
-            Text("Os turnos que você aceitar e as suas candidaturas aparecem aqui.", bundle: bundleApresentacao)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, FrilaEspaco.medio)
-
-            BotaoSecundario("Ver vagas na minha área") {
-                // Navegar para a aba Vagas ou atualizar
+            VStack(spacing: FrilaEspaco.minimo) {
+                Text("Nenhum turno confirmado", bundle: bundleApresentacao)
+                    .font(FrilaTipo.tituloDoCartao)
+                    .foregroundStyle(FrilaCor.texto)
+                Text("Quando você for contratado para uma vaga, seus turnos aparecerão aqui.", bundle: bundleApresentacao)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.top, FrilaEspaco.minimo)
+            .padding(.horizontal, FrilaEspaco.medio)
+
+            Spacer(minLength: FrilaEspaco.medio)
         }
+        .frame(maxWidth: .infinity)
         .padding(.vertical, FrilaEspaco.grande)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("meus-turnos-vazio")
+    }
+
+    // MARK: - Formatadores Auxiliares
+
+    private func formatadorHora(_ periodo: Periodo) -> String {
+        let f = DateFormatter()
+        f.locale = FormatadorFrila.locale
+        f.timeZone = FormatadorFrila.fuso
+        f.dateFormat = "HH:mm"
+        return "\(f.string(from: periodo.inicio)) às \(f.string(from: periodo.fim))"
     }
 
     private func formatadorDataCurta(_ data: Date) -> String {
@@ -483,13 +502,5 @@ public struct TelaMeusTurnos: View {
         formatter.dateFormat = "EEE dd/MM"
         let raw = formatter.string(from: data).replacingOccurrences(of: ".", with: "")
         return raw.prefix(1).uppercased() + raw.dropFirst()
-    }
-
-    private func formatadorHora(_ periodo: Periodo) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = FormatadorFrila.locale
-        formatter.timeZone = FormatadorFrila.fuso
-        formatter.dateFormat = "HH:mm"
-        return "\(formatter.string(from: periodo.inicio)) às \(formatter.string(from: periodo.fim))"
     }
 }
