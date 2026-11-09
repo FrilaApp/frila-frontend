@@ -50,6 +50,13 @@ public struct TelaPerfilProfissional: View {
                     pedidoDeRolagem = nil
                 }
         }
+        .sheet(isPresented: $sheetFuncoesAberta) {
+            TelaEscolherFuncoes(
+                funcoes: funcoesExibidas,
+                selecionadas: viewModel.funcoesSelecionadas,
+                alternar: { viewModel.alternarFuncao($0) }
+            )
+        }
     }
 
     private var corpoComRolagem: some View {
@@ -61,7 +68,7 @@ public struct TelaPerfilProfissional: View {
             .accessibilityIdentifier("tela-perfil-profissional")
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.compacto)
-            .padding(.bottom, FrilaEspaco.grande)
+            .padding(.bottom, FrilaEspaco.enorme * 2)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -70,13 +77,6 @@ public struct TelaPerfilProfissional: View {
         .background(FrilaCor.fundo)
         .navigationTitle(viewModel.modo == .criacao ? "" : TextosDoProfissional.Perfil.titulo)
         .navigationBarTitleDisplayMode(viewModel.modo == .criacao ? .inline : .large)
-        .sheet(isPresented: $sheetFuncoesAberta) {
-            TelaEscolherFuncoes(
-                funcoes: funcoesExibidas,
-                selecionadas: viewModel.funcoesSelecionadas,
-                alternar: { viewModel.alternarFuncao($0) }
-            )
-        }
         .task {
             #if DEBUG
             if estadoCapturaDebug != nil {
@@ -279,8 +279,8 @@ public struct TelaPerfilProfissional: View {
                     .underline()
                     .foregroundStyle(FrilaCor.texto)
                     .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
             }
+            .contentShape(Rectangle())
             .buttonStyle(.plain)
             .accessibilityIdentifier("botao-expandir-funcoes")
         }

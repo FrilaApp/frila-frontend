@@ -145,6 +145,7 @@ final class CapturasLote1UITests: XCTestCase {
         let app = iniciar(extra: ["-FRILA_SCENARIO", "sem-perfil-profissional"])
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
+        app.swipeUp()
         expandir.tap()
         let busca = app.descendants(matching: .any)["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5), "A folha T1b de funções deve abrir")
@@ -155,6 +156,7 @@ final class CapturasLote1UITests: XCTestCase {
         let app = iniciar(extra: ["-FRILA_SCENARIO", "sem-perfil-profissional"])
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
+        app.swipeUp()
         expandir.tap()
         let busca = app.descendants(matching: .any)["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5))

@@ -940,7 +940,6 @@ private struct CriacaoDoPerfilProfissional: View {
 
     var body: some View {
         conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
     @ViewBuilder
@@ -952,6 +951,7 @@ private struct CriacaoDoPerfilProfissional: View {
                         Button { mostrarConfirmacaoDeSaida = true } label: {
                             Text("Sair", bundle: bundleApresentacao)
                         }
+                        .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
                         .accessibilityShowsLargeContentViewer()
                         .accessibilityIdentifier("criacao-perfil-sair")
                     }
