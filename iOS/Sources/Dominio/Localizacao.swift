@@ -33,8 +33,8 @@ public struct LeituraDeLocalizacao: Equatable, Sendable {
 /// Paulo em 08/11/2026: 50 m/s (180 km/h), intervalo mínimo de 1 s, e uma leitura só não tem salto. A
 /// distância entre as leituras vale menos a soma das duas precisões, para o ruído do GPS não valer como salto.
 public enum SaltoDePosicao {
-    public static let velocidadeMaximaMetrosPorSegundo = 500.0
-    public static let intervaloMinimoSegundos = 0.0
+    public static let velocidadeMaximaMetrosPorSegundo = 50.0
+    public static let intervaloMinimoSegundos = 1.0
 
     public static func houve(
         de anterior: (coordenada: Coordenada, precisaoMetros: Double, instante: Date),
@@ -74,7 +74,7 @@ public enum RegraDePresenca {
     /// Check-in por código (0.2.68): acima daqui, com a distância medida, o app avisa "chegue mais perto" e
     /// não envia o código, porque o servidor recusaria e a recusa gasta uma das tentativas. A imprecisão
     /// não desconta (o servidor também não); sem posição, o código segue. O servidor decide.
-    public static let raioDoCodigoMetros = 200
+    public static let raioDoCodigoMetros = 100
     public static let tempoLimiteDaLeitura: Duration = .seconds(10)
     public static let chaveDaPrecisaoTemporaria = "CheckIn"
 

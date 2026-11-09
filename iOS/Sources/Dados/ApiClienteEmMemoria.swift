@@ -350,7 +350,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public static let validadeDoCodigoDeCheckin: TimeInterval = 300
     /// Os códigos que o dublê emite, em sequência (o primeiro é o do exemplo do contrato).
     public static let codigosDeExemplo = ["482913", "739104", "205867", "916342"]
-    /// O limiar de precisão ruim do servidor ainda é decisão do backend; o dublê usa o do app (100 m).
+    /// Precisão ruim, como no servidor (frila-backend #464): a partir de 100 m. Distância suspeita: de 150 a 200 m, inclusive.
     private static let precisaoRuimNoDuble = 100
     /// Detalhe do cancelamento por posição (contrato 0.2.31).
     private var cancelamentosPorPosicao: [UUID: CancelamentoDaPosicao] = [:]
@@ -2224,7 +2224,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let chaveLigada = recursosEfetivos.checkinPorCodigo
         if chaveLigada { sinaisDoUltimoCheckin = sinais }
         let sinalSuspeito = sinais.map(Self.sinalSuspeito) ?? false
-        let faixaSuspeita = distanciaMetros.map { $0 > 150 && $0 <= 200 } ?? false
+        let faixaSuspeita = distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false
         let suspeito = chaveLigada && (sinalSuspeito || faixaSuspeita)
         let perto = distanciaMetros.map { $0 <= 200 } ?? false
         let verificaPeloGPS = perto && !suspeito
@@ -2359,7 +2359,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// O que o aparelho mandou que pesa como suspeito: localização simulada, salto de posição ou precisão
     /// ruim. Precisão nula não é ruim (regra do João Paulo, 08/11/2026).
     private static func sinalSuspeito(_ sinais: SinaisDoCheckin) -> Bool {
-        sinais.localizacaoSimulada || sinais.saltoDePosicao || (sinais.precisaoMetros.map { $0 > precisaoRuimNoDuble } ?? true)
+        sinais.localizacaoSimulada || sinais.saltoDePosicao || (sinais.precisaoMetros.map { $0 >= precisaoRuimNoDuble } ?? false)
     }
 
     /// `codigo_disponivel`: presença pendente, chave ligada e caminho do código não encerrado.
@@ -2439,11 +2439,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         let erradas = (tentativasErradasDoCodigo[turnoID] ?? 0) + 1
         tentativasErradasDoCodigo[turnoID] = erradas
-        if erradas >= 7 {
+        if erradas >= 6 {
             caminhoDoCodigoEncerrado.insert(turnoID)
             throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue)
         }
-        if erradas % 4 == 0 {
+        if erradas % 3 == 0 {
             bloqueioTemporarioDoCodigoAte[turnoID] = relogio.agora.addingTimeInterval(Self.validadeDoCodigoDeCheckin)
             throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.temporario.rawValue)
         }
