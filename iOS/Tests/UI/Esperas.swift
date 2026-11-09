@@ -105,11 +105,18 @@ func fecharTeclado(_ app: XCUIApplication) {
     let teclado = app.keyboards.firstMatch
     guard teclado.exists else { return }
     app.typeText("\n")
-    let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: teclado)
-    if XCTWaiter.wait(for: [sumiu], timeout: 2) != .completed {
+    if !esperarTecladoSumir(teclado, timeout: 2) {
         app.swipeDown(velocity: .slow)
-        _ = XCTWaiter.wait(for: [sumiu], timeout: 2)
+        _ = esperarTecladoSumir(teclado, timeout: 2)
     }
+}
+
+/// Espera o teclado sumir. Cada espera cria a sua expectativa: uma `XCTestExpectation` só pode ser esperada uma
+/// vez ("expectations can only be waited on once"), e reaproveitá-la na segunda espera quebrava o teste na CI.
+@discardableResult
+private func esperarTecladoSumir(_ teclado: XCUIElement, timeout: TimeInterval) -> Bool {
+    let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: teclado)
+    return XCTWaiter.wait(for: [sumiu], timeout: timeout) == .completed
 }
 
 /// Traz o elemento para a área tocável. O Estúdio alinha a rolagem ao topo da seção
@@ -160,13 +167,16 @@ func mostraDinheiro(_ app: XCUIApplication, _ valor: Int) -> Bool {
     app.descendants(matching: .any).matching(textoDoPreco(valor)).firstMatch.exists
 }
 
-/// Substitui o texto de um campo: foca (até três toques, pois o estúdio reorganiza o formulário quando o
-/// teclado sobe), apaga o que há e digita o novo.
+/// Substitui o texto de um campo: foca (até quatro toques, pois o estúdio reorganiza o formulário quando o
+/// teclado sobe e o escopo de fechamento consome o primeiro toque com outro teclado aberto), apaga o que há e
+/// digita o novo. Sem pausa fixa: antes de cada toque espera o campo ficar tocável (o quadro parar de mexer) e
+/// depois espera o foco com prazo próprio, numa expectativa nova a cada espera.
 func substituirTexto(_ campo: XCUIElement, por texto: String, file: StaticString = #filePath, line: UInt = #line) {
     var focado = false
-    for _ in 0..<3 where !focado {
-        campo.tap()
-        focado = esperarFocoDoTeclado(campo, timeout: 2)
+    for _ in 0..<4 where !focado {
+        esperarEstabilizacaoDeFrame(campo, timeout: 3)
+        if campo.isHittable { campo.tap() }
+        focado = esperarFocoDoTeclado(campo, timeout: 3)
     }
     XCTAssertTrue(focado, "o campo deveria receber o foco do teclado", file: file, line: line)
     guard focado else { return }
