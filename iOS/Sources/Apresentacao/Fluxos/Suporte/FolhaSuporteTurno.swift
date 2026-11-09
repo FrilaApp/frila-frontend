@@ -124,7 +124,7 @@ public struct FolhaSuporteTurno: View {
                             // Decorativo: o estado vai pelo traço `.isSelected` do botão.
                             Image(systemName: "checkmark")
                                 .font(FrilaTipo.rotuloDoCampo)
-                                .foregroundStyle(FrilaCor.primaria)
+                                .foregroundStyle(FrilaCor.texto)
                                 .opacity(viewModel.motivo == motivo ? 1 : 0)
                                 .accessibilityHidden(true)
                         }
