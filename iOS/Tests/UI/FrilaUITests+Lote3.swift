@@ -76,14 +76,20 @@ final class FrilaUITestsLote3: XCTestCase {
     // MARK: - T9: Perfil e Conta
 
     func testT9Perfil() {
-        let app = iniciar(argumentos: ["-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
-        XCTAssertTrue(app.descendants(matching: .any)["perfil-funcoes-horarios"].waitForExistence(timeout: 10))
+        let app = iniciar(argumentos: [])
+        let perfil = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        perfil.tap()
+        XCTAssertTrue(app.buttons["perfil-sair-ou-excluir"].waitForExistence(timeout: 10))
         capturar("T9-padrao")
     }
 
     func testT9PerfilAX5() {
-        let app = iniciar(argumentos: ["-FRILA_ABRIR_PERFIL_PROFISSIONAL"], ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["perfil-funcoes-horarios"].waitForExistence(timeout: 10))
+        let app = iniciar(argumentos: [], ax5: true)
+        let perfil = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(perfil.waitForExistence(timeout: 10))
+        perfil.tap()
+        XCTAssertTrue(app.buttons["perfil-sair-ou-excluir"].waitForExistence(timeout: 10))
         capturar("T9-ax5")
     }
 }
