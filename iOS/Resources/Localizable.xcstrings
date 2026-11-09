@@ -630,6 +630,17 @@
         }
       }
     },
+    "%lld vagas com estes filtros.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld vagas com estes filtros."
+          }
+        }
+      }
+    },
     "%lld vagas, pela distância do seu ponto base.": {
       "extractionState": "stale",
       "localizations": {
@@ -876,6 +887,17 @@
         }
       }
     },
+    "1 vaga com estes filtros.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vaga com estes filtros."
+          }
+        }
+      }
+    },
     "1 vaga, pela distância do seu ponto base.": {
       "extractionState": "stale",
       "localizations": {
@@ -1078,6 +1100,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "A candidatura de %@ não está mais disponível: foi retirada ou expirou. Atualizamos a lista."
+          }
+        }
+      }
+    },
+    "A casa avalia os candidatos e confirma. Se não escolherem você, a vaga sai da lista.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A casa avalia os candidatos e confirma. Se não escolherem você, a vaga sai da lista."
           }
         }
       }
@@ -4210,6 +4243,17 @@
         }
       }
     },
+    "Datas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datas"
+          }
+        }
+      }
+    },
     "De": {
       "extractionState": "stale",
       "localizations": {
@@ -6711,12 +6755,34 @@
         }
       }
     },
+    "Incluso: jantar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso: jantar"
+          }
+        }
+      }
+    },
     "Incluso: jantar e transporte de volta": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Incluso: jantar e transporte de volta"
+          }
+        }
+      }
+    },
+    "Incluso: transporte de volta": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso: transporte de volta"
           }
         }
       }
@@ -7835,6 +7901,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhuma vaga com esses filtros."
+          }
+        }
+      }
+    },
+    "Nenhuma vaga com estes filtros.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma vaga com estes filtros."
           }
         }
       }
@@ -13182,6 +13259,17 @@
         }
       }
     },
+    "Urgente": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Urgente"
+          }
+        }
+      }
+    },
     "Urgência": {
       "extractionState": "stale",
       "localizations": {
@@ -13630,6 +13718,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver avaliação"
+          }
+        }
+      }
+    },
+    "Ver catálogo": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver catálogo"
           }
         }
       }

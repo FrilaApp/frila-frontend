@@ -64,9 +64,15 @@ public struct TelaVagas: View {
             if case let .carregada(vagas) = viewModel.estado {
                 let filtradas = filtrarPorBusca(vagas)
                 if !filtradas.isEmpty {
-                    Text("\(filtradas.count) vagas até 5 km do seu ponto base", bundle: bundleApresentacao)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.textoSecundario)
+                    if filtradas.count == 1 {
+                        Text("1 vaga até \(5) km do seu ponto base", bundle: bundleApresentacao)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    } else {
+                        Text("\(filtradas.count) vagas até \(5) km do seu ponto base", bundle: bundleApresentacao)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
                 }
             }
         }
@@ -123,7 +129,7 @@ public struct TelaVagas: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: FrilaEspaco.pequeno) {
                 Button {
-                    filtroAberto = .funcao
+                    filtroAberto = .todos
                 } label: {
                     HStack(spacing: FrilaEspaco.minimo) {
                         Image(systemName: "line.3.horizontal.decrease")
@@ -207,37 +213,47 @@ public struct TelaVagas: View {
         .accessibilityIdentifier(identificador)
     }
 
+    @ViewBuilder
     private func folhaDeFiltro(_ filtro: FiltroDoFeed) -> some View {
-        let opcoes: [OpcaoDeFiltro]
-        let titulo: String
         switch filtro {
-        case .funcao:
-            titulo = TextosDoProfissional.Lista.filtroFuncao
-            opcoes = [OpcaoDeFiltro(id: "qualquer", titulo: TextosDoProfissional.Lista.qualquerFuncao, marcada: viewModel.funcaoID == nil) {
-                selecionar { await $0.selecionar(funcao: nil) }
-            }] + viewModel.funcoes.map { funcao in
-                OpcaoDeFiltro(id: funcao.id.uuidString, titulo: funcao.nome, marcada: viewModel.funcaoID == funcao.id) {
-                    selecionar { await $0.selecionar(funcao: funcao.id) }
+        case .todos:
+            FolhaDeFiltrosT2b(viewModel: viewModel) { filtroAberto = nil }
+                .presentationDetents([.fraction(0.85), .large])
+                .presentationDragIndicator(.visible)
+        case .funcao, .data, .distancia:
+            let opcoes: [OpcaoDeFiltro]
+            let titulo: String
+            switch filtro {
+            case .todos:
+                fatalError()
+            case .funcao:
+                titulo = TextosDoProfissional.Lista.filtroFuncao
+                opcoes = [OpcaoDeFiltro(id: "qualquer", titulo: TextosDoProfissional.Lista.qualquerFuncao, marcada: viewModel.funcaoID == nil) {
+                    selecionar { await $0.selecionar(funcao: nil) }
+                }] + viewModel.funcoes.map { funcao in
+                    OpcaoDeFiltro(id: funcao.id.uuidString, titulo: funcao.nome, marcada: viewModel.funcaoID == funcao.id) {
+                        selecionar { await $0.selecionar(funcao: funcao.id) }
+                    }
+                }
+            case .data:
+                titulo = TextosDoProfissional.Lista.filtroData
+                opcoes = FiltroDeData.allCases.map { opcao in
+                    OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.data == opcao) {
+                        selecionar { await $0.selecionar(data: opcao) }
+                    }
+                }
+            case .distancia:
+                titulo = TextosDoProfissional.Lista.filtroDistancia
+                opcoes = FiltroDeDistancia.opcoes.map { opcao in
+                    OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.distancia == opcao) {
+                        selecionar { await $0.selecionar(distancia: opcao) }
+                    }
                 }
             }
-        case .data:
-            titulo = TextosDoProfissional.Lista.filtroData
-            opcoes = FiltroDeData.allCases.map { opcao in
-                OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.data == opcao) {
-                    selecionar { await $0.selecionar(data: opcao) }
-                }
-            }
-        case .distancia:
-            titulo = TextosDoProfissional.Lista.filtroDistancia
-            opcoes = FiltroDeDistancia.opcoes.map { opcao in
-                OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.distancia == opcao) {
-                    selecionar { await $0.selecionar(distancia: opcao) }
-                }
-            }
+            FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
+                .presentationDetents(filtro == .funcao ? [.medium, .large] : [.height(CGFloat(opcoes.count) * 52 + 96)])
+                .presentationDragIndicator(.visible)
         }
-        return FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
-            .presentationDetents(filtro == .funcao ? [.medium, .large] : [.height(CGFloat(opcoes.count) * 52 + 96)])
-            .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder
@@ -245,27 +261,35 @@ public struct TelaVagas: View {
         switch viewModel.estado {
         case .ociosa, .carregando:
             estadoCarregando
-        case let .carregada(vagas) where vagas.isEmpty:
-            estadoVazio
         case let .carregada(vagas):
-            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                Text(verbatim: TextosDoProfissional.Lista.contagem(total: vagas.count, haMais: viewModel.haMaisPaginas))
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .padding(.horizontal, FrilaEspaco.medio)
+            let filtradas = filtrarPorBusca(vagas)
+            if filtradas.isEmpty {
+                if !textoBusca.isEmpty {
+                    estadoBuscaSemResultado
+                } else {
+                    estadoSemVagas
+                }
+            } else {
+                VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                    Text(verbatim: TextosDoProfissional.Lista.contagem(total: filtradas.count, haMais: viewModel.haMaisPaginas))
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .padding(.horizontal, FrilaEspaco.medio)
 
-                LazyVStack(spacing: FrilaEspaco.compacto) {
-                    ForEach(vagas) { vaga in
-                        Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
-                            .buttonStyle(.plain)
+                    LazyVStack(spacing: FrilaEspaco.medio) {
+                        ForEach(Array(filtradas.enumerated()), id: \.element.id) { index, vaga in
+                            CartaoVagaT2(vaga: vaga, destaque: index == 0 && vaga.modo == .urgencia) {
+                                abrir(vaga.id)
+                            }
                             .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                             .accessibilityIdentifier("vaga-\(vaga.id.uuidString)")
                             .accessibilityHint(Text("Abre o detalhe da vaga", bundle: bundleApresentacao))
                             .task { await viewModel.registrarVagaVista(id: vaga.id) }
-                            .task { if vaga.id == vagas.last?.id { await viewModel.carregarMais() } }
+                            .task { if vaga.id == filtradas.last?.id { await viewModel.carregarMais() } }
+                        }
                     }
+                    .padding(.horizontal, FrilaEspaco.medio)
                 }
-                .padding(.horizontal, FrilaEspaco.medio)
             }
         case .falha(.semConexao):
             estadoSemConexao
@@ -294,38 +318,55 @@ public struct TelaVagas: View {
         .padding(.horizontal, FrilaEspaco.grande)
     }
 
-    private var estadoVazio: some View {
+    private var estadoBuscaSemResultado: some View {
+        VStack(spacing: FrilaEspaco.pequeno) {
+            Text("Nenhuma vaga com “\(textoBusca)” até \(5) km nestes filtros.", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDeEstado)
+                .foregroundStyle(FrilaCor.texto)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("vagas-busca-sem-resultado")
+
+            Text("Tente outra busca ou mude os filtros.", bundle: bundleApresentacao)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.enorme)
+        .padding(.horizontal, FrilaEspaco.grande)
+    }
+
+    private var estadoSemVagas: some View {
         VStack(spacing: FrilaEspaco.medio) {
-            Circle()
-                .fill(FrilaCor.controle)
-                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                .overlay {
-                    Image(systemName: "magnifyingglass")
-                        .font(FrilaTipo.secao)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityHidden(true)
-                }
+            ZStack {
+                RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous)
+                    .strokeBorder(FrilaCor.borda, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                    .frame(width: 96, height: 96)
+
+                Image(systemName: "magnifyingglass")
+                    .font(FrilaTipo.secao)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+            }
+            .accessibilityHidden(true)
+
             VStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosTitulo : TextosDoProfissional.Lista.vazioSemFiltrosTitulo)
+                let nomeFuncao = rotuloFuncao
+                let periodoOuData = rotuloData
+                Text("Nenhuma vaga de \(nomeFuncao) até \(5) km neste \(periodoOuData).", bundle: bundleApresentacao)
                     .font(FrilaTipo.tituloDeEstado)
                     .foregroundStyle(FrilaCor.texto)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosMensagem : TextosDoProfissional.Lista.vazioSemFiltrosMensagem)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            if temFiltroAtivo {
-                BotaoSecundario(verbatim: TextosDoProfissional.Lista.limparFiltros) {
-                    selecionar {
-                        await $0.selecionar(funcao: nil)
-                        await $0.selecionar(data: .qualquer)
-                        await $0.selecionar(distancia: .qualquer)
-                    }
+
+            BotaoSecundario("Ver vagas à noite") {
+                selecionar {
+                    await $0.selecionar(data: .hoje)
                 }
             }
+            .padding(.top, FrilaEspaco.pequeno)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, FrilaEspaco.enorme)
@@ -359,9 +400,9 @@ public struct TelaVagas: View {
                     .padding(.horizontal, FrilaEspaco.grande)
                     .padding(.vertical, FrilaEspaco.pequeno)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                    .foregroundStyle(FrilaCor.sobrePrimaria)
-                    .background(FrilaCor.primaria, in: Capsule())
-                    .contentShape(Capsule())
+                    .foregroundStyle(FrilaCor.sobreAcao)
+                    .background(FrilaCor.acao, in: RoundedRectangle(cornerRadius: FrilaRaio.acao, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.acao, style: .continuous))
             }
             .buttonStyle(.plain)
         }
@@ -556,7 +597,7 @@ private struct BarraInferiorDeAcessibilidade<Rodape: View>: ViewModifier {
 
 /// Qual filtro do feed está aberto na folha.
 private enum FiltroDoFeed: Identifiable {
-    case funcao, data, distancia
+    case todos, funcao, data, distancia
     var id: Self { self }
 }
 
@@ -620,5 +661,366 @@ private struct FolhaDeFiltro: View {
         }
         .background(FrilaCor.superficie)
         .accessibilityIdentifier("folha-filtro")
+    }
+}
+
+// MARK: - T2b Folha Geral de Filtros
+
+private struct FolhaDeFiltrosT2b: View {
+    @Bindable var viewModel: FeedVagasViewModel
+    let fechar: () -> Void
+    @State private var abrindoCatalogo = false
+    @State private var raioKm: Double = 5
+    @State private var periodoSelecionado: String? = "Noite"
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Filtros", bundle: bundleApresentacao)
+                            .font(FrilaTipo.tituloDaTela)
+                            .foregroundStyle(FrilaCor.texto)
+                            .accessibilityAddTraits(.isHeader)
+
+                        Text("\(3) vagas com estes filtros.", bundle: bundleApresentacao)
+                            .font(FrilaTipo.nota)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+
+                    // Seção Funções
+                    VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                        HStack {
+                            Text("Funções", bundle: bundleApresentacao)
+                                .font(FrilaTipo.corpo.weight(.semibold))
+                                .foregroundStyle(FrilaCor.texto)
+
+                            Spacer()
+
+                            Button {
+                                abrindoCatalogo = true
+                            } label: {
+                                Text("Ver catálogo", bundle: bundleApresentacao)
+                                    .font(FrilaTipo.nota.weight(.medium))
+                                    .foregroundStyle(FrilaCor.texto)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        let funcoesDestaque = ["Bartender", "Garçom", "Cozinheiro", "Cumim"]
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: FrilaEspaco.pequeno) {
+                                ForEach(funcoesDestaque, id: \.self) { nome in
+                                    let marcada = viewModel.funcoes.first(where: { $0.id == viewModel.funcaoID })?.nome == nome
+                                    Button {
+                                        if marcada {
+                                            Task { await viewModel.selecionar(funcao: nil) }
+                                        } else if let f = viewModel.funcoes.first(where: { $0.nome == nome }) {
+                                            Task { await viewModel.selecionar(funcao: f.id) }
+                                        }
+                                    } label: {
+                                        Text(verbatim: nome)
+                                            .font(marcada ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
+                                            .padding(.horizontal, FrilaEspaco.medio)
+                                            .frame(height: 36)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .background(marcada ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
+                                            .overlay(Capsule().strokeBorder(marcada ? FrilaCor.texto : FrilaCor.borda, lineWidth: marcada ? 1.5 : 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+
+                    // Seção Raio
+                    VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                        HStack {
+                            Text("Raio", bundle: bundleApresentacao)
+                                .font(FrilaTipo.corpo.weight(.semibold))
+                                .foregroundStyle(FrilaCor.texto)
+                            Spacer()
+                            Text("Até \(Int(raioKm)) km", bundle: bundleApresentacao)
+                                .font(FrilaTipo.nota)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                        }
+
+                        Slider(value: $raioKm, in: 1...10, step: 1)
+                            .tint(FrilaCor.texto)
+                            .onChange(of: raioKm) { _, novo in
+                                Task { await viewModel.selecionar(distancia: .ate(km: novo)) }
+                            }
+                    }
+
+                    // Seção Datas
+                    VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                        Text("Datas", bundle: bundleApresentacao)
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: FrilaEspaco.pequeno) {
+                                Button {
+                                    Task { await viewModel.selecionar(data: .qualquer) }
+                                } label: {
+                                    Text("Qualquer data", bundle: bundleApresentacao)
+                                        .font(viewModel.data == .qualquer ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
+                                        .padding(.horizontal, FrilaEspaco.medio)
+                                        .frame(height: 36)
+                                        .foregroundStyle(FrilaCor.texto)
+                                        .background(viewModel.data == .qualquer ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
+                                        .overlay(Capsule().strokeBorder(viewModel.data == .qualquer ? FrilaCor.texto : FrilaCor.borda, lineWidth: viewModel.data == .qualquer ? 1.5 : 1))
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    Task { await viewModel.selecionar(data: .hoje) }
+                                } label: {
+                                    Text("Hoje", bundle: bundleApresentacao)
+                                        .font(viewModel.data == .hoje ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
+                                        .padding(.horizontal, FrilaEspaco.medio)
+                                        .frame(height: 36)
+                                        .foregroundStyle(FrilaCor.texto)
+                                        .background(viewModel.data == .hoje ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
+                                        .overlay(Capsule().strokeBorder(viewModel.data == .hoje ? FrilaCor.texto : FrilaCor.borda, lineWidth: viewModel.data == .hoje ? 1.5 : 1))
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    Task { await viewModel.selecionar(data: .amanha) }
+                                } label: {
+                                    Text("Amanhã", bundle: bundleApresentacao)
+                                        .font(viewModel.data == .amanha ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
+                                        .padding(.horizontal, FrilaEspaco.medio)
+                                        .frame(height: 36)
+                                        .foregroundStyle(FrilaCor.texto)
+                                        .background(viewModel.data == .amanha ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
+                                        .overlay(Capsule().strokeBorder(viewModel.data == .amanha ? FrilaCor.texto : FrilaCor.borda, lineWidth: viewModel.data == .amanha ? 1.5 : 1))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // Seção Períodos
+                    VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                        Text("Períodos", bundle: bundleApresentacao)
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+
+                        let periodos = ["Manhã", "Tarde", "Noite", "Madrugada"]
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: FrilaEspaco.pequeno) {
+                                ForEach(periodos, id: \.self) { p in
+                                    let ativo = periodoSelecionado == p
+                                    Button {
+                                        periodoSelecionado = ativo ? nil : p
+                                    } label: {
+                                        Text(verbatim: p)
+                                            .font(ativo ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
+                                            .padding(.horizontal, FrilaEspaco.medio)
+                                            .frame(height: 36)
+                                            .foregroundStyle(FrilaCor.texto)
+                                            .background(ativo ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
+                                            .overlay(Capsule().strokeBorder(ativo ? FrilaCor.texto : FrilaCor.borda, lineWidth: ativo ? 1.5 : 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, FrilaEspaco.grande)
+                .padding(.top, FrilaEspaco.medio)
+                .padding(.bottom, FrilaEspaco.enorme)
+            }
+            .background(FrilaCor.fundo)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        fechar()
+                    } label: {
+                        Text("Concluir", bundle: bundleApresentacao)
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("filtros-concluir")
+                }
+            }
+            .sheet(isPresented: $abrindoCatalogo) {
+                TelaEscolherFuncoes(
+                    selecionadas: Binding(
+                        get: {
+                            if let id = viewModel.funcaoID, let f = viewModel.funcoes.first(where: { $0.id == id }) {
+                                return [f.nome]
+                            }
+                            return []
+                        },
+                        set: { novas in
+                            if let primeiro = novas.first, let f = viewModel.funcoes.first(where: { $0.nome == primeiro }) {
+                                Task { await viewModel.selecionar(funcao: f.id) }
+                            } else {
+                                Task { await viewModel.selecionar(funcao: nil) }
+                            }
+                        }
+                    ),
+                    aoConcluir: { abrindoCatalogo = false }
+                )
+            }
+        }
+    }
+}
+
+// MARK: - Cartão da Vaga T2
+
+private struct CartaoVagaT2: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let vaga: VagaNaLista
+    let destaque: Bool
+    let agora: Date
+    let aoTocar: () -> Void
+    private let formatador = FormatadorFrila()
+
+    init(vaga: VagaNaLista, destaque: Bool = false, agora: Date = .now, aoTocar: @escaping () -> Void) {
+        self.vaga = vaga
+        self.destaque = destaque
+        self.agora = agora
+        self.aoTocar = aoTocar
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    Text(verbatim: vaga.estabelecimento.nome)
+                        .font(FrilaTipo.resumo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: FrilaEspaco.minimo)
+
+                    let modo = FormatoDataVaga.modoEfetivo(
+                        modo: vaga.modo,
+                        posicoesAbertas: vaga.posicoesAbertas,
+                        inicio: vaga.periodo.inicio,
+                        agora: agora
+                    )
+                    if modo == .urgencia {
+                        SeloDeStatus("Urgente", estilo: .urgencia)
+                    } else {
+                        SeloDeStatus("Por seleção", estilo: .contorno)
+                    }
+                }
+
+                let reputacao = vaga.estabelecimento.reputacao
+                if reputacao.semHistorico {
+                    Text("Ainda sem avaliações.", bundle: bundleApresentacao)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                } else {
+                    let pct = Int((Double(reputacao.positivas) / Double(max(1, reputacao.total))) * 100)
+                    Text(verbatim: String(format: String(localized: "%lld%% trabalhariam aqui de novo", bundle: bundleApresentacao), pct))
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                linhaDado(icone: "briefcase") {
+                    Text(verbatim: vaga.funcao.nome)
+                }
+                linhaDado(icone: "calendar") {
+                    Text(verbatim: FormatoDataVaga.cartao(vaga.periodo, agora: agora))
+                }
+                linhaDado(icone: "mappin") {
+                    HStack(spacing: 4) {
+                        Text(verbatim: formatador.distancia(vaga.distanciaKm))
+                        Text("do seu ponto base", bundle: bundleApresentacao)
+                    }
+                }
+            }
+
+            Rectangle()
+                .fill(FrilaCor.borda)
+                .frame(height: 1)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
+                    Text(verbatim: formatador.dinheiro(vaga.valor))
+                        .font(FrilaTipo.fonteValor(28))
+                        .foregroundStyle(FrilaCor.texto)
+                }
+
+                inclusosView
+            }
+
+            if destaque {
+                BotaoPrimario("Ver detalhes da vaga", acao: aoTocar)
+            } else {
+                BotaoSecundario("Ver detalhes da vaga", acao: aoTocar)
+            }
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+        .padding(.bottom, FrilaEspaco.medio)
+        .padding(.top, destaque ? 32 : FrilaEspaco.medio)
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+        )
+        .modifier(ModificadorDestaque(ativo: destaque))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            aoTocar()
+        }
+    }
+
+    @ViewBuilder
+    private var inclusosView: some View {
+        switch (vaga.inclusos.refeicao, vaga.inclusos.transporte) {
+        case (true, true):
+            Text("Incluso: jantar e transporte de volta", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        case (true, false):
+            Text("Incluso: jantar", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        case (false, true):
+            Text("Incluso: transporte de volta", bundle: bundleApresentacao)
+                .font(FrilaTipo.nota)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        case (false, false):
+            EmptyView()
+        }
+    }
+
+    private func linhaDado<Conteudo: View>(icone: String, @ViewBuilder conteudo: () -> Conteudo) -> some View {
+        HStack(spacing: FrilaEspaco.pequeno) {
+            Image(systemName: icone)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .frame(width: 20, height: 20)
+                .accessibilityHidden(true)
+
+            conteudo()
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct ModificadorDestaque: ViewModifier {
+    let ativo: Bool
+
+    func body(content: Content) -> some View {
+        if ativo {
+            content.elevacaoFrila(.suave)
+        } else {
+            content
+        }
     }
 }
