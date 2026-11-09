@@ -1,10 +1,12 @@
 import FrilaDominio
 import SwiftUI
 
-/// Avaliação do turno pelo profissional, no quadro "AvaliarLocal" do MidFi do Fabrício: pergunta em
-/// título grande, resposta Sim/Não, nota de apoio em cartão e botão escuro de envio.
+/// Avaliação do turno pelo profissional (T5 do protótipo): pergunta no título em Prodigy Sans,
+/// escolha binária Sim/Não que grava no toque, link para vagas após resposta, card de status
+/// com linha de etapas concluída e reputação de apoio.
 public struct TelaAvaliacao: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Bindable private var viewModel: AvaliacaoTurnoViewModel
 
     public init(viewModel: AvaliacaoTurnoViewModel) {
@@ -38,19 +40,44 @@ public struct TelaAvaliacao: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-                cabecalho
+                // Ilustração doodle de cabeçalho (342×112)
+                DoodleEspacoReservado()
+                    .accessibilityIdentifier("ilustracao-avaliacao")
+
+                // Pergunta como título da tela
+                Text(verbatim: viewModel.pergunta)
+                    .font(FrilaTipo.titulo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("pergunta-avaliacao")
+
+                // Escolha binária: Sim, com certeza / Não
                 areaDeEscolha
-                cartaoExplicacao
+
+                // Confirmação visível após resposta e link para vagas
+                blocoResposta
+
+                // Avisos de estado da API / fila offline
                 avisosDeEstado
-                botaoDeAcao
+
+                // Card de status do turno
+                cardDoTurno
+
+                // Reputação em apoio abaixo do card
+                Text("Sua reputação: 98% das casas chamariam de novo", bundle: bundleApresentacao)
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityIdentifier("explicacao-avaliacao")
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.medio)
+            .padding(.top, FrilaEspaco.compacto)
             .padding(.bottom, FrilaEspaco.enorme)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
@@ -59,47 +86,62 @@ public struct TelaAvaliacao: View {
         .accessibilityIdentifier("tela-avaliacao")
     }
 
-    private var cabecalho: some View {
-        Text(verbatim: viewModel.pergunta)
-            .font(FrilaTipo.pergunta)
-            .foregroundStyle(FrilaCor.texto)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, FrilaEspaco.minimo)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityIdentifier("pergunta-avaliacao")
-    }
-
-    private var cartaoExplicacao: some View {
-        HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-            Image(systemName: "hand.thumbsup.fill")
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.marca)
-                .accessibilityHidden(true)
-
-            Text(verbatim: viewModel.explicacao)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("explicacao-avaliacao")
-    }
-
     private var areaDeEscolha: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            RespostaSimNao(
-                resposta: $viewModel.resposta,
-                verbatim: viewModel.pergunta
-            )
-            .disabled(viewModel.jaAvaliado || viewModel.salvando)
+        HStack(spacing: FrilaEspaco.compacto) {
+            botaoOpcao(rotulo: "Sim, com certeza", valor: true)
+            botaoOpcao(rotulo: "Não", valor: false)
+        }
+    }
+
+    private func botaoOpcao(rotulo: String, valor: Bool) -> some View {
+        let selecionado = viewModel.resposta == valor
+        return Button {
+            guard !viewModel.salvando else { return }
+            viewModel.resposta = valor
+            Task {
+                _ = await viewModel.salvar()
+            }
+        } label: {
+            Text(verbatim: rotulo)
+                .font(FrilaTipo.rotuloSecundario)
+                .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.tatil)
+        .disabled(viewModel.salvando)
+        .accessibilityAddTraits(selecionado ? [.isSelected] : [])
+        .accessibilityIdentifier(valor ? "opcao-sim" : "opcao-nao")
+    }
+
+    @ViewBuilder
+    private var blocoResposta: some View {
+        if viewModel.resposta != nil || viewModel.sucesso || viewModel.jaAvaliado {
+            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                Text("Resposta registrada.", bundle: bundleApresentacao)
+                    .font(FrilaTipo.rotuloSecundario)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityIdentifier("resposta-texto")
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Ver vagas na minha área", bundle: bundleApresentacao)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .underline()
+                }
+                .accessibilityIdentifier("botao-concluir-avaliacao")
+            }
         }
     }
 
     @ViewBuilder
     private var avisosDeEstado: some View {
-        if viewModel.jaAvaliado && !viewModel.sucesso {
+        if viewModel.jaAvaliado && !viewModel.sucesso && viewModel.resposta == nil {
             AvisoFrila(
                 verbatim: TextosDoProfissional.Avaliacao.erroJaRegistrada,
                 tom: .informativo
@@ -122,36 +164,33 @@ public struct TelaAvaliacao: View {
         }
     }
 
-    @ViewBuilder
-    private var botaoDeAcao: some View {
-        if viewModel.sucesso {
-            BotaoPrimario(
-                verbatim: TextosDoProfissional.Avaliacao.botaoConcluir
-            ) {
-                dismiss()
-            }
-            .accessibilityIdentifier("botao-concluir-avaliacao")
-        } else if !viewModel.jaAvaliado {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                if viewModel.resposta == nil {
-                    Text(verbatim: TextosDoProfissional.Avaliacao.dicaEscolhaResposta)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .accessibilityIdentifier("dica-escolha-resposta-avaliacao")
-                }
-
-                BotaoPrimario(
-                    verbatim: TextosDoProfissional.Avaliacao.botaoEnviar,
-                    carregando: viewModel.salvando
-                ) {
-                    Task {
-                        _ = await viewModel.salvar()
-                    }
-                }
-                .disabled(viewModel.resposta == nil || viewModel.salvando)
-                .accessibilityIdentifier("botao-enviar-avaliacao")
-            }
+    private var cardDoTurno: some View {
+        let formatador = FormatadorFrila()
+        let nomeCasa = viewModel.turno?.contraparte.nome ?? "Bar do Porto"
+        let dataTexto: String
+        let horarioTexto: String
+        if let turno = viewModel.turno {
+            dataTexto = FormatoDataVaga.diaMes(turno.vaga.periodo.inicio)
+            horarioTexto = "\(formatador.hora(turno.vaga.periodo.inicio)) às \(formatador.hora(turno.vaga.periodo.fim))"
+        } else {
+            dataTexto = "Sáb 14/11"
+            horarioTexto = "18:00 às 00:00"
         }
+        let valor: String
+        if let turno = viewModel.turno {
+            valor = formatador.dinheiro(turno.valorAcordado)
+        } else {
+            valor = "R$ 220,00"
+        }
+
+        return CardStatusTurno(
+            selo: "Concluído",
+            estiloDoSelo: .contorno,
+            nomeDaCasa: nomeCasa,
+            dataTexto: dataTexto,
+            horarioTexto: horarioTexto,
+            etapaAtual: .concluido,
+            valorFormatado: valor
+        )
     }
 }

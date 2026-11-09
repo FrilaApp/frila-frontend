@@ -884,6 +884,28 @@
         }
       }
     },
+    "98% das casas chamariam de novo": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "98% das casas chamariam de novo"
+          }
+        }
+      }
+    },
+    "A caminho": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A caminho"
+          }
+        }
+      }
+    },
     "A Equipe Frila ocultou esta vaga. Você vê os candidatos, mas só pode escolher depois que ela for reexibida.": {
       "extractionState": "stale",
       "localizations": {
@@ -1850,6 +1872,17 @@
         }
       }
     },
+    "Ajuda e regras da comunidade": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuda e regras da comunidade"
+          }
+        }
+      }
+    },
     "Ajuda no turno": {
       "extractionState": "stale",
       "localizations": {
@@ -2030,6 +2063,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade)."
+          }
+        }
+      }
+    },
+    "Ao pedir o código, você aceita os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade).": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao pedir o código, você aceita os [Termos de uso](https://frilabr.com/termos) e a [Política de privacidade](https://frilabr.com/privacidade)."
           }
         }
       }
@@ -2412,6 +2456,17 @@
         }
       }
     },
+    "Até 5 km": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até 5 km"
+          }
+        }
+      }
+    },
     "Até quantas pessoas (opcional, 1 a 2.000)": {
       "extractionState": "manual",
       "localizations": {
@@ -2632,6 +2687,17 @@
         }
       }
     },
+    "Chave Pix": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chave Pix"
+          }
+        }
+      }
+    },
     "CNPJ ou CPF": {
       "extractionState": "stale",
       "localizations": {
@@ -2650,6 +2716,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro."
+          }
+        }
+      }
+    },
+    "Concluído": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluído"
+          }
+        }
+      }
+    },
+    "Confirmado": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmado"
           }
         }
       }
@@ -4293,6 +4381,17 @@
         }
       }
     },
+    "Dias": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dias"
+          }
+        }
+      }
+    },
     "Dicas para a foto": {
       "localizations": {
         "pt-BR": {
@@ -4482,6 +4581,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "E-mail"
+          }
+        }
+      }
+    },
+    "E-mail profissional": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail profissional"
           }
         }
       }
@@ -4752,6 +4862,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Entrar"
+          }
+        }
+      }
+    },
+    "Entre com seu e-mail. A gente manda um código.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre com seu e-mail. A gente manda um código."
           }
         }
       }
@@ -5707,6 +5828,17 @@
         }
       }
     },
+    "Excluir conta definitivamente": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir conta definitivamente"
+          }
+        }
+      }
+    },
     "Excluir conta definitivamente?": {
       "extractionState": "stale",
       "localizations": {
@@ -5844,6 +5976,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Faltam %@ para o início."
+          }
+        }
+      }
+    },
+    "faturados": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "faturados"
           }
         }
       }
@@ -6939,6 +7082,17 @@
         }
       }
     },
+    "Madrugada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Madrugada"
+          }
+        }
+      }
+    },
     "Mais de 10 anos": {
       "localizations": {
         "pt-BR": {
@@ -6967,6 +7121,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mais opções: traje, rateio e observações"
+          }
+        }
+      }
+    },
+    "Manhã": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manhã"
           }
         }
       }
@@ -7580,6 +7745,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No máximo uma notificação a cada %lld minutos."
+          }
+        }
+      }
+    },
+    "Noite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noite"
           }
         }
       }
@@ -9276,6 +9452,17 @@
         }
       }
     },
+    "Para entrar de novo, a gente manda um código ao seu e-mail.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para entrar de novo, a gente manda um código ao seu e-mail."
+          }
+        }
+      }
+    },
     "Para enviar, confirme que este é o valor total.": {
       "localizations": {
         "pt-BR": {
@@ -9391,6 +9578,17 @@
         }
       }
     },
+    "Perfil": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfil"
+          }
+        }
+      }
+    },
     "Perfil de contratante: publique vagas e acompanhe quem vai trabalhar.": {
       "extractionState": "stale",
       "localizations": {
@@ -9475,6 +9673,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Período"
+          }
+        }
+      }
+    },
+    "Períodos": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Períodos"
           }
         }
       }
@@ -10349,6 +10558,17 @@
         }
       }
     },
+    "Raio": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raio"
+          }
+        }
+      }
+    },
     "Rateio dos 10%": {
       "extractionState": "stale",
       "localizations": {
@@ -10826,6 +11046,17 @@
         }
       }
     },
+    "Resposta registrada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resposta registrada."
+          }
+        }
+      }
+    },
     "Restaurante ou bar": {
       "extractionState": "stale",
       "localizations": {
@@ -11050,6 +11281,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salvar preferências"
+          }
+        }
+      }
+    },
+    "salvo": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "salvo"
           }
         }
       }
@@ -11588,6 +11830,17 @@
         }
       }
     },
+    "Seu e-mail profissional": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu e-mail profissional"
+          }
+        }
+      }
+    },
     "Seu histórico": {
       "localizations": {
         "pt-BR": {
@@ -11671,6 +11924,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sim"
+          }
+        }
+      }
+    },
+    "Sim, com certeza": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sim, com certeza"
           }
         }
       }
@@ -11901,6 +12165,17 @@
         }
       }
     },
+    "Sua reputação: 98% das casas chamariam de novo": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua reputação: 98% das casas chamariam de novo"
+          }
+        }
+      }
+    },
     "Sua resposta": {
       "extractionState": "stale",
       "localizations": {
@@ -12040,6 +12315,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Só vagas das suas funções, perto do seu ponto base, nos horários que você marcou."
+          }
+        }
+      }
+    },
+    "Tarde": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarde"
           }
         }
       }
@@ -12531,6 +12817,17 @@
         }
       }
     },
+    "Trocar e-mail por código": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trocar e-mail por código"
+          }
+        }
+      }
+    },
     "Trocar foto": {
       "localizations": {
         "pt-BR": {
@@ -12666,6 +12963,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Turnos futuros vinculados à conta"
+          }
+        }
+      }
+    },
+    "Turnos rápidos perto de você, sem burocracia.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turnos rápidos perto de você, sem burocracia."
           }
         }
       }
@@ -13241,6 +13549,17 @@
         }
       }
     },
+    "Ver todas as funções": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver todas as funções"
+          }
+        }
+      }
+    },
     "Ver tudo (%@)": {
       "localizations": {
         "pt-BR": {
@@ -13269,6 +13588,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver vaga aberta"
+          }
+        }
+      }
+    },
+    "Ver vagas na minha área": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver vagas na minha área"
           }
         }
       }
@@ -13532,6 +13862,17 @@
         }
       }
     },
+    "Você perde sua reputação de 98%. Não dá para desfazer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você perde sua reputação de 98%. Não dá para desfazer."
+          }
+        }
+      }
+    },
     "Você pode cadastrar no máximo 5 cursos.": {
       "localizations": {
         "pt-BR": {
@@ -13648,6 +13989,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você trabalharia nesse local de novo?"
+          }
+        }
+      }
+    },
+    "Você trabalharia no Bar do Porto de novo?": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você trabalharia no Bar do Porto de novo?"
           }
         }
       }
