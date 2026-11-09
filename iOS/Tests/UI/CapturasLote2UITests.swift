@@ -90,16 +90,24 @@ final class CapturasLote2UITests: XCTestCase {
     // MARK: - T8: Meu Turno (a caminho / presença)
 
     private func fluxoMeuTurnoT8(ax5: Bool) {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "a-caminho", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "turno-confirmado-perto", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
         let telaTurnos = app.descendants(matching: .any)["tela-meus-turnos"]
         XCTAssertTrue(telaTurnos.waitForExistence(timeout: 10), "A tela Meus turnos deve abrir")
 
         let turnoCard = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
-        XCTAssertTrue(turnoCard.waitForExistence(timeout: 5), "O card de turno a caminho deve aparecer")
+        XCTAssertTrue(turnoCard.waitForExistence(timeout: 5), "O card de turno deve aparecer")
         turnoCard.tap()
 
         let telaMeuTurno = app.descendants(matching: .any)["tela-meu-turno"]
         XCTAssertTrue(telaMeuTurno.waitForExistence(timeout: 10), "A tela Meu turno deve abrir")
+
+        let botaoACaminho = app.buttons["botao-a-caminho"]
+        if botaoACaminho.waitForExistence(timeout: 5) {
+            botaoACaminho.tap()
+        }
+
+        let botaoCheckin = app.buttons["fazer-checkin"]
+        XCTAssertTrue(botaoCheckin.waitForExistence(timeout: 8), "O botão de marcar presença deve aparecer")
 
         capturar("lote2-t8-meu-turno-a-caminho-\(ax5 ? "ax5" : "padrao")")
     }
