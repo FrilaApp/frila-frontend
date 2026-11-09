@@ -61,9 +61,13 @@ public enum FrilaColor {
     public static let mapActionBackground = Color(red: 9/255, green: 9/255, blue: 8/255)
     public static let mapActionForeground = canvasLight
     
-    /// Dynamic canvas color supporting light and dark mode adaptively
+    /// Fundo das telas na pele nova (`--cor-fundo`, #F9F6F4): off-white quente. O `canvasLight` segue branco puro,
+    /// que é a superfície (`--cor-superficie`) e o texto sobre a tinta.
+    public static let fundoDaPele = Color(red: 249/255, green: 246/255, blue: 244/255)
+
+    /// Dynamic canvas color supporting light and dark mode adaptively (claro: `fundoDaPele`, #F9F6F4; escuro: #111111)
     public static func dynamicCanvas(isDark: Bool) -> Color {
-        isDark ? canvasDark : canvasLight
+        isDark ? canvasDark : fundoDaPele
     }
     
     /// Whisper card surface for grouping lists (Light: #FBFBFA, Dark: #171614)
@@ -71,9 +75,9 @@ public enum FrilaColor {
         isDark ? Color(red: 23/255, green: 22/255, blue: 20/255) : Color(red: 251/255, green: 251/255, blue: 250/255)
     }
     
-    /// Flat input and chip background (Light: #F2F2F0, Dark: #23221F)
+    /// Flat input and chip background (Light: #F1EEEA, um passo abaixo do fundo da pele; Dark: #23221F)
     public static func dynamicInputBg(isDark: Bool) -> Color {
-        isDark ? Color(red: 35/255, green: 34/255, blue: 31/255) : Color(red: 242/255, green: 242/255, blue: 240/255)
+        isDark ? Color(red: 35/255, green: 34/255, blue: 31/255) : Color(red: 241/255, green: 238/255, blue: 234/255)
     }
     
     /// Surface input alias matching DESIGN.md token --frila-color-surface-input
@@ -81,34 +85,34 @@ public enum FrilaColor {
         dynamicInputBg(isDark: isDark)
     }
     
-    /// 1px Architectural hairline divider (Light: #E5E5E3, Dark: #2E2D29)
+    /// 1px Architectural hairline divider (Light: #E5E3DD, `--cor-borda`; Dark: #2E2D29)
     public static func dynamicHairline(isDark: Bool) -> Color {
-        isDark ? Color(red: 46/255, green: 45/255, blue: 41/255) : Color(red: 229/255, green: 229/255, blue: 227/255)
+        isDark ? Color(red: 46/255, green: 45/255, blue: 41/255) : Color(red: 229/255, green: 227/255, blue: 221/255)
     }
     
-    /// Interactive control border (Light: #CECECB, Dark: #44433E)
+    /// Contorno de chip inativo e de botão de contorno (Light: #E5E3DD, `--cor-borda`; Dark: #44433E)
     public static func dynamicBorder(isDark: Bool) -> Color {
-        isDark ? Color(red: 68/255, green: 67/255, blue: 62/255) : Color(red: 206/255, green: 206/255, blue: 203/255)
+        isDark ? Color(red: 68/255, green: 67/255, blue: 62/255) : Color(red: 229/255, green: 227/255, blue: 221/255)
     }
     
     // MARK: - Job Form Achromatic Surfaces (pure neutral, zero warm tint)
 
-    /// Fundo de campo interativo do formulario (Light: #F5F5F5, Dark: #1C1C1C).
-    /// Neutro puro (R = G = B). Contra o canvas: 1.09:1 light, 1.11:1 dark. A identificacao do campo vem da borda `dynamicFormFieldBorder`.
+    /// Fundo de campo interativo do formulario (Light: #FFFFFF, `--cor-superficie`; Dark: #1C1C1C).
+    /// A identificacao do campo vem da borda `dynamicFormFieldBorder`.
     public static func dynamicFormFieldSurface(isDark: Bool) -> Color {
-        isDark ? Color(red: 28/255, green: 28/255, blue: 28/255) : Color(red: 245/255, green: 245/255, blue: 245/255)
+        isDark ? Color(red: 28/255, green: 28/255, blue: 28/255) : canvasLight
     }
 
-    /// Borda de campo interativo do formulario (Light: #8C8C8C, Dark: #6A6A6A). WCAG 1.4.11 (>= 3:1).
-    /// Light: 3.36:1 contra #FFFFFF e 3.08:1 contra #F5F5F5. Dark: 3.49:1 contra #111111 e 3.15:1 contra #1C1C1C.
+    /// Borda de campo interativo do formulario (Light: #918F8A, `--cor-borda-controle`; Dark: #6A6A6A). WCAG 1.4.11 (>= 3:1).
+    /// Light: 3,0:1 contra o fundo da pele (#F9F6F4), mais contra #FFFFFF. Dark: 3.49:1 contra #111111 e 3.15:1 contra #1C1C1C.
     public static func dynamicFormFieldBorder(isDark: Bool) -> Color {
-        isDark ? Color(red: 106/255, green: 106/255, blue: 106/255) : Color(red: 140/255, green: 140/255, blue: 140/255)
+        isDark ? Color(red: 106/255, green: 106/255, blue: 106/255) : Color(red: 145/255, green: 143/255, blue: 138/255)
     }
 
-    /// Superficie de card e chip do formulario (Light: #FAFAFA, Dark: #171717). Neutro puro.
-    /// Separacao do canvas via `dynamicFormCardBorder` e, no modo claro, sombra `.subtle`.
+    /// Superficie de card e chip do formulario (Light: #FFFFFF, `--cor-superficie`; Dark: #171717).
+    /// Separacao do canvas via fio de 1 pt em `--cor-borda` e, no modo claro, o fundo off-white da pele.
     public static func dynamicFormCardSurface(isDark: Bool) -> Color {
-        isDark ? Color(red: 23/255, green: 23/255, blue: 23/255) : Color(red: 250/255, green: 250/255, blue: 250/255)
+        isDark ? Color(red: 23/255, green: 23/255, blue: 23/255) : canvasLight
     }
 
     /// Hairline de card, chip e divisor do formulario (Light: #D6D6D6, Dark: #363636). Decorativa, neutra.
@@ -117,10 +121,10 @@ public enum FrilaColor {
         isDark ? Color(red: 54/255, green: 54/255, blue: 54/255) : Color(red: 214/255, green: 214/255, blue: 214/255)
     }
 
-    /// Texto secundario do formulario sobre campo ou card (Light: #6B6B6B, Dark: #A3A3A3). Neutro puro.
-    /// Light: 4.89:1 sobre #F5F5F5 e 5.11:1 sobre #FAFAFA. Dark: 6.76:1 sobre #1C1C1C e 7.11:1 sobre #171717.
+    /// Texto secundario do formulario sobre campo ou card (Light: #5A5A58, `--cor-tinta-suave`; Dark: #A3A3A3).
+    /// Dark: 6.76:1 sobre #1C1C1C e 7.11:1 sobre #171717.
     public static func dynamicFormTextMuted(isDark: Bool) -> Color {
-        isDark ? Color(red: 163/255, green: 163/255, blue: 163/255) : Color(red: 107/255, green: 107/255, blue: 107/255)
+        isDark ? Color(red: 163/255, green: 163/255, blue: 163/255) : Color(red: 90/255, green: 90/255, blue: 88/255)
     }
 
     /// Secondary metadata, client studio text (Light: #767571, Dark: #9E9D97) (WCAG AA: 4.61:1)
@@ -135,14 +139,19 @@ public enum FrilaColor {
         isDark ? Color(red: 136/255, green: 135/255, blue: 129/255) : Color(red: 95/255, green: 94/255, blue: 90/255)
     }
     
-    /// Primary charcoal body text and display headlines (Light: #1B1A18, Dark: #F5F4F0) (WCAG AAA: 17.39:1)
+    /// Texto principal e títulos (Light: #111111, `--cor-tinta`; Dark: #F5F4F0)
     public static func dynamicTextPrimary(isDark: Bool) -> Color {
-        isDark ? Color(red: 245/255, green: 244/255, blue: 240/255) : Color(red: 27/255, green: 26/255, blue: 24/255)
+        isDark ? Color(red: 245/255, green: 244/255, blue: 240/255) : Color(red: 17/255, green: 17/255, blue: 17/255)
     }
     
-    /// Stark Pitch Black pill button (Light: #090908, Dark: #FFFFFF)
+    /// A tinta: chip marcado e pílula neutra ativa (Light: #111111, `--cor-tinta`; Dark: #FFFFFF)
     public static func dynamicTextInk(isDark: Bool) -> Color {
-        isDark ? Color.white : Color(red: 9/255, green: 9/255, blue: 8/255)
+        isDark ? Color.white : Color(red: 17/255, green: 17/255, blue: 17/255)
+    }
+
+    /// Texto e ícone sobre a tinta (Light: #FFFFFF; Dark: #111111): o par de `dynamicTextInk`.
+    public static func dynamicOnInk(isDark: Bool) -> Color {
+        isDark ? canvasDark : canvasLight
     }
     
     /// Boundary hairline for photographs and media assets (Light: 8% black outline, Dark: 10% white outline)
@@ -151,10 +160,14 @@ public enum FrilaColor {
         isDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
     }
     
-    /// Adaptive brand accent calibrated for Dark Mode without hue drift (preserved OKLCH hue 35.1 deg).
-    /// Light mode uses primary500 (#EA5A36); Dark mode uses calibrated primary400 (#F26643) to prevent chroma vibration against dark canvas.
+    /// A ação do protótipo (`--cor-acao`, #F46700, oklch 0.68 0.194 45.5): botão primário e estado ativo. Só para ação.
+    /// Branco sobre ela passa a 3,1:1, o que vale só para rótulo em negrito de 19 pt ou mais (DESIGN.md, Cor).
+    public static let acao = Color(red: 244/255, green: 103/255, blue: 0/255)
+
+    /// Acento da marca. Na pele nova é a `acao`, o mesmo nos dois modos (sobre #111111 passa de 6:1).
+    /// Antes: primary500 (#EA5A36) no claro e primary400 (#F26643) no escuro.
     public static func dynamicBrandAccent(isDark: Bool) -> Color {
-        isDark ? primary400 : primary500
+        acao
     }
     
     /// Brand-colored text over input surfaces, such as the selected wheel row.

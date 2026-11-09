@@ -92,6 +92,7 @@ public struct BotaoPrimario: View {
     private let carregando: Bool
     private let acao: () -> Void
     @Environment(\.isEnabled) private var habilitado
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     public init(_ titulo: LocalizedStringKey, carregando: Bool = false, acao: @escaping () -> Void) {
         self.titulo = Text(titulo, bundle: bundleApresentacao)
@@ -111,10 +112,10 @@ public struct BotaoPrimario: View {
     public var body: some View {
         Button(action: acao) {
             Group {
-                if carregando { ProgressView().tint(FrilaCor.sobrePrimaria) }
+                if carregando { ProgressView().tint(FrilaCor.sobreAcao) }
                 else {
                     titulo
-                        .font(FrilaTipo.botao)
+                        .font(FrilaTipo.botaoPrimario)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -122,12 +123,14 @@ public struct BotaoPrimario: View {
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .foregroundStyle(desligado ? FrilaCor.textoSecundario : FrilaCor.sobrePrimaria)
-            // Pílula `.ink` da origem (`dynamicTextInk`), 52 pt (`buttonHeightProminent`).
-            // Desligado (sem ser pelo carregando), vira cinza com borda: preto ou branco cheio
+            .foregroundStyle(desligado ? FrilaCor.textoSecundario : FrilaCor.sobreAcao)
+            // Pílula da `acao` (laranja do protótipo), rótulo branco em negrito de 20 pt: o único rótulo pesado, porque o
+            // branco sobre a `acao` só passa assim (3,1:1). No máximo um por tela.
+            // Desligado (sem ser pelo carregando), vira cinza com borda: laranja cheio
             // parecia pronto para tocar, e o toque não fazia nada (V7 da conferência visual da 1.1).
-            .background(desligado ? FrilaCor.controle : FrilaCor.primaria, in: Capsule())
+            .background(desligado ? FrilaCor.controle : FrilaCor.acao, in: Capsule())
             .overlay { if desligado { Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
+            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: desligado)
             .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
@@ -155,14 +158,15 @@ public struct BotaoSecundario: View {
     public var body: some View {
         Button(action: acao) {
             titulo
-                .font(FrilaTipo.botao)
+                .font(FrilaTipo.rotuloSecundario)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, FrilaEspaco.grande)
                 .padding(.vertical, FrilaEspaco.pequeno)
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                 .foregroundStyle(FrilaCor.texto)
-                // Botão `.outline` da origem: sem preenchimento, fio de 1 pt (`dynamicBorder`).
+                // Botão secundário da pele nova: superfície branca, fio de 1 pt em `borda`, rótulo em tinta 600 de 16 pt.
+                .background(FrilaCor.superficie, in: Capsule())
                 .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
                 .contentShape(Capsule())
         }
@@ -318,11 +322,11 @@ public struct FiltroPill: View {
                 .font(FrilaTipo.meta.weight(.medium))
                 .padding(.horizontal, FrilaEspaco.faixa)
                 .frame(minHeight: FrilaMetrica.alturaDoChip)
-                // Filtro ativo na terracota de seleção da origem (`FrilaFilterChip`); inativo sobre a superfície com fio.
+                // Chip marcado: tinta com texto branco (DESIGN.md, Chip); inativo sobre a superfície com fio em `borda`.
                 .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
                 .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
                 .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-                .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: selecionado)
+                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
                 .scaleEffect(emPop ? FrilaMotion.chipOvershootScale : 1)
                 .animation(FrilaMovimento.animacao(FrilaMotion.chipActivationSpring, reduzir: reduzirMovimento), value: emPop)
                 // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
@@ -338,6 +342,75 @@ public struct FiltroPill: View {
         .sensoryFeedback(.selection, trigger: selecionado)
         .accessibilityAddTraits(selecionado ? .isSelected : [])
         .accessibilityValue(Self.valorAcessibilidade(selecionado: selecionado))
+    }
+}
+
+/// Selo de status da pele nova (DESIGN.md, Selo de status): retângulo de raio 10 e 28 pt de altura mínima, 15 pt em peso 600,
+/// ícone opcional de 16 pt a 4 pt do texto. Não é interativo (a cápsula toca, o selo informa) e cresce com o Dynamic Type.
+public struct SeloDeStatus: View {
+    public enum Estilo: Equatable, Sendable {
+        /// Urgência: roxo com texto branco (4,5:1).
+        case urgencia
+        /// Por seleção, aguardando a casa, concluído: contorno em `borda` sobre o fundo, texto em tinta.
+        case contorno
+        /// "Você foi escolhida" e "Confirmado": amarelo com tinta fixa (15:1).
+        case destaque
+        /// "A caminho" e "Presença marcada": a tinta, com texto invertido.
+        case andamento
+        /// "Vaga fechou": tinta suave, com texto invertido.
+        case encerrado
+    }
+
+    private let titulo: Text
+    private let estilo: Estilo
+    private let icone: String?
+
+    public init(_ titulo: LocalizedStringKey, estilo: Estilo, icone: String? = nil) {
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
+        self.estilo = estilo
+        self.icone = icone
+    }
+
+    public init(verbatim titulo: String, estilo: Estilo, icone: String? = nil) {
+        self.titulo = Text(verbatim: titulo)
+        self.estilo = estilo
+        self.icone = icone
+    }
+
+    public static func cores(_ estilo: Estilo) -> (fundo: Color, texto: Color, borda: Color?) {
+        switch estilo {
+        case .urgencia: (FrilaCor.destaqueRoxo, FrilaCor.sobreAcao, nil)
+        case .contorno: (FrilaCor.fundo, FrilaCor.texto, FrilaCor.borda)
+        case .destaque: (FrilaCor.destaqueAmarelo, FrilaCor.sobreDestaque, nil)
+        case .andamento: (FrilaCor.primaria, FrilaCor.sobrePrimaria, nil)
+        case .encerrado: (FrilaCor.textoSecundario, FrilaCor.sobrePrimaria, nil)
+        }
+    }
+
+    public var body: some View {
+        let cores = Self.cores(estilo)
+        HStack(spacing: FrilaEspaco.minimo) {
+            if let icone {
+                Image(systemName: icone)
+                    .font(FrilaTipo.meta.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+            titulo
+                .font(FrilaTipo.meta.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        // Selo com borda: ela conta dentro do padding (3×7), para todo selo ter a mesma altura.
+        .padding(.horizontal, cores.borda == nil ? FrilaEspaco.pequeno : 7)
+        .padding(.vertical, cores.borda == nil ? FrilaEspaco.minimo : 3)
+        .frame(minHeight: FrilaGeometry.chipHeight)
+        .foregroundStyle(cores.texto)
+        .background(cores.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.selo, style: .continuous))
+        .overlay {
+            if let borda = cores.borda {
+                RoundedRectangle(cornerRadius: FrilaRaio.selo, style: .continuous).strokeBorder(borda, lineWidth: 1)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -521,7 +594,7 @@ public struct CartaoVaga: View {
 
     private var valor: some View {
         VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: FrilaEspaco.fio) {
-            FrilaPriceTag(texto: formatador.dinheiro(vaga.valor), leitura: rotuloAcessibilidadeValor, tamanho: 18)
+            FrilaPriceTag(texto: formatador.dinheiro(vaga.valor), leitura: rotuloAcessibilidadeValor, tamanho: 28)
             Text("por pessoa", bundle: bundleApresentacao).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
         }
         .accessibilityElement(children: .combine)
@@ -637,6 +710,7 @@ public struct CartaoVaga: View {
 
 public struct RespostaSimNao: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @Binding private var resposta: Bool?
     private let rotuloAcessibilidade: Text
 
@@ -684,6 +758,7 @@ public struct RespostaSimNao: View {
             .foregroundStyle(resposta == valor ? FrilaCor.sobreSelecao : FrilaCor.texto)
             .background(resposta == valor ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
             .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
+            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: resposta)
             .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
