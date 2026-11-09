@@ -117,9 +117,11 @@ public struct TelaEscolhaPontoBase: View {
                 .accessibilityHidden(true)
 
             TextField(
-                Text(verbatim: TextosLote4.buscarEndereco),
-                text: $busca
-            )
+                text: $busca,
+                prompt: Text(verbatim: TextosLote4.buscarEndereco).foregroundStyle(FrilaCor.textoSecundario)
+            ) {
+                Text(verbatim: TextosLote4.buscarEndereco)
+            }
             .font(FrilaTipo.corpo)
             .foregroundStyle(FrilaCor.texto)
             .autocorrectionDisabled()

@@ -117,7 +117,7 @@ public struct FolhaCancelarTurno: View {
                     }
                 }
 
-                FrilaFlowLayout(spacing: FrilaEspaco.pequeno) {
+                FrilaFlowLayout(horizontalSpacing: FrilaEspaco.pequeno, verticalSpacing: FrilaEspaco.pequeno) {
                     ForEach(motivosDisponiveis, id: \.self) { motivo in
                         let selecionado = motivoSelecionado == motivo
                         Button {

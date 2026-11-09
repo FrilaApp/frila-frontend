@@ -167,7 +167,13 @@ public struct TelaChatSuporte: View {
                 .font(FrilaTipo.rotuloDoCampo)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
-            TextField(Text(verbatim: TextosLote4.suaMensagem), text: $novaMensagem, axis: .vertical)
+            TextField(
+                text: $novaMensagem,
+                prompt: Text(verbatim: TextosLote4.suaMensagem).foregroundStyle(FrilaCor.textoSecundario),
+                axis: .vertical
+            ) {
+                Text(verbatim: TextosLote4.suaMensagem)
+            }
                 .lineLimit(1...4)
                 .font(FrilaTipo.valorDoCampo)
                 .foregroundStyle(FrilaCor.texto)

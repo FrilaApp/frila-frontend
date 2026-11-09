@@ -34,9 +34,11 @@ public struct TelaDizerNome: View {
                         .foregroundStyle(FrilaCor.textoSecundario)
 
                     TextField(
-                        Text(verbatim: TextosLote4.nomeCompleto),
-                        text: $nome
-                    )
+                        text: $nome,
+                        prompt: Text(verbatim: TextosLote4.nomeCompleto).foregroundStyle(FrilaCor.textoSecundario)
+                    ) {
+                        Text(verbatim: TextosLote4.nomeCompleto)
+                    }
                     .font(FrilaTipo.valorDoCampo)
                     .foregroundStyle(FrilaCor.texto)
                     .focused($focoNoNome)

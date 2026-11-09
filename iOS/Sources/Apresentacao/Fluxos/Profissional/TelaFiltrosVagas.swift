@@ -174,7 +174,7 @@ public struct TelaFiltrosVagas: View {
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
-            FrilaFlowLayout(spacing: FrilaEspaco.pequeno) {
+            FrilaFlowLayout(horizontalSpacing: FrilaEspaco.pequeno, verticalSpacing: FrilaEspaco.pequeno) {
                 ForEach(funcoesMaisProcuradas, id: \.self) { funcao in
                     let selecionada = funcoesSelecionadas.contains(funcao)
                     chipBotao(titulo: funcao, selecionado: selecionada) {
@@ -269,7 +269,7 @@ public struct TelaFiltrosVagas: View {
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
-            FrilaFlowLayout(spacing: FrilaEspaco.pequeno) {
+            FrilaFlowLayout(horizontalSpacing: FrilaEspaco.pequeno, verticalSpacing: FrilaEspaco.pequeno) {
                 ForEach(periodosDisponiveis, id: \.self) { periodo in
                     let selecionado = periodosSelecionados.contains(periodo)
                     chipBotao(titulo: periodo, selecionado: selecionado) {
@@ -321,7 +321,12 @@ public struct TelaFiltrosVagas: View {
                 HStack(spacing: FrilaEspaco.pequeno) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(FrilaCor.textoSecundario)
-                    TextField(Text(verbatim: TextosLote4.buscarFuncao), text: $buscaCatalogo)
+                    TextField(
+                        text: $buscaCatalogo,
+                        prompt: Text(verbatim: TextosLote4.buscarFuncao).foregroundStyle(FrilaCor.textoSecundario)
+                    ) {
+                        Text(verbatim: TextosLote4.buscarFuncao)
+                    }
                         .font(FrilaTipo.corpo)
                 }
                 .padding(.horizontal, FrilaEspaco.compacto)
