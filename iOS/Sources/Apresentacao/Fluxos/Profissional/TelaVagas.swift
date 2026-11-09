@@ -7,15 +7,27 @@ public struct TelaVagas: View {
     @Bindable private var viewModel: FeedVagasViewModel
     private let abrir: (UUID) -> Void
     @State private var filtroAberto: FiltroDoFeed?
+    @State private var textoBusca: String = ""
 
     public init(viewModel: FeedVagasViewModel, abrir: @escaping (UUID) -> Void) {
         self.viewModel = viewModel
         self.abrir = abrir
     }
 
+    private func filtrarPorBusca(_ vagas: [VagaNaLista]) -> [VagaNaLista] {
+        let busca = textoBusca.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !busca.isEmpty else { return vagas }
+        return vagas.filter {
+            $0.estabelecimento.nome.localizedCaseInsensitiveContains(busca) ||
+            $0.funcao.nome.localizedCaseInsensitiveContains(busca)
+        }
+    }
+
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                cabecalhoEResumo
+                campoDeBusca
                 filtros
                 AvisoDePermissaoDePush(perfil: .profissional)
                     .padding(.horizontal, FrilaEspaco.medio)
@@ -41,32 +53,137 @@ public struct TelaVagas: View {
         ))
     }
 
+    @ViewBuilder
+    private var cabecalhoEResumo: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Vagas", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDaTela)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityAddTraits(.isHeader)
+
+            if case let .carregada(vagas) = viewModel.estado {
+                let filtradas = filtrarPorBusca(vagas)
+                if !filtradas.isEmpty {
+                    Text("\(filtradas.count) vagas até 5 km do seu ponto base", bundle: bundleApresentacao)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+            }
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+    }
+
+    private var campoDeBusca: some View {
+        HStack(spacing: FrilaEspaco.compacto) {
+            Image(systemName: "magnifyingglass")
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityHidden(true)
+
+            TextField(String(localized: "Buscar vagas por casa ou função", bundle: bundleApresentacao), text: $textoBusca)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("campo-busca-vagas")
+
+            if !textoBusca.isEmpty {
+                Button {
+                    textoBusca = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(FrilaTipo.meta)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Limpar busca", bundle: bundleApresentacao))
+                .accessibilityIdentifier("botao-limpar-busca-vagas")
+            }
+        }
+        .padding(.horizontal, FrilaEspaco.medio)
+        .frame(height: 48)
+        .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+        .padding(.horizontal, FrilaEspaco.medio)
+    }
+
     /// Fim da medição de abertura (#73): a lista da API publicada.
     private var listaNaTela: @MainActor @Sendable () -> Bool {
         let viewModel = viewModel
         return { if case .carregada = viewModel.estado { true } else { false } }
     }
 
+    private var totalFiltrosAplicados: Int {
+        var total = 0
+        if viewModel.funcaoID != nil { total += 1 }
+        if viewModel.data != .qualquer { total += 1 }
+        if viewModel.distancia != .qualquer { total += 1 }
+        return total
+    }
+
     private var filtros: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    filtroFuncao
-                    filtroData
-                    filtroDistancia
-                }
-                .padding(.horizontal, FrilaEspaco.medio)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        filtroFuncao
-                        filtroData
-                        filtroDistancia
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: FrilaEspaco.pequeno) {
+                Button {
+                    filtroAberto = .funcao
+                } label: {
+                    HStack(spacing: FrilaEspaco.minimo) {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(FrilaTipo.meta.weight(.semibold))
+                            .accessibilityHidden(true)
+                        Text(totalFiltrosAplicados > 0
+                            ? String(localized: "Filtros (\(totalFiltrosAplicados))", bundle: bundleApresentacao)
+                            : String(localized: "Filtros", bundle: bundleApresentacao))
+                            .font(FrilaTipo.meta.weight(.medium))
                     }
-                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.horizontal, FrilaEspaco.compacto)
+                    .frame(height: 36)
+                    .foregroundStyle(FrilaCor.texto)
+                    .background(FrilaCor.superficie, in: Capsule())
+                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(totalFiltrosAplicados > 0
+                    ? String(localized: "Filtros, \(totalFiltrosAplicados) aplicados", bundle: bundleApresentacao)
+                    : String(localized: "Filtros", bundle: bundleApresentacao))
+                .accessibilityIdentifier("filtro-abrir")
+
+                if let funcaoID = viewModel.funcaoID, let nome = viewModel.funcoes.first(where: { $0.id == funcaoID })?.nome {
+                    chipFiltroAplicado("\(nome) ×", acessibilidade: "\(nome), remover filtro") {
+                        selecionar { await $0.selecionar(funcao: nil) }
+                    }
+                }
+
+                if viewModel.data != .qualquer {
+                    chipFiltroAplicado("\(rotuloData) ×", acessibilidade: "\(rotuloData), remover filtro") {
+                        selecionar { await $0.selecionar(data: .qualquer) }
+                    }
+                }
+
+                if viewModel.distancia != .qualquer {
+                    chipFiltroAplicado("\(rotuloDistancia) ×", acessibilidade: "\(rotuloDistancia), remover filtro") {
+                        selecionar { await $0.selecionar(distancia: .qualquer) }
+                    }
                 }
             }
+            .padding(.horizontal, FrilaEspaco.medio)
         }
+    }
+
+    private func chipFiltroAplicado(_ texto: String, acessibilidade: String, acao: @escaping () -> Void) -> some View {
+        Button(action: acao) {
+            Text(verbatim: texto)
+                .font(FrilaTipo.meta.weight(.medium))
+                .padding(.horizontal, FrilaEspaco.compacto)
+                .frame(height: 36)
+                .foregroundStyle(FrilaCor.texto)
+                .background(FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: acessibilidade))
     }
 
     /// Cada filtro abre a própria folha (sem `Menu` nativo): tocar numa opção aplica na hora e fecha.
