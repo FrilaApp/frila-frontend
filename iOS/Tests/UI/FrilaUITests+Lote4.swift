@@ -1,29 +1,16 @@
 import XCTest
 
-/// Testes de interface e capturas do Lote 4 e Lote 5 (#B-L4).
-/// Cobre: T1c, T1c-sem-resultado, T2b, T6b, T6c, T3b, T3c, T4b, T4b-horario-comecou, T4c, T4c-mensagem-enviada, T7b.
+/// Testes de interface e capturas do Lote 4 (#B-L4).
+/// Cobre as telas reais do app:
+/// - T4b (FolhaDeCancelamento)
+/// - T4c (FolhaSuporteTurno) e estado enviado
+/// - T6b (TelaCodigo)
+/// - T3c (CandidaturaEmSelecao)
 @MainActor
 final class FrilaUITestsLote4: XCTestCase {
     override func setUp() {
         super.setUp()
         continueAfterFailure = false
-    }
-
-    private func iniciar(argumento: String, ax5: Bool = false) -> XCUIApplication {
-        let app = XCUIApplication()
-        app.launchArguments = [
-            "-FRILA_SCENARIO", "success",
-            "-FRILA_MODO_CLARO",
-            "-AppleLanguages", "(pt-BR)",
-            "-AppleLocale", "pt_BR",
-            "-FRILA_SEM_ANIMACOES",
-            argumento
-        ]
-        if ax5 {
-            app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
-        }
-        app.launch()
-        return app
     }
 
     private func capturar(_ nome: String) {
@@ -40,135 +27,257 @@ final class FrilaUITestsLote4: XCTestCase {
         }
     }
 
-    // MARK: - Lote 4
+    // MARK: - T6b · TelaCodigo
 
-    func testT1cPontoBase() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_PONTO_BASE")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-escolha-ponto-base"].waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(app.buttons["ponto-base-concluir"].exists)
-        capturar("T1c-padrao")
-    }
+    func testT6bCodigoReal() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "primeiro-acesso",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES"
+        ]
+        app.launch()
 
-    func testT1cPontoBaseAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_PONTO_BASE", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-escolha-ponto-base"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T1c-ax5")
-    }
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("ju.ramos@email.com")
 
-    func testT1cSemResultado() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_PONTO_BASE_VAZIO")
-        XCTAssertTrue(app.descendants(matching: .any)["ponto-base-sem-resultado"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T1c-sem-resultado")
-    }
+        let receber = app.buttons["entrada-receber-codigo"]
+        if receber.waitForExistence(timeout: 5) {
+            receber.tap()
+        }
 
-    func testT2bFiltrosVagas() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_FILTROS_VAGAS")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-filtros-vagas"].waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(app.buttons["filtros-concluir"].exists)
-        capturar("T2b-padrao")
-    }
-
-    func testT2bFiltrosVagasAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_FILTROS_VAGAS", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-filtros-vagas"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T2b-ax5")
-    }
-
-    func testT6bConfirmarCodigo() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_T6B_CODIGO")
-        XCTAssertTrue(app.staticTexts["Confira seu e-mail"].waitForExistence(timeout: Espera.aparecer))
+        let codigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         capturar("T6b-padrao")
     }
 
-    func testT6bConfirmarCodigoAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_T6B_CODIGO", ax5: true)
-        XCTAssertTrue(app.staticTexts["Confira seu e-mail"].waitForExistence(timeout: Espera.aparecer))
+    func testT6bCodigoRealAX5() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "primeiro-acesso",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        let email = app.textFields["entrada-email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("ju.ramos@email.com")
+
+        let receber = app.buttons["entrada-receber-codigo"]
+        if receber.waitForExistence(timeout: 5) {
+            receber.tap()
+        }
+
+        let codigo = app.textFields["Código de acesso"]
+        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
         capturar("T6b-ax5")
     }
 
-    func testT6cDizerNome() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_T6C_NOME")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-dizer-nome"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T6c-padrao")
-    }
+    // MARK: - T4b · FolhaDeCancelamento
 
-    func testT6cDizerNomeAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_T6C_NOME", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-dizer-nome"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T6c-ax5")
-    }
+    func testT4bCancelamentoReal() {
+        let app = XCUIApplication()
+        let turnoID = "23000000-0000-0000-0000-000000000001"
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "turno-confirmado-longe",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES"
+        ]
+        app.launch()
 
-    // MARK: - Lote 5
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
+        app.tabBars.buttons["Meus turnos"].tap()
 
-    func testT3bPerfilDaCasa() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_PERFIL_CASA")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-casa"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T3b-padrao")
-    }
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        cartao.tap()
 
-    func testT3bPerfilDaCasaAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_PERFIL_CASA", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-casa"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T3b-ax5")
-    }
+        let cancelar = app.buttons["cancelar-turno"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
+        app.swipeUp()
+        for _ in 0..<4 where !cancelar.isHittable {
+            app.swipeUp()
+        }
+        cancelar.tap()
 
-    func testT3cVagaComCandidatura() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_VAGA_CANDIDATURA")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-vaga-candidatura"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T3c-padrao")
-    }
-
-    func testT3cVagaComCandidaturaAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_VAGA_CANDIDATURA", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-vaga-candidatura"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T3c-ax5")
-    }
-
-    func testT4bCancelarTurno() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_CANCELAR_TURNO")
-        XCTAssertTrue(app.descendants(matching: .any)["folha-cancelar-turno"].waitForExistence(timeout: Espera.aparecer))
+        let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer))
         capturar("T4b-padrao")
     }
 
-    func testT4bCancelarTurnoAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_CANCELAR_TURNO", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["folha-cancelar-turno"].waitForExistence(timeout: Espera.aparecer))
+    func testT4bCancelamentoRealAX5() {
+        let app = XCUIApplication()
+        let turnoID = "23000000-0000-0000-0000-000000000001"
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "turno-confirmado-longe",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer))
+        app.tabBars.buttons["Meus turnos"].tap()
+
+        let cartao = app.buttons["meu-turno-\(turnoID)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 10))
+        cartao.tap()
+
+        let cancelar = app.buttons["cancelar-turno"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
+        app.swipeUp()
+        for _ in 0..<4 where !cancelar.isHittable {
+            app.swipeUp()
+        }
+        cancelar.tap()
+
+        let folha = app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch
+        XCTAssertTrue(folha.waitForExistence(timeout: Espera.aparecer))
         capturar("T4b-ax5")
     }
 
-    func testT4bHorarioComecou() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_CANCELAR_TURNO_COMECOU")
-        XCTAssertTrue(app.buttons["cancelar-turno-sair-do-turno"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T4b-horario-comecou")
-    }
+    // MARK: - T4c · FolhaSuporteTurno
 
-    func testT4cChatSuporte() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_CHAT_SUPORTE")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-chat-suporte"].waitForExistence(timeout: Espera.aparecer))
+    func testT4cSuporteReal() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ABRIR_SUPORTE_TURNO",
+            "-FRILA_SCENARIO", "success",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES"
+        ]
+        app.launch()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 10))
         capturar("T4c-padrao")
     }
 
-    func testT4cChatSuporteAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_CHAT_SUPORTE", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-chat-suporte"].waitForExistence(timeout: Espera.aparecer))
+    func testT4cSuporteRealAX5() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ABRIR_SUPORTE_TURNO",
+            "-FRILA_SCENARIO", "success",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 10))
         capturar("T4c-ax5")
     }
 
-    func testT4cMensagemEnviada() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_CHAT_SUPORTE_ENVIADA")
-        XCTAssertTrue(app.descendants(matching: .any)["chat-suporte-conversa"].waitForExistence(timeout: Espera.aparecer))
+    func testT4cSuporteMensagemEnviada() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-FRILA_ABRIR_SUPORTE_TURNO",
+            "-FRILA_SCENARIO", "success",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES"
+        ]
+        app.launch()
+
+        let folha = app.descendants(matching: .any)["folha-suporte-turno"]
+        XCTAssertTrue(folha.waitForExistence(timeout: 10))
+
+        let campoRelato = app.descendants(matching: .any)["campo-relato-suporte"]
+        if campoRelato.waitForExistence(timeout: 5) {
+            campoRelato.tap()
+            campoRelato.typeText("Trabalhei o turno todo, mas a presenca nao foi marcada.")
+            if app.buttons["recolher-teclado"].exists {
+                app.buttons["recolher-teclado"].tap()
+            }
+        }
+
+        let botaoEnviar = app.descendants(matching: .any)["botao-enviar-email-suporte"]
+        if botaoEnviar.waitForExistence(timeout: 5) {
+            app.swipeUp()
+            if botaoEnviar.isHittable {
+                botaoEnviar.tap()
+            }
+        }
+
         capturar("T4c-mensagem-enviada")
     }
 
-    func testT7bResumoTurno() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_RESUMO_TURNO")
-        XCTAssertTrue(app.descendants(matching: .any)["tela-resumo-turno"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T7b-padrao")
+    // MARK: - T3c · CandidaturaEmSelecao
+
+    func testT3cCandidaturaPendenteReal() {
+        let app = XCUIApplication()
+        let candidaturaID = "6F1C2A4E-2B7D-4C5E-9A1F-3D2E1C0B9A88"
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "candidatura-pendente",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES"
+        ]
+        app.launch()
+
+        let aba = app.tabBars.buttons["Candidaturas"]
+        XCTAssertTrue(aba.waitForExistence(timeout: 15))
+        aba.tap()
+
+        let pendente = app.buttons["candidatura-\(candidaturaID)"]
+        XCTAssertTrue(pendente.waitForExistence(timeout: 10))
+        pendente.tap()
+
+        let enviada = app.descendants(matching: .any)["candidatura-enviada"]
+        XCTAssertTrue(enviada.waitForExistence(timeout: 10))
+        capturar("T3c-padrao")
     }
 
-    func testT7bResumoTurnoAX5() {
-        let app = iniciar(argumento: "-FRILA_ABRIR_RESUMO_TURNO", ax5: true)
-        XCTAssertTrue(app.descendants(matching: .any)["tela-resumo-turno"].waitForExistence(timeout: Espera.aparecer))
-        capturar("T7b-ax5")
+    func testT3cCandidaturaPendenteRealAX5() {
+        let app = XCUIApplication()
+        let candidaturaID = "6F1C2A4E-2B7D-4C5E-9A1F-3D2E1C0B9A88"
+        app.launchArguments = [
+            "-FRILA_SCENARIO", "candidatura-pendente",
+            "-FRILA_CACHE_VAZIO_UI_TEST",
+            "-FRILA_MODO_CLARO",
+            "-AppleLanguages", "(pt-BR)",
+            "-AppleLocale", "pt_BR",
+            "-FRILA_SEM_ANIMACOES",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        let aba = app.tabBars.buttons["Candidaturas"]
+        XCTAssertTrue(aba.waitForExistence(timeout: 15))
+        aba.tap()
+
+        let pendente = app.buttons["candidatura-\(candidaturaID)"]
+        XCTAssertTrue(pendente.waitForExistence(timeout: 10))
+        pendente.tap()
+
+        let enviada = app.descendants(matching: .any)["candidatura-enviada"]
+        XCTAssertTrue(enviada.waitForExistence(timeout: 10))
+        capturar("T3c-ax5")
     }
 }

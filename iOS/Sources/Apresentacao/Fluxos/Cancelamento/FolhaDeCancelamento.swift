@@ -18,10 +18,16 @@ public struct FolhaDeCancelamento: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                FolhaFrila(verbatim: TextosDoCancelamento.titulo(lado: viewModel.lado, alvo: viewModel.alvo)) {
+                FolhaFrila(verbatim: (viewModel.turnoJaComecou && viewModel.lado == .profissional)
+                    ? String(localized: "Seu turno já começou", bundle: bundleApresentacao)
+                    : TextosDoCancelamento.titulo(lado: viewModel.lado, alvo: viewModel.alvo)) {
                     switch viewModel.estado {
                     case .pronto, .enviando, .falha:
-                        formulario
+                        if viewModel.turnoJaComecou && viewModel.lado == .profissional {
+                            conteudoTurnoJaComecou
+                        } else {
+                            formulario
+                        }
                         if dynamicTypeSize.isAccessibilitySize {
                             botoesDeAcao
                         }
@@ -58,6 +64,18 @@ public struct FolhaDeCancelamento: View {
         .interactiveDismissDisabled(viewModel.estado == .enviando)
     }
 
+    @ViewBuilder private var conteudoTurnoJaComecou: some View {
+        AvisoFrila(
+            verbatim: String(localized: "O turno não foi cancelado: cancelar vale só até o início do horário. Para sair do turno, fale com o suporte.", bundle: bundleApresentacao),
+            tom: .alerta
+        )
+        .accessibilityIdentifier("aviso-do-cancelamento")
+
+        Text(verbatim: viewModel.aviso)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.textoSecundario)
+    }
+
     @ViewBuilder private var formulario: some View {
         AvisoFrila(verbatim: viewModel.aviso, tom: viewModel.contaComoFalta ? .alerta : .informativo)
             .accessibilityIdentifier("aviso-do-cancelamento")
@@ -78,8 +96,8 @@ public struct FolhaDeCancelamento: View {
                 opcao(motivo)
             }
         }
-        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("motivos-do-cancelamento")
 
@@ -117,49 +135,58 @@ public struct FolhaDeCancelamento: View {
     }
 
     @ViewBuilder private var botoesDeAcao: some View {
-        switch viewModel.estado {
-        case .pronto, .enviando, .falha:
+        if viewModel.turnoJaComecou && viewModel.lado == .profissional {
             VStack(spacing: FrilaEspaco.pequeno) {
-                Button {
-                    Task { await viewModel.confirmar() }
-                } label: {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        if viewModel.estado == .enviando {
-                            ProgressView()
-                                .tint(FrilaCor.sobrePrimaria)
-                                .accessibilityHidden(true)
-                        }
-                        Text(verbatim: TextosDoCancelamento.confirmar)
-                            .font(FrilaTipo.botao)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, FrilaEspaco.grande)
-                    .padding(.vertical, FrilaEspaco.pequeno)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                    .foregroundStyle(viewModel.podeConfirmar ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
-                    .background(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle, in: Capsule())
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(.tatil)
-                .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
-                .accessibilityIdentifier("confirmar-cancelamento")
-                .accessibilityLabel(Text(verbatim: TextosDoCancelamento.confirmar))
-                .accessibilityValue(viewModel.estado == .enviando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
-
-                BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
-                    .disabled(viewModel.estado == .enviando)
-                    .accessibilityIdentifier("voltar-do-cancelamento")
-            }
-            .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
-            .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
-        case .concluido:
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
+                BotaoPrimario(verbatim: String(localized: "Sair do turno", bundle: bundleApresentacao), acao: fechar)
                     .accessibilityIdentifier("fechar-cancelamento")
             }
             .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
             .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
+        } else {
+            switch viewModel.estado {
+            case .pronto, .enviando, .falha:
+                VStack(spacing: FrilaEspaco.pequeno) {
+                    Button {
+                        Task { await viewModel.confirmar() }
+                    } label: {
+                        HStack(spacing: FrilaEspaco.pequeno) {
+                            if viewModel.estado == .enviando {
+                                ProgressView()
+                                    .tint(FrilaCor.sobrePrimaria)
+                                    .accessibilityHidden(true)
+                            }
+                            Text(verbatim: TextosDoCancelamento.confirmar)
+                                .font(FrilaTipo.botao)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, FrilaEspaco.grande)
+                        .padding(.vertical, FrilaEspaco.pequeno)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
+                        .foregroundStyle(viewModel.podeConfirmar ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
+                        .background(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle, in: Capsule())
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.tatil)
+                    .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
+                    .accessibilityIdentifier("confirmar-cancelamento")
+                    .accessibilityLabel(Text(verbatim: TextosDoCancelamento.confirmar))
+                    .accessibilityValue(viewModel.estado == .enviando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
+
+                    BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
+                        .disabled(viewModel.estado == .enviando)
+                        .accessibilityIdentifier("voltar-do-cancelamento")
+                }
+                .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
+                .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
+            case .concluido:
+                VStack(spacing: FrilaEspaco.pequeno) {
+                    BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
+                        .accessibilityIdentifier("fechar-cancelamento")
+                }
+                .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
+                .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
+            }
         }
     }
 
@@ -177,7 +204,7 @@ public struct FolhaDeCancelamento: View {
                 // Decorativo: o estado vai pelo traço `.isSelected` do botão.
                 Image(systemName: "checkmark")
                     .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.primaria)
+                    .foregroundStyle(FrilaCor.texto)
                     .opacity(escolhido ? 1 : 0)
                     .accessibilityHidden(true)
             }

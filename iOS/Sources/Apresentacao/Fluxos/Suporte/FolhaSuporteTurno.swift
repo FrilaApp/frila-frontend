@@ -275,16 +275,33 @@ public struct FolhaSuporteTurno: View {
             }
 
             if let prot = viewModel.protocolo {
-                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(FrilaCor.sucesso)
-                        .accessibilityHidden(true)
-                    Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte)))
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(FrilaCor.sucesso)
+                            .accessibilityHidden(true)
+                        Text(verbatim: String(format: TextosDoSuporte.protocoloRegistrado, prot.protocoloCurto, FormatadorFrila().data(prot.prazoRespostaAte)))
+                            .font(FrilaTipo.nota.bold())
+                            .foregroundStyle(FrilaCor.texto)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if let motivo = viewModel.motivo {
+                        Text(verbatim: motivo.rotulo)
+                            .font(FrilaTipo.meta.bold())
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                    }
+
+                    if !viewModel.relato.isEmpty {
+                        Text(verbatim: viewModel.relato)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                    }
                 }
+                .padding(FrilaEspaco.compacto)
+                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("aviso-protocolo-suporte")
             }
