@@ -269,9 +269,9 @@ public struct TelaMeuTurno: View {
                             .padding(.vertical, FrilaEspaco.pequeno)
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .foregroundStyle(FrilaCor.texto)
-                            .background(FrilaCor.superficie, in: Capsule())
-                            .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                            .contentShape(Capsule())
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     }
                     .buttonStyle(.tatil)
                     .accessibilityLabel(Text(verbatim: TextosDoProfissional.Turnos.tentarDeNovo))
@@ -290,9 +290,9 @@ public struct TelaMeuTurno: View {
                         .padding(.vertical, FrilaEspaco.pequeno)
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .foregroundStyle(FrilaCor.texto)
-                        .background(FrilaCor.superficie, in: Capsule())
-                        .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                        .contentShape(Capsule())
+                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
                 .buttonStyle(.tatil)
                 .disabled(viewModel.avisandoACaminho)
@@ -346,8 +346,8 @@ public struct TelaMeuTurno: View {
                     }
                     .foregroundStyle(FrilaCor.texto)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    .contentShape(Capsule())
+                    .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 }
                 #if DEBUG
                 .modifier(CapturaDeAberturaDeURLParaTeste())

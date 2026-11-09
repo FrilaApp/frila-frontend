@@ -312,9 +312,9 @@ public struct SecaoComoChegar: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                             .foregroundStyle(FrilaCor.texto)
-                            .background(FrilaCor.superficie, in: Capsule())
-                            .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                            .contentShape(Capsule())
+                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     }
                     .accessibilityIdentifier("botao-abrir-no-mapa")
                     .accessibilityHint(String(localized: "Abre o endereço no Apple Maps", bundle: bundleApresentacao))
