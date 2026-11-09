@@ -459,7 +459,7 @@ public struct TelaDetalheVaga<Acao: View>: View {
             // Retorno financeiro (Compensa?)
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: formatador.dinheiro(vaga.valor))
-                    .font(FrilaTipo.fonteValor(28))
+                    .font(FrilaTipo.fonteValor(tamanho: 28))
                     .foregroundStyle(FrilaCor.texto)
 
                 Text("+ gorjeta distribuída no fim da noite", bundle: bundleApresentacao)
@@ -867,6 +867,26 @@ extension EnvironmentValues {
     var noFimDaRolagem: Bool {
         get { self[NoFimDaRolagemKey.self] }
         set { self[NoFimDaRolagemKey.self] = newValue }
+    }
+}
+
+private struct MonitoramentoFimDaRolagem: ViewModifier {
+    let reduzirMovimento: Bool
+    @Binding var estaNoFim: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content
+                .onScrollGeometryChange(for: Bool.self) { geo in
+                    geo.contentOffset.y + geo.containerSize.height >= geo.contentSize.height - 48
+                } action: { _, noFim in
+                    withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.24), reduzir: reduzirMovimento)) {
+                        estaNoFim = noFim
+                    }
+                }
+        } else {
+            content
+        }
     }
 }
 

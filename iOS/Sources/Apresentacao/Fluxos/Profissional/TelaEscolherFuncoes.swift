@@ -127,7 +127,6 @@ public struct TelaEscolherFuncoes: View {
             Text(verbatim: textoApoioContagem)
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityLiveRegion(.polite)
         }
     }
 

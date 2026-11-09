@@ -220,38 +220,37 @@ public struct TelaVagas: View {
             FolhaDeFiltrosT2b(viewModel: viewModel) { filtroAberto = nil }
                 .presentationDetents([.fraction(0.85), .large])
                 .presentationDragIndicator(.visible)
-        case .funcao, .data, .distancia:
-            let opcoes: [OpcaoDeFiltro]
-            let titulo: String
-            switch filtro {
-            case .todos:
-                fatalError()
-            case .funcao:
-                titulo = TextosDoProfissional.Lista.filtroFuncao
-                opcoes = [OpcaoDeFiltro(id: "qualquer", titulo: TextosDoProfissional.Lista.qualquerFuncao, marcada: viewModel.funcaoID == nil) {
-                    selecionar { await $0.selecionar(funcao: nil) }
-                }] + viewModel.funcoes.map { funcao in
-                    OpcaoDeFiltro(id: funcao.id.uuidString, titulo: funcao.nome, marcada: viewModel.funcaoID == funcao.id) {
-                        selecionar { await $0.selecionar(funcao: funcao.id) }
-                    }
-                }
-            case .data:
-                titulo = TextosDoProfissional.Lista.filtroData
-                opcoes = FiltroDeData.allCases.map { opcao in
-                    OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.data == opcao) {
-                        selecionar { await $0.selecionar(data: opcao) }
-                    }
-                }
-            case .distancia:
-                titulo = TextosDoProfissional.Lista.filtroDistancia
-                opcoes = FiltroDeDistancia.opcoes.map { opcao in
-                    OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.distancia == opcao) {
-                        selecionar { await $0.selecionar(distancia: opcao) }
-                    }
+        case .funcao:
+            let titulo = TextosDoProfissional.Lista.filtroFuncao
+            let opcoes = [OpcaoDeFiltro(id: "qualquer", titulo: TextosDoProfissional.Lista.qualquerFuncao, marcada: viewModel.funcaoID == nil) {
+                selecionar { await $0.selecionar(funcao: nil) }
+            }] + viewModel.funcoes.map { funcao in
+                OpcaoDeFiltro(id: funcao.id.uuidString, titulo: funcao.nome, marcada: viewModel.funcaoID == funcao.id) {
+                    selecionar { await $0.selecionar(funcao: funcao.id) }
                 }
             }
             FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
-                .presentationDetents(filtro == .funcao ? [.medium, .large] : [.height(CGFloat(opcoes.count) * 52 + 96)])
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        case .data:
+            let titulo = TextosDoProfissional.Lista.filtroData
+            let opcoes = FiltroDeData.allCases.map { opcao in
+                OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.data == opcao) {
+                    selecionar { await $0.selecionar(data: opcao) }
+                }
+            }
+            FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
+                .presentationDetents([.height(CGFloat(opcoes.count) * 52 + 96)])
+                .presentationDragIndicator(.visible)
+        case .distancia:
+            let titulo = TextosDoProfissional.Lista.filtroDistancia
+            let opcoes = FiltroDeDistancia.opcoes.map { opcao in
+                OpcaoDeFiltro(id: "\(opcao)", titulo: Self.tituloMenu(opcao), marcada: viewModel.distancia == opcao) {
+                    selecionar { await $0.selecionar(distancia: opcao) }
+                }
+            }
+            FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
+                .presentationDetents([.height(CGFloat(opcoes.count) * 52 + 96)])
                 .presentationDragIndicator(.visible)
         }
     }
@@ -401,8 +400,8 @@ public struct TelaVagas: View {
                     .padding(.vertical, FrilaEspaco.pequeno)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                     .foregroundStyle(FrilaCor.sobreAcao)
-                    .background(FrilaCor.acao, in: RoundedRectangle(cornerRadius: FrilaRaio.acao, style: .continuous))
-                    .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.acao, style: .continuous))
+                    .background(FrilaCor.acao, in: RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous))
             }
             .buttonStyle(.plain)
         }
@@ -748,7 +747,7 @@ private struct FolhaDeFiltrosT2b: View {
                         Slider(value: $raioKm, in: 1...10, step: 1)
                             .tint(FrilaCor.texto)
                             .onChange(of: raioKm) { _, novo in
-                                Task { await viewModel.selecionar(distancia: .ate(km: novo)) }
+                                Task { await viewModel.selecionar(distancia: .ate(km: Int(novo))) }
                             }
                     }
 
@@ -850,22 +849,17 @@ private struct FolhaDeFiltrosT2b: View {
             }
             .sheet(isPresented: $abrindoCatalogo) {
                 TelaEscolherFuncoes(
-                    selecionadas: Binding(
-                        get: {
-                            if let id = viewModel.funcaoID, let f = viewModel.funcoes.first(where: { $0.id == id }) {
-                                return [f.nome]
-                            }
-                            return []
-                        },
-                        set: { novas in
-                            if let primeiro = novas.first, let f = viewModel.funcoes.first(where: { $0.nome == primeiro }) {
-                                Task { await viewModel.selecionar(funcao: f.id) }
+                    funcoes: viewModel.funcoes,
+                    selecionadas: viewModel.funcaoID.map { [$0] } ?? [],
+                    alternar: { id in
+                        Task {
+                            if viewModel.funcaoID == id {
+                                await viewModel.selecionar(funcao: nil)
                             } else {
-                                Task { await viewModel.selecionar(funcao: nil) }
+                                await viewModel.selecionar(funcao: id)
                             }
                         }
-                    ),
-                    aoConcluir: { abrindoCatalogo = false }
+                    }
                 )
             }
         }
@@ -949,7 +943,7 @@ private struct CartaoVagaT2: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.minimo) {
                     Text(verbatim: formatador.dinheiro(vaga.valor))
-                        .font(FrilaTipo.fonteValor(28))
+                        .font(FrilaTipo.fonteValor(tamanho: 28))
                         .foregroundStyle(FrilaCor.texto)
                 }
 
