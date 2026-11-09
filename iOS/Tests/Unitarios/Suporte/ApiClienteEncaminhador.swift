@@ -74,6 +74,16 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try await base.fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
+    /// Guarda os `sinais` e segue pelo `fazerCheckin` sem eles, para que as subclasses que o sobrescrevem
+    /// (os testes de presença) continuem vendo cada check-in.
+    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, sinais: SinaisDoCheckin?) async throws -> ResultadoRegistro {
+        travaDosSinais.withLock { _sinaisDoCheckin.append(sinais) }
+        return try await fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+    }
+    private let travaDosSinais = NSLock()
+    private var _sinaisDoCheckin: [SinaisDoCheckin?] = []
+    /// Os `sinais` de cada `fazerCheckin` que chegou, na ordem (`nil`: o check-in de antes, sem sinais).
+    var sinaisDoCheckin: [SinaisDoCheckin?] { travaDosSinais.withLock { _sinaisDoCheckin } }
     func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
         try await base.fazerCheckout(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
@@ -81,6 +91,10 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
 
     // Turno do contratante
     func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro { try await base.confirmarCheckinManual(turnoID: turnoID) }
+    func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin { try await base.gerarCodigoCheckin(turnoID: turnoID) }
+    func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro {
+        try await base.validarCodigoCheckin(turnoID: turnoID, codigo: codigo, distanciaMetros: distanciaMetros)
+    }
     func reabrirPorAtraso(posicaoID: UUID) async throws -> ResultadoCancelamento { try await base.reabrirPorAtraso(posicaoID: posicaoID) }
 
     // Cancelamento

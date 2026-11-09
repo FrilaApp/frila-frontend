@@ -797,8 +797,13 @@ public enum Verificacao: String, Codable, Sendable {
 public enum TipoRegistro: String, Codable, Sendable {
     case geolocalizado
     case manual
+    /// Presença verificada pela leitura do código que a casa mostrou (contrato 0.2.68). O check-in nasce
+    /// `manual` e passa a `codigo` na validação.
+    case codigo
 
-    /// Tipo novo de registro cai em `manual`, o que menos afirma: a tela o trata como registro que ainda espera confirmação.
+    /// Valor desconhecido de `ResultadoRegistro` cai em `manual`, o que menos afirma: a tela o trata como
+    /// registro que ainda espera confirmação. Nos DTOs de turno e do painel, que leem com
+    /// `TipoRegistro(rawValue:)`, o valor desconhecido vira nulo.
     public init(from decoder: Decoder) throws {
         let valor = try decoder.singleValueContainer().decode(String.self)
         self = TipoRegistro(rawValue: valor) ?? .manual
@@ -1024,13 +1029,80 @@ public struct ResultadoRegistro: Codable, Hashable, Sendable {
     public let verificacao: Verificacao
     public let registradoEm: Date
     public let distanciaMetros: Int?
+    /// Só em `fazer_checkin` (0.2.68): o servidor recusou a verificação pelo GPS por sinal suspeito, e a
+    /// casa precisa atestar a chegada. A tela não diz qual sinal pesou. Ausente vale `false`.
+    public let codigoExigido: Bool
+    /// Só em `fazer_checkin` (0.2.68): a presença está pendente e o caminho do código está aberto para o
+    /// turno. O app só oferece a leitura do código com `true`. Ausente vale `false`.
+    public let codigoDisponivel: Bool
 
-    public init(turnoID: UUID, tipo: TipoRegistro, verificacao: Verificacao, registradoEm: Date, distanciaMetros: Int?) {
+    public init(
+        turnoID: UUID, tipo: TipoRegistro, verificacao: Verificacao, registradoEm: Date, distanciaMetros: Int?,
+        codigoExigido: Bool = false, codigoDisponivel: Bool = false
+    ) {
         self.turnoID = turnoID
         self.tipo = tipo
         self.verificacao = verificacao
         self.registradoEm = registradoEm
         self.distanciaMetros = distanciaMetros
+        self.codigoExigido = codigoExigido
+        self.codigoDisponivel = codigoDisponivel
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        turnoID = try c.decode(UUID.self, forKey: .turnoID)
+        tipo = try c.decode(TipoRegistro.self, forKey: .tipo)
+        verificacao = try c.decode(Verificacao.self, forKey: .verificacao)
+        registradoEm = try c.decode(Date.self, forKey: .registradoEm)
+        distanciaMetros = try c.decodeIfPresent(Int.self, forKey: .distanciaMetros)
+        codigoExigido = try c.decodeIfPresent(Bool.self, forKey: .codigoExigido) ?? false
+        codigoDisponivel = try c.decodeIfPresent(Bool.self, forKey: .codigoDisponivel) ?? false
+    }
+}
+
+/// O que o aparelho diz da leitura de localização do toque do check-in, para a proteção por risco
+/// (contrato 0.2.68). Nenhuma coordenada. O servidor usa os sinais na decisão e não os grava. Só vai com
+/// `recursos.checkinPorCodigo` ligado; sem a chave, o corpo do check-in fica como era.
+public struct SinaisDoCheckin: Equatable, Sendable {
+    /// A leitura veio de fonte simulada por software (`CLLocationSourceInformation.isSimulatedBySoftware`).
+    public let localizacaoSimulada: Bool
+    /// Precisão horizontal em metros inteiros; `nil` quando o aparelho não a informa. Nulo não é precisão ruim.
+    public let precisaoMetros: Int?
+    /// Entre as leituras do mesmo toque, a posição saltou mais do que um deslocamento possível.
+    public let saltoDePosicao: Bool
+
+    public init(localizacaoSimulada: Bool, precisaoMetros: Int?, saltoDePosicao: Bool) {
+        self.localizacaoSimulada = localizacaoSimulada
+        self.precisaoMetros = precisaoMetros
+        self.saltoDePosicao = saltoDePosicao
+    }
+
+    /// Os sinais de uma leitura. A precisão que o aparelho não informa (negativa ou não finita) sai nula.
+    public init(leitura: LeituraDeLocalizacao) {
+        let precisao = leitura.precisaoHorizontalMetros
+        self.init(
+            localizacaoSimulada: leitura.simulada,
+            precisaoMetros: precisao.isFinite && precisao >= 0 ? Int(precisao.rounded()) : nil,
+            saltoDePosicao: leitura.saltoDePosicao
+        )
+    }
+}
+
+/// O código de check-in em vigor, só para quem opera a casa do turno (contrato 0.2.68). O QR carrega
+/// exatamente `codigo`. Não entra em log, aviso nem resposta de terceiros.
+public struct CodigoDeCheckin: Equatable, Sendable {
+    public let turnoID: UUID
+    public let codigo: String
+    public let expiraEm: Date
+    /// A validade que resta, contada pelo servidor na resposta (até 300): a tela conta a partir dela.
+    public let segundosRestantes: Int
+
+    public init(turnoID: UUID, codigo: String, expiraEm: Date, segundosRestantes: Int) {
+        self.turnoID = turnoID
+        self.codigo = codigo
+        self.expiraEm = expiraEm
+        self.segundosRestantes = segundosRestantes
     }
 }
 
@@ -1567,11 +1639,23 @@ public struct RecursosDoApp: Codable, Equatable, Sendable {
     public let fotoDePerfil: Bool
     public let chamadaDireta: Bool
     public let perfilRico: Bool
+    /// Check-in por código (contrato 0.2.68). Desligado, o app não manda `sinais` nem oferece o código.
+    public let checkinPorCodigo: Bool
 
-    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false) {
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false, checkinPorCodigo: Bool = false) {
         self.fotoDePerfil = fotoDePerfil
         self.chamadaDireta = chamadaDireta
         self.perfilRico = perfilRico
+        self.checkinPorCodigo = checkinPorCodigo
+    }
+
+    /// Chave ausente vale `false` (contrato 0.2.54): um valor guardado antes de uma chave nova ainda se lê.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        fotoDePerfil = try c.decodeIfPresent(Bool.self, forKey: .fotoDePerfil) ?? false
+        chamadaDireta = try c.decodeIfPresent(Bool.self, forKey: .chamadaDireta) ?? false
+        perfilRico = try c.decodeIfPresent(Bool.self, forKey: .perfilRico) ?? false
+        checkinPorCodigo = try c.decodeIfPresent(Bool.self, forKey: .checkinPorCodigo) ?? false
     }
 
     public static let desligados = RecursosDoApp()

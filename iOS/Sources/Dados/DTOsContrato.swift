@@ -1476,22 +1476,108 @@ enum ContratoAPI {
         }
     }
 
+    /// O corpo de `fazer_checkin` (0.2.68): `RegistroDePresenca` mais os `sinais` opcionais. Sem `sinais`, a
+    /// chave nem vai, e o corpo é o de antes. O check-out continua com `RegistroDePresenca`.
+    struct RegistroDeCheckin: Encodable {
+        let presenca: RegistroDePresenca
+        let sinais: SinaisDoCheckinDTO?
+
+        func encode(to encoder: Encoder) throws {
+            try presenca.encode(to: encoder)
+            guard let sinais else { return }
+            var container = encoder.container(keyedBy: ChaveDinamica.self)
+            try container.encode(sinais, forKey: ChaveDinamica(stringValue: "sinais")!)
+        }
+    }
+
+    /// `SinaisDoCheckin`: os três campos são obrigatórios, e `precisao_m` aceita nulo (vai como `null`).
+    struct SinaisDoCheckinDTO: Encodable {
+        let localizacaoSimulada: Bool
+        let precisaoMetros: Int?
+        let saltoDePosicao: Bool
+
+        init(_ sinais: SinaisDoCheckin) {
+            localizacaoSimulada = sinais.localizacaoSimulada
+            precisaoMetros = sinais.precisaoMetros
+            saltoDePosicao = sinais.saltoDePosicao
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case localizacaoSimulada = "localizacao_simulada"
+            case precisaoMetros = "precisao_m"
+            case saltoDePosicao = "salto_de_posicao"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(localizacaoSimulada, forKey: .localizacaoSimulada)
+            try container.encode(precisaoMetros, forKey: .precisaoMetros)
+            try container.encode(saltoDePosicao, forKey: .saltoDePosicao)
+        }
+    }
+
+    /// `validar_codigo_checkin`: `distancia_m` é obrigatório e aceita nulo, como no check-in.
+    struct ValidarCodigoDeCheckin: Encodable {
+        let turnoID: UUID
+        let codigo: String
+        let distanciaMetros: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case codigo
+            case turnoID = "turno_id"
+            case distanciaMetros = "distancia_m"
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(turnoID, forKey: .turnoID)
+            try container.encode(codigo, forKey: .codigo)
+            try container.encode(distanciaMetros, forKey: .distanciaMetros)
+        }
+    }
+
+    /// `CodigoDeCheckin`: o código em vigor, só para a casa. Nunca vai a log.
+    struct CodigoDeCheckinDTO: Decodable {
+        let turnoID: UUID
+        let codigo: String
+        let expiraEm: Date
+        let segundosRestantes: Int
+
+        enum CodingKeys: String, CodingKey {
+            case codigo
+            case turnoID = "turno_id"
+            case expiraEm = "expira_em"
+            case segundosRestantes = "segundos_restantes"
+        }
+
+        func dominio() -> CodigoDeCheckin {
+            CodigoDeCheckin(turnoID: turnoID, codigo: codigo, expiraEm: expiraEm, segundosRestantes: segundosRestantes)
+        }
+    }
+
     struct ResultadoRegistroDTO: Decodable {
         let turnoID: UUID
         let tipo: TipoRegistro
         let verificacao: Verificacao
         let registradoEm: Date
         let distanciaMetros: Int?
+        let codigoExigido: Bool?
+        let codigoDisponivel: Bool?
 
         enum CodingKeys: String, CodingKey {
             case tipo, verificacao
             case turnoID = "turno_id"
             case registradoEm = "registrado_em"
             case distanciaMetros = "distancia_m"
+            case codigoExigido = "codigo_exigido"
+            case codigoDisponivel = "codigo_disponivel"
         }
 
         func dominio() -> ResultadoRegistro {
-            ResultadoRegistro(turnoID: turnoID, tipo: tipo, verificacao: verificacao, registradoEm: registradoEm, distanciaMetros: distanciaMetros)
+            ResultadoRegistro(
+                turnoID: turnoID, tipo: tipo, verificacao: verificacao, registradoEm: registradoEm,
+                distanciaMetros: distanciaMetros, codigoExigido: codigoExigido ?? false, codigoDisponivel: codigoDisponivel ?? false
+            )
         }
     }
 
@@ -1932,18 +2018,21 @@ enum ContratoAPI {
         let fotoDePerfil: Bool?
         let chamadaDireta: Bool?
         let perfilRico: Bool?
+        let checkinPorCodigo: Bool?
 
         enum CodingKeys: String, CodingKey {
             case fotoDePerfil = "foto_de_perfil"
             case chamadaDireta = "chamada_direta"
             case perfilRico = "perfil_rico"
+            case checkinPorCodigo = "checkin_por_codigo"
         }
 
         func dominio() -> RecursosDoApp {
             RecursosDoApp(
                 fotoDePerfil: fotoDePerfil ?? false,
                 chamadaDireta: chamadaDireta ?? false,
-                perfilRico: perfilRico ?? false
+                perfilRico: perfilRico ?? false,
+                checkinPorCodigo: checkinPorCodigo ?? false
             )
         }
     }

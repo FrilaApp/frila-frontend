@@ -23,6 +23,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case turnoNaoVerificado = "turno-nao-verificado"
         /// Conta de contratante com o turno da casa (`82000000-…-0001`) encerrado como não verificado.
         case turnoNaoVerificadoContratante = "turno-nao-verificado-contratante"
+        /// Check-in por código (0.2.68), conta de profissional com um turno em andamento sem check-in e a chave
+        /// `checkin_por_codigo` ligada. O turno é o `24000000-…-0001`.
+        case checkinPorCodigo = "checkin-por-codigo"
+        /// Check-in por código, conta de contratante: o turno da casa tem o check-in manual pendente e a chave
+        /// ligada. Como `checkinManualPendente`, com o caminho do código aberto.
+        case checkinPorCodigoCasa = "checkin-por-codigo-casa"
+        /// Os cenários em que o check-in manual da casa espera confirmação.
+        var checkinManualPendente: Bool { self == .checkinManualPendente || self == .checkinPorCodigoCasa }
+        /// Os cenários com a chave `checkin_por_codigo` ligada.
+        var checkinPorCodigoLigado: Bool { self == .checkinPorCodigo || self == .checkinPorCodigoCasa }
         case sucesso = "success"
         case perfilRicoHabilitado = "perfil-rico-habilitado"
         case servicosVazios = "servicos-vazios"
@@ -320,6 +330,28 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var reaberturasPorAtraso: [UUID: ResultadoCancelamento] = [:]
     /// Quando o contratante confirmou o check-in manual (contrato 0.2.31).
     private var confirmacoesDeCheckin: [UUID: Date] = [:]
+    /// O código de check-in em vigor de cada turno, como o estado do servidor (0.2.68). Só a casa o vê.
+    private var codigosDeCheckin: [UUID: CodigoEmitido] = [:]
+    /// Tentativas erradas por turno: o contador é do servidor, e código novo não o zera.
+    private var tentativasErradasDoCodigo: [UUID: Int] = [:]
+    private var bloqueioTemporarioDoCodigoAte: [UUID: Date] = [:]
+    private var caminhoDoCodigoEncerrado: Set<UUID> = []
+    private var codigosEmitidos = 0
+    /// Os `sinais` do último `fazer_checkin` e quantas validações chegaram: os testes conferem o que saiu.
+    public private(set) var sinaisDoUltimoCheckin: SinaisDoCheckin?
+    public private(set) var chamadasAValidarCodigo = 0
+
+    private struct CodigoEmitido {
+        let codigo: String
+        let expiraEm: Date
+    }
+
+    /// Validade do código e do bloqueio temporário: o tempo configurado do servidor (hoje 5 minutos).
+    public static let validadeDoCodigoDeCheckin: TimeInterval = 300
+    /// Os códigos que o dublê emite, em sequência (o primeiro é o do exemplo do contrato).
+    public static let codigosDeExemplo = ["482913", "739104", "205867", "916342"]
+    /// O limiar de precisão ruim do servidor ainda é decisão do backend; o dublê usa o do app (100 m).
+    private static let precisaoRuimNoDuble = 100
     /// Detalhe do cancelamento por posição (contrato 0.2.31).
     private var cancelamentosPorPosicao: [UUID: CancelamentoDaPosicao] = [:]
     /// Resultado e autor original: só o mesmo autor pode repetir sem efeitos (0.2.35).
@@ -374,7 +406,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 recursos: RecursosDoApp(
                     fotoDePerfil: cenario.fotoDePerfilLigada,
                     chamadaDireta: cenario.deChamada || cenario == .chamadaRecebida,
-                    perfilRico: perfilRicoHabilitado
+                    perfilRico: perfilRicoHabilitado,
+                    checkinPorCodigo: cenario.checkinPorCodigoLigado
                 )
             )
             midias = Self.midiasIniciais(cenario, agora: relogio.agora)
@@ -391,7 +424,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede || cenario == .turnoNaoVerificadoContratante {
+                if cenario == .contratante || cenario.checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede || cenario == .turnoNaoVerificadoContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -453,7 +486,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
                 let ateInicio: TimeInterval = switch cenario {
                 case .alertaVagaVazia: 2 * 60 * 60
-                case .checkinManualPendente, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
+                case .checkinManualPendente, .checkinPorCodigoCasa, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
                 #if DEBUG
@@ -477,7 +510,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
-            if cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
+            if cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario.checkinManualPendente || cenario == .atrasoNoTurno
                 || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante
                 || cenario == .turnoNaoVerificadoContratante,
                 let vaga = self.vagas.first {
@@ -514,7 +547,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                             turnoID: turnoID, tipo: .manual, verificacao: .naoVerificado,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
                         )
-                    } else if cenario == .checkinManualPendente {
+                    } else if cenario.checkinManualPendente {
                         checkins[turnoID] = ResultadoRegistro(
                             turnoID: turnoID, tipo: .manual, verificacao: .pendente,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
@@ -726,6 +759,23 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 contatos[turnoID] = contato
                 checkins[turnoID] = ResultadoRegistro(turnoID: turnoID, tipo: .manual, verificacao: .naoVerificado,
                                                       registradoEm: checkin.instante, distanciaMetros: nil)
+            }
+            if cenario == .checkinPorCodigo, let vaga = self.vagas.first {
+                // Turno que começou há 10 minutos, sem check-in: o profissional faz o check-in e, pendente,
+                // lê o código da casa (0.2.68).
+                let turnoID = UUID(uuidString: "24000000-0000-0000-0000-000000000001")!
+                let inicio = relogio.agora.addingTimeInterval(-10 * 60)
+                let resumo = VagaResumo(id: vaga.id, funcao: vaga.funcao.nome, local: vaga.local,
+                                        regiaoAdministrativa: vaga.regiaoAdministrativa,
+                                        periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(6 * 3600)), valor: vaga.valor)
+                let contato = Contato(nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone,
+                                      whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: inicio.addingTimeInterval(7 * 24 * 3600))
+                turnos = [Turno(
+                    id: turnoID, posicaoID: UUID(uuidString: "24000000-0000-0000-0000-000000000002")!, vaga: resumo,
+                    contraparte: vaga.estabelecimento, contatoVisivelAte: contato.visivelAte, verificacao: .pendente,
+                    valorAcordado: vaga.valor, podeAvaliar: false, contato: contato
+                )]
+                contatos[turnoID] = contato
             }
             if cenario == .chamadaRecebida || cenario == .chamadasEnviadas, let vaga = self.vagas.first {
                 let agora = relogio.agora
@@ -2153,19 +2203,37 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// até 200 m é `geolocalizado` e `verificado`, acima disso ou sem distância é `manual` e
     /// `pendente`, e o manual não guarda a distância.
     public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro {
+        try await fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm, sinais: nil)
+    }
+
+    /// Com a chave `checkin_por_codigo` ligada e um sinal suspeito (localização simulada, precisão ruim,
+    /// salto de posição ou distância entre 150 e 200 m), a distância de até 200 m não verifica: o check-in
+    /// fica `manual` e `pendente`, com `codigo_exigido`. Precisão nula não é ruim. Sem `sinais`, ou com a
+    /// chave desligada, é o check-in de antes. A janela de 60 minutos o dublê não confere.
+    public func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, sinais: SinaisDoCheckin?) async throws -> ResultadoRegistro {
         try verificarFalhaGeral()
         if turnosCancelados.contains(where: { $0.id == turnoID }) {
             throw erro("vaga_encerrada", detalhes: "posicao_cancelada")
         }
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
-        if let gravado = checkins[turnoID] { return gravado }
+        if let gravado = checkins[turnoID] {
+            // O reenvio devolve o registro, com `codigo_disponivel` do estado do momento.
+            return comCodigoDisponivel(gravado)
+        }
         try validarRegistro(distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+        let chaveLigada = recursosEfetivos.checkinPorCodigo
+        if chaveLigada { sinaisDoUltimoCheckin = sinais }
+        let sinalSuspeito = sinais.map(Self.sinalSuspeito) ?? false
+        let faixaSuspeita = distanciaMetros.map { $0 > 150 && $0 <= 200 } ?? false
+        let suspeito = chaveLigada && (sinalSuspeito || faixaSuspeita)
         let perto = distanciaMetros.map { $0 <= 200 } ?? false
-        let registro = ResultadoRegistro(
-            turnoID: turnoID, tipo: perto ? .geolocalizado : .manual, verificacao: perto ? .verificado : .pendente,
-            registradoEm: registradoEm, distanciaMetros: perto ? distanciaMetros : nil
+        let verificaPeloGPS = perto && !suspeito
+        let gravado = ResultadoRegistro(
+            turnoID: turnoID, tipo: verificaPeloGPS ? .geolocalizado : .manual, verificacao: verificaPeloGPS ? .verificado : .pendente,
+            registradoEm: registradoEm, distanciaMetros: verificaPeloGPS ? distanciaMetros : nil, codigoExigido: suspeito
         )
-        checkins[turnoID] = registro
+        checkins[turnoID] = gravado
+        let registro = comCodigoDisponivel(gravado)
         atualizarTurnoAposPresenca(turnoID: turnoID)
         return registro
     }
@@ -2281,6 +2349,105 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         atualizarTurnoAposPresenca(turnoID: turnoID)
         return confirmado
+    }
+
+    // MARK: Check-in por código (contrato 0.2.68)
+
+    /// Os recursos em vigor: o que o teste definiu, ou o do cenário.
+    private var recursosEfetivos: RecursosDoApp { recursosConfigurados ?? configuracao.recursos }
+
+    /// O que o aparelho mandou que pesa como suspeito: localização simulada, salto de posição ou precisão
+    /// ruim. Precisão nula não é ruim (regra do João Paulo, 08/11/2026).
+    private static func sinalSuspeito(_ sinais: SinaisDoCheckin) -> Bool {
+        sinais.localizacaoSimulada || sinais.saltoDePosicao || (sinais.precisaoMetros.map { $0 > precisaoRuimNoDuble } ?? false)
+    }
+
+    /// `codigo_disponivel`: presença pendente, chave ligada e caminho do código não encerrado.
+    private func comCodigoDisponivel(_ registro: ResultadoRegistro) -> ResultadoRegistro {
+        let disponivel = registro.verificacao == .pendente && recursosEfetivos.checkinPorCodigo
+            && !caminhoDoCodigoEncerrado.contains(registro.turnoID)
+        return ResultadoRegistro(
+            turnoID: registro.turnoID, tipo: registro.tipo, verificacao: registro.verificacao,
+            registradoEm: registro.registradoEm, distanciaMetros: registro.distanciaMetros,
+            codigoExigido: registro.codigoExigido, codigoDisponivel: disponivel
+        )
+    }
+
+    private func codigoEmVigor(turnoID: UUID) -> CodigoEmitido? {
+        codigosDeCheckin[turnoID].flatMap { $0.expiraEm > relogio.agora ? $0 : nil }
+    }
+
+    /// Segue `gerar_codigo_checkin` (0.2.68): quem não é da casa é `403 sem_permissao`; chave desligada,
+    /// `403 recurso_desligado` sem tocar em dado; turno que não existe, `404`; sem check-in, `409
+    /// checkin_pendente`; presença já verificada, `409 checkin_ja_confirmado`; caminho encerrado, `409
+    /// codigo_bloqueado` (`encerrado`). Dentro da validade devolve o mesmo código; vencido, um novo. O
+    /// bloqueio temporário não impede a casa de gerar, e código novo não zera as tentativas. Diferenças
+    /// declaradas: a janela de 60 minutos e o bloqueio entre as partes o dublê não confere.
+    public func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin {
+        try verificarFalhaGeral()
+        guard let conta, conta.perfil == .contratante else { throw erro("sem_permissao") }
+        guard recursosEfetivos.checkinPorCodigo else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }
+        guard checkin.verificacao == .pendente else { throw erro("checkin_ja_confirmado") }
+        guard !caminhoDoCodigoEncerrado.contains(turnoID) else { throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue) }
+        let vigente = codigoEmVigor(turnoID: turnoID) ?? {
+            let emitido = CodigoEmitido(
+                codigo: Self.codigosDeExemplo[codigosEmitidos % Self.codigosDeExemplo.count],
+                expiraEm: relogio.agora.addingTimeInterval(Self.validadeDoCodigoDeCheckin)
+            )
+            codigosEmitidos += 1
+            codigosDeCheckin[turnoID] = emitido
+            return emitido
+        }()
+        let restantes = max(0, Int(vigente.expiraEm.timeIntervalSince(relogio.agora).rounded(.down)))
+        return CodigoDeCheckin(turnoID: turnoID, codigo: vigente.codigo, expiraEm: vigente.expiraEm, segundosRestantes: min(restantes, 300))
+    }
+
+    /// Segue `validar_codigo_checkin` (0.2.68). Ordem das recusas: conta de contratante, `422
+    /// perfil_incompativel`; chave desligada, `403 recurso_desligado` sem contar tentativa; código fora do
+    /// formato de 6 dígitos, `422 campo_invalido` sem contar; turno que não existe, `404`; sem check-in,
+    /// `409 checkin_pendente`; presença já verificada, `409 checkin_ja_confirmado`; caminho encerrado, `409
+    /// codigo_bloqueado` (`encerrado`); bloqueio temporário em vigor, `409 codigo_bloqueado` (`temporario`).
+    /// Código certo, em vigor e com `distancia_m` de até 100 m (ou nula, que o servidor marca de confiança
+    /// baixa): `tipo: codigo`, verificado, uso único. Qualquer outro caso é `422 codigo_invalido` e conta
+    /// como tentativa errada: a terceira já responde `temporario`, e a sexta, `encerrado`.
+    public func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro {
+        chamadasAValidarCodigo += 1
+        try verificarFalhaGeral()
+        guard let conta, conta.perfil == .profissional else { throw erro("perfil_incompativel") }
+        guard recursosEfetivos.checkinPorCodigo else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+        guard codigo.count == 6, codigo.allSatisfy({ $0.isASCII && $0.isNumber }) else { throw erro("campo_invalido", detalhes: "codigo") }
+        guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
+        guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }
+        guard checkin.verificacao == .pendente else { throw erro("checkin_ja_confirmado") }
+        guard !caminhoDoCodigoEncerrado.contains(turnoID) else { throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue) }
+        if let ate = bloqueioTemporarioDoCodigoAte[turnoID], ate > relogio.agora {
+            throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.temporario.rawValue)
+        }
+        let perto = distanciaMetros.map { $0 <= RegraDePresenca.raioDoCodigoMetros } ?? true
+        if let vigente = codigoEmVigor(turnoID: turnoID), vigente.codigo == codigo, perto {
+            let validado = ResultadoRegistro(
+                turnoID: turnoID, tipo: .codigo, verificacao: .verificado,
+                registradoEm: checkin.registradoEm, distanciaMetros: nil
+            )
+            checkins[turnoID] = validado
+            confirmacoesDeCheckin[turnoID] = relogio.agora
+            codigosDeCheckin[turnoID] = nil
+            atualizarTurnoAposPresenca(turnoID: turnoID)
+            return validado
+        }
+        let erradas = (tentativasErradasDoCodigo[turnoID] ?? 0) + 1
+        tentativasErradasDoCodigo[turnoID] = erradas
+        if erradas >= 6 {
+            caminhoDoCodigoEncerrado.insert(turnoID)
+            throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue)
+        }
+        if erradas % 3 == 0 {
+            bloqueioTemporarioDoCodigoAte[turnoID] = relogio.agora.addingTimeInterval(Self.validadeDoCodigoDeCheckin)
+            throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.temporario.rawValue)
+        }
+        throw erro("codigo_invalido")
     }
 
     /// Segue `reabrir_por_atraso` do backend (`20260928220000_alerta_de_atraso_e_reabrir_por_atraso.sql`):
