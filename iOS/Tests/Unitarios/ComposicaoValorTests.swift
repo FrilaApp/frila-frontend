@@ -19,12 +19,13 @@ struct ComposicaoValorTests {
         #expect(partes.inteiro == inteiro)
         #expect(partes.centavos == centavos)
     }
-    @Test("Jost 600 embutida contém todos os glifos da composição")
+    @Test("Prodigy Sans 700 embutida contém todos os glifos da composição")
     @MainActor
     func fonteSemFallback() throws {
         FontesFrila.registrar()
-        let fonte = try #require(UIFont(name: "JostRoman-SemiBold", size: 26))
-        #expect(fonte.fontName == "JostRoman-SemiBold")
+        // O valor em dinheiro usa a Prodigy Sans (B-L0); o teste guarda a fonte que o `fonteValor` de fato pede.
+        let fonte = try #require(UIFont(name: FrilaTipo.nomeDaProdigy, size: 26))
+        #expect(fonte.fontName == FrilaTipo.nomeDaProdigy)
         let caracteres = Array("0123456789R$,. ".utf16)
         var glifos = [CGGlyph](repeating: 0, count: caracteres.count)
         #expect(CTFontGetGlyphsForCharacters(fonte as CTFont, caracteres, &glifos, caracteres.count))
