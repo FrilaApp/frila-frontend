@@ -59,9 +59,20 @@ final class CapturasLote1UITests: XCTestCase {
     }
 
     func testT2SemVagas() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_RELOGIO_AGORA", "2027-01-01T00:00:00Z"])
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "success"])
+        let botaoFiltro = app.buttons["filtro-abrir"]
+        XCTAssertTrue(botaoFiltro.waitForExistence(timeout: 10))
+        botaoFiltro.tap()
+        let cozinheiro = app.buttons["Cozinheiro"]
+        if cozinheiro.waitForExistence(timeout: 5) {
+            cozinheiro.tap()
+        }
+        let aplicar = app.buttons["Aplicar filtros"]
+        if aplicar.waitForExistence(timeout: 5) {
+            aplicar.tap()
+        }
         let vazio = app.descendants(matching: .any)["vagas-vazio"]
-        XCTAssertTrue(vazio.waitForExistence(timeout: 10), "O estado sem vagas deve aparecer")
+        XCTAssertTrue(vazio.waitForExistence(timeout: 5), "O estado sem vagas deve aparecer")
         capturar("lote1-t2-sem-vagas")
     }
 
@@ -115,14 +126,14 @@ final class CapturasLote1UITests: XCTestCase {
     // MARK: - T1: Perfil Profissional
 
     func testT1PerfilPadrao() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "sem-perfil-profissional"])
         let perfil = app.descendants(matching: .any)["tela-perfil-profissional"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10), "O perfil profissional deve abrir")
         capturar("lote1-t1-perfil-padrao")
     }
 
     func testT1PerfilAX5() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"], ax5: true)
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "sem-perfil-profissional"], ax5: true)
         let perfil = app.descendants(matching: .any)["tela-perfil-profissional"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
         capturar("lote1-t1-perfil-ax5")
@@ -131,21 +142,21 @@ final class CapturasLote1UITests: XCTestCase {
     // MARK: - T1b: Escolher Funções
 
     func testT1bEscolherFuncoes() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "sem-perfil-profissional"])
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let busca = app.textFields["campo-buscar-funcao"]
+        let busca = app.descendants(matching: .textField)["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5), "A folha T1b de funções deve abrir")
         capturar("lote1-t1b-escolher-funcoes")
     }
 
     func testT1bSemResultado() {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "success", "-FRILA_ABRIR_PERFIL_PROFISSIONAL"])
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "sem-perfil-profissional"])
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let busca = app.textFields["campo-buscar-funcao"]
+        let busca = app.descendants(matching: .textField)["campo-buscar-funcao"]
         XCTAssertTrue(busca.waitForExistence(timeout: 5))
         busca.tap()
         busca.typeText("xyz999naoexiste")

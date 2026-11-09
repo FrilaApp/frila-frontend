@@ -439,15 +439,17 @@ public struct TelaDetalheVaga<Acao: View>: View {
                     }
                 }
 
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    Image(systemName: "tshirt")
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(width: 20, height: 20)
-                        .accessibilityHidden(true)
-                    Text("Traje: \(vaga.traje ?? "camisa preta e calça escura")", bundle: bundleApresentacao)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
+                if let traje = vaga.traje, !traje.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        Image(systemName: "tshirt")
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .frame(width: 20, height: 20)
+                            .accessibilityHidden(true)
+                        Text("Traje: \(traje)", bundle: bundleApresentacao)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                    }
                 }
             }
 
