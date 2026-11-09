@@ -157,10 +157,11 @@ final class CapturasLote1UITests: XCTestCase {
         let expandir = app.buttons["botao-expandir-funcoes"]
         XCTAssertTrue(expandir.waitForExistence(timeout: 10))
         expandir.tap()
-        let busca = app.textFields["campo-buscar-funcao"]
-        let buscaAny = app.descendants(matching: .any)["campo-buscar-funcao"]
-        let campo = busca.exists ? busca : buscaAny
-        XCTAssertTrue(campo.waitForExistence(timeout: 5))
+        let tela = app.descendants(matching: .any)["tela-escolher-funcoes"]
+        XCTAssertTrue(tela.waitForExistence(timeout: 5), "A tela de escolher funções deve abrir")
+        
+        let campo = app.textFields["campo-buscar-funcao"].exists ? app.textFields["campo-buscar-funcao"] : app.textFields.firstMatch
+        XCTAssertTrue(campo.waitForExistence(timeout: 5), "O campo de busca deve existir")
         campo.tap()
         campo.typeText("xyz999naoexiste")
         let semResultado = app.descendants(matching: .any)["estado-sem-resultado-funcoes"]

@@ -880,6 +880,8 @@ private struct MonitoramentoFimDaRolagem: ViewModifier {
         if #available(iOS 18.0, *) {
             content
                 .onScrollGeometryChange(for: Bool.self) { geo in
+                    geo.contentSize.height > geo.containerSize.height + 20 &&
+                    geo.contentOffset.y > 40 &&
                     geo.contentOffset.y + geo.containerSize.height >= geo.contentSize.height - 48
                 } action: { _, noFim in
                     withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.24), reduzir: reduzirMovimento)) {
