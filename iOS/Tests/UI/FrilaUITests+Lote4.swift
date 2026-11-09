@@ -32,6 +32,7 @@ final class FrilaUITestsLote4: XCTestCase {
     func testT6bCodigoReal() {
         let app = XCUIApplication()
         app.launchArguments = [
+            "-FRILA_ENTRADA",
             "-FRILA_SCENARIO", "primeiro-acesso",
             "-FRILA_MODO_CLARO",
             "-AppleLanguages", "(pt-BR)",
@@ -42,8 +43,7 @@ final class FrilaUITestsLote4: XCTestCase {
 
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
-        email.tap()
-        email.typeText("ju.ramos@email.com")
+        email.digitarEEsperar("ju.ramos@email.com")
 
         let receber = app.buttons["entrada-receber-codigo"]
         if receber.waitForExistence(timeout: 5) {
@@ -58,6 +58,7 @@ final class FrilaUITestsLote4: XCTestCase {
     func testT6bCodigoRealAX5() {
         let app = XCUIApplication()
         app.launchArguments = [
+            "-FRILA_ENTRADA",
             "-FRILA_SCENARIO", "primeiro-acesso",
             "-FRILA_MODO_CLARO",
             "-AppleLanguages", "(pt-BR)",
@@ -69,13 +70,11 @@ final class FrilaUITestsLote4: XCTestCase {
 
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
+        app.swipeUp()
         email.tap()
-        email.typeText("ju.ramos@email.com")
+        email.digitarEEsperar("ju.ramos@email.com")
 
-        let receber = app.buttons["entrada-receber-codigo"]
-        if receber.waitForExistence(timeout: 5) {
-            receber.tap()
-        }
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))

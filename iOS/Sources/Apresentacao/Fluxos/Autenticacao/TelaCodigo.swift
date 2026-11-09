@@ -271,8 +271,8 @@ public struct TelaCodigo: View {
                     }
                     .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
                     .padding(.horizontal, FrilaEspaco.medio)
-                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    .contentShape(Capsule())
+                    .overlay(RoundedRectangle(cornerRadius: FrilaMetrica.alvoMinimo / 2, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .contentShape(RoundedRectangle(cornerRadius: FrilaMetrica.alvoMinimo / 2, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.carregando)
