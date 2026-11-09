@@ -84,6 +84,21 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Acompanhar chamadas"].exists)
     }
 
+    /// RN46: com a chave `chamada_direta` desligada depois que a vaga direta já existe, o detalhe não
+    /// leva ao Acompanhar, como as outras entradas da chamada direta (Lince AG, nit do #720).
+    func testSemAChaveODetalheDaVagaDiretaNaoLevaAoAcompanhar() {
+        let app = abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "chamadas-enviadas",
+                         "-FRILA_CHAMADA_DIRETA_DESLIGADA"])
+        let cartao = app.buttons["vaga-contratante-\(vagaComChamadaAberta)"]
+        XCTAssertTrue(cartao.waitForExistence(timeout: 15), "a vaga direta continua em Minhas vagas")
+        rolarAte(cartao, em: app)
+        cartao.tap()
+        let detalhe = app.descendants(matching: .any)["funcao-vaga-detalhe-\(vagaComChamadaAberta)"]
+        XCTAssertTrue(detalhe.waitForExistence(timeout: 10), "o detalhe da vaga direta abre")
+        XCTAssertFalse(app.buttons["acompanhar-chamadas-\(vagaComChamadaAberta)"].waitForExistence(timeout: 5),
+                       "com a chave desligada, o detalhe não oferece Acompanhar chamadas")
+    }
+
     // MARK: V11
 
     /// Enviada a chamada, a folha mostra o resumo, até quando o profissional responde e o caminho para
