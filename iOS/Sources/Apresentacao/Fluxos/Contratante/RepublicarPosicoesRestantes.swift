@@ -233,12 +233,12 @@ public struct BotaoRepublicarPosicoesRestantes: View {
                         .padding(.horizontal, FrilaEspaco.grande)
                         .padding(.vertical, FrilaEspaco.pequeno)
                         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
+                        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     }
                     .buttonStyle(.tatil)
                     .foregroundStyle(viewModel.carregando ? FrilaCor.textoSecundario : FrilaCor.sobreAcao)
-                    .background(viewModel.carregando ? FrilaCor.controle : FrilaCor.acao, in: Capsule())
-                    .overlay { if viewModel.carregando { Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
+                    .background(viewModel.carregando ? FrilaCor.controle : FrilaCor.acao, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .overlay { if viewModel.carregando { RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1) } }
                     .disabled(viewModel.carregando)
                     .accessibilityIdentifier(idAcessibilidade)
                 }
