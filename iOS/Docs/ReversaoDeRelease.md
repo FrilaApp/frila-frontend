@@ -60,7 +60,7 @@ Assim que um defeito impeditivo for confirmado (vazamento de dados, falha grave 
 - **Definição da tabela e RPC (fonte: `subir-versao-minima.md:39-49`):**
   - A tabela `privado.configuracao_app` possui RLS ativo sem políticas e permissões revogadas para `public`, `anon` e `authenticated`. Apenas operadores com papel administrativo (`postgres` ou `service_role`) podem alterá-la.
   - O banco aplica restrições `CHECK` de integridade (`versao_minima_formato`, `versao_recomendada_formato`, `recomendada_nao_abaixo_da_minima`, `url_da_loja_https` e `mensagem_nao_vazia`). A versão deve conter apenas números e pontos (ex.: `1.0.2`, nunca `v1.0.2`).
-  - A leitura é exposta sem sessão pela RPC pública `public.configuracao_do_app(text)` via PostgREST: `GET /rest/v1/rpc/configuracao_do_app?plataforma=ios`.
+  - A leitura é exposta sem sessão pela RPC pública `public.configuracao_do_app(plataforma, versao_app)` via PostgREST: `GET /rest/v1/rpc/configuracao_do_app?plataforma=ios`. Desde o contrato 0.2.65, `versao_app` é opcional e decide os `recursos` por versão; o app iOS manda a própria versão (`CFBundleShortVersionString`). O valor da versão mínima não depende dele.
 - **Efeito no app:** Os aparelhos que abrirem o app recebem a resposta da RPC e exibem a tela de bloqueio com botão de redirecionamento para a App Store. Aparelhos em uso offline só serão bloqueados na próxima tentativa com rede (fonte: `subir-versao-minima.md:5`).
 - **Comprovação em teste local (HTTP anônimo e SQL):**
   - Chamada HTTP sem sessão via PostgREST/Kong no ambiente local:
