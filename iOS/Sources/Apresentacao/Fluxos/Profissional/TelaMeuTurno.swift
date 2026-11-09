@@ -138,7 +138,9 @@ public struct TelaMeuTurno: View {
     }
 
     private var cabecalho: some View {
-        Text(verbatim: viewModel.cancelado ? TextosDoProfissional.Turnos.canceladoTitulo : TextosDoProfissional.Turnos.confirmadoTitulo)
+        Text(verbatim: viewModel.cancelado ? TextosDoProfissional.Turnos.canceladoTitulo
+             : viewModel.naoVerificado ? TextosDoProfissional.Turnos.naoVerificadoTitulo
+             : TextosDoProfissional.Turnos.confirmadoTitulo)
             .font(FrilaTipo.tituloGrande)
             .foregroundStyle(FrilaCor.texto)
             .padding(.horizontal, FrilaEspaco.minimo)

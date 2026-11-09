@@ -17,6 +17,15 @@ public enum TextosChamadaDireta {
     public static let recado = String(localized: "Recado opcional (até 300 caracteres)", bundle: bundleApresentacao)
     public static let recadoLongo = String(localized: "O recado deve ter até 300 caracteres.", bundle: bundleApresentacao)
     public static let sucesso = String(localized: "Chamada enviada. Aguarde a resposta do profissional.", bundle: bundleApresentacao)
+    // V11: o resumo da chamada enviada.
+    public static let resumoDaChamada = String(localized: "Resumo da chamada", bundle: bundleApresentacao)
+    public static let horario = String(localized: "Horário", bundle: bundleApresentacao)
+    public static func prazoDeResposta(_ quando: String) -> String {
+        String(localized: "O profissional tem até \(quando) para responder.", bundle: bundleApresentacao)
+    }
+    public static func intervalo(inicio: String, fim: String) -> String {
+        String(localized: "\(inicio) até \(fim)", bundle: bundleApresentacao)
+    }
     public static let j7Titulo = String(localized: "Confirme antes de chamar novamente", bundle: bundleApresentacao)
     public static let j7Mensagem = String(localized: "Esta é a terceira chamada à mesma pessoa em sete dias por uma casa de pessoa física. A contratação frequente pode caracterizar vínculo de emprego. O Frila não substitui as obrigações trabalhistas. Confirme que leu este aviso para continuar.", bundle: bundleApresentacao)
     public static let j7Confirmar = String(localized: "Li o aviso e confirmo a chamada", bundle: bundleApresentacao)
