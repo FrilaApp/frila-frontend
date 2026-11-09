@@ -109,12 +109,16 @@ public struct TelaMeusTurnos: View {
 
     private var turnosPrecisaDeVoce: [Turno] {
         viewModel.turnos.filter { turno in
-            !turno.cancelado && (turno.podeAvaliar || turno.verificacao == .naoVerificado)
+            turno != turnoHoje &&
+            !turno.cancelado &&
+            (turno.podeAvaliar || turno.verificacao == .naoVerificado)
         }
     }
 
     private var turnosProximos: [Turno] {
         viewModel.turnos.filter { turno in
+            turno != turnoHoje &&
+            !turnosPrecisaDeVoce.contains(turno) &&
             !turno.cancelado &&
             turno.estado != .cumprida &&
             turno.vaga.periodo.inicio > agora &&
@@ -124,7 +128,10 @@ public struct TelaMeusTurnos: View {
 
     private var turnosHistorico: [Turno] {
         viewModel.turnos.filter { turno in
-            turno.estado == .cumprida || (turno.vaga.periodo.fim < agora && turno.checkin != nil)
+            turno != turnoHoje &&
+            !turnosPrecisaDeVoce.contains(turno) &&
+            !turnosProximos.contains(turno) &&
+            (turno.estado == .cumprida || (turno.vaga.periodo.fim < agora && turno.checkin != nil))
         }
     }
 
