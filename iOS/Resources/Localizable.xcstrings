@@ -1634,6 +1634,17 @@
         }
       }
     },
+    "A vaga é por seleção.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A vaga é por seleção."
+          }
+        }
+      }
+    },
     "Aberta, ninguém aceitou ainda": {
       "extractionState": "stale",
       "localizations": {
@@ -13040,6 +13051,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Traje: %@"
+          }
+        }
+      }
+    },
+    "Traje: camisa preta e calça escura": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traje: camisa preta e calça escura"
           }
         }
       }

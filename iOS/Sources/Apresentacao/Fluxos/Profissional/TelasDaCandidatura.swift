@@ -14,6 +14,7 @@ public struct AreaDeCandidatura: View {
     /// Presente quando a área está presa ao rodapé do detalhe: o aviso vai para a rolagem.
     @Environment(AvisosDoDetalhe.self) private var quadro: AvisosDoDetalhe?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.noFimDaRolagem) private var estaNoFimDaRolagem
     private let api: (any ApiCliente)?
     private let candidatar: (CandidaturaViewModel) async -> Void
 
@@ -43,9 +44,30 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    precoView
-                    botaoView.frame(maxWidth: .infinity)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: estaNoFimDaRolagem ? FrilaEspaco.medio : 0) {
+                        if estaNoFimDaRolagem {
+                            precoEmColuna
+                        } else {
+                            precoEmColuna
+                                .frame(width: 0, height: 0)
+                                .opacity(0)
+                        }
+                        Spacer(minLength: 0)
+                        botaoView
+                            .frame(maxWidth: estaNoFimDaRolagem ? nil : .infinity)
+                            .frame(minWidth: estaNoFimDaRolagem ? 150 : nil)
+                    }
+                    VStack(alignment: .leading, spacing: estaNoFimDaRolagem ? FrilaEspaco.pequeno : 0) {
+                        if estaNoFimDaRolagem {
+                            precoEmColuna
+                        } else {
+                            precoEmColuna
+                                .frame(width: 0, height: 0)
+                                .opacity(0)
+                        }
+                        botaoView.frame(maxWidth: .infinity)
+                    }
                 }
 
                 if quadro == nil, let aviso, aviso.id != Self.idDaRetirada {

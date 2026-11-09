@@ -89,7 +89,7 @@ public struct TelaEscolherFuncoes: View {
     private var cabecalhoFixo: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text("Funções", bundle: bundleApresentacao)
-                .font(FrilaTipo.titulo)
+                .font(FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityAddTraits(.isHeader)
 
@@ -125,7 +125,7 @@ public struct TelaEscolherFuncoes: View {
             .overlay(Capsule().strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
 
             Text(verbatim: textoApoioContagem)
-                .font(FrilaTipo.apoio)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityLiveRegion(.polite)
         }
@@ -136,7 +136,7 @@ public struct TelaEscolherFuncoes: View {
     private var secaoMaisProcuradas: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text("Mais procuradas agora", bundle: bundleApresentacao)
-                .font(FrilaTipo.rotuloDeGrupo)
+                .font(FrilaTipo.corpo.weight(.semibold))
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
@@ -172,7 +172,7 @@ public struct TelaEscolherFuncoes: View {
             ForEach(grupos) { grupo in
                 VStack(alignment: .leading, spacing: 0) {
                     Text(verbatim: grupo.categoria)
-                        .font(FrilaTipo.rotuloDeGrupo)
+                        .font(FrilaTipo.corpo.weight(.semibold))
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .padding(.bottom, FrilaEspaco.pequeno)
                         .accessibilityAddTraits(.isHeader)
@@ -219,7 +219,7 @@ public struct TelaEscolherFuncoes: View {
                 .multilineTextAlignment(.center)
 
             Text("Tente outra busca.", bundle: bundleApresentacao)
-                .font(FrilaTipo.apoio)
+                .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .multilineTextAlignment(.center)
         }
