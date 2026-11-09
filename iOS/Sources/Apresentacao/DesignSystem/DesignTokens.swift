@@ -6,28 +6,33 @@ import UIKit
 public final class MarcadorApresentacao: NSObject {}
 public let bundleApresentacao = Bundle(for: MarcadorApresentacao.self)
 
-/// Cores do Hi-Fi do Fabrício (FrilaLowPhase). Cada token do `DesignSystem.xcassets` é o mesmo RGB de
-/// uma função do `FrilaColor` (`Primitivas/FrilaColorDesignTokens.swift`); `ParidadeDeCoresDesignTests`
-/// prova a igualdade. As telas antigas leem daqui; o Estúdio lê do `FrilaColor` com `isDark:`.
-/// Botão principal e pílulas neutras são a tinta (`dynamicTextInk`); a seleção da marca usa a terracota
-/// escura (`primarySelection`); a terracota viva (`marca`) é acento e botão de destaque, nunca fundo de tela.
+/// Cores da pele nova (protótipo, `tokens.css`; regras em `frila-branding/.../fabricio-redesign/DESIGN.md`).
+/// Cada token do `DesignSystem.xcassets` é o mesmo RGB de uma função do `FrilaColor`
+/// (`Primitivas/FrilaColorDesignTokens.swift`); `ParidadeDeCoresDesignTests` prova a igualdade. As telas
+/// leem daqui; o Estúdio lê do `FrilaColor` com `isDark:`.
+/// O fundo é o off-white `#F9F6F4` e o cartão é a superfície branca. A tinta (`primaria`) é o chip marcado e a
+/// pílula neutra; a `acao` (laranja `#F46700`) é só o botão primário e o estado ativo, no máximo uma por tela.
+/// O protótipo é só claro: o escuro mantém a lógica de antes (tinta invertida, superfícies #111111 e #171717),
+/// com a `acao` igual nos dois modos.
 public enum FrilaCor {
     private static let recursos = bundleApresentacao
-    /// Botão principal e pílula neutra ativa (`dynamicTextInk`): #090908 no claro, branco no escuro.
+    /// A tinta (`--cor-tinta`, `dynamicTextInk`): chip marcado e pílula neutra ativa. #111111 no claro, branco no escuro.
+    /// O botão primário da pele nova é a `acao`, não a tinta.
     public static let primaria = Color("BrandPrimary", bundle: recursos)
     /// Texto sobre `primaria`: a tela (`dynamicCanvas`).
     public static let sobrePrimaria = Color("BrandOnPrimary", bundle: recursos)
-    /// Terracota de seleção (`primarySelection`, #C9470F): filtro ativo, escolha confirmada.
+    /// Seleção: filtro ativo e escolha confirmada são a tinta com texto branco (DESIGN.md, Chip). #111111 no claro,
+    /// branco no escuro. Era a terracota `primarySelection` (#C9470F), que segue só no Estúdio de criação.
     public static let selecao = Color("BrandSelection", bundle: recursos)
-    /// Texto sobre `selecao`: branco nos dois modos (`dynamicBrandSolidText`).
+    /// Texto sobre `selecao`: branco no claro, #111111 no escuro (`dynamicOnInk`).
     public static let sobreSelecao = Color("BrandOnSelection", bundle: recursos)
-    /// Tela (`dynamicCanvas`): branco no claro, #111111 no escuro.
+    /// Fundo das telas (`--cor-fundo`, `dynamicCanvas`): #F9F6F4 no claro, #111111 no escuro.
     public static let fundo = Color("Surface", bundle: recursos)
     /// A cortina UIKit usa o mesmo fundo das telas SwiftUI, inclusive no modo escuro.
     static let fundoUIKit = UIColor(named: "Surface", in: recursos, compatibleWith: nil) ?? .systemBackground
-    /// Cartões e folhas sobre a tela (`dynamicFormCardSurface`): #FAFAFA / #171717.
+    /// Cartões, campos e folhas sobre o fundo (`--cor-superficie`, `dynamicFormCardSurface`): #FFFFFF / #171717.
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
-    /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`).
+    /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`): a superfície, #FFFFFF no claro.
     public static let superficieDoCampo = Color("FieldSurface", bundle: recursos)
     /// Fundo do dia com horário na faixa semanal: um passo acima do campo, para ler de relance sobre o cartão.
     /// Escuro #2E2E2E, claro #E6E6E4.
@@ -35,26 +40,40 @@ public enum FrilaCor {
         traits.userInterfaceStyle == .dark ? UIColor(red: 0x2E / 255, green: 0x2E / 255, blue: 0x2E / 255, alpha: 1)
                                            : UIColor(red: 0xE6 / 255, green: 0xE6 / 255, blue: 0xE4 / 255, alpha: 1)
     })
-    /// Fio de 1 pt dos campos (`dynamicFormFieldBorder`): 3:1 sobre a tela e sobre o cartão.
+    /// Fio de 1 pt dos campos (`--cor-borda-controle`, `dynamicFormFieldBorder`, #918F8A): 3:1 sobre o fundo.
     public static let bordaDoCampo = Color("FieldBorder", bundle: recursos)
     public static let texto = Color("TextPrimary", bundle: recursos)
     /// O mesmo token para o UIKit, pelo catálogo: segue claro e escuro sozinho.
     static let textoUIKit = UIColor(named: "TextPrimary", in: recursos, compatibleWith: nil) ?? .label
     static let marcaUIKit = UIColor(named: "BrandAccent", in: recursos, compatibleWith: nil) ?? .systemOrange
-    /// Texto de apoio (`dynamicFormTextMuted`, #6B6B6B): 5,1:1 sobre o cartão; o `dynamicTextMuted` da origem (#767571) ficava em 4,4:1.
+    /// Texto de apoio (`--cor-tinta-suave`, `dynamicFormTextMuted`, #5A5A58): mais de 6:1 sobre o fundo e sobre o cartão.
     public static let textoSecundario = Color("TextSecondary", bundle: recursos)
     public static let sucesso = Color("Success", bundle: recursos)
     public static let alerta = Color("Warning", bundle: recursos)
     public static let perigo = Color("Danger", bundle: recursos)
-    /// Terracota da marca (`dynamicBrandAccent`, #EA5A36). Acento e botão de destaque do Estúdio (texto grande); nunca texto corrido.
+    /// Acento da marca (`dynamicBrandAccent`): na pele nova é a `acao`, #F46700 nos dois modos (era a terracota #EA5A36).
+    /// Sobre o fundo dá 2,9:1: serve de preenchimento e ícone grande, nunca de texto nem de único sinal de estado.
     public static let marca = Color("BrandAccent", bundle: recursos)
-    /// Quente da identidade (`statement/identidade.md`, 500, #F16A00), o mesmo nos dois modos. A identidade o decide como cor da marca; o app ainda usa `marca` (#EA5A36) e `selecao` (#C9470F) nos demais lugares. Hoje só o estado vazio das funções o usa.
+    /// O mesmo laranja da `acao` (era #F16A00). Mantido pelo nome que o estado vazio das funções já usa.
     public static let quente = Color("BrandQuente", bundle: recursos)
-    /// Preenchimento de controle e de aviso neutro (`dynamicInputBg`).
+    /// A ação (`--cor-acao`, #F46700): botão primário e estado ativo, só para ação. Branco sobre ela (`sobreAcao`) passa a
+    /// 3,1:1, o que vale só para rótulo em negrito de 19 pt ou mais. No máximo um botão laranja por tela.
+    public static let acao = Color("BrandAccent", bundle: recursos)
+    /// Texto sobre a `acao`: branco nos dois modos (`--cor-sobre-acao`).
+    public static let sobreAcao = Color("BrandOnAction", bundle: recursos)
+    /// Selo de turno confirmado e "você foi escolhida" (`--cor-destaque-amarelo`, #FCEB36). Só preenchimento, com `sobreDestaque`.
+    public static let destaqueAmarelo = Color("HighlightYellow", bundle: recursos)
+    /// Selo de urgência (`--cor-destaque-roxo`, #9D47F5), com texto branco (4,5:1).
+    public static let destaqueRoxo = Color("HighlightPurple", bundle: recursos)
+    /// Tinta fixa sobre o `destaqueAmarelo` (#111111 nos dois modos): o fundo amarelo não escurece no modo escuro.
+    public static let sobreDestaque = Color("OnHighlight", bundle: recursos)
+    /// Fio superior do rodapé fixo (`--cor-borda-nav`, #EBE9E2).
+    public static let bordaDaNavegacao = Color("NavBorder", bundle: recursos)
+    /// Preenchimento de controle e de aviso neutro (`dynamicInputBg`, #F1EEEA): um passo abaixo do fundo.
     public static let controle = Color("ControlFill", bundle: recursos)
-    /// Fio de 1 pt de cartões e divisórias (`dynamicHairline`).
+    /// Fio de 1 pt de cartões e divisórias (`--cor-borda`, `dynamicHairline`, #E5E3DD).
     public static let divisoria = Color("Hairline", bundle: recursos)
-    /// Contorno de chip inativo e botão de contorno (`dynamicBorder`). Campo usa `bordaDoCampo`.
+    /// Contorno de chip inativo e botão de contorno (`--cor-borda`, `dynamicBorder`). Campo usa `bordaDoCampo`.
     public static let borda = Color("ControlBorder", bundle: recursos)
     /// Puxador das folhas.
     public static let puxador = Color("SheetGrabber", bundle: recursos)
@@ -74,14 +93,19 @@ public enum FrilaEspaco {
     public static let enorme: CGFloat = 32
 }
 
-/// Raios do Hi-Fi (`FrilaGeometry`): 8 aninhado, 14 campo, 16 cartão, 24 folha; botões são sempre cápsula.
+/// Raios da pele nova (`FrilaGeometry`, de `tokens.css`): 10 selo, 16 campo, 20 interno, 30 cartão, 24 folha;
+/// o que se toca (botão, chip) é sempre cápsula. Cantos sempre contínuos (`style: .continuous`).
 public enum FrilaRaio {
-    /// Elemento aninhado dentro de um cartão (`radiusNested`).
+    /// Selo de status e elemento aninhado pequeno (`radiusNested`, `--raio-selo`).
     public static let pequeno: CGFloat = FrilaGeometry.radiusNested
+    /// Selo de status (`--raio-selo`): o mesmo valor de `pequeno`, com o nome do protótipo.
+    public static let selo: CGFloat = FrilaGeometry.radiusNested
+    /// Elemento dentro de um cartão (`radiusInner`, `--raio-interno`).
+    public static let interno: CGFloat = FrilaGeometry.radiusInner
     /// Campo de formulário (`radiusInput`).
     public static let entrada: CGFloat = FrilaGeometry.radiusInput
     public static let medio: CGFloat = FrilaGeometry.radiusInput
-    /// Cartão (`radiusCard`).
+    /// Cartão (`radiusCard`, `--raio-card`).
     public static let cartao: CGFloat = FrilaGeometry.radiusCard
     /// Avisos e blocos de informação: o mesmo raio do cartão.
     public static let aviso: CGFloat = FrilaGeometry.radiusCard
@@ -104,16 +128,27 @@ public enum FrilaMetrica {
 /// Tipografia. Os papéis das telas leem a escala Minor Third da origem (`FrilaTypeScaleStep`: 11/13/15/18/22/26/32)
 /// e as specs do paradigma Swiss (`FrilaTypography`: display, title, placard, entity, body, caption, micro, metric),
 /// sempre com Dynamic Type (`FrilaFonteDoSistema.fonte` mede pelo estilo mais próximo). A Bricolage Grotesque é a voz
-/// das perguntas e respostas dos formulários (`FrilaFormType`); valores monetários usam Jost 600 (LOG-016).
+/// das perguntas e respostas dos formulários (`FrilaFormType`).
+/// A **Prodigy Sans 700** (OFL 1.1) é a voz da marca da pele nova, e só aparece em dois papéis: o título da tela
+/// (`tituloDaTela`) e o valor em dinheiro principal (`fonteValor`, `valorEmDestaque`, `valorDoRodape`). O resto é a fonte do sistema.
 public enum FrilaTipo {
-    /// LOG-016: Jost 600; preserva a curva de tamanho de texto dos papéis nativos.
-    public static func fonteValor(tamanho: CGFloat, peso: Font.Weight = .semibold) -> Font {
+    /// Nome PostScript da Prodigy Sans Bold (arquivo `Resources/Fonts/ProdigySans-Bold.ttf`).
+    public static let nomeDaProdigy = "ProdigySans-Bold"
+
+    /// Prodigy Sans 700 no tamanho de design, que cresce com o Dynamic Type do estilo `relativeTo`.
+    public static func prodigy(tamanho: CGFloat, relativeTo estilo: Font.TextStyle) -> Font {
         FontesFrila.registrar()
-        return Font.custom(nomeFonteValor(peso), size: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
+        return Font.custom(nomeDaProdigy, size: tamanho, relativeTo: estilo)
+    }
+
+    /// Valor em dinheiro principal: Prodigy Sans 700 (era Jost 600, LOG-016). A fonte só tem o peso 700, então `peso`
+    /// é aceito só para não quebrar quem chama; preserva a curva de tamanho de texto dos papéis nativos.
+    public static func fonteValor(tamanho: CGFloat, peso: Font.Weight = .bold) -> Font {
+        prodigy(tamanho: tamanho, relativeTo: FrilaTypeScaleStep.nearest(to: tamanho).textStyle)
     }
 
     private static func nomeFonteValor(_ peso: Font.Weight) -> String {
-        peso == .bold ? "JostRoman-Bold" : "JostRoman-SemiBold"
+        nomeDaProdigy
     }
 
     /// Tinta real dos três trechos sobre a mesma linha de base, sem a entrelinha da fonte.
@@ -129,8 +164,14 @@ public enum FrilaTipo {
         return limites.isNull ? .zero : limites
     }
 
-    /// Título da tela fora da barra: display 32 heavy, tracking −0.8 (`FrilaTypography.display`).
-    public static let tituloGrande = FrilaTypography.display
+    /// Título da tela: Prodigy Sans 700, 24 pt, acompanha `.title2` (`--texto-titulo`).
+    public static var tituloDaTela: Font { prodigy(tamanho: 24, relativeTo: .title2) }
+    /// Título da tela fora da barra: o mesmo `tituloDaTela` (era display 32 heavy, `FrilaTypography.display`).
+    public static var tituloGrande: Font { tituloDaTela }
+    /// Valor em dinheiro do card (o maior texto do card): Prodigy Sans 700, 28 pt, acompanha `.title` (`--texto-destaque`).
+    public static var valorEmDestaque: Font { prodigy(tamanho: 28, relativeTo: .title) }
+    /// Valor do rodapé fixo: Prodigy Sans 700, 20 pt, acompanha `.title3` (`--texto-rotulo`).
+    public static var valorDoRodape: Font { prodigy(tamanho: 20, relativeTo: .title3) }
     /// Cabeçalho de seção ("Abertas", "Seus dados"): title 22 bold (`FrilaTypography.title`).
     public static let secao = FrilaTypography.title
     /// Título da placa aberta (função no detalhe da vaga): titleLarge 26 bold, tracking −0.5,
@@ -146,8 +187,8 @@ public enum FrilaTipo {
     public static let chip = FrilaTypography.captionBold
     /// Título do cartão (placa de museu): placard 18 medium.
     public static let tituloDoCartao = FrilaTypography.placard
-    /// Corpo de leitura: body 15 regular.
-    public static let corpo = FrilaTypography.body
+    /// Corpo de leitura: 16 pt, o `.callout` (`--texto-corpo`). O `Text` sem estilo sai em 17, então declare esta fonte.
+    public static let corpo = Font.callout
     /// Meta e apoio (linhas de dados, contatos, endereço): 15 regular, o mesmo degrau `body` da escala,
     /// em `.subheadline` para manter a curva de Dynamic Type que os testes de acessibilidade do perfil
     /// e do turno fixam (caption 13 encolhia o contato e o endereço em AX5). Legendas curtas usam `nota`.
@@ -168,6 +209,11 @@ public enum FrilaTipo {
     public static let botao = FrilaTypography.sans(size: FrilaTypeScaleStep.placard.pointSize, weight: .bold)
     /// Rótulo do botão padrão (44 pt) e dos chips: SF Pro Semibold 15 (`FrilaTypography.button`).
     public static let botaoPadrao = FrilaTypography.button
+    /// Rótulo do botão primário: sistema 700, 20 pt, acompanha `.title3` (`--texto-rotulo`). Branco sobre a `acao`
+    /// só passa em negrito de 19 pt ou mais; com Dynamic Type o tamanho só cresce.
+    public static let botaoPrimario = Font.title3.weight(.bold)
+    /// Rótulo do botão secundário e valor escrito: sistema 600, 16 pt (`.callout`).
+    public static let rotuloSecundario = Font.callout.weight(.semibold)
     /// Rótulo sobre o laranja: branco em negrito de pelo menos 19 (`statement/identidade.md`, regras do botão).
     public static let botaoSobreQuente = FrilaTypography.sans(size: 19, weight: .bold)
 
@@ -183,11 +229,12 @@ public enum FrilaTipo {
 
 /// Registra as fontes do bundle no processo, uma vez. Se falhar, o `Font.custom` cai na fonte do sistema.
 /// Bricolage Grotesque (OFL 1.1, `Resources/Fonts`): Regular, Medium, Bold e ExtraBold, os quatro pesos do Hi-Fi.
+/// Prodigy Sans Bold (OFL 1.1, mesma pasta): título da tela e valor em dinheiro principal.
 public enum FontesFrila {
     public static let nomes = ["BricolageGrotesque-Regular", "BricolageGrotesque-Medium", "BricolageGrotesque-Bold", "BricolageGrotesque-ExtraBold"]
 
     static let registradas: Void = {
-        for nome in nomes + ["Jost"] {
+        for nome in nomes + ["Jost", FrilaTipo.nomeDaProdigy] {
             guard let url = bundleApresentacao.url(forResource: nome, withExtension: "ttf") else { continue }
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }
@@ -209,6 +256,8 @@ public enum FrilaMovimento {
     public static let molaTatil: Animation = FrilaMotion.tactileSpring
     /// Mola dos chips (380/24): `FrilaMotion.chipPressSpring`.
     public static let molaTatilChip: Animation = FrilaMotion.chipPressSpring
+    /// Troca de estado de botão e chip (habilitado, desabilitado, marcado): 120 ms, sem mola. Passe por `animacao(_:reduzir:)`.
+    public static let transicaoDeEstado: Animation = .easeOut(duration: 0.12)
 
     /// `somenteOpacidade` é para quem garante que, sob Reduzir Movimento, a transação só muda opacidade.
     public static func animacao(_ animacao: Animation = .default, reduzir: Bool, somenteOpacidade: Bool = false) -> Animation? {
@@ -240,11 +289,16 @@ public enum FrilaElevacao: String, Sendable, CaseIterable, Equatable {
     case sutil
     /// Elevação de folha modal e doca inferior em 3 camadas (rim: 2pt, key: 12pt, ambient: 28pt).
     case folha
+    /// Sombra suave do protótipo (`--sombra-suave`): uma camada de tinta a 12%, y 4, raio 16. Só no card de vaga em destaque.
+    case suave
 
     public func camadas(escuro: Bool) -> [CamadaDeSombra] {
         switch self {
         case .nenhuma:
             return []
+        case .suave:
+            // Tinta (#111111) a 12% no claro; no escuro a sombra some contra o fundo, então vai a preto, mais densa.
+            return [CamadaDeSombra(cor: escuro ? Color.black.opacity(0.36) : FrilaColor.dynamicTextInk(isDark: false).opacity(0.12), raio: 16, x: 0, y: 4)]
         case .sutil:
             if escuro {
                 return [
@@ -293,6 +347,8 @@ public struct ModificadorElevacaoFrila: ViewModifier {
         switch elevacao {
         case .nenhuma:
             content
+        case .suave:
+            content.shadow(color: c[0].cor, radius: c[0].raio, x: c[0].x, y: c[0].y)
         case .sutil, .folha:
             content
                 .shadow(color: c[0].cor, radius: c[0].raio, x: c[0].x, y: c[0].y)
@@ -377,7 +433,7 @@ public enum FrilaMaterial {
 }
 
 public extension View {
-    /// Cartão da origem (`FrilaOpportunityCard`): fundo do canvas, raio 16 contínuo, fio de 1 pt e sombra sutil.
+    /// Cartão da pele nova: superfície branca sobre o fundo off-white, raio 30 contínuo (`--raio-card`), fio de 1 pt em `borda`.
     func cartaoFrila() -> some View {
         modifier(CartaoFrilaModificador())
     }
@@ -400,14 +456,14 @@ public extension View {
     }
 }
 
-/// Anatomia do cartão da origem, lendo o tema para a sombra (`FrilaShadowElevation.subtle`).
+/// Anatomia do cartão, lendo o tema para a sombra (`FrilaShadowElevation.subtle`).
 private struct CartaoFrilaModificador: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
             .padding(FrilaGeometry.space20)
-            .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
             .frilaShadow(.subtle, isDark: colorScheme == .dark)
     }

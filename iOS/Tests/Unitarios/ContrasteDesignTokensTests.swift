@@ -207,25 +207,42 @@ struct ContrasteDesignTokensTests {
             tokenFrente: "BrandOnSelection",
             tokenFundo: "BrandSelection",
             tipo: .textoNormal,
-            justificativa: "FiltroPill ativa, FrilaFilterChip selecionado, presets de valor do Estúdio, chips de categoria pastel (.terracotta) e RespostaSimNao escolhida (terracota de seleção da origem, #C9470F)."
+            justificativa: "FiltroPill ativa, FrilaFilterChip selecionado, presets de valor do Estúdio, chips de categoria pastel (.terracotta) e RespostaSimNao escolhida (tinta com texto branco na pele nova; a terracota #C9470F ficou só no Estúdio)."
         )
     ]
 
     /// Pares de componentes gráficos, ícones essenciais e elementos com requisitos de 3,0:1.
     static let paresDeComponenteEmUso: [ParSemantico] = [
-        ParSemantico(
-            nome: "Ícone/acento de marca sobre fundo agrupado",
-            tokenFrente: "BrandAccent",
-            tokenFundo: "Surface",
-            tipo: .componenteOuIcone,
-            justificativa: "Ícone e marca terracota pontual (#EA5A36) sobre o fundo."
-        ),
+        // Pele nova (B-L0): o par "acento de marca sobre fundo agrupado" saiu. A `acao` (#F46700) sobre o fundo #F9F6F4
+        // dá 2,9:1, e o DESIGN.md (Cor) proíbe o laranja como único sinal de estado ou texto sobre o fundo; ele só é
+        // preenchimento, ou ícone sobre superfície branca (3,1:1). O fundo continua coberto pelos pares de texto e de contorno.
         ParSemantico(
             nome: "Ícone/acento de marca sobre cartão elevado",
             tokenFrente: "BrandAccent",
             tokenFundo: "SurfaceElevated",
             tipo: .componenteOuIcone,
             justificativa: "Destaque gráfico e ícone de marca dentro de cartões."
+        ),
+        ParSemantico(
+            nome: "Rótulo branco em negrito de 20 pt sobre a ação (botão primário)",
+            tokenFrente: "BrandOnAction",
+            tokenFundo: "BrandAccent",
+            tipo: .componenteOuIcone,
+            justificativa: "BotaoPrimario: branco sobre #F46700 dá 3,1:1, o que vale só para negrito de 19 pt ou mais (DESIGN.md, Cor)."
+        ),
+        ParSemantico(
+            nome: "Branco sobre o selo de urgência (roxo)",
+            tokenFrente: "BrandOnAction",
+            tokenFundo: "HighlightPurple",
+            tipo: .textoNormal,
+            justificativa: "SeloDeStatus.urgencia: texto de 15 pt (4,5:1)."
+        ),
+        ParSemantico(
+            nome: "Tinta fixa sobre o selo amarelo",
+            tokenFrente: "OnHighlight",
+            tokenFundo: "HighlightYellow",
+            tipo: .textoNormal,
+            justificativa: "SeloDeStatus.destaque: \"Confirmado\" e \"Você foi escolhida\" (15:1)."
         ),
         ParSemantico(
             nome: "Ícone/texto grande claro sobre acento de marca",
@@ -334,18 +351,20 @@ struct ContrasteDesignTokensTests {
 
     // MARK: - Testes Unitários de Regressão
 
-    @Test("Encontra e carrega todos os 18 tokens de cor em DesignSystem.xcassets")
+    @Test("Encontra e carrega todos os 24 tokens de cor em DesignSystem.xcassets")
     func carregaTokensDoDesignSystem() throws {
         let tokens = try Self.carregarTokensDoCatalogo()
         let esperados = [
             "BrandAccent", "BrandOnPrimary", "BrandOnSelection", "BrandPrimary", "BrandSelection",
             "ControlBorder", "ControlFill", "Danger", "FieldBorder", "FieldSurface", "Hairline",
-            "SheetGrabber", "Success", "Surface", "SurfaceElevated", "TextPrimary", "TextSecondary", "Warning"
+            "SheetGrabber", "Success", "Surface", "SurfaceElevated", "TextPrimary", "TextSecondary", "Warning",
+            // Pele nova (B-L0): `BrandQuente` ganhou a variante escura (o mesmo laranja da ação) e entraram os tokens do protótipo.
+            "BrandQuente", "BrandOnAction", "HighlightPurple", "HighlightYellow", "NavBorder", "OnHighlight"
         ]
         for esperado in esperados {
             #expect(tokens[esperado] != nil, "Token \(esperado) ausente em DesignSystem.xcassets")
         }
-        #expect(tokens.count == 18, "Token novo? Registre-o aqui e nos pares, com a razão no PR.")
+        #expect(tokens.count == 24, "Token novo? Registre-o aqui e nos pares, com a razão no PR.")
     }
 
     @Test("Todos os pares normativos de texto atendem ao mínimo de 4,5:1 (WCAG AA) em claro e escuro")
@@ -408,8 +427,9 @@ struct ContrasteDesignTokensTests {
         let razaoMarcaSurfaceClaro = marca.claro.razaoDeContraste(contra: surface.claro)
         let razaoMarcaSuperficieClaro = marca.claro.razaoDeContraste(contra: surfaceElevated.claro)
 
-        // Comprova que BrandAccent passa como componente/ícone (>= 3,0:1) no tema claro:
-        #expect(razaoMarcaSurfaceClaro >= 3.0, "BrandAccent sobre Surface deve passar para componente (>= 3,0:1)")
+        // Pele nova: a ação (#F46700) sobre o fundo #F9F6F4 dá 2,9:1 (DESIGN.md, Cor). Por isso ela não é o único sinal
+        // de nada sobre o fundo; sobre a superfície branca (cartão) passa como componente/ícone (>= 3,0:1).
+        #expect(razaoMarcaSurfaceClaro >= 2.8 && razaoMarcaSurfaceClaro < 3.0, "BrandAccent sobre Surface mede 2,9:1: só preenchimento, nunca único sinal")
         #expect(razaoMarcaSuperficieClaro >= 3.0, "BrandAccent sobre SurfaceElevated deve passar para componente (>= 3,0:1)")
 
         // Comprova e documenta matematicamente que BrandAccent no claro cai abaixo de 4,5:1
