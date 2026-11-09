@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Valor canônico do LOG-016: Jost 600, moeda na marca e centavos menores.
+/// Valor canônico do LOG-016: Prodigy Sans 700 (era Jost 600, até a pele nova), moeda na marca e centavos menores.
 /// Preserva o formatador da superfície e a leitura em um elemento só.
 /// O preço não quebra linha e mantém a linha de base entre moeda, inteiro e centavos.
 public struct FrilaPriceTag: View {

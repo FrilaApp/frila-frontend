@@ -87,61 +87,24 @@ public struct TelaAvaliacao: View {
     }
 
     private var areaDeEscolha: some View {
-        HStack(spacing: FrilaEspaco.compacto) {
-            botaoOpcao(rotulo: "Sim, com certeza", valor: true)
-            botaoOpcao(rotulo: "Não", valor: false)
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            RespostaSimNao(
+                resposta: $viewModel.resposta,
+                verbatim: viewModel.pergunta
+            )
+            .disabled(viewModel.jaAvaliado || viewModel.salvando)
         }
-    }
-
-    private func botaoOpcao(rotulo: String, valor: Bool) -> some View {
-        let selecionado = viewModel.resposta == valor
-        return Button {
-            guard !viewModel.salvando && !viewModel.jaAvaliado else { return }
-            viewModel.resposta = valor
-        } label: {
-            HStack(spacing: FrilaEspaco.minimo) {
-                if selecionado {
-                    Image(systemName: "checkmark")
-                        .font(FrilaTipo.meta.weight(.bold))
-                        .foregroundStyle(FrilaCor.sobrePrimaria)
-                        .accessibilityIdentifier(valor ? "icone-checkmark-sim" : "icone-checkmark-nao")
-                }
-                Text(verbatim: rotulo)
-                    .font(FrilaTipo.rotuloSecundario)
-                    .foregroundStyle(selecionado ? FrilaCor.sobrePrimaria : FrilaCor.texto)
-            }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .background(selecionado ? FrilaCor.primaria : FrilaCor.superficie, in: Capsule())
-            .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
-            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.tatil)
-        .disabled(viewModel.salvando || viewModel.jaAvaliado)
-        .accessibilityLabel(Text(valor ? "Sim" : "Não", bundle: bundleApresentacao))
-        .accessibilityAddTraits(selecionado ? [.isSelected] : [])
-        .accessibilityIdentifier(valor ? "resposta-sim" : "resposta-nao")
     }
 
     @ViewBuilder
     private var botaoDeAcao: some View {
         if viewModel.sucesso {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text("Resposta registrada.", bundle: bundleApresentacao)
-                    .font(FrilaTipo.rotuloSecundario)
-                    .foregroundStyle(FrilaCor.texto)
-                    .accessibilityIdentifier("resposta-texto")
-
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Ver vagas na minha área", bundle: bundleApresentacao)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .underline()
-                }
-                .accessibilityIdentifier("botao-concluir-avaliacao")
+            BotaoPrimario(
+                verbatim: TextosDoProfissional.Avaliacao.botaoConcluir
+            ) {
+                dismiss()
             }
+            .accessibilityIdentifier("botao-concluir-avaliacao")
         } else if !viewModel.jaAvaliado {
             VStack(spacing: FrilaEspaco.pequeno) {
                 if viewModel.resposta == nil {
@@ -168,7 +131,7 @@ public struct TelaAvaliacao: View {
 
     @ViewBuilder
     private var avisosDeEstado: some View {
-        if viewModel.jaAvaliado && !viewModel.sucesso && viewModel.resposta == nil {
+        if viewModel.jaAvaliado && !viewModel.sucesso {
             AvisoFrila(
                 verbatim: TextosDoProfissional.Avaliacao.erroJaRegistrada,
                 tom: .informativo
