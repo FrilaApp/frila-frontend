@@ -659,6 +659,81 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun excluirContaComRotaDedicadaNavegaEMantemODialogoFechado() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var navegou = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = vm, aoAbrirExclusaoDeConta = { navegou++ })
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, navegou)
+            assertEquals(StatusExclusao.OCIOSO, vm.estado.value.statusExclusao)
+            rule.onAllNodesWithText("Excluir conta definitivamente?").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun excluirContaSemRotaDedicadaContinuaAbrindoODialogoDoPerfil() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertEquals(StatusExclusao.DIALOGO_ABERTO, vm.estado.value.statusExclusao)
+            rule.onNodeWithText("Excluir conta definitivamente?").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun atalhoDaEquipeDeConfiancaSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var aberta = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoAbrirEquipe = { aberta++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-equipe").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, aberta)
+        }
+    }
+
+    @Test
+    fun semCallbackDaEquipeOAtalhoNaoExiste() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-equipe").assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun botaoAjudaEmBlocoDeContaAcionaCallback() {
         runBlocking {
             val vm = criarViewModel()
