@@ -64,11 +64,8 @@ public struct TelaAvaliacao: View {
                 // Card de status do turno
                 cardDoTurno
 
-                // Reputação em apoio abaixo do card
-                Text("Sua reputação: 98% das casas chamariam de novo", bundle: bundleApresentacao)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityIdentifier("explicacao-avaliacao")
+                // Nota explicativa
+                cartaoExplicacao
             }
             .padding(.horizontal, FrilaEspaco.medio)
             .padding(.top, FrilaEspaco.compacto)
@@ -157,33 +154,46 @@ public struct TelaAvaliacao: View {
         }
     }
 
+    @ViewBuilder
     private var cardDoTurno: some View {
-        let formatador = FormatadorFrila()
-        let nomeCasa = viewModel.turno?.contraparte.nome ?? "Bar do Porto"
-        let dataTexto: String
-        let horarioTexto: String
         if let turno = viewModel.turno {
-            dataTexto = FormatoDataVaga.diaMes(turno.vaga.periodo.inicio)
-            horarioTexto = "\(formatador.hora(turno.vaga.periodo.inicio)) às \(formatador.hora(turno.vaga.periodo.fim))"
-        } else {
-            dataTexto = "Sáb 14/11"
-            horarioTexto = "18:00 às 00:00"
-        }
-        let valor: String
-        if let turno = viewModel.turno {
-            valor = formatador.dinheiro(turno.valorAcordado)
-        } else {
-            valor = "R$ 220,00"
-        }
+            let formatador = FormatadorFrila()
+            let dataTexto = FormatoDataVaga.diaMes(turno.vaga.periodo.inicio)
+            let horarioTexto = String(
+                format: String(localized: "%@ às %@", bundle: bundleApresentacao),
+                formatador.hora(turno.vaga.periodo.inicio),
+                formatador.hora(turno.vaga.periodo.fim)
+            )
+            let valor = formatador.dinheiro(turno.valorAcordado)
+            let selo = String(localized: "Concluído", bundle: bundleApresentacao)
 
-        return CardStatusTurno(
-            selo: "Concluído",
-            estiloDoSelo: .contorno,
-            nomeDaCasa: nomeCasa,
-            dataTexto: dataTexto,
-            horarioTexto: horarioTexto,
-            etapaAtual: .concluido,
-            valorFormatado: valor
-        )
+            CardStatusTurno(
+                selo: selo,
+                estiloDoSelo: .contorno,
+                nomeDaCasa: turno.contraparte.nome,
+                dataTexto: dataTexto,
+                horarioTexto: horarioTexto,
+                etapaAtual: .concluido,
+                valorFormatado: valor
+            )
+        }
+    }
+
+    private var cartaoExplicacao: some View {
+        HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
+            Image(systemName: "hand.thumbsup.fill")
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityHidden(true)
+
+            Text(verbatim: viewModel.explicacao)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("explicacao-avaliacao")
     }
 }
