@@ -114,6 +114,19 @@ public enum FrilaRaio {
     public static let folha: CGFloat = FrilaGeometry.radiusSheet
 }
 
+/// Formas dos controles de toque. A `Capsule()` tem raio igual à metade do **menor lado**: num botão ou chip de rótulo
+/// de várias linhas (AX5), a altura cresce, o raio cresce junto, e o botão vira um círculo com o texto vazando para
+/// fora. `capsulaQueCresce` fixa o raio na metade da altura mínima: parece cápsula no tamanho padrão e só alonga
+/// quando o rótulo quebra, sem cortar o texto.
+public enum FrilaForma {
+    public static func capsulaQueCresce(alturaMinima: CGFloat = FrilaMetrica.alturaDoCampo) -> RoundedRectangle {
+        RoundedRectangle(cornerRadius: alturaMinima / 2, style: .continuous)
+    }
+
+    /// A do chip de filtro e da etiqueta (altura visual de 32 pt).
+    public static var chipQueCresce: RoundedRectangle { capsulaQueCresce(alturaMinima: FrilaMetrica.alturaDoChip) }
+}
+
 public enum FrilaMetrica {
     public static let alvoMinimo: CGFloat = 44
     public static let larguraMaximaDeLeitura: CGFloat = 680

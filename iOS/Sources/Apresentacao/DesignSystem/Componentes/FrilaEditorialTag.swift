@@ -66,10 +66,10 @@ public struct FrilaEditorialTag: View {
             .padding(.horizontal, FrilaEspaco.compacto)
             .padding(.vertical, FrilaEspaco.minimo)
             .frame(minHeight: FrilaMetrica.alturaDoChip)
-            .background(backgroundColor, in: Capsule())
-            .clipShape(Capsule())
+            .background(backgroundColor, in: FrilaForma.chipQueCresce)
+            .clipShape(FrilaForma.chipQueCresce)
             .overlay(
-                Capsule()
+                FrilaForma.chipQueCresce
                     .strokeBorder(borderColor, lineWidth: 1)
             )
             .accessibilityElement(children: .combine)
