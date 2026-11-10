@@ -515,3 +515,20 @@ data class AdministracaoTransferidaDto(
     @SerialName("novo_admin_usuario_id") val novoAdminUsuarioId: String? = null,
     @SerialName("papel") val papel: String? = null,
 )
+
+/**
+ * Corpo de `POST /rest/v1/rpc/equipe_de_confianca`. O contrato descreve esta leitura em GET com
+ * `?estabelecimento_id=`, mas a função é `plpgsql` sem `STABLE` (VOLATILE por padrão), e o PostgREST
+ * só aceita função volátil em POST, que o iOS também usa (`SupabaseApiCliente.rpc`).
+ */
+@Serializable
+data class EstabelecimentoParametrosDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+)
+
+/** Schema `MembroDaEquipe`: corpo e resposta de `/rpc/remover_da_equipe` (e `/rpc/incluir_na_equipe`). */
+@Serializable
+data class MembroDaEquipeDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("profissional_id") val profissionalId: String,
+)
