@@ -370,7 +370,7 @@ public struct TelaRepublicarVaga: View {
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: TextosRepublicarVaga.titulo)
-                .font(FrilaTipo.tituloGrande)
+                .font(FrilaTipo.tituloDaTela)
                 .minimumScaleFactor(0.75)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosRepublicarVaga.subtitulo)

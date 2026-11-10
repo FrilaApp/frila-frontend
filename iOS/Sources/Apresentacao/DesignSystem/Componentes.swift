@@ -128,10 +128,10 @@ public struct BotaoPrimario: View {
             // branco sobre a `acao` só passa assim (3,1:1). No máximo um por tela.
             // Desligado (sem ser pelo carregando), vira cinza com borda: laranja cheio
             // parecia pronto para tocar, e o toque não fazia nada (V7 da conferência visual da 1.1).
-            .background(desligado ? FrilaCor.controle : FrilaCor.acao, in: FrilaForma.capsulaQueCresce())
-            .overlay { if desligado { FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
+            .background(desligado ? FrilaCor.controle : FrilaCor.acao, in: Capsule())
+            .overlay { if desligado { Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
             .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: desligado)
-            .contentShape(FrilaForma.capsulaQueCresce())
+            .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
         .disabled(carregando)
@@ -166,9 +166,9 @@ public struct BotaoSecundario: View {
                 .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                 .foregroundStyle(FrilaCor.texto)
                 // Botão secundário da pele nova: superfície branca, fio de 1 pt em `borda`, rótulo em tinta 600 de 16 pt.
-                .background(FrilaCor.superficie, in: FrilaForma.capsulaQueCresce())
-                .overlay(FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                .contentShape(FrilaForma.capsulaQueCresce())
+                .background(FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
     }
@@ -184,8 +184,8 @@ public extension View {
             .padding(.horizontal, FrilaEspaco.grande)
             .padding(.vertical, FrilaEspaco.pequeno)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .overlay(FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.perigo, lineWidth: 1.5))
-            .contentShape(FrilaForma.capsulaQueCresce())
+            .overlay(Capsule().strokeBorder(FrilaCor.perigo, lineWidth: 1.5))
+            .contentShape(Capsule())
     }
 }
 
@@ -324,8 +324,8 @@ public struct FiltroPill: View {
                 .frame(minHeight: FrilaMetrica.alturaDoChip)
                 // Chip marcado: tinta com texto branco (DESIGN.md, Chip); inativo sobre a superfície com fio em `borda`.
                 .foregroundStyle(selecionado ? FrilaCor.sobreSelecao : FrilaCor.texto)
-                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: FrilaForma.chipQueCresce)
-                .overlay(FrilaForma.chipQueCresce.strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
+                .background(selecionado ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
+                .overlay(Capsule().strokeBorder(selecionado ? Color.clear : FrilaCor.borda, lineWidth: 1))
                 .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
                 .scaleEffect(emPop ? FrilaMotion.chipOvershootScale : 1)
                 .animation(FrilaMovimento.animacao(FrilaMotion.chipActivationSpring, reduzir: reduzirMovimento), value: emPop)
@@ -756,10 +756,10 @@ public struct RespostaSimNao: View {
             .font(FrilaTipo.botao)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
             .foregroundStyle(resposta == valor ? FrilaCor.sobreSelecao : FrilaCor.texto)
-            .background(resposta == valor ? FrilaCor.selecao : FrilaCor.superficie, in: FrilaForma.capsulaQueCresce())
-            .overlay(FrilaForma.capsulaQueCresce().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
+            .background(resposta == valor ? FrilaCor.selecao : FrilaCor.superficie, in: Capsule())
+            .overlay(Capsule().strokeBorder(resposta == valor ? Color.clear : FrilaCor.borda, lineWidth: 1))
             .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: resposta)
-            .contentShape(FrilaForma.capsulaQueCresce())
+            .contentShape(Capsule())
         }
         .buttonStyle(.tatil)
         .accessibilityLabel(Text(titulo, bundle: bundleApresentacao))
