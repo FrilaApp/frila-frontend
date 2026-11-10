@@ -26,6 +26,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -304,5 +305,79 @@ class DenunciaViewModelTest {
         assertEquals(setOf("alvo_tipo", "alvo_id"), corpoBloqueio!!.keys)
         assertEquals("6F1C2A4E", vm.estado.value.protocolo!!.protocoloCurto)
         assertTrue(vm.estado.value.bloqueado)
+    }
+
+    private fun viewModelComServicoReal(engine: MockEngine) = ServicoConfianca(
+        ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine),
+    ).let { servico ->
+        DenunciaViewModel(
+            alvoTipo = TipoDeAlvo.ESTABELECIMENTO,
+            alvoId = alvoId,
+            denunciar = servico::denunciar,
+            bloquear = servico::bloquear,
+            gerarChave = { "chave-1" },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+    }
+
+    private val html = headersOf(HttpHeaders.ContentType, "text/html")
+
+    @Test
+    fun `bloqueio com resposta nao JSON cai no catch generico, libera a tela e deixa tentar de novo`() = runBlocking {
+        var gateway = true
+        val vm = viewModelComServicoReal(MockEngine {
+            if (gateway) respond("<html>502 Bad Gateway</html>", HttpStatusCode.OK, html)
+            else respond("""{"alvo_tipo":"estabelecimento","alvo_id":"$alvoId","criado_em":"2026-11-10T12:00:00Z"}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        })
+
+        vm.abrirDialogoBloqueio()
+        vm.confirmarBloqueio().join()
+
+        assertEquals(TextosSuporte.ERRO_GENERICO, vm.estado.value.erroBloqueio)
+        assertFalse(vm.estado.value.bloqueando)
+        assertFalse(vm.estado.value.bloqueado)
+
+        gateway = false
+        vm.abrirDialogoBloqueio()
+        vm.confirmarBloqueio().join()
+        assertTrue(vm.estado.value.bloqueado)
+        assertNull(vm.estado.value.erroBloqueio)
+    }
+
+    @Test
+    fun `bloqueio com erro 502 em HTML tambem cai no catch generico`() = runBlocking {
+        val vm = viewModelComServicoReal(MockEngine { respond("<html>502</html>", HttpStatusCode.BadGateway, html) })
+
+        vm.abrirDialogoBloqueio()
+        vm.confirmarBloqueio().join()
+
+        assertEquals(TextosSuporte.ERRO_GENERICO, vm.estado.value.erroBloqueio)
+        assertFalse(vm.estado.value.bloqueando)
+    }
+
+    @Test
+    fun `denuncia com resposta nao JSON cai no catch generico e a mesma chave serve na nova tentativa`() = runBlocking {
+        val chaves = mutableListOf<String>()
+        var gateway = true
+        val vm = viewModelComServicoReal(MockEngine { request ->
+            chaves += ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject["chave"]!!.jsonPrimitive.content
+            if (gateway) respond("<html>502</html>", HttpStatusCode.OK, html)
+            else respond(
+                """{"ocorrencia_id":"6f1c2a4e-1111-2222-3333-444455556666","tipo":"denuncia","criada_em":"2026-11-10T12:00:00Z","prazo_resposta_ate":"2026-11-17"}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        })
+        vm.editarRelato(relatoOk)
+
+        vm.enviarDenuncia().join()
+        assertEquals(TextosSuporte.ERRO_GENERICO, vm.estado.value.erroDenuncia)
+        assertFalse(vm.estado.value.enviando)
+
+        gateway = false
+        vm.enviarDenuncia().join()
+
+        assertNotNull(vm.estado.value.protocolo)
+        assertEquals(listOf("chave-1", "chave-1"), chaves)
     }
 }

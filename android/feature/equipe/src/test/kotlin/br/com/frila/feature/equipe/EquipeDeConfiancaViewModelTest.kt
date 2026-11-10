@@ -329,6 +329,57 @@ class EquipeDeConfiancaViewModelTest {
         assertNull(vm.estado.value.mensagemErro)
         assertEquals(2, rede.pedidos.size)
     }
+
+    private val html = headersOf(HttpHeaders.ContentType, "text/html")
+
+    @Test
+    fun `remover com resposta nao JSON cai no catch generico, mantem a lista e libera os botoes`() = runBlocking {
+        var gateway = true
+        val vm = viewModelCom(Rede { request ->
+            if (request.url.encodedPath.endsWith("/equipe_de_confianca")) ok(listaComDois)
+            else if (gateway) respond("<html>502 Bad Gateway</html>", HttpStatusCode.OK, html)
+            else ok("""{"estabelecimento_id":"$casa","profissional_id":"$ana"}""")
+        })
+        vm.carregar().join()
+        val primeiro = (vm.estado.value.estado as EstadoEquipe.Conteudo).membros.first { it.id == ana }
+
+        vm.remover(primeiro).join()
+
+        assertEquals(TextosEquipe.ERRO, vm.estado.value.mensagemErro)
+        assertEquals(listOf("Ana", "Beto"), vm.membros())
+        assertNull(vm.estado.value.removendo)
+        assertNull(vm.estado.value.aviso)
+
+        gateway = false
+        vm.remover(primeiro).join()
+        assertEquals(listOf("Beto"), vm.membros())
+        assertNull(vm.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `remover com erro 502 em HTML tambem cai no catch generico`() = runBlocking {
+        val vm = viewModelCom(Rede { request ->
+            if (request.url.encodedPath.endsWith("/equipe_de_confianca")) ok(listaComDois)
+            else respond("<html>502</html>", HttpStatusCode.BadGateway, html)
+        })
+        vm.carregar().join()
+
+        vm.remover((vm.estado.value.estado as EstadoEquipe.Conteudo).membros.first()).join()
+
+        assertEquals(TextosEquipe.ERRO, vm.estado.value.mensagemErro)
+        assertNull(vm.estado.value.removendo)
+    }
+
+    @Test
+    fun `sairDaEquipe com erro 502 em HTML cai no catch generico e nao marca que saiu`() = runBlocking {
+        val vm = viewModelCom(Rede { respond("<html>502</html>", HttpStatusCode.BadGateway, html) })
+
+        vm.sairDaEquipe(casa).join()
+
+        assertEquals(TextosEquipe.ERRO, vm.estado.value.mensagemErro)
+        assertFalse(vm.estado.value.saiu)
+        assertFalse(vm.estado.value.saindo)
+    }
 }
 
 /** Perfil mínimo para testes que não passam pela rede. */
