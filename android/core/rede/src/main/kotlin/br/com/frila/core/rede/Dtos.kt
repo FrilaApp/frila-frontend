@@ -532,3 +532,34 @@ data class MembroDaEquipeDto(
     @SerialName("estabelecimento_id") val estabelecimentoId: String,
     @SerialName("profissional_id") val profissionalId: String,
 )
+
+/**
+ * Corpo de `POST /rest/v1/rpc/cadastrar_estabelecimento` (schema `NovoEstabelecimento`, RF02, UC10).
+ * `documento` é CPF (11) ou CNPJ (14), só dígitos. `tipo` leva a chave de fio (`food_service`,
+ * `evento`, `varejo`, `logistica`, `servico_domestico`, `outro`). A coordenada vai aninhada em `ponto`.
+ */
+@Serializable
+data class NovoEstabelecimentoDto(
+    @SerialName("nome") val nome: String,
+    @SerialName("documento") val documento: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("endereco") val endereco: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+)
+
+/**
+ * Resposta de `/rpc/cadastrar_estabelecimento` (schema `Estabelecimento`): o chamador entra como
+ * `administrador`. É o único lugar em que o `documento` volta (RN15).
+ */
+@Serializable
+data class EstabelecimentoDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("documento") val documento: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("endereco") val endereco: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("papel") val papel: String,
+)

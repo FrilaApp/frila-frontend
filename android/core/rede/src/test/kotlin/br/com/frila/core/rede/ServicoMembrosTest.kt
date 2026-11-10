@@ -155,4 +155,52 @@ class ServicoMembrosTest {
         assertEquals("administracao_transferida", resultado.status)
         assertEquals("66666666-6666-6666-6666-666666666666", resultado.novoAdminId)
     }
+
+    @Test
+    fun `cadastrarEstabelecimento manda ponto aninhado e tipo de fio e decodifica o Estabelecimento`() = runTest {
+        val chamada = Chamada()
+        val servico = servico(
+            chamada, HttpStatusCode.OK,
+            """
+            {"id": "$estabelecimentoId", "nome": "Bar da Lia", "documento": "12345678000199", "tipo": "food_service",
+             "endereco": "CLS 408, Bloco B, Loja 12", "regiao_administrativa": "Plano Piloto",
+             "ponto": {"latitude": -15.7942, "longitude": -47.8822}, "papel": "administrador"}
+            """.trimIndent(),
+        )
+
+        val criado = servico.cadastrarEstabelecimento(
+            NovoEstabelecimentoDto(
+                nome = "Bar da Lia",
+                documento = "12345678000199",
+                tipo = "food_service",
+                endereco = "CLS 408, Bloco B, Loja 12",
+                regiaoAdministrativa = "Plano Piloto",
+                ponto = CoordenadaDto(-15.7942, -47.8822),
+            ),
+        )
+
+        assertEquals(HttpMethod.Post, chamada.metodo)
+        assertEquals("/rest/v1/rpc/cadastrar_estabelecimento", chamada.caminho)
+        assertEquals(
+            setOf("nome", "documento", "tipo", "endereco", "regiao_administrativa", "ponto"),
+            chamada.corpo!!.keys,
+        )
+        assertEquals("food_service", chamada.corpo!!["tipo"]!!.jsonPrimitive.content)
+        assertEquals(-15.7942, chamada.corpo!!["ponto"]!!.jsonObject["latitude"]!!.jsonPrimitive.content.toDouble(), 0.0)
+        assertEquals(PapelMembro.ADMINISTRADOR, PapelMembro.deChave(criado.papel))
+        assertEquals(estabelecimentoId, criado.id)
+    }
+
+    @Test
+    fun `cadastrarEstabelecimento com documento repetido mapeia documento_ja_cadastrado`() = runTest {
+        val servico = servico(Chamada(), HttpStatusCode.Conflict, """{"code":"documento_ja_cadastrado","message":"ja existe"}""")
+
+        val excecao = runCatching {
+            servico.cadastrarEstabelecimento(
+                NovoEstabelecimentoDto("Bar", "12345678000199", "outro", "Rua 1", "Gama", CoordenadaDto(-16.0, -48.0)),
+            )
+        }.exceptionOrNull()
+
+        assertEquals(CodigoErroAPI.DOCUMENTO_JA_CADASTRADO, (excecao as ErroDaApi).codigo)
+    }
 }
