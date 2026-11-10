@@ -6,7 +6,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-/** Equipe do estabelecimento: múltiplos membros com papel administrador ou operador (contrato 0.2.73, RF21, US24). */
+/** Estabelecimento e sua equipe: cadastro, múltiplos membros com papel administrador ou operador (contrato 0.2.73, RF02, RF21, US24). */
 class ServicoMembros(private val provedorDeCliente: () -> ClienteSupabase) {
     constructor(cliente: ClienteSupabase) : this({ cliente })
 
@@ -19,6 +19,20 @@ class ServicoMembros(private val provedorDeCliente: () -> ClienteSupabase) {
      */
     suspend fun listarMeusEstabelecimentos(): List<EstabelecimentoDaContaDto> {
         val resposta = cliente.http.get(cliente.urlRpc("meus_estabelecimentos"))
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/cadastrar_estabelecimento`: cria o estabelecimento com o chamador como
+     * administrador (RF02, UC10). Erros esperados: `409 documento_ja_cadastrado`, `422 campo_obrigatorio`
+     * e `422 campo_invalido` (o campo em `details`), `422 perfil_incompativel` (conta de profissional,
+     * RN25), `403` para conta suspensa.
+     */
+    suspend fun cadastrarEstabelecimento(estabelecimento: NovoEstabelecimentoDto): EstabelecimentoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("cadastrar_estabelecimento")) {
+            contentType(ContentType.Application.Json)
+            setBody(estabelecimento)
+        }
         return cliente.corpoOuErro(resposta)
     }
 
