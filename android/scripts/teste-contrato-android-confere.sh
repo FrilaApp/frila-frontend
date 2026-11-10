@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$SCRIPT_DIR/conferir-contrato-android.py"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-CONTRATO_OFICIAL="$REPO_ROOT/iOS/Contrato/openapi.yaml"
+CONTRATO_OFICIAL="$REPO_ROOT/android/contrato/openapi.yaml"
 ANDROID_DIR="$REPO_ROOT/android"
 
 TMPDIR_TESTE="$(mktemp -d "${TMPDIR:-/tmp}/frila-contrato-android-teste.XXXXXX")"
@@ -68,5 +68,13 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
     f.write(c)
 "
 esperar_reprovacao "TurnoDto com campo inventado turno_id" "possui campos inventados ausentes no schema 'Turno': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# 4. Mutação 3: contrato alterado sem regravar a soma
+mkdir -p "$TMPDIR_TESTE/contrato"
+cp "$CONTRATO_OFICIAL" "$TMPDIR_TESTE/contrato/openapi.yaml"
+cp "$CONTRATO_OFICIAL.sha256" "$TMPDIR_TESTE/contrato/openapi.yaml.sha256"
+esperar_aprovacao --contrato "$TMPDIR_TESTE/contrato/openapi.yaml" --android-dir "$ANDROID_DIR"
+printf '\n# adulterado\n' >> "$TMPDIR_TESTE/contrato/openapi.yaml"
+esperar_reprovacao "contrato adulterado sem regravar a soma" "mudou sem atualizar a soma" --contrato "$TMPDIR_TESTE/contrato/openapi.yaml" --android-dir "$ANDROID_DIR"
 
 echo "OK: todos os testes de mutação do portão Android passaram com sucesso!"

@@ -398,3 +398,110 @@ data class UploadVerificacaoDto(
     @SerialName("expira_em") val expiraEm: String,
     @SerialName("partes") val partes: List<ParteUploadDto>,
 )
+
+/**
+ * Corpo de `POST /rest/v1/rpc/denunciar` (RF26, UC17). `chamada_id` é opcional desde o contrato
+ * 0.2.71 (CD-S13): associa a denúncia à chamada direta, que precisa existir e envolver o
+ * denunciante e o alvo (`422 campo_invalido`, `details: chamada_id`). Sem chamada, o campo segue
+ * como `null`, que o contrato aceita (`oneOf: Uuid | null`). `midia_id` (0.2.54) não é modelado
+ * aqui: o contrato não aceita `null` nele e nenhuma tela do Android denuncia foto ainda.
+ * `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
+ */
+@Serializable
+data class DenunciarDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("motivo") val motivo: String,
+    @SerialName("relato") val relato: String,
+    @SerialName("chave") val chave: String,
+    @SerialName("chamada_id") val chamadaId: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/sair_da_equipe` (contrato 0.2.72, LGPD art. 18). */
+@Serializable
+data class SairDaEquipeDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+)
+
+/**
+ * Item de `/rpc/meus_estabelecimentos` (schema `EstabelecimentoDaConta`, contrato 0.2.73):
+ * `papel` é o de quem chama em cada casa. `tipo` e `reputacao` são opcionais no contrato.
+ */
+@Serializable
+data class EstabelecimentoDaContaDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("papel") val papel: String,
+    @SerialName("tipo") val tipo: String? = null,
+    @SerialName("reputacao") val reputacao: ReputacaoDto? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/convidar_membro` (0.2.73, RF21): só o administrador convida. */
+@Serializable
+data class ConvidarMembroDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("email") val email: String,
+    @SerialName("papel") val papel: String,
+)
+
+/** Resposta de `/rpc/convidar_membro`: o `token` é opaco (64 hex), de uso único, válido por 7 dias. */
+@Serializable
+data class ConviteMembroDto(
+    @SerialName("convite_id") val conviteId: String,
+    @SerialName("token") val token: String,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("email") val email: String? = null,
+    @SerialName("papel") val papel: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/aceitar_convite_membro`. */
+@Serializable
+data class AceitarConviteMembroDto(
+    @SerialName("token") val token: String,
+)
+
+/** Resposta de `/rpc/aceitar_convite_membro`; `status` é `membro_adicionado`. Todos os campos são opcionais no contrato. */
+@Serializable
+data class MembroAdicionadoDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("membro_id") val membroId: String? = null,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("usuario_id") val usuarioId: String? = null,
+    @SerialName("papel") val papel: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/remover_membro`; `membro_id` aceita o id do membro ou do usuário. */
+@Serializable
+data class RemoverMembroDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("membro_id") val membroId: String,
+)
+
+/** Resposta de `/rpc/remover_membro`; `status` é `membro_removido`. */
+@Serializable
+data class MembroRemovidoDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("removido") val removido: Boolean? = null,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("membro_id") val membroId: String? = null,
+    @SerialName("usuario_id") val usuarioId: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/transferir_administracao`; `novo_admin_id` aceita o id do membro ou do usuário. */
+@Serializable
+data class TransferirAdministracaoDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("novo_admin_id") val novoAdminId: String,
+)
+
+/** Resposta de `/rpc/transferir_administracao`; `status` é `administracao_transferida`. */
+@Serializable
+data class AdministracaoTransferidaDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("novo_admin_id") val novoAdminId: String? = null,
+    @SerialName("novo_admin_usuario_id") val novoAdminUsuarioId: String? = null,
+    @SerialName("papel") val papel: String? = null,
+)
