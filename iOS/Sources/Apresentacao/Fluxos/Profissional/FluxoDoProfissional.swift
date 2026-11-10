@@ -391,7 +391,7 @@ private struct DestinoDoMeuTurno: View {
     ) {
         // Sem leitor de localização (prévias), a tela fica sem a seção de presença.
         let presenca = localizacao.map {
-            PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar, cache: .compartilhado)
+            PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: $0, fila: fila, relogio: relogio, aoRegistrar: aoRegistrar, cache: .compartilhado, recursos: { await RecursosDoApp.lidosDe(api) })
         }
         _viewModel = State(initialValue: MeuTurnoViewModel(
             turno: turno, api: api, contaID: contaID, fila: fila, relogio: relogio, presenca: presenca,

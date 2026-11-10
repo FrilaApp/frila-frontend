@@ -1064,7 +1064,7 @@ public struct ResultadoRegistro: Codable, Hashable, Sendable {
 /// O que o aparelho diz da leitura de localização do toque do check-in, para a proteção por risco
 /// (contrato 0.2.68). Nenhuma coordenada. O servidor usa os sinais na decisão e não os grava. Só vai com
 /// `recursos.checkinPorCodigo` ligado; sem a chave, o corpo do check-in fica como era.
-public struct SinaisDoCheckin: Equatable, Sendable {
+public struct SinaisDoCheckin: Codable, Equatable, Sendable {
     /// A leitura veio de fonte simulada por software (`CLLocationSourceInformation.isSimulatedBySoftware`).
     public let localizacaoSimulada: Bool
     /// Precisão horizontal em metros inteiros; `nil` quando o aparelho não a informa. Nulo não é precisão ruim.
@@ -1078,12 +1078,16 @@ public struct SinaisDoCheckin: Equatable, Sendable {
         self.saltoDePosicao = saltoDePosicao
     }
 
+    /// O maior valor de `precisao_m` que o app manda (100 km): acima disso a leitura já não diz nada.
+    public static let tetoDaPrecisaoMetros = 100_000.0
+
     /// Os sinais de uma leitura. A precisão que o aparelho não informa (negativa ou não finita) sai nula.
     public init(leitura: LeituraDeLocalizacao) {
         let precisao = leitura.precisaoHorizontalMetros
         self.init(
             localizacaoSimulada: leitura.simulada,
-            precisaoMetros: precisao.isFinite && precisao >= 0 ? Int(precisao.rounded()) : nil,
+            // Com teto: a precisão do aparelho cabe em quilômetros, e `Int` de um número enorme travaria o app.
+            precisaoMetros: precisao.isFinite && precisao >= 0 ? Int(min(precisao.rounded(), Self.tetoDaPrecisaoMetros)) : nil,
             saltoDePosicao: leitura.saltoDePosicao
         )
     }

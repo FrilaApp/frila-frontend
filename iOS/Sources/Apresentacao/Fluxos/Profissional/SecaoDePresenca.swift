@@ -13,6 +13,7 @@ public struct SecaoDePresenca: View {
     private var turno: MeuTurnoViewModel?
     @AccessibilityFocusState private var focoNoAviso: Bool
     @Environment(\.scenePhase) private var fase
+    @State private var mostrarEntradaDoCodigo = false
     private let formatador = FormatadorFrila()
 
     public init(viewModel: PresencaDoTurnoViewModel, turno: MeuTurnoViewModel? = nil) {
@@ -68,7 +69,11 @@ public struct SecaoDePresenca: View {
             case .parada, .lendo, .enviando: break
             }
         }
-        .task { await viewModel.atualizarPermissaoDaLocalizacao() }
+        .task {
+            await viewModel.carregarRecursos()
+            await viewModel.atualizarPermissaoDaLocalizacao()
+        }
+        .sheet(isPresented: $mostrarEntradaDoCodigo) { EntradaDoCodigo(presenca: viewModel) }
         // Voltando dos Ajustes, a permissão pode ter mudado.
         .onChange(of: fase) { _, nova in
             if nova == .active { Task { await viewModel.atualizarPermissaoDaLocalizacao() } }
@@ -114,6 +119,15 @@ public struct SecaoDePresenca: View {
                     identificador: "fazer-checkout"
                 ) {
                     Task { await viewModel.iniciar(.checkout) }
+                }
+            }
+            // Check-in pendente com o caminho do código aberto: ler o código da casa (0.2.68). Sem a chave, não aparece.
+            if viewModel.podeLerOCodigo {
+                botaoPresencaInativo(
+                    verbatim: TextosDoCheckinPorCodigo.Profissional.abrir,
+                    identificador: "ler-codigo-da-casa"
+                ) {
+                    mostrarEntradaDoCodigo = true
                 }
             }
         case .explicando:

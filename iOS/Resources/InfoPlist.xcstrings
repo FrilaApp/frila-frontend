@@ -42,7 +42,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Frila precisa da câmera para você tirar sua foto de perfil."
+            "value" : "O Frila usa a câmera para tirar a sua foto de perfil e para ler o código do check-in."
           }
         }
       }

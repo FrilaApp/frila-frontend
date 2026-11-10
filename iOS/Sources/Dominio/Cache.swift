@@ -66,6 +66,10 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
     public let alvoID: UUID?
     /// O motivo do cancelamento, já no texto que vai ao servidor (pelo menos 3 caracteres).
     public let motivo: String?
+    /// Os sinais da leitura do check-in feito sem rede (0.2.68): vão no reenvio, para a proteção por risco
+    /// não se perder no modo avião. Só existe com a chave `checkin_por_codigo` ligada; nas ações guardadas
+    /// antes deste campo, e no check-out, é `nil` (leitura tolerante: o campo é opcional).
+    public let sinais: SinaisDoCheckin?
 
     public init(
         id: UUID = UUID(),
@@ -79,7 +83,8 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         publicacao: PublicacaoVaga? = nil,
         republicacao: RepublicacaoVaga? = nil,
         alvoID: UUID? = nil,
-        motivo: String? = nil
+        motivo: String? = nil,
+        sinais: SinaisDoCheckin? = nil
     ) {
         self.id = id
         self.tipo = tipo
@@ -93,13 +98,14 @@ public struct AcaoPendente: Codable, Equatable, Identifiable, Sendable {
         self.republicacao = republicacao
         self.alvoID = alvoID
         self.motivo = motivo
+        self.sinais = sinais
     }
 
     public func com(contaID: UUID) -> AcaoPendente {
         AcaoPendente(id: id, tipo: tipo, turnoID: turnoID, contaID: contaID,
                      instanteDoToque: instanteDoToque, chave: chave, distanciaMetros: distanciaMetros,
                      resposta: resposta, publicacao: publicacao, republicacao: republicacao,
-                     alvoID: alvoID, motivo: motivo)
+                     alvoID: alvoID, motivo: motivo, sinais: sinais)
     }
 }
 
