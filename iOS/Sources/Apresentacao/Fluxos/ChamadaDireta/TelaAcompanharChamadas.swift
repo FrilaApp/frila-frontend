@@ -98,7 +98,7 @@ public struct TelaAcompanharChamadas: View {
                     .bold()
                 Spacer()
                 Text(verbatim: viewModel.rotuloEstado(chamada.estado))
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.nota.weight(.semibold))
                     .foregroundStyle(corDoEstado(chamada.estado))
             }
 
@@ -128,7 +128,7 @@ public struct TelaAcompanharChamadas: View {
 
     private func corDoEstado(_ estado: EstadoChamada) -> Color {
         switch estado {
-        case .aberta: return FrilaCor.marca
+        case .aberta: return FrilaCor.texto
         case .aceita: return FrilaCor.sucesso
         case .recusada, .cancelada, .expirada, .encerrada: return FrilaCor.textoSecundario
         }

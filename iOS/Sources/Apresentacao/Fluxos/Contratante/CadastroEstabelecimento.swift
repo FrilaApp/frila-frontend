@@ -484,7 +484,7 @@ public struct TelaCadastroEstabelecimento: View {
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: TextosCadastro.titulo)
-                .font(FrilaTipo.tituloGrande)
+                .font(FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
