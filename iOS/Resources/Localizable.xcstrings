@@ -14264,6 +14264,126 @@
           }
         }
       }
+    },
+    "Código de chegada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de chegada"
+          }
+        }
+      }
+    },
+    "Código de chegada: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de chegada: %@"
+          }
+        }
+      }
+    },
+    "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença."
+          }
+        }
+      }
+    },
+    "Aguardando o profissional tocar em Cheguei": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando o profissional tocar em Cheguei"
+          }
+        }
+      }
+    },
+    "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição."
+          }
+        }
+      }
+    },
+    "Verificar chegada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar chegada"
+          }
+        }
+      }
+    },
+    "Vale por mais %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale por mais %@"
+          }
+        }
+      }
+    },
+    "O código venceu. Gerando outro…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código venceu. Gerando outro…"
+          }
+        }
+      }
+    },
+    "Gerando o código…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando o código…"
+          }
+        }
+      }
+    },
+    "Não foi possível gerar o código. Confira a conexão e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível gerar o código. Confira a conexão e tente novamente."
+          }
+        }
+      }
+    },
+    "Fora da janela de check-in deste turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora da janela de check-in deste turno."
+          }
+        }
+      }
+    },
+    "O código não vale mais neste turno. Confirme a presença pelo botão de confirmação manual abaixo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código não vale mais neste turno. Confirme a presença pelo botão de confirmação manual abaixo."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
