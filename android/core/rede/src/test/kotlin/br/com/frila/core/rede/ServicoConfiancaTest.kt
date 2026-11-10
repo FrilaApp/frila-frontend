@@ -123,4 +123,45 @@ class ServicoConfiancaTest {
         assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
         assertEquals("estabelecimento_id", excecao.detalhes)
     }
+
+    @Test
+    fun `bloquear chama POST rpc bloquear com o par e decodifica o Bloqueio`() = runTest {
+        var caminho: String? = null
+        var corpo: JsonObject? = null
+        val engine = MockEngine { request ->
+            caminho = request.url.encodedPath
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+            respond(
+                """{"alvo_tipo":"estabelecimento","alvo_id":"11111111-1111-1111-1111-111111111111","criado_em":"2026-11-10T12:00:00Z"}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val bloqueio = servico.bloquear("estabelecimento", "11111111-1111-1111-1111-111111111111")
+
+        assertEquals("/rest/v1/rpc/bloquear", caminho)
+        assertEquals(setOf("alvo_tipo", "alvo_id"), corpo!!.keys)
+        assertEquals("estabelecimento", bloqueio.alvoTipo)
+        assertEquals("2026-11-10T12:00:00Z", bloqueio.criadoEm)
+    }
+
+    @Test
+    fun `bloquear a si mesmo propaga 422 campo_invalido com alvo_id em details`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"campo_invalido","message":"nao pode bloquear a si mesmo","details":"alvo_id"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val excecao = runCatching { servico.bloquear("profissional", "11111111-1111-1111-1111-111111111111") }.exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
+        assertEquals("alvo_id", excecao.detalhes)
+    }
 }

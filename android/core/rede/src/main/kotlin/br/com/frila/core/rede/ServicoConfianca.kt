@@ -5,7 +5,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-/** Denúncia e saída da equipe de confiança (RF26/RF18/RN16/RN13, UC17/UC11). */
+/** Denúncia, bloqueio e saída da equipe de confiança (RF26/RF18/RN16/RN13, UC17/UC11). */
 class ServicoConfianca(private val provedorDeCliente: () -> ClienteSupabase) {
     constructor(cliente: ClienteSupabase) : this({ cliente })
 
@@ -21,6 +21,20 @@ class ServicoConfianca(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.post(cliente.urlRpc("denunciar")) {
             contentType(ContentType.Application.Json)
             setBody(denuncia)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/bloquear`. Imediato e idempotente; vale nos dois sentidos e, quando uma
+     * das partes é membro de estabelecimento, para o estabelecimento inteiro. Erros esperados:
+     * `422 campo_invalido` (`details`: `alvo_tipo`, `alvo_id` ou tentativa de bloquear a si mesmo),
+     * `404 nao_encontrado`, `403 conta_suspensa`.
+     */
+    suspend fun bloquear(alvoTipo: String, alvoId: String): BloqueioDto {
+        val resposta = cliente.http.post(cliente.urlRpc("bloquear")) {
+            contentType(ContentType.Application.Json)
+            setBody(BloquearDto(alvoTipo = alvoTipo, alvoId = alvoId))
         }
         return cliente.corpoOuErro(resposta)
     }
