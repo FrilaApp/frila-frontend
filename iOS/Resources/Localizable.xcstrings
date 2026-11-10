@@ -14384,6 +14384,146 @@
           }
         }
       }
+    },
+    "Digitar o código da casa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitar o código da casa"
+          }
+        }
+      }
+    },
+    "Código da casa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código da casa"
+          }
+        }
+      }
+    },
+    "Peça o código à casa e digite os 6 números abaixo para confirmar a sua presença.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça o código à casa e digite os 6 números abaixo para confirmar a sua presença."
+          }
+        }
+      }
+    },
+    "A casa também pode confirmar a sua chegada pelo painel dela.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A casa também pode confirmar a sua chegada pelo painel dela."
+          }
+        }
+      }
+    },
+    "Código de 6 números": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de 6 números"
+          }
+        }
+      }
+    },
+    "Conferindo a sua posição…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo a sua posição…"
+          }
+        }
+      }
+    },
+    "Conferindo o código…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo o código…"
+          }
+        }
+      }
+    },
+    "O código tem 6 números.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código tem 6 números."
+          }
+        }
+      }
+    },
+    "Esse código não vale. Confira com a casa e digite de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esse código não vale. Confira com a casa e digite de novo."
+          }
+        }
+      }
+    },
+    "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado."
+          }
+        }
+      }
+    },
+    "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
+    "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
+    "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
+    "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

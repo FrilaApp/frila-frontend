@@ -39,19 +39,43 @@ public final class ValidacaoDoCodigoViewModel {
     public private(set) var resultado: Resultado = .aguardando
 
     private let api: any ApiCliente
+    private let medirDistancia: @MainActor () async -> Int?
 
-    public init(turnoID: UUID, api: any ApiCliente) {
+    /// `medirDistancia` lê a localização no toque e devolve só a distância até o local (nunca a coordenada);
+    /// `nil` sem posição. Por padrão não mede.
+    public init(
+        turnoID: UUID,
+        api: any ApiCliente,
+        medirDistancia: @escaping @MainActor () async -> Int? = { nil }
+    ) {
         self.turnoID = turnoID
         self.api = api
+        self.medirDistancia = medirDistancia
     }
 
     /// `true` com os 6 dígitos ASCII que o contrato pede (`^[0-9]{6}$`).
-    public static func formatoValido(_ codigo: String) -> Bool {
+    nonisolated public static func formatoValido(_ codigo: String) -> Bool {
         codigo.count == 6 && codigo.allSatisfy { $0.isASCII && $0.isNumber }
+    }
+
+    /// Mede a distância no toque e valida. Com o código fora do formato, nem lê a localização.
+    public func validarMedindo(codigo: String) async {
+        guard resultado != .enviando else { return }
+        guard Self.formatoValido(codigo) else {
+            resultado = .formatoInvalido
+            return
+        }
+        resultado = .enviando
+        let distancia = await medirDistancia()
+        await processar(codigo: codigo, distanciaMetros: distancia)
     }
 
     public func validar(codigo: String, distanciaMetros: Int?) async {
         guard resultado != .enviando else { return }
+        await processar(codigo: codigo, distanciaMetros: distanciaMetros)
+    }
+
+    private func processar(codigo: String, distanciaMetros: Int?) async {
         guard Self.formatoValido(codigo) else {
             resultado = .formatoInvalido
             return

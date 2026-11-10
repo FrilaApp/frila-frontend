@@ -79,7 +79,7 @@ public final class CodigoDaCasaViewModel {
     }
 
     /// Formata segundos restantes em "M:SS" (ex.: 272 segundos vira "4:32").
-    public static func formatar(segundos: Int) -> String {
+    nonisolated public static func formatar(segundos: Int) -> String {
         let total = max(0, segundos)
         return String(format: "%d:%02d", total / 60, total % 60)
     }
