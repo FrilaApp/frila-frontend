@@ -334,6 +334,16 @@ data class ProtocoloDto(
 )
 
 /**
+ * Corpo de `POST /rest/v1/rpc/bloquear` (RF26, UC17). Imediato, sem depender da Equipe Frila, e
+ * idempotente. `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
+ */
+@Serializable
+data class BloquearDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+)
+
+/**
  * Corpo de `POST /rest/v1/rpc/desbloquear` (contrato 0.2.51, decisão A8, RF26). O par é o mesmo
  * que `/rpc/bloquear` recebe: `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
  */

@@ -142,6 +142,7 @@ def main() -> None:
         "DesbloquearDto": "/rpc/desbloquear",
         "SolicitarUploadVerificacaoDto": "/rpc/solicitar_upload_verificacao",
         "DenunciarDto": "/rpc/denunciar",
+        "BloquearDto": "/rpc/bloquear",
         "SairDaEquipeDto": "/rpc/sair_da_equipe",
         "ConvidarMembroDto": "/rpc/convidar_membro",
         "AceitarConviteMembroDto": "/rpc/aceitar_convite_membro",
