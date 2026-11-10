@@ -134,6 +134,20 @@ def main() -> None:
         "CandidatarDto": "/rpc/candidatar",
         "DesbloquearDto": "/rpc/desbloquear",
         "SolicitarUploadVerificacaoDto": "/rpc/solicitar_upload_verificacao",
+        "DenunciarDto": "/rpc/denunciar",
+        "SairDaEquipeDto": "/rpc/sair_da_equipe",
+        "ConvidarMembroDto": "/rpc/convidar_membro",
+        "AceitarConviteMembroDto": "/rpc/aceitar_convite_membro",
+        "RemoverMembroDto": "/rpc/remover_membro",
+        "TransferirAdministracaoDto": "/rpc/transferir_administracao",
+    }
+
+    # Respostas 200 declaradas inline em operations RPC de paths
+    RPCS_RESPONSE_BODY = {
+        "ConviteMembroDto": "/rpc/convidar_membro",
+        "MembroAdicionadoDto": "/rpc/aceitar_convite_membro",
+        "MembroRemovidoDto": "/rpc/remover_membro",
+        "AdministracaoTransferidaDto": "/rpc/transferir_administracao",
     }
 
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
@@ -207,12 +221,21 @@ def main() -> None:
                 print(f"  [OK] {dto_name} <-> {pai}.{propriedade} ({len(dto_props)} campos)")
             continue
 
-        if dto_name in RPCS_REQUEST_BODY:
-            rpc_path = RPCS_REQUEST_BODY[dto_name]
+        if dto_name in RPCS_REQUEST_BODY or dto_name in RPCS_RESPONSE_BODY:
+            if dto_name in RPCS_REQUEST_BODY:
+                rpc_path = RPCS_REQUEST_BODY[dto_name]
+                rotulo = "requestBody"
+            else:
+                rpc_path = RPCS_RESPONSE_BODY[dto_name]
+                rotulo = "resposta 200"
             rpc_op = paths.get(rpc_path, {}).get("post", {})
-            schema = rpc_op.get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema", {})
+            if rotulo == "requestBody":
+                conteudo = rpc_op.get("requestBody", {}).get("content", {})
+            else:
+                conteudo = rpc_op.get("responses", {}).get("200", {}).get("content", {})
+            schema = conteudo.get("application/json", {}).get("schema", {})
             if not schema:
-                erros.append(f"DTO '{dto_name}' referencia RPC '{rpc_path}', mas rota não possui requestBody schema no OpenAPI")
+                erros.append(f"DTO '{dto_name}' referencia RPC '{rpc_path}', mas rota não possui {rotulo} schema no OpenAPI")
                 continue
 
             schema_props = set(schema.get("properties", {}).keys())
@@ -233,7 +256,7 @@ def main() -> None:
 
             verificados += 1
             if not args.silencioso:
-                print(f"  [OK] {dto_name} <-> requestBody {rpc_path} ({len(dto_props)} campos)")
+                print(f"  [OK] {dto_name} <-> {rotulo} {rpc_path} ({len(dto_props)} campos)")
             continue
 
         # Nome convencional do schema: usa alias ou remove sufixo Dto
