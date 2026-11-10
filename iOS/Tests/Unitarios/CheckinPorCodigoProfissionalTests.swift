@@ -78,6 +78,40 @@ struct CheckinPorCodigoProfissionalTests {
         #expect(!chamou)
     }
 
+    @Test("Fronteira de 50m do check-in semiautomático: 51m e nil barram envio local; 50m e 30m liberam envio")
+    @MainActor
+    func fronteiraDe50mSemiauto() async {
+        // Teste direto da regra de domínio
+        #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: 30) == .liberado)
+        #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: 50) == .liberado)
+        #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: 51) == .chegueMaisPerto(distanciaMetros: 51))
+        #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: nil) == .chegueMaisPerto(distanciaMetros: 0))
+
+        let api = ApiClienteDubleCheckinProfissional()
+        var chamadas = 0
+        api.aoValidarCodigo = { _, _, _ in
+            chamadas += 1
+            throw ErroDaApi(codigo: .codigoInvalido)
+        }
+
+        // Teste com nil (sem GPS): não chama API
+        let vmNil = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { nil })
+        await vmNil.validarMedindo(codigo: "123456")
+        #expect(vmNil.resultado == .chegueMaisPerto(distanciaMetros: 0))
+        #expect(chamadas == 0)
+
+        // Teste com 51m: não chama API
+        let vm51 = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { 51 })
+        await vm51.validarMedindo(codigo: "123456")
+        #expect(vm51.resultado == .chegueMaisPerto(distanciaMetros: 51))
+        #expect(chamadas == 0)
+
+        // Teste com 50m: chama API
+        let vm50 = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { 50 })
+        await vm50.validarMedindo(codigo: "123456")
+        #expect(chamadas == 1)
+    }
+
     @Test("Código correto dentro do raio valida com sucesso e preserva string com zero")
     @MainActor
     func validaCodigoComSucessoDentroDoRaio() async {

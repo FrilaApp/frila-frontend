@@ -98,9 +98,16 @@ public final class PresencaDoTurnoViewModel {
         aoRegistrar: @escaping @MainActor () -> Void = {},
         telemetria: RegistradorDeTelemetria? = nil,
         cache: CacheDeLeituras? = nil,
-        recursos: @escaping @Sendable () async -> RecursosDoApp = { .desligados }
+        recursos: (@Sendable () async -> RecursosDoApp)? = nil
     ) {
-        self.recursos = recursos
+        if let recursos {
+            self.recursos = recursos
+        } else {
+            let cliente = api
+            self.recursos = { @Sendable in
+                (try? await cliente.configuracaoDoApp())?.recursos ?? .desligados
+            }
+        }
         self.cache = cache
         self.turno = turno
         self.api = api

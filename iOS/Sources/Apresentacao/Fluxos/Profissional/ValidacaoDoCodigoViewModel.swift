@@ -80,7 +80,7 @@ public final class ValidacaoDoCodigoViewModel {
             resultado = .formatoInvalido
             return
         }
-        if case let .chegueMaisPerto(distancia) = RegraDePresenca.decisaoDoEnvioDoCodigo(distanciaMetros: distanciaMetros) {
+        if case let .chegueMaisPerto(distancia) = RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: distanciaMetros) {
             resultado = .chegueMaisPerto(distanciaMetros: distancia)
             return
         }

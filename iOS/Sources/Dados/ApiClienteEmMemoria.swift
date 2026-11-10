@@ -549,6 +549,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
                             turnoID: turnoID, tipo: .manual, verificacao: .naoVerificado,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
                         )
+                    } else if cenario == .checkinPorCodigoCasa {
+                        // Na casa do check-in por código, o profissional chegou há 2 min a 20m (elegível)
+                        checkins[turnoID] = ResultadoRegistro(
+                            turnoID: turnoID, tipo: .manual, verificacao: .pendente,
+                            registradoEm: relogio.agora.addingTimeInterval(-2 * 60), distanciaMetros: 20
+                        )
                     } else if cenario.checkinManualPendente {
                         checkins[turnoID] = ResultadoRegistro(
                             turnoID: turnoID, tipo: .manual, verificacao: .pendente,
@@ -778,6 +784,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     valorAcordado: vaga.valor, podeAvaliar: false, contato: contato
                 )]
                 contatos[turnoID] = contato
+                codigosDeCheckin[turnoID] = CodigoEmitido(
+                    codigo: Self.codigosDeExemplo[0],
+                    expiraEm: relogio.agora.addingTimeInterval(Self.validadeDoCodigoDeCheckin)
+                )
             }
             if cenario == .chamadaRecebida || cenario == .chamadasEnviadas, let vaga = self.vagas.first {
                 let agora = relogio.agora
@@ -2232,10 +2242,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let faixaSuspeita = sinais != nil && (distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false)
         let suspeito = chaveLigada && (sinalSuspeito || faixaSuspeita)
         let perto = distanciaMetros.map { $0 <= 200 } ?? false
-        let verificaPeloGPS = perto && !suspeito
+        // No check-in semiautomático com a chave ligada (Etapa 1), o toque em fazer_checkin NUNCA
+        // marca verificado automaticamente (fica sempre manual e pendente, aguardando o código ou a casa).
+        let verificaPeloGPS = perto && !chaveLigada
         let gravado = ResultadoRegistro(
             turnoID: turnoID, tipo: verificaPeloGPS ? .geolocalizado : .manual, verificacao: verificaPeloGPS ? .verificado : .pendente,
-            registradoEm: registradoEm, distanciaMetros: verificaPeloGPS ? distanciaMetros : nil, codigoExigido: suspeito
+            registradoEm: registradoEm, distanciaMetros: distanciaMetros, codigoExigido: chaveLigada
         )
         checkins[turnoID] = gravado
         let registro = comCodigoDisponivel(gravado)
@@ -2395,6 +2407,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }
         guard checkin.verificacao == .pendente else { throw erro("checkin_ja_confirmado") }
+        guard let distancia = checkin.distanciaMetros, distancia <= RegraDePresenca.raioDoCodigoSemiautoMetros else {
+            throw erro("checkin_pendente")
+        }
+        guard relogio.agora.timeIntervalSince(checkin.registradoEm) <= 900 else {
+            throw erro("checkin_pendente")
+        }
         guard !caminhoDoCodigoEncerrado.contains(turnoID) else { throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue) }
         let vigente = codigoEmVigor(turnoID: turnoID) ?? {
             let emitido = CodigoEmitido(
@@ -2430,7 +2448,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let ate = bloqueioTemporarioDoCodigoAte[turnoID], ate > relogio.agora {
             throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.temporario.rawValue)
         }
-        let perto = distanciaMetros.map { $0 <= RegraDePresenca.raioDoCodigoMetros } ?? true
+        let perto = (distanciaMetros != nil) && distanciaMetros! <= RegraDePresenca.raioDoCodigoSemiautoMetros
         if let vigente = codigoEmVigor(turnoID: turnoID), vigente.codigo == codigo, perto {
             let validado = ResultadoRegistro(
                 turnoID: turnoID, tipo: .codigo, verificacao: .verificado,

@@ -26,10 +26,15 @@ public struct CartaoDoCodigoDaCasa: View {
         .accessibilityIdentifier("cartao-codigo-da-casa")
         .task {
             await viewModel.carregar()
-            // Passo a cada segundo com relógio monotônico.
+            var segundos = 0
+            // Passo a cada segundo com relógio monotônico e verificação periódica de confirmação.
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
+                segundos += 1
                 await viewModel.passo()
+                if segundos % 5 == 0 {
+                    await viewModel.verificarConfirmacao()
+                }
             }
         }
     }

@@ -12,6 +12,7 @@ public actor LeitorDeLocalizacaoSimulado: LeitorDeLocalizacao {
         case semSinal = "sem-sinal"
         case imprecisa
         case aproximada
+        case codigoPerto = "codigo-perto"
     }
 
     private var permissaoAtual: PermissaoDeLocalizacao
@@ -81,6 +82,8 @@ public extension LeitorDeLocalizacaoSimulado {
             self.init(permissao: .naoDeterminada, resultado: .success(Self.leitura(a: 150, de: pontoDaVaga, precisaoMetros: 180)))
         case .aproximada:
             self.init(permissao: .naoDeterminada, respostaAoPedido: .aoUsarAproximada, resultado: .failure(.semSinal))
+        case .codigoPerto:
+            self.init(permissao: .naoDeterminada, resultado: .success(Self.leitura(a: 20, de: pontoDaVaga)))
         }
     }
 

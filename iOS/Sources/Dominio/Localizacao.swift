@@ -71,16 +71,26 @@ public enum RegraDePresenca {
     public static let distanciaMaximaDoCheckinMetros = 200
     /// Leitura com erro maior do que isto não prova que a pessoa está no endereço.
     public static let precisaoHorizontalMaximaMetros = 100.0
-    /// Check-in por código (0.2.68): acima daqui, com a distância medida, o app avisa "chegue mais perto" e
-    /// não envia o código, porque o servidor recusaria e a recusa gasta uma das tentativas. A imprecisão
-    /// não desconta (o servidor também não); sem posição, o código segue. O servidor decide.
+    /// Check-in por código semiautomático (Etapa 1, backend bedcd4c):
+    /// O raio de proximidade para validação é de 50 metros provisório.
+    public static let raioDoCodigoSemiautoMetros = 50
+
+    /// Check-in por código legado (0.2.68).
     public static let raioDoCodigoMetros = 100
     public static let tempoLimiteDaLeitura: Duration = .seconds(10)
     public static let chaveDaPrecisaoTemporaria = "CheckIn"
 
-    /// O "chegue mais perto" do check-in por código (cartão LX77r6gR): com a distância medida acima do raio,
-    /// o app não envia o código e a tentativa não é gasta. Sem posição, libera: o servidor valida e marca o
-    /// turno de confiança baixa. A precisão não desconta, porque o servidor também não desconta.
+    /// Decisão de envio do código semiautomático (Etapa 1, backend bedcd4c):
+    /// Exige leitura de localização presente (não-nula) e dentro de 50 metros.
+    /// Se a distância for nula ou superior a 50m, avisa "chegue mais perto" e não envia o código,
+    /// evitando queimar tentativas contra o servidor (que recusa estritamente nil e >50m com 422).
+    public static func decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: Int?) -> DecisaoDoEnvioDoCodigo {
+        guard let distanciaMetros else { return .chegueMaisPerto(distanciaMetros: 0) }
+        guard distanciaMetros <= raioDoCodigoSemiautoMetros else { return .chegueMaisPerto(distanciaMetros: distanciaMetros) }
+        return .liberado
+    }
+
+    /// O "chegue mais perto" do check-in por código (cartão LX77r6gR): mantido para compatibilidade.
     public static func decisaoDoEnvioDoCodigo(distanciaMetros: Int?) -> DecisaoDoEnvioDoCodigo {
         guard let distanciaMetros, distanciaMetros > raioDoCodigoMetros else { return .liberado }
         return .chegueMaisPerto(distanciaMetros: distanciaMetros)

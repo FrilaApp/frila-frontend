@@ -30,23 +30,31 @@ public final class CodigoDaCasaViewModel {
     public private(set) var segundosRestantes = 0
     /// O código venceu e outro está sendo gerado: a tela mostra transição em vez de manter um código inválido.
     public private(set) var renovando = false
+    /// Single-flight guard: impede requisições concorrentes a `gerarCodigoCheckin`.
+    public private(set) var emVoo = false
 
     private let api: any ApiCliente
     private let agora: @MainActor () -> ContinuousClock.Instant
+    private let aoConfirmar: (@MainActor () -> Void)?
     private var venceEm: ContinuousClock.Instant?
 
     public init(
         turnoID: UUID,
         api: any ApiCliente,
-        agora: @escaping @MainActor () -> ContinuousClock.Instant = { .now }
+        agora: @escaping @MainActor () -> ContinuousClock.Instant = { .now },
+        aoConfirmar: (@MainActor () -> Void)? = nil
     ) {
         self.turnoID = turnoID
         self.api = api
         self.agora = agora
+        self.aoConfirmar = aoConfirmar
     }
 
     /// Pede o código ao servidor (o mesmo se dentro da validade; um novo se o anterior estiver vencido).
     public func carregar() async {
+        guard !emVoo else { return }
+        emVoo = true
+        defer { emVoo = false; renovando = false }
         do {
             let codigo = try await api.gerarCodigoCheckin(turnoID: turnoID)
             venceEm = agora() + .seconds(codigo.segundosRestantes)
@@ -54,12 +62,21 @@ public final class CodigoDaCasaViewModel {
             estado = .mostrando(codigo: codigo.codigo)
         } catch let erro as ErroDaApi {
             venceEm = nil
-            estado = Self.estado(para: erro)
+            let novoEstado = Self.estado(para: erro)
+            estado = novoEstado
+            if novoEstado == .jaVerificado {
+                aoConfirmar?()
+            }
         } catch {
             venceEm = nil
             estado = .falhou
         }
-        renovando = false
+    }
+
+    /// Verifica se a presença já foi confirmada pelo profissional enquanto o código está em exibição.
+    public func verificarConfirmacao() async {
+        guard case .mostrando = estado, !emVoo else { return }
+        await carregar()
     }
 
     /// Um passo da contagem (chamado a cada segundo): recalcula o tempo restante e, no zero, solicita renovação ao servidor.

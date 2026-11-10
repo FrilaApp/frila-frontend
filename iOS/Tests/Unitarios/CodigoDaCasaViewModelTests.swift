@@ -196,4 +196,69 @@ struct CodigoDaCasaViewModelTests {
         let soletrado = TextosDoCheckinPorCodigoCasa.codigoPorExtenso("049215")
         #expect(soletrado.contains("0 4 9 2 1 5"))
     }
+
+    @Test("Single-flight: chamadas concorrentes a carregar não disparam múltiplas requisições em voo")
+    @MainActor
+    func singleFlightEvitaRequisicoesConcorrentes() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var chamadas = 0
+        api.aoGerarCodigo = { id in
+            chamadas += 1
+            try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+            return CodigoDeCheckin(
+                turnoID: id,
+                codigo: "123456",
+                expiraEm: Date().addingTimeInterval(300),
+                segundosRestantes: 300
+            )
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+
+        // Dispara duas chamadas concorrentes
+        async let t1: () = vm.carregar()
+        async let t2: () = vm.carregar()
+        _ = await (t1, t2)
+
+        #expect(chamadas == 1)
+        #expect(vm.estado == .mostrando(codigo: "123456"))
+    }
+
+    @Test("verificarConfirmacao dispara aoConfirmar quando servidor responde checkin_ja_confirmado")
+    @MainActor
+    func verificarConfirmacaoDisparaAoConfirmarQuandoJaVerificado() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var jaConfirmou = false
+        api.aoGerarCodigo = { id in
+            if jaConfirmou {
+                throw ErroDaApi(codigo: .checkinJaConfirmado)
+            }
+            return CodigoDeCheckin(
+                turnoID: id,
+                codigo: "654321",
+                expiraEm: Date().addingTimeInterval(300),
+                segundosRestantes: 300
+            )
+        }
+
+        var confirmacaoDisparada = false
+        let vm = CodigoDaCasaViewModel(
+            turnoID: turnoID,
+            api: api,
+            aoConfirmar: {
+                confirmacaoDisparada = true
+            }
+        )
+
+        await vm.carregar()
+        #expect(vm.estado == .mostrando(codigo: "654321"))
+        #expect(!confirmacaoDisparada)
+
+        // Profissional validou no backend
+        jaConfirmou = true
+        await vm.verificarConfirmacao()
+
+        #expect(vm.estado == .jaVerificado)
+        #expect(confirmacaoDisparada)
+    }
 }

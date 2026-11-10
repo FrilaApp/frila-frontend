@@ -181,7 +181,9 @@ struct TelaTurnoDoContratante: View {
             })?.recursos
             chamadaHabilitada = recursos?.chamadaDireta == true
             if recursos?.checkinPorCodigo == true, codigoDaCasa == nil {
-                codigoDaCasa = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+                codigoDaCasa = CodigoDaCasaViewModel(turnoID: turnoID, api: api, aoConfirmar: {
+                    Task { await viewModel.atualizarEmSilencio(para: turnoID) }
+                })
             }
         }
     }
