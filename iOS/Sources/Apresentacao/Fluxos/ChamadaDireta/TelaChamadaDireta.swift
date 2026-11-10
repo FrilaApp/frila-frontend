@@ -16,6 +16,7 @@ struct BotaoChamarDeNovo: View {
                     TelaChamadaDireta(viewModel: ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
                         estabelecimentoID: estabelecimentoID, vagaID: vagaID), api: api)
                 }
+                .presentationCornerRadius(FrilaRaio.folha)
             }
     }
 }
