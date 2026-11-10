@@ -92,10 +92,16 @@ struct EntradaECadastroBordasTests {
         #expect(vm.erro == MensagemDoErroAPI.texto(ErroDaApi(codigo: .limiteExcedido)))
         #expect(vm.segundosRestantes == 0)
         #expect(vm.mensagemInformativa == nil)
+        #expect(vm.anuncioDoReenvio == nil, "reenvio que falhou não anuncia \"Novo código enviado\"")
 
         api.erroAoSolicitar = ErroQualquer()
         await vm.reenviarCodigo()
         #expect(vm.erro == "Não foi possível reenviar o código. Tente novamente.")
+        #expect(vm.anuncioDoReenvio == nil)
+
+        api.erroAoSolicitar = nil
+        await vm.reenviarCodigo()
+        #expect(vm.anuncioDoReenvio == "Novo código enviado para seu e-mail.", "reenvio que deu certo anuncia")
     }
 
     @Test("Código: sem os 6 dígitos não chama a API e pede os números")

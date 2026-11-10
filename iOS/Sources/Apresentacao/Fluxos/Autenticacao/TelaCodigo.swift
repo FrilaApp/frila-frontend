@@ -257,7 +257,9 @@ public struct TelaCodigo: View {
                 Button(action: {
                     Task {
                         await viewModel.reenviarCodigo()
-                        UIAccessibility.post(notification: .announcement, argument: String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao))
+                        if let anuncio = viewModel.anuncioDoReenvio {
+                            UIAccessibility.post(notification: .announcement, argument: anuncio)
+                        }
                     }
                 }) {
                     HStack(spacing: FrilaEspaco.pequeno) {
