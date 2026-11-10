@@ -563,3 +563,38 @@ data class EstabelecimentoDto(
     @SerialName("ponto") val ponto: CoordenadaDto,
     @SerialName("papel") val papel: String,
 )
+
+/**
+ * Corpo de `/rpc/publicar_vaga` (schema `NovaVaga`, RN02). Instantes em UTC ISO-8601 (RN18); o
+ * valor é em centavos por posição. `modo` vale `urgencia` ou `selecao`. `chave` é gerada uma vez
+ * por publicação: reenviar com a mesma chave devolve a mesma vaga. A coordenada vai aninhada em `ponto`.
+ */
+@Serializable
+data class NovaVagaDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("funcao_id") val funcaoId: String,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("local") val local: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("posicoes") val posicoes: Int,
+    @SerialName("inclui_refeicao") val incluiRefeicao: Boolean,
+    @SerialName("inclui_transporte") val incluiTransporte: Boolean,
+    @SerialName("exige_material_proprio") val exigeMaterialProprio: Boolean,
+    @SerialName("responsavel_local") val responsavelLocal: String,
+    @SerialName("traje") val traje: String? = null,
+    @SerialName("participa_rateio") val participaRateio: Boolean? = null,
+    @SerialName("observacoes") val observacoes: String? = null,
+    @SerialName("modo") val modo: String,
+    @SerialName("alerta_antecedencia_min") val alertaAntecedenciaMin: Int = 180,
+    @SerialName("chave") val chave: String,
+)
+
+/** Resposta de `/rpc/publicar_vaga` (schema `VagaPublicada`): a vaga e uma posição por unidade pedida. */
+@Serializable
+data class VagaPublicadaDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("posicoes") val posicoes: List<String>,
+)
