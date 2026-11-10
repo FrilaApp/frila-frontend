@@ -5,7 +5,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-/** Denúncia, bloqueio e saída da equipe de confiança (RF26/RF18/RN16/RN13, UC17/UC11). */
+/** Denúncia, bloqueio e equipe de confiança: listar, remover e sair (RF26/RF18/RN16/RN13, UC17/UC11). */
 class ServicoConfianca(private val provedorDeCliente: () -> ClienteSupabase) {
     constructor(cliente: ClienteSupabase) : this({ cliente })
 
@@ -35,6 +35,32 @@ class ServicoConfianca(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.post(cliente.urlRpc("bloquear")) {
             contentType(ContentType.Application.Json)
             setBody(BloquearDto(alvoTipo = alvoTipo, alvoId = alvoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/equipe_de_confianca`: os profissionais da equipe da casa, como `PerfilPublico`.
+     * Lista vazia é resposta legítima. Só membro do estabelecimento lê: quem não é recebe
+     * `403 sem_permissao`.
+     */
+    suspend fun equipeDeConfianca(estabelecimentoId: String): List<PerfilPublicoDto> {
+        val resposta = cliente.http.post(cliente.urlRpc("equipe_de_confianca")) {
+            contentType(ContentType.Application.Json)
+            setBody(EstabelecimentoParametrosDto(estabelecimentoId = estabelecimentoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/remover_da_equipe`. Idempotente, sem penalidade nem aviso ao profissional
+     * (RN16); devolve o par removido. Só o administrador remove: `403 sem_permissao`; conta
+     * suspensa recebe `403` com `details: conta_suspensa`.
+     */
+    suspend fun removerDaEquipe(estabelecimentoId: String, profissionalId: String): MembroDaEquipeDto {
+        val resposta = cliente.http.post(cliente.urlRpc("remover_da_equipe")) {
+            contentType(ContentType.Application.Json)
+            setBody(MembroDaEquipeDto(estabelecimentoId = estabelecimentoId, profissionalId = profissionalId))
         }
         return cliente.corpoOuErro(resposta)
     }

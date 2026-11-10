@@ -164,4 +164,80 @@ class ServicoConfiancaTest {
         assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
         assertEquals("alvo_id", excecao.detalhes)
     }
+
+    @Test
+    fun `equipeDeConfianca chama POST rpc equipe_de_confianca com estabelecimento_id e decodifica os perfis`() = runTest {
+        var metodo: io.ktor.http.HttpMethod? = null
+        var caminho: String? = null
+        var corpo: JsonObject? = null
+        val engine = MockEngine { request ->
+            metodo = request.method
+            caminho = request.url.encodedPath
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+            respond(
+                """
+                [{"id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","tipo":"profissional","nome":"Ana","funcoes":["garçom"],
+                  "reputacao":{"positivas":3,"total":4,"turnos_considerados":4,"turnos_realizados":4}}]
+                """.trimIndent(),
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val equipe = servico.equipeDeConfianca("11111111-1111-1111-1111-111111111111")
+
+        assertEquals(io.ktor.http.HttpMethod.Post, metodo)
+        assertEquals("/rest/v1/rpc/equipe_de_confianca", caminho)
+        assertEquals(setOf("estabelecimento_id"), corpo!!.keys)
+        assertEquals("Ana", equipe.single().nome)
+        assertEquals(3, equipe.single().reputacao.positivas)
+    }
+
+    @Test
+    fun `equipeDeConfianca de casa sem membros devolve lista vazia, nao erro`() = runTest {
+        val engine = MockEngine { respond("[]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        assertTrue(servico.equipeDeConfianca("11111111-1111-1111-1111-111111111111").isEmpty())
+    }
+
+    @Test
+    fun `removerDaEquipe manda o par e decodifica o MembroDaEquipe devolvido`() = runTest {
+        var caminho: String? = null
+        var corpo: JsonObject? = null
+        val engine = MockEngine { request ->
+            caminho = request.url.encodedPath
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+            respond(
+                """{"estabelecimento_id":"11111111-1111-1111-1111-111111111111","profissional_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val removido = servico.removerDaEquipe("11111111-1111-1111-1111-111111111111", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+
+        assertEquals("/rest/v1/rpc/remover_da_equipe", caminho)
+        assertEquals(setOf("estabelecimento_id", "profissional_id"), corpo!!.keys)
+        assertEquals("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", removido.profissionalId)
+    }
+
+    @Test
+    fun `removerDaEquipe por quem nao e administrador propaga 403 sem_permissao`() = runTest {
+        val engine = MockEngine {
+            respond(
+                """{"code":"sem_permissao","message":"so administrador"}""",
+                HttpStatusCode.Forbidden,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val excecao = runCatching { servico.removerDaEquipe("11111111-1111-1111-1111-111111111111", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") }
+            .exceptionOrNull()
+
+        assertEquals(CodigoErroAPI.SEM_PERMISSAO, (excecao as ErroDaApi).codigo)
+    }
 }

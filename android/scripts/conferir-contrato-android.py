@@ -158,6 +158,12 @@ def main() -> None:
         "AdministracaoTransferidaDto": "/rpc/transferir_administracao",
     }
 
+    # Leituras que o contrato descreve em GET com parâmetros de query, mas que o app envia em POST
+    # (função volátil só aceita POST no PostgREST): DTO do corpo -> (rota, método do contrato)
+    RPCS_PARAMETROS = {
+        "EstabelecimentoParametrosDto": ("/rpc/equipe_de_confianca", "get"),
+    }
+
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
     ITENS_ANINHADOS = {
         "ParteUploadDto": ("UploadVerificacao", "partes"),
@@ -227,6 +233,36 @@ def main() -> None:
             verificados += 1
             if not args.silencioso:
                 print(f"  [OK] {dto_name} <-> {pai}.{propriedade} ({len(dto_props)} campos)")
+            continue
+
+        if dto_name in RPCS_PARAMETROS:
+            rpc_path, metodo = RPCS_PARAMETROS[dto_name]
+            parametros_doc = doc.get("components", {}).get("parameters", {})
+            nomes: set[str] = set()
+            obrigatorios: set[str] = set()
+            for parametro in paths.get(rpc_path, {}).get(metodo, {}).get("parameters", []):
+                if "$ref" in parametro:
+                    parametro = parametros_doc.get(parametro["$ref"].rsplit("/", 1)[-1], {})
+                if parametro.get("name"):
+                    nomes.add(parametro["name"])
+                    if parametro.get("required"):
+                        obrigatorios.add(parametro["name"])
+            if not nomes:
+                erros.append(f"DTO '{dto_name}' referencia '{metodo.upper()} {rpc_path}', mas a rota não declara parameters no OpenAPI")
+                continue
+
+            faltando_required = obrigatorios - dto_props
+            if faltando_required:
+                erros.append(
+                    f"DTO '{dto_name}' não mapeia parâmetros obrigatórios de '{rpc_path}': {sorted(faltando_required)}"
+                )
+            extras = dto_props - nomes
+            if extras:
+                erros.append(f"DTO '{dto_name}' possui parâmetros ausentes em '{rpc_path}': {sorted(extras)}")
+
+            verificados += 1
+            if not args.silencioso:
+                print(f"  [OK] {dto_name} <-> parâmetros {rpc_path} ({len(dto_props)} campos)")
             continue
 
         if dto_name in RPCS_REQUEST_BODY or dto_name in RPCS_RESPONSE_BODY:
