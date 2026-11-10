@@ -2224,7 +2224,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let chaveLigada = recursosEfetivos.checkinPorCodigo
         if chaveLigada { sinaisDoUltimoCheckin = sinais }
         let sinalSuspeito = sinais.map(Self.sinalSuspeito) ?? false
-        let faixaSuspeita = distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false
+        // A faixa só vale com sinais presentes: o app 1.0 e o 1.1 não os mandam e seguem como hoje (servidor #464).
+        let faixaSuspeita = sinais != nil && (distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false)
         let suspeito = chaveLigada && (sinalSuspeito || faixaSuspeita)
         let perto = distanciaMetros.map { $0 <= 200 } ?? false
         let verificaPeloGPS = perto && !suspeito
