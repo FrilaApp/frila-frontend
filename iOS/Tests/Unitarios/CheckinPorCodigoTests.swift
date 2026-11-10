@@ -210,8 +210,7 @@ struct CheckinPorCodigoNoDubleTests {
             ("as duas bordas do servidor juntas: precisão 100 e 150 m", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 100, saltoDePosicao: false), 150),
             ("faixa de 150 a 200 m, na borda de baixo (150 inclusive)", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 150),
             ("faixa de 150 a 200 m, sem sinais do aparelho", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 151),
-            ("faixa de 150 a 200 m, no limite", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 200),
-            ("faixa de 150 a 200 m, app sem sinais", nil, 180)
+            ("faixa de 150 a 200 m, no limite", SinaisDoCheckin(localizacaoSimulada: false, precisaoMetros: 10, saltoDePosicao: false), 200)
         ]
         for (nome, sinais, distancia) in casos {
             let api = profissional()
@@ -224,6 +223,18 @@ struct CheckinPorCodigoNoDubleTests {
             #expect(registro.codigoDisponivel, "\(nome): a chave está ligada e o caminho, aberto")
             #expect(registro.distanciaMetros == nil, "\(nome): a distância não verificou, e não fica gravada")
         }
+    }
+
+    @Test("o app sem sinais (1.0 e 1.1) a 180 m verifica na hora: a faixa de 150 a 200 m só vale com sinais")
+    func semSinaisAFaixaNaoSeAplica() async throws {
+        let api = profissional()
+        let registro = try await api.fazerCheckin(
+            turnoID: turnoDoProfissionalNoCodigo, distanciaMetros: 180, registradoEm: inicioDoCodigo, sinais: nil
+        )
+        #expect(registro.verificacao == .verificado)
+        #expect(registro.tipo == .geolocalizado)
+        #expect(!registro.codigoExigido)
+        #expect(registro.distanciaMetros == 180)
     }
 
     @Test("sem sinal suspeito, abaixo de 150 m o check-in verifica pelo GPS, e precisão nula não é precisão ruim")
