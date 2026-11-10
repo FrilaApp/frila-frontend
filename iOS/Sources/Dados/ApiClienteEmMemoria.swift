@@ -385,7 +385,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         vagas: [Vaga]? = nil,
         sessaoAtivaInicial: Bool = false,
         erroSimuladoRepublicarPosicoesRestantes: ErroDaApi? = nil,
-        simularFalhaTransitoriaRepublicar: Bool = false
+        simularFalhaTransitoriaRepublicar: Bool = false,
+        chamadaDiretaDesligada: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
@@ -405,7 +406,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 urlDaLoja: configuracaoBase.urlDaLoja,
                 recursos: RecursosDoApp(
                     fotoDePerfil: cenario.fotoDePerfilLigada,
-                    chamadaDireta: cenario.deChamada || cenario == .chamadaRecebida,
+                    // `chamadaDiretaDesligada`: a chave desligada depois que a vaga direta já existe.
+                    chamadaDireta: !chamadaDiretaDesligada && (cenario.deChamada || cenario == .chamadaRecebida),
                     perfilRico: perfilRicoHabilitado,
                     checkinPorCodigo: cenario.checkinPorCodigoLigado
                 )
@@ -872,7 +874,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             vagas: vagasPersonalizadas,
             sessaoAtivaInicial: sessaoAtiva,
             erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
-            simularFalhaTransitoriaRepublicar: falhaTransitoria
+            simularFalhaTransitoriaRepublicar: falhaTransitoria,
+            // A chave do servidor desligada num cenário que já tem vaga direta (RN46).
+            chamadaDiretaDesligada: argumentos.contains("-FRILA_CHAMADA_DIRETA_DESLIGADA")
         )
     }
     #endif
@@ -2224,7 +2228,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let chaveLigada = recursosEfetivos.checkinPorCodigo
         if chaveLigada { sinaisDoUltimoCheckin = sinais }
         let sinalSuspeito = sinais.map(Self.sinalSuspeito) ?? false
-        let faixaSuspeita = distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false
+        // A faixa só vale com sinais presentes: o app 1.0 e o 1.1 não os mandam e seguem como hoje (servidor #464).
+        let faixaSuspeita = sinais != nil && (distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false)
         let suspeito = chaveLigada && (sinalSuspeito || faixaSuspeita)
         let perto = distanciaMetros.map { $0 <= 200 } ?? false
         let verificaPeloGPS = perto && !suspeito

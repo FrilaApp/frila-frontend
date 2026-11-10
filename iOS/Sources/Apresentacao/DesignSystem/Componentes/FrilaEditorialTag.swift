@@ -4,8 +4,8 @@ public typealias FrilaTipografia = FrilaTipo
 public typealias EditorialTag = FrilaEditorialTag
 
 /// Tag editorial no padrão canônico Frila com geometria 100% Capsule (cornerRadius máximo),
-/// borda refinada de 1 pt na cor de marca (#EA5A36), fundo tingido com opacidade calibrada
-/// e microrrótulo em caixa alta rastreado. Utilizada para metadados curados, selos técnicos
+/// borda refinada de 1 pt na cor de marca (a ação, #F46700), fundo tingido com opacidade calibrada,
+/// texto em tinta e microrrótulo em caixa alta rastreado. Utilizada para metadados curados, selos técnicos
 /// e protocolos.
 public struct FrilaEditorialTag: View {
     public let text: String
@@ -34,12 +34,21 @@ public struct FrilaEditorialTag: View {
         self.textColor = textColor
     }
 
+    /// Cor do texto quando quem chama não passa uma: a tinta. A `acao` (#F46700) sobre o fundo mede 2,9:1 e sobre o
+    /// próprio preenchimento da tag, 2,5:1; o DESIGN.md (Cor) a reserva para preenchimento, nunca para texto.
+    static let corDoTextoPadrao: Color = FrilaCor.texto
+
+    /// Preenchimento da tag: a marca tingida, mais densa no escuro.
+    static func corDoFundo(isDark: Bool) -> Color {
+        FrilaCor.marca.opacity(isDark ? 0.18 : 0.12)
+    }
+
     private var resolvedTextColor: Color {
-        textColor ?? FrilaCor.marca
+        textColor ?? Self.corDoTextoPadrao
     }
 
     private var backgroundColor: Color {
-        FrilaCor.marca.opacity(isDark ? 0.18 : 0.12)
+        Self.corDoFundo(isDark: isDark)
     }
 
     private var borderColor: Color {
