@@ -70,12 +70,12 @@ final class CapturasLote2UITests: XCTestCase {
     // MARK: - T4: Meu Turno (antes de sair)
 
     private func fluxoMeuTurnoT4(ax5: Bool) {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "a-caminho", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "turno-confirmado-perto", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
         let telaTurnos = app.descendants(matching: .any)["tela-meus-turnos"]
         XCTAssertTrue(telaTurnos.waitForExistence(timeout: 10), "A tela Meus turnos deve abrir")
 
         let turnoCard = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
-        XCTAssertTrue(turnoCard.waitForExistence(timeout: 5), "O card de turno de hoje deve aparecer")
+        XCTAssertTrue(turnoCard.waitForExistence(timeout: 10), "O card de turno de hoje deve aparecer")
         turnoCard.tap()
 
         let telaMeuTurno = app.descendants(matching: .any)["tela-meu-turno"]
@@ -89,17 +89,34 @@ final class CapturasLote2UITests: XCTestCase {
 
     // MARK: - T8: Meu Turno (a caminho / presença)
 
-    private func fluxoMeuTurnoT8(ax5: Bool) {
-        let app = iniciar(extra: ["-FRILA_SCENARIO", "a-caminho", "-FRILA_ABRIR_MEUS_TURNOS"], ax5: ax5)
-        let telaTurnos = app.descendants(matching: .any)["tela-meus-turnos"]
-        XCTAssertTrue(telaTurnos.waitForExistence(timeout: 10), "A tela Meus turnos deve abrir")
-
-        let turnoCard = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
-        XCTAssertTrue(turnoCard.waitForExistence(timeout: 5), "O card de turno deve aparecer")
-        turnoCard.tap()
-
+    private func abrirMeuTurnoA_Caminho(ax5: Bool) -> XCUIApplication {
+        let app = iniciar(extra: ["-FRILA_SCENARIO", "a-caminho", "-FRILA_LOCALIZACAO", "perto"], ax5: ax5)
+        let primeira = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'vaga-'")).firstMatch
+        if primeira.waitForExistence(timeout: 10) {
+            primeira.tap()
+            let candidatar = app.buttons["candidatar"]
+            if candidatar.waitForExistence(timeout: 10) {
+                candidatar.tap()
+                let voltar = app.buttons["voltar-para-lista"]
+                if voltar.waitForExistence(timeout: 10) {
+                    voltar.tap()
+                }
+            }
+        }
+        let meusTurnos = app.tabBars.buttons["Meus turnos"]
+        if meusTurnos.waitForExistence(timeout: 10) {
+            meusTurnos.tap()
+        }
+        let turno = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'meu-turno-'")).firstMatch
+        XCTAssertTrue(turno.waitForExistence(timeout: 10), "O card de turno deve aparecer")
+        turno.tap()
         let telaMeuTurno = app.descendants(matching: .any)["tela-meu-turno"]
         XCTAssertTrue(telaMeuTurno.waitForExistence(timeout: 10), "A tela Meu turno deve abrir")
+        return app
+    }
+
+    private func fluxoMeuTurnoT8(ax5: Bool) {
+        let app = abrirMeuTurnoA_Caminho(ax5: ax5)
 
         let botaoACaminho = app.buttons["botao-a-caminho"]
         if botaoACaminho.waitForExistence(timeout: 5) {
