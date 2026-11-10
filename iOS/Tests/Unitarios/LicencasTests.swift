@@ -12,7 +12,7 @@ struct LicencasTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    private static let fontesEmbutidas = ["jost": "Jost"]
+    private static let fontesEmbutidas = ["jost": "Jost", "prodigy-sans": "ProdigySans-Bold"]
     private static let comoCorrigir = "Resolva os pacotes e rode Scripts/gerar-licencas.py."
 
     private struct PacotesResolvidos: Decodable {

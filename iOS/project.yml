@@ -47,7 +47,7 @@ settings:
     # Versão e build numa fonte só, herdada pelo app e pela extensão de notificação: a App Store
     # recusa a extensão com versão diferente da do app. O enviar-testflight.sh sobrescreve as duas
     # pela linha de comando, para todos os alvos.
-    MARKETING_VERSION: "1.1.0"
+    MARKETING_VERSION: "1.2.0"
     CURRENT_PROJECT_VERSION: "1"
   # dSYM em todos os targets, e não só no app: o código roda nos quatro frameworks, e o
   # Crashlytics segura a falha fatal enquanto falta o dSYM de qualquer binário da pilha. Com
