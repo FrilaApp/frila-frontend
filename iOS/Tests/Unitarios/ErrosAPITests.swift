@@ -27,7 +27,13 @@ struct ErrosAPITests {
             coluna.output.1.matches(of: codigo).map { String($0.output.1) }
         })
         #expect(codigos.count >= 28, "a tabela de erros do contrato não foi encontrada inteira")
-        let semCaso = codigos.filter { CodigoErroAPI(rawValue: $0) == nil }.sorted()
+        // Check-in por código (contrato 0.2.68): a F12a só espelha o contrato 0.2.70; a F12b adota no
+        // iOS e tira esta exceção, igual ao `PENDENTE_F12B` de `Scripts/conferir-contrato-ios.py`.
+        let pendentesF12b: Set = ["codigo_bloqueado", "codigo_invalido"]
+        #expect(pendentesF12b.isSubset(of: codigos), "exceção da F12b com código fora do contrato")
+        let jaAdotados = pendentesF12b.filter { CodigoErroAPI(rawValue: $0) != nil }.sorted()
+        #expect(jaAdotados.isEmpty, "já têm caso em CodigoErroAPI: tire da exceção da F12b \(jaAdotados)")
+        let semCaso = codigos.subtracting(pendentesF12b).filter { CodigoErroAPI(rawValue: $0) == nil }.sorted()
         #expect(semCaso.isEmpty, "códigos do contrato sem caso em CodigoErroAPI: \(semCaso)")
     }
 
