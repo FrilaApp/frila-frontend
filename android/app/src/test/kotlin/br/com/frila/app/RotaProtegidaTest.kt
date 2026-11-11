@@ -99,10 +99,10 @@ class RotaProtegidaTest {
     private fun textoDoGrafo(): String {
         val relativo = "src/main/kotlin/br/com/frila/app/AppNavegacao.kt"
         val arquivo = listOf(File(relativo), File("app/$relativo")).first { it.exists() }
-        // Sem comentários de linha inteira nem de bloco: o nome no texto de um comentário não vale como uso.
+        // Sem comentários de linha nem de bloco: o nome no texto de um comentário não vale como uso.
         return arquivo.readText()
             .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
-            .replace(Regex("""(?m)^\s*//.*$"""), "")
+            .replace(Regex("""//.*"""), "")
     }
 
     /** Cada `composable(Rotas.X` com o texto até o próximo `composable(`. */
