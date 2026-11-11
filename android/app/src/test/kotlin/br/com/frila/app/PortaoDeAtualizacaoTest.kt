@@ -168,7 +168,7 @@ class PortaoDeAtualizacaoTest {
                 parametroPlataforma = request.url.parameters["plataforma"]
                 parametroVersaoApp = request.url.parameters["versao_app"]
                 respond(
-                    content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora","recursos":{"foto_de_perfil":true,"chamada_direta":true,"perfil_rico":true}}""",
+                    content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora","recursos":{"foto_de_perfil":true,"chamada_direta":true,"perfil_rico":true,"checkin_por_codigo":true}}""",
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -187,6 +187,32 @@ class PortaoDeAtualizacaoTest {
             assertTrue(resultado.recursos.fotoDePerfil)
             assertTrue(resultado.recursos.chamadaDireta)
             assertTrue(resultado.recursos.perfilRico)
+            assertTrue(resultado.recursos.checkinPorCodigo)
+        } finally {
+            cliente.http.close()
+        }
+    }
+
+    @Test
+    fun `consultarConfiguracaoDoApp usa versao do BuildConfig por padrao e decodifica checkin desligado`() = runBlocking {
+        var parametroVersaoApp: String? = null
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                parametroVersaoApp = request.url.parameters["versao_app"]
+                respond(
+                    content = """{"plataforma":"android","versao_minima":"1.0.0","recursos":{"checkin_por_codigo":false}}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        try {
+            val resultado = consultarConfiguracaoDoApp(cliente)
+            assertEquals(BuildConfig.VERSION_NAME, parametroVersaoApp)
+            assertFalse(resultado.recursos.checkinPorCodigo)
         } finally {
             cliente.http.close()
         }
@@ -211,6 +237,7 @@ class PortaoDeAtualizacaoTest {
             assertFalse(recursos.fotoDePerfil)
             assertFalse(recursos.chamadaDireta)
             assertFalse(recursos.perfilRico)
+            assertFalse(recursos.checkinPorCodigo)
         } finally {
             cliente.http.close()
         }

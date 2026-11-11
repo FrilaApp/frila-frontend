@@ -24,6 +24,7 @@ data class RecursosDoAppDto(
     val fotoDePerfil: Boolean = false,
     val chamadaDireta: Boolean = false,
     val perfilRico: Boolean = false,
+    val checkinPorCodigo: Boolean = false,
 )
 
 /**
@@ -65,6 +66,7 @@ suspend fun consultarConfiguracaoDoApp(
             fotoDePerfil = recursos?.get("foto_de_perfil")?.jsonPrimitive?.booleanOrNull ?: false,
             chamadaDireta = recursos?.get("chamada_direta")?.jsonPrimitive?.booleanOrNull ?: false,
             perfilRico = recursos?.get("perfil_rico")?.jsonPrimitive?.booleanOrNull ?: false,
+            checkinPorCodigo = recursos?.get("checkin_por_codigo")?.jsonPrimitive?.booleanOrNull ?: false,
         ),
     )
 }
