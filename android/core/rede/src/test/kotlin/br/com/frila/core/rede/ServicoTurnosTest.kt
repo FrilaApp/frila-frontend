@@ -4,6 +4,10 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.content.TextContent
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
@@ -512,5 +516,68 @@ class ServicoTurnosTest {
 
         assertTrue(excecao is ErroDaApi)
         assertEquals(CodigoErroAPI.LIMITE_EXCEDIDO, (excecao as ErroDaApi).codigo)
+    }
+
+    private fun servicoQueResponde(
+        status: HttpStatusCode,
+        conteudo: String,
+        aoReceber: (io.ktor.client.request.HttpRequestData) -> Unit = {},
+    ): ServicoTurnos {
+        val engine = MockEngine { request ->
+            aoReceber(request)
+            respond(conteudo, status, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        return ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+    }
+
+    @Test
+    fun `confirmarCheckinManual faz POST com turno_id e decodifica o registro verificado`() = runTest {
+        var metodo: HttpMethod? = null
+        var caminho: String? = null
+        var corpo: kotlinx.serialization.json.JsonObject? = null
+        val servico = servicoQueResponde(
+            HttpStatusCode.OK,
+            """{"turno_id":"t1","tipo":"manual","verificacao":"verificado","registrado_em":"2026-11-12T21:05:00Z","distancia_m":null}""",
+        ) { request ->
+            metodo = request.method
+            caminho = request.url.encodedPath
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+        }
+
+        val resultado = servico.confirmarCheckinManual("t1").getOrThrow()
+
+        assertEquals(HttpMethod.Post, metodo)
+        assertEquals("/rest/v1/rpc/confirmar_checkin_manual", caminho)
+        assertEquals(setOf("turno_id"), corpo!!.keys)
+        assertEquals("t1", corpo!!["turno_id"]!!.jsonPrimitive.content)
+        assertEquals("verificado", resultado.verificacao)
+        assertEquals("manual", resultado.tipo)
+        assertNull(resultado.distanciaM)
+    }
+
+    @Test
+    fun `confirmarCheckinManual devolve falha com o codigo de cada recusa do contrato, sem lancar`() = runTest {
+        val casos = listOf(
+            Pair(HttpStatusCode.Conflict to "checkin_pendente", CodigoErroAPI.CHECKIN_PENDENTE),
+            Pair(HttpStatusCode.Conflict to "checkin_ja_confirmado", CodigoErroAPI.CHECKIN_JA_CONFIRMADO),
+            Pair(HttpStatusCode.NotFound to "nao_encontrado", CodigoErroAPI.NAO_ENCONTRADO),
+            Pair(HttpStatusCode.Forbidden to "sem_permissao", CodigoErroAPI.SEM_PERMISSAO),
+        )
+        for ((resposta, esperado) in casos) {
+            val servico = servicoQueResponde(resposta.first, """{"code":"${resposta.second}","message":"x"}""")
+
+            val resultado = servico.confirmarCheckinManual("t1")
+
+            assertTrue(resultado.isFailure, resposta.second)
+            assertEquals(esperado, (resultado.exceptionOrNull() as ErroDaApi).codigo, resposta.second)
+        }
+    }
+
+    @Test
+    fun `confirmarCheckinManual devolve falha quando o corpo nao e JSON, sem lancar`() = runTest {
+        val resultado = servicoQueResponde(HttpStatusCode.OK, "<html>gateway</html>").confirmarCheckinManual("t1")
+
+        assertTrue(resultado.isFailure)
+        assertTrue(resultado.exceptionOrNull() !is ErroDaApi)
     }
 }
