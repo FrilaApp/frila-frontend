@@ -7,10 +7,14 @@ import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.CancellationException
 
 /**
  * Leitura de vagas abertas, candidatura, publicação e escolha de candidato (`/rpc/vagas_abertas`,
- * `/rpc/candidatar`, `/rpc/publicar_vaga`, `/rpc/candidatos_da_vaga`, `/rpc/escolher_candidato`).
+ * `/rpc/candidatar`, `/rpc/publicar_vaga`, `/rpc/candidatos_da_vaga`, `/rpc/escolher_candidato`) e o
+ * painel do estabelecimento (`/rpc/painel_estabelecimento`).
  */
 class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
     constructor(cliente: ClienteSupabase) : this({ cliente })
@@ -103,4 +107,32 @@ class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
         }
         return cliente.corpoOuErro(resposta)
     }
+
+    /**
+     * `POST /rest/v1/rpc/painel_estabelecimento` (RF20/UC07): as vagas do estabelecimento entre [de] e
+     * [ate], com candidatos pendentes, posições e alertas. Vai por POST porque a função do banco é
+     * VOLÁTIL (plpgsql sem `STABLE`) e o PostgREST só aceita POST nesse caso; o contrato descreve GET com
+     * query. Só membro do estabelecimento lê: quem não é recebe `403 sem_permissao`.
+     *
+     * Devolve [Result]: qualquer falha (recusa do servidor, sem rede, corpo que não é JSON) vira
+     * `Result.failure`, e só o cancelamento da corrotina propaga.
+     */
+    suspend fun painelEstabelecimento(estabelecimentoId: String, de: Instant, ate: Instant): Result<PainelDto> =
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("painel_estabelecimento")) {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    PainelParametrosDto(
+                        estabelecimentoId = estabelecimentoId,
+                        de = de.truncatedTo(ChronoUnit.SECONDS).toString(),
+                        ate = ate.truncatedTo(ChronoUnit.SECONDS).toString(),
+                    ),
+                )
+            }
+            Result.success(cliente.corpoOuErro<PainelDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
 }

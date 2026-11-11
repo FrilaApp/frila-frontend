@@ -164,6 +164,7 @@ def main() -> None:
     RPCS_PARAMETROS = {
         "EstabelecimentoParametrosDto": ("/rpc/equipe_de_confianca", "get"),
         "CandidatosDaVagaParametrosDto": ("/rpc/candidatos_da_vaga", "get"),
+        "PainelParametrosDto": ("/rpc/painel_estabelecimento", "get"),
     }
 
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
