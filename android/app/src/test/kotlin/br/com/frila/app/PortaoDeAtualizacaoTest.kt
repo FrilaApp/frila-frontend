@@ -16,6 +16,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -155,17 +156,53 @@ class PortaoDeAtualizacaoTest {
     }
 
     @Test
-    fun `consultarConfiguracaoDoApp busca configuracao da plataforma android e decodifica versao_minima`() = runBlocking {
+    fun `consultarConfiguracaoDoApp envia versao do app e decodifica recursos`() = runBlocking {
         var caminhoChamado: String? = null
         var parametroPlataforma: String? = null
+        var parametroVersaoApp: String? = null
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
             apiKey = "chave-teste",
             engine = MockEngine { request ->
                 caminhoChamado = request.url.encodedPath
                 parametroPlataforma = request.url.parameters["plataforma"]
+                parametroVersaoApp = request.url.parameters["versao_app"]
                 respond(
-                    content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora"}""",
+                    content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora","recursos":{"foto_de_perfil":true,"chamada_direta":true,"perfil_rico":true,"checkin_por_codigo":true}}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        try {
+            val resultado = consultarConfiguracaoDoApp(cliente, versaoApp = "1.2.0")
+            assertNotNull(resultado)
+            assertEquals("/rest/v1/rpc/configuracao_do_app", caminhoChamado)
+            assertEquals("android", parametroPlataforma)
+            assertEquals("1.2.0", parametroVersaoApp)
+            assertEquals("android", resultado.plataforma)
+            assertEquals("99.0.0", resultado.versaoMinima)
+            assertEquals("Atualize agora", resultado.mensagem)
+            assertTrue(resultado.recursos.fotoDePerfil)
+            assertTrue(resultado.recursos.chamadaDireta)
+            assertTrue(resultado.recursos.perfilRico)
+            assertTrue(resultado.recursos.checkinPorCodigo)
+        } finally {
+            cliente.http.close()
+        }
+    }
+
+    @Test
+    fun `consultarConfiguracaoDoApp usa versao do BuildConfig por padrao e decodifica checkin desligado`() = runBlocking {
+        var parametroVersaoApp: String? = null
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                parametroVersaoApp = request.url.parameters["versao_app"]
+                respond(
+                    content = """{"plataforma":"android","versao_minima":"1.0.0","recursos":{"checkin_por_codigo":false}}""",
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -174,12 +211,33 @@ class PortaoDeAtualizacaoTest {
 
         try {
             val resultado = consultarConfiguracaoDoApp(cliente)
-            assertNotNull(resultado)
-            assertEquals("/rest/v1/rpc/configuracao_do_app", caminhoChamado)
-            assertEquals("android", parametroPlataforma)
-            assertEquals("android", resultado.plataforma)
-            assertEquals("99.0.0", resultado.versaoMinima)
-            assertEquals("Atualize agora", resultado.mensagem)
+            assertEquals(BuildConfig.VERSION_NAME, parametroVersaoApp)
+            assertFalse(resultado.recursos.checkinPorCodigo)
+        } finally {
+            cliente.http.close()
+        }
+    }
+
+    @Test
+    fun `consultarConfiguracaoDoApp usa recursos desligados quando objeto estiver ausente`() = runBlocking {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine {
+                respond(
+                    content = """{"plataforma":"android","versao_minima":"1.0.0"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        try {
+            val recursos = consultarConfiguracaoDoApp(cliente).recursos
+            assertFalse(recursos.fotoDePerfil)
+            assertFalse(recursos.chamadaDireta)
+            assertFalse(recursos.perfilRico)
+            assertFalse(recursos.checkinPorCodigo)
         } finally {
             cliente.http.close()
         }
