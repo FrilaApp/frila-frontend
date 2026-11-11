@@ -17,12 +17,24 @@ final class ServicosDoProfissionalUITests: XCTestCase {
         return app
     }
 
+    /// Limite de baixo da área livre: a tab bar e, na tela de perfil, a barra fixa do "Salvar alterações" do perfil.
+    /// Em AX5 no iPhone 17 Pro essa barra mede ~170 pt; sem contá-la, o toque no centro de "Editar serviços" caía nela
+    /// e salvava o perfil em vez de abrir o editor.
+    private func base(para elemento: XCUIElement, _ app: XCUIApplication) -> CGFloat {
+        let tabBar = app.tabBars.firstMatch.frame.minY
+        let barraDoPerfil = app.buttons["botao-salvar-perfil"]
+        guard elemento.identifier != "botao-salvar-perfil", barraDoPerfil.exists else { return tabBar }
+        // A barra tem 12 pt de folga acima do botão (`FrilaEspaco.compacto` em `barraInferiorConteudo`) e ela também recebe o toque.
+        let topoDaBarra = barraDoPerfil.frame.minY - 12
+        return topoDaBarra > 0 ? min(tabBar, topoDaBarra) : tabBar
+    }
+
     private func tocar(_ elemento: XCUIElement, _ app: XCUIApplication) {
         XCTAssertTrue(elemento.waitForExistence(timeout: 10))
         for _ in 0..<12 {
             let quadro = elemento.frame
             let topo = app.navigationBars.firstMatch.frame.maxY
-            let base = app.tabBars.firstMatch.frame.minY
+            let base = base(para: elemento, app)
             if elemento.isHittable, quadro.minY >= topo, quadro.maxY <= base { break }
             if quadro.minY < topo { app.swipeDown() } else { app.swipeUp() }
         }
