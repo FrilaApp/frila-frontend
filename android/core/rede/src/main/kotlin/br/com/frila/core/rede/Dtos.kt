@@ -657,3 +657,70 @@ data class ResultadoConfirmacaoDto(
     @SerialName("turno_id") val turnoId: String,
     @SerialName("contato") val contato: ContatoDto? = null,
 )
+
+/**
+ * Parâmetros de `/rpc/painel_estabelecimento`. O contrato os descreve em GET com query; o app os envia
+ * em POST com o corpo (função volátil só aceita POST no PostgREST), como `equipe_de_confianca`. `de` e
+ * `ate` vão em ISO-8601 UTC (RN18).
+ */
+@Serializable
+data class PainelParametrosDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("de") val de: String,
+    @SerialName("ate") val ate: String,
+)
+
+/**
+ * Resposta de `/rpc/painel_estabelecimento` (schema `Painel`, RF20/UC07): as vagas do estabelecimento na
+ * janela pedida e os turnos com check-in manual esperando a confirmação da casa.
+ */
+@Serializable
+data class PainelDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("vagas") val vagas: List<VagaNoPainelDto>,
+    @SerialName("checkins_pendentes") val checkinsPendentes: List<String>,
+)
+
+/**
+ * Uma vaga no painel (schema `VagaNoPainel`). `modo` vale `urgencia` ou `selecao`; `estado`, `publicada`,
+ * `preenchida`, `encerrada` ou `cancelada`. `republicavel_em_urgencia` (0.2.41) ausente vale nulo.
+ */
+@Serializable
+data class VagaNoPainelDto(
+    @SerialName("vaga") val vaga: VagaResumoDto,
+    @SerialName("republicavel_em_urgencia") val republicavelEmUrgencia: Int? = null,
+    @SerialName("modo") val modo: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("oculta") val oculta: Boolean,
+    @SerialName("alerta_vaga_vazia") val alertaVagaVazia: Boolean,
+    @SerialName("candidatos_pendentes") val candidatosPendentes: Int,
+    @SerialName("posicoes") val posicoes: List<PosicaoNoPainelDto>,
+)
+
+/**
+ * Uma posição no painel (schema `PosicaoNoPainel`). `estado` vale `aberta`, `confirmada`, `cumprida` ou
+ * `cancelada`. Os campos do check-in e do cancelamento (0.2.31) são opcionais no contrato.
+ */
+@Serializable
+data class PosicaoNoPainelDto(
+    @SerialName("id") val id: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("profissional") val profissional: PerfilPublicoDto? = null,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("verificacao") val verificacao: String? = null,
+    @SerialName("em_atraso") val emAtraso: Boolean,
+    @SerialName("a_caminho_em") val aCaminhoEm: String? = null,
+    @SerialName("checkin_em") val checkinEm: String? = null,
+    @SerialName("checkin_tipo") val checkinTipo: String? = null,
+    @SerialName("checkin_confirmado_em") val checkinConfirmadoEm: String? = null,
+    @SerialName("cancelamento") val cancelamento: CancelamentoDaPosicaoDto? = null,
+)
+
+/** Por que uma posição que tinha profissional foi cancelada (schema `CancelamentoDaPosicao`, RN12). */
+@Serializable
+data class CancelamentoDaPosicaoDto(
+    @SerialName("causa") val causa: String,
+    @SerialName("falta") val falta: Boolean,
+    @SerialName("motivo") val motivo: String? = null,
+    @SerialName("cancelada_em") val canceladaEm: String,
+)

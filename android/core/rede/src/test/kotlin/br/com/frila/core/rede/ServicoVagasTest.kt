@@ -447,4 +447,96 @@ class ServicoVagasTest {
             assertEquals("turno_sobreposto", excecao.detalhes, codigo)
         }
     }
+
+    private val painelJson = """
+        {
+          "estabelecimento_id": "est-1",
+          "checkins_pendentes": ["turno-9"],
+          "vagas": [
+            {
+              "vaga": {"id":"v1","funcao":"garçom","local":"SQN 108","regiao_administrativa":"Asa Norte",
+                       "inicio_em":"2026-11-12T21:00:00Z","fim_em":"2026-11-13T03:00:00Z","valor_centavos":16000},
+              "modo": "selecao", "estado": "publicada", "oculta": false, "alerta_vaga_vazia": true,
+              "candidatos_pendentes": 2, "republicavel_em_urgencia": 1,
+              "posicoes": [
+                {"id":"p1","estado":"confirmada","turno_id":"t1","verificacao":"verificado","em_atraso":false,
+                 "a_caminho_em":"2026-11-12T19:00:00Z","checkin_em":"2026-11-12T21:02:00Z","checkin_tipo":"codigo",
+                 "checkin_confirmado_em":"2026-11-12T21:03:00Z",
+                 "profissional":{"id":"pr1","tipo":"profissional","nome":"Ana",
+                   "reputacao":{"positivas":1,"total":1,"turnos_considerados":1,"turnos_realizados":1}}},
+                {"id":"p2","estado":"aberta","profissional":null,"turno_id":null,"verificacao":null,"em_atraso":false,"a_caminho_em":null},
+                {"id":"p3","estado":"cancelada","profissional":null,"turno_id":null,"verificacao":null,"em_atraso":false,"a_caminho_em":null,
+                 "cancelamento":{"causa":"profissional","falta":true,"motivo":"Imprevisto","cancelada_em":"2026-11-12T10:00:00Z"}}
+              ]
+            }
+          ]
+        }
+    """.trimIndent()
+
+    @Test
+    fun `painelEstabelecimento faz POST com estabelecimento_id e a janela em UTC, e decodifica o painel inteiro`() = runTest {
+        var caminho: String? = null
+        var metodo: HttpMethod? = null
+        var corpo: kotlinx.serialization.json.JsonObject? = null
+        val servico = servicoQueResponde(HttpStatusCode.OK, painelJson) { request ->
+            caminho = request.url.encodedPath
+            metodo = request.method
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+        }
+
+        val painel = servico.painelEstabelecimento(
+            "est-1",
+            java.time.Instant.parse("2025-11-10T15:00:00.123Z"),
+            java.time.Instant.parse("2027-11-10T15:00:00Z"),
+        ).getOrThrow()
+
+        assertEquals(HttpMethod.Post, metodo)
+        assertEquals("/rest/v1/rpc/painel_estabelecimento", caminho)
+        assertEquals(setOf("estabelecimento_id", "de", "ate"), corpo!!.keys)
+        assertEquals("est-1", corpo!!["estabelecimento_id"]!!.jsonPrimitive.content)
+        assertEquals("2025-11-10T15:00:00Z", corpo!!["de"]!!.jsonPrimitive.content)
+        assertEquals("2027-11-10T15:00:00Z", corpo!!["ate"]!!.jsonPrimitive.content)
+        assertEquals(listOf("turno-9"), painel.checkinsPendentes)
+        val vaga = painel.vagas.single()
+        assertEquals("garçom", vaga.vaga.funcao)
+        assertEquals("selecao", vaga.modo)
+        assertEquals(true, vaga.alertaVagaVazia)
+        assertEquals(2, vaga.candidatosPendentes)
+        assertEquals(1, vaga.republicavelEmUrgencia)
+        assertEquals(listOf("confirmada", "aberta", "cancelada"), vaga.posicoes.map { it.estado })
+        assertEquals("Ana", vaga.posicoes[0].profissional?.nome)
+        assertEquals("codigo", vaga.posicoes[0].checkinTipo)
+        assertEquals(null, vaga.posicoes[1].profissional)
+        assertEquals(true, vaga.posicoes[2].cancelamento?.falta)
+        assertEquals("profissional", vaga.posicoes[2].cancelamento?.causa)
+    }
+
+    @Test
+    fun `painel de uma casa sem vagas decodifica lista vazia`() = runTest {
+        val servico = servicoQueResponde(HttpStatusCode.OK, """{"estabelecimento_id":"est-1","vagas":[],"checkins_pendentes":[]}""")
+
+        val painel = servico.painelEstabelecimento("est-1", java.time.Instant.EPOCH, java.time.Instant.EPOCH).getOrThrow()
+
+        assertEquals(true, painel.vagas.isEmpty())
+    }
+
+    @Test
+    fun `painelEstabelecimento devolve falha com ErroDaApi para 403, sem lancar`() = runTest {
+        val servico = servicoQueResponde(HttpStatusCode.Forbidden, """{"code":"sem_permissao","message":"x"}""")
+
+        val resultado = servico.painelEstabelecimento("est-1", java.time.Instant.EPOCH, java.time.Instant.EPOCH)
+
+        assertEquals(true, resultado.isFailure)
+        assertEquals(CodigoErroAPI.SEM_PERMISSAO, (resultado.exceptionOrNull() as ErroDaApi).codigo)
+    }
+
+    @Test
+    fun `painelEstabelecimento devolve falha quando o corpo nao e JSON, sem lancar`() = runTest {
+        val servico = servicoQueResponde(HttpStatusCode.OK, "<html>gateway</html>")
+
+        val resultado = servico.painelEstabelecimento("est-1", java.time.Instant.EPOCH, java.time.Instant.EPOCH)
+
+        assertEquals(true, resultado.isFailure)
+        assertEquals(false, resultado.exceptionOrNull() is ErroDaApi)
+    }
 }
