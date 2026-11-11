@@ -46,6 +46,7 @@ import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
+import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
@@ -56,6 +57,7 @@ import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import java.time.Instant
 import org.koin.androidx.viewmodel.dsl.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -229,6 +231,20 @@ val moduloFeatures = module {
             estabelecimento = estabelecimento,
             buscarFuncoes = vagas::listarFuncoes,
             enviarVaga = vagas::publicarVaga,
+        )
+    }
+    /**
+     * Candidatos de uma vaga em seleção e a escolha (RF09, UC04). `posicoesAbertas` e `inicioDaVaga` vêm
+     * da tela de origem, que conhece a vaga; nulos escondem o aviso da última posição e o prazo de escolha.
+     */
+    viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: Instant?) ->
+        val vagas = get<ServicoVagas>()
+        CandidatosDaVagaViewModel(
+            vagaId = vagaId,
+            buscar = vagas::candidatosDaVaga,
+            escolher = vagas::escolherCandidato,
+            posicoesAbertas = posicoesAbertas,
+            inicioDaVaga = inicioDaVaga,
         )
     }
 }

@@ -44,6 +44,8 @@ import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.codigo.TelaCodigo
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
+import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
+import br.com.frila.feature.vagas.candidatos.TelaCandidatosDaVaga
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
@@ -72,6 +74,7 @@ import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
 import br.com.frila.feature.turnos.TelaOcorrencia
 import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
+import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.getKoin
 import org.koin.compose.koinInject
@@ -102,6 +105,7 @@ object Rotas {
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
+    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -131,6 +135,19 @@ object Rotas {
     fun equipe(estabelecimentoId: String) = "equipe/$estabelecimentoId"
 
     fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
+
+    /**
+     * `posicoesAbertas` e `inicioDaVaga` são opcionais: a tela de origem os informa quando conhece a vaga.
+     * O início vai em ISO-8601 UTC, como o contrato o entrega.
+     */
+    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null): String {
+        val parametros = listOfNotNull(
+            posicoesAbertas?.let { "posicoesAbertas=$it" },
+            inicioDaVaga?.let { "inicioDaVaga=${Uri.encode(it.toString())}" },
+        )
+        val base = "candidatos_da_vaga/${Uri.encode(vagaId)}"
+        return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
+    }
 }
 
 object DeepLinks {
@@ -615,6 +632,30 @@ fun AppNavegacao(
                     RotaPublicarVaga(
                         estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
                         servicoMembros = servicoMembros,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.CANDIDATOS_DA_VAGA,
+                arguments = listOf(
+                    navArgument("vagaId") { type = NavType.StringType },
+                    navArgument("posicoesAbertas") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("inicioDaVaga") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
+                    // só perde o aviso da última posição e o prazo, nunca recebe lixo.
+                    val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
+                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                    val viewModel: CandidatosDaVagaViewModel = koinViewModel(
+                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
+                    )
+                    TelaCandidatosDaVaga(
+                        viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
                     )
                 }
