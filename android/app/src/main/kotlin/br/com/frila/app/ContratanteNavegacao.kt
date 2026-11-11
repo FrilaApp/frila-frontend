@@ -39,8 +39,8 @@ internal sealed interface CasasDaConta {
     /** Contratante sem estabelecimento: pode cadastrar o primeiro. */
     data object Nenhuma : CasasDaConta
 
-    /** Primeira casa por nome, para a equipe e a publicação. */
-    data class Primeira(val id: String) : CasasDaConta
+    /** Primeira casa por nome, para a equipe, a publicação e Minhas vagas. */
+    data class Primeira(val id: String, val nome: String) : CasasDaConta
 }
 
 /**
@@ -49,8 +49,8 @@ internal sealed interface CasasDaConta {
  * o perfil nunca quebra por causa disso, e conta de profissional nunca é convidada a cadastrar uma casa.
  */
 internal suspend fun buscarCasasDaConta(servicoMembros: ServicoMembros?): CasasDaConta = try {
-    servicoMembros?.listarMeusEstabelecimentos()?.firstOrNull()?.id
-        ?.let { CasasDaConta.Primeira(it) }
+    servicoMembros?.listarMeusEstabelecimentos()?.firstOrNull()
+        ?.let { CasasDaConta.Primeira(it.id, it.nome) }
         ?: if (servicoMembros == null) CasasDaConta.Desconhecidas else CasasDaConta.Nenhuma
 } catch (erro: CancellationException) {
     throw erro

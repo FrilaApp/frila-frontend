@@ -44,6 +44,7 @@ import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltro
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
@@ -245,6 +246,19 @@ val moduloFeatures = module {
             escolher = vagas::escolherCandidato,
             posicoesAbertas = posicoesAbertas,
             inicioDaVaga = inicioDaVaga,
+        )
+    }
+    /**
+     * Minhas vagas do contratante (RF20, UC07): o painel do estabelecimento da rota. `nomeEstabelecimento`
+     * e `vagaRecemPublicadaId` são opcionais: sem eles a tela não mostra o nome nem destaca uma vaga.
+     */
+    viewModel { (estabelecimentoId: String, nomeEstabelecimento: String?, vagaRecemPublicadaId: String?) ->
+        val vagas = get<ServicoVagas>()
+        MinhasVagasViewModel(
+            estabelecimentoId = estabelecimentoId,
+            nomeEstabelecimento = nomeEstabelecimento,
+            vagaRecemPublicadaId = vagaRecemPublicadaId,
+            buscarPainel = vagas::painelEstabelecimento,
         )
     }
 }

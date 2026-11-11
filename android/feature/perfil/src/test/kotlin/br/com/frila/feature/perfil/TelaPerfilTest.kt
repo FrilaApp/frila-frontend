@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import br.com.frila.core.designsystem.tema.FrilaMetricas
@@ -757,6 +758,48 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun atalhoDeMinhasVagasSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var abertas = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoMinhasVagas = { abertas++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-minhas-vagas").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, abertas)
+            rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun minhasVagasFicaAcimaDePublicarVaga() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoMinhasVagas = {}, aoPublicarVaga = {}) }
+            }
+            rule.waitForIdle()
+
+            // Rola até o de baixo: os dois ficam medidos na mesma posição de rolagem.
+            val topoPublicar = rule.onNodeWithTag("perfil-publicar-vaga").performScrollTo().getUnclippedBoundsInRoot().top
+            val topoMinhasVagas = rule.onNodeWithTag("perfil-minhas-vagas").getUnclippedBoundsInRoot().top
+            assertTrue("Minhas vagas vem antes de Publicar vaga", topoMinhasVagas < topoPublicar)
+        }
+    }
+
+    @Test
     fun atalhoDeCadastrarEstabelecimentoSoApareceQuandoOChamadorInformaOCallback() {
         runBlocking {
             val vm = criarViewModel()
@@ -789,6 +832,7 @@ class TelaPerfilTest {
             rule.waitForIdle()
 
             rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-minhas-vagas").assertCountEquals(0)
             rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
         }
     }
