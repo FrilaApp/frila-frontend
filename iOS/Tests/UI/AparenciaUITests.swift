@@ -13,7 +13,14 @@ final class AparenciaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_ABA_CONTA"] + argumentos
         app.launch()
         let linha = app.buttons["perfil-aparencia"]
-        for _ in 0..<8 where !linha.exists || !linha.isHittable { app.swipeUp() }
+        // Rola até a linha ficar inteira acima da tab bar. Em Meu perfil (iPhone 17 Pro) ela abre em y 770–822, metade
+        // atrás da tab bar flutuante (791): `isHittable` já dá verdadeiro, o toque vai na faixa de 20 pt que sobra e às
+        // vezes se perde. Quando isso acontecia no tear down, o claro não voltava e a repetição seguinte achava o escuro.
+        for _ in 0..<8 {
+            let base = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : app.frame.maxY
+            if linha.exists, linha.isHittable, linha.frame.maxY <= base { break }
+            app.swipeUp()
+        }
         tocar(linha)
         XCTAssertTrue(app.otherElements["tela-aparencia"].waitForExistence(timeout: Espera.aparecer)
             || app.buttons["aparencia-claro"].waitForExistence(timeout: Espera.aparecer))
