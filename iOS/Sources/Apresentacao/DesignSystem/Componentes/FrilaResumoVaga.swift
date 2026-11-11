@@ -164,7 +164,7 @@ public struct FrilaResumoVaga: View {
             HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
                 Image(systemName: "mappin")
                     .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.texto)
                     .frame(width: 16, height: 16)
                     .accessibilityHidden(true)
 

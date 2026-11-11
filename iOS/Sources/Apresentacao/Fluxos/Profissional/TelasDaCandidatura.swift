@@ -14,6 +14,7 @@ public struct AreaDeCandidatura: View {
     /// Presente quando a área está presa ao rodapé do detalhe: o aviso vai para a rolagem.
     @Environment(AvisosDoDetalhe.self) private var quadro: AvisosDoDetalhe?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.noFimDaRolagem) private var estaNoFimDaRolagem
     private let api: (any ApiCliente)?
     private let candidatar: (CandidaturaViewModel) async -> Void
 
@@ -43,8 +44,20 @@ public struct AreaDeCandidatura: View {
                     avisoLocal(aviso).accessibilityIdentifier(aviso.id)
                 }
 
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    precoView
+                if estaNoFimDaRolagem {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .center, spacing: FrilaEspaco.medio) {
+                            precoEmColuna
+                            Spacer(minLength: 0)
+                            botaoView
+                                .frame(minWidth: 150)
+                        }
+                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                            precoEmColuna
+                            botaoView.frame(maxWidth: .infinity)
+                        }
+                    }
+                } else {
                     botaoView.frame(maxWidth: .infinity)
                 }
 
@@ -105,29 +118,9 @@ public struct AreaDeCandidatura: View {
     }
 
     private var botaoView: some View {
-        let desabilitado = viewModel.enviando || viewModel.conferindo
-        let usaCorMarca = quadro != nil && !desabilitado
-        return Button {
+        BotaoPrimario(verbatim: tituloDoBotao, carregando: viewModel.enviando || viewModel.conferindo) {
             Task { await candidatar(viewModel) }
-        } label: {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                if desabilitado {
-                    ProgressView()
-                        .tint(FrilaCor.textoSecundario)
-                }
-                Text(verbatim: tituloDoBotao)
-                    .font(FrilaTipo.botao)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, FrilaEspaco.grande)
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .foregroundStyle(desabilitado ? FrilaCor.textoSecundario : (usaCorMarca ? FrilaCor.sobreSelecao : FrilaCor.sobrePrimaria))
-            .background(desabilitado ? FrilaCor.controle : (usaCorMarca ? FrilaCor.marca : FrilaCor.primaria), in: Capsule())
-            .contentShape(Capsule())
         }
-        .buttonStyle(.tatil)
-        .disabled(desabilitado)
         .accessibilityIdentifier("candidatar")
         .accessibilityHint(viewModel.enviando ? Textos.enviando : "")
     }
