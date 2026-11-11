@@ -86,7 +86,38 @@ final class ConferenciaVisualLote1e4UITests: XCTestCase {
         return false
     }
 
-    // MARK: V6: interruptor ligado no escuro
+    /// Há algum ponto escuro (max(r,g,b) < 60) na mesma faixa direita do interruptor? É a tinta (#111111).
+    private func temPixelEscuroNoTrilho(_ interruptor: XCUIElement, _ captura: XCUIScreenshot) -> Bool {
+        guard let imagem = captura.image.cgImage,
+              let dados = imagem.dataProvider?.data, let bytes = CFDataGetBytePtr(dados) else { return false }
+        let escala = CGFloat(imagem.width) / captura.image.size.width
+        let quadro = interruptor.frame
+        let porLinha = imagem.bytesPerRow, porPixel = imagem.bitsPerPixel / 8
+        for x in stride(from: quadro.maxX - 80, through: quadro.maxX - 4, by: 2) {
+            let px = Int(x * escala), py = Int(quadro.midY * escala)
+            guard px >= 0, px < imagem.width, py >= 0, py < imagem.height else { continue }
+            let i = py * porLinha + px * porPixel
+            if max(Int(bytes[i]), Int(bytes[i + 1]), Int(bytes[i + 2])) < 60 { return true }
+        }
+        return false
+    }
+
+    // MARK: V6: interruptor ligado no claro (continua tinta) e no escuro
+
+    /// O conserto do escuro não pode mexer no claro: ligado, o trilho segue na tinta, e não laranja.
+    func testV6InterruptorLigadoNoClaroContinuaTinta() {
+        let app = abrir(["-FRILA_ABRIR_EQUIPE_CONFIANCA", "-FRILA_SCENARIO", "chamada-direta"])
+        abrirChamada(app)
+        let total = app.switches["confirmar-total-chamada"]
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        XCTAssertFalse(temPixelEscuroNoTrilho(total, capturar("V6-chamada-total-desligado-claro")),
+                       "desligado, o trilho é cinza claro, sem a tinta")
+        ligar(total, app)
+        XCTAssertEqual(total.value as? String, "1")
+        let ligado = capturar("V6-chamada-total-ligado-claro")
+        XCTAssertTrue(temPixelEscuroNoTrilho(total, ligado), "ligado no claro, o trilho é a tinta (escuro)")
+        XCTAssertFalse(temCorNoTrilho(total, ligado), "ligado no claro, o trilho não é laranja")
+    }
 
     func testV6InterruptorLigadoAparecenoEscuro() {
         let app = abrir(["-FRILA_ABRIR_EQUIPE_CONFIANCA", "-FRILA_SCENARIO", "chamada-direta"], escuro: true)
