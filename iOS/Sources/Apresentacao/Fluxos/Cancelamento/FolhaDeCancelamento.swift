@@ -78,8 +78,8 @@ public struct FolhaDeCancelamento: View {
                 opcao(motivo)
             }
         }
-        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("motivos-do-cancelamento")
 
@@ -138,8 +138,11 @@ public struct FolhaDeCancelamento: View {
                     .padding(.vertical, FrilaEspaco.pequeno)
                     .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
                     .foregroundStyle(viewModel.podeConfirmar ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
-                    .background(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle, in: Capsule())
-                    .contentShape(Capsule())
+                    .background(
+                        RoundedRectangle(cornerRadius: FrilaMetrica.alturaDoCampo / 2, style: .continuous)
+                            .fill(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle)
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: FrilaMetrica.alturaDoCampo / 2, style: .continuous))
                 }
                 .buttonStyle(.tatil)
                 .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
@@ -177,7 +180,7 @@ public struct FolhaDeCancelamento: View {
                 // Decorativo: o estado vai pelo traço `.isSelected` do botão.
                 Image(systemName: "checkmark")
                     .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.primaria)
+                    .foregroundStyle(FrilaCor.texto)
                     .opacity(escolhido ? 1 : 0)
                     .accessibilityHidden(true)
             }

@@ -219,6 +219,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
+        tirarDeTrasDaBarraFixa(codigo, barra: app.buttons["codigo-entrar"], em: app)
         codigo.tap()
         codigo.typeText("123456")
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
@@ -318,6 +319,17 @@ final class FluxoDoContratanteUITests: XCTestCase {
             }
             if direcao == .nenhuma { break }
         }
+    }
+
+    /// Em AX5 no iPhone 17 Pro a barra fixa do "Entrar" da TelaCodigo cobre o campo do código
+    /// (`isHittable` continua verdadeiro e o toque cai no botão): rola até o campo ficar acima dela.
+    private func tirarDeTrasDaBarraFixa(_ elemento: XCUIElement, barra: XCUIElement, em app: XCUIApplication, tentativas: Int = 6) {
+        guard barra.exists else { return }
+        let limite = { barra.frame.minY - 12 }
+        for _ in 0..<tentativas where elemento.frame.maxY > limite() {
+            app.swipeUp(velocity: .slow)
+        }
+        XCTAssertLessThanOrEqual(elemento.frame.maxY, limite(), "o campo continua atrás da barra fixa do Entrar")
     }
 
     private func fecharTecladoSeVisivel(app: XCUIApplication) {

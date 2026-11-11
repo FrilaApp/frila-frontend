@@ -27,18 +27,18 @@ public struct TelaCodigo: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Bloco do título e subtítulo com respiro enxuto
+                        // Bloco do título e subtítulo (T6b · Confira seu e-mail)
                         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                            Text("Digite o código", bundle: bundleApresentacao)
-                                .font(FrilaTipo.pergunta)
+                            Text("Confira seu e-mail", bundle: bundleApresentacao)
+                                .font(FrilaTipo.tituloGrande)
                                 .foregroundStyle(FrilaCor.texto)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
 
-                            (Text("Enviamos um código para", bundle: bundleApresentacao).font(FrilaTipo.contextoDaResposta).foregroundStyle(FrilaCor.textoSecundario)
-                             + Text(verbatim: " ")
-                             + Text(verbatim: viewModel.email).font(FrilaTipo.respostaEscolhida).foregroundStyle(FrilaCor.texto))
-                            .fixedSize(horizontal: false, vertical: true)
+                            Text(String(format: String(localized: "Digite o código de 6 dígitos enviado para %@.", bundle: bundleApresentacao), viewModel.email))
+                                .font(FrilaTipo.meta)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
 
                             Button(action: aoVoltar) {
                                 Text("Trocar e-mail", bundle: bundleApresentacao)
@@ -50,9 +50,15 @@ public struct TelaCodigo: View {
                             .buttonStyle(.plain)
                         }
 
+                        // Rótulo do campo Código
+                        Text("Código de acesso", bundle: bundleApresentacao)
+                            .font(FrilaTipo.rotuloDoCampo)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .padding(.top, FrilaEspaco.medio)
+
                         // Seis caixas de código
                         caixasDeCodigo
-                            .padding(.top, FrilaEspaco.compacto)
+                            .padding(.top, FrilaEspaco.minimo)
 
                         botaoColar
                             .padding(.top, FrilaEspaco.compacto)
@@ -232,37 +238,48 @@ public struct TelaCodigo: View {
 
     @ViewBuilder
     private var blocoReenvio: some View {
-        if viewModel.segundosRestantes > 0 {
-            HStack {
-                Text("Reenviar código em \(textoContagemReenvio)", bundle: bundleApresentacao)
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    .accessibilityIdentifier("codigo-reenviar-aguarde")
-                Spacer()
-            }
-        } else {
-            Button(action: {
-                Task { await viewModel.reenviarCodigo() }
-            }) {
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    if viewModel.carregando {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                    Text("Reenviar código", bundle: bundleApresentacao)
-                        .font(FrilaTipo.corpo.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
+        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            Text("Não chegou? Veja a caixa de spam.", bundle: bundleApresentacao)
+                .font(FrilaTipo.meta)
+                .foregroundStyle(FrilaCor.textoSecundario)
+
+            if viewModel.segundosRestantes > 0 {
+                HStack {
+                    Text("Reenviar código em \(textoContagemReenvio)", bundle: bundleApresentacao)
+                        .font(FrilaTipo.meta.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                        .accessibilityIdentifier("codigo-reenviar-aguarde")
+                    Spacer()
                 }
-                .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                .padding(.horizontal, FrilaEspaco.medio)
-                .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                .contentShape(Capsule())
+            } else {
+                Button(action: {
+                    Task {
+                        await viewModel.reenviarCodigo()
+                        if let anuncio = viewModel.anuncioDoReenvio {
+                            UIAccessibility.post(notification: .announcement, argument: anuncio)
+                        }
+                    }
+                }) {
+                    HStack(spacing: FrilaEspaco.pequeno) {
+                        if viewModel.carregando {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Text("Reenviar código", bundle: bundleApresentacao)
+                            .font(FrilaTipo.corpo.weight(.semibold))
+                            .foregroundStyle(FrilaCor.texto)
+                    }
+                    .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+                    .padding(.horizontal, FrilaEspaco.medio)
+                    .overlay(RoundedRectangle(cornerRadius: FrilaMetrica.alvoMinimo / 2, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                    .contentShape(RoundedRectangle(cornerRadius: FrilaMetrica.alvoMinimo / 2, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.carregando)
+                .accessibilityIdentifier("codigo-reenviar")
             }
-            .buttonStyle(.plain)
-            .disabled(viewModel.carregando)
-            .accessibilityIdentifier("codigo-reenviar")
         }
     }
 
