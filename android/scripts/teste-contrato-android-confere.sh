@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$SCRIPT_DIR/conferir-contrato-android.py"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-CONTRATO_OFICIAL="$REPO_ROOT/iOS/Contrato/openapi.yaml"
+CONTRATO_OFICIAL="$REPO_ROOT/android/contrato/openapi.yaml"
 ANDROID_DIR="$REPO_ROOT/android"
 
 TMPDIR_TESTE="$(mktemp -d "${TMPDIR:-/tmp}/frila-contrato-android-teste.XXXXXX")"
@@ -68,5 +68,72 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
     f.write(c)
 "
 esperar_reprovacao "TurnoDto com campo inventado turno_id" "possui campos inventados ausentes no schema 'Turno': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# Restaura e testa o ramo de parâmetros de query: campo inventado em EstabelecimentoParametrosDto
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read().replace('@SerialName(\"estabelecimento_id\") val estabelecimentoId: String,\n)\n\n/** Schema', '@SerialName(\"estabelecimento_id\") val estabelecimentoId: String,\n    @SerialName(\"pagina\") val pagina: Int,\n)\n\n/** Schema')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "EstabelecimentoParametrosDto com parâmetro inventado" "possui parâmetros ausentes em '/rpc/equipe_de_confianca': ['pagina']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# Restaura e testa o cadastro de estabelecimento: campo obrigatório de NovoEstabelecimentoDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read().replace('data class NovoEstabelecimentoDto(\n    @SerialName(\"nome\") val nome: String,\n    @SerialName(\"documento\") val documento: String,\n', 'data class NovoEstabelecimentoDto(\n    @SerialName(\"nome\") val nome: String,\n')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "NovoEstabelecimentoDto sem documento obrigatório" "não mapeia campos obrigatórios (required) do schema 'NovoEstabelecimento': ['documento']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# Restaura e testa a leitura do estabelecimento: campo obrigatório de MeuEstabelecimentoDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = 'data class MeuEstabelecimentoDto(\n    @SerialName(\"id\") val id: String,\n    @SerialName(\"nome\") val nome: String,\n    @SerialName(\"tipo\") val tipo: String,\n    @SerialName(\"endereco\") val endereco: String,\n'
+assert c.count(alvo) == 1
+c = c.replace(alvo, 'data class MeuEstabelecimentoDto(\n    @SerialName(\"id\") val id: String,\n    @SerialName(\"nome\") val nome: String,\n    @SerialName(\"tipo\") val tipo: String,\n')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "MeuEstabelecimentoDto sem endereco obrigatório" "não mapeia campos obrigatórios (required) do schema 'MeuEstabelecimento': ['endereco']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# Restaura e testa a publicação de vaga: campo obrigatório de NovaVagaDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = '    @SerialName(\"valor_centavos\") val valorCentavos: Long,\n    @SerialName(\"posicoes\") val posicoes: Int,\n    @SerialName(\"inclui_refeicao\")'
+assert c.count(alvo) == 1
+c = c.replace(alvo, '    @SerialName(\"posicoes\") val posicoes: Int,\n    @SerialName(\"inclui_refeicao\")')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "NovaVagaDto sem valor_centavos obrigatório" "não mapeia campos obrigatórios (required) do schema 'NovaVaga': ['valor_centavos']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# Restaura e testa a escolha de candidato: campo obrigatório de ResultadoConfirmacaoDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = '    @SerialName(\"turno_id\") val turnoId: String,\n    @SerialName(\"contato\") val contato: ContatoDto? = null,\n)'
+assert c.count(alvo) == 1
+c = c.replace(alvo, '    @SerialName(\"contato\") val contato: ContatoDto? = null,\n)')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "ResultadoConfirmacaoDto sem turno_id obrigatório" "não mapeia campos obrigatórios (required) do schema 'ResultadoConfirmacao': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+# 4. Mutação 3: contrato alterado sem regravar a soma
+mkdir -p "$TMPDIR_TESTE/contrato"
+cp "$CONTRATO_OFICIAL" "$TMPDIR_TESTE/contrato/openapi.yaml"
+cp "$CONTRATO_OFICIAL.sha256" "$TMPDIR_TESTE/contrato/openapi.yaml.sha256"
+esperar_aprovacao --contrato "$TMPDIR_TESTE/contrato/openapi.yaml" --android-dir "$ANDROID_DIR"
+printf '\n# adulterado\n' >> "$TMPDIR_TESTE/contrato/openapi.yaml"
+esperar_reprovacao "contrato adulterado sem regravar a soma" "mudou sem atualizar a soma" --contrato "$TMPDIR_TESTE/contrato/openapi.yaml" --android-dir "$ANDROID_DIR"
 
 echo "OK: todos os testes de mutação do portão Android passaram com sucesso!"

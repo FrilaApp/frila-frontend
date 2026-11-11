@@ -14,6 +14,8 @@ import br.com.frila.core.rede.InclusosDto
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ServicoAutenticacao
+import br.com.frila.core.rede.ServicoConfianca
+import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
@@ -145,7 +147,7 @@ class KoinGrafoTest : KoinTest {
         val gestor = get<GestorClienteKtor>()
         val servicos = listOf(
             get<ServicoAutenticacao>(), get<ServicoVagas>(), get<ServicoDispositivo>(),
-            get<ServicoTurnos>(), get<ServicoPerfil>(),
+            get<ServicoTurnos>(), get<ServicoPerfil>(), get<ServicoConfianca>(), get<ServicoMembros>(),
         )
         val antigo = gestor.clienteAtual
 
