@@ -581,8 +581,19 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     // MARK: Aplicativo e dispositivo
 
+    /// 0.2.65: sem `versao_app`, o servidor manda todos os `recursos` desligados, como manda ao app
+    /// 1.0 e ao 1.1. A versão só decide os recursos; o bloqueio por `versao_minima` continua no app.
     public func configuracaoDoApp() async throws -> ConfiguracaoApp {
-        struct Params: Encodable { let plataforma = "ios" }
+        struct Params: Encodable {
+            let plataforma = "ios"
+            /// Ausente no bundle, a chave não vai, e o servidor responde como para o app sem versão.
+            let versaoApp = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+
+            enum CodingKeys: String, CodingKey {
+                case plataforma
+                case versaoApp = "versao_app"
+            }
+        }
         let resposta: ContratoAPI.ConfiguracaoDoAppDTO = try await rpc("configuracao_do_app", params: Params())
         return resposta.dominio()
     }

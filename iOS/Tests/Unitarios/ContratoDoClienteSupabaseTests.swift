@@ -1,4 +1,5 @@
 import Foundation
+import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
 import Testing
@@ -314,16 +315,50 @@ struct ContratoDoClienteSupabaseTests {
         #expect(publicada.posicoes.count == 2)
     }
 
-    @Test("configuracao_do_app manda plataforma ios e lê versões, mensagem e loja")
+    @Test("configuracao_do_app manda plataforma ios e a versao_app do app (0.2.65), e lê versões, mensagem e loja")
     func configuracaoDoApp() async throws {
         try rpc("configuracao_do_app", "configuracao-do-app")
         let configuracao = try await cliente().configuracaoDoApp()
+        let versao = try #require(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
 
-        #expect(try corpoEnviado(para: "/rest/v1/rpc/configuracao_do_app") == ["plataforma": "ios"])
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/configuracao_do_app") == ["plataforma": "ios", "versao_app": versao])
+        // Fora do formato, o servidor trata a versão como ausente e devolve os recursos desligados (0.2.67).
+        #expect(versao.wholeMatch(of: /[0-9]{1,6}(\.[0-9]{1,6}){0,3}/) != nil, "versão \(versao) fora do formato do contrato")
         #expect(configuracao.versaoMinima == "0.1.0")
         #expect(configuracao.versaoRecomendada == "0.1.0")
         #expect(configuracao.mensagem == "Atualize o Frila para continuar.")
         #expect(configuracao.urlDaLoja.absoluteString == "https://apps.apple.com/app/id6815311991")
+    }
+
+    /// A resposta de hoje (sem `perfil_rico` nem `checkin_por_codigo`), a da 0.2.65 sem versão que o
+    /// servidor aceite (tudo desligado) e a da 0.2.68 em diante, com a chave nova `checkin_por_codigo`.
+    static let respostasDaConfiguracao: [(String, String, RecursosDoApp)] = [
+        ("hoje", #"{"foto_de_perfil": true, "chamada_direta": false}"#, RecursosDoApp(fotoDePerfil: true)),
+        ("0.2.65 sem versão", #"{"foto_de_perfil": false, "chamada_direta": false, "perfil_rico": false, "checkin_por_codigo": false}"#, .desligados),
+        ("0.2.70", #"{"foto_de_perfil": true, "chamada_direta": true, "perfil_rico": true, "checkin_por_codigo": true}"#,
+         RecursosDoApp(fotoDePerfil: true, chamadaDireta: true, perfilRico: true)),
+    ]
+
+    @Test("configuracao_do_app de hoje e da 0.2.65: os recursos seguem o servidor e o portão de versão mínima continua", arguments: respostasDaConfiguracao)
+    @MainActor
+    func configuracaoNasDuasFormas(forma: String, recursos: String, esperados: RecursosDoApp) async throws {
+        let corpo = #"{"plataforma": "ios", "versao_minima": "1.1.0", "versao_recomendada": "1.1.0", "url_da_loja": "https://apps.apple.com/app/id6815311991", "mensagem": "Atualize o Frila para continuar.", "recursos": "# + recursos + "}"
+        BackendDeContrato.preparar([
+            "/rest/v1/rpc/configuracao_do_app": .init(corpo: Data(corpo.utf8)),
+            "/rest/v1/rpc/registrar_evento": .init(corpo: try FixturesDoContrato.dados("registrar-evento")),
+        ])
+        let api = try cliente()
+
+        let configuracao = try await api.configuracaoDoApp()
+        #expect(configuracao.recursos == esperados, "\(forma)")
+        #expect(configuracao.versaoMinima == "1.1.0", "\(forma)")
+
+        let abaixo = AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: "1.0.9")
+        await abaixo.verificar()
+        guard case .bloqueado = abaixo.estado else { Issue.record("\(forma): 1.0.9 abaixo de 1.1.0 devia bloquear; estado: \(abaixo.estado)"); return }
+        let igual = AtualizacaoObrigatoriaViewModel(api: api, versaoAtual: "1.1")
+        await igual.verificar()
+        #expect(igual.estado == .liberado, "\(forma)")
     }
 
     // MARK: Telemetria (RN15, RNF08, contrato 0.2.41)
