@@ -493,7 +493,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin {
         let resposta: ContratoAPI.CodigoDeCheckinDTO = try await rpc("gerar_codigo_checkin", params: ContratoAPI.ID("turno_id", turnoID))
-        return resposta.dominio()
+        return resposta.dominio(turnoIDFallback: turnoID)
     }
 
     /// Fora de `rpcsDeLeitura` de propósito: a tentativa errada fica gravada no servidor, e repetir sozinho
