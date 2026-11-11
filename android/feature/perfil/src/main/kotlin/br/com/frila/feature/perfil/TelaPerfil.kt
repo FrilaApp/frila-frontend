@@ -117,6 +117,8 @@ fun TelaPerfil(
     aoAbrirEquipe: (() -> Unit)? = null,
     /** Publicar vaga (RF04): nulo esconde o atalho, que só existe para quem é membro de um estabelecimento. */
     aoPublicarVaga: (() -> Unit)? = null,
+    /** Minhas vagas (RF20): nulo esconde o atalho, que só existe para quem é membro de um estabelecimento. */
+    aoMinhasVagas: (() -> Unit)? = null,
     /** Cadastrar estabelecimento (RF02): nulo esconde o atalho, que só existe para contratante que ainda não tem casa. */
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     /**
@@ -278,6 +280,7 @@ fun TelaPerfil(
                 aoAbrirAjuda = aoAbrirAjuda,
                 aoAbrirEquipe = aoAbrirEquipe,
                 aoPublicarVaga = aoPublicarVaga,
+                aoMinhasVagas = aoMinhasVagas,
                 aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -336,6 +339,7 @@ private fun ConteudoDoPerfil(
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
+    aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -391,6 +395,7 @@ private fun ConteudoDoPerfil(
             aoAbrirAjuda = aoAbrirAjuda,
             aoAbrirEquipe = aoAbrirEquipe,
             aoPublicarVaga = aoPublicarVaga,
+            aoMinhasVagas = aoMinhasVagas,
             aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
         )
     }
@@ -917,6 +922,7 @@ private fun BlocoDeConta(
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
+    aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
@@ -985,6 +991,16 @@ private fun BlocoDeConta(
                     .fillMaxWidth()
                     .padding(top = FrilaEspacamento.pequeno)
                     .testTag("perfil-equipe"),
+            )
+        }
+        if (aoMinhasVagas != null) {
+            BotaoSecundario(
+                texto = "Minhas vagas",
+                aoClicar = aoMinhasVagas,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-minhas-vagas"),
             )
         }
         if (aoPublicarVaga != null) {

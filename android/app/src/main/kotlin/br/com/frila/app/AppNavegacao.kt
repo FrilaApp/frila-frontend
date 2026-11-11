@@ -53,6 +53,8 @@ import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
+import br.com.frila.feature.vagas.painel.TelaMinhasVagas
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
@@ -105,6 +107,7 @@ object Rotas {
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
+    const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
     fun codigo(email: String) = "codigo/$email"
@@ -135,6 +138,16 @@ object Rotas {
     fun equipe(estabelecimentoId: String) = "equipe/$estabelecimentoId"
 
     fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
+
+    /** `nomeEstabelecimento` e `vagaRecemPublicadaId` são opcionais; a vaga recém-publicada sobe na lista. */
+    fun minhasVagas(estabelecimentoId: String, nomeEstabelecimento: String? = null, vagaRecemPublicadaId: String? = null): String {
+        val parametros = listOfNotNull(
+            nomeEstabelecimento?.let { "nomeEstabelecimento=${Uri.encode(it)}" },
+            vagaRecemPublicadaId?.let { "vagaRecemPublicadaId=${Uri.encode(it)}" },
+        )
+        val base = "minhas_vagas/${Uri.encode(estabelecimentoId)}"
+        return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
+    }
 
     /**
      * `posicoesAbertas` e `inicioDaVaga` são opcionais: a tela de origem os informa quando conhece a vaga.
@@ -473,7 +486,7 @@ fun AppNavegacao(
                     LaunchedEffect(viewModelSelo) { viewModelSelo?.carregar() }
                     var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
                     LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
-                    val primeiraCasa = (casas as? CasasDaConta.Primeira)?.id
+                    val primeiraCasa = casas as? CasasDaConta.Primeira
                     TelaPerfil(
                         viewModel = viewModel,
                         recursoSeloHabilitado = recursoSeloHabilitado,
@@ -488,11 +501,14 @@ fun AppNavegacao(
                         },
                         aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
                         aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
-                        aoAbrirEquipe = primeiraCasa?.let { id ->
-                            { navController.navigate(Rotas.equipe(id)) }
+                        aoAbrirEquipe = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.equipe(casa.id)) }
                         },
-                        aoPublicarVaga = primeiraCasa?.let { id ->
-                            { navController.navigate(Rotas.publicarVaga(id)) }
+                        aoPublicarVaga = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.publicarVaga(casa.id)) }
+                        },
+                        aoMinhasVagas = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
                         },
                         aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
                             { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
@@ -633,6 +649,32 @@ fun AppNavegacao(
                         estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
                         servicoMembros = servicoMembros,
                         aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.MINHAS_VAGAS,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") { type = NavType.StringType },
+                    navArgument("nomeEstabelecimento") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("vagaRecemPublicadaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    val nomeEstabelecimento = entrada.arguments?.getString("nomeEstabelecimento")?.takeIf { it.isNotBlank() }
+                    val vagaRecemPublicadaId = entrada.arguments?.getString("vagaRecemPublicadaId")?.takeIf { it.isNotBlank() }
+                    val viewModel: MinhasVagasViewModel = koinViewModel(
+                        parameters = { parametersOf(estabelecimentoId, nomeEstabelecimento, vagaRecemPublicadaId) },
+                    )
+                    TelaMinhasVagas(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoVerCandidatos = { vagaId, posicoesAbertas, inicioDaVaga ->
+                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
+                        },
+                        aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
                     )
                 }
             }
