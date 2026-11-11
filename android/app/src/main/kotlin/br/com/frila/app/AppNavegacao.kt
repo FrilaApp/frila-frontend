@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -19,22 +21,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.MonitorDeConectividade
+import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.StatusConectividade
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.feature.conta.ExclusaoDeContaViewModel
+import br.com.frila.feature.conta.TelaContaSuspensa
+import br.com.frila.feature.conta.TelaExclusaoDeConta
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.cadastro.TelaCadastro
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.codigo.TelaCodigo
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
+import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
+import br.com.frila.feature.vagas.candidatos.TelaCandidatosDaVaga
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
@@ -42,12 +53,19 @@ import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
+import br.com.frila.feature.equipe.TelaEquipeDeConfianca
+import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
+import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
+import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.perfil.TelaVerificacaoDocumento
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.suporte.DenunciaViewModel
+import br.com.frila.feature.suporte.TelaDenuncia
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
@@ -56,7 +74,9 @@ import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
 import br.com.frila.feature.turnos.TelaOcorrencia
 import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
+import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.getKoin
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
@@ -79,12 +99,55 @@ object Rotas {
     const val ATUALIZACAO_OBRIGATORIA = "atualizacao_obrigatoria"
     const val TURNO_NAO_ENCONTRADO = "turno_nao_encontrado"
     const val TURNO_AVISO = "meus_turnos/{turnoId}"
+    const val EXCLUSAO_DE_CONTA = "exclusao_de_conta"
+    const val CONTA_SUSPENSA = "conta_suspensa?motivo={motivo}&desde={desde}"
+    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}"
+    const val EQUIPE = "equipe/{estabelecimentoId}"
+    const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
+    const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
+    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
     fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
     fun turnoAviso(turnoId: String) = "meus_turnos/$turnoId"
+
+    /** `motivo` e `desde` são opcionais e já formatados para exibição (o Android ainda não lê `situacao_da_conta`). */
+    fun contaSuspensa(motivo: String? = null, desde: String? = null): String {
+        val parametros = listOfNotNull(
+            motivo?.let { "motivo=${Uri.encode(it)}" },
+            desde?.let { "desde=${Uri.encode(it)}" },
+        )
+        return if (parametros.isEmpty()) "conta_suspensa" else "conta_suspensa?" + parametros.joinToString("&")
+    }
+
+    /** `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). */
+    fun denuncia(alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String? = null, chamadaId: String? = null): String {
+        val parametros = listOfNotNull(
+            turnoId?.let { "turnoId=${Uri.encode(it)}" },
+            chamadaId?.let { "chamadaId=${Uri.encode(it)}" },
+        )
+        val base = "denuncia/${alvoTipo.chave}/${Uri.encode(alvoId)}"
+        return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
+    }
+
+    fun equipe(estabelecimentoId: String) = "equipe/$estabelecimentoId"
+
+    fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
+
+    /**
+     * `posicoesAbertas` e `inicioDaVaga` são opcionais: a tela de origem os informa quando conhece a vaga.
+     * O início vai em ISO-8601 UTC, como o contrato o entrega.
+     */
+    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null): String {
+        val parametros = listOfNotNull(
+            posicoesAbertas?.let { "posicoesAbertas=$it" },
+            inicioDaVaga?.let { "inicioDaVaga=${Uri.encode(it.toString())}" },
+        )
+        val base = "candidatos_da_vaga/${Uri.encode(vagaId)}"
+        return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
+    }
 }
 
 object DeepLinks {
@@ -119,6 +182,12 @@ fun AppNavegacao(
      * perfil não consulta o estado do selo.
      */
     recursoSeloHabilitado: Boolean = false,
+    /**
+     * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
+     * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
+     * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
+     */
+    servicoMembros: ServicoMembros? = getKoin().getOrNull(),
 ) {
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
@@ -402,6 +471,9 @@ fun AppNavegacao(
                     val estadoSelo = viewModelSelo?.estado?.collectAsStateWithLifecycle()?.value
                     // Ao voltar do fluxo do selo a rota entra de novo em composição e relê o estado.
                     LaunchedEffect(viewModelSelo) { viewModelSelo?.carregar() }
+                    var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
+                    LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
+                    val primeiraCasa = (casas as? CasasDaConta.Primeira)?.id
                     TelaPerfil(
                         viewModel = viewModel,
                         recursoSeloHabilitado = recursoSeloHabilitado,
@@ -415,6 +487,176 @@ fun AppNavegacao(
                             }
                         },
                         aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
+                        aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
+                        aoAbrirEquipe = primeiraCasa?.let { id ->
+                            { navController.navigate(Rotas.equipe(id)) }
+                        },
+                        aoPublicarVaga = primeiraCasa?.let { id ->
+                            { navController.navigate(Rotas.publicarVaga(id)) }
+                        },
+                        aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
+                            { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+
+            composable(Rotas.EXCLUSAO_DE_CONTA) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: ExclusaoDeContaViewModel = koinViewModel()
+                    val estado by viewModel.estado.collectAsStateWithLifecycle()
+                    // Sessão já limpa por `aoConcluir`; sai da árvore autenticada como o logout faz.
+                    LaunchedEffect(estado.resultado) {
+                        if (estado.resultado != null) {
+                            guardaBiometrico.liberarAposLimparSessao()
+                            navController.navigate(Rotas.ENTRADA) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                    TelaExclusaoDeConta(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.CONTA_SUSPENSA,
+                arguments = listOf(
+                    navArgument("motivo") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("desde") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entrada ->
+                val contexto = LocalContext.current
+                TelaContaSuspensa(
+                    emailSuporte = EnderecosOficiais.padrao.emailSuporte,
+                    aoContatarSuporte = { email ->
+                        try {
+                            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            contexto.startActivity(intent)
+                        } catch (_: Exception) { }
+                    },
+                    aoSair = {
+                        armazenamentoDeSessao.limparSessao()
+                        guardaBiometrico.liberarAposLimparSessao()
+                        navController.navigate(Rotas.ENTRADA) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    motivo = entrada.arguments?.getString("motivo"),
+                    desde = entrada.arguments?.getString("desde"),
+                )
+            }
+
+            composable(
+                route = Rotas.DENUNCIA,
+                arguments = listOf(
+                    navArgument("alvoTipo") { type = NavType.StringType },
+                    navArgument("alvoId") { type = NavType.StringType },
+                    navArgument("turnoId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("chamadaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val alvoTipo = TipoDeAlvo.entries.firstOrNull { it.chave == entrada.arguments?.getString("alvoTipo") }
+                    val alvoId = entrada.arguments?.getString("alvoId").orEmpty()
+                    if (alvoTipo == null || alvoId.isEmpty()) {
+                        // Rota montada à mão com um tipo fora do contrato: não há quem denunciar.
+                        LaunchedEffect(Unit) { navController.popBackStack() }
+                    } else {
+                        val turnoId = entrada.arguments?.getString("turnoId")
+                        val chamadaId = entrada.arguments?.getString("chamadaId")
+                        val contexto = LocalContext.current
+                        val viewModel: DenunciaViewModel = koinViewModel(
+                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId) },
+                        )
+                        TelaDenuncia(
+                            viewModel = viewModel,
+                            aoFechar = { navController.popBackStack() },
+                            aoLigar = { numero ->
+                                try {
+                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero")).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    contexto.startActivity(intent)
+                                } catch (_: Exception) { }
+                            },
+                        )
+                    }
+                }
+            }
+
+            composable(
+                route = Rotas.EQUIPE,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    val viewModel: EquipeDeConfiancaViewModel = koinViewModel(
+                        parameters = { parametersOf(estabelecimentoId) },
+                    )
+                    TelaEquipeDeConfianca(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(Rotas.CADASTRO_ESTABELECIMENTO) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: CadastroEstabelecimentoViewModel = koinViewModel()
+                    TelaCadastroEstabelecimento(
+                        viewModel = viewModel,
+                        // Recém-cadastrada, a casa segue direto para a primeira vaga; "Voltar" da
+                        // publicação leva ao perfil, não de volta ao formulário já concluído.
+                        aoConcluir = { criado ->
+                            navController.navigate(Rotas.publicarVaga(criado.id)) {
+                                popUpTo(Rotas.CADASTRO_ESTABELECIMENTO) { inclusive = true }
+                            }
+                        },
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.PUBLICAR_VAGA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    RotaPublicarVaga(
+                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        servicoMembros = servicoMembros,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.CANDIDATOS_DA_VAGA,
+                arguments = listOf(
+                    navArgument("vagaId") { type = NavType.StringType },
+                    navArgument("posicoesAbertas") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("inicioDaVaga") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
+                    // só perde o aviso da última posição e o prazo, nunca recebe lixo.
+                    val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
+                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                    val viewModel: CandidatosDaVagaViewModel = koinViewModel(
+                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
+                    )
+                    TelaCandidatosDaVaga(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
                     )
                 }
             }
