@@ -6,6 +6,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
 
 /** Turnos do chamador como profissional (RF13/RF14/RF15/RN06/RN07/RN08/RN11/RN12/RN22/RNF06, UC05/UC06/UC13). */
 class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
@@ -39,6 +40,27 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
         }
         return cliente.corpoOuErro(resposta)
     }
+
+    /**
+     * `POST /rest/v1/rpc/confirmar_checkin_manual` (RF13/RF20/RN22/UC07): um toque da casa, e só então o
+     * check-in manual conta como presença. Devolve [Result]: qualquer falha (recusa do servidor, sem rede,
+     * corpo que não é JSON) vira `Result.failure`, e só o cancelamento da corrotina propaga. Erros
+     * esperados: `409 checkin_pendente` (o profissional ainda não fez o check-in),
+     * `409 checkin_ja_confirmado` (geolocalizado, ou já confirmado pela casa ou pelo código),
+     * `404 nao_encontrado`, `403 sem_permissao`.
+     */
+    suspend fun confirmarCheckinManual(turnoId: String): Result<ResultadoRegistroDto> =
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("confirmar_checkin_manual")) {
+                contentType(ContentType.Application.Json)
+                setBody(ConfirmarCheckinManualDto(turnoId = turnoId))
+            }
+            Result.success(cliente.corpoOuErro<ResultadoRegistroDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
 
     /**
      * `POST /rest/v1/rpc/avaliar`. Avaliação binária ("Você trabalharia nesse local de novo?",

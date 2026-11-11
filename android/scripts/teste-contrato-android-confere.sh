@@ -141,6 +141,19 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
 "
 esperar_reprovacao "PainelDto sem checkins_pendentes obrigatório" "não mapeia campos obrigatórios (required) do schema 'Painel': ['checkins_pendentes']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
 
+# Restaura e testa a confirmação do check-in manual: campo obrigatório de ConfirmarCheckinManualDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = 'data class ConfirmarCheckinManualDto(\n    @SerialName(\"turno_id\") val turnoId: String,\n)'
+assert c.count(alvo) == 1
+c = c.replace(alvo, 'data class ConfirmarCheckinManualDto(\n    @SerialName(\"vaga_id\") val vagaId: String,\n)')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "ConfirmarCheckinManualDto com campo trocado" "não mapeia campos obrigatórios (required) de '/rpc/confirmar_checkin_manual': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
 # 4. Mutação 3: contrato alterado sem regravar a soma
 mkdir -p "$TMPDIR_TESTE/contrato"
 cp "$CONTRATO_OFICIAL" "$TMPDIR_TESTE/contrato/openapi.yaml"

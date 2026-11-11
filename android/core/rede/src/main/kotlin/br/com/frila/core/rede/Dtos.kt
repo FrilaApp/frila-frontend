@@ -724,3 +724,9 @@ data class CancelamentoDaPosicaoDto(
     @SerialName("motivo") val motivo: String? = null,
     @SerialName("cancelada_em") val canceladaEm: String,
 )
+
+/** Corpo de `POST /rest/v1/rpc/confirmar_checkin_manual` (RF13/RN22): o turno cujo check-in manual a casa confirma. */
+@Serializable
+data class ConfirmarCheckinManualDto(
+    @SerialName("turno_id") val turnoId: String,
+)
