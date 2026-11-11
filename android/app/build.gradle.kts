@@ -133,6 +133,10 @@ dependencies {
     implementation(project(":feature:vagas"))
     implementation(project(":feature:turnos"))
     implementation(project(":feature:perfil"))
+    implementation(project(":feature:conta"))
+    implementation(project(":feature:suporte"))
+    implementation(project(":feature:equipe"))
+    implementation(project(":feature:estabelecimento"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
