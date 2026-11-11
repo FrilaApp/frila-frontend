@@ -343,4 +343,108 @@ class ServicoVagasTest {
         assertEquals("id,nome,categoria", url!!.parameters["select"])
         assertEquals("garçom", funcoes.single().nome)
     }
+
+    private fun servicoQueResponde(
+        status: HttpStatusCode,
+        conteudo: String,
+        aoReceber: (io.ktor.client.request.HttpRequestData) -> Unit = {},
+    ): ServicoVagas {
+        val engine = MockEngine { request ->
+            aoReceber(request)
+            respond(conteudo, status, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        return ServicoVagas(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+    }
+
+    @Test
+    fun `candidatosDaVaga faz POST com vaga_id e decodifica candidatos em ordem, com selo da equipe e foto`() = runTest {
+        var metodo: HttpMethod? = null
+        var caminho: String? = null
+        var corpo: kotlinx.serialization.json.JsonObject? = null
+        val servico = servicoQueResponde(
+            HttpStatusCode.OK,
+            """
+            [
+              {"candidatura_id":"c1","criada_em":"2026-11-10T12:00:00Z","da_equipe":true,
+               "profissional":{"id":"p1","tipo":"profissional","nome":"Ana","funcoes":["garçom","barman"],
+                 "reputacao":{"positivas":9,"total":10,"taxa_comparecimento":0.95,"turnos_considerados":10,"turnos_realizados":9},
+                 "foto_url":"https://frila.supabase.co/storage/foto.jpg","foto_id":"m1"}},
+              {"candidatura_id":"c2","criada_em":"2026-11-10T13:00:00Z",
+               "profissional":{"id":"p2","tipo":"profissional","nome":"Beto",
+                 "reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}}
+            ]
+            """.trimIndent(),
+        ) { request ->
+            metodo = request.method
+            caminho = request.url.encodedPath
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+        }
+
+        val candidatos = servico.candidatosDaVaga("vaga-1")
+
+        assertEquals(HttpMethod.Post, metodo)
+        assertEquals("/rest/v1/rpc/candidatos_da_vaga", caminho)
+        assertEquals(setOf("vaga_id"), corpo!!.keys)
+        assertEquals("vaga-1", corpo!!["vaga_id"]!!.jsonPrimitive.content)
+        assertEquals(listOf("c1", "c2"), candidatos.map { it.candidaturaId })
+        assertEquals(true, candidatos[0].daEquipe)
+        assertEquals(false, candidatos[1].daEquipe)
+        assertEquals(listOf("garçom", "barman"), candidatos[0].profissional.funcoes)
+        assertEquals("https://frila.supabase.co/storage/foto.jpg", candidatos[0].profissional.fotoUrl)
+        assertEquals("m1", candidatos[0].profissional.fotoId)
+        assertEquals(null, candidatos[1].profissional.fotoUrl)
+    }
+
+    @Test
+    fun `candidatosDaVaga de conta de profissional mapeia perfil_incompativel`() = runTest {
+        val servico = servicoQueResponde(HttpStatusCode.UnprocessableEntity, """{"code":"perfil_incompativel","message":"x"}""")
+
+        val excecao = runCatching { servico.candidatosDaVaga("vaga-1") }.exceptionOrNull()
+
+        assertEquals(CodigoErroAPI.PERFIL_INCOMPATIVEL, (excecao as ErroDaApi).codigo)
+    }
+
+    @Test
+    fun `escolherCandidato faz POST com candidatura_id e decodifica o turno, com e sem contato`() = runTest {
+        var caminho: String? = null
+        var corpo: kotlinx.serialization.json.JsonObject? = null
+        val comContato = servicoQueResponde(
+            HttpStatusCode.OK,
+            """{"estado":"confirmada","posicao_id":"pos-1","turno_id":"t1","contato":{"nome":"Ana","telefone":"+5561999990000","visivel_ate":"2026-11-20T00:00:00Z"}}""",
+        ) { request ->
+            caminho = request.url.encodedPath
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+        }
+        val semContato = servicoQueResponde(HttpStatusCode.OK, """{"estado":"confirmada","posicao_id":"pos-1","turno_id":"t1","contato":null}""")
+
+        val resultado = comContato.escolherCandidato("cand-1")
+
+        assertEquals("/rest/v1/rpc/escolher_candidato", caminho)
+        assertEquals(setOf("candidatura_id"), corpo!!.keys)
+        assertEquals("cand-1", corpo!!["candidatura_id"]!!.jsonPrimitive.content)
+        assertEquals("confirmada", resultado.estado)
+        assertEquals("t1", resultado.turnoId)
+        assertEquals(true, resultado.contato != null)
+        assertEquals(null, semContato.escolherCandidato("cand-1").contato)
+    }
+
+    @Test
+    fun `escolherCandidato propaga cada recusa do contrato com o codigo de dominio e os details`() = runTest {
+        val casos = listOf(
+            Triple(HttpStatusCode.Conflict, "posicao_ja_preenchida", CodigoErroAPI.POSICAO_JA_PREENCHIDA),
+            Triple(HttpStatusCode.Conflict, "candidatura_indisponivel", CodigoErroAPI.CANDIDATURA_INDISPONIVEL),
+            Triple(HttpStatusCode.Conflict, "vaga_encerrada", CodigoErroAPI.VAGA_ENCERRADA),
+            Triple(HttpStatusCode.UnprocessableEntity, "inelegivel", CodigoErroAPI.INELEGIVEL),
+            Triple(HttpStatusCode.UnprocessableEntity, "vaga_oculta", CodigoErroAPI.VAGA_OCULTA),
+            Triple(HttpStatusCode.Forbidden, "sem_permissao", CodigoErroAPI.SEM_PERMISSAO),
+        )
+        for ((status, codigo, esperado) in casos) {
+            val servico = servicoQueResponde(status, """{"code":"$codigo","message":"x","details":"turno_sobreposto"}""")
+
+            val excecao = runCatching { servico.escolherCandidato("cand-1") }.exceptionOrNull()
+
+            assertEquals(esperado, (excecao as ErroDaApi).codigo, codigo)
+            assertEquals("turno_sobreposto", excecao.detalhes, codigo)
+        }
+    }
 }

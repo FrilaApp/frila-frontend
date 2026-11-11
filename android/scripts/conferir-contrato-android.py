@@ -148,6 +148,7 @@ def main() -> None:
         "AceitarConviteMembroDto": "/rpc/aceitar_convite_membro",
         "RemoverMembroDto": "/rpc/remover_membro",
         "TransferirAdministracaoDto": "/rpc/transferir_administracao",
+        "EscolherCandidatoDto": "/rpc/escolher_candidato",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
@@ -162,6 +163,7 @@ def main() -> None:
     # (função volátil só aceita POST no PostgREST): DTO do corpo -> (rota, método do contrato)
     RPCS_PARAMETROS = {
         "EstabelecimentoParametrosDto": ("/rpc/equipe_de_confianca", "get"),
+        "CandidatosDaVagaParametrosDto": ("/rpc/candidatos_da_vaga", "get"),
     }
 
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)

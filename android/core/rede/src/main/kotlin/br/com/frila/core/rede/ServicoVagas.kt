@@ -8,7 +8,10 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-/** Leitura de vagas abertas, candidatura e publicação (`/rpc/vagas_abertas`, `/rpc/candidatar`, `/rpc/publicar_vaga`). */
+/**
+ * Leitura de vagas abertas, candidatura, publicação e escolha de candidato (`/rpc/vagas_abertas`,
+ * `/rpc/candidatar`, `/rpc/publicar_vaga`, `/rpc/candidatos_da_vaga`, `/rpc/escolher_candidato`).
+ */
 class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
     constructor(cliente: ClienteSupabase) : this({ cliente })
 
@@ -67,6 +70,36 @@ class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.get(cliente.urlCompleta("/rest/v1/funcao")) {
             parameter("select", "id,nome,categoria")
             parameter("ativo", "eq.true")
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/candidatos_da_vaga` (RF09/RN06/UC04): candidatos pendentes de uma vaga em modo
+     * seleção, em ordem de chegada. Vai por POST porque a função do banco é VOLÁTIL (plpgsql sem
+     * `STABLE`) e o PostgREST só aceita POST nesse caso; o contrato descreve GET com `vaga_id` na query.
+     * Conta de profissional recebe `422 perfil_incompativel`; quem não é da casa, `403 sem_permissao`.
+     */
+    suspend fun candidatosDaVaga(vagaId: String): List<CandidatoDto> {
+        val resposta = cliente.http.post(cliente.urlRpc("candidatos_da_vaga")) {
+            contentType(ContentType.Application.Json)
+            setBody(CandidatosDaVagaParametrosDto(vagaId = vagaId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/escolher_candidato` (RF09/RF10/RN19/RN21). Não é idempotente: escolher de novo
+     * a candidatura já escolhida responde `409 candidatura_indisponivel`. Erros esperados:
+     * `409 posicao_ja_preenchida`, `409 candidatura_indisponivel`, `409 vaga_encerrada` (seleção fechada
+     * pelas 24 horas, vaga cancelada ou encerrada), `422 inelegivel` (`details: turno_sobreposto`),
+     * `422 vaga_oculta`, `403 sem_permissao` (também candidatura inexistente, de outra casa ou com
+     * bloqueio mútuo), `401 nao_autenticado`.
+     */
+    suspend fun escolherCandidato(candidaturaId: String): ResultadoConfirmacaoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("escolher_candidato")) {
+            contentType(ContentType.Application.Json)
+            setBody(EscolherCandidatoDto(candidaturaId = candidaturaId))
         }
         return cliente.corpoOuErro(resposta)
     }
