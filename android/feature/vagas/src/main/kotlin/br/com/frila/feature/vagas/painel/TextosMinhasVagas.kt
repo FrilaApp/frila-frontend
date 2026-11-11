@@ -10,6 +10,8 @@ object TextosMinhasVagas {
     const val ENCERRADAS = "Encerradas"
     const val PUBLICAR_VAGA = "Publicar vaga"
     const val VER_CANDIDATOS = "Ver candidatos"
+    const val ACOMPANHAR_TURNO_DE = "Acompanhar turno de %s"
+    const val PROFISSIONAL_SEM_NOME = "profissional"
     const val VER_CANDIDATOS_DE = "Ver candidatos da vaga de %s"
     const val RECEM_PUBLICADA = "Recém-publicada"
     const val OCULTA = "Oculta pela Equipe Frila"

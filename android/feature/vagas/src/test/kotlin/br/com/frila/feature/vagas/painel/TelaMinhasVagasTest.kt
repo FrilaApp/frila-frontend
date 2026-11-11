@@ -50,12 +50,13 @@ class TelaMinhasVagasTest {
         podeVerCandidatos: Boolean = false,
         recemPublicada: Boolean = false,
         comecaEm: Duration? = null,
+        turnos: List<TurnoDoItem> = emptyList(),
     ) = ItemMinhaVaga(
         id = id, funcao = funcao, local = "SQN 108", inicio = inicio?.let(Instant::parse), fim = fim?.let(Instant::parse),
         valorCentavos = 16_000, selecao = selecao, oculta = oculta, alertaVagaVazia = secao == SecaoMinhasVagas.EM_ALERTA,
         candidatosPendentes = pendentes, totalPosicoes = total, confirmadas = confirmadas, posicoesAbertas = abertas,
         emAtraso = emAtraso, secao = secao, recemPublicada = recemPublicada, podeVerCandidatos = podeVerCandidatos,
-        comecaEm = comecaEm,
+        comecaEm = comecaEm, turnos = turnos,
     )
 
     private fun sucesso(vararg itens: ItemMinhaVaga) = EstadoMinhasVagas(lista = ListaMinhasVagas.Sucesso(itens.toList()))
@@ -66,6 +67,7 @@ class TelaMinhasVagasTest {
         var publicou = 0
         var voltou = 0
         val candidatos = mutableListOf<ItemMinhaVaga>()
+        val turnos = mutableListOf<Pair<String, String>>()
     }
 
     private fun montar(
@@ -82,6 +84,7 @@ class TelaMinhasVagasTest {
                         aoCarregar = { chamadas.carregou++ },
                         aoAtualizar = { chamadas.atualizou++ },
                         aoVerCandidatos = { chamadas.candidatos += it },
+                        aoAcompanharTurno = { vagaId, posicaoId -> chamadas.turnos += vagaId to posicaoId },
                         aoPublicarVaga = { chamadas.publicou++ },
                         aoVoltar = { chamadas.voltou++ },
                     ),
@@ -303,5 +306,24 @@ class TelaMinhasVagasTest {
 
         assertEquals(1, chamadas.voltou)
         assertNull(chamadas.candidatos.firstOrNull())
+    }
+
+    @Test
+    fun `acompanhar turno aparece por posicao com turno, com o nome do profissional, e entrega vaga e posicao`() {
+        val chamadas = montar(
+            sucesso(item("v1", turnos = listOf(TurnoDoItem("pos-1", "Ana"), TurnoDoItem("pos-2", null)))),
+        )
+
+        rule.onNodeWithText("Acompanhar turno de Ana").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithText("Acompanhar turno de profissional").performClick()
+
+        assertEquals(listOf("v1" to "pos-1", "v1" to "pos-2"), chamadas.turnos)
+    }
+
+    @Test
+    fun `vaga sem turno nao oferece acompanhar`() {
+        montar(sucesso(item("v1")))
+
+        assertEquals(0, rule.onAllNodesWithText("Acompanhar turno", substring = true).fetchSemanticsNodes().size)
     }
 }

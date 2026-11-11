@@ -461,4 +461,23 @@ class MinhasVagasViewModelTest {
     fun `codigo de erro desconhecido vira generico`() {
         assertEquals(ErroMinhasVagas.GENERICO, erroDe(Rede { recusa(HttpStatusCode.UnprocessableEntity, "codigo_novo") }))
     }
+
+    @Test
+    fun `os turnos do item sao so as posicoes confirmadas ou cumpridas com turno`() = runBlocking {
+        fun pos(id: String, estado: String, turno: String?, nome: String?) =
+            """{"id":"$id","estado":"$estado","turno_id":${turno?.let { "\"$it\"" }},"verificacao":null,"em_atraso":false,"a_caminho_em":null,
+               "profissional":${nome?.let { """{"id":"p-$id","tipo":"profissional","nome":"$it","reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}""" }}}"""
+        val corpo = """
+            {"estabelecimento_id":"est-1","checkins_pendentes":[],"vagas":[{
+              "vaga":{"id":"v1","funcao":"garçom","local":"SQN 108","regiao_administrativa":"Asa Norte","inicio_em":"2026-11-10T18:00:00Z","fim_em":"2026-11-10T21:00:00Z","valor_centavos":16000},
+              "modo":"urgencia","estado":"publicada","oculta":false,"alerta_vaga_vazia":false,"candidatos_pendentes":0,
+              "posicoes":[${pos("a", "confirmada", "t1", "Ana")},${pos("b", "cumprida", "t2", null)},${pos("c", "aberta", null, null)},${pos("d", "cancelada", "t4", "Duda")},${pos("e", "confirmada", null, "Eva")}]
+            }]}
+        """.trimIndent()
+        val vm = viewModelCom(redeCom(corpo))
+
+        vm.carregar().join()
+
+        assertEquals(listOf(TurnoDoItem("a", "Ana"), TurnoDoItem("b", null)), vm.itens().single().turnos)
+    }
 }

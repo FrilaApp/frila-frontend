@@ -32,6 +32,7 @@ import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.ServicoMembros
+import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.StatusConectividade
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -108,6 +109,7 @@ object Rotas {
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
     const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
+    const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
     fun codigo(email: String) = "codigo/$email"
@@ -138,6 +140,10 @@ object Rotas {
     fun equipe(estabelecimentoId: String) = "equipe/$estabelecimentoId"
 
     fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
+
+    /** O turno da posição `posicaoId` da vaga `vagaId`, lido do painel do estabelecimento. */
+    fun turnoDoContratante(estabelecimentoId: String, vagaId: String, posicaoId: String) =
+        "turno_do_contratante/${Uri.encode(estabelecimentoId)}/${Uri.encode(vagaId)}/${Uri.encode(posicaoId)}"
 
     /** `nomeEstabelecimento` e `vagaRecemPublicadaId` são opcionais; a vaga recém-publicada sobe na lista. */
     fun minhasVagas(estabelecimentoId: String, nomeEstabelecimento: String? = null, vagaRecemPublicadaId: String? = null): String {
@@ -201,6 +207,8 @@ fun AppNavegacao(
      * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
      */
     servicoMembros: ServicoMembros? = getKoin().getOrNull(),
+    /** Lê o painel para a rota do turno do contratante. Nulo (grafo sem o serviço) mostra a falha da rota. */
+    servicoVagas: ServicoVagas? = getKoin().getOrNull(),
 ) {
     val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
@@ -675,6 +683,28 @@ fun AppNavegacao(
                             navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
+                        aoAcompanharTurno = { vagaId, posicaoId ->
+                            navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
+                        },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.TURNO_DO_CONTRATANTE,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") { type = NavType.StringType },
+                    navArgument("vagaId") { type = NavType.StringType },
+                    navArgument("posicaoId") { type = NavType.StringType },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    RotaTurnoDoContratante(
+                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        vagaId = entrada.arguments?.getString("vagaId").orEmpty(),
+                        posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
+                        buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
+                        aoVoltar = { navController.popBackStack() },
                     )
                 }
             }
