@@ -54,6 +54,8 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
+import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
+import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
@@ -260,6 +262,14 @@ val moduloFeatures = module {
             vagaRecemPublicadaId = vagaRecemPublicadaId,
             buscarPainel = vagas::painelEstabelecimento,
         )
+    }
+    /**
+     * Acompanhamento do turno pela casa e confirmação do check-in manual (RF13, UC05, UC07). O contexto
+     * (vaga, profissional, check-in) vem pronto da rota, que o lê do painel antes de criar o ViewModel.
+     */
+    viewModel { (contexto: ContextoDoTurnoContratante) ->
+        val turnos = get<ServicoTurnos>()
+        AcompanhamentoContratanteViewModel(contexto = contexto, confirmar = turnos::confirmarCheckinManual)
     }
 }
 

@@ -35,6 +35,9 @@ enum class ErroMinhasVagas(val mensagem: String, val podeTentarDeNovo: Boolean) 
     GENERICO(TextosMinhasVagas.ERRO_GENERICO, true),
 }
 
+/** Uma posição com turno (confirmada ou cumprida): o que a tela precisa para abrir o acompanhamento dele. */
+data class TurnoDoItem(val posicaoId: String, val nomeProfissional: String?)
+
 /** Uma vaga como a lista a mostra: o painel já lido, classificado e com as contagens feitas. */
 data class ItemMinhaVaga(
     val id: String,
@@ -58,6 +61,8 @@ data class ItemMinhaVaga(
     val podeVerCandidatos: Boolean,
     /** Quanto falta para o início, só quando a vaga precisa de atenção. */
     val comecaEm: Duration?,
+    /** As posições com turno, para "Acompanhar turno". Vazia se ninguém foi confirmado. */
+    val turnos: List<TurnoDoItem> = emptyList(),
 )
 
 sealed interface ListaMinhasVagas {
@@ -200,6 +205,9 @@ class MinhasVagasViewModel(
             recemPublicada = vaga.id == vagaRecemPublicadaId,
             podeVerCandidatos = estado == VAGA_PUBLICADA && (candidatosPendentes > 0 || modo == MODO_SELECAO),
             comecaEm = if (secao == SecaoMinhasVagas.EM_ALERTA && inicio != null) Duration.between(agora, inicio) else null,
+            turnos = posicoes
+                .filter { it.turnoId != null && (it.estado == POSICAO_CONFIRMADA || it.estado == POSICAO_CUMPRIDA) }
+                .map { TurnoDoItem(posicaoId = it.id, nomeProfissional = it.profissional?.nome) },
         )
     }
 

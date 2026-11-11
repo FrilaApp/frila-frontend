@@ -50,6 +50,7 @@ data class AcoesMinhasVagas(
     val aoCarregar: () -> Unit = {},
     val aoAtualizar: () -> Unit = {},
     val aoVerCandidatos: (ItemMinhaVaga) -> Unit = {},
+    val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     val aoPublicarVaga: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
 )
@@ -68,6 +69,7 @@ fun TelaMinhasVagas(
     aoVerCandidatos: (vagaId: String, posicoesAbertas: Int, inicioDaVaga: Instant?) -> Unit,
     aoPublicarVaga: (estabelecimentoId: String) -> Unit,
     modifier: Modifier = Modifier,
+    aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -78,6 +80,7 @@ fun TelaMinhasVagas(
             aoCarregar = { viewModel.carregar() },
             aoAtualizar = { viewModel.atualizar() },
             aoVerCandidatos = { aoVerCandidatos(it.id, it.posicoesAbertas, it.inicio) },
+            aoAcompanharTurno = aoAcompanharTurno,
             aoPublicarVaga = { aoPublicarVaga(viewModel.estabelecimentoId) },
             aoVoltar = aoVoltar,
         ),
@@ -194,7 +197,7 @@ fun ConteudoMinhasVagas(
                                     modifier = Modifier.padding(top = FrilaEspacamento.pequeno).semantics { heading() },
                                 )
                             }
-                            items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes.aoVerCandidatos) }
+                            items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes.aoVerCandidatos, acoes.aoAcompanharTurno) }
                         }
                     }
                 }
@@ -204,7 +207,11 @@ fun ConteudoMinhasVagas(
 }
 
 @Composable
-private fun CartaoDaVaga(item: ItemMinhaVaga, aoVerCandidatos: (ItemMinhaVaga) -> Unit) {
+private fun CartaoDaVaga(
+    item: ItemMinhaVaga,
+    aoVerCandidatos: (ItemMinhaVaga) -> Unit,
+    aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit,
+) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
             Text(text = item.funcao, style = MaterialTheme.typography.titleMedium)
@@ -261,6 +268,14 @@ private fun CartaoDaVaga(item: ItemMinhaVaga, aoVerCandidatos: (ItemMinhaVaga) -
                     text = if (item.emAtraso == 1) TextosMinhasVagas.EM_ATRASO_UM else TextosMinhasVagas.EM_ATRASO_VARIOS.format(item.emAtraso),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
+                )
+            }
+            item.turnos.forEach { turno ->
+                val nome = turno.nomeProfissional ?: TextosMinhasVagas.PROFISSIONAL_SEM_NOME
+                BotaoSecundario(
+                    texto = TextosMinhasVagas.ACOMPANHAR_TURNO_DE.format(nome),
+                    aoClicar = { aoAcompanharTurno(item.id, turno.posicaoId) },
+                    modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
                 )
             }
             if (item.podeVerCandidatos) {

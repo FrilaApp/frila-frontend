@@ -119,4 +119,34 @@ class TelaMinhasVagasLigadaTest {
 
         assertEquals(2, pedidos)
     }
+
+    @Test
+    fun `acompanhar turno entrega a vaga e a posicao a quem abriu a tela`() {
+        var recebido: Pair<String, String>? = null
+        val vm = MinhasVagasViewModel(
+            estabelecimentoId = "est-1",
+            buscarPainel = { _, _, _ ->
+                val confirmada = PosicaoNoPainelDto(id = "p3", estado = "confirmada", turnoId = "t3", emAtraso = false)
+                Result.success(painel().let { p -> p.copy(vagas = p.vagas.map { it.copy(posicoes = it.posicoes + confirmada) }) })
+            },
+            relogio = { agora },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+
+        rule.setContent {
+            FrilaTheme {
+                TelaMinhasVagas(
+                    viewModel = vm,
+                    aoVoltar = {},
+                    aoVerCandidatos = { _, _, _ -> },
+                    aoPublicarVaga = {},
+                    aoAcompanharTurno = { vagaId, posicaoId -> recebido = vagaId to posicaoId },
+                )
+            }
+        }
+        rule.waitUntil(5_000) { rule.onAllNodesWithText("Acompanhar turno de profissional").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("Acompanhar turno de profissional").performClick()
+
+        assertEquals("v1" to "p3", recebido)
+    }
 }
