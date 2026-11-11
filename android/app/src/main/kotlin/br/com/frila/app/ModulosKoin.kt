@@ -45,6 +45,9 @@ import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
+import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
+import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
+import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
@@ -209,6 +212,23 @@ val moduloFeatures = module {
             listar = confianca::equipeDeConfianca,
             removerMembro = confianca::removerDaEquipe,
             sair = confianca::sairDaEquipe,
+        )
+    }
+    /** Cadastro do estabelecimento do contratante (RF02, UC10). */
+    viewModel {
+        val membros = get<ServicoMembros>()
+        CadastroEstabelecimentoViewModel(cadastrar = membros::cadastrarEstabelecimento)
+    }
+    /**
+     * Publicação de vaga (RF04, UC01). A rota só traz o id da casa; endereço, Região Administrativa e
+     * ponto vêm de `meu_estabelecimento`, lidos antes de criar o ViewModel, que recebe o conjunto pronto.
+     */
+    viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
+        val vagas = get<ServicoVagas>()
+        PublicarVagaViewModel(
+            estabelecimento = estabelecimento,
+            buscarFuncoes = vagas::listarFuncoes,
+            enviarVaga = vagas::publicarVaga,
         )
     }
 }

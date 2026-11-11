@@ -734,6 +734,66 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun atalhoDePublicarVagaSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var abertas = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoPublicarVaga = { abertas++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-publicar-vaga").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, abertas)
+            rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun atalhoDeCadastrarEstabelecimentoSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var abertos = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoCadastrarEstabelecimento = { abertos++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-cadastrar-estabelecimento").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, abertos)
+            rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun semCallbacksDeContratanteNenhumAtalhoExiste() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun botaoAjudaEmBlocoDeContaAcionaCallback() {
         runBlocking {
             val vm = criarViewModel()

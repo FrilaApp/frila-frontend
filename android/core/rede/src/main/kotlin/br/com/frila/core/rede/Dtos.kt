@@ -598,3 +598,19 @@ data class VagaPublicadaDto(
     @SerialName("vaga_id") val vagaId: String,
     @SerialName("posicoes") val posicoes: List<String>,
 )
+
+/**
+ * Resposta de `/rpc/meu_estabelecimento` (schema `MeuEstabelecimento`): o cadastro como um membro o lê,
+ * sem o `documento` (RN15). Traz o endereço, a Região Administrativa e o ponto que preenchem a
+ * publicação de uma vaga; `papel` é o de quem chama.
+ */
+@Serializable
+data class MeuEstabelecimentoDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("endereco") val endereco: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("papel") val papel: String,
+)
