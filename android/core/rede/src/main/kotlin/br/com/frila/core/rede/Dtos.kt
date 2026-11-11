@@ -30,6 +30,10 @@ data class PerfilPublicoDto(
     @SerialName("nome") val nome: String,
     @SerialName("funcoes") val funcoes: List<String>? = null,
     @SerialName("reputacao") val reputacao: ReputacaoDto,
+    /** URL assinada (1 h) da foto aprovada; só vem para leitor com vínculo (0.2.54). Ausente vale sem foto. */
+    @SerialName("foto_url") val fotoUrl: String? = null,
+    /** Identificador opaco da foto exibida, o que `denunciar.midia_id` recebe (0.2.54). */
+    @SerialName("foto_id") val fotoId: String? = null,
 )
 
 @Serializable
@@ -334,6 +338,16 @@ data class ProtocoloDto(
 )
 
 /**
+ * Corpo de `POST /rest/v1/rpc/bloquear` (RF26, UC17). Imediato, sem depender da Equipe Frila, e
+ * idempotente. `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
+ */
+@Serializable
+data class BloquearDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+)
+
+/**
  * Corpo de `POST /rest/v1/rpc/desbloquear` (contrato 0.2.51, decisão A8, RF26). O par é o mesmo
  * que `/rpc/bloquear` recebe: `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
  */
@@ -397,4 +411,322 @@ data class ParteUploadDto(
 data class UploadVerificacaoDto(
     @SerialName("expira_em") val expiraEm: String,
     @SerialName("partes") val partes: List<ParteUploadDto>,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/denunciar` (RF26, UC17). `chamada_id` é opcional desde o contrato
+ * 0.2.71 (CD-S13): associa a denúncia à chamada direta, que precisa existir e envolver o
+ * denunciante e o alvo (`422 campo_invalido`, `details: chamada_id`). Sem chamada, o campo segue
+ * como `null`, que o contrato aceita (`oneOf: Uuid | null`). `midia_id` (0.2.54) não é modelado
+ * aqui: o contrato não aceita `null` nele e nenhuma tela do Android denuncia foto ainda.
+ * `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
+ */
+@Serializable
+data class DenunciarDto(
+    @SerialName("alvo_tipo") val alvoTipo: String,
+    @SerialName("alvo_id") val alvoId: String,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("motivo") val motivo: String,
+    @SerialName("relato") val relato: String,
+    @SerialName("chave") val chave: String,
+    @SerialName("chamada_id") val chamadaId: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/sair_da_equipe` (contrato 0.2.72, LGPD art. 18). */
+@Serializable
+data class SairDaEquipeDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+)
+
+/**
+ * Item de `/rpc/meus_estabelecimentos` (schema `EstabelecimentoDaConta`, contrato 0.2.73):
+ * `papel` é o de quem chama em cada casa. `tipo` e `reputacao` são opcionais no contrato.
+ */
+@Serializable
+data class EstabelecimentoDaContaDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("papel") val papel: String,
+    @SerialName("tipo") val tipo: String? = null,
+    @SerialName("reputacao") val reputacao: ReputacaoDto? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/convidar_membro` (0.2.73, RF21): só o administrador convida. */
+@Serializable
+data class ConvidarMembroDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("email") val email: String,
+    @SerialName("papel") val papel: String,
+)
+
+/** Resposta de `/rpc/convidar_membro`: o `token` é opaco (64 hex), de uso único, válido por 7 dias. */
+@Serializable
+data class ConviteMembroDto(
+    @SerialName("convite_id") val conviteId: String,
+    @SerialName("token") val token: String,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("email") val email: String? = null,
+    @SerialName("papel") val papel: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/aceitar_convite_membro`. */
+@Serializable
+data class AceitarConviteMembroDto(
+    @SerialName("token") val token: String,
+)
+
+/** Resposta de `/rpc/aceitar_convite_membro`; `status` é `membro_adicionado`. Todos os campos são opcionais no contrato. */
+@Serializable
+data class MembroAdicionadoDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("membro_id") val membroId: String? = null,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("usuario_id") val usuarioId: String? = null,
+    @SerialName("papel") val papel: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/remover_membro`; `membro_id` aceita o id do membro ou do usuário. */
+@Serializable
+data class RemoverMembroDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("membro_id") val membroId: String,
+)
+
+/** Resposta de `/rpc/remover_membro`; `status` é `membro_removido`. */
+@Serializable
+data class MembroRemovidoDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("removido") val removido: Boolean? = null,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("membro_id") val membroId: String? = null,
+    @SerialName("usuario_id") val usuarioId: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/transferir_administracao`; `novo_admin_id` aceita o id do membro ou do usuário. */
+@Serializable
+data class TransferirAdministracaoDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("novo_admin_id") val novoAdminId: String,
+)
+
+/** Resposta de `/rpc/transferir_administracao`; `status` é `administracao_transferida`. */
+@Serializable
+data class AdministracaoTransferidaDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String? = null,
+    @SerialName("novo_admin_id") val novoAdminId: String? = null,
+    @SerialName("novo_admin_usuario_id") val novoAdminUsuarioId: String? = null,
+    @SerialName("papel") val papel: String? = null,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/equipe_de_confianca`. O contrato descreve esta leitura em GET com
+ * `?estabelecimento_id=`, mas a função é `plpgsql` sem `STABLE` (VOLATILE por padrão), e o PostgREST
+ * só aceita função volátil em POST, que o iOS também usa (`SupabaseApiCliente.rpc`).
+ */
+@Serializable
+data class EstabelecimentoParametrosDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+)
+
+/** Schema `MembroDaEquipe`: corpo e resposta de `/rpc/remover_da_equipe` (e `/rpc/incluir_na_equipe`). */
+@Serializable
+data class MembroDaEquipeDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("profissional_id") val profissionalId: String,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/cadastrar_estabelecimento` (schema `NovoEstabelecimento`, RF02, UC10).
+ * `documento` é CPF (11) ou CNPJ (14), só dígitos. `tipo` leva a chave de fio (`food_service`,
+ * `evento`, `varejo`, `logistica`, `servico_domestico`, `outro`). A coordenada vai aninhada em `ponto`.
+ */
+@Serializable
+data class NovoEstabelecimentoDto(
+    @SerialName("nome") val nome: String,
+    @SerialName("documento") val documento: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("endereco") val endereco: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+)
+
+/**
+ * Resposta de `/rpc/cadastrar_estabelecimento` (schema `Estabelecimento`): o chamador entra como
+ * `administrador`. É o único lugar em que o `documento` volta (RN15).
+ */
+@Serializable
+data class EstabelecimentoDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("documento") val documento: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("endereco") val endereco: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("papel") val papel: String,
+)
+
+/**
+ * Corpo de `/rpc/publicar_vaga` (schema `NovaVaga`, RN02). Instantes em UTC ISO-8601 (RN18); o
+ * valor é em centavos por posição. `modo` vale `urgencia` ou `selecao`. `chave` é gerada uma vez
+ * por publicação: reenviar com a mesma chave devolve a mesma vaga. A coordenada vai aninhada em `ponto`.
+ */
+@Serializable
+data class NovaVagaDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("funcao_id") val funcaoId: String,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("local") val local: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("posicoes") val posicoes: Int,
+    @SerialName("inclui_refeicao") val incluiRefeicao: Boolean,
+    @SerialName("inclui_transporte") val incluiTransporte: Boolean,
+    @SerialName("exige_material_proprio") val exigeMaterialProprio: Boolean,
+    @SerialName("responsavel_local") val responsavelLocal: String,
+    @SerialName("traje") val traje: String? = null,
+    @SerialName("participa_rateio") val participaRateio: Boolean? = null,
+    @SerialName("observacoes") val observacoes: String? = null,
+    @SerialName("modo") val modo: String,
+    @SerialName("alerta_antecedencia_min") val alertaAntecedenciaMin: Int = 180,
+    @SerialName("chave") val chave: String,
+)
+
+/** Resposta de `/rpc/publicar_vaga` (schema `VagaPublicada`): a vaga e uma posição por unidade pedida. */
+@Serializable
+data class VagaPublicadaDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("posicoes") val posicoes: List<String>,
+)
+
+/**
+ * Resposta de `/rpc/meu_estabelecimento` (schema `MeuEstabelecimento`): o cadastro como um membro o lê,
+ * sem o `documento` (RN15). Traz o endereço, a Região Administrativa e o ponto que preenchem a
+ * publicação de uma vaga; `papel` é o de quem chama.
+ */
+@Serializable
+data class MeuEstabelecimentoDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("tipo") val tipo: String,
+    @SerialName("endereco") val endereco: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("papel") val papel: String,
+)
+
+/**
+ * Parâmetro de `/rpc/candidatos_da_vaga`. O contrato o descreve em GET com `vaga_id` na query; o app o
+ * envia em POST com o corpo (função volátil só aceita POST no PostgREST), como `equipe_de_confianca`.
+ */
+@Serializable
+data class CandidatosDaVagaParametrosDto(
+    @SerialName("vaga_id") val vagaId: String,
+)
+
+/**
+ * Item de `/rpc/candidatos_da_vaga` (schema `Candidato`, contrato 0.2.73), em ordem de chegada (RN06).
+ * `da_equipe` (0.2.38) só alimenta o selo "da sua equipe", nunca a ordem; ausente vale `false`.
+ */
+@Serializable
+data class CandidatoDto(
+    @SerialName("candidatura_id") val candidaturaId: String,
+    @SerialName("profissional") val profissional: PerfilPublicoDto,
+    @SerialName("criada_em") val criadaEm: String,
+    @SerialName("da_equipe") val daEquipe: Boolean = false,
+)
+
+/** Corpo de `POST /rest/v1/rpc/escolher_candidato` (RF09/RN19): a candidatura que a casa escolhe. */
+@Serializable
+data class EscolherCandidatoDto(
+    @SerialName("candidatura_id") val candidaturaId: String,
+)
+
+/**
+ * Resposta de `/rpc/escolher_candidato` (schema `ResultadoConfirmacao`): o profissional confirmado,
+ * com `estado = confirmada`. `contato` foi descontinuado na 0.2.49: ausente e nulo valem o mesmo.
+ */
+@Serializable
+data class ResultadoConfirmacaoDto(
+    @SerialName("estado") val estado: String,
+    @SerialName("posicao_id") val posicaoId: String,
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("contato") val contato: ContatoDto? = null,
+)
+
+/**
+ * Parâmetros de `/rpc/painel_estabelecimento`. O contrato os descreve em GET com query; o app os envia
+ * em POST com o corpo (função volátil só aceita POST no PostgREST), como `equipe_de_confianca`. `de` e
+ * `ate` vão em ISO-8601 UTC (RN18).
+ */
+@Serializable
+data class PainelParametrosDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("de") val de: String,
+    @SerialName("ate") val ate: String,
+)
+
+/**
+ * Resposta de `/rpc/painel_estabelecimento` (schema `Painel`, RF20/UC07): as vagas do estabelecimento na
+ * janela pedida e os turnos com check-in manual esperando a confirmação da casa.
+ */
+@Serializable
+data class PainelDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("vagas") val vagas: List<VagaNoPainelDto>,
+    @SerialName("checkins_pendentes") val checkinsPendentes: List<String>,
+)
+
+/**
+ * Uma vaga no painel (schema `VagaNoPainel`). `modo` vale `urgencia` ou `selecao`; `estado`, `publicada`,
+ * `preenchida`, `encerrada` ou `cancelada`. `republicavel_em_urgencia` (0.2.41) ausente vale nulo.
+ */
+@Serializable
+data class VagaNoPainelDto(
+    @SerialName("vaga") val vaga: VagaResumoDto,
+    @SerialName("republicavel_em_urgencia") val republicavelEmUrgencia: Int? = null,
+    @SerialName("modo") val modo: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("oculta") val oculta: Boolean,
+    @SerialName("alerta_vaga_vazia") val alertaVagaVazia: Boolean,
+    @SerialName("candidatos_pendentes") val candidatosPendentes: Int,
+    @SerialName("posicoes") val posicoes: List<PosicaoNoPainelDto>,
+)
+
+/**
+ * Uma posição no painel (schema `PosicaoNoPainel`). `estado` vale `aberta`, `confirmada`, `cumprida` ou
+ * `cancelada`. Os campos do check-in e do cancelamento (0.2.31) são opcionais no contrato.
+ */
+@Serializable
+data class PosicaoNoPainelDto(
+    @SerialName("id") val id: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("profissional") val profissional: PerfilPublicoDto? = null,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("verificacao") val verificacao: String? = null,
+    @SerialName("em_atraso") val emAtraso: Boolean,
+    @SerialName("a_caminho_em") val aCaminhoEm: String? = null,
+    @SerialName("checkin_em") val checkinEm: String? = null,
+    @SerialName("checkin_tipo") val checkinTipo: String? = null,
+    @SerialName("checkin_confirmado_em") val checkinConfirmadoEm: String? = null,
+    @SerialName("cancelamento") val cancelamento: CancelamentoDaPosicaoDto? = null,
+)
+
+/** Por que uma posição que tinha profissional foi cancelada (schema `CancelamentoDaPosicao`, RN12). */
+@Serializable
+data class CancelamentoDaPosicaoDto(
+    @SerialName("causa") val causa: String,
+    @SerialName("falta") val falta: Boolean,
+    @SerialName("motivo") val motivo: String? = null,
+    @SerialName("cancelada_em") val canceladaEm: String,
+)
+
+/** Corpo de `POST /rest/v1/rpc/confirmar_checkin_manual` (RF13/RN22): o turno cujo check-in manual a casa confirma. */
+@Serializable
+data class ConfirmarCheckinManualDto(
+    @SerialName("turno_id") val turnoId: String,
 )

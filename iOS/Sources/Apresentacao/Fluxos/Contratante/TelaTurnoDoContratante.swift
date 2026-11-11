@@ -182,7 +182,7 @@ struct TelaTurnoDoContratante: View {
 
     @ViewBuilder private func conteudo(_ turno: TurnoAcompanhado) -> some View {
         Text(verbatim: TextosDoAcompanhamento.nome(turno))
-            .font(FrilaTipo.tituloGrande)
+            .font(FrilaTipo.tituloDaTela)
             .accessibilityAddTraits(.isHeader)
         VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
             Text(verbatim: turno.vaga.funcao).font(FrilaTipo.resumo)
@@ -277,7 +277,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
-                                .foregroundStyle(FrilaCor.marca)
+                                .foregroundStyle(FrilaCor.texto)
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                         }
@@ -297,7 +297,7 @@ struct TelaTurnoDoContratante: View {
                     } label: {
                         HStack(spacing: FrilaEspaco.pequeno) {
                             Image(systemName: "star.fill")
-                                .foregroundStyle(FrilaCor.marca)
+                                .foregroundStyle(FrilaCor.texto)
                                 .accessibilityHidden(true)
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                         }

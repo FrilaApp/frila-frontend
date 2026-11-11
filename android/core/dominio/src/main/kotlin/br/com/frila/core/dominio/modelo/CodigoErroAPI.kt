@@ -51,6 +51,8 @@ enum class CodigoErroAPI {
     @SerialName("conta_suspensa") CONTA_SUSPENSA,
     @SerialName("verificacao_indisponivel") VERIFICACAO_INDISPONIVEL,
     @SerialName("evidencia_incompleta") EVIDENCIA_INCOMPLETA,
+    @SerialName("ultimo_administrador") ULTIMO_ADMINISTRADOR,
+    @SerialName("convite_invalido") CONVITE_INVALIDO,
     @SerialName("sem_rede") SEM_REDE,
     @SerialName("resposta_invalida") RESPOSTA_INVALIDA,
     @SerialName("desconhecido") DESCONHECIDO,

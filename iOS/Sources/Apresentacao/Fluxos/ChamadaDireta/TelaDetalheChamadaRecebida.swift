@@ -76,11 +76,10 @@ public struct TelaDetalheChamadaRecebida: View {
 
                 Text(verbatim: detalhe.funcao.nome)
                     .font(FrilaTipo.resumo)
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.texto)
 
                 Text(verbatim: viewModel.valorFormatado)
-                    .font(FrilaTipo.secao)
-                    .bold()
+                    .font(FrilaTipo.valorEmDestaque)
 
                 Text(verbatim: viewModel.intervaloFormatado)
                     .font(FrilaTipo.corpo)

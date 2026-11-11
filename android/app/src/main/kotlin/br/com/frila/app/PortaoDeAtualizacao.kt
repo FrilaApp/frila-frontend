@@ -11,12 +11,24 @@ import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Modelo de configuração pública do app (paridade com `ConfiguracaoDoApp` do contrato OpenAPI 0.2.45).
+ * Recursos liberados para esta versão do app (contrato OpenAPI 0.2.70).
+ */
+data class RecursosDoAppDto(
+    val fotoDePerfil: Boolean = false,
+    val chamadaDireta: Boolean = false,
+    val perfilRico: Boolean = false,
+    val checkinPorCodigo: Boolean = false,
+)
+
+/**
+ * Modelo de configuração pública do app (paridade com `ConfiguracaoDoApp` do contrato OpenAPI 0.2.70).
  */
 data class ConfiguracaoDoAppDto(
     val plataforma: String,
@@ -24,6 +36,7 @@ data class ConfiguracaoDoAppDto(
     val versaoRecomendada: String? = null,
     val urlDaLoja: String? = null,
     val mensagem: String? = null,
+    val recursos: RecursosDoAppDto = RecursosDoAppDto(),
 )
 
 /**
@@ -32,20 +45,29 @@ data class ConfiguracaoDoAppDto(
  */
 suspend fun consultarConfiguracaoDoApp(
     cliente: ClienteSupabase,
+    versaoApp: String? = BuildConfig.VERSION_NAME,
 ): ConfiguracaoDoAppDto {
     val resposta = cliente.http.get(cliente.urlRpc("configuracao_do_app")) {
         parameter("plataforma", "android")
+        versaoApp?.let { parameter("versao_app", it) }
     }
     if (!resposta.status.isSuccess()) {
         throw IllegalStateException("Falha ao consultar configuracao do app: ${resposta.status}")
     }
     val json = Json.parseToJsonElement(resposta.bodyAsText()).jsonObject
+    val recursos = json["recursos"] as? JsonObject
     return ConfiguracaoDoAppDto(
         plataforma = json["plataforma"]?.jsonPrimitive?.contentOrNull ?: "android",
         versaoMinima = json["versao_minima"]?.jsonPrimitive?.contentOrNull.orEmpty(),
         versaoRecomendada = json["versao_recomendada"]?.jsonPrimitive?.contentOrNull,
         urlDaLoja = json["url_da_loja"]?.jsonPrimitive?.contentOrNull,
         mensagem = json["mensagem"]?.jsonPrimitive?.contentOrNull,
+        recursos = RecursosDoAppDto(
+            fotoDePerfil = recursos?.get("foto_de_perfil")?.jsonPrimitive?.booleanOrNull ?: false,
+            chamadaDireta = recursos?.get("chamada_direta")?.jsonPrimitive?.booleanOrNull ?: false,
+            perfilRico = recursos?.get("perfil_rico")?.jsonPrimitive?.booleanOrNull ?: false,
+            checkinPorCodigo = recursos?.get("checkin_por_codigo")?.jsonPrimitive?.booleanOrNull ?: false,
+        ),
     )
 }
 

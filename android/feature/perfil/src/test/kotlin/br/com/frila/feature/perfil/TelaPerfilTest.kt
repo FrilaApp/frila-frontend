@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import br.com.frila.core.designsystem.tema.FrilaMetricas
@@ -655,6 +656,184 @@ class TelaPerfilTest {
             assertTrue(androidx.core.app.NotificationManagerCompat.from(app).areNotificationsEnabled())
             rule.onNodeWithText("Ativadas").assertExists()
             rule.onNodeWithTag("aviso-notificacoes-desativadas-sistema").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun excluirContaComRotaDedicadaNavegaEMantemODialogoFechado() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var navegou = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = vm, aoAbrirExclusaoDeConta = { navegou++ })
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, navegou)
+            assertEquals(StatusExclusao.OCIOSO, vm.estado.value.statusExclusao)
+            rule.onAllNodesWithText("Excluir conta definitivamente?").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun excluirContaSemRotaDedicadaContinuaAbrindoODialogoDoPerfil() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertEquals(StatusExclusao.DIALOGO_ABERTO, vm.estado.value.statusExclusao)
+            rule.onNodeWithText("Excluir conta definitivamente?").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun atalhoDaEquipeDeConfiancaSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var aberta = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoAbrirEquipe = { aberta++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-equipe").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, aberta)
+        }
+    }
+
+    @Test
+    fun semCallbackDaEquipeOAtalhoNaoExiste() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-equipe").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun atalhoDePublicarVagaSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var abertas = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoPublicarVaga = { abertas++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-publicar-vaga").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, abertas)
+            rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun atalhoDeMinhasVagasSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var abertas = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoMinhasVagas = { abertas++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-minhas-vagas").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, abertas)
+            rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun minhasVagasFicaAcimaDePublicarVaga() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoMinhasVagas = {}, aoPublicarVaga = {}) }
+            }
+            rule.waitForIdle()
+
+            // Rola até o de baixo: os dois ficam medidos na mesma posição de rolagem.
+            val topoPublicar = rule.onNodeWithTag("perfil-publicar-vaga").performScrollTo().getUnclippedBoundsInRoot().top
+            val topoMinhasVagas = rule.onNodeWithTag("perfil-minhas-vagas").getUnclippedBoundsInRoot().top
+            assertTrue("Minhas vagas vem antes de Publicar vaga", topoMinhasVagas < topoPublicar)
+        }
+    }
+
+    @Test
+    fun atalhoDeCadastrarEstabelecimentoSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var abertos = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoCadastrarEstabelecimento = { abertos++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-cadastrar-estabelecimento").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, abertos)
+            rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun semCallbacksDeContratanteNenhumAtalhoExiste() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-publicar-vaga").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-minhas-vagas").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-cadastrar-estabelecimento").assertCountEquals(0)
         }
     }
 

@@ -81,6 +81,12 @@ public final class CodigoViewModel {
         codigo = encontrado
     }
 
+    /// O que o VoiceOver anuncia depois de um reenvio: só o sucesso. Com erro (ou sem reenvio, no `guard` da contagem),
+    /// o erro na tela já diz o que houve, e anunciar "Novo código enviado" seria falso.
+    public var anuncioDoReenvio: String? {
+        erro == nil ? mensagemInformativa : nil
+    }
+
     public func reenviarCodigo() async {
         guard podeReenviar else { return }
         carregando = true

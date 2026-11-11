@@ -246,6 +246,16 @@ struct CandidaturaEnviada: View {
                 }
             }
         }
+        .padding(compacta ? 0 : FrilaEspaco.medio)
+        .background(compacta ? Color.clear : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+        .overlay(
+            Group {
+                if !compacta {
+                    RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+                        .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                }
+            }
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(ConfirmacaoDaRetirada(viewModel: viewModel))
         .onChange(of: viewModel?.estado) { _, novo in
@@ -578,7 +588,7 @@ struct CartaoDaCandidatura: View {
                 LinhaDoTurnoComIcone(icone: "clock", texto: formatador.intervalo(candidatura.vaga.periodo))
                 LinhaDoTurnoComIcone(icone: "mappin.and.ellipse", texto: candidatura.vaga.local)
             }
-            Divider().overlay(FrilaCor.divisoria)
+            Divider().overlay(FrilaCor.borda)
             Label {
                 Text(verbatim: textoDoEstado).fontWeight(.semibold)
             } icon: {

@@ -109,6 +109,19 @@ fun TelaPerfil(
     aoDeslogar: () -> Unit = {},
     aoAbrirAjuda: () -> Unit = {},
     /**
+     * Exclusão de conta em tela cheia (cartão mDizumRD). Nulo mantém o diálogo de confirmação
+     * deste perfil; informado, "Excluir conta" navega para a tela dedicada.
+     */
+    aoAbrirExclusaoDeConta: (() -> Unit)? = null,
+    /** Equipe de confiança (RF18): nulo esconde o atalho, que só existe para quem administra um estabelecimento. */
+    aoAbrirEquipe: (() -> Unit)? = null,
+    /** Publicar vaga (RF04): nulo esconde o atalho, que só existe para quem é membro de um estabelecimento. */
+    aoPublicarVaga: (() -> Unit)? = null,
+    /** Minhas vagas (RF20): nulo esconde o atalho, que só existe para quem é membro de um estabelecimento. */
+    aoMinhasVagas: (() -> Unit)? = null,
+    /** Cadastrar estabelecimento (RF02): nulo esconde o atalho, que só existe para contratante que ainda não tem casa. */
+    aoCadastrarEstabelecimento: (() -> Unit)? = null,
+    /**
      * Trava do selo (RN14): desligada por padrão até a moderação e os termos serem validados pelos
      * sócios. Desligada, badge e convite não aparecem, qualquer que seja o estado recebido.
      */
@@ -242,7 +255,7 @@ fun TelaPerfil(
                     viewModel.aoDeslogar()
                     aoDeslogar()
                 },
-                aoAbrirExclusao = viewModel::abrirDialogoExclusao,
+                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                 biometriaAtivada = estado.biometriaAtivada,
                 disponibilidadeBiometrica = disponibilidadeBiometrica,
                 mensagemErroBiometria = mensagemErroBiometria,
@@ -265,6 +278,10 @@ fun TelaPerfil(
                 notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
                 paddingValues = paddingInterno,
                 aoAbrirAjuda = aoAbrirAjuda,
+                aoAbrirEquipe = aoAbrirEquipe,
+                aoPublicarVaga = aoPublicarVaga,
+                aoMinhasVagas = aoMinhasVagas,
+                aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
                 aoAbrirSelo = aoAbrirSelo,
@@ -320,6 +337,10 @@ private fun ConteudoDoPerfil(
     notificacoesDoSistemaAtivadas: Boolean,
     paddingValues: PaddingValues,
     aoAbrirAjuda: () -> Unit = {},
+    aoAbrirEquipe: (() -> Unit)? = null,
+    aoPublicarVaga: (() -> Unit)? = null,
+    aoMinhasVagas: (() -> Unit)? = null,
+    aoCadastrarEstabelecimento: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
@@ -372,6 +393,10 @@ private fun ConteudoDoPerfil(
             mensagemErroBiometria = mensagemErroBiometria,
             aoAlternarBiometria = aoAlternarBiometria,
             aoAbrirAjuda = aoAbrirAjuda,
+            aoAbrirEquipe = aoAbrirEquipe,
+            aoPublicarVaga = aoPublicarVaga,
+            aoMinhasVagas = aoMinhasVagas,
+            aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
         )
     }
 }
@@ -895,6 +920,10 @@ private fun BlocoDeConta(
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
     aoAbrirAjuda: () -> Unit = {},
+    aoAbrirEquipe: (() -> Unit)? = null,
+    aoPublicarVaga: (() -> Unit)? = null,
+    aoMinhasVagas: (() -> Unit)? = null,
+    aoCadastrarEstabelecimento: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -954,6 +983,46 @@ private fun BlocoDeConta(
                 .padding(top = FrilaEspacamento.pequeno)
                 .testTag("perfil-ajuda"),
         )
+        if (aoAbrirEquipe != null) {
+            BotaoSecundario(
+                texto = "Equipe de confiança",
+                aoClicar = aoAbrirEquipe,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-equipe"),
+            )
+        }
+        if (aoMinhasVagas != null) {
+            BotaoSecundario(
+                texto = "Minhas vagas",
+                aoClicar = aoMinhasVagas,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-minhas-vagas"),
+            )
+        }
+        if (aoPublicarVaga != null) {
+            BotaoSecundario(
+                texto = "Publicar vaga",
+                aoClicar = aoPublicarVaga,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-publicar-vaga"),
+            )
+        }
+        if (aoCadastrarEstabelecimento != null) {
+            BotaoSecundario(
+                texto = "Cadastrar estabelecimento",
+                aoClicar = aoCadastrarEstabelecimento,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-cadastrar-estabelecimento"),
+            )
+        }
         BotaoSecundario(
             texto = "Sair da conta",
             aoClicar = aoDeslogar,

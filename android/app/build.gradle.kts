@@ -29,8 +29,8 @@ android {
         applicationId = "br.com.frila.app"
         minSdk = 28
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.1.0"
+        versionCode = 2
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -133,6 +133,10 @@ dependencies {
     implementation(project(":feature:vagas"))
     implementation(project(":feature:turnos"))
     implementation(project(":feature:perfil"))
+    implementation(project(":feature:conta"))
+    implementation(project(":feature:suporte"))
+    implementation(project(":feature:equipe"))
+    implementation(project(":feature:estabelecimento"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
