@@ -6,6 +6,8 @@ import Observation
 public enum RotaDoContratante: Hashable, Sendable {
     case vaga(UUID)
     case turno(turnoID: UUID)
+    /// As chamadas de uma vaga direta: acompanhar, cancelar e publicar para todos (CD-RF09).
+    case acompanharChamadas(vagaID: UUID)
 }
 
 /// Os avisos que chegam a quem opera a casa e a tela que cada um abre (contrato 0.2.14). O `payload`

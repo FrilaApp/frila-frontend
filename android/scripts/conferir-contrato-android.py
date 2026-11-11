@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Portão de paridade de contrato entre Android e OpenAPI (iOS/Contrato/openapi.yaml).
+"""Portão de paridade de contrato entre Android e OpenAPI (android/contrato/openapi.yaml).
 
 Compara os DTOs Kotlin em android/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt
 (e outros DTOs em android/) com os schemas da especificação OpenAPI.
@@ -16,6 +16,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -31,7 +32,7 @@ def parse_arguments() -> argparse.Namespace:
         "--contrato",
         type=pathlib.Path,
         default=None,
-        help="Caminho para o openapi.yaml (padrão: iOS/Contrato/openapi.yaml a partir da raiz)",
+        help="Caminho para o openapi.yaml (padrão: android/contrato/openapi.yaml a partir da raiz)",
     )
     parser.add_argument(
         "--android-dir",
@@ -50,6 +51,12 @@ def parse_arguments() -> argparse.Namespace:
 def carregar_contrato(caminho: pathlib.Path) -> dict:
     if not caminho.is_file():
         sys.exit(f"FALHA: arquivo de contrato não encontrado em {caminho}")
+    soma = caminho.with_name(caminho.name + ".sha256")
+    if soma.is_file():
+        atual = hashlib.sha256(caminho.read_bytes()).hexdigest()
+        gravada = soma.read_text().strip()
+        if atual != gravada:
+            sys.exit(f"FALHA: {caminho.name} mudou sem atualizar a soma (gravada {gravada}, atual {atual})")
     programa = "require 'yaml'; require 'json'; print JSON.generate(YAML.load_file(ARGV[0]))"
     try:
         saida = subprocess.run(
@@ -100,7 +107,7 @@ def main() -> None:
     script_dir = pathlib.Path(__file__).resolve().parent
     # Se rodando a partir de android/scripts, raiz do repo é dois níveis acima
     repo_root = script_dir.parent.parent
-    if not (repo_root / "iOS" / "Contrato" / "openapi.yaml").is_file():
+    if not (repo_root / "android" / "contrato" / "openapi.yaml").is_file():
         # Fallback: tentar diretório de trabalho atual
         repo_root = pathlib.Path.cwd()
         if (repo_root / "android").is_dir():
@@ -108,7 +115,7 @@ def main() -> None:
         elif repo_root.name == "android":
             repo_root = repo_root.parent
 
-    contrato_path = args.contrato or (repo_root / "iOS" / "Contrato" / "openapi.yaml")
+    contrato_path = args.contrato or (repo_root / "android" / "contrato" / "openapi.yaml")
     android_dir = args.android_dir or (repo_root / "android")
     dtos_file = android_dir / "core" / "rede" / "src" / "main" / "kotlin" / "br" / "com" / "frila" / "core" / "rede" / "Dtos.kt"
 
@@ -134,6 +141,29 @@ def main() -> None:
         "CandidatarDto": "/rpc/candidatar",
         "DesbloquearDto": "/rpc/desbloquear",
         "SolicitarUploadVerificacaoDto": "/rpc/solicitar_upload_verificacao",
+        "DenunciarDto": "/rpc/denunciar",
+        "BloquearDto": "/rpc/bloquear",
+        "SairDaEquipeDto": "/rpc/sair_da_equipe",
+        "ConvidarMembroDto": "/rpc/convidar_membro",
+        "AceitarConviteMembroDto": "/rpc/aceitar_convite_membro",
+        "RemoverMembroDto": "/rpc/remover_membro",
+        "TransferirAdministracaoDto": "/rpc/transferir_administracao",
+        "EscolherCandidatoDto": "/rpc/escolher_candidato",
+    }
+
+    # Respostas 200 declaradas inline em operations RPC de paths
+    RPCS_RESPONSE_BODY = {
+        "ConviteMembroDto": "/rpc/convidar_membro",
+        "MembroAdicionadoDto": "/rpc/aceitar_convite_membro",
+        "MembroRemovidoDto": "/rpc/remover_membro",
+        "AdministracaoTransferidaDto": "/rpc/transferir_administracao",
+    }
+
+    # Leituras que o contrato descreve em GET com parâmetros de query, mas que o app envia em POST
+    # (função volátil só aceita POST no PostgREST): DTO do corpo -> (rota, método do contrato)
+    RPCS_PARAMETROS = {
+        "EstabelecimentoParametrosDto": ("/rpc/equipe_de_confianca", "get"),
+        "CandidatosDaVagaParametrosDto": ("/rpc/candidatos_da_vaga", "get"),
     }
 
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
@@ -207,12 +237,51 @@ def main() -> None:
                 print(f"  [OK] {dto_name} <-> {pai}.{propriedade} ({len(dto_props)} campos)")
             continue
 
-        if dto_name in RPCS_REQUEST_BODY:
-            rpc_path = RPCS_REQUEST_BODY[dto_name]
+        if dto_name in RPCS_PARAMETROS:
+            rpc_path, metodo = RPCS_PARAMETROS[dto_name]
+            parametros_doc = doc.get("components", {}).get("parameters", {})
+            nomes: set[str] = set()
+            obrigatorios: set[str] = set()
+            for parametro in paths.get(rpc_path, {}).get(metodo, {}).get("parameters", []):
+                if "$ref" in parametro:
+                    parametro = parametros_doc.get(parametro["$ref"].rsplit("/", 1)[-1], {})
+                if parametro.get("name"):
+                    nomes.add(parametro["name"])
+                    if parametro.get("required"):
+                        obrigatorios.add(parametro["name"])
+            if not nomes:
+                erros.append(f"DTO '{dto_name}' referencia '{metodo.upper()} {rpc_path}', mas a rota não declara parameters no OpenAPI")
+                continue
+
+            faltando_required = obrigatorios - dto_props
+            if faltando_required:
+                erros.append(
+                    f"DTO '{dto_name}' não mapeia parâmetros obrigatórios de '{rpc_path}': {sorted(faltando_required)}"
+                )
+            extras = dto_props - nomes
+            if extras:
+                erros.append(f"DTO '{dto_name}' possui parâmetros ausentes em '{rpc_path}': {sorted(extras)}")
+
+            verificados += 1
+            if not args.silencioso:
+                print(f"  [OK] {dto_name} <-> parâmetros {rpc_path} ({len(dto_props)} campos)")
+            continue
+
+        if dto_name in RPCS_REQUEST_BODY or dto_name in RPCS_RESPONSE_BODY:
+            if dto_name in RPCS_REQUEST_BODY:
+                rpc_path = RPCS_REQUEST_BODY[dto_name]
+                rotulo = "requestBody"
+            else:
+                rpc_path = RPCS_RESPONSE_BODY[dto_name]
+                rotulo = "resposta 200"
             rpc_op = paths.get(rpc_path, {}).get("post", {})
-            schema = rpc_op.get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema", {})
+            if rotulo == "requestBody":
+                conteudo = rpc_op.get("requestBody", {}).get("content", {})
+            else:
+                conteudo = rpc_op.get("responses", {}).get("200", {}).get("content", {})
+            schema = conteudo.get("application/json", {}).get("schema", {})
             if not schema:
-                erros.append(f"DTO '{dto_name}' referencia RPC '{rpc_path}', mas rota não possui requestBody schema no OpenAPI")
+                erros.append(f"DTO '{dto_name}' referencia RPC '{rpc_path}', mas rota não possui {rotulo} schema no OpenAPI")
                 continue
 
             schema_props = set(schema.get("properties", {}).keys())
@@ -233,7 +302,7 @@ def main() -> None:
 
             verificados += 1
             if not args.silencioso:
-                print(f"  [OK] {dto_name} <-> requestBody {rpc_path} ({len(dto_props)} campos)")
+                print(f"  [OK] {dto_name} <-> {rotulo} {rpc_path} ({len(dto_props)} campos)")
             continue
 
         # Nome convencional do schema: usa alias ou remove sufixo Dto

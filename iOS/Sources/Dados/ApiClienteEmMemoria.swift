@@ -8,7 +8,21 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public enum Cenario: String, CaseIterable, Sendable {
         case chamadaDireta = "chamada-direta"
         case chamadaRecorrente = "chamada-recorrente"
-        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente }
+        /// Como `chamadaDireta`, com duas vagas diretas já chamadas (CD-RF09): uma com a chamada
+        /// aberta, que dá para cancelar, e outra com a chamada recusada, que libera "Publicar para
+        /// todos" (RN35). Vitrine de Acompanhar chamadas.
+        case chamadasEnviadas = "chamadas-enviadas"
+        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente || self == .chamadasEnviadas }
+        /// Conta de profissional com a chamada direta ligada (Preferências de chamada, CD-RF10) e uma
+        /// chamada aberta da casa de exemplo (`chamadaRecebidaID`, CD-RF08). Abre com
+        /// `-FRILA_PUSH chamada_recebida -FRILA_PUSH_CHAMADA_ID <chamadaRecebidaID>`.
+        case chamadaRecebida = "chamada-recebida"
+        /// Conta de profissional com um turno que terminou sem presença verificada: o check-in manual
+        /// não foi confirmado pela casa (aviso `turno_nao_verificado`, 0.2.62). O turno é o
+        /// `22000000-…-0001`, o mesmo do turno encerrado.
+        case turnoNaoVerificado = "turno-nao-verificado"
+        /// Conta de contratante com o turno da casa (`82000000-…-0001`) encerrado como não verificado.
+        case turnoNaoVerificadoContratante = "turno-nao-verificado-contratante"
         case sucesso = "success"
         case perfilRicoHabilitado = "perfil-rico-habilitado"
         case servicosVazios = "servicos-vazios"
@@ -339,7 +353,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         vagas: [Vaga]? = nil,
         sessaoAtivaInicial: Bool = false,
         erroSimuladoRepublicarPosicoesRestantes: ErroDaApi? = nil,
-        simularFalhaTransitoriaRepublicar: Bool = false
+        simularFalhaTransitoriaRepublicar: Bool = false,
+        chamadaDiretaDesligada: Bool = false
     ) {
         self.cenario = cenario
         self.relogio = relogio
@@ -359,7 +374,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 urlDaLoja: configuracaoBase.urlDaLoja,
                 recursos: RecursosDoApp(
                     fotoDePerfil: cenario.fotoDePerfilLigada,
-                    chamadaDireta: cenario.deChamada,
+                    // `chamadaDiretaDesligada`: a chave desligada depois que a vaga direta já existe.
+                    chamadaDireta: !chamadaDiretaDesligada && (cenario.deChamada || cenario == .chamadaRecebida),
                     perfilRico: perfilRicoHabilitado
                 )
             )
@@ -377,7 +393,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede {
+                if cenario == .contratante || cenario == .checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede || cenario == .turnoNaoVerificadoContratante {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -455,14 +471,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 case .selecaoComCandidatos, .escolhaPerdeCorrida, .selecaoComCandidatoDaEquipe, .denunciaDeFoto, .vagaEmSelecao, .candidaturaPendente,
                      .retirarSemRede, .candidaturaEscolhida, .candidaturaRecusada: 72 * 60 * 60
                 case .sucesso, .semRede, .primeiroAcesso, .profissionalServidorAntigo: 30 * 60
+                // Começou 8 h atrás e terminou faz 2 h (a vaga de exemplo dura 6 h).
+                case .turnoNaoVerificadoContratante: -8 * 60 * 60
                 default: 24 * 60 * 60
                 }
-                let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante) ? Self.copia(vaga, estado: .encerrada) : vaga
+                let baseVaga = (cenario == .vagaEncerradaContratante || ehCicloContratante || cenario == .turnoNaoVerificadoContratante) ? Self.copia(vaga, estado: .encerrada) : vaga
                 self.vagas = [try Self.noFuturo(baseVaga, agora: relogio.agora, inicioEm: ateInicio)]
             }
             if cenario == .painelVazio || cenario == .contratanteSemEstabelecimento { self.vagas = [] }
             if cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinManualPendente || cenario == .atrasoNoTurno
-                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante,
+                || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || ehCicloContratante
+                || cenario == .turnoNaoVerificadoContratante,
                 let vaga = self.vagas.first {
                 let turnoID = UUID(uuidString: "82000000-0000-0000-0000-000000000001")!
                 let posicaoID = UUID(uuidString: "82000000-0000-0000-0000-000000000002")!
@@ -475,7 +494,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let turnoExemplo = Turno(
                     id: turnoID, posicaoID: posicaoID, vaga: vaga.resumo,
                     contraparte: perfilPublicoDeExemplo, contatoVisivelAte: contato.visivelAte,
-                    verificacao: (cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
+                    verificacao: cenario == .turnoNaoVerificadoContratante ? .naoVerificado
+                        : (cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .checkinConfirmado || ehCicloContratante || cenario == .servidorAntigo) ? .verificado : .pendente,
                     valorAcordado: vaga.valor, podeAvaliar: false
                 )
                 if cenario == .posicaoCanceladaComMotivo {
@@ -490,7 +510,13 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 } else {
                     turnos = [turnoExemplo]
                     contatos[turnoID] = contato
-                    if cenario == .checkinManualPendente {
+                    if cenario == .turnoNaoVerificadoContratante {
+                        // O check-in manual que a casa não confirmou até o fim: o turno fecha não verificado.
+                        checkins[turnoID] = ResultadoRegistro(
+                            turnoID: turnoID, tipo: .manual, verificacao: .naoVerificado,
+                            registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
+                        )
+                    } else if cenario == .checkinManualPendente {
                         checkins[turnoID] = ResultadoRegistro(
                             turnoID: turnoID, tipo: .manual, verificacao: .pendente,
                             registradoEm: vaga.periodo.inicio.addingTimeInterval(-2 * 60), distanciaMetros: nil
@@ -683,6 +709,56 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 contatos[turnoID] = contato
                 self.vagas[0] = Self.comPosicoesAbertas(max(0, vaga.posicoesAbertas - 1), em: vaga)
             }
+            if cenario == .turnoNaoVerificado, let vaga = self.vagas.first {
+                let turnoID = UUID(uuidString: "22000000-0000-0000-0000-000000000001")!
+                let fim = relogio.agora.addingTimeInterval(-2 * 3600)
+                let inicio = fim.addingTimeInterval(-6 * 3600)
+                let resumo = VagaResumo(id: vaga.id, funcao: vaga.funcao.nome, local: vaga.local,
+                                        regiaoAdministrativa: vaga.regiaoAdministrativa,
+                                        periodo: try Periodo(inicio: inicio, fim: fim), valor: vaga.valor)
+                let contato = Contato(nome: vaga.estabelecimento.nome, telefone: contatoDeExemplo.telefone,
+                                      whatsappURL: contatoDeExemplo.whatsappURL, visivelAte: fim.addingTimeInterval(7 * 24 * 3600))
+                // Check-in manual feito, que a casa não confirmou até o fim: a presença fica não verificada.
+                let checkin = Presenca(instante: inicio.addingTimeInterval(-2 * 60), tipo: .manual, distanciaMetros: nil)
+                turnos = [Turno(
+                    id: turnoID, posicaoID: UUID(uuidString: "22000000-0000-0000-0000-000000000002")!, vaga: resumo,
+                    contraparte: vaga.estabelecimento, contatoVisivelAte: contato.visivelAte, checkin: checkin,
+                    verificacao: .naoVerificado, valorAcordado: vaga.valor, podeAvaliar: false, contato: contato
+                )]
+                contatos[turnoID] = contato
+                checkins[turnoID] = ResultadoRegistro(turnoID: turnoID, tipo: .manual, verificacao: .naoVerificado,
+                                                      registradoEm: checkin.instante, distanciaMetros: nil)
+            }
+            if cenario == .chamadaRecebida || cenario == .chamadasEnviadas, let vaga = self.vagas.first {
+                let agora = relogio.agora
+                let profissionalID = perfilPublicoDeExemplo.id
+                let casaID = vaga.estabelecimento.id
+                if cenario == .chamadaRecebida {
+                    let direta = try Self.vagaDireta(de: vaga, id: UUID(uuidString: "c1000000-0000-0000-0000-000000000001")!, inicio: agora.addingTimeInterval(26 * 3600), agora: agora)
+                    self.vagas.append(direta)
+                    chamadasPorID[Self.chamadaRecebidaID] = Chamada(
+                        id: Self.chamadaRecebidaID, vagaID: direta.id, profissionalID: profissionalID, estabelecimentoID: casaID,
+                        recado: "Precisamos de reforço no salão para um evento de sexta.",
+                        expiraEm: agora.addingTimeInterval(11 * 3600), criadaEm: agora.addingTimeInterval(-15 * 60)
+                    )
+                } else {
+                    let aberta = try Self.vagaDireta(de: vaga, id: UUID(uuidString: "c1000000-0000-0000-0000-000000000002")!, inicio: agora.addingTimeInterval(30 * 3600), agora: agora)
+                    let recusada = try Self.vagaDireta(de: vaga, id: UUID(uuidString: "c1000000-0000-0000-0000-000000000003")!, inicio: agora.addingTimeInterval(54 * 3600), agora: agora)
+                    self.vagas.append(contentsOf: [aberta, recusada])
+                    let chamadaAberta = Chamada(
+                        id: UUID(uuidString: "c2000000-0000-0000-0000-000000000002")!, vagaID: aberta.id, profissionalID: profissionalID,
+                        estabelecimentoID: casaID, expiraEm: agora.addingTimeInterval(10 * 3600), criadaEm: agora.addingTimeInterval(-30 * 60)
+                    )
+                    let chamadaRecusada = Chamada(
+                        id: UUID(uuidString: "c2000000-0000-0000-0000-000000000003")!, vagaID: recusada.id, profissionalID: profissionalID,
+                        estabelecimentoID: casaID, estado: .recusada, motivoRecusa: .agenda,
+                        expiraEm: agora.addingTimeInterval(8 * 3600), respondidaEm: agora.addingTimeInterval(-20 * 60),
+                        criadaEm: agora.addingTimeInterval(-2 * 3600)
+                    )
+                    chamadasPorID[chamadaAberta.id] = chamadaAberta
+                    chamadasPorID[chamadaRecusada.id] = chamadaRecusada
+                }
+            }
         } catch {
             preconditionFailure("Fixture do contrato ilegível: \(error)")
         }
@@ -748,7 +824,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
             vagas: vagasPersonalizadas,
             sessaoAtivaInicial: sessaoAtiva,
             erroSimuladoRepublicarPosicoesRestantes: erroRepublicar,
-            simularFalhaTransitoriaRepublicar: falhaTransitoria
+            simularFalhaTransitoriaRepublicar: falhaTransitoria,
+            // A chave do servidor desligada num cenário que já tem vaga direta (RN46).
+            chamadaDiretaDesligada: argumentos.contains("-FRILA_CHAMADA_DIRETA_DESLIGADA")
         )
     }
     #endif
@@ -3066,6 +3144,21 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private func erro(_ codigo: String, detalhes: String? = nil) -> ErroDaApi {
         let envelope = envelopes.values.first { $0.code == codigo && (detalhes == nil || $0.details == detalhes) } ?? envelopes[codigo]
         return DecodificadorErroAPI.mapear(codigo: envelope?.code ?? codigo, detalhes: detalhes ?? envelope?.details)
+    }
+
+    /// A chamada aberta do cenário `chamada-recebida`.
+    public static let chamadaRecebidaID = UUID(uuidString: "c2000000-0000-0000-0000-000000000001")!
+
+    /// Uma vaga direta da casa (`origem = chamada_direta`, `urgencia`, uma posição), como a que
+    /// `chamar_profissional` cria, com o mesmo trabalho da vaga de exemplo.
+    private static func vagaDireta(de vaga: Vaga, id: UUID, inicio: Date, agora: Date) throws -> Vaga {
+        let duracao = vaga.periodo.fim.timeIntervalSince(vaga.periodo.inicio)
+        return Vaga(id: id, estabelecimento: vaga.estabelecimento, funcao: vaga.funcao,
+                    periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(duracao)),
+                    local: vaga.local, regiaoAdministrativa: vaga.regiaoAdministrativa, ponto: vaga.ponto,
+                    valor: vaga.valor, posicoes: 1, posicoesAbertas: 1, inclusos: vaga.inclusos,
+                    responsavelLocal: vaga.responsavelLocal, modo: .urgencia, estado: .publicada,
+                    publicadoEm: agora, origem: .chamadaDireta)
     }
 
     private static func noFuturo(_ vaga: Vaga, agora: Date, inicioEm: TimeInterval = 24 * 60 * 60) throws -> Vaga {

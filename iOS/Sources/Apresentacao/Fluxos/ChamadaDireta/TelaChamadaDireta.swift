@@ -14,8 +14,9 @@ struct BotaoChamarDeNovo: View {
             .sheet(isPresented: $aberto) {
                 NavigationStack {
                     TelaChamadaDireta(viewModel: ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
-                        estabelecimentoID: estabelecimentoID, vagaID: vagaID))
+                        estabelecimentoID: estabelecimentoID, vagaID: vagaID), api: api)
                 }
+                .presentationCornerRadius(FrilaRaio.folha)
             }
     }
 }
@@ -23,8 +24,13 @@ struct BotaoChamarDeNovo: View {
 public struct TelaChamadaDireta: View {
     @State private var viewModel: ChamadaDiretaViewModel
     @Environment(\.dismiss) private var fechar
+    /// Leva ao Acompanhar chamadas depois do envio (V11); sem ela, o resumo aparece sem o link.
+    private let api: (any ApiCliente)?
 
-    public init(viewModel: ChamadaDiretaViewModel) { _viewModel = State(initialValue: viewModel) }
+    public init(viewModel: ChamadaDiretaViewModel, api: (any ApiCliente)? = nil) {
+        _viewModel = State(initialValue: viewModel)
+        self.api = api
+    }
 
     public var body: some View {
         Form {
@@ -35,8 +41,10 @@ public struct TelaChamadaDireta: View {
                     BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
                 }
             }
-            if viewModel.resultado != nil {
-                AvisoFrila(verbatim: TextosChamadaDireta.sucesso, tom: .informativo)
+            if let chamada = viewModel.resultado {
+                ResumoDaChamadaEnviada(chamada: chamada, valorCentavos: viewModel.valorCentavos,
+                                       inicio: viewModel.inicio, fim: viewModel.fim,
+                                       responsavel: viewModel.responsavel, api: api)
             } else if viewModel.recursoHabilitado {
                 campos
                     .disabled(viewModel.tentativa != nil || viewModel.enviando)

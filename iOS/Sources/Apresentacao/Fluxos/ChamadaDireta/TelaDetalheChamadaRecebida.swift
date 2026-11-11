@@ -30,6 +30,8 @@ public struct TelaDetalheChamadaRecebida: View {
                 sucessoAceite(resultado)
             } else if let resultado = viewModel.resultado, resultado.chamada.estado == .recusada {
                 AvisoFrila(verbatim: TextosChamadaDireta.chamadaRecusadaAviso, tom: .informativo)
+                // Recusar não tira o direito de denunciar ou bloquear quem chamou (CD-RF12, CD-S13).
+                if let detalhe = viewModel.detalhe { acoesDeSeguranca(detalhe.outraParte) }
             } else if let detalhe = viewModel.detalhe {
                 conteudoChamada(detalhe)
             }
@@ -74,11 +76,10 @@ public struct TelaDetalheChamadaRecebida: View {
 
                 Text(verbatim: detalhe.funcao.nome)
                     .font(FrilaTipo.resumo)
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.texto)
 
                 Text(verbatim: viewModel.valorFormatado)
-                    .font(FrilaTipo.secao)
-                    .bold()
+                    .font(FrilaTipo.valorEmDestaque)
 
                 Text(verbatim: viewModel.intervaloFormatado)
                     .font(FrilaTipo.corpo)
@@ -166,12 +167,16 @@ public struct TelaDetalheChamadaRecebida: View {
             }
         }
 
-        // CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
+        acoesDeSeguranca(detalhe.outraParte)
+    }
+
+    /// CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
+    private func acoesDeSeguranca(_ quemChamou: PerfilPublico) -> some View {
         Section {
-            AcoesDeSeguranca(perfil: detalhe.outraParte, api: viewModel.api, bloqueios: bloqueios,
+            AcoesDeSeguranca(perfil: quemChamou, api: viewModel.api, bloqueios: bloqueios,
                              identificadorDenunciar: "denunciar-chamada", identificadorBloquear: "bloquear-chamada",
                              identificadorConfirmarBloqueio: "confirmar-bloqueio-chamada")
-                .id(detalhe.outraParte.id)
+                .id(quemChamou.id)
         }
         .listRowBackground(Color.clear)
     }

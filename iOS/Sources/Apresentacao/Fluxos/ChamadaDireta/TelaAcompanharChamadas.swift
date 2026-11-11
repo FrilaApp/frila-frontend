@@ -51,10 +51,11 @@ public struct TelaAcompanharChamadas: View {
                     }
                 }
 
-                if let novaVagaID = viewModel.vagaPublicadaNovaID {
+                // Aberto pela folha da chamada (V11), não há para onde levar: fica só o aviso de vaga aberta.
+                if let novaVagaID = viewModel.vagaPublicadaNovaID, let onVerVagaPublicada {
                     Section {
                         BotaoSecundario("Ver vaga aberta") {
-                            onVerVagaPublicada?(novaVagaID)
+                            onVerVagaPublicada(novaVagaID)
                         }
                         .accessibilityIdentifier("ver-vaga-aberta")
                     }
@@ -97,7 +98,7 @@ public struct TelaAcompanharChamadas: View {
                     .bold()
                 Spacer()
                 Text(verbatim: viewModel.rotuloEstado(chamada.estado))
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.nota.weight(.semibold))
                     .foregroundStyle(corDoEstado(chamada.estado))
             }
 
@@ -127,7 +128,7 @@ public struct TelaAcompanharChamadas: View {
 
     private func corDoEstado(_ estado: EstadoChamada) -> Color {
         switch estado {
-        case .aberta: return FrilaCor.marca
+        case .aberta: return FrilaCor.texto
         case .aceita: return FrilaCor.sucesso
         case .recusada, .cancelada, .expirada, .encerrada: return FrilaCor.textoSecundario
         }
