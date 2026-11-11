@@ -53,6 +53,8 @@ import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.equipe.TelaEquipeDeConfianca
+import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
+import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
 import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaAjudaPerfil
@@ -73,7 +75,6 @@ import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.getKoin
 import org.koin.compose.koinInject
-import kotlinx.coroutines.CancellationException
 import org.koin.core.parameter.parametersOf
 
 /** Rotas da navegação declarativa. Única fonte de verdade dos destinos possíveis do app. */
@@ -99,6 +100,8 @@ object Rotas {
     const val CONTA_SUSPENSA = "conta_suspensa?motivo={motivo}&desde={desde}"
     const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}"
     const val EQUIPE = "equipe/{estabelecimentoId}"
+    const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
+    const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -126,6 +129,8 @@ object Rotas {
     }
 
     fun equipe(estabelecimentoId: String) = "equipe/$estabelecimentoId"
+
+    fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
 }
 
 object DeepLinks {
@@ -161,9 +166,9 @@ fun AppNavegacao(
      */
     recursoSeloHabilitado: Boolean = false,
     /**
-     * Quem administra um estabelecimento ganha o atalho da equipe de confiança no perfil. Nulo (grafo
-     * sem o serviço) esconde o atalho. Conta de profissional recebe `422 perfil_incompativel` e também
-     * não vê o atalho.
+     * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
+     * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
+     * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
      */
     servicoMembros: ServicoMembros? = getKoin().getOrNull(),
 ) {
@@ -449,8 +454,9 @@ fun AppNavegacao(
                     val estadoSelo = viewModelSelo?.estado?.collectAsStateWithLifecycle()?.value
                     // Ao voltar do fluxo do selo a rota entra de novo em composição e relê o estado.
                     LaunchedEffect(viewModelSelo) { viewModelSelo?.carregar() }
-                    var casaDaEquipe by remember { mutableStateOf<String?>(null) }
-                    LaunchedEffect(servicoMembros) { casaDaEquipe = buscarCasaDaEquipe(servicoMembros) }
+                    var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
+                    LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
+                    val primeiraCasa = (casas as? CasasDaConta.Primeira)?.id
                     TelaPerfil(
                         viewModel = viewModel,
                         recursoSeloHabilitado = recursoSeloHabilitado,
@@ -465,8 +471,16 @@ fun AppNavegacao(
                         },
                         aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
                         aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
-                        aoAbrirEquipe = casaDaEquipe?.let { id ->
+                        aoAbrirEquipe = primeiraCasa?.let { id ->
                             { navController.navigate(Rotas.equipe(id)) }
+                        },
+                        aoPublicarVaga = primeiraCasa?.let { id ->
+                            { navController.navigate(Rotas.publicarVaga(id)) }
+                        },
+                        aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
+                            { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
+                        } else {
+                            null
                         },
                     )
                 }
@@ -576,6 +590,36 @@ fun AppNavegacao(
                 }
             }
 
+            composable(Rotas.CADASTRO_ESTABELECIMENTO) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: CadastroEstabelecimentoViewModel = koinViewModel()
+                    TelaCadastroEstabelecimento(
+                        viewModel = viewModel,
+                        // Recém-cadastrada, a casa segue direto para a primeira vaga; "Voltar" da
+                        // publicação leva ao perfil, não de volta ao formulário já concluído.
+                        aoConcluir = { criado ->
+                            navController.navigate(Rotas.publicarVaga(criado.id)) {
+                                popUpTo(Rotas.CADASTRO_ESTABELECIMENTO) { inclusive = true }
+                            }
+                        },
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.PUBLICAR_VAGA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    RotaPublicarVaga(
+                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        servicoMembros = servicoMembros,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
             if (recursoSeloHabilitado) {
                 composable(Rotas.SELO_CONFIANCA) {
                     RotaProtegida(guardaBiometrico) {
@@ -662,19 +706,6 @@ fun AppNavegacao(
             modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
         )
     }
-}
-
-/**
- * Primeiro estabelecimento da conta (a lista vem ordenada por nome), para o atalho da equipe de
- * confiança. Qualquer falha (conta de profissional recebe `422 perfil_incompativel`, sem rede,
- * sem o serviço no grafo) é "sem atalho": o perfil nunca quebra por causa disso.
- */
-private suspend fun buscarCasaDaEquipe(servicoMembros: ServicoMembros?): String? = try {
-    servicoMembros?.listarMeusEstabelecimentos()?.firstOrNull()?.id
-} catch (erro: CancellationException) {
-    throw erro
-} catch (_: Exception) {
-    null
 }
 
 /** Extraído para ser testável sozinho, sem montar o grafo Koin/NavHost completo. */

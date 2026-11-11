@@ -89,6 +89,19 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
 "
 esperar_reprovacao "NovoEstabelecimentoDto sem documento obrigatório" "não mapeia campos obrigatórios (required) do schema 'NovoEstabelecimento': ['documento']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
 
+# Restaura e testa a leitura do estabelecimento: campo obrigatório de MeuEstabelecimentoDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = 'data class MeuEstabelecimentoDto(\n    @SerialName(\"id\") val id: String,\n    @SerialName(\"nome\") val nome: String,\n    @SerialName(\"tipo\") val tipo: String,\n    @SerialName(\"endereco\") val endereco: String,\n'
+assert c.count(alvo) == 1
+c = c.replace(alvo, 'data class MeuEstabelecimentoDto(\n    @SerialName(\"id\") val id: String,\n    @SerialName(\"nome\") val nome: String,\n    @SerialName(\"tipo\") val tipo: String,\n')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "MeuEstabelecimentoDto sem endereco obrigatório" "não mapeia campos obrigatórios (required) do schema 'MeuEstabelecimento': ['endereco']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
 # Restaura e testa a publicação de vaga: campo obrigatório de NovaVagaDto ausente
 cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
 python3 -c "

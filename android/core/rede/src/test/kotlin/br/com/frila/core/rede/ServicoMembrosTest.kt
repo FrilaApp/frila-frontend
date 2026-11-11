@@ -203,4 +203,37 @@ class ServicoMembrosTest {
 
         assertEquals(CodigoErroAPI.DOCUMENTO_JA_CADASTRADO, (excecao as ErroDaApi).codigo)
     }
+
+    @Test
+    fun `meuEstabelecimento manda POST com estabelecimento_id e decodifica o cadastro sem documento`() = runTest {
+        val chamada = Chamada()
+        val servico = servico(
+            chamada, HttpStatusCode.OK,
+            """
+            {"id": "$estabelecimentoId", "nome": "Bar da Lia", "tipo": "food_service",
+             "endereco": "CLS 408, Bloco B, Loja 12", "regiao_administrativa": "Plano Piloto",
+             "ponto": {"latitude": -15.7942, "longitude": -47.8822}, "papel": "operador"}
+            """.trimIndent(),
+        )
+
+        val casa = servico.meuEstabelecimento(estabelecimentoId)
+
+        assertEquals(HttpMethod.Post, chamada.metodo)
+        assertEquals("/rest/v1/rpc/meu_estabelecimento", chamada.caminho)
+        assertEquals(setOf("estabelecimento_id"), chamada.corpo!!.keys)
+        assertEquals(estabelecimentoId, chamada.corpo!!["estabelecimento_id"]!!.jsonPrimitive.content)
+        assertEquals("CLS 408, Bloco B, Loja 12", casa.endereco)
+        assertEquals("Plano Piloto", casa.regiaoAdministrativa)
+        assertEquals(-47.8822, casa.ponto.longitude, 0.0)
+        assertEquals(PapelMembro.OPERADOR, PapelMembro.deChave(casa.papel))
+    }
+
+    @Test
+    fun `meuEstabelecimento de quem nao e membro mapeia sem_permissao`() = runTest {
+        val servico = servico(Chamada(), HttpStatusCode.Forbidden, """{"code":"sem_permissao","message":"x"}""")
+
+        val excecao = runCatching { servico.meuEstabelecimento(estabelecimentoId) }.exceptionOrNull()
+
+        assertEquals(CodigoErroAPI.SEM_PERMISSAO, (excecao as ErroDaApi).codigo)
+    }
 }

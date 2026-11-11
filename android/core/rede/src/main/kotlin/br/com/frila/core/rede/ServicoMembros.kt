@@ -37,6 +37,21 @@ class ServicoMembros(private val provedorDeCliente: () -> ClienteSupabase) {
     }
 
     /**
+     * `POST /rest/v1/rpc/meu_estabelecimento`: endereço, Região Administrativa e ponto de uma casa de
+     * que a conta é membro (administrador ou operador), para preencher a publicação de uma vaga.
+     * Vai por POST porque a função do banco é VOLÁTIL (plpgsql sem `STABLE`), como `equipe_de_confianca`:
+     * o PostgREST só aceita POST nesse caso. Quem não é membro, inclusive conta de profissional, e
+     * estabelecimento inexistente recebem `403 sem_permissao`.
+     */
+    suspend fun meuEstabelecimento(estabelecimentoId: String): MeuEstabelecimentoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("meu_estabelecimento")) {
+            contentType(ContentType.Application.Json)
+            setBody(EstabelecimentoParametrosDto(estabelecimentoId = estabelecimentoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
      * `POST /rest/v1/rpc/convidar_membro`. Só o administrador convida. Erros esperados:
      * `403 sem_permissao`, `404 nao_encontrado`, `422 campo_obrigatorio` (`papel`) e
      * `422 campo_invalido` (`email`).

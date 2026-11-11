@@ -115,6 +115,10 @@ fun TelaPerfil(
     aoAbrirExclusaoDeConta: (() -> Unit)? = null,
     /** Equipe de confiança (RF18): nulo esconde o atalho, que só existe para quem administra um estabelecimento. */
     aoAbrirEquipe: (() -> Unit)? = null,
+    /** Publicar vaga (RF04): nulo esconde o atalho, que só existe para quem é membro de um estabelecimento. */
+    aoPublicarVaga: (() -> Unit)? = null,
+    /** Cadastrar estabelecimento (RF02): nulo esconde o atalho, que só existe para contratante que ainda não tem casa. */
+    aoCadastrarEstabelecimento: (() -> Unit)? = null,
     /**
      * Trava do selo (RN14): desligada por padrão até a moderação e os termos serem validados pelos
      * sócios. Desligada, badge e convite não aparecem, qualquer que seja o estado recebido.
@@ -273,6 +277,8 @@ fun TelaPerfil(
                 paddingValues = paddingInterno,
                 aoAbrirAjuda = aoAbrirAjuda,
                 aoAbrirEquipe = aoAbrirEquipe,
+                aoPublicarVaga = aoPublicarVaga,
+                aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
                 aoAbrirSelo = aoAbrirSelo,
@@ -329,6 +335,8 @@ private fun ConteudoDoPerfil(
     paddingValues: PaddingValues,
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
+    aoPublicarVaga: (() -> Unit)? = null,
+    aoCadastrarEstabelecimento: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
@@ -382,6 +390,8 @@ private fun ConteudoDoPerfil(
             aoAlternarBiometria = aoAlternarBiometria,
             aoAbrirAjuda = aoAbrirAjuda,
             aoAbrirEquipe = aoAbrirEquipe,
+            aoPublicarVaga = aoPublicarVaga,
+            aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
         )
     }
 }
@@ -906,6 +916,8 @@ private fun BlocoDeConta(
     aoAlternarBiometria: (Boolean) -> Unit,
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
+    aoPublicarVaga: (() -> Unit)? = null,
+    aoCadastrarEstabelecimento: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -973,6 +985,26 @@ private fun BlocoDeConta(
                     .fillMaxWidth()
                     .padding(top = FrilaEspacamento.pequeno)
                     .testTag("perfil-equipe"),
+            )
+        }
+        if (aoPublicarVaga != null) {
+            BotaoSecundario(
+                texto = "Publicar vaga",
+                aoClicar = aoPublicarVaga,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-publicar-vaga"),
+            )
+        }
+        if (aoCadastrarEstabelecimento != null) {
+            BotaoSecundario(
+                texto = "Cadastrar estabelecimento",
+                aoClicar = aoCadastrarEstabelecimento,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-cadastrar-estabelecimento"),
             )
         }
         BotaoSecundario(
