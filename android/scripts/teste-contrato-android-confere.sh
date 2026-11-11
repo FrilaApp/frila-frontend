@@ -115,6 +115,19 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
 "
 esperar_reprovacao "NovaVagaDto sem valor_centavos obrigatório" "não mapeia campos obrigatórios (required) do schema 'NovaVaga': ['valor_centavos']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
 
+# Restaura e testa a escolha de candidato: campo obrigatório de ResultadoConfirmacaoDto ausente
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = '    @SerialName(\"turno_id\") val turnoId: String,\n    @SerialName(\"contato\") val contato: ContatoDto? = null,\n)'
+assert c.count(alvo) == 1
+c = c.replace(alvo, '    @SerialName(\"contato\") val contato: ContatoDto? = null,\n)')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "ResultadoConfirmacaoDto sem turno_id obrigatório" "não mapeia campos obrigatórios (required) do schema 'ResultadoConfirmacao': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
 # 4. Mutação 3: contrato alterado sem regravar a soma
 mkdir -p "$TMPDIR_TESTE/contrato"
 cp "$CONTRATO_OFICIAL" "$TMPDIR_TESTE/contrato/openapi.yaml"

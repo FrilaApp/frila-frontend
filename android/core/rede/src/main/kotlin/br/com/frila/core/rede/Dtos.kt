@@ -30,6 +30,10 @@ data class PerfilPublicoDto(
     @SerialName("nome") val nome: String,
     @SerialName("funcoes") val funcoes: List<String>? = null,
     @SerialName("reputacao") val reputacao: ReputacaoDto,
+    /** URL assinada (1 h) da foto aprovada; só vem para leitor com vínculo (0.2.54). Ausente vale sem foto. */
+    @SerialName("foto_url") val fotoUrl: String? = null,
+    /** Identificador opaco da foto exibida, o que `denunciar.midia_id` recebe (0.2.54). */
+    @SerialName("foto_id") val fotoId: String? = null,
 )
 
 @Serializable
@@ -613,4 +617,43 @@ data class MeuEstabelecimentoDto(
     @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
     @SerialName("ponto") val ponto: CoordenadaDto,
     @SerialName("papel") val papel: String,
+)
+
+/**
+ * Parâmetro de `/rpc/candidatos_da_vaga`. O contrato o descreve em GET com `vaga_id` na query; o app o
+ * envia em POST com o corpo (função volátil só aceita POST no PostgREST), como `equipe_de_confianca`.
+ */
+@Serializable
+data class CandidatosDaVagaParametrosDto(
+    @SerialName("vaga_id") val vagaId: String,
+)
+
+/**
+ * Item de `/rpc/candidatos_da_vaga` (schema `Candidato`, contrato 0.2.73), em ordem de chegada (RN06).
+ * `da_equipe` (0.2.38) só alimenta o selo "da sua equipe", nunca a ordem; ausente vale `false`.
+ */
+@Serializable
+data class CandidatoDto(
+    @SerialName("candidatura_id") val candidaturaId: String,
+    @SerialName("profissional") val profissional: PerfilPublicoDto,
+    @SerialName("criada_em") val criadaEm: String,
+    @SerialName("da_equipe") val daEquipe: Boolean = false,
+)
+
+/** Corpo de `POST /rest/v1/rpc/escolher_candidato` (RF09/RN19): a candidatura que a casa escolhe. */
+@Serializable
+data class EscolherCandidatoDto(
+    @SerialName("candidatura_id") val candidaturaId: String,
+)
+
+/**
+ * Resposta de `/rpc/escolher_candidato` (schema `ResultadoConfirmacao`): o profissional confirmado,
+ * com `estado = confirmada`. `contato` foi descontinuado na 0.2.49: ausente e nulo valem o mesmo.
+ */
+@Serializable
+data class ResultadoConfirmacaoDto(
+    @SerialName("estado") val estado: String,
+    @SerialName("posicao_id") val posicaoId: String,
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("contato") val contato: ContatoDto? = null,
 )
