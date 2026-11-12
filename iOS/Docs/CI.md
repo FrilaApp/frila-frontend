@@ -63,7 +63,7 @@ Etapas, na ordem:
 
 1. Seleciona o Xcode 26.6 fixado do runner.
 2. Instala o XcodeGen 2.45.3 do release oficial e confere o SHA-256.
-3. `Scripts/contrato-em-dia.sh`: o espelho `Contrato/openapi.yaml` bate com a soma gravada; com o secret `FRILA_DOCS_TOKEN`, também com o frila-docs.
+3. `Scripts/contrato-em-dia.sh`: o espelho `Contrato/openapi.yaml` bate com a soma gravada; com o secret `FRILA_DOCS_TOKEN`, também com o frila-documentacao.
 4. `python3 Scripts/validate-fixtures.py`: cada fixture contra o schema do contrato, com tipos, formatos, enums e campos fora do contrato.
 5. Falha se algum arquivo em `Sources` (fora de `Sources/Dados`) ou em `Tests` importar o Supabase.
 6. Conferência de textos, tokens e datas dos dublês, com os autotestes e portões que o workflow executa: `Scripts/teste-conferir-textos.sh` e `Scripts/conferir-textos.sh` (textos da Apresentação, bundle e tokens); `Scripts/teste-conferir-movimento.sh` e `Scripts/conferir-movimento.sh` (respeito a Reduzir Movimento); `Scripts/teste-conferir-datas-fixas.sh` e `Scripts/conferir-datas-fixas.sh` (recusa datas fixas nos dublês).

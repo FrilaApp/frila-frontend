@@ -107,7 +107,7 @@ O pedido do sistema só aparece uma vez na vida do app, então ele nunca sai soz
   (contrato de `registrar_dispositivo`: quem não recebe notificação não é alcançável para o
   despacho). Sem ela, o `AparelhoDePush` tira o token do servidor e desfaz o vínculo; quando a
   permissão vem, o registro volta.
-- **Textos provisórios.** Não há texto aprovado no frila-docs. Todos os textos da explicação, do
+- **Textos provisórios.** Não há texto aprovado no frila-documentacao. Todos os textos da explicação, do
   aviso fixo e do turno não encontrado estão em `Sources/Apresentacao/Fluxos/Push/TextosDoPush.swift`,
   e só lá.
 - **No esquema Local** a permissão é simulada, e concedida, para o pedido de verdade não entrar nos

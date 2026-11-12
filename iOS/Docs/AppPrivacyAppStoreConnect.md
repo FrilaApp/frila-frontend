@@ -100,7 +100,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** Sim
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Verificação de maioridade 18+ (ECA Digital / regra de proteção de menores) e cálculo civil de corte no cadastro. Também **Análise** (*Analytics*), porque os SDKs do Google embutidos (Firebase Messaging, Installations, GoogleDataTransport) declaram essa finalidade neste tipo (decisão do Cauê de 05/11/2026; `frila-docs`, `juridico/matriz-app-privacy.md`, Seção 8.2).
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Verificação de maioridade 18+ (ECA Digital / regra de proteção de menores) e cálculo civil de corte no cadastro. Também **Análise** (*Analytics*), porque os SDKs do Google embutidos (Firebase Messaging, Installations, GoogleDataTransport) declaram essa finalidade neste tipo (decisão do Cauê de 05/11/2026; `frila-documentacao`, `juridico/matriz-app-privacy.md`, Seção 8.2).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Portas.swift` (`CadastroConta`). Declarado como `NSPrivacyCollectedDataTypeOtherDataTypes`.
 
 ---
@@ -119,7 +119,7 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Coletado:** Sim
    - **Vinculado ao Usuário (*Linked to User*):** **Não**
    - **Usado para Rastreamento (*Tracking*):** Não
-   - **Finalidade:** Funcionalidade do App (*App Functionality*) e **Análise** (*Analytics*) no manifesto (`iOS/Resources/PrivacyInfo.xcprivacy`). Medição anônima de latência e tempo de resposta de RPCs para observabilidade de desempenho; a Análise acompanha a ficha publicada em 05/11/2026, porque os SDKs do Google embutidos declaram essa finalidade neste tipo (decisão do Cauê, `frila-docs`, `juridico/matriz-app-privacy.md`, Seção 8.2).
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) e **Análise** (*Analytics*) no manifesto (`iOS/Resources/PrivacyInfo.xcprivacy`). Medição anônima de latência e tempo de resposta de RPCs para observabilidade de desempenho; a Análise acompanha a ficha publicada em 05/11/2026, porque os SDKs do Google embutidos declaram essa finalidade neste tipo (decisão do Cauê, `frila-documentacao`, `juridico/matriz-app-privacy.md`, Seção 8.2).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/TelemetriaCrashlytics.swift`, `iOS/Resources/PrivacyInfo.xcprivacy`.
 
 ---
