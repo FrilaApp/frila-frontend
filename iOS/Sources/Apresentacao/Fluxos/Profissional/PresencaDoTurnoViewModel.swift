@@ -71,6 +71,9 @@ public final class PresencaDoTurnoViewModel {
     private let telemetria: RegistradorDeTelemetria?
     private let cache: CacheDeLeituras?
     private let aoRegistrar: @MainActor () -> Void
+    /// Os recursos do servidor, lidos só na hora de montar o check-in com leitura de GPS. Os `sinais` do
+    /// check-in por código só saem com `checkinPorCodigo` ligado (0.2.68); por padrão, desligado.
+    private let recursos: @Sendable () async -> RecursosDoApp
     private var pontoDaVaga: Coordenada?
     private var toque: Date?
     private var jaEmitiuCheckinConcluido = false
@@ -86,8 +89,10 @@ public final class PresencaDoTurnoViewModel {
         pontoDaVaga: Coordenada? = nil,
         aoRegistrar: @escaping @MainActor () -> Void = {},
         telemetria: RegistradorDeTelemetria? = nil,
-        cache: CacheDeLeituras? = nil
+        cache: CacheDeLeituras? = nil,
+        recursos: @escaping @Sendable () async -> RecursosDoApp = { .desligados }
     ) {
+        self.recursos = recursos
         self.cache = cache
         self.turno = turno
         self.api = api
@@ -285,7 +290,7 @@ public final class PresencaDoTurnoViewModel {
             etapa = .semGPS(registro, .longe(distanciaMetros: distancia))
             return
         }
-        await enviar(registro, distanciaMetros: distancia, toque: toque)
+        await enviar(registro, distanciaMetros: distancia, toque: toque, leitura: leitura)
     }
 
     private func pontoDaVagaOuBuscar() async -> Coordenada? {
@@ -298,12 +303,20 @@ public final class PresencaDoTurnoViewModel {
         return pontoDaVaga
     }
 
-    private func enviar(_ registro: Registro, distanciaMetros: Int?, toque: Date) async {
+    /// Os sinais da leitura, só no check-in com leitura e com a chave `checkin_por_codigo` ligada. Sem a
+    /// chave, nada é coletado nem enviado: o corpo do check-in é o de hoje.
+    private func sinais(de leitura: LeituraDeLocalizacao?, para registro: Registro) async -> SinaisDoCheckin? {
+        guard registro == .checkin, let leitura, await recursos().checkinPorCodigo else { return nil }
+        return SinaisDoCheckin(leitura: leitura)
+    }
+
+    private func enviar(_ registro: Registro, distanciaMetros: Int?, toque: Date, leitura: LeituraDeLocalizacao? = nil) async {
         etapa = .enviando(registro)
         defer { etapa = .parada }
         do {
+            let sinaisDoToque = await sinais(de: leitura, para: registro)
             let resultado = switch registro {
-            case .checkin: try await api.fazerCheckin(turnoID: turno.id, distanciaMetros: distanciaMetros, registradoEm: toque)
+            case .checkin: try await api.fazerCheckin(turnoID: turno.id, distanciaMetros: distanciaMetros, registradoEm: toque, sinais: sinaisDoToque)
             case .checkout: try await api.fazerCheckout(turnoID: turno.id, distanciaMetros: distanciaMetros, registradoEm: toque)
             }
             // O servidor é quem diz o que ficou gravado: reenviar devolve o registro anterior.

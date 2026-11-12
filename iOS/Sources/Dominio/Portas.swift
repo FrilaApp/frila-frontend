@@ -430,6 +430,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// pelo turno. Não é presença. A porta existe; o botão fica para a v1.1 (decisão de produto).
     func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro
+    /// Com os `sinais` da leitura (0.2.68); `nil` é o corpo de antes. Só o app com a chave
+    /// `checkin_por_codigo` ligada os manda.
+    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, sinais: SinaisDoCheckin?) async throws -> ResultadoRegistro
     func fazerCheckout(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date) async throws -> ResultadoRegistro
     func avaliar(turnoID: UUID, resposta: Bool) async throws -> Avaliacao
 
@@ -438,6 +441,15 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// Reenviar devolve o registro já confirmado. Sem check-in é `checkinPendente`; check-in
     /// geolocalizado, que já nasceu verificado, é `checkinJaConfirmado`.
     func confirmarCheckinManual(turnoID: UUID) async throws -> ResultadoRegistro
+    /// A casa gera, ou revê, o código de check-in do turno (0.2.68). Só quem opera a casa do turno; o
+    /// profissional recebe `semPermissao`. Chave desligada: `semPermissao` com `recurso_desligado`, sem
+    /// tocar em dado. O código nunca sai em log.
+    func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin
+    /// O profissional valida o código lido (0.2.68), depois de um `fazerCheckin` pendente. `distanciaMetros`
+    /// é a medida no aparelho (nula sem localização). Fora da fila offline e sem repetição automática: se
+    /// a resposta se perder, quem chama relê o turno e deixa a pessoa digitar de novo (0.2.69), porque a
+    /// tentativa errada já foi gravada. Erros: `codigoInvalido`, `codigoBloqueado`, `checkinJaConfirmado`.
+    func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro
     /// Declara que o profissional não veio: marca falta e abre uma posição nova (D06). Antes dos
     /// 15 minutos do início é `reaberturaAntesDaTolerancia`; com check-in feito, `posicaoNaoCancelavel`.
     func reabrirPorAtraso(posicaoID: UUID) async throws -> ResultadoCancelamento
@@ -508,6 +520,14 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
 }
 
 public extension ApiCliente {
+    /// Quem não conhece os sinais manda o check-in de antes (sem `sinais`).
+    func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, sinais: SinaisDoCheckin?) async throws -> ResultadoRegistro {
+        try await fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
+    }
+    func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin { throw ErroDaApi(codigo: .respostaInvalida) }
+    func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
     func meusServicos() async throws -> [ServicoNoPerfil] { throw ErroDaApi(codigo: .respostaInvalida) }
     func definirServicos(_ servicos: [ServicoOferecido]) async throws -> [ServicoNoPerfil] { throw ErroDaApi(codigo: .respostaInvalida) }
     func especialidades(funcaoID: UUID) async throws -> [Especialidade] { throw ErroDaApi(codigo: .respostaInvalida) }

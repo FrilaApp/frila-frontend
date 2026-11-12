@@ -331,12 +331,13 @@ struct ContratoDoClienteSupabaseTests {
     }
 
     /// A resposta de hoje (sem `perfil_rico` nem `checkin_por_codigo`), a da 0.2.65 sem versão que o
-    /// servidor aceite (tudo desligado) e a da 0.2.68 em diante, com a chave nova `checkin_por_codigo`.
+    /// servidor aceite (tudo desligado) e a da 0.2.68 em diante, com a chave nova `checkin_por_codigo`, que
+    /// o app lê desde a F12b.
     static let respostasDaConfiguracao: [(String, String, RecursosDoApp)] = [
         ("hoje", #"{"foto_de_perfil": true, "chamada_direta": false}"#, RecursosDoApp(fotoDePerfil: true)),
         ("0.2.65 sem versão", #"{"foto_de_perfil": false, "chamada_direta": false, "perfil_rico": false, "checkin_por_codigo": false}"#, .desligados),
         ("0.2.70", #"{"foto_de_perfil": true, "chamada_direta": true, "perfil_rico": true, "checkin_por_codigo": true}"#,
-         RecursosDoApp(fotoDePerfil: true, chamadaDireta: true, perfilRico: true)),
+         RecursosDoApp(fotoDePerfil: true, chamadaDireta: true, perfilRico: true, checkinPorCodigo: true)),
     ]
 
     @Test("configuracao_do_app de hoje e da 0.2.65: os recursos seguem o servidor e o portão de versão mínima continua", arguments: respostasDaConfiguracao)
