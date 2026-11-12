@@ -29,7 +29,7 @@ Este documento foi elaborado para ser lido e executado de forma autônoma tanto 
 - **Dados (`iOS/Sources/Dados/`):** Implementação de cliente Supabase, dublês de teste (`ApiClienteEmMemoria.swift`), fixtures do contrato, banco de dados local SwiftData (`CacheSwiftData.swift`) e fila offline (`SincronizadorAcoes.swift`). *(Atenção: o PR 417 do João Paulo está ativo nesta pasta; qualquer edição gerará conflito de merge).*
 - **Infraestrutura (`iOS/Sources/Infraestrutura/`):** Implementações de GPS CoreLocation, Firebase Crashlytics e mensageria push FCM.
 - **Ciclo de vida do App (`iOS/Sources/App/FrilaApp.swift`):** Composição de dependências na raiz da aplicação. *(Também protegido pelo PR 417).*
-- **Contrato da API (`iOS/Contrato/`):** O arquivo `openapi.yaml` e sua soma `openapi.yaml.sha256` são réplicas estritas do repositório `frila-docs`. Nunca altere o contrato ou as fixtures manualmente.
+- **Contrato da API (`iOS/Contrato/`):** O arquivo `openapi.yaml` e sua soma `openapi.yaml.sha256` são réplicas estritas do repositório `frila-documentacao`. Nunca altere o contrato ou as fixtures manualmente.
 - **Configuração de build e CI:** `iOS/project.yml`, `iOS/Configurations/*.xcconfig` e `.github/workflows/ios.yml`.
 
 ---
@@ -41,7 +41,7 @@ A organização `FrilaApp` é composta por repositórios modulares com responsab
 | Repositório | Ação | Finalidade técnica | Razão da diretriz |
 |---|:---:|---|---|
 | `FrilaApp/frila-frontend` | **CLONAR** | Código nativo do app iOS (`iOS/`), Android e Web. | **Seu local de trabalho.** Todo o trabalho visual é realizado dentro do diretório `iOS/`. |
-| `FrilaApp/frila-docs` | **CLONAR (só leitura)** | Especificação de requisitos, casos de uso, arquitetura e contrato canônico `frila-docs/api/openapi.yaml`. | Referência normativa para regras de negócio (RN), requisitos funcionais (RF) e escopo de MVP (`frila-docs/produto/05-ESCOPO-DO-MVP.md`). |
+| `FrilaApp/frila-documentacao` | **CLONAR (só leitura)** | Especificação de requisitos, casos de uso, arquitetura e contrato canônico `frila-documentacao/api/openapi.yaml`. | Referência normativa para regras de negócio (RN), requisitos funcionais (RF) e escopo de MVP (`frila-documentacao/historico/produto/05-ESCOPO-DO-MVP.md`). |
 | `fbtostadev/FrilaLowPhase` | **SEU, JÁ TEM** | Repositório do design do Fabrício, pacote SwiftPM `FrilaDesignSystem` (`Sources/FrilaDesignSystem/{Components,Primitives,Shifts}`) e app de exemplo. | **Origem do design.** Fora da organização `FrilaApp`: serve só de fonte; o código entra no app real adaptado, não copiado às cegas. Não é dependência do `frila-frontend`. |
 | `FrilaApp/frila-backend` | **NÃO CLONAR** | Banco Postgres, migrações Supabase, RPCs e Edge Functions. | **Desnecessário.** Conforme decisão arquitetural de 07/10/2026 (`iOS/Docs/Environments.md:37-43`), desenvolvedores do app utilizam o cliente em memória (`ApiClienteEmMemoria`) localmente e conectam-se ao servidor hospedado `frila-dev`, dispensando Docker e setup local de banco. |
 | `FrilaApp/Bancada` | **NÃO CLONAR** | Ferramental de engenharia interna de agentes e harnesses. | Não possui código de produto nem documentação consumível pela UI. |
@@ -62,9 +62,9 @@ cd frila-frontend
 git fetch origin
 git switch -c feat/design-fabricio origin/main
 
-# 3. Opcional: Clone do frila-docs em pasta paralela para consulta de requisitos
+# 3. Opcional: Clone do frila-documentacao em pasta paralela para consulta de requisitos
 cd ..
-git clone https://github.com/FrilaApp/frila-docs.git
+git clone https://github.com/FrilaApp/frila-documentacao.git
 cd frila-frontend/iOS
 ```
 

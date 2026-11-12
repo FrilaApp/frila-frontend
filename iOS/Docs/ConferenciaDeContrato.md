@@ -6,7 +6,7 @@ Este documento descreve a ferramenta de gate automatizado contra deriva de contr
 
 ## 1. Motivação e Objetivos
 
-O Frila opera com um contrato estrito em OpenAPI (`Contrato/openapi.yaml`), espelhado a partir de `FrilaApp/frila-docs` e sincronizado com o `frila-backend`.
+O Frila opera com um contrato estrito em OpenAPI (`Contrato/openapi.yaml`), espelhado a partir de `FrilaApp/frila-documentacao` e sincronizado com o `frila-backend`.
 
 Antes desta ferramenta, o script `contrato-em-dia.sh` garantia apenas a integridade do arquivo `.yaml` (checksum SHA-256 e comparação remota). Não havia uma verificação estrutural automática garantindo que:
 1. Toda RPC do contrato possui implementação real no cliente Swift (`SupabaseApiCliente.swift`).

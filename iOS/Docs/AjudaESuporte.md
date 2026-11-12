@@ -14,8 +14,8 @@ Atende ao cartão Trello [#182 (MNm4dGWq)](https://trello.com/c/MNm4dGWq).
   - `Frila_Documento_de_Visao.md` (Seções 7.2 e 7.3)
   - `iOS/Docs/GuiaDeVoz.md` (cartão gNlXnAYP / PR #220)
   - `iOS/Sources/Apresentacao/EnderecosOficiais.swift`
-  - `frila-docs/requisitos/ingestao-email-suporte-v1.1.md`
-  - `frila-docs/produto/05-ESCOPO-DO-MVP.md`
+  - `frila-documentacao/historico/requisitos/ingestao-email-suporte-v1.1.md`
+  - `frila-documentacao/historico/produto/05-ESCOPO-DO-MVP.md`
   - Diretriz 1.2 da App Store (User-Generated Content)
 
 ---
@@ -105,8 +105,8 @@ Mapeamento integral de todos os itens normativos das Seções 7.2 e 7.3 do Docum
 | **7.3.B.4** | Profissional: Ativação da notificação (explicação de que traz a vaga) | Tela de Explicação do Push | `iOS/Sources/Apresentacao/Fluxos/Push/TelasDaPermissaoDePush.swift:9-55`<br>`iOS/Sources/Apresentacao/Fluxos/Push/TextosDoPush.swift:19` | **Tela existente**.<br>Disparada logo após salvar funções e horários (`TelaPerfilProfissional.swift:77`). Explica: "É pela notificação que você fica sabendo de uma vaga nova perto de você, na hora em que ela é publicada." |
 | **7.3.C.1** | Estabelecimento: Cadastro | Tela de Cadastro do Estabelecimento | `iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift:147-365`<br>`iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimentoViewModel.swift:40-140` | **Tela existente**.<br>Coleta nome comercial, CPF/CNPJ, tipo de atividade, endereço com geocodificação no mapa e Região Administrativa do DF. |
 | **7.3.C.2** | Estabelecimento: Publicação da primeira vaga com exemplo preenchido | Tela de Publicar Vaga | `iOS/Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift:182-184`<br>`iOS/Sources/Apresentacao/Fluxos/Contratante/PublicarVaga.swift:1-490, 809` | **Tela existente no fluxo; template preenchido: sem tela (decisão por delegação: Nick Fury)**.<br>Ao concluir o cadastro do estabelecimento, o app transiciona diretamente para `TelaPublicarVaga`. O campo de valor exibe o placeholder `"R$ 0,00"`, mas não há template completo pré-preenchido como exemplo estático. |
-| **7.3.C.3** | Estabelecimento: Inclusão de outros usuários da equipe | Perfil do Estabelecimento | `iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:28-29, 245-299`<br>`frila-docs/produto/05-ESCOPO-DO-MVP.md:70` | **sem tela: decisão por delegação: Nick Fury**.<br>A história US24 (múltiplos membros por estabelecimento) foi formalmente postergada para a v1.2 no Escopo do MVP. Na v1.0, a tela exibe apenas o papel do usuário atual ("Seu acesso: Administrador"). |
-| **7.3.D** | Gestor do estabelecimento: Guia do Painel na versão web | Painel Web / Documentação | `frila-docs/produto/05-ESCOPO-DO-MVP.md:68` | **sem tela: decisão por delegação: Nick Fury**.<br>O Painel Web (US21) pertence à v1.2 do produto e não integra o escopo do aplicativo nativo iOS da v1.0. |
+| **7.3.C.3** | Estabelecimento: Inclusão de outros usuários da equipe | Perfil do Estabelecimento | `iOS/Sources/Apresentacao/Fluxos/Perfil/PerfisDaConta.swift:28-29, 245-299`<br>`frila-documentacao/historico/produto/05-ESCOPO-DO-MVP.md:70` | **sem tela: decisão por delegação: Nick Fury**.<br>A história US24 (múltiplos membros por estabelecimento) foi formalmente postergada para a v1.2 no Escopo do MVP. Na v1.0, a tela exibe apenas o papel do usuário atual ("Seu acesso: Administrador"). |
+| **7.3.D** | Gestor do estabelecimento: Guia do Painel na versão web | Painel Web / Documentação | `frila-documentacao/historico/produto/05-ESCOPO-DO-MVP.md:68` | **sem tela: decisão por delegação: Nick Fury**.<br>O Painel Web (US21) pertence à v1.2 do produto e não integra o escopo do aplicativo nativo iOS da v1.0. |
 
 ---
 
