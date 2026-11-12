@@ -1,35 +1,12 @@
-## Quem responde e qual IA ajudou
-
-<!-- Pelo nome: o sócio que responde por este PR e, se houve, a IA (ferramenta e modelo). -->
-
-Quem responde: 
-IA: 
-
-## Cartão
-
-<!-- Link curto do Trello. Sem cartão, diga por quê. -->
-
-https://trello.com/c/
-
 ## O que muda, e por quê
 
-<!-- O porquê primeiro, em uma ou duas frases. -->
+<!-- O porquê em uma ou duas frases. Se uma IA ajudou, diga qual. -->
 
-## Gate local (a partir de `iOS/`)
+## Como testei (a partir de `iOS/`)
 
-Rode, olhe a saída, e só então marque. A CI de iOS não bloqueia o merge, então esta é a prova.
+<!-- Comando e resumo da saída: `conferir-textos.sh`, `build-for-testing`, `-only-testing:` das telas tocadas,
+     `auditoria-de-acessibilidade.sh` em tela nova ou alterada. O que não rodou: diga que não rodou e por quê. -->
 
-- [ ] `Scripts/conferir-textos.sh`
-- [ ] `xcodebuild build-for-testing` e `test-without-building -only-testing:` nas telas tocadas
-- [ ] `Scripts/auditoria-de-acessibilidade.sh` (tela nova ou alterada)
-- [ ] Mudou o contrato? `Scripts/contrato-em-dia.sh` e o espelho vem de `frila-docs/api/openapi.yaml`
+## Risco e o que ficou de fora
 
-<!-- Cole o resumo da saída. O que não rodou, escreva que não rodou e por quê. -->
-
-## Faixa de risco
-
-Verde, amarela ou vermelha (veja o `AGENTS.md`), e o que pode quebrar: 
-
-<!-- Vermelha: o sócio que aprova leu o diff inteiro, ele mesmo, sem delegar ao agente. Ele escreve aqui o que conferiu. -->
-
-## O que ficou de fora
+<!-- O que pode quebrar. Dinheiro, dado pessoal, autenticação, RLS, migração, segredos, push ou check-in: peça a outro sócio que leia o diff inteiro. -->
