@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Roteiro de Teste Manual Ponta a Ponta em Aparelhos Físicos
 
 **Data:** 18/10/2026  

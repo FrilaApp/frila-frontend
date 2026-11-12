@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Revisão da fila offline após o PR #103
 
 Conferência dos achados do Loki em 04/10/2026, com as decisões do Nick Fury para 3A e 3B. O contrato consultado é o espelho [openapi.yaml](../Contrato/openapi.yaml), versão 0.2.32. Nenhuma mudança no contrato.

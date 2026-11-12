@@ -368,7 +368,7 @@ xcodebuild test \
 ```
 
 ### 6.4 Cobertura de Testes e Requisitos da CI
-- **Metas de Cobertura (`Docs/Cobertura.md`):** As linhas executáveis da camada de Apresentação (especialmente ViewModels) devem manter cobertura superior a **90%** (a média atual é de 96,5%).
+- **Metas de Cobertura (`Docs/historico/Cobertura.md`):** As linhas executáveis da camada de Apresentação (especialmente ViewModels) devem manter cobertura superior a **90%** (a média atual é de 96,5%).
 - **Funcionamento da CI (`Docs/CI.md`):** O workflow do GitHub Actions executa dois jobs em paralelo (`parte-1` e `parte-2`) em runners macOS. A Parte 1 valida integridade de contrato, catálogo de textos, testes unitários e metade da UI; a Parte 2 valida o restante da UI e os builds de Release. PRs que quebram testes ou violam o catálogo de textos são reprovados automaticamente.
 
 ---

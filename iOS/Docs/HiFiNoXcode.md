@@ -69,7 +69,7 @@ Os argumentos `-FRILA_*` só têm efeito no `Frila-Local` (Debug); os builds de 
    `FRILA_SUPABASE_DEV_URL` e `FRILA_SUPABASE_DEV_PUBLISHABLE_KEY` (o script valida e grava o arquivo com permissão 600, sem imprimir
    valores). O formato está em `Configurations/Secrets.example.xcconfig`; o arquivo gerado é ignorado pelo Git e nunca entra em commit.
    Esquema **Frila-Dev**, ⌘R. Detalhes dos ambientes: `Docs/Environments.md`.
-7. Entre com a conta de demonstração (`revisao-contratante` ou `revisao-profissional`, no `frila-dev`; endereço completo e código fixo ficam com o Cauê, fora do repositório, como em `DiarioDeConfiguracao.md`).
+7. Entre com a conta de demonstração (`revisao-contratante` ou `revisao-profissional`, no `frila-dev`; endereço completo e código fixo ficam com o Cauê, fora do repositório, como em `historico/DiarioDeConfiguracao.md`).
 8. Fluxo de prova (Fase 5 do Hi-Fi): como contratante, publicar uma vaga pelo Estúdio e vê-la em Minhas vagas; como profissional, ver a vaga no feed e candidatar-se.
 
 ## Conferido

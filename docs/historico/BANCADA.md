@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md). Decisão do Cauê de 11/11/2026: registrar cada PR na Bancada deixou de ser obrigatório; o site segue no ar e quem quiser registra.
+
 # Regra da Bancada: todo trabalho chega lá no mesmo dia
 
 > Para humanos **e para as IAs de cada integrante** (Claude, Gemini, Copilot, qualquer agente que

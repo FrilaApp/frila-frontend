@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Triagem de Usabilidade e Regressão do Caminho Feliz
 
 Documento de referência técnica para a classificação de severidade de defeitos de usabilidade, rastreabilidade da suíte automatizada do caminho feliz (`CicloDePontaAPontaUITests.swift`) e protocolo de automação de testes de regressão antes da submissão final da v1.0 (Cartão Trello [#70 / yoV2Ak4j](https://trello.com/c/yoV2Ak4j)).

@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Linha de Base do XCUITest do Caminho Feliz e Pré-Auditoria da Regressão Final
 
 **Data:** 28/10/2026  

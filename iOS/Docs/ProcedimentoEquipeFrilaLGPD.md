@@ -5,7 +5,7 @@ Revisado pelo Jurídico do time (agente de IA, skill leis-do-brasil) em 31/10/20
 Documento normativo e operacional de privacidade e proteção de dados para o grupo interno de testes do aplicativo iOS (**Equipe Frila**) no Apple TestFlight / App Store Connect, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018), as diretrizes da Apple e as rotinas de engenharia do Frila.
 
 > [!NOTE]
-> **Contexto de Criação (J-001):** Este procedimento consolida e formaliza a governança jurídica e operacional de testes internos a partir de especificações de CI (`CI.md:259-266`, `RunbookProd.md:127`, `GapsTestFlight05.md:169`) e do manual operacional de suporte (`frila-backend/supabase/operacao/equipe-frila.md`).
+> **Contexto de Criação (J-001):** Este procedimento consolida e formaliza a governança jurídica e operacional de testes internos a partir de especificações de CI (`CI.md:259-266`, `RunbookProd.md:127`, `historico/GapsTestFlight05.md:169`) e do manual operacional de suporte (`frila-backend/supabase/operacao/equipe-frila.md`).
 
 ---
 

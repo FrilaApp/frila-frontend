@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Roteiro de Usabilidade e Folha de Registro das Sessões com Usuários
 
 Documento oficial de planejamento, condução, registro e síntese da segunda rodada de testes de usabilidade com pessoas usuárias no TestFlight externo e builds internos.

@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Plano de Métricas — North Star, KPIs e Dicionário de Eventos (T-0017)
 
 Documento formal do plano de métricas do aplicativo Frila, elaborado para o piloto de 18 dias no Distrito Federal (DF) e para subsidiar a apresentação de resultados da Academy em 27/11/2026. Alinhado ao contrato da API (`iOS/Contrato/openapi.yaml:3184` e `:3808`), à conformidade de privacidade (`iOS/Docs/LGPD.md`, Art. 37 da LGPD, RN15) e à implementação do banco de dados no Supabase (`metrica.funil_*`, `public.evento_app`).

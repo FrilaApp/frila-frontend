@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Gap Analysis: App iOS vs Checklist do TestFlight 0.4 e 0.5
 
 **Data:** 15/10/2026  

@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Prontidão do TestFlight 0.5
 
 Diagnóstico de 12/10/2026, somente leitura. Cartão [Kd0RVh9q](https://trello.com/c/Kd0RVh9q), consultado pelo `trello.sh ver` e pela descrição completa da API do Trello. Base do app: `origin/main`, commit `3d724035f090b560e5bc43cab37f7e025dbec25d`. Fontes abaixo usam caminhos relativos à raiz do repositório e linhas dessa base.

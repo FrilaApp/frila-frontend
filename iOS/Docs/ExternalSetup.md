@@ -27,4 +27,4 @@ Analytics não faz parte da integração.
 
 Responsável, organização Apple, conta Firebase e política de rotação devem constar no gestor de segredos da equipe, não neste repositório.
 
-Mudanças feitas em painéis externos (antes → depois, motivo, prova) ficam em `DiarioDeConfiguracao.md`.
+Mudanças feitas em painéis externos (antes → depois, motivo, prova) ficam em `historico/DiarioDeConfiguracao.md`.

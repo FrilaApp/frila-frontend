@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
+
 # Plano de Operação do Piloto — Frila DF (13/11 a 04/12)
 
 Documento operacional do piloto do Frila no Distrito Federal, cobrindo o período de 13/11/2026 a 04/12/2026. Alinhado aos requisitos de produto (Visão 1.2), à conformidade com a LGPD (`iOS/Docs/LGPD.md`), às diretrizes de suporte e moderação (`iOS/Docs/AjudaESuporte.md`, Diretriz 1.2 da App Store) e ao plano de métricas oficial (`iOS/Docs/PlanoDeMetricas.md`, cartão T-0017).

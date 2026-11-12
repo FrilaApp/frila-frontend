@@ -494,7 +494,7 @@ Consolidação técnica oficial para atendimento dos critérios de acessibilidad
 Conforme decisão formal do Cauê em 21/10/2026 (PR #441 / commit `891c297c`), os requisitos de adaptação ao tamanho máximo de acessibilidade Dynamic Type XXXL (**AX5**) foram retirados do escopo obrigatório da v1.0 do Frila iOS. Os testes correspondentes na suíte `AuditoriaDeAcessibilidadeUITests` e testes de UI foram marcados com `XCTSkip("Acessibilidade em AX5 adiada (decisão do Cauê, 21/10)")`. Qualquer tela sob este critério é formalmente classificada como **fora de escopo AX5**. A regra do projeto estabelece que não se mexe em AX5.
 
 ### 2. Estado Real Aferido por Tela (Sprint 1 e Sprint 2)
-A matriz completa tela a tela com prova de código e situação real encontra-se espelhada em [MatrizCicloERevisaoAcessibilidadeS1S2.md](MatrizCicloERevisaoAcessibilidadeS1S2.md) (Seções 2.6, 3.4 e 4.4):
+A matriz completa tela a tela com prova de código e situação real encontra-se espelhada em [historico/MatrizCicloERevisaoAcessibilidadeS1S2.md](historico/MatrizCicloERevisaoAcessibilidadeS1S2.md) (Seções 2.6, 3.4 e 4.4):
 - **Telas do Sprint 1 (18 telas/estados):**
   - **Cumpre:** VoiceOver com rótulos e traços semânticos (`.isHeader`, `children: .combine`), alvos de toque mínimos de 44 pt (`FrilaMetrica.alvoMinimo`), contraste WCAG AA conforme paleta de tokens em `DesignSystem.xcassets`, transições respeitando `accessibilityReduceMotion` e comunicação não-cromática de estados.
   - **Fora de escopo AX5:** Todas as 18 telas do Sprint 1 têm o critério AX5 classificado como **fora de escopo AX5** (adiado pelo Cauê em 21/10).
