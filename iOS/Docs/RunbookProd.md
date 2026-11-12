@@ -137,9 +137,9 @@ ASC_KEY_PATH=~/caminho/AuthKey.p8 ASC_KEY_ID=... ASC_ISSUER_ID=... \
 
 ---
 
-## 6. Checagem diária do piloto (10 min)
+## 6. Checagem diária (10 min)
 
-Roteiro operacional de 10 minutos para execução diária durante o piloto, cobrindo
+Roteiro operacional de 10 minutos para execução diária, cobrindo
 a saúde dos serviços no Supabase, Firebase e limites da infraestrutura.
 
 ### Passo 1: Alertas emitidos nas últimas 24 h (~2 min)

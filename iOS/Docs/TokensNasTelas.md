@@ -1,7 +1,6 @@
 # Inventário de Cores e Fontes nas Telas — Cartão #139
 
-Este documento cumpre o critério de aceite do **Cartão #139**:
-> *"Nenhuma tela do Sprint 1 define cor ou fonte fora dos tokens (revisão de código)"*
+A regra: nenhuma tela define cor ou fonte fora dos tokens (revisão de código). Nasceu do cartão #139, do Challenge.
 
 ## 1. Diretriz de Design e Tokens
 

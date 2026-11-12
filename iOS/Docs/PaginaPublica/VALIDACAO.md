@@ -97,7 +97,7 @@ Conforme procedimento do método da missão (pesquisa em repositórios abertos, 
 | **Guideline 1.2 — Mecanismo de Denúncia** | Ferramenta acessível para denúncia de conteúdo abusivo. | Explicado em `suporte.md:4` e `termos.md:8`. No app: `FolhaDeDenuncia` com protocolo rastreável em `AcoesDeSeguranca.swift:62-150`. |
 | **Guideline 1.2 — Bloqueio de Usuários** | Mecanismo de bloqueio mútuo. | Explicado em `suporte.md:4` e `termos.md:8`. No app: `BotaoBloquear` em `AcoesDeSeguranca.swift:20-60`. |
 | **Guideline 1.2 — Termos com Proibição de Conteúdo Ofensivo** | Termos de uso devem vedar condutas ilegais e abusos. | Cláusula 8 de `termos.md` estabelece tolerância zero para assédio, preconceito e condutas ilegais. |
-| **Guideline 5.1.1 — URL de Política de Privacidade** | URL acessível publicamente explicando dados coletados e uso. | Texto disponível em `privacidade.md`; URL pública aprovada a confirmar antes da publicação. |
+| **Guideline 5.1.1 — URL de Política de Privacidade** | URL acessível publicamente explicando dados coletados e uso. | Texto disponível em `privacidade.md`; URL pública no ar: `https://frilabr.com/privacidade`. |
 | **Guideline 5.1.1(v) — Exclusão de Conta** | App deve permitir exclusão direta pelo usuário. | Documentado em `privacidade.md:8` e `termos.md:12`. No app: tela nativa em Perfil → "Excluir conta" (`ExclusaoDeContaViewModel.swift`). |
 | **Guideline 5.1.2 — Minimização de Dados** | Coleta estritamente necessária ao funcionamento. | Localização pontual no check-in/out sem envio de coordenadas cruas ao servidor (`distanciaMetros`). |
 
