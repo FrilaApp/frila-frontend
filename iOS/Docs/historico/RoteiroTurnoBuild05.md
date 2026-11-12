@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Roteiro e Dados de Turno — TestFlight Build 0.5
 
 Roteiro de homologação e especificação de dados para validação operacional de presença (check-in geolocalizado, check-out e alternativa manual confirmada) e avaliação mútua no build 0.5 (`Frila-Beta`) contra o ambiente `frila-dev`.

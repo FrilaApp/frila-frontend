@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Diário de configuração e dívidas de escala
 
 Caderno das decisões e ajustes feitos **fora do código** (painéis de Supabase, Google, Netlify, App Store Connect) que são **suficientes para o piloto, mas vão precisar ser revistos quando o Frila crescer**. Serve para voltar a cada ponto na hora certa, sem depender da memória de uma conversa.

@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Cobertura de testes onde a regra de negócio mora
 
 Medição de 04/10/2026 sobre o `main` (`f2dd64c`), antes do TestFlight (#203). Pergunta: onde o app

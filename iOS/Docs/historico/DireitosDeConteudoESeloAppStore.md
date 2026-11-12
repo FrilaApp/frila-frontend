@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Direitos de Conteúdo, Licenças de Terceiros e Diretrizes do Selo App Store
 
 **Data:** 11/10/2026  

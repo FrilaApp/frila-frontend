@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Prova da correção de rolagem dos perfis em AX5 — 12/10/2026
 
 ## Diagnóstico (5 linhas)

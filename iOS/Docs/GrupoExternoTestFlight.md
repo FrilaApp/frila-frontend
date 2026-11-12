@@ -27,7 +27,7 @@ O fluxo existe no cliente e não depende de `DEBUG`:
 3. `SupabaseApiCliente.swift:85` invoca a Edge Function `entrar-demonstracao` e instala a sessão retornada pelo servidor.
 4. `Configurations/Beta.xcconfig` configura `FRILA_ENVIRONMENT=frila-dev`, modo Supabase e as variáveis DEV. Portanto, contas, função e dados precisam estar funcionais nesse ambiente.
 
-**Limite da evidência:** a leitura prova o caminho do cliente. `FichaAppStore.md`, seção 5.2, ainda registra contas/códigos como pendentes; `ChecklistDiretrizesAppStore.md`, diretriz 2.1, também não comprova provisionamento. Não foi chamado login nem consultado valor de credencial. Falta Nick Fury confirmar as duas contas com perfis/dados de teste no `frila-dev` e acesso por código fixo, com teste independente. A API da Apple não prova essa condição. A segunda conta e suas instruções também precisam estar acessíveis ao revisor por canal privado, se o ciclo completo exigir os dois perfis.
+**Limite da evidência:** a leitura prova o caminho do cliente. `FichaAppStore.md`, seção 5.2, ainda registra contas/códigos como pendentes; `historico/ChecklistDiretrizesAppStore.md`, diretriz 2.1, também não comprova provisionamento. Não foi chamado login nem consultado valor de credencial. Falta Nick Fury confirmar as duas contas com perfis/dados de teste no `frila-dev` e acesso por código fixo, com teste independente. A API da Apple não prova essa condição. A segunda conta e suas instruções também precisam estar acessíveis ao revisor por canal privado, se o ciclo completo exigir os dois perfis.
 
 ## Contrato oficial conferido
 

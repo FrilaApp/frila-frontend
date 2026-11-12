@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Avaliação depois do turno — cartão #22
 
 A avaliação do profissional guarda uma resposta por conta e turno. O ID vem de

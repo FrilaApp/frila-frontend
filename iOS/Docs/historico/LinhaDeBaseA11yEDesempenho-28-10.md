@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Linha de Base de Acessibilidade e Desempenho no Simulador (28/10/2026)
 
 Este documento registra a execução literal e a linha de base automatizada das suítes de acessibilidade e desempenho existentes no repositório, mapeando o que os testes automatizados cobrem frente aos critérios dos cartões **6ab26a01** (Acessibilidade completa) e **6ab26a10** (Desempenho e rede).

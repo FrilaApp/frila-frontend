@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Preparo do GA Five Minutes Test da Academy (27/10) — Roteiro, Checklist e Folha de Resposta (T-0018)
 
 Documento normativo e operacional de preparação, execução e triagem do teste de primeira impressão (*Five Minutes Test*) do Frila na atividade presencial da Academy em 27/10/2026. Atende ao cartão Trello [h1WOL50F](https://trello.com/c/h1WOL50F) (T-0018 / Agenda da Academy), em conformidade estrita com as diretrizes do Guia de Voz (`iOS/Docs/GuiaDeVoz.md`), da Ficha da App Store (`iOS/Docs/FichaAppStore.md`), do Plano de Métricas (`iOS/Docs/PlanoDeMetricas.md`) e da privacidade por padrão da LGPD (`iOS/Docs/LGPD.md`).

@@ -32,7 +32,7 @@ Todos os campos foram redigidos segundo as diretrizes de UX Writing do Frila (`G
 - **Texto:** `Frila: Turnos e Vagas`
 - **Contagem de caracteres:** **21 caracteres**
 - **Limite oficial da Apple:** **30 caracteres**
-- **Checagem de regras:** Sem termos de preço ou "grátis" (Diretriz 2.3.7). Alinhado ao nome cadastrado no App Store Connect (`DiarioDeConfiguracao.md:63`) e à Tabela 1. Contém a marca registrada ("Frila") e os dois conceitos centrais do produto ("Turnos" e "Vagas").
+- **Checagem de regras:** Sem termos de preço ou "grátis" (Diretriz 2.3.7). Alinhado ao nome cadastrado no App Store Connect (`historico/DiarioDeConfiguracao.md:63`) e à Tabela 1. Contém a marca registrada ("Frila") e os dois conceitos centrais do produto ("Turnos" e "Vagas").
 
 ### 2.2 Subtítulo
 - **Texto:** `Turnos em bares e eventos`

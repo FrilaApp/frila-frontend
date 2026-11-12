@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Matriz de Conformidade com as Diretrizes da App Store
 
 Documento elaborado em 11/10/2026 sobre a branch `docs/ios-checklist-diretrizes-app-store-82` a partir de `origin/main` para atender ao critério de aceite do cartão do Trello [#82 (5Lx5v39r)](https://trello.com/c/5Lx5v39r) ("Checklist 100% marcada, com evidência... de cada item").

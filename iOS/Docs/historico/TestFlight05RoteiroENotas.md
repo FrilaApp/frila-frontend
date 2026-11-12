@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # TestFlight 0.5 — Notas da Versão e Roteiro de Homologação (#66)
 
 Documento de consolidação das Notas da Versão ("What to Test" em pt-BR) para testadores externos do TestFlight 0.5 e do roteiro técnico de homologação externa dos três fluxos centrais contra o ambiente `frila-dev`, atendendo aos critérios do cartão [#66](https://trello.com/c/Kd0RVh9q) para a submissão de 29/10/2026.

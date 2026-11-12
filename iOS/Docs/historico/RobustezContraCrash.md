@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Robustez contra crash antes do TestFlight
 
 Auditoria de `iOS/Sources` (as cinco camadas e a extensão de notificação) feita em 04/10/2026, a

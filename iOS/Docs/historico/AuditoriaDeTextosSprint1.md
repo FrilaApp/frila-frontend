@@ -1,3 +1,5 @@
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+
 # Auditoria de Textos das Telas do Sprint 1 contra o Guia de Voz
 
 Documento oficial de auditoria estática de interface (UX Writing), consistência terminológica, formatos numéricos/temporais e mensagens de erro das telas do Sprint 1 do Frila no aplicativo iOS (`frila-frontend`), em cumprimento ao cartão **NoKH0SN8**.
