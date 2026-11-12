@@ -14295,6 +14295,16 @@
         }
       }
     },
+    "Aguardando o profissional chegar no local": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando o profissional chegar no local"
+          }
+        }
+      }
+    },
     "Aguardando o profissional tocar em Cheguei": {
       "localizations": {
         "pt-BR": {

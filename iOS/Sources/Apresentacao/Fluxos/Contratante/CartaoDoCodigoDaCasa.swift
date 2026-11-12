@@ -48,10 +48,6 @@ public struct CartaoDoCodigoDaCasa: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 AvisoFrila(verbatim: Textos.aguardandoChegada, tom: .informativo)
                     .accessibilityIdentifier("aviso-aguardando-chegada")
-                Text(verbatim: Textos.aguardandoChegadaExplicacao)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .fixedSize(horizontal: false, vertical: true)
                 BotaoSecundario(verbatim: Textos.atualizar) {
                     Task { await viewModel.carregar() }
                 }

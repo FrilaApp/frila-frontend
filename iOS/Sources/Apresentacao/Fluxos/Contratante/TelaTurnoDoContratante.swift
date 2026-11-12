@@ -394,9 +394,10 @@ struct TelaTurnoDoContratante: View {
                 CartaoDoCodigoDaCasa(viewModel: codigoDaCasa)
             }
             if viewModel.podeConfirmar(turno) {
-                BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                BotaoSecundario(verbatim: TextosDoAcompanhamento.confirmarPresenca) {
                     Task { await viewModel.confirmarPresenca(turno) }
                 }
+                .disabled(viewModel.emAndamento.contains(turno.id))
                 .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
             }
         case .emAtraso:

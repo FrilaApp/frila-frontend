@@ -9,7 +9,7 @@ public enum TextosDoCheckinPorCodigoCasa {
         bundle: bundleApresentacao
     )
     public static let aguardandoChegada = String(
-        localized: "Aguardando o profissional tocar em Cheguei",
+        localized: "Aguardando o profissional chegar no local",
         bundle: bundleApresentacao
     )
     public static let aguardandoChegadaExplicacao = String(

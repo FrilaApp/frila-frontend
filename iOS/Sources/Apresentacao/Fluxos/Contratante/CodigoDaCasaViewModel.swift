@@ -52,7 +52,11 @@ public final class CodigoDaCasaViewModel {
 
     /// Pede o código ao servidor (o mesmo se dentro da validade; um novo se o anterior estiver vencido).
     public func carregar() async {
-        guard !emVoo else { return }
+        await executarCarregamento(ehReleitura: false)
+    }
+
+    private func executarCarregamento(ehReleitura: Bool) async {
+        guard !Task.isCancelled, !emVoo else { return }
         emVoo = true
         defer { emVoo = false; renovando = false }
         do {
@@ -61,22 +65,37 @@ public final class CodigoDaCasaViewModel {
             segundosRestantes = codigo.segundosRestantes
             estado = .mostrando(codigo: codigo.codigo)
         } catch let erro as ErroDaApi {
-            venceEm = nil
             let novoEstado = Self.estado(para: erro)
+            if ehReleitura && novoEstado == .falhou {
+                // Na releitura periódica em segundo plano, erro de rede/transitório mantém o estado da tela intacto.
+                return
+            }
+            venceEm = nil
             estado = novoEstado
             if novoEstado == .jaVerificado {
                 aoConfirmar?()
             }
         } catch {
+            if ehReleitura {
+                // Erro genérico/transporte na releitura em segundo plano não altera o estado da tela.
+                return
+            }
             venceEm = nil
             estado = .falhou
         }
     }
 
-    /// Verifica se a presença já foi confirmada pelo profissional enquanto o código está em exibição.
+    /// Verifica se a presença já foi confirmada pelo profissional enquanto o código está em exibição,
+    /// ou se o profissional já chegou enquanto a casa aguarda a chegada.
     public func verificarConfirmacao() async {
-        guard case .mostrando = estado, !emVoo else { return }
-        await carregar()
+        guard !Task.isCancelled, !emVoo else { return }
+        switch estado {
+        case .mostrando, .aguardandoChegada:
+            break
+        default:
+            return
+        }
+        await executarCarregamento(ehReleitura: true)
     }
 
     /// Um passo da contagem (chamado a cada segundo): recalcula o tempo restante e, no zero, solicita renovação ao servidor.

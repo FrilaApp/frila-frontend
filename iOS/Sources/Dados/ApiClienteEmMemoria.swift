@@ -29,10 +29,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Check-in por código, conta de contratante: o turno da casa tem o check-in manual pendente e a chave
         /// ligada. Como `checkinManualPendente`, com o caminho do código aberto.
         case checkinPorCodigoCasa = "checkin-por-codigo-casa"
+        /// Check-in por código, conta de contratante aguardando o profissional chegar (distância > 100m).
+        case checkinPorCodigoCasaEspera = "checkin-por-codigo-casa-espera"
         /// Os cenários em que o check-in manual da casa espera confirmação.
-        var checkinManualPendente: Bool { self == .checkinManualPendente || self == .checkinPorCodigoCasa }
+        var checkinManualPendente: Bool { self == .checkinManualPendente || self == .checkinPorCodigoCasa || self == .checkinPorCodigoCasaEspera }
         /// Os cenários com a chave `checkin_por_codigo` ligada.
-        var checkinPorCodigoLigado: Bool { self == .checkinPorCodigo || self == .checkinPorCodigoCasa }
+        var checkinPorCodigoLigado: Bool { self == .checkinPorCodigo || self == .checkinPorCodigoCasa || self == .checkinPorCodigoCasaEspera }
         case sucesso = "success"
         case perfilRicoHabilitado = "perfil-rico-habilitado"
         case servicosVazios = "servicos-vazios"
@@ -488,7 +490,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 let vaga = try FixturesDoContrato.carregar("vaga", como: ContratoAPI.VagaDTO.self).dominio()
                 let ateInicio: TimeInterval = switch cenario {
                 case .alertaVagaVazia: 2 * 60 * 60
-                case .checkinManualPendente, .checkinPorCodigoCasa, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
+                case .checkinManualPendente, .checkinPorCodigoCasa, .checkinPorCodigoCasaEspera, .checkinConfirmado, .servidorAntigo, .posicaoCanceladaComMotivo: -10 * 60
                 case .atrasoNoTurno: -20 * 60
                 case .vagaEncerradaContratante: -10 * 60 * 60
                 #if DEBUG
@@ -554,6 +556,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
                         checkins[turnoID] = ResultadoRegistro(
                             turnoID: turnoID, tipo: .manual, verificacao: .pendente,
                             registradoEm: relogio.agora.addingTimeInterval(-2 * 60), distanciaMetros: 20
+                        )
+                    } else if cenario == .checkinPorCodigoCasaEspera {
+                        // Na casa do check-in por código, o profissional ainda não chegou (distância acima do raio)
+                        checkins[turnoID] = ResultadoRegistro(
+                            turnoID: turnoID, tipo: .manual, verificacao: .pendente,
+                            registradoEm: relogio.agora.addingTimeInterval(-2 * 60), distanciaMetros: 350
                         )
                     } else if cenario.checkinManualPendente {
                         checkins[turnoID] = ResultadoRegistro(

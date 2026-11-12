@@ -3,7 +3,6 @@ import Foundation
 @testable import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
-import Supabase
 import Testing
 
 private final class ApiClienteDubleCheckinCasa: ApiClienteEncaminhador, @unchecked Sendable {
@@ -263,6 +262,135 @@ struct CodigoDaCasaViewModelTests {
         #expect(vm.estado == .jaVerificado)
         #expect(confirmacaoDisparada)
     }
+
+    @Test("verificarConfirmacao relê em aguardandoChegada e transita para mostrando ao receber código")
+    @MainActor
+    func verificarConfirmacaoReleEmAguardandoChegada() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var chegou = false
+        api.aoGerarCodigo = { id in
+            if !chegou {
+                throw ErroDaApi(codigo: .checkinPendente)
+            }
+            return CodigoDeCheckin(
+                turnoID: id,
+                codigo: "847291",
+                expiraEm: Date().addingTimeInterval(300),
+                segundosRestantes: 300
+            )
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+        await vm.carregar()
+        #expect(vm.estado == .aguardandoChegada)
+
+        // Profissional registra a chegada (Cheguei)
+        chegou = true
+        await vm.verificarConfirmacao()
+
+        #expect(vm.estado == .mostrando(codigo: "847291"))
+        #expect(vm.segundosRestantes == 300)
+    }
+
+    @Test("verificarConfirmacao não relê quando há chamada em voo")
+    @MainActor
+    func verificarConfirmacaoNaoReleComChamadaEmVoo() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var chamadas = 0
+        api.aoGerarCodigo = { id in
+            chamadas += 1
+            try await Task.sleep(nanoseconds: 50_000_000)
+            return CodigoDeCheckin(
+                turnoID: id,
+                codigo: "123456",
+                expiraEm: Date().addingTimeInterval(300),
+                segundosRestantes: 300
+            )
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+
+        // Dispara carga inicial e releitura concorrente
+        async let t1: () = vm.carregar()
+        async let t2: () = vm.verificarConfirmacao()
+        _ = await (t1, t2)
+
+        #expect(chamadas == 1)
+        #expect(vm.estado == .mostrando(codigo: "123456"))
+    }
+
+    @Test("verificarConfirmacao não executa requisição quando a tarefa foi cancelada ao sair da tela")
+    @MainActor
+    func verificarConfirmacaoParaAoCancelarTarefa() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var chamadas = 0
+        api.aoGerarCodigo = { id in
+            chamadas += 1
+            return CodigoDeCheckin(
+                turnoID: id,
+                codigo: "123456",
+                expiraEm: Date().addingTimeInterval(300),
+                segundosRestantes: 300
+            )
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+        await vm.carregar()
+        #expect(chamadas == 1)
+
+        // Tarefa cancelada (como ao fechar ou sair da tela)
+        let tarefaCancelada = Task { @MainActor in
+            #expect(Task.isCancelled)
+            await vm.verificarConfirmacao()
+        }
+        tarefaCancelada.cancel()
+        await tarefaCancelada.value
+
+        #expect(chamadas == 1)
+    }
+
+    @Test("Erro de rede na releitura periódica mantém o estado da tela intacto (não troca para falhou)")
+    @MainActor
+    func erroDeRedeNaReleituraNaoTrocaEstado() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var falhaDeRede = false
+        var emitirCodigo = false
+        api.aoGerarCodigo = { id in
+            if falhaDeRede {
+                throw ErroDaApi(codigo: .semRede)
+            }
+            if !emitirCodigo {
+                throw ErroDaApi(codigo: .checkinPendente)
+            }
+            return CodigoDeCheckin(
+                turnoID: id,
+                codigo: "654321",
+                expiraEm: Date().addingTimeInterval(300),
+                segundosRestantes: 300
+            )
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+        await vm.carregar()
+        #expect(vm.estado == .aguardandoChegada)
+
+        // Releitura periódica em segundo plano com oscilação de rede: mantém aguardandoChegada
+        falhaDeRede = true
+        await vm.verificarConfirmacao()
+        #expect(vm.estado == .aguardandoChegada)
+
+        // Restabelece rede e emite código
+        falhaDeRede = false
+        emitirCodigo = true
+        await vm.verificarConfirmacao()
+        #expect(vm.estado == .mostrando(codigo: "654321"))
+
+        // Nova oscilação de rede com código em exibição: mantém mostrando com o código
+        falhaDeRede = true
+        await vm.verificarConfirmacao()
+        #expect(vm.estado == .mostrando(codigo: "654321"))
+        #expect(vm.segundosRestantes == 300)
+    }
 }
 
 @Suite("Check-in Semiautomático: Prova Integrada contra PostgREST Local no Mesmo Turno", .serialized)
@@ -305,29 +433,28 @@ struct CheckinSemiautoLocalPostgrestIntegrationTests {
     }
 
     private func criarSessao(sub: UUID, email: String, token: String) throws -> Data {
-        let now = Date()
-        let user = User(
-            id: sub,
-            appMetadata: ["provider": "email", "providers": ["email"]],
-            userMetadata: [:],
-            aud: "authenticated",
-            email: email,
-            phone: "",
-            createdAt: now,
-            role: "authenticated",
-            updatedAt: now,
-            identities: [],
-            isAnonymous: false
-        )
-        let session = Session(
-            accessToken: token,
-            tokenType: "bearer",
-            expiresIn: 7200,
-            expiresAt: now.addingTimeInterval(7200).timeIntervalSince1970,
-            refreshToken: token,
-            user: user
-        )
-        return try JSONEncoder().encode(session)
+        let iso = ISO8601DateFormatter().string(from: Date())
+        let dict: [String: Any] = [
+            "access_token": token,
+            "token_type": "bearer",
+            "expires_in": 7200,
+            "expires_at": Int(Date().addingTimeInterval(7200).timeIntervalSince1970),
+            "refresh_token": token,
+            "user": [
+                "id": sub.uuidString.lowercased(),
+                "app_metadata": ["provider": "email", "providers": ["email"]],
+                "user_metadata": [String: String](),
+                "aud": "authenticated",
+                "email": email,
+                "phone": "",
+                "created_at": iso,
+                "role": "authenticated",
+                "updated_at": iso,
+                "identities": [] as [Any],
+                "is_anonymous": false
+            ] as [String: Any]
+        ]
+        return try JSONSerialization.data(withJSONObject: dict)
     }
 
     private func criarCliente(sub: UUID, email: String) async throws -> SupabaseApiCliente {

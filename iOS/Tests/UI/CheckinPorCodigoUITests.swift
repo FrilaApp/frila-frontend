@@ -48,7 +48,26 @@ final class CheckinPorCodigoUITests: XCTestCase {
         let validade = app.staticTexts["validade-do-codigo-da-casa"]
         XCTAssertTrue(validade.waitForExistence(timeout: 5))
         XCTAssertTrue(validade.label.hasPrefix("Vale por mais "), validade.label)
-        XCTAssertTrue(app.buttons["confirmar-presenca-\(turnoDaCasa)"].exists, "a confirmação manual de hoje continua")
+        let confirmar = app.buttons["confirmar-presenca-\(turnoDaCasa)"]
+        XCTAssertTrue(confirmar.exists, "a confirmação manual de hoje continua")
+        XCTAssertEqual(confirmar.label, "Confirmar presença")
+    }
+
+    func testCasaAguardandoChegadaMostraTextoExatoESemLinhaDeApoioEBotaoConfirmarSecundario() {
+        let app = abrirTurnoDaCasa(cenario: "checkin-por-codigo-casa-espera")
+        let aviso = app.descendants(matching: .any)["aviso-aguardando-chegada"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 20), "aviso de espera na tela da casa")
+        rolarAte(aviso, em: app)
+        XCTAssertEqual(aviso.label, "Aguardando o profissional chegar no local")
+        // Sem linha de apoio: não deve existir texto secundário
+        XCTAssertFalse(app.staticTexts["Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição."].exists)
+        // Botão de reserva 'Verificar chegada'
+        XCTAssertTrue(app.buttons["atualizar-chegada-casa"].exists)
+        // Botão secundário de confirmação manual
+        let confirmar = app.buttons["confirmar-presenca-\(turnoDaCasa)"]
+        XCTAssertTrue(confirmar.exists)
+        XCTAssertEqual(confirmar.label, "Confirmar presença")
+        XCTAssertTrue(confirmar.isEnabled)
     }
 
     func testSemAChaveACasaNaoVeOCodigoEOTurnoEOMesmoDeHoje() {
