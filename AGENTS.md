@@ -2,7 +2,7 @@
 
 Apps do **Frila**: `iOS/` (SwiftUI, iOS 17+, a plataforma principal) e `android/` (Kotlin, em construção). Português do Brasil em tudo: código de domínio, commits, PRs e documentos. Vale para pessoa e agente, de qualquer ferramenta; pedido do sócio na conversa vale mais que este arquivo.
 
-**O que o Frila é hoje:** [`frila-docs/produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md). Vale, nesta ordem: a decisão mais recente dos sócios, o AGORA (e os módulos dele), o que está no ar e, por último, documento antigo. O que está em `iOS/Docs/historico/` não vale como regra. Doc não trava código: se divergirem, vale a decisão mais recente e o doc se corrige depois.
+**O que o Frila é hoje:** [`frila-documentacao/produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md) (repositório privado do time). Vale, nesta ordem: a decisão mais recente dos sócios, o AGORA (e os módulos dele), o que está no ar e, por último, documento antigo. O que está em `iOS/Docs/historico/` não vale como regra. Doc não trava código: se divergirem, vale a decisão mais recente e o doc se corrige depois.
 
 ## Rodar e testar (a partir de `iOS/`)
 ```bash
@@ -28,7 +28,7 @@ Também existem `conferir-movimento.sh`, `conferir-datas-fixas.sh`, `conferir-re
 
 ## Regras que o agente erra sem ler
 - **Textos só pelo catálogo.** `Resources/Localizable.xcstrings` é um arquivo único: acrescente só entradas novas, sem renomear nem apagar as existentes. Se o Xcode reescrever o arquivo inteiro, não commite.
-- **Contrato:** `iOS/Contrato/` é espelho de `frila-docs/api/openapi.yaml`. Não edite; `Scripts/contrato-em-dia.sh` confere. Mudança de contrato nasce em `frila-docs`, depois backend, depois frontend.
+- **Contrato:** `iOS/Contrato/` é espelho de `frila-documentacao/api/openapi.yaml`. Não edite; `Scripts/contrato-em-dia.sh` confere. Mudança de contrato nasce em `frila-documentacao`, depois backend, depois frontend.
 - Todo `await` de API do sistema num fluxo com `carregando` leva prazo e fallback explícito.
 - Bug visto no aparelho: traga o trecho do log e a causa; o teste de regressão vem antes do fix.
 - Acessibilidade: Dynamic Type até AX5, alvo de toque de 44 pt, Reduzir Movimento. Teste a tela nova e as vizinhas.

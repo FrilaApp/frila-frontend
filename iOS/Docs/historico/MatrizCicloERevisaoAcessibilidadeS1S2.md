@@ -1,4 +1,4 @@
-> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
 
 # Matriz de Execução do Ciclo Ponta a Ponta e Laudo de Acessibilidade S1/S2/S3
 

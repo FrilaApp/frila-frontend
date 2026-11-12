@@ -1,4 +1,4 @@
-> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-docs/blob/main/produto/AGORA.md).
+> **Histórico: não vale como regra.** O que vale está em [`produto/AGORA.md`](https://github.com/FrilaApp/frila-documentacao/blob/main/produto/AGORA.md).
 
 # Notas do TestFlight 0.5 (Proposta Técnica para o Próximo Build 0.5.5+)
 
