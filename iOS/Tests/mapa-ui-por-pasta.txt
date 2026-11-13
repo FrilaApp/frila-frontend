@@ -91,7 +91,7 @@ Sources/Apresentacao/TelaLicencas.swift = LicencasUITests
 Sources/Apresentacao/DebugDesign/ = @fumaca
 
 # --- Dados, domínio e o que não entra na interface do Frila-Local
-# Decisão de cobertura do Prisma (13/11/2026): Sources/Dados/ e Sources/Dominio/ ficam só com a fumaça
+# Decisão de cobertura (13/11/2026): Sources/Dados/ e Sources/Dominio/ ficam só com a fumaça
 # quando nenhuma linha mais específica abaixo os cobre. Os testes de interface rodam contra o dublê em
 # memória (Frila-Local), e os unitários (job A, sempre inteiros) e a noturna cobrem o resto. As linhas por
 # arquivo abaixo continuam valendo: o arquivo mais específico ganha da pasta.
@@ -117,7 +117,7 @@ Sources/Dominio/VerificadorDeIdade.swift = AutenticacaoUITests
 Sources/NotificationService/ = @fumaca
 
 # --- Mudança na própria CI ou na seleção de testes: mudou a seleção, roda tudo (suíte inteira).
-# Regra explícita (Prisma, 13/11/2026), não acidente: quem mexe no que escolhe ou roda os testes não pode
+# Regra explícita (13/11/2026), não acidente: quem mexe no que escolhe ou roda os testes não pode
 # ser avaliado pelo que ele mesmo escolheria. Prefixo que começa com `.github/` é relativo à raiz do
 # repositório; os demais, a iOS/. Os arquivos de .github/ fora desta lista e de iOS/ só pedem a fumaça.
 .github/workflows/ios*.yml = @completa
