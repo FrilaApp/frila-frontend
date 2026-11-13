@@ -140,8 +140,8 @@ public final class CadastroViewModel {
             telefone: telefoneE164,
             nascimento: nascimento,
             perfil: perfil,
-            // Termos com a classificação indicativa de 18 anos e a contestação da idade.
-            versaoTermos: "2026-10-15",
+            // Termos de uso v1.0.1 e Política de privacidade v1.1, publicados em frilabr.com em 12/11/2026.
+            versaoTermos: "2026-11-12",
             sinalIdade: sinalIdade
         )
 
