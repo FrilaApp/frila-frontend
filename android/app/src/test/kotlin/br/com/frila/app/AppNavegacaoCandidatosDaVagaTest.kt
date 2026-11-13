@@ -89,6 +89,7 @@ class AppNavegacaoCandidatosDaVagaTest {
                                 posicoesAbertas = posicoesAbertas,
                                 inicioDaVaga = inicioDaVaga,
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
+                                relogio = { Instant.parse("2026-11-10T15:00:00Z") },
                             )
                         }
                     },
