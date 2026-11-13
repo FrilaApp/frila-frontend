@@ -161,22 +161,39 @@ struct CadastroEstabelecimentoTests {
         #expect(vm.regiaoAdministrativa.isEmpty, "Quando o endereço não traz RA conhecida, deve deixar vazio")
     }
 
-    @Test("Selecionar endereço não repete o nome quando o título do MapKit já começa por ele")
-    func enderecoSemNomeRepetido() {
+    @Test("Selecionar endereço usa o texto sem nome repetido (ligação com o MapKit)")
+    func selecionarUsaOTextoSemRepeticao() {
         let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
-        let coord = CLLocationCoordinate2D(latitude: -15.83, longitude: -48.02)
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: -15.83, longitude: -48.02)))
+        item.name = "Padaria Central"
+        vm.selecionar(item)
+        #expect(vm.endereco == CadastroEstabelecimentoViewModel.textoDoEndereco(nome: item.name, titulo: item.placemark.title, atual: ""))
+        #expect(vm.endereco.hasPrefix("Padaria Central"))
+        #expect(!vm.endereco.hasSuffix(", "))
+    }
 
-        // O MapKit devolve `title` começando pelo `name` ("S1, Gama, DF" para o item "S1").
-        let repetido = MKMapItem(placemark: PlacemarkComTitulo(coordinate: coord, titulo: "S1, Gama, DF"))
-        repetido.name = "S1"
-        vm.selecionar(repetido)
-        #expect(vm.endereco == "S1, Gama, DF")
+    @Test("Texto do endereço: nome repetido some, nome diferente fica, sem título usa o nome")
+    func textoDoEnderecoSemRepeticao() {
+        typealias VM = CadastroEstabelecimentoViewModel
+        #expect(VM.textoDoEndereco(nome: "S1", titulo: "S1, Gama, DF", atual: "x") == "S1, Gama, DF")
+        #expect(VM.textoDoEndereco(nome: "Águas Claras", titulo: "aguas claras, DF", atual: "x") == "aguas claras, DF")
+        #expect(VM.textoDoEndereco(nome: "Padaria Central", titulo: "QNN 12, Ceilândia, DF", atual: "x") == "Padaria Central, QNN 12, Ceilândia, DF")
+        #expect(VM.textoDoEndereco(nome: "Padaria", titulo: nil, atual: "x") == "Padaria")
+        #expect(VM.textoDoEndereco(nome: nil, titulo: "QNN 12, Ceilândia", atual: "x") == "QNN 12, Ceilândia")
+        #expect(VM.textoDoEndereco(nome: " ", titulo: "", atual: "texto digitado") == "texto digitado")
+    }
 
-        // Nome que não está no título (estabelecimento): continua na frente.
-        let estabelecimento = MKMapItem(placemark: PlacemarkComTitulo(coordinate: coord, titulo: "QNN 12, Ceilândia, DF"))
-        estabelecimento.name = "Padaria Central"
-        vm.selecionar(estabelecimento)
-        #expect(vm.endereco == "Padaria Central, QNN 12, Ceilândia, DF")
+    @Test("A busca de endereço é inclinada para o DF e pede só endereços e locais")
+    func buscaInclinadaParaODF() {
+        let request = CadastroEstabelecimentoViewModel.requisicaoDeBusca(para: "70000-000")
+        #expect(request.naturalLanguageQuery == "70000-000")
+        #expect(request.resultTypes == [.address, .pointOfInterest])
+        // Os extremos do DF (Planaltina ao norte, Gama ao sul, Brazlândia a oeste) cabem na região.
+        let regiao = request.region
+        for ponto in [(-15.62, -47.65), (-16.02, -48.06), (-15.65, -48.20)] {
+            #expect(abs(ponto.0 - regiao.center.latitude) <= regiao.span.latitudeDelta / 2)
+            #expect(abs(ponto.1 - regiao.center.longitude) <= regiao.span.longitudeDelta / 2)
+        }
     }
 
     @Test("Selecionar um segundo endereço atualiza o ponto e o alvo da câmera")
@@ -394,18 +411,4 @@ struct CadastroEstabelecimentoTests {
 private actor Enviados {
     private(set) var todos: [CadastroEstabelecimento] = []
     func guardar(_ cadastro: CadastroEstabelecimento) { todos.append(cadastro) }
-}
-
-/// `MKPlacemark` com o `title` que o MapKit montaria (o dele depende do geocodificador).
-private final class PlacemarkComTitulo: MKPlacemark, @unchecked Sendable {
-    private let tituloFixo: String
-    init(coordinate: CLLocationCoordinate2D, titulo: String) {
-        tituloFixo = titulo
-        super.init(coordinate: coordinate)
-    }
-    required init?(coder: NSCoder) {
-        tituloFixo = ""
-        super.init(coder: coder)
-    }
-    override var title: String? { tituloFixo }
 }
