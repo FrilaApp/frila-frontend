@@ -286,6 +286,8 @@ public final class AcompanhamentoViewModel {
                 recusadas = []
                 return true
             } catch {
+                // Leitura cancelada (puxar para atualizar, tela que saiu) não é falha: o painel fica como estava.
+                guard !Task.isCancelled else { return false }
                 guard geracaoDaLeitura == geracao else { continue }
                 if registrandoFalha { falhouAoCarregar = true }
                 return false
