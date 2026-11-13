@@ -138,7 +138,6 @@ Resources/DesignSystem.xcassets/ = @visual
 Resources/App.xcassets/ = @fumaca
 Resources/AppIcon.icon/ = @fumaca
 Resources/Fonts/ = @visual
-Resources/Firebase/ = @fumaca
 Resources/Frameworks/ = @fumaca
 Resources/NotificationService/ = @fumaca
 Contrato/ = @fumaca
