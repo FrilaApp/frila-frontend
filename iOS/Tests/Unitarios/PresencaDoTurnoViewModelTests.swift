@@ -804,23 +804,24 @@ struct TextosDaPresencaTests {
         #expect(cena.api.checkins.isEmpty)
     }
 
-    @Test("Check-out permanece disponível após o término do turno até e além de fim + 1h (podeFazerCheckout)")
+    @Test("Check-out aparece até 60 min depois do fim previsto e some depois (a janela do servidor)")
     @MainActor
-    func checkoutPermaneceDisponivelAposFimDoTurno() async throws {
+    func checkoutSomeDepoisDeFimMaisUmaHora() async throws {
         let cena = try await Cena.montar()
         let vm = await cena.comCheckinFeito(cena.leitor(a: 50))
         #expect(vm.podeFazerCheckout)
 
-        // Relógio após o término do turno (fim + 30 min)
         let fim = cena.turno.vaga.periodo.fim
-        let segundosAteAposFim = fim.addingTimeInterval(1800).timeIntervalSince(cena.relogio.agora)
-        cena.relogio.avancar(segundosAteAposFim)
-
-        // Com check-in feito, o botão de check-out continua habilitado após o fim previsto
+        // Fim + 30 min: dentro da janela.
+        cena.relogio.avancar(fim.addingTimeInterval(1800).timeIntervalSince(cena.relogio.agora))
         #expect(vm.podeFazerCheckout)
 
-        // Mesmo após fim + 1h, a propriedade podeFazerCheckout não esconde o botão localmente
-        cena.relogio.avancar(3600)
+        // Fim + 60 min exatos: ainda vale.
+        cena.relogio.avancar(fim.addingTimeInterval(3600).timeIntervalSince(cena.relogio.agora))
         #expect(vm.podeFazerCheckout)
+
+        // Um segundo depois: o servidor recusaria (fora_da_janela), então o botão sai.
+        cena.relogio.avancar(1)
+        #expect(!vm.podeFazerCheckout)
     }
 }
