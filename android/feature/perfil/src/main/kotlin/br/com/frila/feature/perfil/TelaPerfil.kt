@@ -121,6 +121,8 @@ fun TelaPerfil(
     aoMinhasVagas: (() -> Unit)? = null,
     /** Cadastrar estabelecimento (RF02): nulo esconde o atalho, que só existe para contratante que ainda não tem casa. */
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
+    /** Mantém as ações da conta quando o endpoint de perfil profissional recusa um contratante. */
+    exibirContaSemPerfilProfissional: Boolean = false,
     /**
      * Trava do selo (RN14): desligada por padrão até a moderação e os termos serem validados pelos
      * sócios. Desligada, badge e convite não aparecem, qualquer que seja o estado recebido.
@@ -208,14 +210,14 @@ fun TelaPerfil(
             )
         },
     ) { paddingInterno ->
-        when (estado.status) {
-            StatusPerfil.CARREGANDO -> Carregando(paddingInterno)
-            StatusPerfil.ERRO -> Erro(
+        when {
+            estado.status == StatusPerfil.CARREGANDO -> Carregando(paddingInterno)
+            estado.status == StatusPerfil.ERRO && !exibirContaSemPerfilProfissional -> Erro(
                 mensagem = estado.mensagemErro,
                 aoTentarNovamente = viewModel::carregar,
                 paddingValues = paddingInterno,
             )
-            StatusPerfil.SUCESSO -> ConteudoDoPerfil(
+            else -> ConteudoDoPerfil(
                 fotoLocalPath = estado.fotoLocalPath,
                 statusFoto = estado.statusFoto,
                 mensagemErroFoto = estado.mensagemErroFoto,

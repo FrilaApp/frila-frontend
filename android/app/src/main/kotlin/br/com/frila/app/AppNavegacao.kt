@@ -424,6 +424,7 @@ fun AppNavegacao(
             ) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
+                    LaunchedEffect(viewModel) { viewModel.carregar() }
                     TelaMeusTurnos(
                         viewModel = viewModel,
                         criarCheckinViewModel = { turnoId ->
@@ -487,6 +488,7 @@ fun AppNavegacao(
             composable(Rotas.PERFIL) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: PerfilViewModel = koinViewModel()
+                    LaunchedEffect(viewModel) { viewModel.carregar() }
                     val viewModelSelo: VerificacaoIdentidadeViewModel? =
                         if (recursoSeloHabilitado) koinViewModel() else null
                     val estadoSelo = viewModelSelo?.estado?.collectAsStateWithLifecycle()?.value
@@ -495,8 +497,10 @@ fun AppNavegacao(
                     var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
                     LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
                     val primeiraCasa = casas as? CasasDaConta.Primeira
+                    val contaContratanteConfirmada = primeiraCasa != null || casas == CasasDaConta.Nenhuma
                     TelaPerfil(
                         viewModel = viewModel,
+                        exibirContaSemPerfilProfissional = contaContratanteConfirmada,
                         recursoSeloHabilitado = recursoSeloHabilitado,
                         verificacaoIdentidade = estadoSelo?.verificacao,
                         podeSolicitarSelo = estadoSelo?.podeSolicitar == true,

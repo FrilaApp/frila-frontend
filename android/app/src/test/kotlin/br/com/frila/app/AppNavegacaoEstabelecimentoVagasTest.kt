@@ -39,6 +39,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,6 +67,7 @@ class AppNavegacaoEstabelecimentoVagasTest {
     val rule = createComposeRule()
 
     private lateinit var nav: NavHostController
+    private lateinit var perfilViewModel: PerfilViewModel
     private val casasRecebidas = mutableListOf<EstabelecimentoDaVaga>()
     private val publicacoes = mutableListOf<NovaVagaDto>()
     private var biometria = false
@@ -100,12 +102,13 @@ class AppNavegacaoEstabelecimentoVagasTest {
         servicoMembros: ServicoMembros? = null,
         inicio: String? = null,
         cadastro: CadastroEstabelecimentoViewModel = cadastroQueFalha(),
+        estadoPerfil: EstadoPerfil = EstadoPerfil(status = StatusPerfil.SUCESSO),
     ) {
         val entrada = mockk<EntradaViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoEntrada())
         }
-        val perfil = mockk<PerfilViewModel>(relaxed = true) {
-            every { estado } returns MutableStateFlow(EstadoPerfil(status = StatusPerfil.SUCESSO))
+        perfilViewModel = mockk(relaxed = true) {
+            every { estado } returns MutableStateFlow(estadoPerfil)
         }
         rule.setContent {
             KoinApplication(application = {
@@ -114,7 +117,7 @@ class AppNavegacaoEstabelecimentoVagasTest {
                         // A tela de desbloqueio (alvo do redirecionamento da guarda) lê a sessão do grafo.
                         single<ArmazenamentoDeSessao> { sessao }
                         viewModel { entrada }
-                        viewModel { perfil }
+                        viewModel { perfilViewModel }
                         viewModel { cadastro }
                         viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
                             casasRecebidas += estabelecimento
@@ -152,6 +155,31 @@ class AppNavegacaoEstabelecimentoVagasTest {
     }
 
     // ---- Atalhos do perfil ----
+
+    @Test
+    fun perfilCarregaAoEntrarNaRota() {
+        montar(servicoMembros = contratanteCom("casa-1"), inicio = Rotas.PERFIL)
+        rule.waitForIdle()
+
+        verify(exactly = 1) { perfilViewModel.carregar() }
+    }
+
+    @Test
+    fun contratanteMantemAtalhosQuandoPerfilProfissionalEIncompativel() {
+        montar(
+            servicoMembros = contratanteCom("casa-1"),
+            inicio = Rotas.PERFIL,
+            estadoPerfil = EstadoPerfil(
+                status = StatusPerfil.ERRO,
+                mensagemErro = "Não foi possível carregar seu perfil.",
+            ),
+        )
+
+        esperarAtalho("perfil-publicar-vaga")
+        rule.onNodeWithTag("perfil-equipe").assertExists()
+        rule.onNodeWithTag("perfil-publicar-vaga").assertExists()
+        rule.onNodeWithTag("perfil-minhas-vagas").assertExists()
+    }
 
     @Test
     fun perfilDeMembroMostraPublicarVagaEAbreARotaComOIdDaCasa() {

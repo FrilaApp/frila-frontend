@@ -17,6 +17,7 @@ import br.com.frila.feature.turnos.StatusMeusTurnos
 import br.com.frila.feature.turnos.TextosTurnoNaoEncontrado
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -86,6 +87,7 @@ class AppNavegacaoTurnoNaoEncontradoIntegracaoTest {
 
         rule.onNodeWithText(TextosTurnoNaoEncontrado.NAO_ENCONTRADO_MENSAGEM)
             .assertIsDisplayed()
+        verify(exactly = 1) { turnosViewModel.carregar() }
 
         // Aciona o botão de recuperação "Ver meus turnos"
         rule.onNodeWithText(TextosTurnoNaoEncontrado.BOTAO_VER_MEUS_TURNOS)
@@ -95,5 +97,6 @@ class AppNavegacaoTurnoNaoEncontradoIntegracaoTest {
         rule.runOnIdle {
             assertEquals(Rotas.MEUS_TURNOS, nav.currentDestination?.route)
         }
+        verify(exactly = 2) { turnosViewModel.carregar() }
     }
 }
