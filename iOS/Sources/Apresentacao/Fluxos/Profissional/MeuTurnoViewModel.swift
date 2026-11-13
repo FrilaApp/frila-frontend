@@ -208,6 +208,11 @@ public final class MeuTurnoViewModel {
         revisaoDoRelogio += 1
     }
 
+    /// Puxar para atualizar: relê o turno e traz o que a casa fez (confirmação, check-out) para a tela.
+    public func atualizar() async {
+        await reler()
+    }
+
     public var respostaAvaliacao: Bool? {
         _ = revisaoDaReserva
         if let avaliacao = avaliacaoEnviada ?? turno.avaliacao { return avaliacao.resposta }

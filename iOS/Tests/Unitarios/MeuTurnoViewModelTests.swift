@@ -620,3 +620,102 @@ struct AvaliacaoLiberaNoHorarioDoProfissionalTests {
         #expect(vm.podeAvaliar == false)
     }
 }
+
+@MainActor
+@Suite("Puxar para atualizar: a confirmação da casa chega sem reabrir o app")
+struct AtualizarMeuTurnoTests {
+    private let agora = dataReferencia()
+
+    private func turno(verificacao: Verificacao, comCheckin: Bool = true, comCheckout: Bool = false, base: Turno? = nil) throws -> Turno {
+        let base = try base ?? criarTurnoExemplo(
+            inicio: agora.addingTimeInterval(-3_600), fim: agora.addingTimeInterval(2 * 3_600), contatoVisivelAte: agora.addingTimeInterval(86_400)
+        )
+        return Turno(
+            id: base.id, posicaoID: base.posicaoID, vaga: base.vaga, contraparte: base.contraparte, contatoVisivelAte: base.contatoVisivelAte,
+            checkin: comCheckin ? Presenca(instante: agora.addingTimeInterval(-3_000), tipo: .manual, distanciaMetros: nil) : nil,
+            checkout: comCheckout ? Presenca(instante: agora.addingTimeInterval(-60), tipo: .geolocalizado, distanciaMetros: 20) : nil,
+            verificacao: verificacao, valorAcordado: base.valorAcordado, podeAvaliar: false
+        )
+    }
+
+    private func presenca(_ turno: Turno, api: any ApiCliente, fila: (any FilaDeAcoes)? = nil) -> PresencaDoTurnoViewModel {
+        let leitor = LeitorDeLocalizacaoSimulado(resultado: .failure(.semSinal))
+        return PresencaDoTurnoViewModel(turno: turno, api: api, localizacao: leitor, fila: fila, relogio: RelogioSimulado(agora))
+    }
+
+    @Test("A casa confirmou e fez o check-out: atualizar leva a verificação e o check-out à presença")
+    func atualizarTrazAConfirmacaoDaCasa() async throws {
+        let aberto = try turno(verificacao: .pendente)
+        let lido = try turno(verificacao: .verificado, comCheckout: true, base: aberto)
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { [lido] in [lido] }
+        let presenca = presenca(aberto, api: api)
+        let vm = MeuTurnoViewModel(
+            turno: aberto, api: api, contaID: UUID(), armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria(),
+            relogio: RelogioSimulado(agora), presenca: presenca
+        )
+        #expect(presenca.verificacao == .pendente)
+        #expect(presenca.checkout == .naoFeito)
+
+        await vm.atualizar()
+
+        #expect(presenca.verificacao == .verificado)
+        guard case .registrado = presenca.checkout else {
+            Issue.record("o check-out lido do servidor devia aparecer como registrado")
+            return
+        }
+        #expect(vm.turno.verificacao == .verificado)
+    }
+
+    @Test("Atualizar não passa por cima do que está na fila de envio nem apaga o check-in já feito")
+    func atualizarPreservaAFilaELocal() async throws {
+        let aberto = try turno(verificacao: .pendente)
+        // O servidor ainda não viu o check-out da fila e, nesta leitura, nem traz o check-in.
+        let lido = try turno(verificacao: .verificado, comCheckin: false, base: aberto)
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { [lido] in [lido] }
+        let fila = ArmazenamentoSwiftData(modelContainer: try PersistenciaFrila.criarContainer(emMemoria: true))
+        try await fila.enfileirar(AcaoPendente(
+            tipo: .checkout, turnoID: aberto.id, instanteDoToque: agora.addingTimeInterval(-30), chave: UUID(), distanciaMetros: 20
+        ))
+        let presenca = presenca(aberto, api: api, fila: fila)
+        await presenca.restaurarPendentes()
+        guard case .naFila = presenca.checkout else {
+            Issue.record("o check-out devia estar na fila antes de atualizar")
+            return
+        }
+        let vm = MeuTurnoViewModel(
+            turno: aberto, api: api, contaID: UUID(), armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria(),
+            relogio: RelogioSimulado(agora), presenca: presenca
+        )
+
+        await vm.atualizar()
+
+        #expect(presenca.verificacao == .verificado)
+        guard case .naFila = presenca.checkout else {
+            Issue.record("o check-out da fila não pode ser trocado pela leitura")
+            return
+        }
+        guard case .registrado = presenca.checkin else {
+            Issue.record("o check-in já feito não pode sumir porque a leitura veio sem ele")
+            return
+        }
+    }
+
+    @Test("Sem rede, atualizar deixa a presença como estava")
+    func atualizarSemRedeNaoMudaNada() async throws {
+        let aberto = try turno(verificacao: .verificado)
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { throw ErroDaApi(codigo: .semRede) }
+        let presenca = presenca(aberto, api: api)
+        let vm = MeuTurnoViewModel(
+            turno: aberto, api: api, contaID: UUID(), armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria(),
+            relogio: RelogioSimulado(agora), presenca: presenca
+        )
+
+        await vm.atualizar()
+
+        #expect(presenca.verificacao == .verificado)
+        #expect(vm.turno == aberto)
+    }
+}
