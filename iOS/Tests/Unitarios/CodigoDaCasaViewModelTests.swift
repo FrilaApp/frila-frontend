@@ -106,9 +106,9 @@ struct CodigoDaCasaViewModelTests {
         #expect(vm.segundosRestantes == 0)
     }
 
-    @Test("checkin_pendente com o check-in feito: sem espera de chegada e sem releitura (D-23)")
+    @Test("checkin_pendente com o check-in feito: sem espera de chegada, e a releitura continua batendo no servidor (D-23)")
     @MainActor
-    func checkinPendenteNaoViraEsperaDeChegada() async {
+    func checkinPendenteNaoViraEsperaDeChegadaERelePeloServidor() async {
         let api = ApiClienteDubleCheckinCasa()
         var chamadas = 0
         api.aoGerarCodigo = { _ in
@@ -121,10 +121,58 @@ struct CodigoDaCasaViewModelTests {
         #expect(chamadas == 1)
         #expect(vm.estado == .semCodigoParaEsteCheckin, "o check-in já foi feito: a casa não espera a chegada")
 
-        // A releitura de 5 em 5 s não pode ficar batendo num 409 que nunca muda.
+        // A releitura de 5 em 5 s continua: o profissional pode voltar e tocar de novo a menos de 50 m.
         await vm.verificarConfirmacao()
         await vm.verificarConfirmacao()
-        #expect(chamadas == 1)
+        #expect(chamadas == 3)
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
+    }
+
+    @Test("Sem código para este check-in: quando o profissional toca de novo perto, a releitura mostra o código do servidor")
+    @MainActor
+    func semCodigoParaEsteCheckinViraMostrandoNaReleitura() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var codigoDisponivel = false
+        api.aoGerarCodigo = { id in
+            if !codigoDisponivel { throw ErroDaApi(codigo: .checkinPendente) }
+            return CodigoDeCheckin(turnoID: id, codigo: "031784", expiraEm: Date().addingTimeInterval(240), segundosRestantes: 240)
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+        await vm.carregar()
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
+
+        // O profissional entra e toca de novo a menos de 50 m: o servidor passa a devolver o código.
+        codigoDisponivel = true
+        await vm.verificarConfirmacao()
+
+        #expect(vm.estado == .mostrando(codigo: "031784"))
+        #expect(vm.segundosRestantes == 240)
+    }
+
+    @Test("Sem código para este check-in: 409 de novo na releitura mantém o estado, e erro de rede não vira falhou")
+    @MainActor
+    func semCodigoParaEsteCheckinMantemEstadoNaReleitura() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var erroDaVez: ErroDaApi = ErroDaApi(codigo: .checkinPendente)
+        var chamadas = 0
+        api.aoGerarCodigo = { _ in
+            chamadas += 1
+            throw erroDaVez
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+        await vm.carregar()
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
+
+        await vm.verificarConfirmacao()
+        #expect(chamadas == 2, "a releitura bateu no servidor")
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
+
+        erroDaVez = ErroDaApi(codigo: .semRede)
+        await vm.verificarConfirmacao()
+        #expect(chamadas == 3, "a releitura bateu no servidor")
+        #expect(vm.estado == .semCodigoParaEsteCheckin, "erro de rede na releitura não troca para falhou")
     }
 
     @Test("checkin_ja_confirmado mapeia para estado jaVerificado")
@@ -284,9 +332,9 @@ struct CodigoDaCasaViewModelTests {
         #expect(confirmacaoDisparada)
     }
 
-    @Test("código em exibição que vence depois de 15 min do check-in vira semCodigoParaEsteCheckin e para de reler")
+    @Test("código em exibição que vence depois de 15 min do check-in vira semCodigoParaEsteCheckin e continua relendo")
     @MainActor
-    func renovacaoDepoisDe15MinutosViraSemCodigo() async {
+    func renovacaoDepoisDe15MinutosViraSemCodigoEContinuaRelendo() async {
         let api = ApiClienteDubleCheckinCasa()
         var passouDe15Min = false
         var chamadas = 0
@@ -306,7 +354,8 @@ struct CodigoDaCasaViewModelTests {
         let depois = chamadas
 
         await vm.verificarConfirmacao()
-        #expect(chamadas == depois, "sem código para este check-in, a releitura não bate mais no servidor")
+        #expect(chamadas == depois + 1, "sem código para este check-in, a releitura continua batendo no servidor")
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
     }
 
     @Test("verificarConfirmacao não relê quando há chamada em voo")
