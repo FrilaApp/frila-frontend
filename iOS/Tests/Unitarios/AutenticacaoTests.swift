@@ -432,7 +432,7 @@ struct AutenticacaoTests {
 
         #expect(spy.chamadasACriarConta == 1)
         let cadastro = try #require(spy.ultimoCadastroRecebido)
-        #expect(cadastro.versaoTermos == "2026-10-15")
+        #expect(cadastro.versaoTermos == "2026-11-13")
         #expect(!cadastro.versaoTermos.isEmpty)
     }
 
