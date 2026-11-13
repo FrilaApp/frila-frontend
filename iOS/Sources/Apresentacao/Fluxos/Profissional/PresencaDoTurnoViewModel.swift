@@ -65,7 +65,8 @@ public final class PresencaDoTurnoViewModel {
     public private(set) var permissaoDaLocalizacao: PermissaoDeLocalizacao?
     /// A chave `checkin_por_codigo` do servidor, já lida (`carregarRecursos`). Desligada, nada do código aparece.
     public private(set) var checkinPorCodigoLigado = false
-    /// `codigo_disponivel` do último `fazer_checkin`; `nil` enquanto o app não o viu.
+    /// `codigo_disponivel` do `fazer_checkin` deste turno, guardado por turno (também depois de fechar o app);
+    /// `nil` enquanto o app não o viu. Só `true` abre a leitura do código.
     public private(set) var codigoDisponivel: Bool?
     /// O caminho do código fechou para este turno (`codigo_bloqueado` `encerrado`): vale a confirmação manual da casa.
     public private(set) var caminhoDoCodigoEncerrado = false
@@ -120,6 +121,8 @@ public final class PresencaDoTurnoViewModel {
         checkin = turno.checkin.map { .registrado(RegistroFeito(instante: $0.instante, distanciaMetros: $0.distanciaMetros, manual: $0.tipo == .manual)) } ?? .naoFeito
         checkout = turno.checkout.map { .registrado(RegistroFeito(instante: $0.instante, distanciaMetros: $0.distanciaMetros, manual: false)) } ?? .naoFeito
         verificacao = turno.verificacao
+        codigoDisponivel = cache?.codigoDisponivel(turnoID: turno.id)
+        caminhoDoCodigoEncerrado = cache?.caminhoDoCodigoEncerrado(turnoID: turno.id) ?? false
     }
 
     /// Lê a chave do servidor uma vez e a guarda: `checkin_por_codigo` liga os sinais e as telas do código.
@@ -134,10 +137,11 @@ public final class PresencaDoTurnoViewModel {
         return lidos
     }
 
-    /// Check-in feito e ainda pendente, com a chave ligada e o caminho do código aberto: a tela oferece a
-    /// leitura do código da casa, ao lado do aviso de que a casa também pode confirmar a chegada.
+    /// Check-in feito e ainda pendente, com a chave ligada e o servidor dizendo que o caminho do código está
+    /// aberto (`codigo_disponivel == true`; sem o valor, nada se oferece): a tela oferece a leitura do código
+    /// da casa, ao lado do aviso de que a casa também pode confirmar a chegada.
     public var podeLerOCodigo: Bool {
-        guard checkinPorCodigoLigado, verificacao == .pendente, codigoDisponivel != false, !caminhoDoCodigoEncerrado else { return false }
+        guard checkinPorCodigoLigado, verificacao == .pendente, codigoDisponivel == true, !caminhoDoCodigoEncerrado else { return false }
         if case .registrado = checkin { return true }
         return false
     }
@@ -153,7 +157,10 @@ public final class PresencaDoTurnoViewModel {
     public func aoJaVerificadoPeloCodigo() { aoRegistrar() }
 
     /// O caminho do código fechou: some a leitura, e fica a confirmação manual da casa.
-    public func aoEncerrarOCaminhoDoCodigo() { caminhoDoCodigoEncerrado = true }
+    public func aoEncerrarOCaminhoDoCodigo() {
+        caminhoDoCodigoEncerrado = true
+        cache?.guardarCaminhoDoCodigoEncerrado(turnoID: turno.id)
+    }
 
     /// A distância até o ponto da vaga, medida agora, para a validação do código. `nil` sem posição
     /// (permissão que não é a precisa, GPS sem sinal, ponto da vaga indisponível): o servidor valida e marca
@@ -389,6 +396,7 @@ public final class PresencaDoTurnoViewModel {
             case .checkin:
                 checkin = .registrado(feito)
                 codigoDisponivel = resultado.codigoDisponivel
+                cache?.guardar(codigoDisponivel: resultado.codigoDisponivel, turnoID: turno.id)
                 if !jaEmitiuCheckinConcluido {
                     jaEmitiuCheckinConcluido = true
                     await telemetria?.registrar(.checkinConcluido, turnoID: turno.id, ocorridoEm: feito.instante)

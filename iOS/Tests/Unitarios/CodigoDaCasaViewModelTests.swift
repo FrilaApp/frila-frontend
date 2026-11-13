@@ -91,9 +91,9 @@ struct CodigoDaCasaViewModelTests {
         #expect(CodigoDaCasaViewModel.formatar(segundos: -15) == "0:00")
     }
 
-    @Test("checkin_pendente mapeia para estado aguardandoChegada")
+    @Test("checkin_pendente mapeia para estado semCodigoParaEsteCheckin")
     @MainActor
-    func checkinPendenteMapeiaAguardandoChegada() async {
+    func checkinPendenteMapeiaSemCodigoParaEsteCheckin() async {
         let api = ApiClienteDubleCheckinCasa()
         api.aoGerarCodigo = { _ in
             throw ErroDaApi(codigo: .checkinPendente)
@@ -102,7 +102,7 @@ struct CodigoDaCasaViewModelTests {
         let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
         await vm.carregar()
 
-        #expect(vm.estado == .aguardandoChegada)
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
         #expect(vm.segundosRestantes == 0)
     }
 
@@ -119,7 +119,7 @@ struct CodigoDaCasaViewModelTests {
         let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
         await vm.carregar()
         #expect(chamadas == 1)
-        #expect(vm.estado != .aguardandoChegada, "o check-in já foi feito: a casa não espera a chegada")
+        #expect(vm.estado == .semCodigoParaEsteCheckin, "o check-in já foi feito: a casa não espera a chegada")
 
         // A releitura de 5 em 5 s não pode ficar batendo num 409 que nunca muda.
         await vm.verificarConfirmacao()
@@ -284,33 +284,29 @@ struct CodigoDaCasaViewModelTests {
         #expect(confirmacaoDisparada)
     }
 
-    @Test("verificarConfirmacao relê em aguardandoChegada e transita para mostrando ao receber código")
+    @Test("código em exibição que vence depois de 15 min do check-in vira semCodigoParaEsteCheckin e para de reler")
     @MainActor
-    func verificarConfirmacaoReleEmAguardandoChegada() async {
+    func renovacaoDepoisDe15MinutosViraSemCodigo() async {
         let api = ApiClienteDubleCheckinCasa()
-        var chegou = false
+        var passouDe15Min = false
+        var chamadas = 0
         api.aoGerarCodigo = { id in
-            if !chegou {
-                throw ErroDaApi(codigo: .checkinPendente)
-            }
-            return CodigoDeCheckin(
-                turnoID: id,
-                codigo: "847291",
-                expiraEm: Date().addingTimeInterval(300),
-                segundosRestantes: 300
-            )
+            chamadas += 1
+            if passouDe15Min { throw ErroDaApi(codigo: .checkinPendente) }
+            return CodigoDeCheckin(turnoID: id, codigo: "847291", expiraEm: Date().addingTimeInterval(300), segundosRestantes: 300)
         }
 
         let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
         await vm.carregar()
-        #expect(vm.estado == .aguardandoChegada)
-
-        // Profissional registra a chegada (Cheguei)
-        chegou = true
-        await vm.verificarConfirmacao()
-
         #expect(vm.estado == .mostrando(codigo: "847291"))
-        #expect(vm.segundosRestantes == 300)
+
+        passouDe15Min = true
+        await vm.verificarConfirmacao()
+        #expect(vm.estado == .semCodigoParaEsteCheckin)
+        let depois = chamadas
+
+        await vm.verificarConfirmacao()
+        #expect(chamadas == depois, "sem código para este check-in, a releitura não bate mais no servidor")
     }
 
     @Test("verificarConfirmacao não relê quando há chamada em voo")
@@ -391,19 +387,9 @@ struct CodigoDaCasaViewModelTests {
             )
         }
 
+        emitirCodigo = true
         let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
         await vm.carregar()
-        #expect(vm.estado == .aguardandoChegada)
-
-        // Releitura periódica em segundo plano com oscilação de rede: mantém aguardandoChegada
-        falhaDeRede = true
-        await vm.verificarConfirmacao()
-        #expect(vm.estado == .aguardandoChegada)
-
-        // Restabelece rede e emite código
-        falhaDeRede = false
-        emitirCodigo = true
-        await vm.verificarConfirmacao()
         #expect(vm.estado == .mostrando(codigo: "654321"))
 
         // Nova oscilação de rede com código em exibição: mantém mostrando com o código
@@ -522,7 +508,7 @@ struct CheckinSemiautoLocalPostgrestIntegrationTests {
         // 1.1 Casa tenta carregar código ANTES da chegada
         await vmCasa.carregar()
         let estadoInicial = await vmCasa.estado
-        #expect(estadoInicial == .aguardandoChegada, "Antes da chegada, a casa fica aguardando e não vaza código")
+        #expect(estadoInicial == .semCodigoParaEsteCheckin, "Antes da chegada, o servidor responde checkin_pendente e não vaza código")
 
         // 2. Profissional registra chegada a 30m simulados via PostgREST local
         let resultadoChegada = try await apiProf.fazerCheckin(

@@ -3,9 +3,10 @@ import FrilaDominio
 
 /// Última leitura de rede guardada na memória: o detalhe da vaga e a primeira página da lista.
 /// Serve para mostrar algo na hora, e para o Meu turno e a presença não pedirem o mesmo detalhe
-/// duas vezes. Some ao sair da conta e ao encerrar o app; nada vai para o disco.
+/// duas vezes. Some ao sair da conta e ao encerrar o app. A única coisa que vai ao disco é o estado
+/// do caminho do código de cada turno (veja abaixo): dois Bool e o id do turno, nada pessoal.
 public final class CacheDeLeituras: @unchecked Sendable {
-    public static let compartilhado = CacheDeLeituras()
+    public static let compartilhado = CacheDeLeituras(defaults: .standard)
 
     /// O detalhe usado só para o responsável e o ponto (que quase não mudam) vale por este prazo.
     static let validade: TimeInterval = 300
@@ -18,12 +19,21 @@ public final class CacheDeLeituras: @unchecked Sendable {
     private var detalhesEmVoo: [UUID: Task<Vaga, Error>] = [:]
     private var epocaAtual: UInt64 = 0
     private let agora: @Sendable () -> Date
+    private let defaults: UserDefaults?
+    private var codigos: [String: [String: Bool]]
+
+    static let chaveDosCodigos = "frila_codigo_checkin_por_turno"
+    private static let campoDisponivel = "disponivel"
+    private static let campoEncerrado = "encerrado"
 
     /// Identifica a sessão do cache; respostas iniciadas antes de limpar não podem repovoá-lo.
     public var epoca: UInt64 { trava.withLock { epocaAtual } }
 
-    public init(agora: @escaping @Sendable () -> Date = { Date() }) {
+    /// `defaults` é onde o estado do código dos turnos sobrevive ao app; sem ele, fica só na memória.
+    public init(agora: @escaping @Sendable () -> Date = { Date() }, defaults: UserDefaults? = nil) {
         self.agora = agora
+        self.defaults = defaults
+        codigos = defaults?.dictionary(forKey: Self.chaveDosCodigos) as? [String: [String: Bool]] ?? [:]
     }
 
     // MARK: Detalhe da vaga
@@ -93,6 +103,34 @@ public final class CacheDeLeituras: @unchecked Sendable {
         }
     }
 
+    // MARK: Caminho do código do check-in
+
+    /// `codigo_disponivel` do `fazer_checkin` deste turno; `nil` se o app nunca o viu. Vale também para a
+    /// tela do turno criada de novo e depois de fechar o app.
+    public func codigoDisponivel(turnoID: UUID) -> Bool? {
+        trava.withLock { codigos[turnoID.uuidString]?[Self.campoDisponivel] }
+    }
+
+    /// O caminho do código fechou para o turno (`codigo_bloqueado` `encerrado`).
+    public func caminhoDoCodigoEncerrado(turnoID: UUID) -> Bool {
+        trava.withLock { codigos[turnoID.uuidString]?[Self.campoEncerrado] ?? false }
+    }
+
+    public func guardar(codigoDisponivel: Bool, turnoID: UUID) {
+        guardarCodigo(turnoID: turnoID, campo: Self.campoDisponivel, valor: codigoDisponivel)
+    }
+
+    public func guardarCaminhoDoCodigoEncerrado(turnoID: UUID) {
+        guardarCodigo(turnoID: turnoID, campo: Self.campoEncerrado, valor: true)
+    }
+
+    private func guardarCodigo(turnoID: UUID, campo: String, valor: Bool) {
+        trava.withLock {
+            codigos[turnoID.uuidString, default: [:]][campo] = valor
+            defaults?.set(codigos, forKey: Self.chaveDosCodigos)
+        }
+    }
+
     // MARK: Limpeza
 
     public func limpar() {
@@ -100,6 +138,8 @@ public final class CacheDeLeituras: @unchecked Sendable {
             epocaAtual &+= 1
             detalhes = [:]
             listas = [:]
+            codigos = [:]
+            defaults?.removeObject(forKey: Self.chaveDosCodigos)
             detalhesEmVoo.values.forEach { $0.cancel() }
             detalhesEmVoo = [:]
         }

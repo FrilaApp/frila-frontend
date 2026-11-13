@@ -422,4 +422,35 @@ struct BotaoDoCodigoDaCasaTests {
         let outroTurno = await tela(turno: try turno(comCheckin: true), api: ApiDeCheckinComCodigoDisponivel(disponivel: true), cache: cache)
         #expect(!outroTurno.podeLerOCodigo)
     }
+
+    @Test("o estado do código sobrevive ao app fechado e some junto com o cache ao sair da conta")
+    func sobreviveAoAppEApagaNaSaida() async throws {
+        let nome = "teste-codigo-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: nome))
+        defer { defaults.removePersistentDomain(forName: nome) }
+        let turno = try turno()
+        let cache = CacheDeLeituras(defaults: defaults)
+        let primeira = await tela(turno: turno, api: ApiDeCheckinComCodigoDisponivel(disponivel: true), cache: cache)
+        await primeira.iniciar(.checkin)
+        primeira.aoEncerrarOCaminhoDoCodigo()
+        let outro = try self.turno()
+        let segunda = await tela(turno: outro, api: ApiDeCheckinComCodigoDisponivel(disponivel: true), cache: cache)
+        await segunda.iniciar(.checkin)
+
+        // O app abre de novo: outro cache sobre o mesmo disco.
+        let reaberto = CacheDeLeituras(defaults: defaults)
+        #expect(reaberto.caminhoDoCodigoEncerrado(turnoID: turno.id))
+        #expect(reaberto.codigoDisponivel(turnoID: turno.id) == true)
+        #expect(reaberto.codigoDisponivel(turnoID: outro.id) == true)
+        #expect(!reaberto.caminhoDoCodigoEncerrado(turnoID: outro.id))
+        let telaReaberta = await tela(turno: try self.turno(comCheckin: true, id: outro.id), api: ApiDeCheckinComCodigoDisponivel(disponivel: true), cache: reaberto)
+        #expect(telaReaberta.podeLerOCodigo)
+
+        // Sair da conta limpa o cache, e com ele o que ficou no disco.
+        reaberto.limpar()
+        #expect(reaberto.codigoDisponivel(turnoID: turno.id) == nil)
+        let aposSair = CacheDeLeituras(defaults: defaults)
+        #expect(aposSair.codigoDisponivel(turnoID: outro.id) == nil)
+        #expect(!aposSair.caminhoDoCodigoEncerrado(turnoID: turno.id))
+    }
 }
