@@ -60,11 +60,11 @@ public actor LeitorDeLocalizacaoSimulado: LeitorDeLocalizacao {
 
 public extension LeitorDeLocalizacaoSimulado {
     /// Posição a `metros` ao norte de `ponto`, pela mesma esfera de `Coordenada.distancia`.
-    static func leitura(a metros: Double, de ponto: Coordenada, precisaoMetros: Double = 10) -> LeituraDeLocalizacao {
+    static func leitura(a metros: Double, de ponto: Coordenada, precisaoMetros: Double = 10, simulada: Bool = false) -> LeituraDeLocalizacao {
         let grausPorMetro = 180 / (Double.pi * 6_371_000)
         let latitude = min(ponto.latitude + metros * grausPorMetro, 90)
         let coordenada = (try? Coordenada(latitude: latitude, longitude: ponto.longitude)) ?? ponto
-        return LeituraDeLocalizacao(coordenada: coordenada, precisaoHorizontalMetros: precisaoMetros)
+        return LeituraDeLocalizacao(coordenada: coordenada, precisaoHorizontalMetros: precisaoMetros, simulada: simulada)
     }
 
     /// Começa sem permissão decidida, para a tela mostrar a explicação antes do pedido.
@@ -83,7 +83,7 @@ public extension LeitorDeLocalizacaoSimulado {
         case .aproximada:
             self.init(permissao: .naoDeterminada, respostaAoPedido: .aoUsarAproximada, resultado: .failure(.semSinal))
         case .codigoPerto:
-            self.init(permissao: .naoDeterminada, resultado: .success(Self.leitura(a: 20, de: pontoDaVaga)))
+            self.init(permissao: .naoDeterminada, resultado: .success(Self.leitura(a: 20, de: pontoDaVaga, precisaoMetros: 10, simulada: true)))
         }
     }
 

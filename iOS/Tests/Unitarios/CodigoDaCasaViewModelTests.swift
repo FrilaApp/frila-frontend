@@ -393,7 +393,11 @@ struct CodigoDaCasaViewModelTests {
     }
 }
 
-@Suite("Check-in Semiautomático: Prova Integrada contra PostgREST Local no Mesmo Turno", .serialized)
+@Suite(
+    "Check-in Semiautomático: Prova Integrada contra PostgREST Local no Mesmo Turno",
+    .serialized,
+    .enabled(if: ProcessInfo.processInfo.environment["FRILA_TESTE_INTEGRACAO_LOCAL"] == "1")
+)
 struct CheckinSemiautoLocalPostgrestIntegrationTests {
     private let supabaseURL = URL(string: "http://127.0.0.1:54321")!
     private let chavePublicavel = "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"

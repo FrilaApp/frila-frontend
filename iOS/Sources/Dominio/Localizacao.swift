@@ -82,10 +82,11 @@ public enum RegraDePresenca {
 
     /// Decisão de envio do código semiautomático (Etapa 1, backend bedcd4c):
     /// Exige leitura de localização presente (não-nula) e dentro de 50 metros.
-    /// Se a distância for nula ou superior a 50m, avisa "chegue mais perto" e não envia o código,
+    /// Se a distância for nula, orienta sem localização (sem inventar 0 m) e não envia o código.
+    /// Se a distância for superior a 50m, avisa "chegue mais perto" e não envia o código,
     /// evitando queimar tentativas contra o servidor (que recusa estritamente nil e >50m com 422).
     public static func decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: Int?) -> DecisaoDoEnvioDoCodigo {
-        guard let distanciaMetros else { return .chegueMaisPerto(distanciaMetros: 0) }
+        guard let distanciaMetros else { return .semLocalizacao }
         guard distanciaMetros <= raioDoCodigoSemiautoMetros else { return .chegueMaisPerto(distanciaMetros: distanciaMetros) }
         return .liberado
     }
@@ -100,4 +101,5 @@ public enum RegraDePresenca {
 public enum DecisaoDoEnvioDoCodigo: Equatable, Sendable {
     case liberado
     case chegueMaisPerto(distanciaMetros: Int)
+    case semLocalizacao
 }

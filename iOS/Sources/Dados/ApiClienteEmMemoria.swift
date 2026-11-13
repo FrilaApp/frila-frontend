@@ -2250,12 +2250,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let faixaSuspeita = sinais != nil && (distanciaMetros.map { $0 >= 150 && $0 <= 200 } ?? false)
         let suspeito = chaveLigada && (sinalSuspeito || faixaSuspeita)
         let perto = distanciaMetros.map { $0 <= 200 } ?? false
-        // No check-in semiautomático com a chave ligada (Etapa 1), o toque em fazer_checkin NUNCA
-        // marca verificado automaticamente (fica sempre manual e pendente, aguardando o código ou a casa).
-        let verificaPeloGPS = perto && !chaveLigada
+        let verificaPeloGPS = perto && !suspeito
         let gravado = ResultadoRegistro(
             turnoID: turnoID, tipo: verificaPeloGPS ? .geolocalizado : .manual, verificacao: verificaPeloGPS ? .verificado : .pendente,
-            registradoEm: registradoEm, distanciaMetros: distanciaMetros, codigoExigido: chaveLigada
+            registradoEm: registradoEm, distanciaMetros: verificaPeloGPS ? distanciaMetros : nil, codigoExigido: suspeito
         )
         checkins[turnoID] = gravado
         let registro = comCodigoDisponivel(gravado)
@@ -2415,13 +2413,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard turnos.contains(where: { $0.id == turnoID }) else { throw erro("nao_encontrado") }
         guard let checkin = checkins[turnoID] else { throw erro("checkin_pendente") }
         guard checkin.verificacao == .pendente else { throw erro("checkin_ja_confirmado") }
-        guard let distancia = checkin.distanciaMetros, distancia <= RegraDePresenca.raioDoCodigoSemiautoMetros else {
-            throw erro("checkin_pendente")
-        }
-        guard relogio.agora.timeIntervalSince(checkin.registradoEm) <= 900 else {
-            throw erro("checkin_pendente")
-        }
         guard !caminhoDoCodigoEncerrado.contains(turnoID) else { throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.encerrado.rawValue) }
+        if cenario == .checkinPorCodigoCasaEspera { throw erro("checkin_pendente") }
         let vigente = codigoEmVigor(turnoID: turnoID) ?? {
             let emitido = CodigoEmitido(
                 codigo: Self.codigosDeExemplo[codigosEmitidos % Self.codigosDeExemplo.count],
@@ -2456,7 +2449,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let ate = bloqueioTemporarioDoCodigoAte[turnoID], ate > relogio.agora {
             throw erro("codigo_bloqueado", detalhes: BloqueioDoCodigo.temporario.rawValue)
         }
-        let perto = (distanciaMetros != nil) && distanciaMetros! <= RegraDePresenca.raioDoCodigoSemiautoMetros
+        let perto = distanciaMetros.map { $0 <= RegraDePresenca.raioDoCodigoMetros } ?? true
         if let vigente = codigoEmVigor(turnoID: turnoID), vigente.codigo == codigo, perto {
             let validado = ResultadoRegistro(
                 turnoID: turnoID, tipo: .codigo, verificacao: .verificado,

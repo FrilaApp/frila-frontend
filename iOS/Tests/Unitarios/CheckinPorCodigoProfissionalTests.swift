@@ -78,14 +78,14 @@ struct CheckinPorCodigoProfissionalTests {
         #expect(!chamou)
     }
 
-    @Test("Fronteira de 50m do check-in semiautomático: 51m e nil barram envio local; 50m e 30m liberam envio")
+    @Test("Fronteira de 50m do check-in semiautomático: 51m barra com chegueMaisPerto, nil barra com semLocalizacao; 50m e 30m liberam envio")
     @MainActor
     func fronteiraDe50mSemiauto() async {
         // Teste direto da regra de domínio
         #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: 30) == .liberado)
         #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: 50) == .liberado)
         #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: 51) == .chegueMaisPerto(distanciaMetros: 51))
-        #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: nil) == .chegueMaisPerto(distanciaMetros: 0))
+        #expect(RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: nil) == .semLocalizacao)
 
         let api = ApiClienteDubleCheckinProfissional()
         var chamadas = 0
@@ -94,10 +94,10 @@ struct CheckinPorCodigoProfissionalTests {
             throw ErroDaApi(codigo: .codigoInvalido)
         }
 
-        // Teste com nil (sem GPS): não chama API
+        // Teste com nil (sem GPS): não chama API e orienta semLocalizacao sem inventar 0 m
         let vmNil = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { nil })
         await vmNil.validarMedindo(codigo: "123456")
-        #expect(vmNil.resultado == .chegueMaisPerto(distanciaMetros: 0))
+        #expect(vmNil.resultado == .semLocalizacao)
         #expect(chamadas == 0)
 
         // Teste com 51m: não chama API
@@ -110,6 +110,22 @@ struct CheckinPorCodigoProfissionalTests {
         let vm50 = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { 50 })
         await vm50.validarMedindo(codigo: "123456")
         #expect(chamadas == 1)
+    }
+
+    @Test("Sem GPS (distância nula) mostra orientação semLocalizacao e não envia código")
+    @MainActor
+    func semLocalizacaoNaoInventaZero() async {
+        let api = ApiClienteDubleCheckinProfissional()
+        var chamadas = 0
+        api.aoValidarCodigo = { _, _, _ in
+            chamadas += 1
+            throw ErroDaApi(codigo: .codigoInvalido)
+        }
+        let vm = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { nil })
+        await vm.validarMedindo(codigo: "654321")
+        #expect(vm.resultado == .semLocalizacao)
+        #expect(chamadas == 0)
+        #expect(TextosDoCheckinPorCodigo.Profissional.semLocalizacao == "Sem localização. Peça ao responsável que confirme sua chegada.")
     }
 
     @Test("Código correto dentro do raio valida com sucesso e preserva string com zero")

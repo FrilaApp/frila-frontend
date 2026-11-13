@@ -14485,6 +14485,16 @@
         }
       }
     },
+    "Sem localização. Peça ao responsável que confirme sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem localização. Peça ao responsável que confirme sua chegada."
+          }
+        }
+      }
+    },
     "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado.": {
       "localizations": {
         "pt-BR": {

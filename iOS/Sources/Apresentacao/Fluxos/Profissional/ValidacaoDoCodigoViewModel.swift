@@ -18,6 +18,8 @@ public final class ValidacaoDoCodigoViewModel {
         case enviando
         /// Acima do raio: nada foi enviado, e a tentativa continua inteira.
         case chegueMaisPerto(distanciaMetros: Int)
+        /// Sem localização: nada foi enviado; orienta a pedir confirmação ao responsável.
+        case semLocalizacao
         /// Não são 6 dígitos: nada foi enviado (o servidor também não contaria como tentativa).
         case formatoInvalido
         /// Presença verificada pelo código (`tipo: codigo`).
@@ -67,24 +69,34 @@ public final class ValidacaoDoCodigoViewModel {
         }
         resultado = .enviando
         let distancia = await medirDistancia()
-        await processar(codigo: codigo, distanciaMetros: distancia)
+        switch RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: distancia) {
+        case .semLocalizacao:
+            resultado = .semLocalizacao
+            return
+        case let .chegueMaisPerto(metros):
+            resultado = .chegueMaisPerto(distanciaMetros: metros)
+            return
+        case .liberado:
+            break
+        }
+        await enviar(codigo: codigo, distanciaMetros: distancia)
     }
 
     public func validar(codigo: String, distanciaMetros: Int?) async {
         guard resultado != .enviando else { return }
-        await processar(codigo: codigo, distanciaMetros: distanciaMetros)
-    }
-
-    private func processar(codigo: String, distanciaMetros: Int?) async {
         guard Self.formatoValido(codigo) else {
             resultado = .formatoInvalido
             return
         }
-        if case let .chegueMaisPerto(distancia) = RegraDePresenca.decisaoDoEnvioDoCodigoSemiauto(distanciaMetros: distanciaMetros) {
+        if case let .chegueMaisPerto(distancia) = RegraDePresenca.decisaoDoEnvioDoCodigo(distanciaMetros: distanciaMetros) {
             resultado = .chegueMaisPerto(distanciaMetros: distancia)
             return
         }
         resultado = .enviando
+        await enviar(codigo: codigo, distanciaMetros: distanciaMetros)
+    }
+
+    private func enviar(codigo: String, distanciaMetros: Int?) async {
         do {
             let registro = try await api.validarCodigoCheckin(turnoID: turnoID, codigo: codigo, distanciaMetros: distanciaMetros)
             resultado = .verificado(registro)

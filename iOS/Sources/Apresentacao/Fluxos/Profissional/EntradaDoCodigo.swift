@@ -115,6 +115,9 @@ public struct EntradaDoCodigo: View {
         case let .chegueMaisPerto(metros):
             AvisoFrila(verbatim: Textos.chegueMaisPerto(metros), tom: .alerta)
                 .accessibilityIdentifier("chegue-mais-perto")
+        case .semLocalizacao:
+            AvisoFrila(verbatim: Textos.semLocalizacao, tom: .alerta)
+                .accessibilityIdentifier("codigo-sem-localizacao")
         case .bloqueado(.temporario):
             AvisoFrila(verbatim: Textos.bloqueadoPorUmTempo, tom: .alerta)
                 .accessibilityIdentifier("codigo-bloqueado-temporario")

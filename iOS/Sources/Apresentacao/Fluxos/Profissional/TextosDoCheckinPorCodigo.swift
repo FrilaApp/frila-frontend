@@ -34,6 +34,10 @@ public enum TextosDoCheckinPorCodigo {
                 metros
             )
         }
+        public static let semLocalizacao = String(
+            localized: "Sem localização. Peça ao responsável que confirme sua chegada.",
+            bundle: bundleApresentacao
+        )
         public static let bloqueadoPorUmTempo = String(
             localized: "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada.",
             bundle: bundleApresentacao
