@@ -11,7 +11,8 @@ public final class CodigoDaCasaViewModel {
     public enum Estado: Equatable, Sendable {
         case carregando
         /// `409 checkin_pendente` com o check-in já feito: ele foi a mais de 50 m ou há mais de 15 min, então
-        /// não há código para este check-in. Vale a confirmação manual; nada a reler.
+        /// não há código para este check-in. Vale a confirmação manual, mas a releitura de 5 s continua: se o
+        /// profissional tocar de novo a menos de 50 m, o servidor passa a devolver o código e a tela vira `.mostrando`.
         case semCodigoParaEsteCheckin
         /// Código ativo gerado pelo servidor, preservando zeros à esquerda (ex.: "049215").
         case mostrando(codigo: String)
@@ -86,9 +87,14 @@ public final class CodigoDaCasaViewModel {
         }
     }
 
-    /// Verifica se a presença já foi confirmada pelo profissional enquanto o código está em exibição.
+    /// Releitura periódica (5 s) com o código em exibição ou com o aviso "sem código para este check-in" na tela:
+    /// detecta a confirmação do profissional (`checkin_ja_confirmado`) e o código novo de um segundo toque perto.
     public func verificarConfirmacao() async {
-        guard !Task.isCancelled, !emVoo, case .mostrando = estado else { return }
+        guard !Task.isCancelled, !emVoo else { return }
+        switch estado {
+        case .mostrando, .semCodigoParaEsteCheckin: break
+        default: return
+        }
         await executarCarregamento(ehReleitura: true)
     }
 
