@@ -1538,9 +1538,9 @@ enum ContratoAPI {
 
     /// `CodigoDeCheckin`: o código em vigor, só para a casa. Nunca vai a log.
     struct CodigoDeCheckinDTO: Decodable {
-        let turnoID: UUID
+        let turnoID: UUID?
         let codigo: String
-        let expiraEm: Date
+        let expiraEm: Date?
         let segundosRestantes: Int
 
         enum CodingKeys: String, CodingKey {
@@ -1550,8 +1550,10 @@ enum ContratoAPI {
             case segundosRestantes = "segundos_restantes"
         }
 
-        func dominio() -> CodigoDeCheckin {
-            CodigoDeCheckin(turnoID: turnoID, codigo: codigo, expiraEm: expiraEm, segundosRestantes: segundosRestantes)
+        func dominio(turnoIDFallback: UUID? = nil) -> CodigoDeCheckin {
+            let id = turnoID ?? turnoIDFallback ?? UUID()
+            let expira = expiraEm ?? Date().addingTimeInterval(TimeInterval(segundosRestantes))
+            return CodigoDeCheckin(turnoID: id, codigo: codigo, expiraEm: expira, segundosRestantes: segundosRestantes)
         }
     }
 

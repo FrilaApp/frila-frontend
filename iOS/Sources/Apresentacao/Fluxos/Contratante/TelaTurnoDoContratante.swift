@@ -105,6 +105,8 @@ enum TextosDoAcompanhamento {
 /// que é o que o aviso do push traz.
 struct TelaTurnoDoContratante: View {
     @State private var chamadaHabilitada = false
+    /// O código de chegada (0.2.68): só existe com a chave `checkin_por_codigo` ligada; sem ela, a tela é a de hoje.
+    @State private var codigoDaCasa: CodigoDaCasaViewModel?
     @State private var mostrarConfirmacaoDeSaida = false
     let viewModel: AcompanhamentoViewModel
     let turnoID: UUID
@@ -174,9 +176,15 @@ struct TelaTurnoDoContratante: View {
         .accessibilityIdentifier("turno-do-contratante")
         .task {
             guard let api else { return }
-            chamadaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
+            let recursos = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
                 try await api.configuracaoDoApp()
-            })?.recursos.chamadaDireta == true
+            })?.recursos
+            chamadaHabilitada = recursos?.chamadaDireta == true
+            if recursos?.checkinPorCodigo == true, codigoDaCasa == nil {
+                codigoDaCasa = CodigoDaCasaViewModel(turnoID: turnoID, api: api, aoConfirmar: {
+                    Task { await viewModel.atualizarEmSilencio(para: turnoID) }
+                })
+            }
         }
     }
 
@@ -382,10 +390,14 @@ struct TelaTurnoDoContratante: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
             }
+            if let codigoDaCasa {
+                CartaoDoCodigoDaCasa(viewModel: codigoDaCasa)
+            }
             if viewModel.podeConfirmar(turno) {
-                BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                BotaoSecundario(verbatim: TextosDoAcompanhamento.confirmarPresenca) {
                     Task { await viewModel.confirmarPresenca(turno) }
                 }
+                .disabled(viewModel.emAndamento.contains(turno.id))
                 .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
             }
         case .emAtraso:
