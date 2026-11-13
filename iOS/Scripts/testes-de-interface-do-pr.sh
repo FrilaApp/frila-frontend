@@ -41,7 +41,7 @@ uso() {
 # O mesmo programa serve aos dois comandos; o comando chega em $1 do Python.
 programa() {
   # shellcheck disable=SC2016  # o programa Python é de propósito um texto literal entre aspas simples
-  MAPA="$MAPA" FUMACA="$FUMACA" RAIZ="$RAIZ" python3 -I -c '
+  MAPA="$MAPA" FUMACA="$FUMACA" RAIZ="$RAIZ" REPO="$REPO" python3 -I -c '
 import fnmatch, os, re, sys
 
 comando = sys.argv[1]
@@ -143,15 +143,20 @@ def especificidade(prefixo):
     # Quanto mais caracteres fixos, mais específico: o arquivo ganha da pasta e o glob ganha da pasta dele.
     return len(prefixo.replace("*", ""))
 
+# Prefixo que começa com `.github/` é relativo à raiz do repositório; os demais, a iOS/.
+def e_da_raiz(prefixo):
+    return prefixo.startswith(".github/")
+
 def existe_no_disco(prefixo):
+    base = os.environ["REPO"] if e_da_raiz(prefixo) else raiz
     if "*" in prefixo:
-        for diretorio, _, nomes in os.walk(raiz):
+        for diretorio, _, nomes in os.walk(base):
             for nome in nomes:
-                relativo = os.path.relpath(os.path.join(diretorio, nome), raiz).replace(os.sep, "/")
+                relativo = os.path.relpath(os.path.join(diretorio, nome), base).replace(os.sep, "/")
                 if fnmatch.fnmatchcase(relativo, prefixo):
                     return True
         return False
-    caminho = os.path.join(raiz, prefixo)
+    caminho = os.path.join(base, prefixo)
     return os.path.isdir(caminho) if prefixo.endswith("/") else os.path.isfile(caminho)
 
 if comando == "conferir":
@@ -195,15 +200,15 @@ arquivos_alterados = [l.strip() for l in sys.stdin.read().splitlines() if l.stri
 escolhidas = set()
 completa = False
 for caminho in arquivos_alterados:
-    if not caminho.startswith("iOS/"):
-        print(f"  {caminho}: fora de iOS/, só a fumaça", file=sys.stderr)
-        continue
-    relativo = caminho[len("iOS/"):]
+    do_ios = caminho.startswith("iOS/")
+    relativo = caminho[len("iOS/"):] if do_ios else caminho
     motivos = []
-    if relativo in arquivos:
+    if do_ios and relativo in arquivos:
         escolhidas.update(arquivos[relativo])
         motivos.append("as classes do próprio arquivo: " + ", ".join(arquivos[relativo]) if arquivos[relativo] else "arquivo de apoio dos testes")
-    casadas = [(prefixo, destinos) for prefixo, destinos in linhas if casa(prefixo, relativo)]
+    # Caminho de iOS/ só casa com prefixo de iOS/; caminho de fora só casa com prefixo `.github/` (raiz).
+    casadas = [(prefixo, destinos) for prefixo, destinos in linhas
+               if e_da_raiz(prefixo) != do_ios and casa(prefixo, relativo)]
     if casadas:
         maior = max(especificidade(prefixo) for prefixo, _ in casadas)
         casadas = [(prefixo, destinos) for prefixo, destinos in casadas if especificidade(prefixo) == maior]
@@ -217,6 +222,8 @@ for caminho in arquivos_alterados:
                 escolhidas.add(destino)
         rotulo = ", ".join(destinos)
         motivos.append(f"{prefixo}: {rotulo}" if len(rotulo) < 90 else f"{prefixo}: {len(destinos)} destinos")
+    if not motivos and not do_ios:
+        motivos.append("fora de iOS/ e sem linha no mapa: só a fumaça")
     if not motivos:
         completa = True
         motivos.append("nenhum prefixo do mapa cobre este caminho: suíte inteira (na dúvida, tudo)")

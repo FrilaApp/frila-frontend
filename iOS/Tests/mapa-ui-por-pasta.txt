@@ -116,6 +116,19 @@ Sources/Dominio/ExclusaoDeContaPorta.swift = ExclusaoDeContaUITests
 Sources/Dominio/VerificadorDeIdade.swift = AutenticacaoUITests
 Sources/NotificationService/ = @fumaca
 
+# --- Mudança na própria CI ou na seleção de testes: mudou a seleção, roda tudo (suíte inteira).
+# Regra explícita (Prisma, 13/11/2026), não acidente: quem mexe no que escolhe ou roda os testes não pode
+# ser avaliado pelo que ele mesmo escolheria. Prefixo que começa com `.github/` é relativo à raiz do
+# repositório; os demais, a iOS/. Os arquivos de .github/ fora desta lista e de iOS/ só pedem a fumaça.
+.github/workflows/ios*.yml = @completa
+.github/workflows/testflight.yml = @completa
+.github/actions/preparar-ios/ = @completa
+Scripts/partes-dos-testes.sh = @completa
+Scripts/testes-de-interface-do-pr.sh = @completa
+Tests/fumaca-ui.txt = @completa
+Tests/mapa-ui-por-pasta.txt = @completa
+Tests/partes-da-ci.txt = @completa
+
 # --- Recursos e o resto de iOS/
 Resources/Localizable.xcstrings = @fumaca
 Resources/InfoPlist.xcstrings = @fumaca
@@ -133,8 +146,5 @@ Docs/ = @fumaca
 Scripts/ = @fumaca
 Tests/Unitarios/ = @fumaca
 Tests/Fixtures/ = @fumaca
-Tests/fumaca-ui.txt = @fumaca
-Tests/mapa-ui-por-pasta.txt = @fumaca
-Tests/partes-da-ci.txt = @fumaca
 README.md = @fumaca
 CHANGELOG.md = @fumaca

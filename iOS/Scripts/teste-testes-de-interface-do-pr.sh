@@ -16,8 +16,8 @@ trap 'rm -rf "$TMPDIR_TESTE"' EXIT
 }
 
 RAIZ="$TMPDIR_TESTE/iOS"
-mkdir -p "$RAIZ/Docs" "$RAIZ/Tests/UI" "$RAIZ/Tests/Unitarios" "$RAIZ/Sources/Fluxos/A" "$RAIZ/Sources/Fluxos/B" "$RAIZ/Sources/App" "$RAIZ/Sources/Solto"
-touch "$RAIZ/Docs/Um.md" "$RAIZ/Sources/Fluxos/A/TelaA.swift" "$RAIZ/Sources/Fluxos/A/TelaAExtra.swift" "$RAIZ/Sources/Fluxos/B/TelaB.swift" \
+mkdir -p "$TMPDIR_TESTE/.github/workflows" "$RAIZ/Docs" "$RAIZ/Tests/UI" "$RAIZ/Tests/Unitarios" "$RAIZ/Sources/Fluxos/A" "$RAIZ/Sources/Fluxos/B" "$RAIZ/Sources/App" "$RAIZ/Sources/Solto"
+touch "$TMPDIR_TESTE/.github/workflows/ios.yml" "$TMPDIR_TESTE/.github/workflows/ios-noturna.yml" "$TMPDIR_TESTE/.github/workflows/outro.yml" "$RAIZ/Docs/Um.md" "$RAIZ/Sources/Fluxos/A/TelaA.swift" "$RAIZ/Sources/Fluxos/A/TelaAExtra.swift" "$RAIZ/Sources/Fluxos/B/TelaB.swift" \
   "$RAIZ/Sources/App/App.swift" "$RAIZ/Sources/Solto/Solto.swift" "$RAIZ/project.yml" "$RAIZ/Textos.xcstrings"
 cat <<'SWIFT' > "$RAIZ/Tests/UI/AUITests.swift"
 import XCTest
@@ -73,6 +73,7 @@ Sources/Fluxos/B/*.swift = BUITests, @visual
 Textos.xcstrings = @fumaca
 Docs/ = @fumaca
 Tests/Unitarios/ = @fumaca
+.github/workflows/ios*.yml = @completa
 MAPA
 FUMACA_BOA="$TMPDIR_TESTE/fumaca.txt"
 cat <<'FUMACA' > "$FUMACA_BOA"
@@ -132,7 +133,7 @@ FUMACA_SO="-only-testing:FrilaUITests/AUITests/testA1
 esperar_escolha "doc" "$FUMACA_SO" iOS/Docs/Um.md
 esperar_escolha "unitário" "$FUMACA_SO" iOS/Tests/Unitarios/XTests.swift
 esperar_escolha "texto" "$FUMACA_SO" iOS/Textos.xcstrings
-esperar_escolha "fora de iOS" "$FUMACA_SO" .github/workflows/ios.yml
+esperar_escolha "fora de iOS" "$FUMACA_SO" .github/workflows/outro.yml docs/x.md
 esperar_escolha "diff vazio" "$FUMACA_SO"
 
 # Caso 2: pasta mapeada soma as classes; a fumaça de método some quando a classe vem inteira
@@ -163,6 +164,13 @@ esperar_escolha "Esperas" "-only-testing:FrilaUITests" iOS/Tests/UI/Esperas.swif
 esperar_escolha "caminho de Sources sem mapa" "-only-testing:FrilaUITests" iOS/Sources/Solto/Solto.swift
 esperar_escolha "completa vence o resto" "-only-testing:FrilaUITests" iOS/Docs/Um.md iOS/Sources/Solto/Solto.swift iOS/Sources/Fluxos/A/TelaA.swift
 
+# Mudança na própria CI roda a suíte inteira (regra explícita do mapa, prefixo `.github/` da raiz)
+esperar_escolha "só o ios.yml muda" "-only-testing:FrilaUITests" .github/workflows/ios.yml
+esperar_escolha "glob ios*.yml" "-only-testing:FrilaUITests" .github/workflows/ios-noturna.yml
+esperar_escolha "ios.yml junto com um documento" "-only-testing:FrilaUITests" iOS/Docs/Um.md .github/workflows/ios.yml
+# prefixo de iOS/ não casa com caminho de fora, e o de fora não casa com caminho de iOS/
+esperar_escolha "caminho de fora com nome de pasta de iOS" "$FUMACA_SO" Docs/Um.md
+
 # Caso 5: o motivo de cada arquivo vai para a saída de erro
 motivo="$(printf 'iOS/Sources/Solto/Solto.swift\n' | ESCOLHER_RAIZ="$RAIZ" ESCOLHER_MAPA="$MAPA_BOM" ESCOLHER_FUMACA="$FUMACA_BOA" "$SCRIPT" escolher --arquivos - 2>&1 >/dev/null)"
 [[ "$motivo" == *"nenhum prefixo do mapa cobre este caminho: suíte inteira"* ]] || {
@@ -187,7 +195,7 @@ saida="$(ESCOLHER_RAIZ="$RAIZ" ESCOLHER_REPO="$REPO" ESCOLHER_MAPA="$MAPA_BOM" E
 }
 
 # Caso 7: conferir
-esperar_aprovacao "conferir bom" "OK: 9 prefixos, 2 entradas de fumaça e as 5 classes de FrilaUITests cobertas." conferir
+esperar_aprovacao "conferir bom" "OK: 10 prefixos, 2 entradas de fumaça e as 5 classes de FrilaUITests cobertas." conferir
 MAPA="$TMPDIR_TESTE/m1.txt"
 sed 's#^Sources/Fluxos/A/ = AUITests#Sources/Fluxos/Z/ = AUITests#' "$MAPA_BOM" > "$MAPA"
 esperar_reprovacao "prefixo que não existe" "prefixo do mapa que não existe no disco: iOS/Sources/Fluxos/Z/" conferir
@@ -195,6 +203,8 @@ sed 's#^Sources/Fluxos/A/ = AUITests#Sources/Fluxos/A/ = ZUITests#' "$MAPA_BOM" 
 esperar_reprovacao "classe que não existe" "classe ZUITests (linha de iOS/Sources/Fluxos/A/) não existe" conferir
 sed 's#^Sources/Fluxos/A/ = AUITests#Sources/Fluxos/A/ = @nada#' "$MAPA_BOM" > "$MAPA"
 esperar_reprovacao "destino desconhecido" "destino desconhecido na linha de iOS/Sources/Fluxos/A/: @nada" conferir
+sed 's#^.github/workflows/ios\*.yml#.github/workflows/zzz*.yml#' "$MAPA_BOM" > "$MAPA"
+esperar_reprovacao "glob da raiz sem arquivo" "prefixo do mapa que não existe no disco: iOS/.github/workflows/zzz*.yml" conferir
 sed 's#^Sources/Fluxos/B/\*.swift#Sources/Fluxos/B/*.kt#' "$MAPA_BOM" > "$MAPA"
 esperar_reprovacao "glob sem arquivo" "prefixo do mapa que não existe no disco: iOS/Sources/Fluxos/B/*.kt" conferir
 sed 's#^@so-noturna = NoturnaUITests#@so-noturna = AUITests#' "$MAPA_BOM" > "$MAPA"
