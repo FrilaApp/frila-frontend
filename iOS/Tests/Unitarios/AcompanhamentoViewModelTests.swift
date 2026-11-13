@@ -1373,3 +1373,36 @@ struct AvaliacaoLiberaNoHorarioDoContratanteTests {
         #expect(vm.podeAvaliar(turno))
     }
 }
+
+@MainActor
+@Suite("Acompanhamento: leitura cancelada não é falha")
+struct AcompanhamentoLeituraCanceladaTests {
+    /// Puxar para atualizar cancela a tarefa da leitura: o erro do cancelamento chegava como falha e
+    /// a tela marcava o painel como desatualizado sem que nada tivesse falhado.
+    @Test("Leitura cancelada no meio não marca falhouAoCarregar e mantém o painel")
+    func leituraCanceladaNaoMarcaFalha() async throws {
+        let painel = try PainelDeTeste.painel()
+        let leituras = Contador()
+        let portao = Portao()
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                guard await leituras.somar() > 1 else { return painel }
+                await portao.esperar()
+                throw ErroDaApi(codigo: .desconhecido)
+            },
+            confirmar: { _ in PainelDeTeste.confirmado }, reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        #expect(viewModel.painel == painel)
+
+        let leitura = Task { await viewModel.carregar() }
+        while await leituras.valor < 2 { await Task.yield() }
+        leitura.cancel()
+        await portao.abrir()
+        await leitura.value
+
+        #expect(!viewModel.falhouAoCarregar)
+        #expect(viewModel.painel == painel)
+        #expect(!viewModel.carregando)
+    }
+}
