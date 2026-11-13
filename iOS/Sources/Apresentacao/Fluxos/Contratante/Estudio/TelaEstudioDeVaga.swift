@@ -55,7 +55,7 @@ struct TelaEstudioDeVaga: View {
             initialDraft: formulario.rascunhoInicial,
             onPublish: { _ in
                 // A vaga publicada é o momento de explicar a notificação a quem contrata (#8).
-                Task { await permissaoDePush?.oferecer() }
+                Task { await permissaoDePush?.oferecerAposPublicar() }
                 aoPublicar()
             },
             onDismiss: { aoCancelar?() },
