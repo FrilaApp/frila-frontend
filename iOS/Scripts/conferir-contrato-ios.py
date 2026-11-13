@@ -227,6 +227,16 @@ def conferir_rpcs(
     # pendentes de adoção no cliente iOS).
     RPCS_NAO_CONSUMIDAS_PELO_APP = {
         **dict.fromkeys(
+            (
+                "aceitar_convite_membro",
+                "convidar_membro",
+                "remover_membro",
+                "sair_da_equipe",
+                "transferir_administracao",
+            ),
+            "Contrato 0.2.73: múltiplos membros por estabelecimento com papéis; pendente de adoção no app iOS.",
+        ),
+        **dict.fromkeys(
             ("responder_chamada", "cancelar_chamada"),
             "Contrato 0.2.55: I5a adota somente criar chamada; resposta e cancelamento ficam para I5b.",
         ),

@@ -246,7 +246,7 @@ struct TextosDeNotificacaoTests {
         }
     }
 
-    @Test("O contrato OpenAPI (iOS/Contrato/openapi.yaml) concorda com os 28 tipos de TipoDeAviso")
+    @Test("O contrato OpenAPI (iOS/Contrato/openapi.yaml) concorda com os 30 tipos de TipoDeAviso")
     func tiposConcordamComContratoOpenAPI() throws {
         let conteudo = try String(contentsOf: Self.caminhoDoContrato, encoding: .utf8)
         let regex = try Regex(#"TipoNotificacao:[\s\S]*?enum:\s*\[([\s\S]*?)\]"#)
@@ -261,9 +261,9 @@ struct TextosDeNotificacaoTests {
                 .filter { !$0.isEmpty }
         )
 
-        let tiposNoCodigo = Set(Self.tiposBase.map(\.rawValue))
+        let tiposNoCodigo = Set(TipoDeAviso.allCases.map(\.rawValue))
 
-        #expect(tiposOpenAPI.count == 28, "O contrato OpenAPI deve conter exatamente 28 tipos em TipoNotificacao")
+        #expect(tiposOpenAPI.count == 30, "O contrato OpenAPI deve conter exatamente 30 tipos em TipoNotificacao")
         #expect(tiposOpenAPI == tiposNoCodigo, "Divergência entre TipoNotificacao do openapi.yaml e TipoDeAviso do código")
     }
 
