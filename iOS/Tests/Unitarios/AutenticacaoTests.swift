@@ -113,13 +113,43 @@ struct AutenticacaoTests {
 
     @Test("CodigoViewModel rejeita código expirado com mensagem própria")
     func codigoExpirado() async {
+        // Mudou de propósito: antes o cenário `codigoExpirado` bastava; agora "expirado" exige passar a validade (10 min).
+        let relogio = RelogioDeAutenticacao()
         let api = ApiClienteEmMemoria(cenario: .codigoExpirado)
-        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app", relogio: relogio)
         vm.codigo = "999999"
+        relogio.avancar(CodigoViewModel.validadeDoCodigo)
 
         let destino = await vm.confirmarCodigo()
         #expect(destino == nil)
         #expect(vm.erro == "Código expirado. Peça um novo código para continuar.")
+    }
+
+    @Test("CodigoViewModel: um segundo antes da validade ainda é código incorreto")
+    func otpExpiredNaBordaDaValidade() async {
+        let relogio = RelogioDeAutenticacao()
+        let api = ApiClienteEmMemoria(cenario: .codigoExpirado)
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app", relogio: relogio)
+        vm.codigo = "999999"
+        relogio.avancar(CodigoViewModel.validadeDoCodigo - 1)
+
+        _ = await vm.confirmarCodigo()
+        #expect(vm.erro == "Código incorreto. Confira os números e tente novamente.")
+    }
+
+    @Test("CodigoViewModel: o reenvio recomeça a contagem da validade")
+    func reenvioRecomecaAValidade() async {
+        let relogio = RelogioDeAutenticacao()
+        let api = ApiClienteEmMemoria(cenario: .codigoExpirado)
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app", relogio: relogio)
+        relogio.avancar(CodigoViewModel.validadeDoCodigo + 60)
+        vm.segundosRestantes = 0
+        await vm.reenviarCodigo()
+        relogio.avancar(30)
+        vm.codigo = "999999"
+
+        _ = await vm.confirmarCodigo()
+        #expect(vm.erro == "Código incorreto. Confira os números e tente novamente.")
     }
 
     @Test("CodigoViewModel: usuário novo (primeiro acesso) é direcionado para cadastro")
@@ -988,4 +1018,11 @@ private final class ApiQueNaoResponde: ApiClienteEncaminhador, @unchecked Sendab
         try await esperarParaSempre()
         return try await base.minhaConta()
     }
+}
+
+/// Relógio que o teste move à mão.
+private final class RelogioDeAutenticacao: Relogio, @unchecked Sendable {
+    private var instante = Date(timeIntervalSince1970: 1_790_000_000)
+    var agora: Date { instante }
+    func avancar(_ segundos: TimeInterval) { instante = instante.addingTimeInterval(segundos) }
 }
