@@ -161,6 +161,24 @@ struct CadastroEstabelecimentoTests {
         #expect(vm.regiaoAdministrativa.isEmpty, "Quando o endereço não traz RA conhecida, deve deixar vazio")
     }
 
+    @Test("Selecionar endereço não repete o nome quando o título do MapKit já começa por ele")
+    func enderecoSemNomeRepetido() {
+        let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
+        let coord = CLLocationCoordinate2D(latitude: -15.83, longitude: -48.02)
+
+        // O MapKit devolve `title` começando pelo `name` ("S1, Gama, DF" para o item "S1").
+        let repetido = MKMapItem(placemark: PlacemarkComTitulo(coordinate: coord, titulo: "S1, Gama, DF"))
+        repetido.name = "S1"
+        vm.selecionar(repetido)
+        #expect(vm.endereco == "S1, Gama, DF")
+
+        // Nome que não está no título (estabelecimento): continua na frente.
+        let estabelecimento = MKMapItem(placemark: PlacemarkComTitulo(coordinate: coord, titulo: "QNN 12, Ceilândia, DF"))
+        estabelecimento.name = "Padaria Central"
+        vm.selecionar(estabelecimento)
+        #expect(vm.endereco == "Padaria Central, QNN 12, Ceilândia, DF")
+    }
+
     @Test("Selecionar um segundo endereço atualiza o ponto e o alvo da câmera")
     func cameraAcompanhaNovaSelecao() {
         let vm = CadastroEstabelecimentoViewModel { _ in throw ErroDaApi(codigo: .desconhecido) }
@@ -376,4 +394,18 @@ struct CadastroEstabelecimentoTests {
 private actor Enviados {
     private(set) var todos: [CadastroEstabelecimento] = []
     func guardar(_ cadastro: CadastroEstabelecimento) { todos.append(cadastro) }
+}
+
+/// `MKPlacemark` com o `title` que o MapKit montaria (o dele depende do geocodificador).
+private final class PlacemarkComTitulo: MKPlacemark, @unchecked Sendable {
+    private let tituloFixo: String
+    init(coordinate: CLLocationCoordinate2D, titulo: String) {
+        tituloFixo = titulo
+        super.init(coordinate: coordinate)
+    }
+    required init?(coder: NSCoder) {
+        tituloFixo = ""
+        super.init(coder: coder)
+    }
+    override var title: String? { tituloFixo }
 }
