@@ -1,0 +1,134 @@
+# Mapa de caminho para testes de interface do PR (Scripts/testes-de-interface-do-pr.sh).
+#
+# `prefixo = destino, destino, ...` (caminho relativo a iOS/). Prefixo com `/` no fim = a pasta; sem `/` = o
+# arquivo; com `*` = glob (`*` vale por qualquer trecho, inclusive `/`). Um arquivo alterado casa com as linhas
+# cujo prefixo o cobre e vale a mais específica (a de mais caracteres fixos: o arquivo ou o glob ganha da pasta
+# dele; empate soma os destinos). Para um arquivo ter mais que o marcador da pasta, repita o marcador na linha
+# específica. Destinos:
+#   Classe       classe de interface do alvo FrilaUITests (roda inteira)
+#   @visual      o marcador abaixo (acessibilidade, captura e conferência visual)
+#   @fumaca      nada além da fumaça (Tests/fumaca-ui.txt): os unitários e o conferir-textos cobrem
+#   @completa    a suíte inteira de interface (FrilaUITests)
+# Caminho de iOS/Sources (ou de qualquer outra pasta de iOS/ que muda o app) que NENHUMA linha cobre
+# vai para a suíte inteira: na dúvida, tudo. Arquivo de iOS/Tests/UI/X.swift alterado roda as classes
+# dele, sem precisar de linha aqui.
+#
+# O `conferir` reprova prefixo que não existe no disco, classe que não existe, e classe de interface
+# que não está em nenhum destino, no marcador @visual, na fumaça nem em @so-noturna.
+
+# Marcadores (definições; não são destinos de linha)
+@visual = AcessibilidadeDoContratanteUITests, AcessibilidadeDoProfissionalUITests, AuditoriaDeAcessibilidadeUITests, AparenciaUITests, CapturasDesignD01UITests, CapturasPeleNovaUITests, ConferenciaVisualLote1e4UITests
+# Classes que só a suíte completa (noturna e TestFlight) roda, sem prefixo que as chame:
+# ajuda do próprio alvo de teste e cálculo puro do alvo.
+@so-noturna = AjudanteDeLancamentoUITestsInternos, TrazerParaATelaCalculoTests
+
+# --- Suíte inteira: o que muda o app inteiro
+Sources/App/ = @completa
+project.yml = @completa
+Package.resolved = @completa
+Tests/UI/Esperas.swift = @completa
+Tests/UI/AjudanteDeLancamentoUITests.swift = @completa
+
+# --- Fluxos
+Sources/Apresentacao/Fluxos/Autenticacao/ = AutenticacaoUITests, FrilaUITests, SaidaDaContaUITests, CadastroEstabelecimentoUITests, FluxoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Cancelamento/ = CancelamentoDoContratanteUITests, CancelamentoDoProfissionalUITests, FrilaUITestsLote4
+Sources/Apresentacao/Fluxos/ChamadaDireta/ = ChamadaDiretaCompletaUITests, EquipeDeConfiancaUITests, VarreduraFinal11UITests
+Sources/Apresentacao/Fluxos/Confianca/ = SegurancaUITests
+Sources/Apresentacao/Fluxos/Conta/ = ContaSuspensaUITests, ExclusaoDeContaUITests, SaidaDaContaUITests
+# Contratante: o que não casa com uma linha mais específica abaixo cai neste conjunto largo.
+Sources/Apresentacao/Fluxos/Contratante/ = CadastroEstabelecimentoUITests, FluxoDoContratanteUITests, MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, TurnoDoContratanteUITests, ModoSelecaoDoContratanteUITests, CheckinPorCodigoUITests, TurnoContrato0231UITests, VagaEncerradaTrabalhadaUITests, CicloDePontaAPontaUITests, ChamadaDiretaCompletaUITests, ContatoCopiavelUITests, CancelamentoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Contratante/FluxoDoContratante.swift = CadastroEstabelecimentoUITests, FluxoDoContratanteUITests, MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, TurnoDoContratanteUITests, ModoSelecaoDoContratanteUITests, CheckinPorCodigoUITests, TurnoContrato0231UITests, VagaEncerradaTrabalhadaUITests, CicloDePontaAPontaUITests, ChamadaDiretaCompletaUITests, ContatoCopiavelUITests, CancelamentoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Contratante/RoteadorDoContratante.swift = CadastroEstabelecimentoUITests, FluxoDoContratanteUITests, MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, TurnoDoContratanteUITests, ModoSelecaoDoContratanteUITests, CheckinPorCodigoUITests, TurnoContrato0231UITests, VagaEncerradaTrabalhadaUITests, CicloDePontaAPontaUITests, ChamadaDiretaCompletaUITests, ContatoCopiavelUITests, CancelamentoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Contratante/CadastroEstabelecimento.swift = CadastroEstabelecimentoUITests, FluxoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Contratante/AvisoForaDoDF.swift = CadastroEstabelecimentoUITests, FluxoDoContratanteUITests, PublicarVagaEmMinhasVagasUITests
+Sources/Apresentacao/Fluxos/Contratante/CandidatosDaVaga.swift = ModoSelecaoDoContratanteUITests, CicloDePontaAPontaUITests
+Sources/Apresentacao/Fluxos/Contratante/Acompanhamento*.swift = TurnoDoContratanteUITests, CheckinPorCodigoUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests
+Sources/Apresentacao/Fluxos/Contratante/TelaTurnoDoContratante.swift = TurnoDoContratanteUITests, CheckinPorCodigoUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests
+Sources/Apresentacao/Fluxos/Contratante/*CodigoDaCasa*.swift = CheckinPorCodigoUITests, TurnoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Contratante/TextosDoCheckinPorCodigoCasa.swift = CheckinPorCodigoUITests, TurnoDoContratanteUITests
+Sources/Apresentacao/Fluxos/Contratante/Estudio/ = PublicarVagaEmMinhasVagasUITests, MinhasVagasUITests, CicloDePontaAPontaUITests, RepublicarVagaUITests
+Sources/Apresentacao/Fluxos/Contratante/PublicarVaga*.swift = PublicarVagaEmMinhasVagasUITests, CicloDePontaAPontaUITests, MinhasVagasUITests
+Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift = MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, CancelamentoDoContratanteUITests, VagaEncerradaTrabalhadaUITests
+Sources/Apresentacao/Fluxos/Contratante/RepublicarVaga.swift = RepublicarVagaUITests, MinhasVagasUITests
+Sources/Apresentacao/Fluxos/Contratante/RepublicarPosicoesRestantes.swift = RepublicarPosicoesRestantesUITests, MinhasVagasUITests
+Sources/Apresentacao/Fluxos/Equipe/ = EquipeDeConfiancaUITests, VarreduraFinal11UITests, ChamadaDiretaCompletaUITests
+Sources/Apresentacao/Fluxos/Perfil/ = PerfilUITests, FotoDePerfilUITests, ExportarDadosUITests, HistoricoDeTurnosUITests, PorQueReceboVagasUITests, ContatoCopiavelUITests, AparenciaUITests, ReputacaoDosPerfisPublicosUITests
+# Profissional: o que não casa com uma linha mais específica abaixo cai neste conjunto largo.
+Sources/Apresentacao/Fluxos/Profissional/ = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
+Sources/Apresentacao/Fluxos/Profissional/FluxoDoProfissional.swift = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
+Sources/Apresentacao/Fluxos/Profissional/CacheDeLeituras.swift = VagasUITests, ServidorDeHojeUITests, ModoAviaoUITests, PerfilUITests, ServicosDoProfissionalUITests
+Sources/Apresentacao/Fluxos/Profissional/*Presenca* = PresencaUITests, CheckinPorCodigoUITests, ModoAviaoUITests, CicloDePontaAPontaUITests, ServidorDeHojeUITests
+Sources/Apresentacao/Fluxos/Profissional/*Codigo* = CheckinPorCodigoUITests, PresencaUITests, CicloDePontaAPontaUITests
+Sources/Apresentacao/Fluxos/Profissional/*Candidatura* = CandidaturaUITests, ModoSelecaoDoProfissionalUITests, CicloDePontaAPontaUITests, VagasUITests
+Sources/Apresentacao/Fluxos/Profissional/*DetalheVaga* = VagasUITests, CandidaturaUITests, DetalheVagaBarraInferiorUITests, PlacaDaVagaUITests, VagaEncerradaTrabalhadaUITests
+Sources/Apresentacao/Fluxos/Profissional/*Vagas* = VagasUITests, PlacaDaVagaUITests, FrilaUITests
+Sources/Apresentacao/Fluxos/Profissional/FormatoDataVaga.swift = VagasUITests, PlacaDaVagaUITests
+Sources/Apresentacao/Fluxos/Profissional/HorariosDaSemana.swift = VagasUITests, ServicosDoProfissionalUITests
+Sources/Apresentacao/Fluxos/Profissional/*MeusTurnos* = ServidorDeHojeUITests, ModoAviaoUITests, TurnoContrato0231UITests, CancelamentoDoProfissionalUITests, AvaliacaoUITests
+Sources/Apresentacao/Fluxos/Profissional/*MeuTurno* = ServidorDeHojeUITests, ModoAviaoUITests, TurnoContrato0231UITests, CancelamentoDoProfissionalUITests, AvaliacaoUITests
+Sources/Apresentacao/Fluxos/Profissional/*Avaliacao* = AvaliacaoUITests
+Sources/Apresentacao/Fluxos/Profissional/*Perfil* = PerfilUITests, ServicosDoProfissionalUITests, FrilaUITests
+Sources/Apresentacao/Fluxos/Profissional/*Servicos* = ServicosDoProfissionalUITests, PerfilUITests
+Sources/Apresentacao/Fluxos/Profissional/*Apresentacao* = PerfilUITests, FrilaUITests
+Sources/Apresentacao/Fluxos/Profissional/SelecaoDeFuncoes.swift = ServicosDoProfissionalUITests, FrilaUITests
+Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
+Sources/Apresentacao/Fluxos/Push/ = PushUITests, PermissaoDePushUITests, NotificacaoDePushUITests
+Sources/Apresentacao/Fluxos/Suporte/ = SuporteTurnoUITests
+
+# --- Design system e arquivos soltos de Apresentacao
+Sources/Apresentacao/DesignSystem/ = @visual
+Sources/Apresentacao/DesignSystem/CatalogoDesignSystem.swift = AcessibilidadeDoCatalogoUITests
+Sources/Apresentacao/DesignSystem/Componentes/FrilaSearchBar.swift = FrilaSearchBarUITests
+Sources/Apresentacao/DesignSystem/Componentes/FrilaSearchCapsule.swift = FrilaSearchBarUITests
+Sources/Apresentacao/DesignSystem/Componentes/FrilaProposalBar.swift = BarraAceitarTurnoUITests, DetalheVagaBarraInferiorUITests
+Sources/Apresentacao/DesignSystem/Componentes/FrilaMapaComAcao.swift = PresencaUITests, ModoAviaoUITests, CheckinPorCodigoUITests
+Sources/Apresentacao/DesignSystem/Componentes/FrilaOpportunityCard.swift = PlacaDaVagaUITests, VagasUITests
+Sources/Apresentacao/AnunciosDeAcessibilidade.swift = @visual
+Sources/Apresentacao/CampoMascara.swift = AutenticacaoUITests, CadastroEstabelecimentoUITests
+Sources/Apresentacao/MedicaoDeAbertura.swift = MedicaoUITests
+Sources/Apresentacao/PreferenciaDeAparencia.swift = AparenciaUITests
+Sources/Apresentacao/TelaLicencas.swift = LicencasUITests
+Sources/Apresentacao/DebugDesign/ = @fumaca
+
+# --- Dados, domínio e o que não entra na interface do Frila-Local
+Sources/Dados/ApiClienteEmMemoria.swift = @fumaca
+Sources/Dados/SupabaseApiCliente.swift = @fumaca
+Sources/Dados/EnviadorDeMidiaHTTP.swift = @fumaca
+Sources/Dados/FotoDePerfilSimulada.swift = FotoDePerfilUITests
+Sources/Dados/LeitorDeLocalizacaoSimulado.swift = PresencaUITests, CheckinPorCodigoUITests
+Sources/Dados/PermissaoDePushSimulada.swift = PermissaoDePushUITests, PushUITests
+Sources/Dados/VerificadorDeIdadeSimulado.swift = AutenticacaoUITests
+Sources/Dominio/AvisoDePush.swift = PushUITests, NotificacaoDePushUITests
+Sources/Dominio/CanalDePush.swift = PushUITests, NotificacaoDePushUITests
+Sources/Dominio/PermissaoDePush.swift = PermissaoDePushUITests, PushUITests
+Sources/Dominio/VinculoDoPush.swift = PushUITests, NotificacaoDePushUITests
+Sources/Dominio/Localizacao.swift = PresencaUITests, CheckinPorCodigoUITests, ModoAviaoUITests, CicloDePontaAPontaUITests, TurnoDoContratanteUITests
+Sources/Dominio/ExportacaoDeTurnos.swift = ExportarDadosUITests
+Sources/Dominio/FotoDePerfilNoAparelho.swift = FotoDePerfilUITests
+Sources/Dominio/MedicaoDeDesempenho.swift = MedicaoUITests
+Sources/Dominio/ExclusaoDeContaPorta.swift = ExclusaoDeContaUITests
+Sources/Dominio/VerificadorDeIdade.swift = AutenticacaoUITests
+Sources/NotificationService/ = @fumaca
+
+# --- Recursos e o resto de iOS/
+Resources/Localizable.xcstrings = @fumaca
+Resources/InfoPlist.xcstrings = @fumaca
+Resources/Fixtures/contract-version.json = @fumaca
+Resources/Licencas.json = LicencasUITests
+Resources/DesignSystem.xcassets/ = @visual
+Resources/App.xcassets/ = @fumaca
+Resources/AppIcon.icon/ = @fumaca
+Resources/Fonts/ = @visual
+Resources/Firebase/ = @fumaca
+Resources/Frameworks/ = @fumaca
+Resources/NotificationService/ = @fumaca
+Contrato/ = @fumaca
+Docs/ = @fumaca
+Scripts/ = @fumaca
+Tests/Unitarios/ = @fumaca
+Tests/Fixtures/ = @fumaca
+Tests/fumaca-ui.txt = @fumaca
+Tests/mapa-ui-por-pasta.txt = @fumaca
+Tests/partes-da-ci.txt = @fumaca
+README.md = @fumaca
+CHANGELOG.md = @fumaca
