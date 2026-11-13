@@ -91,6 +91,12 @@ Sources/Apresentacao/TelaLicencas.swift = LicencasUITests
 Sources/Apresentacao/DebugDesign/ = @fumaca
 
 # --- Dados, domínio e o que não entra na interface do Frila-Local
+# Decisão de cobertura do Prisma (13/11/2026): Sources/Dados/ e Sources/Dominio/ ficam só com a fumaça
+# quando nenhuma linha mais específica abaixo os cobre. Os testes de interface rodam contra o dublê em
+# memória (Frila-Local), e os unitários (job A, sempre inteiros) e a noturna cobrem o resto. As linhas por
+# arquivo abaixo continuam valendo: o arquivo mais específico ganha da pasta.
+Sources/Dados/ = @fumaca
+Sources/Dominio/ = @fumaca
 Sources/Dados/ApiClienteEmMemoria.swift = @fumaca
 Sources/Dados/SupabaseApiCliente.swift = @fumaca
 Sources/Dados/EnviadorDeMidiaHTTP.swift = @fumaca
