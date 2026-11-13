@@ -99,6 +99,18 @@ struct AutenticacaoTests {
         #expect(vm.erro == "Código incorreto. Confira os números e tente novamente.")
     }
 
+    @Test("CodigoViewModel: 403 otp_expired logo depois de pedir o código é código errado, não expirado")
+    func otpExpiredDentroDaValidadeMostraIncorreto() async {
+        // O GoTrue devolve `otp_expired` para o código errado E para o vencido. Recém-pedido, só pode ser o errado.
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+        vm.codigo = "999999"
+
+        let destino = await vm.confirmarCodigo()
+        #expect(destino == nil)
+        #expect(vm.erro == "Código incorreto. Confira os números e tente novamente.")
+    }
+
     @Test("CodigoViewModel rejeita código expirado com mensagem própria")
     func codigoExpirado() async {
         let api = ApiClienteEmMemoria(cenario: .codigoExpirado)
