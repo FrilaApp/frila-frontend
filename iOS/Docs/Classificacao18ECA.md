@@ -139,7 +139,7 @@ para plataformas de trabalho, verificação por documento ou prova de vida passa
 Texto em `PaginaPublica/termos.md`, seção 3 ("Classificação indicativa: 18 anos" e "Como a
 idade é verificada").
 
-### 4.4 Recrutamento do piloto
+### 4.4 Recrutamento
 
 > O Frila é exclusivo para maiores de 18 anos. Menores de 18 anos não podem criar conta, aceitar
 > turnos nem prestar serviços pelo Frila (Constituição, art. 7º, XXXIII; CLT, arts. 404 e 405;

@@ -5,7 +5,7 @@ Documento oficial de referência técnica, arquitetura e passo a passo operacion
 - **Versão:** 1.0
 - **Data:** 2026-10-19
 - **Autor institucional:** Steve Rogers (Capitão América do Frila)
-- **Revisão e aprovação:** Nick Fury
+- **Revisão:** independente e sem trava (outra pessoa do time ou um agente em contexto limpo); quem mescla é o dono do PR (`AGENTS.md`)
 - **Repositório de trabalho:** `FrilaApp/frila-frontend` (`iOS/`)
 - **Branch base:** `origin/main`
 
@@ -321,7 +321,7 @@ Onde o protótipo do Fabrício divergiu de regras de negócio, acessibilidade ou
 | **DP-02** | Shaders de Liquid Glass | Efeitos complexos de refração e especularidade baseados em Metal shaders para iOS 26+. | O projeto real possui **Deployment Target iOS 17.0** (`project.yml:5`). Shaders exclusivos do iOS 26 causam quebra ou falha silenciosa no iOS 17 e 18. | **Decisão Pendente:** Usar materiais nativos do SwiftUI (`.regularMaterial`, `.thinMaterial`) como fallback seguro para iOS 17+. |
 | **DP-03** | Múltiplos Paradigmas Tipográficos | Uso de New York (serifa editorial), SF Mono (arquival) e SF Pro em 4 ou 5 paradigmas alternados. | Decisão do time de 14/10/2026 (Nick Fury, a pedido do Cauê; não consta em outro documento do repositório): **Tema Neutro**. 100% da interface, números e dinheiro em SF Pro; Bricolage Grotesque exclusivamente no formulário de publicar vaga. Proibido itálico. | **Decisão Pendente:** Padronizar todas as telas em SF Pro nativo com Dynamic Type, mantendo Bricolage Grotesque apenas nas perguntas de publicação. |
 | **DP-04** | Vocabulário e Termos em Inglês | Termos como *gig*, *shift*, *marketplace*, *escrow*, *creator profile*, *budget*, *seniority*. | `GuiaDeVoz.md:23-30`: Proibição estrita de estrangeirismos desnecessários. Vocabulário oficial em pt-BR (*vaga*, *turno*, *posição*, *estabelecimento*). | **Decisão Pendente:** Adequar todos os componentes para o vocabulário oficial em português do Brasil aprovado no Guia de Voz. |
-| **DP-05** | Escopo de Telas além do MVP | Telas de portfólio de criadores (`CreatorProfileHero`), testes de estúdio (`StudioExperiment`) e histograma de orçamento. | `05-ESCOPO-DO-MVP.md:30-55`: A v1.0 cobre exclusivamente o ciclo de turnos avulsos presenciais em bares, restaurantes e eventos no DF. | **Decisão Pendente:** Telas de criadores e estúdios ficam fora do binário da v1.0 (não implementar nos fluxos de produção). |
+| **DP-05** | Escopo de Telas além do MVP | Telas de portfólio de criadores (`CreatorProfileHero`), testes de estúdio (`StudioExperiment`) e histograma de orçamento. | `05-ESCOPO-DO-MVP.md:30-55`: A v1.0 cobre exclusivamente o ciclo de turnos avulsos presenciais em bares, restaurantes e eventos no DF. | **Decisão:** telas de criadores e estúdios não fazem parte do Frila de hoje (`frila-documentacao/produto/AGORA.md`); não implementar nos fluxos de produção. |
 | **DP-06** | Custódia Financeira (Escrow) | Selo e badges de "Escrow Verified" sugerindo retenção de fundos pelo app. | O Frila v1.0 não processa pagamentos nem retém valores financeiros em custódia (RN09). | **Decisão Pendente:** Substituir qualquer alusão a custódia/escrow por confirmação de presença e reputação verificada pós-turno. |
 
 ---
@@ -385,7 +385,7 @@ O fluxo de código na org `FrilaApp` é protegido para garantir a estabilidade d
    `git fetch origin && git switch -c feat/design-<sua-feature> origin/main`
 2. **Commits Atômicos:** Mensagens de commit em português do Brasil, claras e descrevendo o que mudou e por quê.
 3. **Pull Request:** O trabalho deve ser submetido exclusivamente via Pull Request apontando para a branch `main` de `FrilaApp/frila-frontend`.
-4. **Quem Revisa:** O **Nick Fury** audita o código e faz o merge final. O **Loki** realiza a verificação de QA e acessibilidade no simulador. Nunca faça merge do seu próprio PR.
+4. **Quem Revisa:** peça uma revisão independente (outra pessoa do time ou um agente em contexto limpo que não escreveu o código). Revisão é conselho, não trava: quem mescla é o dono do PR (`AGENTS.md`).
 5. **Segredos e Credenciais:** Nunca inclua chaves, tokens, e-mails reais ou senhas no código ou em documentos. O arquivo `Configurations/Secrets.xcconfig` é ignorado pelo Git e nunca deve ser versionado.
 
 ---
@@ -504,7 +504,7 @@ Aplique os novos componentes e estilos tela a tela, respeitando os ViewModels ex
 
 ## 8. Checklist de entrega
 
-Antes de submeter seu Pull Request para revisão do Nick Fury, confirme que todos os itens abaixo estão cumpridos:
+Antes de abrir o seu Pull Request, confirme que todos os itens abaixo estão cumpridos:
 
 - [ ] **Apenas camada de Apresentação:** Nenhuma modificação foi feita em `iOS/Sources/Dominio/`, `iOS/Sources/Dados/`, `iOS/Sources/Infraestrutura/`, `iOS/Sources/App/FrilaApp.swift` ou `iOS/Contrato/`.
 - [ ] **Zero cores literais:** Nenhuma chamada a `.red`, `.blue`, `Color(red:...)` ou `UIColor` fora de `DesignTokens.swift`.
@@ -515,7 +515,7 @@ Antes de submeter seu Pull Request para revisão do Nick Fury, confirme que todo
 - [ ] **Sem a palavra "comissão":** Textos e interfaces respeitam o Guia de Voz e não contêm a palavra "comissão".
 - [ ] **Vocabulário oficial em pt-BR:** Termos padronizados (*vaga*, *turno*, *posição*, *estabelecimento*, *profissional*, *comparecimento*).
 - [ ] **`./Scripts/conferir-textos.sh` aprovado:** Script executado localmente sem acusar falhas de strings ou tokens.
-- [ ] **`xcodebuild test` aprovado:** Suíte completa do esquema `Frila-Local` passando 100% verde.
+- [ ] **Testes das telas tocadas aprovados:** `xcodebuild test-without-building -scheme Frila-Local -only-testing:<Suíte/Teste>` verde local (a suíte inteira roda na CI, não local).
 - [ ] **Sem arquivos espúrios:** O arquivo `Frila.xcodeproj`, arquivos `.DS_Store` ou arquivos de `build/DerivedData` não estão no stage do Git (`git status`).
 
 ---
@@ -525,11 +525,11 @@ Antes de submeter seu Pull Request para revisão do Nick Fury, confirme que todo
 Se encontrar uma inconsistência técnica, falha de compilação ou dúvida de regra de negócio que impeça o avanço do trabalho:
 
 1. **A quem perguntar:**
-   - Reporte diretamente ao **Nick Fury** (diretor técnico do projeto e responsável pela arquitetura e merges).
+   - Pergunte no PR ou a um sócio dev (Cauê, Jota ou Matheus).
 2. **O que levar na mensagem de bloqueio:**
    - **Arquivo e Linha:** Caminho exato onde ocorreu a dúvida ou falha (ex.: `iOS/Sources/Apresentacao/Fluxos/Profissional/TelaDetalheVaga.swift:142`).
    - **Comando Executado:** A linha de comando completa que resultou no erro (ex.: `./Scripts/conferir-textos.sh` ou comando do `xcodebuild`).
    - **Mensagem de Erro Real:** O trecho exato do log do compilador ou script (sem parafrasear).
    - **Dilema ou Hipótese:** Explique de forma concisa qual o conflito (ex.: *"O design prevê campo de texto livre para endereço, mas o contrato da API exige coordenada geográfica obrigatória e região administrativa separada"*).
 3. **Não decida em silêncio:**
-   - Em caso de divergência entre o design e o contrato da API ou regras de segurança/acessibilidade, **nunca invente campos na API e nunca ignore testes vigentes**. Registre o item na tabela de decisões pendentes e consulte o Nick Fury antes de prosseguir.
+   - Em caso de divergência entre o design e o contrato da API ou regras de segurança/acessibilidade, **nunca invente campos na API e nunca ignore testes vigentes**. Registre o item na tabela de decisões pendentes e pergunte a um sócio dev antes de prosseguir.
