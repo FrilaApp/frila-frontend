@@ -122,6 +122,11 @@ fun TelaPerfil(
     /** Cadastrar estabelecimento (RF02): nulo esconde o atalho, que só existe para contratante que ainda não tem casa. */
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     /**
+     * Mantém os atalhos da casa quando o endpoint de perfil profissional recusa a conta contratante.
+     * O erro e a tentativa novamente continuam visíveis; esta flag nunca transforma falha em sucesso.
+     */
+    manterAtalhosDeContratanteNoErro: Boolean = false,
+    /**
      * Trava do selo (RN14): desligada por padrão até a moderação e os termos serem validados pelos
      * sócios. Desligada, badge e convite não aparecem, qualquer que seja o estado recebido.
      */
@@ -214,6 +219,9 @@ fun TelaPerfil(
                 mensagem = estado.mensagemErro,
                 aoTentarNovamente = viewModel::carregar,
                 paddingValues = paddingInterno,
+                aoAbrirEquipe = aoAbrirEquipe.takeIf { manterAtalhosDeContratanteNoErro },
+                aoPublicarVaga = aoPublicarVaga.takeIf { manterAtalhosDeContratanteNoErro },
+                aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
             )
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                 fotoLocalPath = estado.fotoLocalPath,
@@ -1170,6 +1178,9 @@ private fun Erro(
     mensagem: String?,
     aoTentarNovamente: () -> Unit,
     paddingValues: PaddingValues,
+    aoAbrirEquipe: (() -> Unit)? = null,
+    aoPublicarVaga: (() -> Unit)? = null,
+    aoMinhasVagas: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(paddingValues).padding(FrilaEspacamento.grande),
@@ -1187,5 +1198,26 @@ private fun Erro(
             },
         )
         BotaoSecundario(texto = "Tentar novamente", aoClicar = aoTentarNovamente)
+        if (aoAbrirEquipe != null) {
+            BotaoSecundario(
+                texto = "Equipe de confiança",
+                aoClicar = aoAbrirEquipe,
+                modifier = Modifier.fillMaxWidth().testTag("perfil-equipe"),
+            )
+        }
+        if (aoMinhasVagas != null) {
+            BotaoSecundario(
+                texto = "Minhas vagas",
+                aoClicar = aoMinhasVagas,
+                modifier = Modifier.fillMaxWidth().testTag("perfil-minhas-vagas"),
+            )
+        }
+        if (aoPublicarVaga != null) {
+            BotaoSecundario(
+                texto = "Publicar vaga",
+                aoClicar = aoPublicarVaga,
+                modifier = Modifier.fillMaxWidth().testTag("perfil-publicar-vaga"),
+            )
+        }
     }
 }

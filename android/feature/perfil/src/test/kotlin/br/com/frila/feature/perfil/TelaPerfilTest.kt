@@ -230,6 +230,68 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun erroMantemAtalhosDeContratanteQuandoPermitido() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"perfil_incompativel","message":"perfil_incompativel"}""",
+                statusHttp = HttpStatusCode.UnprocessableEntity,
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText(viewModel.estado.value.mensagemErro!!).assertIsDisplayed()
+            rule.onNodeWithText("Tentar novamente").assertIsDisplayed()
+            rule.onNodeWithText("Equipe de confiança").assertIsDisplayed()
+            rule.onNodeWithText("Minhas vagas").assertIsDisplayed()
+            rule.onNodeWithText("Publicar vaga").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun erroEscondeAtalhosDeContratanteQuandoNaoPermitido() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"perfil_incompativel","message":"perfil_incompativel"}""",
+                statusHttp = HttpStatusCode.UnprocessableEntity,
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = false,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText(viewModel.estado.value.mensagemErro!!).assertIsDisplayed()
+            rule.onNodeWithText("Tentar novamente").assertIsDisplayed()
+            rule.onAllNodesWithText("Equipe de confiança").assertCountEquals(0)
+            rule.onAllNodesWithText("Minhas vagas").assertCountEquals(0)
+            rule.onAllNodesWithText("Publicar vaga").assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun blocoDeRemuneracoesExibeValoresFormatadosComSemanticaDeCabecalho() {
         runBlocking {
             val turnosJson = "[" + listOf(
