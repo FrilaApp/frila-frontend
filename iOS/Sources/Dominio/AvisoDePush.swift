@@ -34,6 +34,10 @@ public enum TipoDeAviso: String, CaseIterable, Sendable {
     case midiaRecusada = "midia_recusada"
     /// 0.2.62: presença no turno não confirmada dentro do prazo (RN15, RN22). Leva `turno_id`.
     case turnoNaoVerificado = "turno_nao_verificado"
+    /// 0.2.77: lembrete à casa 30 minutos antes do fim do turno, para vaga com check-in pendente de confirmação. Leva `vaga_id`.
+    case lembrete30minFimTurno = "lembrete_30min_fim_turno"
+    /// 0.2.77: lembrete à casa no fim do turno, para vaga com check-in pendente de confirmação. Leva `vaga_id`.
+    case lembreteFimTurno = "lembrete_fim_turno"
 }
 
 /// Paridade direta com o schema TipoNotificacao do contrato OpenAPI.

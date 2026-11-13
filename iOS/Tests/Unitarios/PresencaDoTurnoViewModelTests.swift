@@ -707,12 +707,15 @@ struct TextosDaPresencaTests {
             Textos.motivoEnderecoIndisponivel, Textos.manualExplicacao, Textos.checkinManual,
             Textos.saidaSemLocalizacaoExplicacao, Textos.saidaSemLocalizacao, Textos.tentarGPS, Textos.abrirAjustes,
             Textos.foraDaJanela, Textos.relogioAdiantado, Textos.falhaAoGuardar, Textos.falhaAoEnviar,
+            Textos.naoVerificadaAviso,
         ]
         let interpolados = [
             "O GPS indica que você está a cerca de %lld m do endereço da vaga.",
             "Check-in verificado às %@.",
             "Check-in verificado às %@, a %lld m do endereço.",
             "Check-in manual feito às %@. Aguardando confirmação do contratante.",
+            "Check-in manual feito às %@. Aguardando a confirmação da casa, que pode confirmar até 24 horas depois do fim do turno.",
+            "Check-in manual feito às %@. A casa não confirmou em até 24 horas depois do fim do turno.",
             "Check-in feito às %@, sem verificação.",
             "Sem conexão. O check-in manual das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário. Depois ele aguarda a confirmação do contratante.",
             "Sem conexão. O check-in das %@ está guardado neste aparelho e será enviado quando a internet voltar, com esse horário.",
@@ -727,6 +730,8 @@ struct TextosDaPresencaTests {
         #expect(Textos.checkinVerificado("17:58", metros: 150) == "Check-in verificado às 17:58, a 150 m do endereço.")
         #expect(Textos.checkoutRegistrado("23:02", metros: nil) == "Check-out registrado às 23:02.")
         #expect(Textos.motivoLonge(350) == "O GPS indica que você está a cerca de 350 m do endereço da vaga.")
+        #expect(Textos.checkinAguardando("14:30") == "Check-in manual feito às 14:30. Aguardando a confirmação da casa, que pode confirmar até 24 horas depois do fim do turno.")
+        #expect(Textos.checkinNaoConfirmado("14:30") == "Check-in manual feito às 14:30. A casa não confirmou em até 24 horas depois do fim do turno.")
     }
 
     // MARK: LOJA-M2 (Janela de 60 min de Check-in)
@@ -797,5 +802,25 @@ struct TextosDaPresencaTests {
         await vm.iniciar(.checkin)
         #expect(vm.etapa == .parada)
         #expect(cena.api.checkins.isEmpty)
+    }
+
+    @Test("Check-out permanece disponível após o término do turno até e além de fim + 1h (podeFazerCheckout)")
+    @MainActor
+    func checkoutPermaneceDisponivelAposFimDoTurno() async throws {
+        let cena = try await Cena.montar()
+        let vm = await cena.comCheckinFeito(cena.leitor(a: 50))
+        #expect(vm.podeFazerCheckout)
+
+        // Relógio após o término do turno (fim + 30 min)
+        let fim = cena.turno.vaga.periodo.fim
+        let segundosAteAposFim = fim.addingTimeInterval(1800).timeIntervalSince(cena.relogio.agora)
+        cena.relogio.avancar(segundosAteAposFim)
+
+        // Com check-in feito, o botão de check-out continua habilitado após o fim previsto
+        #expect(vm.podeFazerCheckout)
+
+        // Mesmo após fim + 1h, a propriedade podeFazerCheckout não esconde o botão localmente
+        cena.relogio.avancar(3600)
+        #expect(vm.podeFazerCheckout)
     }
 }

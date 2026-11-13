@@ -125,7 +125,7 @@ struct CheckinPorCodigoProfissionalTests {
         await vm.validarMedindo(codigo: "654321")
         #expect(vm.resultado == .semLocalizacao)
         #expect(chamadas == 0)
-        #expect(TextosDoCheckinPorCodigo.Profissional.semLocalizacao == "Sem localização. Peça ao responsável que confirme sua chegada.")
+        #expect(TextosDoCheckinPorCodigo.Profissional.semLocalizacao == "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada.")
     }
 
     @Test("Código correto dentro do raio valida com sucesso e preserva string com zero")
@@ -262,5 +262,51 @@ struct CheckinPorCodigoProfissionalTests {
         vmBloqueado.aoEncerrarOCaminhoDoCodigo()
         #expect(vmBloqueado.caminhoDoCodigoEncerrado)
         #expect(!vmBloqueado.podeLerOCodigo)
+    }
+
+    @Test("Erro fora_do_raio do servidor mapeia para foraDoRaio e preserva tentativas")
+    @MainActor
+    func erroForaDoRaioDoServidorMapeiaForaDoRaio() async {
+        let api = ApiClienteDubleCheckinProfissional()
+        api.aoValidarCodigo = { _, _, _ in
+            throw ErroDaApi(codigo: .foraDoRaio)
+        }
+
+        let vm = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { 10 })
+        await vm.validarMedindo(codigo: "123456")
+        #expect(vm.resultado == .foraDoRaio)
+        #expect(TextosDoCheckinPorCodigo.Profissional.foraDoRaio == "Você ainda está longe do local. Aproxime-se e tente de novo.")
+        #expect(MensagemDoErroAPI.texto(ErroDaApi(codigo: .foraDoRaio)) == "Você ainda está longe do local. Aproxime-se e tente de novo.")
+    }
+
+    @Test("Erro sem_localizacao do servidor mapeia para semLocalizacao")
+    @MainActor
+    func erroSemLocalizacaoDoServidorMapeiaSemLocalizacao() async {
+        let api = ApiClienteDubleCheckinProfissional()
+        api.aoValidarCodigo = { _, _, _ in
+            throw ErroDaApi(codigo: .semLocalizacao)
+        }
+
+        let vm = ValidacaoDoCodigoViewModel(turnoID: turnoID, api: api, medirDistancia: { 10 })
+        await vm.validarMedindo(codigo: "123456")
+        #expect(vm.resultado == .semLocalizacao)
+        #expect(TextosDoCheckinPorCodigo.Profissional.semLocalizacao == "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada.")
+        #expect(MensagemDoErroAPI.texto(ErroDaApi(codigo: .semLocalizacao)) == "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada.")
+    }
+
+    @Test("Textos da confirmação tardia de 24h em TextosDaPresenca")
+    func textosConfirmacaoTardiaPresenca() {
+        #expect(
+            TextosDoProfissional.Presenca.checkinAguardando("14:30") ==
+            "Check-in manual feito às 14:30. Aguardando a confirmação da casa, que pode confirmar até 24 horas depois do fim do turno."
+        )
+        #expect(
+            TextosDoProfissional.Presenca.checkinNaoConfirmado("14:30") ==
+            "Check-in manual feito às 14:30. A casa não confirmou em até 24 horas depois do fim do turno."
+        )
+        #expect(
+            TextosDoProfissional.Presenca.naoVerificadaAviso ==
+            "Presença não verificada. O prazo para a casa confirmar a sua presença terminou e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
+        )
     }
 }

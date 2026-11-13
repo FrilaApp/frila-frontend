@@ -194,6 +194,20 @@ final class PushUITests: XCTestCase {
             "Selecao lembrete para contratante deve abrir minhas-vagas"
         )
 
+        // 8. lembrete_30min_fim_turno: no contratante abre minhas-vagas
+        let appLembrete30 = abrir("painel-contratante", push: "lembrete_30min_fim_turno", id: vagaID)
+        XCTAssertTrue(
+            appLembrete30.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15),
+            "Push de lembrete_30min_fim_turno para contratante deve abrir minhas-vagas"
+        )
+
+        // 9. lembrete_fim_turno: no contratante abre minhas-vagas
+        let appLembreteFim = abrir("painel-contratante", push: "lembrete_fim_turno", id: vagaID)
+        XCTAssertTrue(
+            appLembreteFim.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15),
+            "Push de lembrete_fim_turno para contratante deve abrir minhas-vagas"
+        )
+
         // 8. suspensao: tipo sem tela propria de destino de vaga/turno; reavalia a conta exibindo tela-conta-suspensa
         let appSuspensao = abrir("conta-suspensa", push: "suspensao")
         XCTAssertTrue(

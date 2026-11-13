@@ -112,6 +112,9 @@ public struct EntradaDoCodigo: View {
         case .invalido:
             AvisoFrila(verbatim: Textos.invalido, tom: .erro)
                 .accessibilityIdentifier("codigo-invalido")
+        case .foraDoRaio:
+            AvisoFrila(verbatim: Textos.foraDoRaio, tom: .alerta)
+                .accessibilityIdentifier("codigo-fora-do-raio")
         case let .chegueMaisPerto(metros):
             AvisoFrila(verbatim: Textos.chegueMaisPerto(metros), tom: .alerta)
                 .accessibilityIdentifier("chegue-mais-perto")

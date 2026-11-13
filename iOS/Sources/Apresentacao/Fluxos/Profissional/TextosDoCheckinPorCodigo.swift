@@ -25,6 +25,10 @@ public enum TextosDoCheckinPorCodigo {
             localized: "Esse código não vale. Confira com a casa e digite de novo.",
             bundle: bundleApresentacao
         )
+        public static let foraDoRaio = String(
+            localized: "Você ainda está longe do local. Aproxime-se e tente de novo.",
+            bundle: bundleApresentacao
+        )
         public static func chegueMaisPerto(_ metros: Int) -> String {
             String(
                 format: String(
@@ -35,7 +39,7 @@ public enum TextosDoCheckinPorCodigo {
             )
         }
         public static let semLocalizacao = String(
-            localized: "Sem localização. Peça ao responsável que confirme sua chegada.",
+            localized: "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada.",
             bundle: bundleApresentacao
         )
         public static let bloqueadoPorUmTempo = String(
