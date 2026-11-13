@@ -17,7 +17,9 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.perfil.EstadoVerificacaoIdentidade
 import br.com.frila.feature.perfil.StatusPerfil
+import br.com.frila.feature.turnos.EstadoMeusTurnos
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.StatusMeusTurnos
 import br.com.frila.feature.vagas.feed.EstadoFeed
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
@@ -184,6 +186,55 @@ class AppNavegacaoWiringTest {
         assertEquals(Rotas.DESBLOQUEIO, navController.currentDestination?.route)
         rule.onNodeWithText("Meus turnos").assertDoesNotExist()
         rule.onNodeWithText("Confirme sua identidade para continuar").assertExists()
+    }
+
+    @Test
+    fun `rotas de perfil e meus turnos disparam o carregamento dos respectivos ViewModels`() {
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        every { armazenamento.estaAutenticado() } returns true
+        every { armazenamento.isBiometriaAtivada() } returns false
+
+        lateinit var navController: NavHostController
+        val feedViewModel = mockk<FeedVagasViewModel>(relaxed = true)
+        every { feedViewModel.estado } returns MutableStateFlow(EstadoFeed(status = StatusFeed.SUCESSO))
+        val perfilViewModel = mockk<PerfilViewModel>(relaxed = true)
+        every { perfilViewModel.estado } returns MutableStateFlow(EstadoPerfil(status = StatusPerfil.SUCESSO))
+        val turnosViewModel = mockk<MeusTurnosViewModel>(relaxed = true)
+        every { turnosViewModel.estado } returns MutableStateFlow(
+            EstadoMeusTurnos(status = StatusMeusTurnos.VAZIO),
+        )
+
+        rule.setContent {
+            navController = rememberNavController()
+            KoinApplication(application = {
+                modules(
+                    module {
+                        single { mockk<ServicoAutenticacao>(relaxed = true) }
+                        single { armazenamento }
+                        viewModel { EntradaViewModel(get()) }
+                        viewModel { feedViewModel }
+                        viewModel { perfilViewModel }
+                        viewModel { turnosViewModel }
+                    },
+                )
+            }) {
+                AppNavegacao(
+                    armazenamentoDeSessao = armazenamento,
+                    monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
+                    navController = navController,
+                    servicoMembros = null,
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        rule.runOnUiThread { navController.navigate(Rotas.PERFIL) }
+        rule.waitForIdle()
+        verify(exactly = 1) { perfilViewModel.carregar() }
+
+        rule.runOnUiThread { navController.navigate(Rotas.MEUS_TURNOS) }
+        rule.waitForIdle()
+        verify(exactly = 1) { turnosViewModel.carregar() }
     }
 
     @Test
