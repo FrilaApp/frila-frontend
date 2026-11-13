@@ -1058,7 +1058,7 @@ private struct TelaDetalheVagaContratante: View {
                         .accessibilityIdentifier("aviso-sucesso-republicacao")
                 }
                 if let acompanhamento {
-                    AvisosDoAcompanhamento(viewModel: acompanhamento)
+                    AvisosDoAcompanhamento(viewModel: acompanhamento, vagaID: vaga.vaga.id)
                     ForEach(acompanhamento.recusasDaFila.filter { $0.tipo == .cancelamentoVaga && $0.vagaID == vaga.vaga.id }) { recusa in
                         AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
                             .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
