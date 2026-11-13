@@ -40,8 +40,49 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Antes da Apple, a suíte inteira do iOS precisa ter passado neste mesmo commit: ou a noturna (ios-noturna.yml)
+  # já ficou verde nele, ou ela roda aqui (ios-suite-completa.yml) e o envio espera. O ensaio sem envio
+  # (enviar desmarcado) não exige a suíte.
+  noturna-verde:
+    name: Procurar a noturna verde neste commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      achou: ${{ steps.procurar.outputs.achou }}
+    steps:
+      - name: Procurar execução verde do ios-noturna no mesmo SHA
+        id: procurar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ID="$(gh run list --workflow ios-noturna.yml --commit "$GITHUB_SHA" --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [[ -n "$ID" ]]; then
+            echo "Noturna verde neste commit: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${ID}"
+            echo "achou=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nenhuma noturna verde em ${GITHUB_SHA:0:7}: a suíte completa roda antes do envio."
+            echo "achou=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  suite-completa:
+    name: Suíte completa antes da Apple
+    needs: noturna-verde
+    if: ${{ needs.noturna-verde.outputs.achou != 'true' && (github.event_name == 'push' || inputs.enviar) }}
+    uses: ./.github/workflows/ios-suite-completa.yml
+    secrets: inherit
+    with:
+      com_release: true
+      iteracoes: 3
+      limite_por_teste: 0
+
   testflight:
     name: Archive, assinatura, símbolos e envio
+    needs: [noturna-verde, suite-completa]
+    if: ${{ !cancelled() && needs.noturna-verde.result == 'success' && (needs.suite-completa.result == 'success' || needs.suite-completa.result == 'skipped') }}
     runs-on: macos-26
     timeout-minutes: 60
     defaults:
