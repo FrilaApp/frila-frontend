@@ -95,7 +95,7 @@ final class PresencaUITests: XCTestCase {
 
         let checkin = app.descendants(matching: .any)["checkin-situacao"]
         XCTAssertTrue(checkin.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(checkin.label.contains("Aguardando confirmação do contratante"), checkin.label)
+        XCTAssertTrue(checkin.label.contains("Aguardando a confirmação da casa"), checkin.label)
     }
 
     func testPermissaoNegadaOfereceOManualEOsAjustes() {

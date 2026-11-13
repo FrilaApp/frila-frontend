@@ -32,6 +32,10 @@ public enum MensagemDoErroAPI {
             String(localized: "O Frila é exclusivo para maiores de 18 anos.", bundle: bundleApresentacao)
         case .contaExistente:
             String(localized: "Esta conta já foi cadastrada.", bundle: bundleApresentacao)
+        case .foraDoRaio:
+            String(localized: "Você ainda está longe do local. Aproxime-se e tente de novo.", bundle: bundleApresentacao)
+        case .semLocalizacao:
+            String(localized: "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada.", bundle: bundleApresentacao)
         default:
             String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
         }

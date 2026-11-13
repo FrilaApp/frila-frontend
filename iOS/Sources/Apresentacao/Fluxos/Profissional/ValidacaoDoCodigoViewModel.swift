@@ -16,9 +16,11 @@ public final class ValidacaoDoCodigoViewModel {
     public enum Resultado: Equatable, Sendable {
         case aguardando
         case enviando
+        /// Recusa da API (0.2.76): profissional fora do raio de proximidade. Tentativa não é queimada.
+        case foraDoRaio
         /// Acima do raio: nada foi enviado, e a tentativa continua inteira.
         case chegueMaisPerto(distanciaMetros: Int)
-        /// Sem localização: nada foi enviado; orienta a pedir confirmação ao responsável.
+        /// Sem localização: nada foi enviado ou a API recusou (0.2.76); orienta a pedir confirmação ao responsável.
         case semLocalizacao
         /// Não são 6 dígitos: nada foi enviado (o servidor também não contaria como tentativa).
         case formatoInvalido
@@ -110,6 +112,8 @@ public final class ValidacaoDoCodigoViewModel {
     private static func resultado(para erro: ErroDaApi) -> Resultado {
         if erro.recursoDesligado { return .recursoDesligado }
         switch erro.codigo {
+        case .foraDoRaio: return .foraDoRaio
+        case .semLocalizacao: return .semLocalizacao
         case .codigoInvalido: return .invalido
         case .codigoBloqueado: return .bloqueado(erro.bloqueioDoCodigo ?? .encerrado)
         case .checkinJaConfirmado: return .jaVerificado

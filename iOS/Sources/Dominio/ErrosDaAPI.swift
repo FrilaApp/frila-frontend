@@ -52,6 +52,10 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case codigoInvalido = "codigo_invalido"
     /// `409`, check-in por código (0.2.68): `details` `temporario` ou `encerrado`.
     case codigoBloqueado = "codigo_bloqueado"
+    /// `422`, check-in por código (0.2.76): profissional fora do raio de proximidade.
+    case foraDoRaio = "fora_do_raio"
+    /// `422`, check-in por código (0.2.76): localização não informada ou indisponível.
+    case semLocalizacao = "sem_localizacao"
     case cursorInvalido = "cursor_invalido"
     case semRede = "sem_rede"
     case respostaInvalida = "resposta_invalida"

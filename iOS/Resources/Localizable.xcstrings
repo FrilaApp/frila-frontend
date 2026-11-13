@@ -982,6 +982,16 @@
         }
       }
     },
+    "A casa também pode confirmar a sua chegada pelo painel dela.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A casa também pode confirmar a sua chegada pelo painel dela."
+          }
+        }
+      }
+    },
     "A chamada direta está indisponível no momento.": {
       "localizations": {
         "pt-BR": {
@@ -1067,6 +1077,16 @@
         }
       }
     },
+    "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
     "A lista de turnos está indisponível ou desatualizada. Você pode continuar com a exclusão.": {
       "extractionState": "stale",
       "localizations": {
@@ -1096,6 +1116,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço."
+          }
+        }
+      }
+    },
+    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa."
+          }
+        }
+      }
+    },
+    "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes."
           }
         }
       }
@@ -1764,6 +1804,26 @@
         }
       }
     },
+    "Aguardando o profissional chegar no local": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando o profissional chegar no local"
+          }
+        }
+      }
+    },
+    "Aguardando o profissional tocar em Cheguei": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando o profissional tocar em Cheguei"
+          }
+        }
+      }
+    },
     "Aguardando resposta": {
       "extractionState": "stale",
       "localizations": {
@@ -2223,6 +2283,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "As vagas destes estabelecimentos chegam mesmo além da distância máxima, desde que a função e os horários batam."
+          }
+        }
+      }
+    },
+    "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição."
           }
         }
       }
@@ -3121,6 +3191,26 @@
         }
       }
     },
+    "Check-in manual feito às %@. A casa não confirmou em até 24 horas depois do fim do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in manual feito às %@. A casa não confirmou em até 24 horas depois do fim do turno."
+          }
+        }
+      }
+    },
+    "Check-in manual feito às %@. Aguardando a confirmação da casa, que pode confirmar até 24 horas depois do fim do turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check-in manual feito às %@. Aguardando a confirmação da casa, que pode confirmar até 24 horas depois do fim do turno."
+          }
+        }
+      }
+    },
     "Check-in manual feito às %@. Aguardando confirmação do contratante.": {
       "extractionState": "stale",
       "localizations": {
@@ -3413,12 +3503,42 @@
         }
       }
     },
+    "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos."
+          }
+        }
+      }
+    },
     "Conferindo a foto…": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Conferindo a foto…"
+          }
+        }
+      }
+    },
+    "Conferindo a sua posição…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo a sua posição…"
+          }
+        }
+      }
+    },
+    "Conferindo o código…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferindo o código…"
           }
         }
       }
@@ -3942,12 +4062,52 @@
         }
       }
     },
+    "Código da casa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código da casa"
+          }
+        }
+      }
+    },
+    "Código de 6 números": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de 6 números"
+          }
+        }
+      }
+    },
     "Código de acesso": {
       "localizations": {
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
             "value": "Código de acesso"
+          }
+        }
+      }
+    },
+    "Código de chegada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de chegada"
+          }
+        }
+      }
+    },
+    "Código de chegada: %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de chegada: %@"
           }
         }
       }
@@ -4331,6 +4491,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diga como chegar: a entrada, a portaria ou um ponto de referência. Aparece no detalhe da vaga e no Como chegar do turno."
+          }
+        }
+      }
+    },
+    "Digitar o código da casa": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitar o código da casa"
           }
         }
       }
@@ -5237,6 +5407,16 @@
         }
       }
     },
+    "Esse código não vale. Confira com a casa e digite de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esse código não vale. Confira com a casa e digite de novo."
+          }
+        }
+      }
+    },
     "Esse início já passou. Escolha outro horário ou outra data.": {
       "extractionState": "stale",
       "localizations": {
@@ -5594,6 +5774,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este documento já está cadastrado."
+          }
+        }
+      }
+    },
+    "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
+          }
+        }
+      }
+    },
+    "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
           }
         }
       }
@@ -6033,6 +6233,26 @@
         }
       }
     },
+    "Fora da janela de check-in deste turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora da janela de check-in deste turno."
+          }
+        }
+      }
+    },
+    "Fora do Distrito Federal": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora do Distrito Federal"
+          }
+        }
+      }
+    },
     "Formato": {
       "extractionState": "stale",
       "localizations": {
@@ -6240,6 +6460,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gerando o arquivo…"
+          }
+        }
+      }
+    },
+    "Gerando o código…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando o código…"
           }
         }
       }
@@ -7165,6 +7395,16 @@
         }
       }
     },
+    "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença."
+          }
+        }
+      }
+    },
     "Motivo": {
       "extractionState": "manual",
       "localizations": {
@@ -7762,6 +8002,16 @@
         }
       }
     },
+    "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não conseguimos sua localização. Peça ao responsável da casa que confirme sua chegada."
+          }
+        }
+      }
+    },
     "Não consigo chegar ao local": {
       "extractionState": "stale",
       "localizations": {
@@ -7791,6 +8041,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não contou como falta."
+          }
+        }
+      }
+    },
+    "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo."
           }
         }
       }
@@ -8286,6 +8546,16 @@
         }
       }
     },
+    "Não foi possível gerar o código. Confira a conexão e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível gerar o código. Confira a conexão e tente novamente."
+          }
+        }
+      }
+    },
     "Não foi possível guardar a publicação neste aparelho.": {
       "extractionState": "stale",
       "localizations": {
@@ -8586,6 +8856,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "O contratante cancelou esta chamada. Nada muda para você."
+          }
+        }
+      }
+    },
+    "O código não vale mais neste turno. Confirme a presença pelo botão de confirmação manual abaixo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código não vale mais neste turno. Confirme a presença pelo botão de confirmação manual abaixo."
+          }
+        }
+      }
+    },
+    "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
+    "O código tem 6 números.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código tem 6 números."
+          }
+        }
+      }
+    },
+    "O código venceu. Gerando outro…": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código venceu. Gerando outro…"
           }
         }
       }
@@ -9510,6 +9820,16 @@
         }
       }
     },
+    "Peça o código à casa e digite os 6 números abaixo para confirmar a sua presença.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça o código à casa e digite os 6 números abaixo para confirmar a sua presença."
+          }
+        }
+      }
+    },
     "Pode citar tipos de lugar ('buffet de casamento', 'bar no Sudoeste'). Evite nome e telefone de outras pessoas.": {
       "localizations": {
         "pt-BR": {
@@ -9857,6 +10177,16 @@
         }
       }
     },
+    "Presença não verificada. O prazo para a casa confirmar a sua presença terminou e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não verificada. O prazo para a casa confirmar a sua presença terminou e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
+          }
+        }
+      }
+    },
     "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno.": {
       "localizations": {
         "pt-BR": {
@@ -10136,6 +10466,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quando"
+          }
+        }
+      }
+    },
+    "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço."
           }
         }
       }
@@ -11506,6 +11846,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem histórico"
+          }
+        }
+      }
+    },
+    "Sem localização. Peça ao responsável que confirme sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem localização. Peça ao responsável que confirme sua chegada."
           }
         }
       }
@@ -12960,6 +13310,16 @@
         }
       }
     },
+    "Vale por mais %@": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale por mais %@"
+          }
+        }
+      }
+    },
     "Validação do cliente": {
       "localizations": {
         "pt-BR": {
@@ -13326,6 +13686,16 @@
         }
       }
     },
+    "Verificar chegada": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar chegada"
+          }
+        }
+      }
+    },
     "Versão": {
       "extractionState": "stale",
       "localizations": {
@@ -13355,6 +13725,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você aceitou a chamada. O local e o responsável já estão liberados."
+          }
+        }
+      }
+    },
+    "Você ainda está longe do local. Aproxime-se e tente de novo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você ainda está longe do local. Aproxime-se e tente de novo."
           }
         }
       }
@@ -13465,6 +13845,16 @@
         }
       }
     },
+    "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada."
+          }
+        }
+      }
+    },
     "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido.": {
       "extractionState": "stale",
       "localizations": {
@@ -13483,6 +13873,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você escolhe quem vai trabalhar. A vaga fecha sozinha 24 horas antes do início se ninguém for escolhido."
+          }
+        }
+      }
+    },
+    "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado."
           }
         }
       }
@@ -14191,356 +14591,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "⌘K"
-          }
-        }
-      }
-    },
-    "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conferimos sua idade pela data de nascimento. O Frila é só para maiores de 18 anos."
-          }
-        }
-      }
-    },
-    "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este endereço fica fora do Distrito Federal. Você pode concluir o cadastro, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
-          }
-        }
-      }
-    },
-    "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
-          }
-        }
-      }
-    },
-    "Fora do Distrito Federal": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fora do Distrito Federal"
-          }
-        }
-      }
-    },
-    "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quando o iPhone perguntar, escolha a localização precisa: só ela mede se você está a até 200 m do endereço."
-          }
-        }
-      }
-    },
-    "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A localização precisa está desligada para o Frila. Ela mede se você está a até 200 m do endereço. Ao tocar no botão, o iPhone vai pedir sua permissão, ou você ativa nos Ajustes."
-          }
-        }
-      }
-    },
-    "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A localização precisa está desligada para o Frila, e a aproximada não mede a distância até o endereço. Ative em Ajustes, Frila, Localização, Localização precisa."
-          }
-        }
-      }
-    },
-    "Código de chegada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Código de chegada"
-          }
-        }
-      }
-    },
-    "Código de chegada: %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Código de chegada: %@"
-          }
-        }
-      }
-    },
-    "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença."
-          }
-        }
-      }
-    },
-    "Aguardando o profissional chegar no local": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aguardando o profissional chegar no local"
-          }
-        }
-      }
-    },
-    "Aguardando o profissional tocar em Cheguei": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aguardando o profissional tocar em Cheguei"
-          }
-        }
-      }
-    },
-    "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição."
-          }
-        }
-      }
-    },
-    "Verificar chegada": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verificar chegada"
-          }
-        }
-      }
-    },
-    "Vale por mais %@": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vale por mais %@"
-          }
-        }
-      }
-    },
-    "O código venceu. Gerando outro…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O código venceu. Gerando outro…"
-          }
-        }
-      }
-    },
-    "Gerando o código…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gerando o código…"
-          }
-        }
-      }
-    },
-    "Não foi possível gerar o código. Confira a conexão e tente novamente.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível gerar o código. Confira a conexão e tente novamente."
-          }
-        }
-      }
-    },
-    "Fora da janela de check-in deste turno.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fora da janela de check-in deste turno."
-          }
-        }
-      }
-    },
-    "O código não vale mais neste turno. Confirme a presença pelo botão de confirmação manual abaixo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O código não vale mais neste turno. Confirme a presença pelo botão de confirmação manual abaixo."
-          }
-        }
-      }
-    },
-    "Digitar o código da casa": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digitar o código da casa"
-          }
-        }
-      }
-    },
-    "Código da casa": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Código da casa"
-          }
-        }
-      }
-    },
-    "Peça o código à casa e digite os 6 números abaixo para confirmar a sua presença.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Peça o código à casa e digite os 6 números abaixo para confirmar a sua presença."
-          }
-        }
-      }
-    },
-    "A casa também pode confirmar a sua chegada pelo painel dela.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A casa também pode confirmar a sua chegada pelo painel dela."
-          }
-        }
-      }
-    },
-    "Código de 6 números": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Código de 6 números"
-          }
-        }
-      }
-    },
-    "Conferindo a sua posição…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conferindo a sua posição…"
-          }
-        }
-      }
-    },
-    "Conferindo o código…": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conferindo o código…"
-          }
-        }
-      }
-    },
-    "O código tem 6 números.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O código tem 6 números."
-          }
-        }
-      }
-    },
-    "Esse código não vale. Confira com a casa e digite de novo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esse código não vale. Confira com a casa e digite de novo."
-          }
-        }
-      }
-    },
-    "Sem localização. Peça ao responsável que confirme sua chegada.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sem localização. Peça ao responsável que confirme sua chegada."
-          }
-        }
-      }
-    },
-    "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você está a %d m do local. Chegue mais perto e tente de novo: o código não foi enviado."
-          }
-        }
-      }
-    },
-    "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você errou várias vezes. Espere alguns minutos ou peça à casa para confirmar a sua chegada."
-          }
-        }
-      }
-    },
-    "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O código não vale mais neste turno. Peça à casa para confirmar a sua chegada."
-          }
-        }
-      }
-    },
-    "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A leitura do código não está disponível agora. Peça à casa para confirmar a sua chegada."
-          }
-        }
-      }
-    },
-    "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo.": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não deu para saber se o código foi aceito. Veja se a sua presença já aparece como verificada; se não, digite de novo."
           }
         }
       }

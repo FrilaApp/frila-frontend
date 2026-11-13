@@ -48,9 +48,10 @@ public enum DestinoDoProfissional: Equatable, Sendable {
         case .chamadaAceita, .chamadaRecusada:
             return nil
         case .vagaSemElegiveis, .atraso15min, .vagaVazia, .checkin, .checkinManualPendente, .suspensao, .reativacao, .selecaoLembrete,
-             .midiaRecusada:
+             .midiaRecusada, .lembrete30minFimTurno, .lembreteFimTurno:
             // O lembrete da seleção (0.2.38) é só da casa. `midia_recusada` (0.2.54) traz só `tipo` e
             // `midia_id`: o aviso informa, e a foto está em Meu perfil.
+            // Os lembretes de fim de turno (0.2.77) são só da casa.
             return nil
         }
     }

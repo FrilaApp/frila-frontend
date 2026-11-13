@@ -160,7 +160,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
 
         let checkinSituacao = app.descendants(matching: .any)["checkin-situacao"]
         XCTAssertTrue(checkinSituacao.waitForExistence(timeout: 10), "Situação do check-in deve aparecer")
-        XCTAssertTrue(checkinSituacao.label.contains("Aguardando confirmação do contratante"), checkinSituacao.label)
+        XCTAssertTrue(checkinSituacao.label.contains("Aguardando a confirmação da casa"), checkinSituacao.label)
 
         // 7. Check-out manual (sem GPS)
         let fazerCheckout = app.buttons["fazer-checkout"]
