@@ -1,21 +1,26 @@
 #!/bin/bash
 
-# Divide a suíte do Frila-Local nas duas partes da CI (.github/workflows/ios.yml) a partir de uma
-# lista só (Tests/parte-1-da-ci.txt): a parte 1 roda o que está na lista (-only-testing) e a parte 2
-# roda o resto (-skip-testing da mesma lista). Classe nova fica fora da lista e cai na parte 2.
+# Divide a suíte do Frila-Local nas N partes da CI (.github/workflows/ios-suite-completa.yml) a partir
+# de uma lista só (Tests/partes-da-ci.txt): cada seção `[parte K]` (K = 1 a N-1) roda o que está nela
+# (-only-testing) e a última parte (N) roda o resto (-skip-testing de tudo o que está nas seções).
+# Classe nova fica fora da lista e cai na última parte. Quantas partes existem = seções + 1.
 #
 # Uso:
-#   Scripts/partes-dos-testes.sh argumentos 1|2
+#   Scripts/partes-dos-testes.sh total
+#       Imprime N, o número de partes.
+#   Scripts/partes-dos-testes.sh matriz
+#       Imprime a matriz do GitHub Actions, por exemplo [1,2,3,4].
+#   Scripts/partes-dos-testes.sh argumentos 1..N
 #       Imprime os argumentos do xcodebuild para a parte, um por linha.
 #   Scripts/partes-dos-testes.sh conferir
 #       Confere a lista contra o código, sem compilar: cada item é um alvo de teste do Frila-Local
-#       ou uma classe XCTestCase desse alvo, sem repetição. Imprime as classes de cada parte; a
-#       parte 2 é o complemento da parte 1, então as duas somam a suíte inteira.
-#   Scripts/partes-dos-testes.sh conferir-enumeracoes <suite.json> <parte-1.json> <parte-2.json>
-#       Confere três enumerações do próprio xcodebuild (-enumerate-tests -test-enumeration-style
+#       ou uma classe XCTestCase desse alvo, sem repetição entre as seções. Imprime as classes de
+#       cada parte; a última parte é o complemento das outras, então as N somam a suíte inteira.
+#   Scripts/partes-dos-testes.sh conferir-enumeracoes <suite.json> <parte-1.json> ... <parte-N.json>
+#       Confere as enumerações do próprio xcodebuild (-enumerate-tests -test-enumeration-style
 #       flat -test-enumeration-format json): a suíte inteira e cada parte com os seus argumentos.
-#       Reprova se as partes se cruzam, se algum teste fica fora das duas, se a parte 1 roda teste
-#       fora da lista ou se algum item da lista não tem teste. Comando em iOS/Docs/CI.md.
+#       Reprova se as partes se cruzam, se algum teste fica fora das partes, se uma parte K < N roda
+#       teste fora da sua seção ou se algum item da lista não tem teste. Comando em iOS/Docs/CI.md.
 #
 # PARTES_LISTA e PARTES_RAIZ trocam a lista e a pasta iOS (usados pelo autoteste).
 
@@ -23,7 +28,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RAIZ="${PARTES_RAIZ:-$SCRIPT_DIR/..}"
-LISTA="${PARTES_LISTA:-$RAIZ/Tests/parte-1-da-ci.txt}"
+LISTA="${PARTES_LISTA:-$RAIZ/Tests/partes-da-ci.txt}"
 
 # Alvos de teste do esquema Frila-Local e a pasta de código de cada um (project.yml).
 ALVOS="FrilaTests=Tests/Unitarios FrilaUITests=Tests/UI"
@@ -34,45 +39,104 @@ falhar() {
 }
 
 uso() {
-  falhar "uso: $0 argumentos 1|2 | conferir | conferir-enumeracoes <suite.json> <parte-1.json> <parte-2.json>"
+  falhar "uso: $0 total | matriz | argumentos 1..N | conferir | conferir-enumeracoes <suite.json> <parte-1.json> ... <parte-N.json>"
 }
 
-# Itens da lista, sem comentários nem linhas vazias, já validados no formato.
-itens() {
-  [[ -f "$LISTA" ]] || falhar "lista da parte 1 não encontrada: $LISTA"
-  local linhas
-  linhas="$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$LISTA" | grep -v '^$' || true)"
-  [[ -n "$linhas" ]] || falhar "lista da parte 1 vazia: $LISTA"
+# Itens da lista, validados, no formato "K<TAB>item" (K = número da seção). Sem comentários nem
+# linhas vazias. Imprime também, na primeira linha, "N<TAB>total" para quem precisa do total.
+itens_com_secao() {
+  [[ -f "$LISTA" ]] || falhar "lista das partes não encontrada: $LISTA"
+  local resultado
+  resultado="$(LISTA="$LISTA" python3 - <<'PY'
+import os, re, sys
 
-  local invalidas repetidas
-  invalidas="$(printf '%s\n' "$linhas" | grep -vE '^[A-Za-z_][A-Za-z0-9_]*(/[A-Za-z_][A-Za-z0-9_]*)?$' || true)"
-  [[ -z "$invalidas" ]] || falhar "item fora do formato Alvo ou Alvo/Classe na lista $LISTA: $invalidas"
-  repetidas="$(printf '%s\n' "$linhas" | sort | uniq -d)"
-  [[ -z "$repetidas" ]] || falhar "item repetido na lista $LISTA: $repetidas"
+def falhar(mensagem):
+    print("ERRO: " + mensagem, file=sys.stderr)
+    sys.exit(1)
 
-  printf '%s\n' "$linhas"
+caminho = os.environ["LISTA"]
+secao = None
+secoes = []
+itens = []
+formato = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(/[A-Za-z_][A-Za-z0-9_]*)?$")
+with open(caminho, encoding="utf-8") as arquivo:
+    for linha in arquivo:
+        linha = re.sub(r"#.*", "", linha).strip()
+        if not linha:
+            continue
+        cabecalho = re.fullmatch(r"\[parte\s+(\d+)\]", linha)
+        if cabecalho:
+            numero = int(cabecalho.group(1))
+            if numero != len(secoes) + 1:
+                falhar(f"seção [parte {numero}] fora de ordem na lista {caminho}: esperada [parte {len(secoes) + 1}]")
+            secoes.append(numero)
+            secao = numero
+            continue
+        if linha.startswith("["):
+            falhar(f"cabeçalho de seção inválido na lista {caminho}: {linha}")
+        if secao is None:
+            falhar(f"item antes da primeira seção [parte 1] na lista {caminho}: {linha}")
+        if not formato.match(linha):
+            falhar(f"item fora do formato Alvo ou Alvo/Classe na lista {caminho}: {linha}")
+        itens.append((secao, linha))
+
+if not secoes:
+    falhar(f"lista das partes vazia, sem seção [parte 1]: {caminho}")
+vazias = [str(n) for n in secoes if not any(s == n for s, _ in itens)]
+if vazias:
+    falhar(f"seção sem item na lista {caminho}: [parte {', '.join(vazias)}]")
+vistos = {}
+repetidos = []
+for s, item in itens:
+    if item in vistos:
+        repetidos.append(item)
+    vistos[item] = s
+if repetidos:
+    falhar(f"item repetido na lista {caminho}: {', '.join(sorted(set(repetidos)))}")
+
+print(f"N\t{len(secoes) + 1}")
+for s, item in itens:
+    print(f"{s}\t{item}")
+PY
+)" || exit 1
+  printf '%s\n' "$resultado"
+}
+
+total() {
+  local saida
+  saida="$(itens_com_secao)" || exit 1
+  printf '%s\n' "$saida" | awk -F'\t' '$1 == "N" { print $2 }'
+}
+
+matriz() {
+  local n i saida=""
+  n="$(total)" || exit 1
+  for ((i = 1; i <= n; i++)); do
+    saida+="${saida:+,}$i"
+  done
+  printf '[%s]\n' "$saida"
 }
 
 argumentos() {
-  local opcao
-  case "${1:-}" in
-    1) opcao="-only-testing" ;;
-    2) opcao="-skip-testing" ;;
-    *) uso ;;
-  esac
-  local lista item
-  lista="$(itens)"
-  while IFS= read -r item; do
-    printf '%s:%s\n' "$opcao" "$item"
-  done <<< "$lista"
+  local parte="${1:-}"
+  [[ "$parte" =~ ^[1-9][0-9]*$ ]] || uso
+  local dados n
+  dados="$(itens_com_secao)" || exit 1
+  n="$(printf '%s\n' "$dados" | awk -F'\t' '$1 == "N" { print $2 }')"
+  (( parte <= n )) || falhar "a lista tem $n partes; a parte $parte não existe"
+  if (( parte < n )); then
+    printf '%s\n' "$dados" | awk -F'\t' -v p="$parte" '$1 == p { print "-only-testing:" $2 }'
+  else
+    printf '%s\n' "$dados" | awk -F'\t' '$1 != "N" { print "-skip-testing:" $2 }'
+  fi
 }
 
 conferir() {
   [[ $# -eq 0 ]] || uso
-  local lista
-  lista="$(itens)"
+  local dados
+  dados="$(itens_com_secao)" || exit 1
 
-  LISTA_ITENS="$lista" RAIZ="$RAIZ" ALVOS="$ALVOS" python3 - <<'PY'
+  LISTA_DADOS="$dados" RAIZ="$RAIZ" ALVOS="$ALVOS" python3 - <<'PY'
 import os, re, sys
 
 def falhar(mensagem):
@@ -96,55 +160,64 @@ for par in os.environ["ALVOS"].split():
                     classes.update(declaracao.findall(arquivo.read()))
     suite[alvo] = classes
 
-parte1 = {alvo: set() for alvo in suite}
-inteiros = set()
-for item in os.environ["LISTA_ITENS"].split("\n"):
+linhas = [linha.split("\t") for linha in os.environ["LISTA_DADOS"].split("\n")]
+total = int(linhas[0][1])
+partes = {k: {"inteiros": set(), "classes": {alvo: set() for alvo in suite}} for k in range(1, total)}
+inteiros_global = set()
+classes_global = {alvo: set() for alvo in suite}
+for secao, item in linhas[1:]:
+    k = int(secao)
     alvo, _, classe = item.partition("/")
     if alvo not in suite:
         falhar(f"alvo {alvo} da lista não é alvo de teste do Frila-Local ({', '.join(sorted(suite))})")
     if not classe:
-        inteiros.add(alvo)
+        partes[k]["inteiros"].add(alvo)
+        inteiros_global.add(alvo)
     elif classe not in suite[alvo]:
         falhar(f"classe {item} da lista não existe em {alvo} (renomeada ou apagada?)")
     else:
-        parte1[alvo].add(classe)
+        partes[k]["classes"][alvo].add(classe)
+        classes_global[alvo].add(classe)
 
-for alvo in sorted(inteiros):
-    if parte1[alvo]:
-        falhar(f"a lista tem o alvo {alvo} inteiro e também classes dele: {', '.join(sorted(parte1[alvo]))}")
+for alvo in sorted(inteiros_global):
+    if classes_global[alvo]:
+        falhar(f"a lista tem o alvo {alvo} inteiro e também classes dele: {', '.join(sorted(classes_global[alvo]))}")
 
-# A parte 2 é o complemento da parte 1, alvo por alvo: o alvo inteiro na lista sai todo da
-# parte 2; o alvo fora da lista vai todo para ela; o alvo com classes listadas fica dividido.
-parte2_inteiros = {alvo for alvo in suite if alvo not in inteiros and not parte1[alvo]}
-parte2 = {alvo: suite[alvo] - parte1[alvo]
-          for alvo in suite if alvo not in inteiros and parte1[alvo]}
+# A última parte é o complemento das outras, alvo por alvo: o alvo inteiro em alguma seção sai todo
+# dela; o alvo fora da lista vai todo para ela; o alvo com classes listadas fica dividido.
+ultima_inteiros = {alvo for alvo in suite if alvo not in inteiros_global and not classes_global[alvo]}
+ultima_classes = {alvo: suite[alvo] - classes_global[alvo]
+                  for alvo in suite if alvo not in inteiros_global and classes_global[alvo]}
 
 def descrever(inteiros, classes_por_alvo):
-    linhas = [f"{alvo}: alvo inteiro" for alvo in sorted(inteiros)]
+    texto = [f"{alvo}: alvo inteiro" for alvo in sorted(inteiros)]
     for alvo in sorted(classes_por_alvo):
         classes = classes_por_alvo[alvo]
         if classes:
             rotulo = "classe" if len(classes) == 1 else "classes"
-            linhas.append(f"{alvo}: {len(classes)} {rotulo}: {', '.join(sorted(classes))}")
-    return "\n  ".join(linhas) if linhas else "nada"
+            texto.append(f"{alvo}: {len(classes)} {rotulo}: {', '.join(sorted(classes))}")
+    return "\n  ".join(texto) if texto else "nada"
 
-print(f"Parte 1 (-only-testing da lista):\n  {descrever(inteiros, parte1)}")
-print(f"Parte 2 (-skip-testing da lista, todo o resto):\n  {descrever(parte2_inteiros, parte2)}")
-divididos = ", ".join(f"{alvo} ({len(suite[alvo])} classes)" for alvo in sorted(parte2))
-print(f"OK: as duas partes somam os alvos {', '.join(sorted(suite))} inteiros, sem repetição"
+for k in range(1, total):
+    print(f"Parte {k} (-only-testing da seção [parte {k}]):\n  {descrever(partes[k]['inteiros'], partes[k]['classes'])}")
+print(f"Parte {total} (-skip-testing de todas as seções, todo o resto):\n  {descrever(ultima_inteiros, ultima_classes)}")
+divididos = ", ".join(f"{alvo} ({len(suite[alvo])} classes)" for alvo in sorted(ultima_classes))
+print(f"OK: as {total} partes somam os alvos {', '.join(sorted(suite))} inteiros, sem repetição"
       + (f"; dividido por classe: {divididos}." if divididos else "."))
 PY
 }
 
 conferir_enumeracoes() {
-  [[ $# -eq 3 ]] || uso
-  local arquivo lista
+  local dados n
+  dados="$(itens_com_secao)" || exit 1
+  n="$(printf '%s\n' "$dados" | awk -F'\t' '$1 == "N" { print $2 }')"
+  [[ $# -eq $((n + 1)) ]] || falhar "com $n partes, são necessárias $((n + 1)) enumerações (suíte e partes 1 a $n); recebi $#"
+  local arquivo
   for arquivo in "$@"; do
     [[ -f "$arquivo" ]] || falhar "enumeração não encontrada: $arquivo"
   done
-  lista="$(itens)"
 
-  LISTA_ITENS="$lista" python3 - "$@" <<'PY'
+  LISTA_DADOS="$dados" python3 - "$@" <<'PY'
 import json, os, sys
 
 def falhar(mensagem):
@@ -171,34 +244,46 @@ def mostrar(conjunto, limite=10):
     resto = len(conjunto) - len(amostra)
     return ", ".join(amostra) + (f" e mais {resto}" if resto > 0 else "")
 
-itens = os.environ["LISTA_ITENS"].split("\n")
-suite, parte1, parte2 = (testes(caminho) for caminho in sys.argv[1:4])
+linhas = [linha.split("\t") for linha in os.environ["LISTA_DADOS"].split("\n")]
+total = int(linhas[0][1])
+itens_da_secao = {k: [] for k in range(1, total)}
+for secao, item in linhas[1:]:
+    itens_da_secao[int(secao)].append(item)
+
+suite = testes(sys.argv[1])
+partes = {k: testes(sys.argv[1 + k]) for k in range(1, total + 1)}
 
 if not suite:
     falhar("a enumeração da suíte inteira não tem nenhum teste")
-cruzados = parte1 & parte2
-if cruzados:
-    falhar(f"{len(cruzados)} teste(s) nas duas partes: {mostrar(cruzados)}")
-fora = suite - parte1 - parte2
+for k in range(1, total + 1):
+    for j in range(k + 1, total + 1):
+        cruzados = partes[k] & partes[j]
+        if cruzados:
+            falhar(f"{len(cruzados)} teste(s) nas partes {k} e {j}: {mostrar(cruzados)}")
+uniao = set().union(*partes.values())
+fora = suite - uniao
 if fora:
-    falhar(f"{len(fora)} teste(s) da suíte fora das duas partes: {mostrar(fora)}")
-estranhos = (parte1 | parte2) - suite
+    falhar(f"{len(fora)} teste(s) da suíte fora das partes: {mostrar(fora)}")
+estranhos = uniao - suite
 if estranhos:
     falhar(f"{len(estranhos)} teste(s) nas partes e não na suíte: {mostrar(estranhos)}")
-fora_da_lista = {teste for teste in parte1 if not coberto(teste, itens)}
-if fora_da_lista:
-    falhar(f"{len(fora_da_lista)} teste(s) na parte 1 fora da lista: {mostrar(fora_da_lista)}")
-vazios = [item for item in itens if not any(coberto(teste, [item]) for teste in parte1)]
-if vazios:
-    falhar("item da lista sem teste na parte 1 (renomeado ou apagado?): " + ", ".join(vazios))
+for k in range(1, total):
+    fora_da_secao = {teste for teste in partes[k] if not coberto(teste, itens_da_secao[k])}
+    if fora_da_secao:
+        falhar(f"{len(fora_da_secao)} teste(s) na parte {k} fora da sua seção: {mostrar(fora_da_secao)}")
+    vazios = [item for item in itens_da_secao[k] if not any(coberto(teste, [item]) for teste in partes[k])]
+    if vazios:
+        falhar(f"item da lista sem teste na parte {k} (renomeado ou apagado?): " + ", ".join(vazios))
 
-print(f"OK: parte 1 com {len(parte1)} testes e parte 2 com {len(parte2)}; "
-      f"somam os {len(suite)} testes da suíte, sem repetição.")
+contagem = ", ".join(f"a parte {k} com {len(partes[k])}" for k in range(1, total + 1))
+print(f"OK: {contagem}; somam os {len(suite)} testes da suíte, sem repetição.")
 PY
 }
 
 case "${1:-}" in
-  argumentos) shift; argumentos "$@" ;;
+  total) shift; [[ $# -eq 0 ]] || uso; total ;;
+  matriz) shift; [[ $# -eq 0 ]] || uso; matriz ;;
+  argumentos) shift; [[ $# -eq 1 ]] || uso; argumentos "$@" ;;
   conferir) shift; conferir "$@" ;;
   conferir-enumeracoes) shift; conferir_enumeracoes "$@" ;;
   *) uso ;;
