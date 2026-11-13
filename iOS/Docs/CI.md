@@ -1,8 +1,28 @@
 # Integração contínua
 
+## PR rápido, noturna e a Apple (desde 13/11/2026, F-033)
+
+Medido nos runs 43493784643 e 43495568797 (runner `macos-26` de 3 vCPU): cada parte do PR levava de 93 a 108 minutos só de testes, e `AcessibilidadeDoCatalogoUITests` sozinha levou 47 minutos (um teste travou 21,7 minutos e passou na repetição). O desenho novo separa o que o PR precisa do que só a Apple e o dia seguinte precisam:
+
+- **PR** (`ios.yml`, meta de 30 a 40 minutos), dois jobs macOS em paralelo depois de um job Linux rápido que escolhe os testes:
+  - `escolher`: roda os autotestes e o `conferir` do mapa, da fumaça e da lista de fatias, e escolhe os testes de interface do diff com `Scripts/testes-de-interface-do-pr.sh escolher <base>`.
+  - **A**: portões, **todos** os unitários (`FrilaTests`) e, se o diff mexe em código, os builds de Release (Dev, Beta e Prod).
+  - **B**: a fumaça (`Tests/fumaca-ui.txt`, ~10 minutos) mais as classes de interface que o diff pede (`Tests/mapa-ui-por-pasta.txt`). Se o diff exige a suíte inteira de interface (`Sources/App/`, `project.yml`, `Package.resolved`, `Tests/UI/Esperas.swift`, `AjudanteDeLancamentoUITests.swift` ou qualquer caminho de `iOS/` que o mapa não cobre: na dúvida, tudo), o B é trocado pelo job **C**, que chama a suíte completa em fatias paralelas.
+  - O PR repete cada teste no máximo 2 vezes (`-test-iterations 2`) e dá 300 segundos a cada teste (`-default-test-execution-time-allowance 300`).
+- **Suíte completa** (`ios-suite-completa.yml`, só `workflow_call`): 4 fatias paralelas de `Tests/partes-da-ci.txt` (pesos de ~41 a 47 minutos) e, se pedido, os 3 builds de Release. A última fatia é o resto: `-skip-testing` de tudo o que está nas outras, então classe nova cai nela sozinha. `Scripts/partes-dos-testes.sh total|matriz|argumentos N|conferir` e o autoteste `Scripts/teste-partes-dos-testes.sh`.
+- **Noturna** (`ios-noturna.yml`, todo dia às 06h UTC e por disparo manual): chama a suíte completa com 3 repetições por teste. Se falhar, o job `avisar` comenta na issue aberta com o rótulo `ci-noturna` ou abre uma, com o link da execução, os jobs que falharam e os testes reprovados (`Scripts/listar-reprovados-xcresult.py`). O texto da issue é público (o repositório é público): só o que o próprio log já mostra.
+- **Antes da Apple**: o `testflight.yml` procura uma execução verde do `ios-noturna.yml` no mesmo commit; sem ela, roda a suíte completa antes do archive (o ensaio sem envio não exige). O `app-store-connect.yml` exige a última noturna verde quando `aplicar` está marcado em `grupo-externo` ou `revisao-beta`.
+- **Ambiente repetido** vive em `.github/actions/preparar-ios` (Xcode 26.6, XcodeGen 2.45.3, projeto, cache SPM, Firebase e o simulador, que já liga com `simctl boot` enquanto o Xcode compila; quem testa espera com `simctl bootstatus -b`).
+
+Mantidos: sem `-parallel-testing-worker-count` (medido e descartado no #102) e sem cache de `DerivedData` (o cache do repositório passou de 10 GB).
+
+**Acrescentou uma classe de interface?** O `conferir` reprova até ela estar num destino do mapa, em `@visual`, em `@so-noturna` ou na fumaça. **Rebalancear as fatias**: troque o peso no comentário de `Tests/partes-da-ci.txt` pelo tempo medido na noturna, mova a classe de seção e rode `Scripts/partes-dos-testes.sh conferir`. Para conferir com as enumerações do xcodebuild, o comando abaixo (em "Duas partes") vale com N fatias: `conferir-enumeracoes <suite.json> <parte-1.json> ... <parte-N.json>`.
+
+## O workflow `ios.yml` até 13/11/2026 (histórico das seções abaixo)
+
 O workflow `.github/workflows/ios.yml` roda em pull requests e pushes que mexem em `iOS/**` (ignorando alterações restritas a Markdown `!iOS/**/*.md` e `!iOS/Docs/**`) ou no próprio workflow, em dois jobs paralelos num runner `macos-26` cada, com permissão só de leitura e limite de 120 minutos por job. Um push novo cancela a execução anterior do mesmo PR ou branch. PRs que tocam apenas documentação não disparam a suíte, liberando a fila e economizando minutos de macOS.
 
-## Duas partes
+## Duas partes (histórico: o desenho até 13/11/2026; a lista agora é `Tests/partes-da-ci.txt`, com N fatias)
 
 Desde 06/10/2026 (PR #147), a suíte do `Frila-Local` é dividida por uma lista só, `Tests/parte-1-da-ci.txt`:
 
@@ -89,7 +109,7 @@ Em outubro de 2026 o job único chegou perto do limite: na 37244334865 (push no 
 
 Paralelismo de testes no simulador: medido e descartado em 03/10/2026 no PR #102. Tentar rodar os testes em paralelo no xcodebuild (`-parallel-testing-enabled YES -maximum-parallel-testing-workers 2`) subiu o tempo do passo de testes de 42-53 minutos para 67m45s (estourando o limite de 70 minutos do workflow) e causou 8 falhas espúrias por lentidão extrema. O runner `macos-26` do GitHub Actions tem apenas 3 vCPUs; subir e manter dois clones de simulador concorrentes sobrecarrega a CPU (só o boot inicial levou 10m20s) e quebra a sincronização de acessibilidade do XCUITest. O simulador único sequencial é 15 a 25 minutos mais rápido e 100% determinístico. Não ligue paralelismo de simulador na CI sem runners com mais núcleos dedicados.
 
-## Suíte completa no main: agendada
+## Suíte completa no main: agendada (histórico; desde 13/11/2026 é o `ios-noturna.yml`)
 
 Desde 12/10/2026, o `ios.yml` não dispara mais a cada push no `main`. A suíte completa roda agendada diariamente às 06h UTC e por disparo manual.
 
