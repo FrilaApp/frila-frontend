@@ -106,6 +106,27 @@ struct CodigoDaCasaViewModelTests {
         #expect(vm.segundosRestantes == 0)
     }
 
+    @Test("checkin_pendente com o check-in feito: sem espera de chegada e sem releitura (D-23)")
+    @MainActor
+    func checkinPendenteNaoViraEsperaDeChegada() async {
+        let api = ApiClienteDubleCheckinCasa()
+        var chamadas = 0
+        api.aoGerarCodigo = { _ in
+            chamadas += 1
+            throw ErroDaApi(codigo: .checkinPendente)
+        }
+
+        let vm = CodigoDaCasaViewModel(turnoID: turnoID, api: api)
+        await vm.carregar()
+        #expect(chamadas == 1)
+        #expect(vm.estado != .aguardandoChegada, "o check-in já foi feito: a casa não espera a chegada")
+
+        // A releitura de 5 em 5 s não pode ficar batendo num 409 que nunca muda.
+        await vm.verificarConfirmacao()
+        await vm.verificarConfirmacao()
+        #expect(chamadas == 1)
+    }
+
     @Test("checkin_ja_confirmado mapeia para estado jaVerificado")
     @MainActor
     func checkinJaConfirmadoMapeiaJaVerificado() async {
