@@ -140,8 +140,8 @@ public final class CadastroViewModel {
             telefone: telefoneE164,
             nascimento: nascimento,
             perfil: perfil,
-            // Termos de uso v1.0.1 e Política de privacidade v1.1, publicados em frilabr.com em 12/11/2026.
-            versaoTermos: "2026-11-12",
+            // Termos de uso v1.0.2 e Política de privacidade v1.1.1, publicados em frilabr.com em 13/11/2026.
+            versaoTermos: "2026-11-13",
             sinalIdade: sinalIdade
         )
 
