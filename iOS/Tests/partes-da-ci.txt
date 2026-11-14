@@ -1,0 +1,68 @@
+# Partes da suíte completa do Frila-Local na CI (.github/workflows/ios-suite-completa.yml, chamado
+# pelo ios-noturna.yml, pelo testflight.yml e pelo ios.yml quando o PR exige a suíte inteira).
+#
+# Seções `[parte N]` (N = 1, 2, 3...), uma entrada por linha no formato do -only-testing do xcodebuild:
+# um alvo (FrilaTests) ou um alvo e uma classe (FrilaUITests/Classe). A parte N roda só o que está na
+# sua seção (-only-testing). A ÚLTIMA parte não tem seção: roda todo o resto da suíte (-skip-testing de
+# tudo o que está nas outras). Classe ou alvo novo fica fora da lista e cai sozinho na última parte.
+# Quantas partes existem: Scripts/partes-dos-testes.sh total. Como e quando rebalancear: iOS/Docs/CI.md.
+#
+# Pesos (minutos) = tempo medido por classe quando existe (execuções 41322412132, 02/11/2026, e
+# 43493784643/43495568797, 13/11/2026: AcessibilidadeDoCatalogoUITests levou 47 min num run, com um teste
+# travado por 21,7 min) ou, onde não há medição, 0,19 min por método de teste (62,9 min / 336 métodos da
+# parte 2 antiga). Os unitários (FrilaTests) valem ~14 min. Total estimado ~170 min em 4 partes de ~41 a 47.
+# Peso novo medido na noturna: troque o número e confira a soma de cada parte.
+#
+# Parte 4 (o resto, ~41 min estimados; não listada de propósito): AcessibilidadeDoContratanteUITests,
+# AparenciaUITests, AuditoriaDeAcessibilidadeUITests, AutenticacaoUITests, AvaliacaoUITests,
+# CancelamentoDoContratanteUITests, CancelamentoDoProfissionalUITests, CheckinPorCodigoUITests,
+# ExclusaoDeContaUITests, FrilaSearchBarUITests, MinhasVagasUITests, PermissaoDePushUITests,
+# PlacaDaVagaUITests, PorQueReceboVagasUITests, PresencaUITests, PushUITests, RepublicarVagaUITests,
+# SaidaDaContaUITests, TrazerParaATelaCalculoTests e as classes novas.
+
+[parte 1]   # ~47 min
+FrilaUITests/AcessibilidadeDoCatalogoUITests      # 47,0 min
+
+[parte 2]   # ~41,5 min
+FrilaTests                                        # ~14,0 min
+FrilaUITests/BarraAceitarTurnoUITests             # 0,2 min
+FrilaUITests/CadastroEstabelecimentoUITests       # 3,3 min
+FrilaUITests/CapturasPeleNovaUITests              # 0,8 min
+FrilaUITests/CicloDePontaAPontaUITests            # 3,9 min
+FrilaUITests/ContatoCopiavelUITests               # 2,1 min
+FrilaUITests/DetalheVagaBarraInferiorUITests      # 1,3 min
+FrilaUITests/FotoDePerfilUITests                  # 3,0 min
+FrilaUITests/FrilaUITests                         # 1,1 min
+FrilaUITests/FrilaUITestsLote4                    # 1,7 min
+FrilaUITests/HistoricoDeTurnosUITests             # 1,7 min
+FrilaUITests/LicencasUITests                      # 0,4 min
+FrilaUITests/MedicaoUITests                       # 0,8 min
+FrilaUITests/ModoAviaoUITests                     # 0,2 min
+FrilaUITests/PerfilUITests                        # 0,9 min
+FrilaUITests/RepublicarPosicoesRestantesUITests   # 0,8 min
+FrilaUITests/ReputacaoDosPerfisPublicosUITests    # 0,6 min
+FrilaUITests/ServicosDoProfissionalUITests        # 1,1 min
+FrilaUITests/ServidorDeHojeUITests                # 1,5 min
+FrilaUITests/TurnoContrato0231UITests             # 2,1 min
+
+[parte 3]   # ~41,5 min
+FrilaUITests/AcessibilidadeDoProfissionalUITests  # 3,0 min
+FrilaUITests/AjudanteDeLancamentoUITestsInternos  # 0,8 min
+FrilaUITests/CandidaturaUITests                   # 4,6 min
+FrilaUITests/CapturasDesignD01UITests             # 0,4 min
+FrilaUITests/ChamadaDiretaCompletaUITests         # 1,9 min
+FrilaUITests/ConferenciaVisualLote1e4UITests      # 2,5 min
+FrilaUITests/ContaSuspensaUITests                 # 0,9 min
+FrilaUITests/EquipeDeConfiancaUITests             # 0,9 min
+FrilaUITests/ExportarDadosUITests                 # 0,8 min
+FrilaUITests/FluxoDoContratanteUITests            # 5,9 min
+FrilaUITests/ModoSelecaoDoContratanteUITests      # 3,9 min
+FrilaUITests/ModoSelecaoDoProfissionalUITests     # 1,9 min
+FrilaUITests/NotificacaoDePushUITests             # 0,8 min
+FrilaUITests/PublicarVagaEmMinhasVagasUITests     # 6,5 min
+FrilaUITests/SegurancaUITests                     # 1,3 min
+FrilaUITests/SuporteTurnoUITests                  # 1,4 min
+FrilaUITests/TurnoDoContratanteUITests            # 1,7 min
+FrilaUITests/VagaEncerradaTrabalhadaUITests       # 0,4 min
+FrilaUITests/VagasUITests                         # 1,1 min
+FrilaUITests/VarreduraFinal11UITests              # 0,8 min

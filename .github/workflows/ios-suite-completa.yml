@@ -1,0 +1,256 @@
+name: iOS suíte completa
+
+# A suíte inteira do Frila-Local em N fatias paralelas (iOS/Tests/partes-da-ci.txt) e, se pedido, os três
+# builds de Release. Não roda sozinha em PR: quem chama é o ios-noturna.yml (todo dia), o testflight.yml
+# (antes de mandar à Apple, se não houver noturna verde no mesmo SHA) e o ios.yml (PR cujo diff exige a
+# suíte inteira). Desenho e tempos: iOS/Docs/CI.md.
+#
+# Sem `concurrency` aqui de propósito: o grupo é de quem chama, e os dois no mesmo grupo travam um ao outro.
+
+on:
+  workflow_call:
+    inputs:
+      com_release:
+        description: "Inclui os builds de Release (Dev, Beta e Prod) e as conferências de bundle"
+        type: boolean
+        default: true
+      iteracoes:
+        description: "Tentativas por teste (-test-iterations); a noturna usa 3, o PR usa 2"
+        type: number
+        default: 3
+      limite_por_teste:
+        description: "Segundos por teste (-default-test-execution-time-allowance); 0 desliga o limite"
+        type: number
+        default: 0
+
+permissions:
+  contents: read
+
+env:
+  TEST_RUNNER_CI: "true"
+
+jobs:
+  plano:
+    name: "Plano das fatias"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
+    outputs:
+      partes: ${{ steps.matriz.outputs.partes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Conferir que as fatias somam a suíte
+        run: |
+          Scripts/teste-partes-dos-testes.sh
+          Scripts/partes-dos-testes.sh conferir
+
+      - name: Montar a matriz de fatias
+        id: matriz
+        run: echo "partes=$(Scripts/partes-dos-testes.sh matriz)" >> "$GITHUB_OUTPUT"
+
+  testes:
+    name: "Testes: fatia ${{ matrix.parte }}"
+    needs: plano
+    runs-on: macos-26
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        parte: ${{ fromJSON(needs.plano.outputs.partes) }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar o ambiente iOS
+        id: preparo
+        uses: ./.github/actions/preparar-ios
+        with:
+          firebase-dev-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
+          firebase-prod-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
+
+      - name: Compilar os testes do Frila-Local (sem backend)
+        run: |
+          xcodebuild build-for-testing \
+            -project Frila.xcodeproj \
+            -scheme Frila-Local \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcbeautify --renderer github-actions
+
+      - name: Esperar o simulador terminar de ligar
+        run: xcrun simctl bootstatus "${{ steps.preparo.outputs.udid }}" -b
+
+      - name: Testes da fatia ${{ matrix.parte }} (sem recompilar)
+        id: testes
+        env:
+          ITERACOES: ${{ inputs.iteracoes }}
+          LIMITE_POR_TESTE: ${{ inputs.limite_por_teste }}
+        run: |
+          LISTA="$(Scripts/partes-dos-testes.sh argumentos ${{ matrix.parte }})"
+          PARTE=()
+          while IFS= read -r argumento; do PARTE+=("$argumento"); done <<< "$LISTA"
+          LIMITE=()
+          if [[ "$LIMITE_POR_TESTE" != "0" ]]; then
+            LIMITE=(-test-timeouts-enabled YES -default-test-execution-time-allowance "$LIMITE_POR_TESTE")
+          fi
+          xcodebuild test-without-building \
+            -project Frila.xcodeproj \
+            -scheme Frila-Local \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            "${PARTE[@]}" \
+            -retry-tests-on-failure -test-iterations "$ITERACOES" \
+            ${LIMITE[@]+"${LIMITE[@]}"} \
+            -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            | xcbeautify --renderer github-actions
+
+      - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Fatia ${{ matrix.parte }}" >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Listar os testes reprovados
+        if: failure() && steps.testes.outcome == 'failure'
+        run: |
+          python3 Scripts/listar-reprovados-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" > "$RUNNER_TEMP/falhas-fatia-${{ matrix.parte }}.txt" || true
+          echo "Reprovados na fatia ${{ matrix.parte }}:"
+          cat "$RUNNER_TEMP/falhas-fatia-${{ matrix.parte }}.txt"
+
+      - name: Publicar a lista de reprovados
+        if: failure() && steps.testes.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: falhas-fatia-${{ matrix.parte }}
+          path: ${{ runner.temp }}/falhas-fatia-${{ matrix.parte }}.txt
+          if-no-files-found: ignore
+          retention-days: 2
+
+      - name: Publicar xcresult em caso de falha nos testes
+        if: failure() && steps.testes.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: xcresult-fatia-${{ matrix.parte }}
+          path: ${{ env.DERIVED_DATA_PATH }}/Logs/Test/Frila-Local.xcresult
+          if-no-files-found: warn
+          # A cota de armazenamento de artefatos da organização estourou em 08/11/2026: 2 dias bastam para baixar e ler.
+          retention-days: 2
+
+      - name: Apagar segredos e temporários
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
+          rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
+          # SourcePackages fica até o pós-job de actions/cache salvar somente os pacotes.
+          if [[ -d "$DERIVED_DATA_PATH" ]]; then
+            find "$DERIVED_DATA_PATH" -mindepth 1 -maxdepth 1 ! -name SourcePackages -exec rm -rf {} +
+          fi
+          rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
+
+  release:
+    name: "Builds de Release (Dev, Beta e Prod)"
+    if: inputs.com_release
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar o ambiente iOS
+        id: preparo
+        uses: ./.github/actions/preparar-ios
+        with:
+          firebase-dev-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
+          firebase-prod-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
+
+      - name: Build do Frila-Dev (Supabase frila-dev)
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+        run: |
+          Scripts/generate-supabase-secrets.sh dev
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Dev \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Autoteste da conferência de Release
+        run: Scripts/teste-conferir-release.sh
+
+      - name: Build do Frila-Beta (Release apontando para o frila-dev)
+        run: |
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Beta \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Conferir o bundle de Release do Frila-Beta
+        env:
+          FRILA_ESQUEMA_ESPERADO: Frila-Beta
+        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
+
+      - name: Build do Frila-Prod (Supabase frila-prod)
+        env:
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
+        run: |
+          Scripts/generate-supabase-secrets.sh prod
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Prod \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Conferir o bundle de Release do Frila-Prod
+        env:
+          FRILA_ESQUEMA_ESPERADO: Frila-Prod
+        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
+
+      - name: Apagar segredos e temporários
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
+          rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
+          if [[ -d "$DERIVED_DATA_PATH" ]]; then
+            find "$DERIVED_DATA_PATH" -mindepth 1 -maxdepth 1 ! -name SourcePackages -exec rm -rf {} +
+          fi
+          rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
