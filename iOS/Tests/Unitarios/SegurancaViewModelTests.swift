@@ -26,6 +26,10 @@ private final class ApiDeSeguranca: ApiClienteEncaminhador, @unchecked Sendable 
         if let falha { throw falha }
         return try await base.bloquear(alvo)
     }
+    override func desbloquear(_ alvo: Alvo) async throws -> Bloqueio {
+        if let falha { throw falha }
+        return try await base.desbloquear(alvo)
+    }
     override func perfilPublico(id: UUID) async throws -> PerfilPublico {
         if let falha { throw falha }
         return try await base.perfilPublico(id: id)
@@ -214,6 +218,37 @@ struct SegurancaViewModelTests {
         #expect(model.bloqueado)
         #expect(bloqueios.contem(perfil))
         #expect(bloqueios.contem(Alvo(perfil)))
+    }
+
+    @Test("Desbloquear atualiza model.bloqueado para false e remove o alvo dos bloqueios da sessão")
+    func desbloquearAtualizaModelBloqueado() async throws {
+        let api = ApiDeSeguranca()
+        let perfil = try await perfil(api)
+        let bloqueios = BloqueiosDaSessao()
+        let model = SegurancaViewModel(perfil: perfil, api: api, bloqueios: bloqueios)
+        await model.bloquear()
+        #expect(model.bloqueado)
+        #expect(bloqueios.contem(Alvo(perfil)))
+
+        await model.desbloquear()
+        #expect(!model.bloqueado)
+        #expect(!bloqueios.contem(Alvo(perfil)))
+        #expect(!bloqueios.contem(perfil))
+    }
+
+    @Test("Desbloquear recusado não remove o alvo dos bloqueios da sessão")
+    func desbloquearRecusado() async throws {
+        let api = ApiDeSeguranca(falha: ErroDaApi(codigo: .semRede))
+        let perfil = try await perfil(api)
+        let bloqueios = BloqueiosDaSessao()
+        bloqueios.registrar(Alvo(perfil))
+        let model = SegurancaViewModel(perfil: perfil, api: api, bloqueios: bloqueios)
+        #expect(model.bloqueado)
+
+        await model.desbloquear()
+        #expect(model.bloqueado)
+        #expect(bloqueios.contem(Alvo(perfil)))
+        #expect(model.erroBloqueio == TextosDaSeguranca.semRede)
     }
 
     // MARK: - BloqueiosDaSessao.filtrar

@@ -256,14 +256,6 @@ def conferir_rpcs(
             "Verificação de identidade (RN14, contrato 0.2.50); "
             "fluxo de upload de documento pendente de adoção no app iOS."
         ),
-        "listar_bloqueios": (
-            "Lista de bloqueados (decisão A8 da PO, contrato 0.2.51); "
-            "tela de bloqueados pendente de adoção no app iOS."
-        ),
-        "desbloquear": (
-            "Desbloqueio (decisão A8 da PO, contrato 0.2.51); "
-            "tela de bloqueados pendente de adoção no app iOS."
-        ),
         "definir_servicos": PENDENTE_F2,
         "meu_perfil_detalhado": PENDENTE_F2,
         "atualizar_apresentacao_profissional": PENDENTE_F2,
@@ -527,10 +519,6 @@ def conferir_dtos(
         ),
         "UploadVerificacao": (
             "Payload de solicitar_upload_verificacao (RN14, contrato 0.2.50); "
-            "pendente de adoção no cliente iOS."
-        ),
-        "ItemBloqueio": (
-            "Item de listar_bloqueios (decisão A8 da PO, contrato 0.2.51); "
             "pendente de adoção no cliente iOS."
         ),
         "PreferenciaChamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",

@@ -226,6 +226,7 @@ private struct ContainerDaConta<Conteudo: View>: View {
 
 /// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
 public struct TelaMeuPerfilProfissional: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var despachoModel: PorQueReceboVagasViewModel
     @State private var model: MeuPerfilProfissionalViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -338,6 +339,14 @@ public struct TelaMeuPerfilProfissional: View {
                 .accessibilityAddTraits(.isHeader)
             ContainerDaConta {
                 if perfilCarregado {
+                    NavigationLink {
+                        TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
+                    } label: {
+                        RotuloDeLinha(TextosBloqueios.titulo)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("perfil-bloqueios")
+                    DivisoriaDeLinha()
                     ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
                     DivisoriaDeLinha()
                 }
@@ -591,6 +600,7 @@ struct TelaSairOuExcluirConta: View {
 }
 /// Perfil do estabelecimento (#18), com a mesma lista aberta do perfil do profissional.
 public struct TelaPerfilEstabelecimento: View {
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var mostrarConfirmacaoDeSaida = false
     @State private var model: PerfilEstabelecimentoViewModel
     @State private var exportarModel: ExportarDadosViewModel
@@ -674,6 +684,14 @@ public struct TelaPerfilEstabelecimento: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("estabelecimento-equipe-de-confianca")
+                        DivisoriaDeLinha()
+                        NavigationLink {
+                            TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
+                        } label: {
+                            RotuloDeLinha(TextosBloqueios.titulo)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("estabelecimento-bloqueios")
                         DivisoriaDeLinha()
                         Button { mostrarAjuda = true } label: {
                             RotuloDeLinha(TextosPerfilConta.ajuda)
