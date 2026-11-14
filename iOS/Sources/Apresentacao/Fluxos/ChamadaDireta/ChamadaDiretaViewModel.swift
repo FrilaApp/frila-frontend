@@ -132,7 +132,9 @@ public final class ChamadaDiretaViewModel {
                 let casa = try await api.meuEstabelecimento(id: estabelecimentoID)
                 let funcoes = try await api.funcoes()
                 let vaga: Vaga?
-                if let vagaID { vaga = try await api.detalheDaVaga(id: vagaID) } else { vaga = nil }
+                // A vaga anterior só pré-preenche a folha. `detalhe_vaga` é leitura de profissional: para a
+                // conta da casa o servidor responde 422, e isso não pode derrubar a chamada.
+                if let vagaID { vaga = try? await api.detalheDaVaga(id: vagaID) } else { vaga = nil }
                 return (casa, funcoes, vaga)
             }
             let (casa, catalogo, vaga) = dados

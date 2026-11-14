@@ -164,6 +164,29 @@ esperar_escolha "Esperas" "-only-testing:FrilaUITests" iOS/Tests/UI/Esperas.swif
 esperar_escolha "caminho de Sources sem mapa" "-only-testing:FrilaUITests" iOS/Sources/Solto/Solto.swift
 esperar_escolha "completa vence o resto" "-only-testing:FrilaUITests" iOS/Docs/Um.md iOS/Sources/Solto/Solto.swift iOS/Sources/Fluxos/A/TelaA.swift
 
+# Mais de 12 classes escolhidas (a fumaça não conta) → suíte inteira; 12 ou menos → continua a seleção
+MUITAS="$TMPDIR_TESTE/muitas"
+mkdir -p "$MUITAS/iOS/Tests/UI" "$MUITAS/iOS/Sources/Treze" "$MUITAS/iOS/Sources/Doze"
+touch "$MUITAS/iOS/Sources/Treze/X.swift" "$MUITAS/iOS/Sources/Doze/X.swift"
+CLASSES_13=""
+CLASSES_12=""
+for n in 1 2 3 4 5 6 7 8 9 10 11 12 13; do
+  printf 'import XCTest\n\nfinal class M%sUITests: XCTestCase {\n    func testM() {}\n}\n' "$n" > "$MUITAS/iOS/Tests/UI/M${n}UITests.swift"
+  CLASSES_13="${CLASSES_13:+$CLASSES_13, }M${n}UITests"
+  [[ "$n" -le 12 ]] && CLASSES_12="${CLASSES_12:+$CLASSES_12, }M${n}UITests"
+done
+printf 'import XCTest\n\nfinal class MVisualUITests: XCTestCase {\n    func testM() {}\n}\n' > "$MUITAS/iOS/Tests/UI/MVisualUITests.swift"
+printf '@visual = MVisualUITests\n@so-noturna = MVisualUITests\nSources/Treze/ = %s\nSources/Doze/ = %s\n' "$CLASSES_13" "$CLASSES_12" > "$MUITAS/mapa.txt"
+printf 'FrilaUITests/M1UITests\n' > "$MUITAS/fumaca.txt"
+escolher_muitas() {
+  printf '%s\n' "$@" | ESCOLHER_RAIZ="$MUITAS/iOS" ESCOLHER_MAPA="$MUITAS/mapa.txt" ESCOLHER_FUMACA="$MUITAS/fumaca.txt" "$SCRIPT" escolher --arquivos - 2>"$MUITAS/erro.txt"
+}
+saida="$(escolher_muitas iOS/Sources/Treze/X.swift)"
+[[ "$saida" == "-only-testing:FrilaUITests" ]] || { echo "FALHA: 13 classes deveriam ir para a suíte inteira: $saida" >&2; exit 1; }
+grep -q "13 classes escolhidas, acima de 12: suíte inteira em fatias" "$MUITAS/erro.txt" || { echo "FALHA: faltou o motivo das 13 classes: $(cat "$MUITAS/erro.txt")" >&2; exit 1; }
+saida="$(escolher_muitas iOS/Sources/Doze/X.swift)"
+[[ "$(printf '%s\n' "$saida" | wc -l | tr -d ' ')" == "12" && "$saida" != *"-only-testing:FrilaUITests"$'\n'* && "$saida" == *"-only-testing:FrilaUITests/M12UITests"* ]] || { echo "FALHA: 12 classes deveriam continuar na seleção: $saida" >&2; exit 1; }
+
 # Mudança na própria CI roda a suíte inteira (regra explícita do mapa, prefixo `.github/` da raiz)
 esperar_escolha "só o ios.yml muda" "-only-testing:FrilaUITests" .github/workflows/ios.yml
 esperar_escolha "glob ios*.yml" "-only-testing:FrilaUITests" .github/workflows/ios-noturna.yml
