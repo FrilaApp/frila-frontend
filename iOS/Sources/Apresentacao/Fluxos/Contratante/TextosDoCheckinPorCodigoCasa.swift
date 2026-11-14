@@ -8,15 +8,14 @@ public enum TextosDoCheckinPorCodigoCasa {
         localized: "Mostre este código de 6 números ao profissional que chegou. Ele digitará no aplicativo para confirmar a presença.",
         bundle: bundleApresentacao
     )
-    public static let aguardandoChegada = String(
-        localized: "Aguardando o profissional chegar no local",
+    public static let semCodigoParaEsteCheckin = String(
+        localized: "O check-in foi feito longe do local ou há mais de 15 min. Confirme a presença pelo botão abaixo.",
         bundle: bundleApresentacao
     )
     public static let aguardandoChegadaExplicacao = String(
         localized: "Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição.",
         bundle: bundleApresentacao
     )
-    public static let atualizar = String(localized: "Verificar chegada", bundle: bundleApresentacao)
     public static func validade(_ tempo: String) -> String {
         String(format: String(localized: "Vale por mais %@", bundle: bundleApresentacao), tempo)
     }

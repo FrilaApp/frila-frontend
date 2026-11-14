@@ -8827,6 +8827,16 @@
         }
       }
     },
+    "O check-in foi feito longe do local ou há mais de 15 min. Confirme a presença pelo botão abaixo.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O check-in foi feito longe do local ou há mais de 15 min. Confirme a presença pelo botão abaixo."
+          }
+        }
+      }
+    },
     "O check-in guardado neste aparelho não foi registrado. Esse envio não será repetido.": {
       "extractionState": "stale",
       "localizations": {

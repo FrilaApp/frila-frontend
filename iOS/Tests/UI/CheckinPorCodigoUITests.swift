@@ -33,9 +33,9 @@ final class CheckinPorCodigoUITests: XCTestCase {
 
     // MARK: A casa
 
-    private func abrirTurnoDaCasa(cenario: String) -> XCUIApplication {
+    private func abrirTurnoDaCasa(cenario: String, extras: [String] = []) -> XCUIApplication {
         abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", cenario,
-               "-FRILA_AVISO", "checkin_manual_pendente", "-FRILA_AVISO_ID", turnoDaCasa])
+               "-FRILA_AVISO", "checkin_manual_pendente", "-FRILA_AVISO_ID", turnoDaCasa] + extras)
     }
 
     func testCasaVeOCodigoEContagemSemNavegarEMantemAConfirmacaoManual() {
@@ -53,17 +53,30 @@ final class CheckinPorCodigoUITests: XCTestCase {
         XCTAssertEqual(confirmar.label, "Confirmar presença")
     }
 
-    func testCasaAguardandoChegadaMostraTextoExatoESemLinhaDeApoioEBotaoConfirmarSecundario() {
-        let app = abrirTurnoDaCasa(cenario: "checkin-por-codigo-casa-espera")
-        let aviso = app.descendants(matching: .any)["aviso-aguardando-chegada"]
-        XCTAssertTrue(aviso.waitForExistence(timeout: 20), "aviso de espera na tela da casa")
+    func testCasaComCheckinSemCodigoMostraOAvisoEMantemAConfirmacaoManual() {
+        conferirAvisoSemCodigo(extras: [], nomeDaCaptura: "cartao-da-casa-sem-codigo-padrao")
+    }
+
+    func testCasaComCheckinSemCodigoMostraOAvisoEmAX5() {
+        conferirAvisoSemCodigo(
+            extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"],
+            nomeDaCaptura: "cartao-da-casa-sem-codigo-ax5"
+        )
+    }
+
+    private func conferirAvisoSemCodigo(extras: [String], nomeDaCaptura: String) {
+        let app = abrirTurnoDaCasa(cenario: "checkin-por-codigo-casa-espera", extras: extras)
+        let aviso = app.descendants(matching: .any)["codigo-da-casa-sem-codigo-para-o-checkin"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 20), "aviso na tela da casa")
         rolarAte(aviso, em: app)
-        XCTAssertEqual(aviso.label, "Aguardando o profissional chegar no local")
-        // Sem linha de apoio: não deve existir texto secundário
-        XCTAssertFalse(app.staticTexts["Assim que o profissional registrar a chegada no local do turno, o código de 6 dígitos será liberado para exibição."].exists)
-        // Botão de reserva 'Verificar chegada'
-        XCTAssertTrue(app.buttons["atualizar-chegada-casa"].exists)
-        // Botão secundário de confirmação manual
+        let captura = XCTAttachment(screenshot: app.screenshot())
+        captura.name = nomeDaCaptura
+        captura.lifetime = .keepAlways
+        add(captura)
+        XCTAssertEqual(aviso.label, "O check-in foi feito longe do local ou há mais de 15 min. Confirme a presença pelo botão abaixo.")
+        // Não há mais o botão "Verificar chegada": o 409 não muda com a espera.
+        XCTAssertFalse(app.buttons["atualizar-chegada-casa"].exists)
+        // A confirmação manual fica logo abaixo.
         let confirmar = app.buttons["confirmar-presenca-\(turnoDaCasa)"]
         XCTAssertTrue(confirmar.exists)
         XCTAssertEqual(confirmar.label, "Confirmar presença")

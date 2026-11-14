@@ -10,8 +10,10 @@ import Observation
 public final class CodigoDaCasaViewModel {
     public enum Estado: Equatable, Sendable {
         case carregando
-        /// O profissional ainda não tocou em Cheguei (`409 checkin_pendente`).
-        case aguardandoChegada
+        /// `409 checkin_pendente` com o check-in já feito: ele foi a mais de 50 m ou há mais de 15 min, então
+        /// não há código para este check-in. Vale a confirmação manual, mas a releitura de 5 s continua: se o
+        /// profissional tocar de novo a menos de 50 m, o servidor passa a devolver o código e a tela vira `.mostrando`.
+        case semCodigoParaEsteCheckin
         /// Código ativo gerado pelo servidor, preservando zeros à esquerda (ex.: "049215").
         case mostrando(codigo: String)
         /// Fora da janela de check-in (`422 fora_da_janela`).
@@ -85,15 +87,13 @@ public final class CodigoDaCasaViewModel {
         }
     }
 
-    /// Verifica se a presença já foi confirmada pelo profissional enquanto o código está em exibição,
-    /// ou se o profissional já chegou enquanto a casa aguarda a chegada.
+    /// Releitura periódica (5 s) com o código em exibição ou com o aviso "sem código para este check-in" na tela:
+    /// detecta a confirmação do profissional (`checkin_ja_confirmado`) e o código novo de um segundo toque perto.
     public func verificarConfirmacao() async {
         guard !Task.isCancelled, !emVoo else { return }
         switch estado {
-        case .mostrando, .aguardandoChegada:
-            break
-        default:
-            return
+        case .mostrando, .semCodigoParaEsteCheckin: break
+        default: return
         }
         await executarCarregamento(ehReleitura: true)
     }
@@ -122,7 +122,7 @@ public final class CodigoDaCasaViewModel {
 
     private static func estado(para erro: ErroDaApi) -> Estado {
         if erro.recursoDesligado { return .indisponivel }
-        if erro.codigo == .checkinPendente { return .aguardandoChegada }
+        if erro.codigo == .checkinPendente { return .semCodigoParaEsteCheckin }
         if erro.bloqueioDoCodigo != nil { return .encerrado }
         if erro.codigo == .checkinJaConfirmado { return .jaVerificado }
         if erro.codigo == .foraDaJanela { return .foraDaJanela }

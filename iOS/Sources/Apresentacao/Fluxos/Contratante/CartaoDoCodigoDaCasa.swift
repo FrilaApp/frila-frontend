@@ -44,15 +44,9 @@ public struct CartaoDoCodigoDaCasa: View {
         switch viewModel.estado {
         case .carregando:
             progresso(Textos.carregando)
-        case .aguardandoChegada:
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                AvisoFrila(verbatim: Textos.aguardandoChegada, tom: .informativo)
-                    .accessibilityIdentifier("aviso-aguardando-chegada")
-                BotaoSecundario(verbatim: Textos.atualizar) {
-                    Task { await viewModel.carregar() }
-                }
-                .accessibilityIdentifier("atualizar-chegada-casa")
-            }
+        case .semCodigoParaEsteCheckin:
+            AvisoFrila(verbatim: Textos.semCodigoParaEsteCheckin, tom: .informativo)
+                .accessibilityIdentifier("codigo-da-casa-sem-codigo-para-o-checkin")
         case let .mostrando(codigo):
             VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                 Text(verbatim: Textos.explicacao)
