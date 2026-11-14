@@ -109,4 +109,22 @@ struct ChamadaDiretaPassoAPassoTests {
     private func esperar(_ condicao: @MainActor () -> Bool) async throws {
         for _ in 0..<50 where !condicao() { try await Task.sleep(for: .milliseconds(100)) }
     }
+
+    // MARK: - Motivo da recusa em Acompanhar chamadas
+
+    @Test("O motivo da recusa aparece com o texto que o profissional escolheu, nunca com o código cru")
+    func motivoComOTextoCerto() {
+        let esperado: [MotivoRecusaChamada: String] = [
+            .agenda: TextosChamadaDireta.motivoAgenda,
+            .distancia: TextosChamadaDireta.motivoDistancia,
+            .valor: TextosChamadaDireta.motivoValor,
+            .tipoDeServico: TextosChamadaDireta.motivoTipoDeServico,
+            .outro: TextosChamadaDireta.motivoOutro
+        ]
+        for motivo in MotivoRecusaChamada.allCases {
+            let texto = TextosChamadaDireta.motivo(motivo)
+            #expect(texto == esperado[motivo], "\(motivo)")
+            #expect(texto != motivo.rawValue, "\(motivo) apareceria cru")
+        }
+    }
 }
