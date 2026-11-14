@@ -106,7 +106,7 @@ public struct TelaAcompanharChamadas: View {
                 .font(FrilaTipo.corpo)
 
             if let motivo = chamada.motivoRecusa {
-                Text(verbatim: "\(TextosChamadaDireta.motivoRotulo): \(motivo.rawValue)")
+                Text(verbatim: "\(TextosChamadaDireta.motivoRotulo): \(TextosChamadaDireta.motivo(motivo))")
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
