@@ -824,4 +824,26 @@ struct TextosDaPresencaTests {
         cena.relogio.avancar(1)
         #expect(!vm.podeFazerCheckout)
     }
+
+    @Test("Conta de demonstração (revisão da Apple) fica isenta da janela: o check-out aparece depois de fim + 60 min")
+    @MainActor
+    func contaDeDemonstracaoSemJanelaDoCheckout() async throws {
+        let cena = try await Cena.montar()
+        let comum = await cena.comCheckinFeito(cena.leitor(a: 50))
+        let demo = ViewModel(
+            turno: comum.turno, api: cena.api, localizacao: cena.leitor(a: 50), fila: cena.fila, relogio: cena.relogio,
+            pontoDaVaga: cena.ponto, isentoDaJanela: true
+        )
+        let fim = cena.turno.vaga.periodo.fim
+        cena.relogio.avancar(fim.addingTimeInterval(3 * 3600).timeIntervalSince(cena.relogio.agora))
+
+        #expect(!comum.podeFazerCheckout)
+        #expect(demo.podeFazerCheckout)
+
+        // A tela também pode avisar depois de abrir, quando a conta chega.
+        comum.definir(isentoDaJanela: true)
+        #expect(comum.podeFazerCheckout)
+        comum.definir(isentoDaJanela: false)
+        #expect(!comum.podeFazerCheckout)
+    }
 }
