@@ -9,6 +9,7 @@
 #       <base> é o commit ou ramo base do PR; os arquivos vêm de `git diff --name-only <base>...HEAD`.
 #       Imprime os argumentos do xcodebuild, um por linha (-only-testing:FrilaUITests/Classe[/metodo]).
 #       Quando o diff exige a suíte inteira de interface, imprime só `-only-testing:FrilaUITests`.
+#       Isso também vale quando o diff escolhe mais de 12 classes (a fumaça não conta): o job B não caberia.
 #       O motivo de cada arquivo vai para a saída de erro. Entre as linhas do mapa que casam com um arquivo,
 #       vale a mais específica (mais caracteres fixos no prefixo: arquivo ou glob ganha da pasta).
 #   Scripts/testes-de-interface-do-pr.sh escolher --arquivos <lista.txt>
@@ -47,6 +48,9 @@ import fnmatch, os, re, sys
 comando = sys.argv[1]
 raiz = os.environ["RAIZ"]
 alvo_ui = "FrilaUITests"
+# Acima de 12 classes escolhidas o job B passa de 90 min (o PR #762 gastou 75 min e foi cancelado);
+# a suíte em fatias, em paralelo, é mais rápida. A fumaça não conta para o limite.
+LIMITE_DE_CLASSES_NO_PR = 12
 pasta_ui = os.path.join(raiz, "Tests", "UI")
 
 def falhar(mensagem):
@@ -229,6 +233,10 @@ for caminho in arquivos_alterados:
         motivos.append("nenhum prefixo do mapa cobre este caminho: suíte inteira (na dúvida, tudo)")
     for motivo in motivos:
         print(f"  {caminho}: {motivo}", file=sys.stderr)
+
+if not completa and len(escolhidas) > LIMITE_DE_CLASSES_NO_PR:
+    completa = True
+    print(f"  {len(escolhidas)} classes escolhidas, acima de {LIMITE_DE_CLASSES_NO_PR}: suíte inteira em fatias", file=sys.stderr)
 
 if completa:
     print(f"-only-testing:{alvo_ui}")
