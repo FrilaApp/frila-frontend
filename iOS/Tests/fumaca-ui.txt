@@ -1,0 +1,21 @@
+# Fumaça de interface do PR (.github/workflows/ios.yml, job B): roda em todo PR que mexe em iOS/, mais
+# os testes que o diff pede (Tests/mapa-ui-por-pasta.txt). Alvo da ordem: ~10 min no total.
+#
+# Uma entrada por linha: Alvo/Classe/metodo (só o método) ou Alvo/Classe (a classe inteira), no formato
+# do -only-testing do xcodebuild. `Scripts/testes-de-interface-do-pr.sh conferir` reprova classe ou
+# método que não existe (nome errado no -only-testing passa calado no xcodebuild).
+#
+# Escolha: o caminho mínimo de cada papel (cadastro e entrada, vagas, candidatura, publicar vaga, turno,
+# presença e check-in), mais o ciclo de ponta a ponta. Quem muda um fluxo grande ganha o resto pelo mapa.
+
+FrilaUITests/AutenticacaoUITests/testFluxoCompletoPrimeiroAcessoAteVagas
+FrilaUITests/AutenticacaoUITests/testContaExistentePulaCadastroEAbreVagas
+FrilaUITests/FrilaUITests/testConfirmarCodigoAbreASessaoSemMostrarDadosDeAcesso
+FrilaUITests/VagasUITests/testLocalAbreNaListaEODetalheNaoTemAvisoDeContatoNemTelefone
+FrilaUITests/CandidaturaUITests/testConfirmadaNaoMostraContato
+FrilaUITests/PublicarVagaEmMinhasVagasUITests/testContratanteComEstabelecimentoPublicaASegundaVagaEElaApareceNaLista
+FrilaUITests/CicloDePontaAPontaUITests
+FrilaUITests/ServidorDeHojeUITests/testMeusTurnosEDetalheDoTurnoConfirmadoComAcoesDeSempre
+FrilaUITests/TurnoDoContratanteUITests/testTurnoMostraAChegadaEConfirmaAPresenca
+FrilaUITests/PresencaUITests/testCheckinA150MetrosFicaVerificadoEOCheckoutRegistraASaida
+FrilaUITests/CheckinPorCodigoUITests/testGPSSimuladoPedeOCodigoEOCodigoCertoVerificaAPresenca

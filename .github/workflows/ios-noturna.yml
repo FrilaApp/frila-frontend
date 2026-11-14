@@ -1,0 +1,79 @@
+name: iOS noturna
+
+# A suíte inteira do iOS todo dia (06h UTC, 03h em Brasília) e por disparo manual, no código da main.
+# O PR roda só a fumaça e os testes que o diff pede (ios.yml); esta noturna pega o resto. O testflight.yml
+# e o app-store-connect.yml procuram uma execução verde desta noturna antes de mandar algo à Apple.
+# Se falhar, comenta na issue aberta com o rótulo `ci-noturna` ou abre uma. Desenho: iOS/Docs/CI.md.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Uma noturna por vez; a que está rodando termina (a do dia seguinte espera, não a cancela).
+concurrency:
+  group: ios-noturna
+  cancel-in-progress: false
+
+jobs:
+  suite:
+    name: "Suíte completa"
+    uses: ./.github/workflows/ios-suite-completa.yml
+    secrets: inherit
+    with:
+      com_release: true
+      iteracoes: 3
+      limite_por_teste: 0
+
+  avisar:
+    name: "Avisar na issue da noturna"
+    needs: suite
+    if: ${{ always() && needs.suite.result == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      COMMIT: ${{ github.sha }}
+    steps:
+      - name: Juntar o que falhou
+        run: |
+          mkdir -p "$RUNNER_TEMP/falhas"
+          # Lista de testes reprovados que cada fatia publicou (pode faltar se a cota de artefatos acabou).
+          gh run download "$RUN_ID" --pattern 'falhas-fatia-*' --dir "$RUNNER_TEMP/falhas" || echo "Sem listas de reprovados nos artefatos."
+          {
+            echo "A suíte completa do iOS falhou na execução ${RUN_URL} (commit \`${COMMIT:0:7}\`)."
+            echo
+            echo "Jobs que falharam:"
+            gh run view "$RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion == "failure") | "- " + .name'
+            echo
+            if compgen -G "$RUNNER_TEMP/falhas/*/*.txt" > /dev/null; then
+              echo "Testes reprovados (depois das repetições):"
+              while IFS= read -r teste; do
+                echo "- \`$teste\`"
+              done < <(cat "$RUNNER_TEMP"/falhas/*/*.txt | sort -u)
+            else
+              echo "A lista de testes reprovados não ficou disponível; veja o resumo de cada fatia na execução."
+            fi
+          } > "$RUNNER_TEMP/corpo.md"
+          cat "$RUNNER_TEMP/corpo.md"
+
+      - name: Comentar na issue aberta ou abrir uma
+        run: |
+          gh label create ci-noturna --color B60205 --description "Falha da suíte noturna do iOS" 2>/dev/null || true
+          ABERTA="$(gh issue list --label ci-noturna --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [[ -n "$ABERTA" ]]; then
+            gh issue comment "$ABERTA" --body-file "$RUNNER_TEMP/corpo.md"
+            echo "Comentário na issue #$ABERTA"
+          else
+            gh issue create --label ci-noturna --title "Suíte noturna do iOS falhou" --body-file "$RUNNER_TEMP/corpo.md"
+          fi

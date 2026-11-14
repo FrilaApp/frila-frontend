@@ -146,6 +146,62 @@ struct PermissaoDePushModeloTests {
 
         #expect(aberturas == 1)
     }
+
+    /// Na 1ª publicação a oferta saía enquanto a folha "Vaga Publicada!" ainda fechava: a folha da raiz
+    /// não abre por cima, e a sessão já constava como "mostrada", então não tentava de novo.
+    @Test("Depois de publicar, a explicação só abre quando a folha da publicação terminou de fechar")
+    func esperaAFolhaDaPublicacaoFechar() async {
+        let permissao = PermissaoDePushSimulada(estado: .naoPedida)
+        let modelo = PermissaoDePushModelo(permissao: permissao)
+        let portao = PortaoDaFolhaDeTeste()
+
+        let oferta = Task { await modelo.oferecerAposPublicar { await portao.esperar() } }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(!modelo.explicacaoVisivel)
+        #expect(!modelo.jaMostradaNaSessao)
+
+        await portao.abrir()
+        await oferta.value
+        #expect(modelo.explicacaoVisivel)
+        #expect(modelo.jaMostradaNaSessao)
+        #expect(permissao.pedidos == 0)
+    }
+
+    @Test("Os dois avisos de publicação na mesma sessão mostram a explicação uma vez")
+    func doisAvisosDePublicacaoMostramUmaVez() async {
+        let modelo = PermissaoDePushModelo(permissao: PermissaoDePushSimulada(estado: .naoPedida))
+
+        async let primeira: Void = modelo.oferecerAposPublicar {}
+        async let segunda: Void = modelo.oferecerAposPublicar {}
+        _ = await (primeira, segunda)
+        #expect(modelo.explicacaoVisivel)
+
+        modelo.agoraNao()
+        await modelo.oferecerAposPublicar {}
+        #expect(!modelo.explicacaoVisivel)
+    }
+
+    @Test("Quem já respondeu ao sistema não vê a explicação depois de publicar", arguments: [EstadoDaPermissaoDePush.concedida, .negada])
+    func quemJaRespondeuNaoVeDepoisDePublicar(estado: EstadoDaPermissaoDePush) async {
+        let modelo = PermissaoDePushModelo(permissao: PermissaoDePushSimulada(estado: estado))
+        await modelo.oferecerAposPublicar {}
+        #expect(!modelo.explicacaoVisivel)
+    }
+}
+
+/// Segura a espera até o teste liberar: é a folha da publicação ainda fechando.
+private actor PortaoDaFolhaDeTeste {
+    private var aberto = false
+    private var esperando: [CheckedContinuation<Void, Never>] = []
+    func esperar() async {
+        guard !aberto else { return }
+        await withCheckedContinuation { esperando.append($0) }
+    }
+    func abrir() {
+        aberto = true
+        esperando.forEach { $0.resume() }
+        esperando = []
+    }
 }
 
 @Suite("Permissão de notificação pelo sistema: só alerta e som (#8, B08)")

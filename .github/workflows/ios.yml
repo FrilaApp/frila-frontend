@@ -10,65 +10,141 @@ on:
       - "iOS/Docs/TextosDeNotificacao.md"
       - "iOS/Docs/Acessibilidade.md"
       - ".github/workflows/ios.yml"
-  schedule:
-    - cron: "0 6 * * *"
+      - ".github/workflows/ios-suite-completa.yml"
+      - ".github/actions/preparar-ios/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.event.pull_request.number || (github.event_name == 'schedule' && 'schedule') || format('manual-{0}', github.run_id) }}
+  group: ios-${{ github.event.pull_request.number || format('manual-{0}', github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TEST_RUNNER_CI: "true"
 
-# A suíte do Frila-Local roda em duas partes paralelas, divididas por iOS/Tests/parte-1-da-ci.txt:
-# a parte 1 roda a lista (-only-testing) e a parte 2 roda o resto (-skip-testing da mesma lista).
-# Desenho, tempos medidos e regra de rebalancear: iOS/Docs/CI.md.
+# O PR roda dois jobs macOS em paralelo, em ~30 a 40 min:
+#   A: portões, TODOS os unitários e, se o diff mexe em código, os builds de Release;
+#   B: a fumaça de interface e os testes de interface que o diff pede (iOS/Tests/mapa-ui-por-pasta.txt).
+# Diff que exige a suíte inteira de interface (Sources/App, project.yml, caminho que o mapa não cobre)
+# chama o ios-suite-completa.yml no lugar do B, em fatias paralelas. A suíte inteira roda todo dia na
+# noturna (ios-noturna.yml) e antes de mandar um build à Apple. Desenho e tempos: iOS/Docs/CI.md.
 jobs:
-  parte-1:
-    name: "Parte 1: portões, unitários e interface"
-    runs-on: macos-26
-    timeout-minutes: 150
+  escolher:
+    name: "Escolher os testes do PR"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
         working-directory: iOS
-    env:
-      XCODEGEN_VERSION: "2.45.3"
-      XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
-      XCODE_VERSION: "26.6"
+    outputs:
+      build_release: ${{ steps.escolha.outputs.build_release }}
+      completa: ${{ steps.escolha.outputs.completa }}
+      argumentos: ${{ steps.escolha.outputs.argumentos }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Conferir o mapa, a fumaça e a lista de fatias
+        run: |
+          Scripts/teste-testes-de-interface-do-pr.sh
+          Scripts/testes-de-interface-do-pr.sh conferir
+          Scripts/teste-partes-dos-testes.sh
+          Scripts/partes-dos-testes.sh conferir
+
+      - name: Escolher os testes de interface e ver se o PR exige builds de Release
+        id: escolha
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENTO" != "pull_request" || -z "$BASE_SHA" ]]; then
+            echo "Disparo manual (ou SHA base ausente): suíte inteira de interface e todos os builds de Release."
+            {
+              echo "build_release=true"
+              echo "completa=true"
+              echo "argumentos=-only-testing:FrilaUITests"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          DIFF_FILES="$(git diff --name-only "$BASE_SHA...HEAD")"
+          echo "Arquivos alterados no PR contra o branch base ($BASE_SHA):"
+          printf '%s\n' "$DIFF_FILES"
+
+          PRECISA_BUILD=false
+          while IFS= read -r arquivo; do
+            [[ -z "$arquivo" ]] && continue
+            case "$arquivo" in
+              iOS/Tests/*|iOS/Docs/*|*.md)
+                ;;
+              *)
+                echo "Alteração fora de testes/docs exige builds Dev/Beta/Prod: $arquivo"
+                PRECISA_BUILD=true
+                break
+                ;;
+            esac
+          done <<< "$DIFF_FILES"
+          if [[ "$PRECISA_BUILD" == "false" ]]; then
+            echo "PR altera apenas testes ou documentação: builds Dev/Beta/Prod e conferências serão pulados."
+          fi
+
+          ARGUMENTOS="$(Scripts/testes-de-interface-do-pr.sh escolher "$BASE_SHA" 2> "$RUNNER_TEMP/motivos.txt")"
+          cat "$RUNNER_TEMP/motivos.txt"
+          COMPLETA=false
+          if [[ "$ARGUMENTOS" == "-only-testing:FrilaUITests" ]]; then
+            COMPLETA=true
+          fi
+          {
+            echo "build_release=$PRECISA_BUILD"
+            echo "completa=$COMPLETA"
+            echo "argumentos<<ARGUMENTOS_EOF"
+            printf '%s\n' "$ARGUMENTOS"
+            echo "ARGUMENTOS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Testes de interface deste PR"
+            if [[ "$COMPLETA" == "true" ]]; then
+              echo "O diff exige a **suíte inteira de interface** (em fatias paralelas)."
+            else
+              echo "Fumaça e as classes que o diff pede:"
+              echo '```'
+              printf '%s\n' "$ARGUMENTOS" | sed 's/^-only-testing:FrilaUITests\///'
+              echo '```'
+            fi
+            echo
+            echo "Motivo de cada arquivo:"
+            echo '```'
+            cat "$RUNNER_TEMP/motivos.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  a:
+    name: "A: portões, unitários e builds"
+    needs: escolher
+    runs-on: macos-26
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+        working-directory: iOS
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Selecionar o Xcode 26.6 fixado
-        run: |
-          XCODE="/Applications/Xcode_${XCODE_VERSION}.app"
-          if [[ ! -d "$XCODE" ]]; then
-            echo "::error::Xcode ${XCODE_VERSION} não está disponível neste runner"
-            exit 1
-          fi
-          sudo xcode-select --switch "$XCODE/Contents/Developer"
-          SAIDA="$(xcodebuild -version)"
-          printf '%s\n' "$SAIDA"
-          VERSION="${SAIDA%%$'\n'*}"
-          if [[ "$VERSION" != "Xcode ${XCODE_VERSION}" ]]; then
-            echo "::error::Versão de Xcode inesperada: $VERSION"
-            exit 1
-          fi
-
-      - name: Instalar o XcodeGen fixado
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
-            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
-          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check --status
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+      - name: Preparar o ambiente iOS
+        id: preparo
+        uses: ./.github/actions/preparar-ios
+        with:
+          firebase-dev-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
+          firebase-prod-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
 
       - name: Conferir o espelho do contrato
         env:
@@ -100,89 +176,95 @@ jobs:
           Scripts/teste-conferir-datas-fixas.sh
           Scripts/conferir-datas-fixas.sh
 
-      - name: Conferir que as duas partes somam a suíte
-        run: |
-          Scripts/teste-partes-dos-testes.sh
-          Scripts/partes-dos-testes.sh conferir
-
-      - name: Gerar o projeto
-        run: Scripts/gerar-projeto.sh
-
-      - name: Definir DerivedData temporário
-        run: echo "DERIVED_DATA_PATH=$RUNNER_TEMP/DerivedData" >> "$GITHUB_ENV"
-
-      - name: Restaurar os pacotes SPM
-        id: spm-cache
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ${{ runner.temp }}/DerivedData/SourcePackages
-          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/Package.resolved') }}
-
-      - name: Resolver os pacotes SPM sem cache
-        if: steps.spm-cache.outputs.cache-hit != 'true'
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project Frila.xcodeproj \
-            -scheme Frila-Local \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -onlyUsePackageVersionsFromResolvedFile \
-            | xcbeautify --renderer github-actions
-
-      - name: Injetar a configuração do Firebase
-        env:
-          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
-          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
-        run: Scripts/inject-firebase-config.sh all
-
-      - name: Escolher um simulador de iPhone disponível
-        id: simulador
-        run: |
-          UDID="$(xcrun simctl list devices available -j | python3 -c '
-          import json, sys
-          best = None
-          for runtime, devices in json.load(sys.stdin)["devices"].items():
-              if ".iOS-" not in runtime:
-                  continue
-              version = tuple(int(p) for p in runtime.rsplit(".iOS-", 1)[1].split("-"))
-              for device in devices:
-                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
-                      if best is None or version > best[0]:
-                          best = (version, device["udid"], device["name"])
-          if best:
-              print(best[2] + ", iOS " + ".".join(map(str, best[0])), file=sys.stderr)
-              print(best[1])
-          ')"
-          if [[ -z "$UDID" ]]; then
-            echo "::error::Nenhum simulador de iPhone disponível"
-            exit 1
-          fi
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-
+      # Compila antes de gerar o Secrets.xcconfig dos builds de Release: o Shared.xcconfig o inclui
+      # quando existe, e o Frila-Local não deve levar chave de backend.
       - name: Compilar os testes do Frila-Local (sem backend)
         run: |
           xcodebuild build-for-testing \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
 
-      - name: Testes da parte 1 (unitários e interface da lista, sem recompilar)
+      # Os builds de Release vêm antes dos testes: um Release quebrado reprova em minutos.
+      - name: Build do Frila-Dev (Supabase frila-dev)
+        if: needs.escolher.outputs.build_release == 'true'
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+        run: |
+          Scripts/generate-supabase-secrets.sh dev
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Dev \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Autoteste da conferência de Release
+        if: needs.escolher.outputs.build_release == 'true'
+        run: Scripts/teste-conferir-release.sh
+
+      - name: Build do Frila-Beta (Release apontando para o frila-dev)
+        if: needs.escolher.outputs.build_release == 'true'
+        run: |
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Beta \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Conferir o bundle de Release do Frila-Beta
+        if: needs.escolher.outputs.build_release == 'true'
+        env:
+          FRILA_ESQUEMA_ESPERADO: Frila-Beta
+        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
+
+      - name: Build do Frila-Prod (Supabase frila-prod)
+        if: needs.escolher.outputs.build_release == 'true'
+        env:
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
+        run: |
+          Scripts/generate-supabase-secrets.sh prod
+          xcodebuild build -quiet \
+            -project Frila.xcodeproj \
+            -scheme Frila-Prod \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
+            -disableAutomaticPackageResolution \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Conferir o bundle de Release do Frila-Prod
+        if: needs.escolher.outputs.build_release == 'true'
+        env:
+          FRILA_ESQUEMA_ESPERADO: Frila-Prod
+        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
+
+      - name: Esperar o simulador terminar de ligar
+        run: xcrun simctl bootstatus "${{ steps.preparo.outputs.udid }}" -b
+
+      - name: Testes unitários (FrilaTests inteiro, sem recompilar)
         id: testes
         run: |
-          LISTA="$(Scripts/partes-dos-testes.sh argumentos 1)"
-          PARTE=()
-          while IFS= read -r argumento; do PARTE+=("$argumento"); done <<< "$LISTA"
           xcodebuild test-without-building \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
-            "${PARTE[@]}" \
-            -retry-tests-on-failure -test-iterations 3 \
+            -only-testing:FrilaTests \
+            -retry-tests-on-failure -test-iterations 2 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 1800 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
@@ -192,13 +274,13 @@ jobs:
       - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
         if: always()
         run: |
-          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Parte 1" >> "$GITHUB_STEP_SUMMARY" || true
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Unitários" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publicar xcresult em caso de falha nos testes
         if: failure() && steps.testes.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: xcresult-parte-1
+          name: xcresult-a-unitarios
           path: ${{ env.DERIVED_DATA_PATH }}/Logs/Test/Frila-Local.xcresult
           if-no-files-found: warn
           # A cota de armazenamento de artefatos da organização estourou em 08/11/2026: 2 dias bastam para baixar e ler.
@@ -217,229 +299,67 @@ jobs:
           fi
           rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
 
-  parte-2:
-    name: "Parte 2: interface e builds de Release"
+  b:
+    name: "B: fumaça e testes de interface do diff"
+    needs: escolher
+    if: needs.escolher.outputs.completa != 'true'
     runs-on: macos-26
-    timeout-minutes: 150
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
         working-directory: iOS
-    env:
-      XCODEGEN_VERSION: "2.45.3"
-      XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
-      XCODE_VERSION: "26.6"
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
 
-      - name: Verificar se o PR exige builds de Release
-        id: filtro
-        run: |
-          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            echo "Push no branch principal: executa todos os builds e conferências de Release."
-            echo "build_release=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          if [[ -z "$BASE_SHA" ]]; then
-            echo "SHA base não encontrado; executa todos os builds por segurança."
-            echo "build_release=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          DIFF_FILES=$(git diff --name-only "$BASE_SHA...HEAD")
-          echo "Arquivos alterados no PR contra o branch base ($BASE_SHA):"
-          printf '%s\n' "$DIFF_FILES"
-
-          PRECISA_BUILD=false
-          while IFS= read -r arquivo; do
-            [[ -z "$arquivo" ]] && continue
-            case "$arquivo" in
-              iOS/Tests/*|iOS/Docs/*|*.md)
-                ;;
-              *)
-                echo "Alteração fora de testes/docs exige builds Dev/Beta/Prod: $arquivo"
-                PRECISA_BUILD=true
-                break
-                ;;
-            esac
-          done <<< "$DIFF_FILES"
-
-          if [[ "$PRECISA_BUILD" == "false" ]]; then
-            echo "PR altera apenas testes ou documentação: builds Dev/Beta/Prod e conferências serão pulados."
-          fi
-          echo "build_release=$PRECISA_BUILD" >> "$GITHUB_OUTPUT"
-
-      - name: Selecionar o Xcode 26.6 fixado
-        run: |
-          XCODE="/Applications/Xcode_${XCODE_VERSION}.app"
-          if [[ ! -d "$XCODE" ]]; then
-            echo "::error::Xcode ${XCODE_VERSION} não está disponível neste runner"
-            exit 1
-          fi
-          sudo xcode-select --switch "$XCODE/Contents/Developer"
-          SAIDA="$(xcodebuild -version)"
-          printf '%s\n' "$SAIDA"
-          VERSION="${SAIDA%%$'\n'*}"
-          if [[ "$VERSION" != "Xcode ${XCODE_VERSION}" ]]; then
-            echo "::error::Versão de Xcode inesperada: $VERSION"
-            exit 1
-          fi
-
-      - name: Instalar o XcodeGen fixado
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
-            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
-          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check --status
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
-
-      - name: Gerar o projeto
-        run: Scripts/gerar-projeto.sh
-
-      - name: Definir DerivedData temporário
-        run: echo "DERIVED_DATA_PATH=$RUNNER_TEMP/DerivedData" >> "$GITHUB_ENV"
-
-      - name: Restaurar os pacotes SPM
-        id: spm-cache
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      - name: Preparar o ambiente iOS
+        id: preparo
+        uses: ./.github/actions/preparar-ios
         with:
-          path: ${{ runner.temp }}/DerivedData/SourcePackages
-          key: ${{ runner.os }}-xcode-${{ env.XCODE_VERSION }}-spm-${{ hashFiles('iOS/Package.resolved') }}
+          firebase-dev-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
+          firebase-prod-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
 
-      - name: Resolver os pacotes SPM sem cache
-        if: steps.spm-cache.outputs.cache-hit != 'true'
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project Frila.xcodeproj \
-            -scheme Frila-Local \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -onlyUsePackageVersionsFromResolvedFile \
-            | xcbeautify --renderer github-actions
-
-      - name: Injetar a configuração do Firebase
-        env:
-          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
-          FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
-        run: Scripts/inject-firebase-config.sh all
-
-      - name: Escolher um simulador de iPhone disponível
-        id: simulador
-        run: |
-          UDID="$(xcrun simctl list devices available -j | python3 -c '
-          import json, sys
-          best = None
-          for runtime, devices in json.load(sys.stdin)["devices"].items():
-              if ".iOS-" not in runtime:
-                  continue
-              version = tuple(int(p) for p in runtime.rsplit(".iOS-", 1)[1].split("-"))
-              for device in devices:
-                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
-                      if best is None or version > best[0]:
-                          best = (version, device["udid"], device["name"])
-          if best:
-              print(best[2] + ", iOS " + ".".join(map(str, best[0])), file=sys.stderr)
-              print(best[1])
-          ')"
-          if [[ -z "$UDID" ]]; then
-            echo "::error::Nenhum simulador de iPhone disponível"
-            exit 1
-          fi
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-
-      # Compila antes de gerar o Secrets.xcconfig dos builds de Release: o Shared.xcconfig o inclui
-      # quando existe, e o Frila-Local não deve levar chave de backend.
       - name: Compilar os testes do Frila-Local (sem backend)
         run: |
           xcodebuild build-for-testing \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
 
-      # Os builds de Release vêm antes da interface: um Release quebrado reprova em minutos.
-      - name: Build do Frila-Dev (Supabase frila-dev)
-        if: steps.filtro.outputs.build_release == 'true'
-        env:
-          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
-          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
-        run: |
-          Scripts/generate-supabase-secrets.sh dev
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Dev \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
+      - name: Esperar o simulador terminar de ligar
+        run: xcrun simctl bootstatus "${{ steps.preparo.outputs.udid }}" -b
 
-      - name: Autoteste da conferência de Release
-        if: steps.filtro.outputs.build_release == 'true'
-        run: Scripts/teste-conferir-release.sh
-
-      - name: Build do Frila-Beta (Release apontando para o frila-dev)
-        if: steps.filtro.outputs.build_release == 'true'
-        run: |
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Beta \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Conferir o bundle de Release do Frila-Beta
-        if: steps.filtro.outputs.build_release == 'true'
-        env:
-          FRILA_ESQUEMA_ESPERADO: Frila-Beta
-        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
-
-      - name: Build do Frila-Prod (Supabase frila-prod)
-        if: steps.filtro.outputs.build_release == 'true'
-        env:
-          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
-          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
-        run: |
-          Scripts/generate-supabase-secrets.sh prod
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Prod \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Conferir o bundle de Release do Frila-Prod
-        if: steps.filtro.outputs.build_release == 'true'
-        env:
-          FRILA_ESQUEMA_ESPERADO: Frila-Prod
-        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
-
-      - name: Testes da parte 2 (interface fora da lista, sem recompilar)
+      - name: Testes de interface (fumaça e o que o diff pede, sem recompilar)
         id: testes
+        env:
+          ARGUMENTOS: ${{ needs.escolher.outputs.argumentos }}
         run: |
-          LISTA="$(Scripts/partes-dos-testes.sh argumentos 2)"
           PARTE=()
-          while IFS= read -r argumento; do PARTE+=("$argumento"); done <<< "$LISTA"
+          while IFS= read -r argumento; do
+            [[ -n "$argumento" ]] && PARTE+=("$argumento")
+          done <<< "$ARGUMENTOS"
+          if (( ${#PARTE[@]} == 0 )); then
+            echo "::error::A escolha de testes de interface veio vazia"
+            exit 1
+          fi
+          printf 'Rodando:\n'
+          printf '  %s\n' "${PARTE[@]}"
           xcodebuild test-without-building \
             -project Frila.xcodeproj \
             -scheme Frila-Local \
-            -destination "id=${{ steps.simulador.outputs.udid }}" \
+            -destination "id=${{ steps.preparo.outputs.udid }}" \
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
-            -retry-tests-on-failure -test-iterations 3 \
+            -retry-tests-on-failure -test-iterations 2 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 1800 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
@@ -449,13 +369,13 @@ jobs:
       - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
         if: always()
         run: |
-          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Parte 2" >> "$GITHUB_STEP_SUMMARY" || true
+          python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Interface do PR" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publicar xcresult em caso de falha nos testes
         if: failure() && steps.testes.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: xcresult-parte-2
+          name: xcresult-b-interface
           path: ${{ env.DERIVED_DATA_PATH }}/Logs/Test/Frila-Local.xcresult
           if-no-files-found: warn
           retention-days: 2
@@ -466,9 +386,21 @@ jobs:
         run: |
           rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
           rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
-          # SourcePackages fica até o pós-job de actions/cache salvar somente os pacotes.
-          # Todo o restante do DerivedData, inclusive produtos de build, é descartado.
           if [[ -d "$DERIVED_DATA_PATH" ]]; then
             find "$DERIVED_DATA_PATH" -mindepth 1 -maxdepth 1 ! -name SourcePackages -exec rm -rf {} +
           fi
           rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
+
+  # O diff exige a suíte inteira de interface: em vez do B, as fatias paralelas. Os unitários rodam de
+  # novo dentro da fatia deles, em paralelo ao A (~14 min fora do caminho crítico); os builds de Release
+  # ficam só no A (com_release: false).
+  completa:
+    name: "C: suíte completa (o diff exige)"
+    needs: escolher
+    if: needs.escolher.outputs.completa == 'true'
+    uses: ./.github/workflows/ios-suite-completa.yml
+    secrets: inherit
+    with:
+      com_release: false
+      iteracoes: 2
+      limite_por_teste: 1800

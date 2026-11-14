@@ -64,6 +64,8 @@ public final class AcompanhamentoViewModel {
     public private(set) var carregando = false
     public private(set) var falhouAoCarregar = false
     public private(set) var resultado: ResultadoDoAcompanhamento?
+    /// A vaga (e a posição, quando a ação foi sobre uma só) de onde saiu `resultado`.
+    private var alvoDoResultado: (vagaID: UUID, posicaoID: UUID?)?
     public private(set) var falha: FalhaDoAcompanhamento?
     /// Posições com confirmação ou reabertura em voo: um segundo toque não repete a chamada.
     public private(set) var emAndamento: Set<UUID> = []
@@ -151,6 +153,23 @@ public final class AcompanhamentoViewModel {
     }
 
     // MARK: Leitura
+
+    /// Guarda o resultado da última ação junto com o alvo dela, para o aviso só aparecer onde faz sentido.
+    private func registrar(_ novo: ResultadoDoAcompanhamento, vaga vagaID: UUID, posicao posicaoID: UUID?) {
+        resultado = novo
+        alvoDoResultado = (vagaID, posicaoID)
+    }
+
+    /// O resultado da última ação, só se ela saiu da tela que pergunta. `vaga` é a vaga da tela (`nil` na
+    /// lista de Minhas vagas, que mostra o último de qualquer vaga); `posicao`, o turno da tela do turno.
+    /// Ação sobre a vaga inteira vale para todos os turnos dela; ação sobre uma posição vale só para o turno dela.
+    public func resultadoParaAviso(vaga vagaID: UUID?, posicao posicaoID: UUID? = nil) -> ResultadoDoAcompanhamento? {
+        guard let resultado, let alvo = alvoDoResultado else { return nil }
+        guard let vagaID else { return resultado }
+        guard alvo.vagaID == vagaID else { return nil }
+        if let alvoPosicao = alvo.posicaoID, let posicaoID, alvoPosicao != posicaoID { return nil }
+        return resultado
+    }
 
     private var turnos: [TurnoAcompanhado] {
         (painel?.vagas ?? []).flatMap { vaga in
@@ -286,6 +305,8 @@ public final class AcompanhamentoViewModel {
                 recusadas = []
                 return true
             } catch {
+                // Leitura cancelada (puxar para atualizar, tela que saiu) não é falha: o painel fica como estava.
+                guard !Task.isCancelled else { return false }
                 guard geracaoDaLeitura == geracao else { continue }
                 if registrandoFalha { falhouAoCarregar = true }
                 return false
@@ -311,7 +332,7 @@ public final class AcompanhamentoViewModel {
             let registro = try await confirmar(turnoID)
             geracao += 1
             aplicar(verificacao: registro.verificacao, aoTurno: turnoID)
-            resultado = .presencaConfirmada
+            registrar(.presencaConfirmada, vaga: turno.vaga.id, posicao: turno.posicao.id)
             await aoMudar()
         } catch let erro as ErroDaApi where erro.codigo == .checkinJaConfirmado || erro.codigo == .checkinPendente {
             // O painel estava velho: o check-in já nasceu verificado, ou deixou de existir.
@@ -351,7 +372,7 @@ public final class AcompanhamentoViewModel {
             let cancelamento = try await reabrir(turno.posicao.id)
             geracao += 1
             aplicar(cancelamento)
-            resultado = cancelamento.reaberta ? .vagaReaberta : .faltaSemReabertura
+            registrar(cancelamento.reaberta ? .vagaReaberta : .faltaSemReabertura, vaga: turno.vaga.id, posicao: turno.posicao.id)
             // A leitura nova só confirma o que a tela já mostra; se falhar, o estado aplicado vale.
             await lerPainel(registrandoFalha: false)
             await aoMudar()
@@ -412,14 +433,15 @@ public final class AcompanhamentoViewModel {
         case let .posicao(cancelamento):
             geracao += 1
             aplicar(cancelamento)
-            resultado = .posicaoCancelada(reaberta: cancelamento.reaberta)
+            registrar(.posicaoCancelada(reaberta: cancelamento.reaberta), vaga: vagaID, posicao: alvoID)
         case .vaga:
             geracao += 1
             aplicarCancelamentoDaVaga(vagaID)
-            resultado = .vagaCancelada
+            registrar(.vagaCancelada, vaga: vagaID, posicao: nil)
         case .naFila:
             cancelamentosNaFila.insert(alvoID)
-            resultado = .cancelamentoNaFila
+            // `alvoID` é a vaga, quando o cancelamento é da vaga inteira, ou a posição.
+            registrar(.cancelamentoNaFila, vaga: vagaID, posicao: alvoID == vagaID ? nil : alvoID)
             return
         }
         releituraAposCancelamento = Task {

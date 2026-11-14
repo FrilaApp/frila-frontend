@@ -85,11 +85,11 @@ Esse portão valida se a Parte 1 (`-only-testing`) e a Parte 2 (`-skip-testing`)
   ERRO: classe FrilaTests/DinheiroTests da lista não existe em FrilaTests (renomeada ou apagada?)
   ```
   *(A mensagem alternativa de linhas 112-114 só é disparada se uma classe `XCTestCase` válida for listada conjuntamente com o alvo inteiro).*
-- **Regra de Catalogação:** Em `iOS/Tests/parte-1-da-ci.txt:11`, o alvo `FrilaTests` é catalogado **por inteiro**:
+- **Regra de Catalogação:** Em `iOS/Tests/partes-da-ci.txt:11`, o alvo `FrilaTests` é catalogado **por inteiro**:
   ```text
   FrilaTests
   ```
-  Portanto, **nunca** liste suítes unitárias individuais sob `FrilaTests/` no arquivo `parte-1-da-ci.txt`. Apenas classes individuais de interface do alvo `FrilaUITests` (`iOS/Tests/parte-1-da-ci.txt:12-23`) devem constar na divisão.
+  Portanto, **nunca** liste suítes unitárias individuais sob `FrilaTests/` no arquivo `partes-da-ci.txt`. Apenas classes individuais de interface do alvo `FrilaUITests` (`iOS/Tests/partes-da-ci.txt:12-23`) devem constar na divisão.
 
 ---
 
@@ -231,7 +231,7 @@ Um teste tautológico é aquele que afirma um estado que ele próprio acabou de 
 Antes de abrir um PR envolvendo testes no iOS:
 - [ ] O código compila contra as assinaturas públicas reais (`FormatadorFrila`, DTOs, etc.).
 - [ ] Todo novo tipo de valor `Codable` com invariantes possui `init(from: Decoder)` com `DecodingError.dataCorruptedError`.
-- [ ] Novas suítes unitárias (`@Suite struct`) pertencem ao alvo `FrilaTests` e **não** são adicionadas como classes avulsas em `parte-1-da-ci.txt`.
+- [ ] Novas suítes unitárias (`@Suite struct`) pertencem ao alvo `FrilaTests` e **não** são adicionadas como classes avulsas em `partes-da-ci.txt`.
 - [ ] Preferência estrita por datas fixas (`Date(timeIntervalSince1970:)`) para evitar instabilidade temporal.
 - [ ] Elementos de UI são referenciados via `.accessibilityIdentifier(...)` e nunca por texto mutável.
 - [ ] Toques e validações de interface utilizam os helpers de `Esperas.swift` (`tocar`, `esperarHabilitado`).

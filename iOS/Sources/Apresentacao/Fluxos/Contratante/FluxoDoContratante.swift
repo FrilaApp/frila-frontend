@@ -257,7 +257,7 @@ private struct DestinoDasVagasDoContratante: View {
                         // momento de explicar a notificação a quem contrata (#8).
                         guard publicando else { return }
                         publicando = false
-                        Task { await permissaoDePush?.oferecer() }
+                        Task { await permissaoDePush?.oferecerAposPublicar() }
                     }
                 )
                 .toolbar(.hidden, for: .tabBar)

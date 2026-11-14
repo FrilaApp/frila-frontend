@@ -51,6 +51,9 @@ jobs:
     name: Grupos, revisão beta e classificação pela API
     runs-on: macos-26
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     defaults:
       run:
         shell: bash
@@ -60,6 +63,23 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Mandar um build ao grupo externo ou à revisão beta é falar com a Apple: só com a última noturna
+      # do iOS (suíte inteira, na main) verde. Consultas e o grupo interno não pedem isso.
+      - name: Exigir a última noturna do iOS verde
+        if: ${{ inputs.aplicar && (inputs.acao == 'grupo-externo' || inputs.acao == 'revisao-beta') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ULTIMA="$(gh run list --workflow ios-noturna.yml --branch main --status completed --limit 1 --json conclusion,databaseId,headSha --jq '.[0] | "\(.conclusion) \(.databaseId) \(.headSha)"')"
+          echo "Última noturna concluída: ${ULTIMA:-nenhuma}"
+          read -r CONCLUSAO ID SHA <<< "$ULTIMA"
+          if [[ "$CONCLUSAO" != "success" ]]; then
+            echo "::error::A última noturna do iOS não está verde (${CONCLUSAO:-nenhuma execução}). Corrija ou rode a noturna de novo (Actions > iOS noturna > Run workflow) antes de aplicar ${{ inputs.acao }}."
+            exit 1
+          fi
+          echo "Noturna verde: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${ID} (commit ${SHA:0:7})"
 
       - name: Conferir os três segredos antes de qualquer chamada
         env:

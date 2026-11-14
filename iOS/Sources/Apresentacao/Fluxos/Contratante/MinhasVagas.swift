@@ -226,6 +226,8 @@ public final class MinhasVagasViewModel {
             }
             vagas = painel.vagas
         } catch {
+            // Puxar para atualizar cancela a tarefa da leitura: isso não é falha, e a lista boa fica.
+            guard !Task.isCancelled else { return }
             erro = TextosMinhasVagas.falha
         }
     }
@@ -408,7 +410,9 @@ public struct TelaMinhasVagas: View {
                 .padding(FrilaEspaco.medio)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
-            .refreshable { await carregar() }
+            // A leitura corre numa tarefa própria: o gesto de puxar cancela a tarefa dele, e isso não pode
+            // derrubar a leitura no meio.
+            .refreshable { await Task { await carregar() }.value }
             // Volta de uma tela empilhada, volta do segundo plano e push. Na troca de aba o `.task`
             // da pilha também relê; com ele em voo, a releitura em silêncio não sai.
             .atualizacaoAutomatica(.minhasVagas, recarregar: atualizarEmSilencio)
@@ -1054,7 +1058,7 @@ private struct TelaDetalheVagaContratante: View {
                         .accessibilityIdentifier("aviso-sucesso-republicacao")
                 }
                 if let acompanhamento {
-                    AvisosDoAcompanhamento(viewModel: acompanhamento)
+                    AvisosDoAcompanhamento(viewModel: acompanhamento, vagaID: vaga.vaga.id)
                     ForEach(acompanhamento.recusasDaFila.filter { $0.tipo == .cancelamentoVaga && $0.vagaID == vaga.vaga.id }) { recusa in
                         AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
                             .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")

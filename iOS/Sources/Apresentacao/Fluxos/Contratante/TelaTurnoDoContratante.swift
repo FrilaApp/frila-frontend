@@ -215,7 +215,7 @@ struct TelaTurnoDoContratante: View {
                 .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
         }
 
-        AvisosDoAcompanhamento(viewModel: viewModel)
+        AvisosDoAcompanhamento(viewModel: viewModel, vagaID: turno.vaga.id, posicaoID: turno.posicao.id)
 
         Text(verbatim: TextosDoAcompanhamento.chegada).font(FrilaTipo.secao).accessibilityAddTraits(.isHeader)
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
@@ -508,11 +508,15 @@ struct TelaTurnoDoContratante: View {
 }
 
 /// O que aconteceu na última confirmação, reabertura ou cancelamento, para a tela do turno e para Minhas vagas.
+/// O resultado só aparece na tela de onde a ação saiu: `vagaID` e `posicaoID` são o alvo da tela (sem eles, a
+/// lista de Minhas vagas mostra o último de qualquer vaga).
 struct AvisosDoAcompanhamento: View {
     let viewModel: AcompanhamentoViewModel
+    var vagaID: UUID?
+    var posicaoID: UUID?
 
     var body: some View {
-        if let resultado = viewModel.resultado {
+        if let resultado = viewModel.resultadoParaAviso(vaga: vagaID, posicao: posicaoID) {
             AvisoFrila(verbatim: TextosDoAcompanhamento.resultado(resultado), tom: .informativo)
                 .accessibilityIdentifier("resultado-do-acompanhamento")
         }
