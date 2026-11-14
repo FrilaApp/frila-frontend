@@ -205,10 +205,12 @@ public final class MeuTurnoViewModel {
     private func reler() async {
         guard let lidos = try? await api.meusTurnos(), let atualizado = lidos.first(where: { $0.id == turno.id }) else { return }
         turno = atualizado
+        presenca?.aplicar(turnoLido: atualizado)
         revisaoDoRelogio += 1
     }
 
-    /// Puxar para atualizar: relê o turno e traz o que a casa fez (confirmação, check-out) para a tela.
+    /// Puxar para atualizar: relê o turno e traz o que a casa fez (confirmação, check-out) para a tela,
+    /// inclusive para a presença (`reler` a atualiza).
     public func atualizar() async {
         await reler()
     }

@@ -203,6 +203,19 @@ public final class PresencaDoTurnoViewModel {
     /// ordem dos toques.
     public var podeFazerCheckout: Bool { checkin != .naoFeito && checkout == .naoFeito }
 
+    /// Puxar para atualizar: o que o servidor já sabe do turno passa para a presença. Só avança: um
+    /// registro que está na fila de envio não é trocado, e um check-in ou check-out já feito não some
+    /// porque a leitura veio sem ele.
+    public func aplicar(turnoLido lido: Turno) {
+        verificacao = lido.verificacao
+        if let registro = lido.checkin, !estaNaFila(checkin) {
+            checkin = .registrado(RegistroFeito(instante: registro.instante, distanciaMetros: registro.distanciaMetros, manual: registro.tipo == .manual))
+        }
+        if let registro = lido.checkout, !estaNaFila(checkout) {
+            checkout = .registrado(RegistroFeito(instante: registro.instante, distanciaMetros: registro.distanciaMetros, manual: false))
+        }
+    }
+
     /// Check-in manual já no servidor, à espera do contratante (`confirmar_checkin_manual`).
     public var aguardandoConfirmacao: Bool {
         guard case let .registrado(feito) = checkin else { return false }

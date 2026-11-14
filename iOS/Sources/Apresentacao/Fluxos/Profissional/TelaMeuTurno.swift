@@ -62,6 +62,7 @@ public struct TelaMeuTurno: View {
             }
             .padding(FrilaEspaco.medio)
         }
+        .refreshable { await viewModel.atualizar() }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)
