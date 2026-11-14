@@ -1,20 +1,37 @@
 import FrilaDominio
 import SwiftUI
 
+/// A tela guarda o modelo em `@State`, e o `@State` sobrevive quando o roteador troca a chamada do aviso
+/// por outra na mesma posição da pilha. A identidade pela chamada recria o estado e carrega a nova.
 public struct TelaDetalheChamadaRecebida: View {
+    private let viewModel: ChamadaRecebidaViewModel
+    private let onAbrirTurno: ((UUID) -> Void)?
+
+    public init(viewModel: ChamadaRecebidaViewModel, onAbrirTurno: ((UUID) -> Void)? = nil) {
+        self.viewModel = viewModel
+        self.onAbrirTurno = onAbrirTurno
+    }
+
+    public var body: some View {
+        ConteudoDaChamadaRecebida(viewModel: viewModel, onAbrirTurno: onAbrirTurno)
+            .id(viewModel.chamadaID)
+    }
+}
+
+private struct ConteudoDaChamadaRecebida: View {
     @State private var viewModel: ChamadaRecebidaViewModel
-    public var onAbrirTurno: ((UUID) -> Void)?
+    var onAbrirTurno: ((UUID) -> Void)?
     @Environment(\.dismiss) private var fechar
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
-    public init(viewModel: ChamadaRecebidaViewModel, onAbrirTurno: ((UUID) -> Void)? = nil) {
+    init(viewModel: ChamadaRecebidaViewModel, onAbrirTurno: ((UUID) -> Void)?) {
         _viewModel = State(initialValue: viewModel)
         self.onAbrirTurno = onAbrirTurno
     }
 
-    public var body: some View {
+    var body: some View {
         Form {
             if viewModel.carregando {
                 ProgressView()
