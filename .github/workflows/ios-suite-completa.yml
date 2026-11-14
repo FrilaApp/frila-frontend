@@ -168,89 +168,9 @@ jobs:
           fi
           rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
 
+  # Os builds de Release moram em ios-release.yml (o mesmo arquivo que o ios.yml chama no PR).
   release:
-    name: "Builds de Release (Dev, Beta e Prod)"
+    name: "Release"
     if: inputs.com_release
-    runs-on: macos-26
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
-        working-directory: iOS
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Preparar o ambiente iOS
-        id: preparo
-        uses: ./.github/actions/preparar-ios
-        with:
-          firebase-dev-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
-          firebase-prod-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_PROD_B64 }}
-
-      - name: Build do Frila-Dev (Supabase frila-dev)
-        env:
-          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
-          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
-        run: |
-          Scripts/generate-supabase-secrets.sh dev
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Dev \
-            -destination "id=${{ steps.preparo.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Autoteste da conferência de Release
-        run: Scripts/teste-conferir-release.sh
-
-      - name: Build do Frila-Beta (Release apontando para o frila-dev)
-        run: |
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Beta \
-            -destination "id=${{ steps.preparo.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Conferir o bundle de Release do Frila-Beta
-        env:
-          FRILA_ESQUEMA_ESPERADO: Frila-Beta
-        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
-
-      - name: Build do Frila-Prod (Supabase frila-prod)
-        env:
-          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
-          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
-        run: |
-          Scripts/generate-supabase-secrets.sh prod
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Prod \
-            -destination "id=${{ steps.preparo.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Conferir o bundle de Release do Frila-Prod
-        env:
-          FRILA_ESQUEMA_ESPERADO: Frila-Prod
-        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
-
-      - name: Apagar segredos e temporários
-        if: always()
-        working-directory: ${{ github.workspace }}
-        run: |
-          rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
-          rm -f iOS/Resources/Firebase/*/GoogleService-Info.plist iOS/Resources/Firebase/*/GoogleService-Info.plist.tmp.*
-          if [[ -d "$DERIVED_DATA_PATH" ]]; then
-            find "$DERIVED_DATA_PATH" -mindepth 1 -maxdepth 1 ! -name SourcePackages -exec rm -rf {} +
-          fi
-          rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
+    uses: ./.github/workflows/ios-release.yml
+    secrets: inherit
