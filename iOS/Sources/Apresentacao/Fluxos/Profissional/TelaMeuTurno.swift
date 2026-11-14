@@ -62,6 +62,8 @@ public struct TelaMeuTurno: View {
             }
             .padding(FrilaEspaco.medio)
         }
+        // A leitura roda numa Task solta: o gesto de puxar cancela o código do `refreshable`, e o `try?` do `reler()` engoliria o cancelamento.
+        .refreshable { await Task { await viewModel.atualizar() }.value }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeuTurno))
         .navigationBarTitleDisplayMode(.inline)

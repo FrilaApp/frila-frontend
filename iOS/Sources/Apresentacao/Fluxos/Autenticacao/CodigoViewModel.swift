@@ -27,15 +27,25 @@ public final class CodigoViewModel {
     public var mensagemInformativa: String?
     public var avisoDeColagem: String?
 
+    /// Quanto tempo o código vale depois de enviado: 600 s (10 min), o `mailer_otp_exp` do Auth no Prod
+    /// (confirmado pela Forja em 13/11/2026; o e-mail diz o mesmo). Mudou no Auth? Mude aqui no mesmo dia.
+    public static let validadeDoCodigo: TimeInterval = 600
+
+    private let relogio: any Relogio
+    /// Quando o último código foi pedido (primeiro envio ou reenvio).
+    private var codigoPedidoEm: Date
     private var tarefaTemporizador: Task<Void, Never>?
 
-    public init(api: any ApiCliente, email: String) {
+    public init(api: any ApiCliente, email: String, relogio: any Relogio = RelogioDoSistema()) {
         self.api = api
+        self.relogio = relogio
+        self.codigoPedidoEm = relogio.agora
         self.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         iniciarTemporizador()
     }
 
     public func iniciarTemporizador() {
+        codigoPedidoEm = relogio.agora
         segundosRestantes = 60
         tarefaTemporizador?.cancel()
         tarefaTemporizador = Task { [weak self] in
@@ -162,7 +172,10 @@ public final class CodigoViewModel {
 
     private func tratarErroDeVerificacao(_ erroApi: ErroDaApi) {
         if erroApi.codigo == .naoAutenticado {
-            if erroApi.codigoOriginal == "otp_expired" {
+            // O GoTrue devolve `otp_expired` para o código errado e para o vencido. Só o tempo desde o pedido
+            // distingue os dois: dentro da validade, o que se digitou está errado.
+            let vencido = relogio.agora.timeIntervalSince(codigoPedidoEm) >= Self.validadeDoCodigo
+            if erroApi.codigoOriginal == "otp_expired", vencido {
                 erro = String(localized: "Código expirado. Peça um novo código para continuar.", bundle: bundleApresentacao)
             } else {
                 erro = String(localized: "Código incorreto. Confira os números e tente novamente.", bundle: bundleApresentacao)

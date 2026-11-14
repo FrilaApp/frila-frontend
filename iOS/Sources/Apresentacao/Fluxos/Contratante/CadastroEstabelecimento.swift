@@ -94,10 +94,36 @@ public final class CadastroEstabelecimentoViewModel {
         guard !endereco.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         carregandoBusca = true
         defer { carregandoBusca = false }
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = endereco
+        let request = Self.requisicaoDeBusca(para: endereco)
         do { sugestoes = try await MKLocalSearch(request: request).start().mapItems }
         catch { sugestoes = [] }
+    }
+
+    /// O Distrito Federal inteiro (o retângulo de `CoberturaDoDF`). Só inclina a busca: sem isso, um CEP ou um
+    /// "S1" digitado volta com resultados de qualquer lugar do país.
+    static let regiaoDaBusca = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: -15.775, longitude: -47.795),
+        span: MKCoordinateSpan(latitudeDelta: 0.57, longitudeDelta: 1.01)
+    )
+
+    /// A busca de endereço: inclinada para o DF e só com endereços e locais, sem regiões nem cidades soltas.
+    static func requisicaoDeBusca(para texto: String) -> MKLocalSearch.Request {
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = texto
+        request.region = regiaoDaBusca
+        request.resultTypes = [.address, .pointOfInterest]
+        return request
+    }
+
+    /// O texto que vai para o campo Endereço. O `title` do MapKit costuma já começar pelo nome do item
+    /// ("S1, Gama, DF" para o item "S1"); nesse caso o nome não entra de novo.
+    static func textoDoEndereco(nome: String?, titulo: String?, atual: String) -> String {
+        let nome = nome?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let titulo = titulo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !titulo.isEmpty else { return nome.isEmpty ? atual : nome }
+        guard !nome.isEmpty else { return titulo }
+        let comparacao: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        return titulo.range(of: nome, options: comparacao.union(.anchored)) != nil ? titulo : "\(nome), \(titulo)"
     }
 
     /// As 35 Regiões Administrativas oficiais do Distrito Federal (fonte oficial GDF / SEGOV: https://segov.df.gov.br/category/administracoes-regionais).
@@ -246,7 +272,7 @@ public final class CadastroEstabelecimentoViewModel {
     public func selecionar(_ item: MKMapItem) {
         let marca = item.placemark
         enderecoEscolhido = EnderecoEscolhido(coordenada: marca.coordinate, area: marca.administrativeArea, codigoDoPais: marca.isoCountryCode, cidade: marca.locality)
-        endereco = item.name.map { "\($0), \(item.placemark.title ?? "")" } ?? (item.placemark.title ?? endereco)
+        endereco = Self.textoDoEndereco(nome: item.name, titulo: marca.title, atual: endereco)
         ponto = item.placemark.coordinate
         alvoDaCamera = item.placemark.coordinate
         if let ra = Self.inferirRegiaoAdministrativa(de: item) {

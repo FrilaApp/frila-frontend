@@ -71,6 +71,10 @@ public final class PresencaDoTurnoViewModel {
     /// O caminho do código fechou para este turno (`codigo_bloqueado` `encerrado`): vale a confirmação manual da casa.
     public private(set) var caminhoDoCodigoEncerrado = false
 
+    /// A conta de demonstração (revisão da Apple) não tem a janela do check-out: o servidor a isenta de
+    /// `privado.exigir_janela_checkout`, e o botão não some para ela.
+    public private(set) var isentoDaJanela: Bool
+
     private let api: any ApiCliente
     private let localizacao: any LeitorDeLocalizacao
     private let fila: (any FilaDeAcoes)?
@@ -99,8 +103,10 @@ public final class PresencaDoTurnoViewModel {
         aoRegistrar: @escaping @MainActor () -> Void = {},
         telemetria: RegistradorDeTelemetria? = nil,
         cache: CacheDeLeituras? = nil,
-        recursos: (@Sendable () async -> RecursosDoApp)? = nil
+        recursos: (@Sendable () async -> RecursosDoApp)? = nil,
+        isentoDaJanela: Bool = false
     ) {
+        self.isentoDaJanela = isentoDaJanela
         if let recursos {
             self.recursos = recursos
         } else {
@@ -199,9 +205,36 @@ public final class PresencaDoTurnoViewModel {
         checkin == .naoFeito && relogio.agora < turno.vaga.periodo.inicio.addingTimeInterval(-60 * 60)
     }
 
+    /// O servidor aceita o check-out até 60 minutos depois do fim previsto (`fora_da_janela` depois disso).
+    /// Os 2 minutos de folga de relógio dele ficam de fora: o botão fecha na hora certa, sem prometer o que
+    /// o servidor pode recusar.
+    static let janelaDoCheckoutDepoisDoFim: TimeInterval = 60 * 60
+
     /// O check-out vem depois do check-in, mesmo que o check-in ainda esteja na fila: a fila sai na
-    /// ordem dos toques.
-    public var podeFazerCheckout: Bool { checkin != .naoFeito && checkout == .naoFeito }
+    /// ordem dos toques. Só até o fim previsto + 60 min, exceto para a conta de demonstração.
+    public var podeFazerCheckout: Bool {
+        guard checkin != .naoFeito, checkout == .naoFeito else { return false }
+        if isentoDaJanela { return true }
+        return relogio.agora <= turno.vaga.periodo.fim.addingTimeInterval(Self.janelaDoCheckoutDepoisDoFim)
+    }
+
+    /// A tela diz à presença se a conta é a de demonstração (o app só sabe pelo e-mail da conta).
+    public func definir(isentoDaJanela: Bool) {
+        self.isentoDaJanela = isentoDaJanela
+    }
+
+    /// Puxar para atualizar: o que o servidor já sabe do turno passa para a presença. Só avança: um
+    /// registro que está na fila de envio não é trocado, e um check-in ou check-out já feito não some
+    /// porque a leitura veio sem ele.
+    public func aplicar(turnoLido lido: Turno) {
+        verificacao = lido.verificacao
+        if let registro = lido.checkin, !estaNaFila(checkin) {
+            checkin = .registrado(RegistroFeito(instante: registro.instante, distanciaMetros: registro.distanciaMetros, manual: registro.tipo == .manual))
+        }
+        if let registro = lido.checkout, !estaNaFila(checkout) {
+            checkout = .registrado(RegistroFeito(instante: registro.instante, distanciaMetros: registro.distanciaMetros, manual: false))
+        }
+    }
 
     /// Check-in manual já no servidor, à espera do contratante (`confirmar_checkin_manual`).
     public var aguardandoConfirmacao: Bool {

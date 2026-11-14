@@ -101,6 +101,8 @@ public final class RoteadorDoProfissional {
 public struct FluxoDoProfissional<Barra: View>: View {
     @State private var contaID: UUID?
     @State private var recuperandoIdentidade = false
+    /// A conta é a de demonstração da Apple: o servidor a isenta da janela do check-out (o app só sabe pelo e-mail).
+    @State private var contaDeDemonstracao = false
     private let api: any ApiCliente
     private let repositorioTurnos: any TurnoRepositorio
     private let relogio: any Relogio
@@ -260,6 +262,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
             .tag(AbaDoProfissional.conta)
         }
         .environment(feed.bloqueios)
+        .task { await descobrirContaDeDemonstracao() }
         .onChange(of: feed.bloqueios.alvos) {
             // O servidor também retirou vagas: reinicia os offsets para não pular itens.
             Task { await feed.atualizar() }
@@ -285,6 +288,11 @@ extension FluxoDoProfissional {
         await roteador.candidatar(viewModel: viewModel)
     }
 
+    private func descobrirContaDeDemonstracao() async {
+        guard let conta = try? await api.minhaConta() else { return }
+        contaDeDemonstracao = DemonstracaoContas.ehEmailDeDemonstracao(conta.email)
+    }
+
     private func recuperarIdentidade() async {
         guard !recuperandoIdentidade else { return }
         recuperandoIdentidade = true
@@ -295,7 +303,10 @@ extension FluxoDoProfissional {
     /// Presença, avaliação ou cancelamento aceito atualiza Meus turnos, que é de onde a tela reabre.
     private func destinoDoMeuTurno(_ turno: Turno) -> some View {
         let turnos = turnosViewModel
-        return DestinoDoMeuTurno(turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila) {
+        return DestinoDoMeuTurno(
+            turno: turno, api: api, contaID: contaID, relogio: relogio, localizacao: localizacao, fila: fila,
+            isentoDaJanelaDoCheckout: contaDeDemonstracao
+        ) {
             Task { await turnos.atualizar() }
         }
     }
@@ -379,6 +390,8 @@ private struct DestinoDoDetalhe: View {
 /// Destino do detalhe do turno (#109).
 private struct DestinoDoMeuTurno: View {
     @State private var viewModel: MeuTurnoViewModel
+    /// Pode chegar depois de a tela abrir (a conta é lida em segundo plano): a presença é avisada na mudança.
+    private let isentoDaJanelaDoCheckout: Bool
 
     init(
         turno: Turno,
@@ -387,8 +400,10 @@ private struct DestinoDoMeuTurno: View {
         relogio: any Relogio,
         localizacao: (any LeitorDeLocalizacao)?,
         fila: (any FilaDeAcoes)?,
+        isentoDaJanelaDoCheckout: Bool,
         aoRegistrar: @escaping @MainActor () -> Void
     ) {
+        self.isentoDaJanelaDoCheckout = isentoDaJanelaDoCheckout
         // Sem leitor de localização (prévias), a tela fica sem a seção de presença.
         let presenca = localizacao.map {
             PresencaDoTurnoViewModel(
@@ -399,7 +414,8 @@ private struct DestinoDoMeuTurno: View {
                 relogio: relogio,
                 aoRegistrar: aoRegistrar,
                 cache: .compartilhado,
-                recursos: { (try? await api.configuracaoDoApp())?.recursos ?? .desligados }
+                recursos: { (try? await api.configuracaoDoApp())?.recursos ?? .desligados },
+                isentoDaJanela: isentoDaJanelaDoCheckout
             )
         }
         _viewModel = State(initialValue: MeuTurnoViewModel(
@@ -410,6 +426,9 @@ private struct DestinoDoMeuTurno: View {
 
     var body: some View {
         TelaMeuTurno(viewModel: viewModel)
+            .task(id: isentoDaJanelaDoCheckout) {
+                viewModel.presenca?.definir(isentoDaJanela: isentoDaJanelaDoCheckout)
+            }
     }
 }
 
