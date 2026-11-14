@@ -11,6 +11,7 @@ on:
       - "iOS/Docs/Acessibilidade.md"
       - ".github/workflows/ios.yml"
       - ".github/workflows/ios-suite-completa.yml"
+      - ".github/workflows/ios-release.yml"
       - ".github/actions/preparar-ios/**"
   workflow_dispatch:
 
@@ -24,9 +25,10 @@ concurrency:
 env:
   TEST_RUNNER_CI: "true"
 
-# O PR roda dois jobs macOS em paralelo, em ~30 a 40 min:
-#   A: portões, TODOS os unitários e, se o diff mexe em código, os builds de Release;
-#   B: a fumaça de interface e os testes de interface que o diff pede (iOS/Tests/mapa-ui-por-pasta.txt).
+# O PR roda até três jobs macOS em paralelo, em ~30 a 40 min:
+#   A: portões e TODOS os unitários;
+#   B: a fumaça de interface e os testes de interface que o diff pede (iOS/Tests/mapa-ui-por-pasta.txt);
+#   Release: os builds de Dev, Beta e Prod, só se o diff mexe em código (ios-release.yml).
 # Diff que exige a suíte inteira de interface (Sources/App, project.yml, caminho que o mapa não cobre)
 # chama o ios-suite-completa.yml no lugar do B, em fatias paralelas. A suíte inteira roda todo dia na
 # noturna (ios-noturna.yml) e antes de mandar um build à Apple. Desenho e tempos: iOS/Docs/CI.md.
@@ -125,10 +127,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   a:
-    name: "A: portões, unitários e builds"
+    name: "A: portões e unitários"
     needs: escolher
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 60
     defaults:
       run:
         shell: bash
@@ -189,67 +191,6 @@ jobs:
             -disableAutomaticPackageResolution \
             COMPILER_INDEX_STORE_ENABLE=NO \
             | xcbeautify --renderer github-actions
-
-      # Os builds de Release vêm antes dos testes: um Release quebrado reprova em minutos.
-      - name: Build do Frila-Dev (Supabase frila-dev)
-        if: needs.escolher.outputs.build_release == 'true'
-        env:
-          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
-          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
-        run: |
-          Scripts/generate-supabase-secrets.sh dev
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Dev \
-            -destination "id=${{ steps.preparo.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Autoteste da conferência de Release
-        if: needs.escolher.outputs.build_release == 'true'
-        run: Scripts/teste-conferir-release.sh
-
-      - name: Build do Frila-Beta (Release apontando para o frila-dev)
-        if: needs.escolher.outputs.build_release == 'true'
-        run: |
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Beta \
-            -destination "id=${{ steps.preparo.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Conferir o bundle de Release do Frila-Beta
-        if: needs.escolher.outputs.build_release == 'true'
-        env:
-          FRILA_ESQUEMA_ESPERADO: Frila-Beta
-        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Beta-iphonesimulator/Frila.app"
-
-      - name: Build do Frila-Prod (Supabase frila-prod)
-        if: needs.escolher.outputs.build_release == 'true'
-        env:
-          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
-          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
-        run: |
-          Scripts/generate-supabase-secrets.sh prod
-          xcodebuild build -quiet \
-            -project Frila.xcodeproj \
-            -scheme Frila-Prod \
-            -destination "id=${{ steps.preparo.outputs.udid }}" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
-            -disableAutomaticPackageResolution \
-            COMPILER_INDEX_STORE_ENABLE=NO
-
-      - name: Conferir o bundle de Release do Frila-Prod
-        if: needs.escolher.outputs.build_release == 'true'
-        env:
-          FRILA_ESQUEMA_ESPERADO: Frila-Prod
-        run: Scripts/conferir-release.sh "$DERIVED_DATA_PATH/Build/Products/Release-Prod-iphonesimulator/Frila.app"
 
       - name: Esperar o simulador terminar de ligar
         run: xcrun simctl bootstatus "${{ steps.preparo.outputs.udid }}" -b
@@ -391,9 +332,18 @@ jobs:
           fi
           rm -rf "$RUNNER_TEMP/xcodegen" "$RUNNER_TEMP/xcodegen.zip"
 
+  # Os três builds de Release, em paralelo ao A e ao B (ou às fatias). Rodam uma vez por PR, aqui: a suíte
+  # completa abaixo é chamada com com_release: false. Os passos moram em ios-release.yml.
+  release:
+    name: "Release"
+    needs: escolher
+    if: needs.escolher.outputs.build_release == 'true'
+    uses: ./.github/workflows/ios-release.yml
+    secrets: inherit
+
   # O diff exige a suíte inteira de interface: em vez do B, as fatias paralelas. Os unitários rodam de
   # novo dentro da fatia deles, em paralelo ao A (~14 min fora do caminho crítico); os builds de Release
-  # ficam só no A (com_release: false).
+  # rodam no job release acima (com_release: false).
   completa:
     name: "C: suíte completa (o diff exige)"
     needs: escolher
