@@ -336,5 +336,65 @@ struct MinhasVagasTests {
 
         #expect(vm.classificar(proxima) == .proximas)
     }
+
+    /// Puxar para atualizar cancela a tarefa da leitura: o URLError.cancelled chega como erro genérico e
+    /// a tela mostrava "Não foi possível carregar suas vagas" com a lista boa embaixo.
+    @Test("Leitura cancelada no meio (puxar para atualizar) não vira erro e a lista fica como estava")
+    func leituraCanceladaNaoMostraErro() async throws {
+        let estabelecimento = try estabelecimento()
+        let conhecida = try vaga(id: "73000000-0000-0000-0000-000000000031", inicioEm: 7_200)
+        let painel = Painel(estabelecimentoID: estabelecimentoID, vagas: [conhecida], checkinsPendentes: [])
+        let leituras = ContadorDeLeituras()
+        let portao = PortaoDeLeitura()
+        let viewModel = MinhasVagasViewModel(estabelecimento: estabelecimento, agora: { agora }, calendario: calendario) {
+            guard await leituras.somar() > 1 else { return painel }
+            await portao.esperar()
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+        await viewModel.carregar()
+        #expect(viewModel.vagas.count == 1)
+
+        let leitura = Task { await viewModel.carregar() }
+        while await leituras.valor < 2 { await Task.yield() }
+        leitura.cancel()
+        await portao.abrir()
+        await leitura.value
+
+        #expect(viewModel.erro == nil)
+        #expect(viewModel.vagas.count == 1)
+        #expect(!viewModel.carregando)
+    }
+
+    @Test("Leitura que falha de verdade, sem cancelamento, continua mostrando o erro")
+    func leituraQueFalhaContinuaMostrandoErro() async throws {
+        let estabelecimento = try estabelecimento()
+        let viewModel = MinhasVagasViewModel(estabelecimento: estabelecimento, agora: { agora }, calendario: calendario) {
+            throw ErroDaApi(codigo: .desconhecido)
+        }
+        await viewModel.carregar()
+        #expect(viewModel.erro == TextosMinhasVagas.falha)
+    }
 }
 
+private actor ContadorDeLeituras {
+    private(set) var valor = 0
+    func somar() -> Int {
+        valor += 1
+        return valor
+    }
+}
+
+/// Segura a resposta da API até o teste liberar: a leitura fica em voo enquanto a tarefa é cancelada.
+private actor PortaoDeLeitura {
+    private var aberto = false
+    private var esperando: [CheckedContinuation<Void, Never>] = []
+    func esperar() async {
+        guard !aberto else { return }
+        await withCheckedContinuation { esperando.append($0) }
+    }
+    func abrir() {
+        aberto = true
+        esperando.forEach { $0.resume() }
+        esperando = []
+    }
+}

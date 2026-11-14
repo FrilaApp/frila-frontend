@@ -32,7 +32,7 @@ struct AppPrivacyTests {
         #expect(trackingDomains?.isEmpty == true, "NSPrivacyTrackingDomains deve ser vazio")
     }
 
-    @Test("Manifesto de privacidade declara os 12 tipos de dados obrigatórios e sem duplicatas")
+    @Test("Manifesto de privacidade declara os 13 tipos de dados obrigatórios e sem duplicatas")
     func tiposDeDadosDeclaradosNoManifesto() throws {
         let caminhoManifesto = Self.raiz.appending(path: "Resources/PrivacyInfo.xcprivacy")
         let dados = try Data(contentsOf: caminhoManifesto)
@@ -54,6 +54,8 @@ struct AppPrivacyTests {
             "NSPrivacyCollectedDataTypeCrashData",
             "NSPrivacyCollectedDataTypeOtherDiagnosticData",
             "NSPrivacyCollectedDataTypeProductInteraction",
+            // Foto de perfil do profissional e foto/logo do estabelecimento.
+            "NSPrivacyCollectedDataTypePhotosorVideos",
         ]
 
         // Asserção contra duplicatas no manifesto (cada tipo deve aparecer exatamente 1 vez)

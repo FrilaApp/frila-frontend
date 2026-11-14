@@ -57,6 +57,18 @@ public final class PermissaoDePushModelo {
         }
     }
 
+    /// O momento certo depois de publicar uma vaga. A oferta saía enquanto a folha "Vaga Publicada!" ainda
+    /// fechava: a folha da raiz não abre por cima de outra que está saindo, e a sessão já constava como
+    /// "mostrada", então ela não tentava de novo. Aqui a oferta espera a folha terminar de fechar.
+    /// `aguardar` existe para o teste não esperar de verdade.
+    public func oferecerAposPublicar(
+        aguardar: @MainActor () async -> Void = { try? await Task.sleep(for: .milliseconds(800)) }
+    ) async {
+        guard !jaMostradaNaSessao else { return }
+        await aguardar()
+        await oferecer()
+    }
+
     /// Reabre a explicação a pedido da pessoa, pelo aviso fixo em Vagas ou em Minhas vagas (#8).
     /// Abre mesmo que a explicação já tenha aparecido nesta sessão.
     public func reabrir() async {

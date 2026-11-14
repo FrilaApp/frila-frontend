@@ -103,6 +103,13 @@ Todo dado coletado decorre estritamente da operação do aplicativo (**App Funct
    - **Finalidade:** Funcionalidade do App (*App Functionality*) — Verificação de maioridade 18+ (ECA Digital / regra de proteção de menores) e cálculo civil de corte no cadastro. Também **Análise** (*Analytics*), porque os SDKs do Google embutidos (Firebase Messaging, Installations, GoogleDataTransport) declaram essa finalidade neste tipo (decisão do Cauê de 05/11/2026; `frila-documentacao`, `juridico/matriz-app-privacy.md`, Seção 8.2).
    - **Origem / Código:** `iOS/Sources/Infraestrutura/VerificadorDeIdadeDoSistema.swift`, `iOS/Sources/Apresentacao/Fluxos/Autenticacao/CadastroViewModel.swift`, `iOS/Sources/Dominio/Portas.swift` (`CadastroConta`). Declarado como `NSPrivacyCollectedDataTypeOtherDataTypes`.
 
+4. **Fotos ou Vídeos (*Photos or Videos*):**
+   - **Coletado:** Sim
+   - **Vinculado ao Usuário (*Linked to User*):** Sim
+   - **Usado para Rastreamento (*Tracking*):** Não
+   - **Finalidade:** Funcionalidade do App (*App Functionality*) — Foto de perfil do profissional e foto/logo do estabelecimento, enviadas pelo próprio usuário.
+   - **Origem / Código:** `iOS/Sources/Apresentacao/Fluxos/Perfil/FotoDePerfilViewModel.swift`, `iOS/Sources/Apresentacao/Fluxos/Perfil/SecaoFotoDePerfil.swift`. Declarado como `NSPrivacyCollectedDataTypePhotosorVideos`.
+
 ---
 
 ### 2.5 Diagnósticos (Diagnostics)

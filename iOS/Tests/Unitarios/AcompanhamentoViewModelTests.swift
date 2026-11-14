@@ -1373,3 +1373,131 @@ struct AvaliacaoLiberaNoHorarioDoContratanteTests {
         #expect(vm.podeAvaliar(turno))
     }
 }
+
+@MainActor
+@Suite("Acompanhamento: leitura cancelada não é falha")
+struct AcompanhamentoLeituraCanceladaTests {
+    /// Puxar para atualizar cancela a tarefa da leitura: o erro do cancelamento chegava como falha e
+    /// a tela marcava o painel como desatualizado sem que nada tivesse falhado.
+    @Test("Leitura cancelada no meio não marca falhouAoCarregar e mantém o painel")
+    func leituraCanceladaNaoMarcaFalha() async throws {
+        let painel = try PainelDeTeste.painel()
+        let leituras = Contador()
+        let portao = Portao()
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                guard await leituras.somar() > 1 else { return painel }
+                await portao.esperar()
+                throw ErroDaApi(codigo: .desconhecido)
+            },
+            confirmar: { _ in PainelDeTeste.confirmado }, reabrir: { _ in PainelDeTeste.reaberto }
+        )
+        await viewModel.carregar()
+        #expect(viewModel.painel == painel)
+
+        let leitura = Task { await viewModel.carregar() }
+        while await leituras.valor < 2 { await Task.yield() }
+        leitura.cancel()
+        await portao.abrir()
+        await leitura.value
+
+        #expect(!viewModel.falhouAoCarregar)
+        #expect(viewModel.painel == painel)
+        #expect(!viewModel.carregando)
+    }
+}
+
+@MainActor
+@Suite("Acompanhamento: o aviso da última ação fica na vaga e no turno de onde ela saiu")
+struct AvisoDoAcompanhamentoPorAlvoTests {
+    private func viewModel(_ painel: Painel) -> AcompanhamentoViewModel {
+        AcompanhamentoViewModel(
+            buscarPainel: { painel },
+            confirmar: { _ in PainelDeTeste.confirmado }, reabrir: { _ in PainelDeTeste.reaberto },
+            agora: { agoraDoTeste }
+        )
+    }
+
+    /// O resultado era um valor só para tudo: "Vaga cancelada…" aparecia no "Acompanhar turno" de outra vaga.
+    @Test("Vaga cancelada avisa na própria vaga e na lista, e não em outra vaga")
+    func vagaCanceladaSoNaPropriaVaga() async throws {
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let posicao = try #require(vaga.posicoes.first)
+        let outraVaga = UUID()
+        let viewModel = viewModel(painel)
+        await viewModel.carregar()
+
+        viewModel.aplicar(.vaga(VagaCancelada(vagaID: vaga.vaga.id, estado: .cancelada, posicoesCanceladas: 1)),
+                          alvoID: vaga.vaga.id, vagaID: vaga.vaga.id)
+
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id) == .vagaCancelada)
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id, posicao: posicao.id) == .vagaCancelada)
+        #expect(viewModel.resultadoParaAviso(vaga: nil) == .vagaCancelada)
+        #expect(viewModel.resultadoParaAviso(vaga: outraVaga) == nil)
+        #expect(viewModel.resultadoParaAviso(vaga: outraVaga, posicao: UUID()) == nil)
+        await viewModel.releituraAposCancelamento?.value
+    }
+
+    @Test("Posição cancelada avisa no turno dela e na vaga, e não no turno de outra posição nem em outra vaga")
+    func posicaoCanceladaSoNoProprioTurno() async throws {
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let posicao = try #require(vaga.posicoes.first)
+        let viewModel = viewModel(painel)
+        await viewModel.carregar()
+
+        let cancelamento = ResultadoCancelamento(posicaoID: posicao.id, falta: false, reaberta: true, novaPosicaoID: UUID())
+        viewModel.aplicar(.posicao(cancelamento), alvoID: posicao.id, vagaID: vaga.vaga.id)
+
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id, posicao: posicao.id) == .posicaoCancelada(reaberta: true))
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id) == .posicaoCancelada(reaberta: true))
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id, posicao: UUID()) == nil)
+        #expect(viewModel.resultadoParaAviso(vaga: UUID(), posicao: posicao.id) == nil)
+        await viewModel.releituraAposCancelamento?.value
+    }
+
+    @Test("Cancelamento na fila avisa só no alvo: na vaga inteira ou na posição")
+    func cancelamentoNaFilaSoNoAlvo() async throws {
+        let painel = try PainelDeTeste.painel()
+        let vaga = try #require(painel.vagas.first)
+        let posicao = try #require(vaga.posicoes.first)
+        let viewModel = viewModel(painel)
+        await viewModel.carregar()
+
+        viewModel.aplicar(.naFila, alvoID: posicao.id, vagaID: vaga.vaga.id)
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id, posicao: posicao.id) == .cancelamentoNaFila)
+        #expect(viewModel.resultadoParaAviso(vaga: UUID(), posicao: posicao.id) == nil)
+
+        viewModel.aplicar(.naFila, alvoID: vaga.vaga.id, vagaID: vaga.vaga.id)
+        #expect(viewModel.resultadoParaAviso(vaga: vaga.vaga.id) == .cancelamentoNaFila)
+        #expect(viewModel.resultadoParaAviso(vaga: UUID()) == nil)
+    }
+
+    @Test("Presença confirmada avisa no turno confirmado, e não em outra vaga")
+    func presencaConfirmadaSoNoProprioTurno() async throws {
+        let viewModel = viewModel(try PainelDeTeste.painel(pendente: true))
+        await viewModel.carregar()
+        let turno = try #require(viewModel.pendentes.first)
+
+        await viewModel.confirmarPresenca(turno)
+
+        #expect(viewModel.resultado == .presencaConfirmada)
+        #expect(viewModel.resultadoParaAviso(vaga: turno.vaga.id, posicao: turno.posicao.id) == .presencaConfirmada)
+        #expect(viewModel.resultadoParaAviso(vaga: nil) == .presencaConfirmada)
+        #expect(viewModel.resultadoParaAviso(vaga: UUID(), posicao: UUID()) == nil)
+    }
+
+    @Test("Vaga reaberta por atraso avisa no turno reaberto, e não em outra vaga")
+    func reaberturaSoNoProprioTurno() async throws {
+        let viewModel = viewModel(try PainelDeTeste.painel(emAtraso: true))
+        await viewModel.carregar()
+        let turno = try #require(viewModel.emAtraso.first)
+
+        viewModel.pedirReabertura(turno)
+        await viewModel.confirmarReabertura()?.value
+
+        #expect(viewModel.resultadoParaAviso(vaga: turno.vaga.id, posicao: turno.posicao.id) == .vagaReaberta)
+        #expect(viewModel.resultadoParaAviso(vaga: UUID(), posicao: UUID()) == nil)
+    }
+}
