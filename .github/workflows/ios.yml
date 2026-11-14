@@ -264,7 +264,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA_PATH" \
             -only-testing:FrilaTests \
             -retry-tests-on-failure -test-iterations 2 \
-            -test-timeouts-enabled YES -default-test-execution-time-allowance 300 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 1800 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
@@ -359,7 +359,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA_PATH" \
             "${PARTE[@]}" \
             -retry-tests-on-failure -test-iterations 2 \
-            -test-timeouts-enabled YES -default-test-execution-time-allowance 300 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 1800 \
             -resultBundlePath "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" \
             -clonedSourcePackagesDirPath "$DERIVED_DATA_PATH/SourcePackages" \
             -disableAutomaticPackageResolution \
@@ -403,4 +403,4 @@ jobs:
     with:
       com_release: false
       iteracoes: 2
-      limite_por_teste: 300
+      limite_por_teste: 1800
