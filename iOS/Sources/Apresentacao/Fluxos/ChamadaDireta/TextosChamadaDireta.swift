@@ -1,4 +1,5 @@
 import Foundation
+import FrilaDominio
 
 public enum TextosChamadaDireta {
     public static let titulo = String(localized: "Chamar de novo", bundle: bundleApresentacao)
@@ -50,6 +51,17 @@ public enum TextosChamadaDireta {
     public static let motivoValor = String(localized: "Valor proposto", bundle: bundleApresentacao)
     public static let motivoTipoDeServico = String(localized: "Tipo de serviço", bundle: bundleApresentacao)
     public static let motivoOutro = String(localized: "Outro motivo", bundle: bundleApresentacao)
+
+    /// O texto do motivo que o profissional escolheu ao recusar; nunca o código do contrato.
+    public static func motivo(_ motivo: MotivoRecusaChamada) -> String {
+        switch motivo {
+        case .agenda: motivoAgenda
+        case .distancia: motivoDistancia
+        case .valor: motivoValor
+        case .tipoDeServico: motivoTipoDeServico
+        case .outro: motivoOutro
+        }
+    }
     public static let chamadaAceitaTitulo = String(localized: "Chamada aceita!", bundle: bundleApresentacao)
     public static let chamadaAceitaMensagem = String(localized: "Você aceitou a chamada. O local e o responsável já estão liberados.", bundle: bundleApresentacao)
     public static let verTurno = String(localized: "Ver meu turno", bundle: bundleApresentacao)
