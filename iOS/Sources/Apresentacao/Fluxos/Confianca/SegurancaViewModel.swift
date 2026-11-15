@@ -13,6 +13,7 @@ public final class BloqueiosDaSessao {
     public func remover(_ perfil: PerfilPublico) { alvos.remove(Alvo(perfil)) }
     public func contem(_ perfil: PerfilPublico) -> Bool { alvos.contains(Alvo(perfil)) }
     public func contem(_ alvo: Alvo) -> Bool { alvos.contains(alvo) }
+    public func contem(id: UUID) -> Bool { alvos.contains { $0.id == id } }
     public func filtrar(_ vagas: [VagaNaLista]) -> [VagaNaLista] {
         vagas.filter { !contem($0.estabelecimento) }
     }
