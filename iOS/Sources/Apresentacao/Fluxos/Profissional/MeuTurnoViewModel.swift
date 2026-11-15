@@ -115,9 +115,11 @@ public final class MeuTurnoViewModel {
         cancelamento.map { TextosDoProfissional.Turnos.causaDoCancelamento($0.causa) }
     }
     public var faltaNoCancelamento: String? {
-        cancelamento.map {
-            $0.falta ? TextosDoProfissional.Turnos.cancelamentoComFalta : TextosDoProfissional.Turnos.cancelamentoSemFalta
+        guard let cancelamento else { return nil }
+        if cancelamento.causa == .reaberturaPorAtraso {
+            return nil
         }
+        return cancelamento.falta ? TextosDoProfissional.Turnos.cancelamentoComFalta : TextosDoProfissional.Turnos.cancelamentoSemFalta
     }
 
     private let contaID: UUID?

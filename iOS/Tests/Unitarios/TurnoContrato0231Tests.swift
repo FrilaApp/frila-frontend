@@ -299,7 +299,7 @@ struct TurnoContrato0231Tests {
         #expect(copia.cancelamento == registro)
         let vm = MeuTurnoViewModel(turno: copia, api: ApiClienteEmMemoria(), contaID: contaID)
         #expect(vm.causaDoCancelamento == (comFalta ? "O estabelecimento cancelou a sua participação neste turno por atraso. Isso conta como falta." : "O estabelecimento cancelou este turno."))
-        #expect(vm.faltaNoCancelamento == (comFalta ? "Este cancelamento contou como falta." : "Este cancelamento não contou como falta."))
+        #expect(vm.faltaNoCancelamento == (comFalta ? nil : "Este cancelamento não contou como falta."))
         #expect(!vm.permiteAcoesDoTurno)
     }
 

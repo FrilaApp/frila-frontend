@@ -104,7 +104,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         let cancelamento = app.descendants(matching: .any)["cancelamento-do-turno"].firstMatch
         XCTAssertTrue(cancelamento.waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(cancelamento.label.contains("O estabelecimento cancelou a sua participação neste turno por atraso. Isso conta como falta."))
-        XCTAssertTrue(cancelamento.label.contains("Este cancelamento contou como falta."))
+        XCTAssertFalse(cancelamento.label.contains("Este cancelamento contou como falta."))
         XCTAssertFalse(app.buttons["Avaliar turno"].exists)
     }
 
