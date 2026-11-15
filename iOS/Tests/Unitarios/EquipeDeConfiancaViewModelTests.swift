@@ -410,4 +410,87 @@ struct EquipeDeConfiancaViewModelTests {
         await vm2.carregar()
         #expect(contador.valor == 2, "a próxima chamada deve ir à API porque a leitura em voo foi invalidada")
     }
+
+    @Test("404 nao_encontrado em incluir_na_equipe trata como erro amigável sem expor bloqueio e recarrega a equipe")
+    func inclusao404RecarregaEquipeESemExporBloqueio() async throws {
+        let contadorListar = Contador()
+        let cache = CacheEquipeDeConfianca()
+
+        let vm = IncluirNaEquipeViewModel(
+            membro: MembroDaEquipe(estabelecimentoID: casaID, profissionalID: anaID),
+            cache: cache,
+            listar: { _ in
+                contadorListar.incrementar()
+                return []
+            },
+            incluir: { _ in
+                throw ErroDaApi(codigo: .naoEncontrado)
+            }
+        )
+
+        await vm.carregar()
+        #expect(contadorListar.valor == 1)
+        #expect(vm.situacao == .foraDaEquipe)
+
+        // Ao tentar incluir e receber 404 (por bloqueio no servidor):
+        await vm.incluir()
+
+        // 1. Mensagem amigável existente no catálogo sem expor bloqueio nem quem bloqueou:
+        #expect(vm.mensagemErro == TextosEquipeDeConfianca.indisponivel)
+        #expect(vm.mensagemErro?.localizedCaseInsensitiveContains("bloque") == false)
+
+        // 2. A equipe foi recarregada (listar foi acionado novamente com o cache invalidado):
+        #expect(contadorListar.valor == 2)
+        #expect(vm.situacao == .foraDaEquipe)
+        #expect(!vm.incluindo)
+    }
+
+    @Test("Bloquear remove o par da equipe de confiança e recarrega a lista; desbloquear não devolve (B-022)")
+    func bloquearRemoveDaEquipeERecarregaEDesbloquearNaoDevolve() async throws {
+        let api = ApiClienteEmMemoria(cenario: .equipeDeConfiancaComMembro)
+        let bloqueios = BloqueiosDaSessao()
+        let cache = CacheEquipeDeConfianca()
+
+        var recarregamentos = 0
+        let vmEquipe = EquipeDeConfiancaViewModel(
+            estabelecimentoID: casaID,
+            cache: cache,
+            listar: { try await api.equipeDeConfianca(estabelecimentoID: $0) },
+            remover: { try await api.removerDaEquipe($0) }
+        )
+
+        await vmEquipe.carregar()
+        #expect(vmEquipe.membros.map(\.id) == [anaID], "Ana começa na equipe de confiança")
+
+        let ana = try #require(vmEquipe.membros.first)
+        let seguranca = SegurancaViewModel(
+            perfil: ana,
+            api: api,
+            bloqueios: bloqueios,
+            cacheEquipe: cache,
+            aoBloquear: {
+                recarregamentos += 1
+                await vmEquipe.carregar()
+            }
+        )
+
+        // 1. Bloquear o profissional:
+        await seguranca.bloquear()
+        #expect(seguranca.bloqueado)
+        #expect(recarregamentos == 1, "ao bloquear, o recarregamento da equipe é disparado")
+        #expect(vmEquipe.membros.isEmpty, "o servidor (B-022) retirou o profissional da equipe de confiança")
+        #expect(vmEquipe.estado == .vazio)
+
+        // Conferir na API do dublê:
+        let membrosApiAposBloqueio = try await api.equipeDeConfianca(estabelecimentoID: casaID)
+        #expect(membrosApiAposBloqueio.isEmpty)
+
+        // 2. Desbloquear o profissional:
+        await seguranca.desbloquear()
+        #expect(!seguranca.bloqueado)
+
+        // Recarregar a equipe novamente:
+        await vmEquipe.carregar()
+        #expect(vmEquipe.membros.isEmpty, "desbloquear não devolve o par à equipe de confiança (B-022)")
+    }
 }
