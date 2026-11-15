@@ -272,6 +272,23 @@ struct SuporteTurnoTests {
         #expect(!vm.falhaAoAbrirEmail)
     }
 
+    @Test("Quando o aparelho não possui cliente de e-mail (sem nativo e sem mailto), registrarEEnviar registra falha para aviso na tela")
+    func aparelhoSemNenhumClienteDeEmailRegistraFalha() async {
+        let vm = SuporteTurnoViewModel(
+            dados: criarContextoExemplo(),
+            verificadorPodeEnviarEmail: { false },
+            verificadorPodeAbrirURL: { _ in false }
+        )
+        #expect(!vm.podeEnviarEmailNativo)
+        #expect(!vm.podeAbrirMailto)
+        #expect(!vm.falhaAoAbrirEmail)
+
+        await vm.registrarEEnviar(abridorURL: { _ in })
+
+        #expect(vm.falhaAoAbrirEmail)
+        #expect(!vm.mostrandoCompositorNativo)
+    }
+
     // MARK: - Testes da RPC abrir_suporte (contrato 0.2.40)
 
     private final class ApiDeSuporteTeste: ApiClienteEncaminhador, @unchecked Sendable {
