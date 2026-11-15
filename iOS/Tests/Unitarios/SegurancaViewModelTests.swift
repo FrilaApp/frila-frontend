@@ -299,4 +299,18 @@ struct SegurancaViewModelTests {
         model.relato = "  1234567890  "
         #expect(model.relatoValido)
     }
+
+    // MARK: - Confirmação com protocolo e dados de suporte (D-11)
+
+    @Test("Denúncia com sucesso expõe protocolo para exibição com atalhos de emergência e suporte (D-11)")
+    func protocoloDisponivelParaConfirmacaoComEmergenciaESuporte() async throws {
+        let api = ApiDeSeguranca()
+        let perfil = try await perfil(api)
+        let model = SegurancaViewModel(perfil: perfil, api: api, bloqueios: BloqueiosDaSessao())
+        model.relato = "Relato detalhado para confirmação com protocolo."
+        #expect(model.protocolo == nil)
+        await model.denunciar()
+        #expect(model.protocolo != nil)
+        #expect(EnderecosOficiais.padrao.emailSuporte.contains("@"))
+    }
 }

@@ -141,6 +141,17 @@ public struct FolhaDeDenuncia: View {
                         .accessibilityIdentifier("prazo-denuncia")
                     }
                     .listRowBackground(FrilaCor.superficie)
+
+                    Section {
+                        Text(verbatim: TextosDaSeguranca.emergencia)
+                            .font(FrilaTipo.meta)
+                            .foregroundStyle(FrilaCor.texto)
+                            .accessibilityIdentifier("aviso-risco-imediato-confirmacao")
+                        atalhoDeEmergencia(TextosDaSeguranca.policia, numero: "190")
+                        atalhoDeEmergencia(TextosDaSeguranca.mulher, numero: "180")
+                        atalhoDeEmailSuporte()
+                    }
+                    .listRowBackground(FrilaCor.controle)
                 } else {
                     Section {
                         Picker(TextosDaSeguranca.motivo, selection: $model.motivo) {
@@ -299,6 +310,33 @@ public struct FolhaDeDenuncia: View {
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
             .contentShape(Rectangle())
         }
+        .accessibilityIdentifier("atalho-emergencia-\(numero)")
+    }
+
+    /// Atalho de e-mail do suporte como alternativa na confirmação (D-11).
+    private func atalhoDeEmailSuporte() -> some View {
+        let email = EnderecosOficiais.padrao.emailSuporte
+        return Link(destination: URL(string: "mailto:\(email)")!) {
+            HStack(spacing: FrilaEspaco.compacto) {
+                Image(systemName: "envelope.fill")
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: colunaDoIcone)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: TextosDoSuporte.botaoEnviarEmail)
+                        .font(FrilaTipo.rotuloDoCampo)
+                        .foregroundStyle(FrilaCor.texto)
+                    Text(verbatim: email)
+                        .font(FrilaTipo.nota)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                }
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("atalho-email-suporte-denuncia")
     }
 }
 
