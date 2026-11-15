@@ -8932,6 +8932,17 @@
         }
       }
     },
+    "O estabelecimento cancelou a sua participação neste turno por atraso. Isso conta como falta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento cancelou a sua participação neste turno por atraso. Isso conta como falta."
+          }
+        }
+      }
+    },
     "O estabelecimento escolhe entre os candidatos, até 24 horas antes do início do turno. O Frila avisa você quando houver resposta.": {
       "extractionState": "stale",
       "localizations": {

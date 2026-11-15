@@ -202,7 +202,7 @@ enum TextosDoProfissional {
             case .estabelecimento:
                 String(localized: "O estabelecimento cancelou este turno.", bundle: bundleApresentacao)
             case .reaberturaPorAtraso:
-                String(localized: "O estabelecimento reabriu a posição por atraso.", bundle: bundleApresentacao)
+                String(localized: "O estabelecimento cancelou a sua participação neste turno por atraso. Isso conta como falta.", bundle: bundleApresentacao)
             case .noShowSemCheckin:
                 String(localized: "O turno terminou sem check-in.", bundle: bundleApresentacao)
             case .outro:
