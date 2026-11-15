@@ -55,6 +55,7 @@ enum TextosPublicarVaga {
     static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
     static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundleApresentacao)
     static let campoInvalido = String(localized: "Confira o valor informado.", bundle: bundleApresentacao)
+    static let erroAntiContato = String(localized: "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila.", bundle: bundleApresentacao)
     static let erroPublicar = String(localized: "Não foi possível publicar a vaga. Tente novamente.", bundle: bundleApresentacao)
     static let semFuncoes = String(localized: "Não foi possível carregar as funções.", bundle: bundleApresentacao)
     static let funcaoCampo = String(localized: "Escolha uma função.", bundle: bundleApresentacao)
@@ -550,7 +551,12 @@ public final class PublicarVagaViewModel {
             mensagemErro = TextosPublicarVaga.modoIndisponivel
         } else if erro.codigo == .campoObrigatorio || erro.codigo == .campoInvalido {
             if let campo = Self.campo(erro.detalhes) {
-                erros[campo] = erro.codigo == .campoObrigatorio ? TextosPublicarVaga.campoObrigatorio : TextosPublicarVaga.campoInvalido
+                if campo == .observacoes && erro.codigo == .campoInvalido {
+                    erros[.observacoes] = TextosPublicarVaga.erroAntiContato
+                    mensagemErro = TextosPublicarVaga.erroAntiContato
+                } else {
+                    erros[campo] = erro.codigo == .campoObrigatorio ? TextosPublicarVaga.campoObrigatorio : TextosPublicarVaga.campoInvalido
+                }
             } else {
                 mensagemErro = TextosPublicarVaga.erroPublicar
             }

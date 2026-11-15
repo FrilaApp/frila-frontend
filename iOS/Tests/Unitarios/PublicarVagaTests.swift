@@ -627,4 +627,21 @@ struct PublicarVagaTests {
         vm.participaRateioOuNao = false
         #expect(vm.participaRateio == false)
     }
+
+    // MARK: - Erro anti-contato nas observações (D-6)
+
+    @Test("Erro amigável de anti-contato nas observações ao publicar vaga (D-6)")
+    func erroAntiContatoNasObservacoes() async throws {
+        let fila = FilaPublicacaoTeste()
+        let vm = PublicarVagaViewModel(estabelecimento: try estabelecimento(), funcoes: [funcao], fila: fila, agora: { self.agora }) { _ in
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "observacoes")
+        }
+        preencher(vm)
+        vm.observacoes = "Chama no zap 61 99999-9999"
+        await vm.publicar()
+
+        #expect(TextosPublicarVaga.erroAntiContato == "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila.")
+        #expect(vm.erros[.observacoes] == TextosPublicarVaga.erroAntiContato)
+        #expect(vm.mensagemErro == TextosPublicarVaga.erroAntiContato)
+    }
 }
