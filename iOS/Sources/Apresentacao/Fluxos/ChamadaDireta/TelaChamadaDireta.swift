@@ -7,17 +7,22 @@ struct BotaoChamarDeNovo: View {
     let estabelecimentoID: UUID
     var vagaID: UUID?
     @State private var aberto = false
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
     var body: some View {
-        BotaoSecundario(verbatim: TextosChamadaDireta.titulo) { aberto = true }
-            .accessibilityIdentifier("chamar-de-novo-\(profissionalID)")
-            .sheet(isPresented: $aberto) {
-                NavigationStack {
-                    TelaChamadaDireta(viewModel: ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
-                        estabelecimentoID: estabelecimentoID, vagaID: vagaID), api: api)
+        if !bloqueios.contem(id: profissionalID) {
+            BotaoSecundario(verbatim: TextosChamadaDireta.titulo) { aberto = true }
+                .accessibilityIdentifier("chamar-de-novo-\(profissionalID)")
+                .sheet(isPresented: $aberto) {
+                    NavigationStack {
+                        TelaChamadaDireta(viewModel: ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
+                            estabelecimentoID: estabelecimentoID, vagaID: vagaID), api: api)
+                    }
+                    .presentationCornerRadius(FrilaRaio.folha)
                 }
-                .presentationCornerRadius(FrilaRaio.folha)
-            }
+        }
     }
 }
 

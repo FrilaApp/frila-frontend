@@ -7,6 +7,9 @@ public struct TelaEquipeDeConfianca: View {
     @State private var chamadaHabilitada = false
     private let api: (any ApiCliente)?
     @State private var aRemover: PerfilPublico?
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
     public init(viewModel: EquipeDeConfiancaViewModel, api: (any ApiCliente)? = nil) {
         self.api = api
@@ -105,7 +108,7 @@ public struct TelaEquipeDeConfianca: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
             SeloReputacao(perfil.reputacao)
-            if chamadaHabilitada, let api {
+            if chamadaHabilitada, let api, !bloqueios.contem(perfil) {
                 BotaoChamarDeNovo(api: api, profissionalID: perfil.id, estabelecimentoID: viewModel.estabelecimentoID)
             }
             BotaoSecundario(verbatim: TextosEquipeDeConfianca.remover) { aRemover = perfil }
@@ -124,8 +127,12 @@ public struct TelaEquipeDeConfianca: View {
 /// "Incluir na equipe" ao lado das ações sobre um profissional que cumpriu turno na casa (#24). Quem
 /// usa só mostra o botão quando a presença do turno foi verificada; a regra vale no servidor.
 struct BotaoIncluirNaEquipe: View {
+    let perfil: PerfilPublico
     @State private var model: IncluirNaEquipeViewModel
     private let identificador: String
+    @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
+    @State private var bloqueiosLocais = BloqueiosDaSessao()
+    private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
     init(
         perfil: PerfilPublico,
@@ -134,51 +141,54 @@ struct BotaoIncluirNaEquipe: View {
         cache: CacheEquipeDeConfianca = .compartilhado,
         identificador: String = "incluir-na-equipe"
     ) {
+        self.perfil = perfil
         let membro = MembroDaEquipe(estabelecimentoID: estabelecimentoID, profissionalID: perfil.id)
         _model = State(initialValue: IncluirNaEquipeViewModel(membro: membro, api: api, cache: cache))
         self.identificador = identificador
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            if model.situacao == .naEquipe {
-                Label {
-                    Text(verbatim: TextosEquipeDeConfianca.naEquipe)
-                } icon: {
-                    Image(systemName: "checkmark.seal")
-                }
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.sucesso)
-                .padding(.horizontal, FrilaEspaco.compacto)
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .background(FrilaCor.sucesso.opacity(0.1), in: Capsule())
-                .overlay(Capsule().strokeBorder(FrilaCor.sucesso.opacity(0.3), lineWidth: 1))
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .accessibilityIdentifier("na-equipe-\(identificador)")
-            } else {
-                Button { Task { await model.incluir() } } label: {
+        if !bloqueios.contem(perfil) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                if model.situacao == .naEquipe {
                     Label {
-                        Text(verbatim: TextosEquipeDeConfianca.incluir)
+                        Text(verbatim: TextosEquipeDeConfianca.naEquipe)
                     } icon: {
-                        Image(systemName: "person.badge.plus")
+                        Image(systemName: "checkmark.seal")
                     }
-                    .font(FrilaTipo.botaoPadrao)
-                    .foregroundStyle(FrilaCor.texto)
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    .contentShape(Capsule())
+                    .font(FrilaTipo.meta)
+                    .foregroundStyle(FrilaCor.sucesso)
+                    .padding(.horizontal, FrilaEspaco.compacto)
+                    .padding(.vertical, FrilaEspaco.pequeno)
+                    .background(FrilaCor.sucesso.opacity(0.1), in: Capsule())
+                    .overlay(Capsule().strokeBorder(FrilaCor.sucesso.opacity(0.3), lineWidth: 1))
+                    .frame(minHeight: FrilaMetrica.alvoMinimo)
+                    .accessibilityIdentifier("na-equipe-\(identificador)")
+                } else {
+                    Button { Task { await model.incluir() } } label: {
+                        Label {
+                            Text(verbatim: TextosEquipeDeConfianca.incluir)
+                        } icon: {
+                            Image(systemName: "person.badge.plus")
+                        }
+                        .font(FrilaTipo.botaoPadrao)
+                        .foregroundStyle(FrilaCor.texto)
+                        .padding(.horizontal, FrilaEspaco.medio)
+                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
+                        .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.tatil)
+                    .disabled(model.incluindo)
+                    .accessibilityIdentifier(identificador)
+                    if model.incluindo { ProgressView() }
                 }
-                .buttonStyle(.tatil)
-                .disabled(model.incluindo)
-                .accessibilityIdentifier(identificador)
-                if model.incluindo { ProgressView() }
+                if let erro = model.mensagemErro {
+                    AvisoFrila(verbatim: erro, tom: .erro)
+                        .accessibilityIdentifier("erro-\(identificador)")
+                }
             }
-            if let erro = model.mensagemErro {
-                AvisoFrila(verbatim: erro, tom: .erro)
-                    .accessibilityIdentifier("erro-\(identificador)")
-            }
+            .task { await model.carregar() }
         }
-        .task { await model.carregar() }
     }
 }

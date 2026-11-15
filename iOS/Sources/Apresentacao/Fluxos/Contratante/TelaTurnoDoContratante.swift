@@ -342,7 +342,10 @@ struct TelaTurnoDoContratante: View {
                 }
                 // Só com a presença verificada: é a condição de `incluir_na_equipe` (UC11). O
                 // servidor confere de novo; aqui é só para não oferecer o que ele vai recusar.
-                if turno.posicao.verificacao == .verificado, let estabelecimentoID = viewModel.painel?.estabelecimentoID {
+                // D-14: Não oferecer incluir na equipe nem chamar de novo profissional bloqueado.
+                if !bloqueios.contem(profissional),
+                   turno.posicao.verificacao == .verificado,
+                   let estabelecimentoID = viewModel.painel?.estabelecimentoID {
                     if chamadaHabilitada, viewModel.podeAvaliar(turno) {
                         BotaoChamarDeNovo(api: api, profissionalID: profissional.id,
                             estabelecimentoID: estabelecimentoID, vagaID: turno.vaga.id)

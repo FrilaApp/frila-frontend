@@ -245,4 +245,30 @@ struct BloqueiosViewModelTests {
         let desbRepetido = try await api.desbloquear(alvoEstab)
         #expect(desbRepetido.alvo == alvoEstab)
     }
+
+    // MARK: - BloqueiosDaSessao e D-14
+
+    @Test("BloqueiosDaSessao: contem por perfil e por id para travas de interface (D-14)")
+    func bloqueiosDaSessaoContemPorIDePerfil() {
+        let sessao = BloqueiosDaSessao()
+        let profID = UUID()
+        let perfil = PerfilPublico(
+            id: profID,
+            tipo: .profissional,
+            nome: "Garçom Teste",
+            funcoes: ["Garçom"],
+            reputacao: Reputacao(positivas: 1, total: 1, taxaComparecimento: 1, turnosConsiderados: 1, turnosRealizados: 1)
+        )
+
+        #expect(!sessao.contem(perfil))
+        #expect(!sessao.contem(id: profID))
+
+        sessao.registrar(Alvo(perfil))
+        #expect(sessao.contem(perfil))
+        #expect(sessao.contem(id: profID))
+
+        sessao.remover(perfil)
+        #expect(!sessao.contem(perfil))
+        #expect(!sessao.contem(id: profID))
+    }
 }
