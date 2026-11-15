@@ -90,4 +90,30 @@ struct EquipeEmMemoriaTests {
         await #expect(throws: ErroDaApi(codigo: .semRede)) { try await semRede.equipeDeConfianca(estabelecimentoID: membro.estabelecimentoID) }
         await #expect(throws: ErroDaApi(codigo: .semRede)) { try await semRede.removerDaEquipe(membro) }
     }
+
+    @Test("Bloqueio mútuo faz incluirNaEquipe recusar com nao_encontrado (backend #505)")
+    func bloqueioRecusaInclusaoComNaoEncontrado() async throws {
+        let api = ApiClienteEmMemoria(cenario: .painelContratante)
+        let (_, membro) = try await casa(api)
+        _ = try await api.bloquear(Alvo(tipo: .profissional, id: profissional))
+
+        await #expect(throws: ErroDaApi(codigo: .naoEncontrado)) {
+            try await api.incluirNaEquipe(membro)
+        }
+    }
+
+    @Test("Bloquear membro da equipe o remove dela (B-022); desbloquear não devolve à equipe")
+    func bloquearRemoveDaEquipeEDesbloquearNaoDevolve() async throws {
+        let api = ApiClienteEmMemoria(cenario: .equipeDeConfiancaComMembro)
+        let (casaID, _) = try await casa(api)
+        #expect(try await api.equipeDeConfianca(estabelecimentoID: casaID).map(\.id) == [profissional])
+
+        // Bloquear remove da equipe:
+        _ = try await api.bloquear(Alvo(tipo: .profissional, id: profissional))
+        #expect(try await api.equipeDeConfianca(estabelecimentoID: casaID).isEmpty)
+
+        // Desbloquear não devolve:
+        _ = try await api.desbloquear(Alvo(tipo: .profissional, id: profissional))
+        #expect(try await api.equipeDeConfianca(estabelecimentoID: casaID).isEmpty)
+    }
 }

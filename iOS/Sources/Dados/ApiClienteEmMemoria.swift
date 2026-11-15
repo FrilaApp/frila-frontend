@@ -1329,6 +1329,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe {
         try exigirAdministrador(de: membro.estabelecimentoID)
         guard perfilDoProfissional(membro.profissionalID) != nil else { throw erro("nao_encontrado") }
+        // Backend #505 (B-022 / D-14): bloqueio em qualquer sentido resulta em 404 nao_encontrado
+        guard bloqueios[Alvo(tipo: .profissional, id: membro.profissionalID)] == nil,
+              bloqueios[Alvo(tipo: .estabelecimento, id: membro.estabelecimentoID)] == nil else {
+            throw erro("nao_encontrado")
+        }
         guard cumpriuTurnoVerificado(membro.profissionalID, em: membro.estabelecimentoID) else {
             throw erro("sem_permissao", detalhes: "sem_turno_cumprido")
         }
@@ -2643,6 +2648,16 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let gravado = bloqueios[alvo] { return gravado }
         let bloqueio = Bloqueio(alvo: alvo, criadoEm: relogio.agora)
         bloqueios[alvo] = bloqueio
+        // B-022: o servidor tira o par bloqueado da equipe de confiança; desbloquear não devolve.
+        if alvo.tipo == .profissional {
+            for chave in equipesDeConfianca.keys {
+                equipesDeConfianca[chave]?.removeAll { $0 == alvo.id }
+            }
+        } else if alvo.tipo == .estabelecimento {
+            if let profID = conta?.id {
+                equipesDeConfianca[alvo.id]?.removeAll { $0 == profID }
+            }
+        }
         return bloqueio
     }
 
@@ -3284,8 +3299,12 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// O profissional de exemplo, que o painel mostra nas posições, ou uma casa que o dublê conhece.
     private func existe(_ alvo: Alvo) -> Bool {
         switch alvo.tipo {
-        case .profissional: alvo.id == perfilPublicoDeExemplo.id || candidaturas.contains { $0.profissional.id == alvo.id }
-        case .estabelecimento: estabelecimentos.contains { $0.id == alvo.id } || vagas.contains { $0.estabelecimento.id == alvo.id }
+        case .profissional:
+            alvo.id == perfilPublicoDeExemplo.id
+            || candidaturas.contains { $0.profissional.id == alvo.id }
+            || equipesDeConfianca.values.contains { $0.contains(alvo.id) }
+        case .estabelecimento:
+            estabelecimentos.contains { $0.id == alvo.id } || vagas.contains { $0.estabelecimento.id == alvo.id }
         }
     }
 

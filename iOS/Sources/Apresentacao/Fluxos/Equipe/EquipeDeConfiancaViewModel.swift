@@ -271,6 +271,8 @@ public final class IncluirNaEquipeViewModel {
             cache.invalidar(estabelecimentoID: membro.estabelecimentoID)
         } catch {
             mensagemErro = MensagensDaEquipe.texto(error)
+            cache.invalidar(estabelecimentoID: membro.estabelecimentoID)
+            await carregar()
         }
     }
 }

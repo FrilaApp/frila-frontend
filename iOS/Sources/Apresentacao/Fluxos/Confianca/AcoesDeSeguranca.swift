@@ -17,11 +17,20 @@ struct AcoesDeSeguranca: View {
         turnoID: UUID? = nil,
         api: any ApiCliente,
         bloqueios: BloqueiosDaSessao,
+        cacheEquipe: CacheEquipeDeConfianca = .compartilhado,
         identificadorDenunciar: String = "denunciar",
         identificadorBloquear: String = "bloquear",
-        identificadorConfirmarBloqueio: String = "confirmar-bloqueio"
+        identificadorConfirmarBloqueio: String = "confirmar-bloqueio",
+        aoBloquear: (@Sendable () async -> Void)? = nil
     ) {
-        _model = State(initialValue: SegurancaViewModel(perfil: perfil, turnoID: turnoID, api: api, bloqueios: bloqueios))
+        _model = State(initialValue: SegurancaViewModel(
+            perfil: perfil,
+            turnoID: turnoID,
+            api: api,
+            bloqueios: bloqueios,
+            cacheEquipe: cacheEquipe,
+            aoBloquear: aoBloquear
+        ))
         self.nomeAlvo = perfil.nome
         self.identificadorDenunciar = identificadorDenunciar
         self.identificadorBloquear = identificadorBloquear

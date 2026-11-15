@@ -39,13 +39,24 @@ public final class SegurancaViewModel {
     private let api: any ApiCliente
     private let bloqueios: BloqueiosDaSessao
     private var tentativa: Denuncia?
+    private let cacheEquipe: CacheEquipeDeConfianca
+    private let aoBloquear: (@Sendable () async -> Void)?
 
-    public init(perfil: PerfilPublico, turnoID: UUID? = nil, api: any ApiCliente, bloqueios: BloqueiosDaSessao) {
+    public init(
+        perfil: PerfilPublico,
+        turnoID: UUID? = nil,
+        api: any ApiCliente,
+        bloqueios: BloqueiosDaSessao,
+        cacheEquipe: CacheEquipeDeConfianca = .compartilhado,
+        aoBloquear: (@Sendable () async -> Void)? = nil
+    ) {
         alvo = Alvo(perfil)
         self.turnoID = turnoID
         fotoID = perfil.fotoID
         self.api = api
         self.bloqueios = bloqueios
+        self.cacheEquipe = cacheEquipe
+        self.aoBloquear = aoBloquear
     }
 
     /// Só há foto para denunciar quando o perfil a trouxe.
@@ -79,6 +90,11 @@ public final class SegurancaViewModel {
         do {
             _ = try await api.bloquear(alvo)
             bloqueios.registrar(alvo)
+            // B-022: o servidor tira o par bloqueado da equipe de confiança; desbloquear não devolve.
+            cacheEquipe.limpar()
+            if let aoBloquear {
+                await aoBloquear()
+            }
         } catch { erroBloqueio = mensagem(error) }
     }
 
@@ -90,6 +106,7 @@ public final class SegurancaViewModel {
         do {
             _ = try await api.desbloquear(alvo)
             bloqueios.remover(alvo)
+            // B-022: desbloquear não devolve o par à equipe de confiança
         } catch { erroBloqueio = mensagem(error) }
     }
 
