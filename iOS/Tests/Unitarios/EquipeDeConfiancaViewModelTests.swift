@@ -451,7 +451,7 @@ struct EquipeDeConfiancaViewModelTests {
         let bloqueios = BloqueiosDaSessao()
         let cache = CacheEquipeDeConfianca()
 
-        var recarregamentos = 0
+        let recarregamentos = Contador()
         let vmEquipe = EquipeDeConfiancaViewModel(
             estabelecimentoID: casaID,
             cache: cache,
@@ -469,7 +469,7 @@ struct EquipeDeConfiancaViewModelTests {
             bloqueios: bloqueios,
             cacheEquipe: cache,
             aoBloquear: {
-                recarregamentos += 1
+                recarregamentos.incrementar()
                 await vmEquipe.carregar()
             }
         )
@@ -477,7 +477,7 @@ struct EquipeDeConfiancaViewModelTests {
         // 1. Bloquear o profissional:
         await seguranca.bloquear()
         #expect(seguranca.bloqueado)
-        #expect(recarregamentos == 1, "ao bloquear, o recarregamento da equipe é disparado")
+        #expect(recarregamentos.valor == 1, "ao bloquear, o recarregamento da equipe é disparado")
         #expect(vmEquipe.membros.isEmpty, "o servidor (B-022) retirou o profissional da equipe de confiança")
         #expect(vmEquipe.estado == .vazio)
 
