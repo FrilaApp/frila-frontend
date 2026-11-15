@@ -107,6 +107,9 @@ final class SegurancaUITests: XCTestCase {
         tocarFechandoTeclado(enviar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-risco-imediato-confirmacao"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["atalho-emergencia-190"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["atalho-emergencia-180"].exists)
     }
 
     func testBloqueioNoPerfilRemoveVagaSemReiniciar() {
@@ -213,6 +216,9 @@ final class SegurancaUITests: XCTestCase {
         tocarFechandoTeclado(enviar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-risco-imediato-confirmacao"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["atalho-emergencia-190"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["atalho-emergencia-180"].exists)
         tocar(app.buttons["Fechar"])
 
         let bloquear = app.buttons["bloquear"]
@@ -280,6 +286,9 @@ final class SegurancaUITests: XCTestCase {
         tocarFechandoTeclado(enviar, em: app)
         XCTAssertTrue(app.descendants(matching: .any)["protocolo-denuncia"].waitForExistence(timeout: Espera.aparecer))
         XCTAssertTrue(app.descendants(matching: .any)["prazo-denuncia"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-risco-imediato-confirmacao"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["atalho-emergencia-190"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["atalho-emergencia-180"].exists)
         tocar(app.buttons["Fechar"])
 
         let bloquear = app.buttons[idBloquear]

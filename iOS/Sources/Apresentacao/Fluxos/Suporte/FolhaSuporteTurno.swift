@@ -322,7 +322,9 @@ public struct FolhaSuporteTurno: View {
                     await viewModel.registrarEEnviar(abridorURL: { url in
                         openURL(url) { aceito in
                             if !aceito {
-                                viewModel.registrarFalhaAoAbrirEmail()
+                                Task { @MainActor in
+                                    viewModel.registrarFalhaAoAbrirEmail()
+                                }
                             }
                         }
                     })
@@ -354,6 +356,8 @@ public struct FolhaSuporteTurno: View {
             Text(verbatim: String(format: TextosDoSuporte.emailSuporteRotulo, viewModel.emailDestino))
                 .font(FrilaTipo.nota)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .textSelection(.enabled)
+                .accessibilityIdentifier("email-suporte-destino")
         }
         .padding(.top, FrilaEspaco.pequeno)
     }

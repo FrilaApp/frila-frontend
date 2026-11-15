@@ -141,6 +141,16 @@ public struct FolhaDeDenuncia: View {
                         .accessibilityIdentifier("prazo-denuncia")
                     }
                     .listRowBackground(FrilaCor.superficie)
+
+                    Section {
+                        Text(verbatim: TextosDaSeguranca.emergencia)
+                            .font(FrilaTipo.meta)
+                            .foregroundStyle(FrilaCor.texto)
+                            .accessibilityIdentifier("aviso-risco-imediato-confirmacao")
+                        atalhoDeEmergencia(TextosDaSeguranca.policia, numero: "190")
+                        atalhoDeEmergencia(TextosDaSeguranca.mulher, numero: "180")
+                    }
+                    .listRowBackground(FrilaCor.controle)
                 } else {
                     Section {
                         Picker(TextosDaSeguranca.motivo, selection: $model.motivo) {
@@ -299,6 +309,7 @@ public struct FolhaDeDenuncia: View {
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
             .contentShape(Rectangle())
         }
+        .accessibilityIdentifier("atalho-emergencia-\(numero)")
     }
 }
 

@@ -134,6 +134,7 @@ public final class SuporteTurnoViewModel: Identifiable {
     public private(set) var mensagemDeErro: String?
 
     private let verificadorPodeEnviarEmail: (@Sendable () -> Bool)?
+    private let verificadorPodeAbrirURL: (@Sendable (URL) -> Bool)?
     private let copiador: (@Sendable (String) -> Void)?
 
     public init(
@@ -144,6 +145,7 @@ public final class SuporteTurnoViewModel: Identifiable {
         relatoInicial: String = "",
         chaveIdempotente: UUID = UUID(),
         verificadorPodeEnviarEmail: (@Sendable () -> Bool)? = nil,
+        verificadorPodeAbrirURL: (@Sendable (URL) -> Bool)? = nil,
         copiador: (@Sendable (String) -> Void)? = nil
     ) {
         self.dados = dados
@@ -153,6 +155,7 @@ public final class SuporteTurnoViewModel: Identifiable {
         self.relato = relatoInicial
         self.chaveIdempotente = chaveIdempotente
         self.verificadorPodeEnviarEmail = verificadorPodeEnviarEmail
+        self.verificadorPodeAbrirURL = verificadorPodeAbrirURL
         self.copiador = copiador
     }
 
@@ -292,12 +295,28 @@ public final class SuporteTurnoViewModel: Identifiable {
         abrirEmail(comAbridorURL: abridorURL)
     }
 
+    /// Verifica se a URL do mailto pode ser aberta no aparelho.
+    public var podeAbrirMailto: Bool {
+        guard let url = urlMailto else { return false }
+        if let verificadorPodeAbrirURL {
+            return verificadorPodeAbrirURL(url)
+        }
+        #if canImport(UIKit)
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return true
+        }
+        return UIApplication.shared.canOpenURL(url)
+        #else
+        return true
+        #endif
+    }
+
     /// Aciona a abertura de e-mail: se nativo disponível, abre compositor; senão, dispara URL mailto.
     public func abrirEmail(comAbridorURL abrirURL: ((URL) -> Void)? = nil) {
         falhaAoAbrirEmail = false
         if podeEnviarEmailNativo {
             mostrandoCompositorNativo = true
-        } else if let url = urlMailto, let abrirURL {
+        } else if let url = urlMailto, podeAbrirMailto, let abrirURL {
             abrirURL(url)
         } else {
             falhaAoAbrirEmail = true
@@ -309,7 +328,7 @@ public final class SuporteTurnoViewModel: Identifiable {
         falhaAoAbrirEmail = false
         if podeEnviarEmailNativo {
             mostrandoCompositorNativo = true
-        } else if let url = urlMailto, let abrirURL {
+        } else if let url = urlMailto, podeAbrirMailto, let abrirURL {
             abrirURL(url) { [weak self] aceito in
                 if !aceito {
                     self?.falhaAoAbrirEmail = true
