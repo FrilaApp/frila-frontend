@@ -91,13 +91,12 @@ public struct TelaBuscaDeProfissionais: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                // Com envio incerto, a saída é o "Tentar de novo": fechar e arrastar a folha ficam desligados.
+                // Fechar e arrastar ficam livres mesmo com envio incerto (ninguém fica preso offline): a guarda segura o
+                // ViewModel, e reabrir mostra o pendente com "Tentar de novo", o mesmo trabalho e as mesmas chaves.
                 Button { fechar() } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
-                    .disabled(viewModel.travadoPeloIncerto)
                     .accessibilityIdentifier("busca-fechar")
             }
         }
-        .interactiveDismissDisabled(viewModel.travadoPeloIncerto)
         .task { await carregarCatalogo() }
         .sheet(item: $rascunhoDaChamada) { rascunho in folhaDeChamada(rascunho) }
         .alert(Text(verbatim: TextosChamadaDireta.j7Titulo), isPresented: $viewModel.mostrarJ7) {

@@ -3,7 +3,8 @@ import Observation
 
 /// Guarda o `BuscaDeProfissionaisViewModel` fora da folha da busca. A folha é recriada a cada apresentação; sem esta
 /// guarda, fechar a busca com um envio incerto apagaria a trava e a chave do pedido, e chamar a mesma pessoa de novo
-/// abriria outra vaga (DINHEIRO). Com envio incerto o ViewModel fica (e a folha nem fecha); sem ele, a busca recomeça limpa.
+/// abriria outra vaga (DINHEIRO). Com envio incerto o ViewModel fica (a folha fecha normalmente e, reaberta, mostra o
+/// pendente com o mesmo trabalho e as mesmas chaves); sem ele, a busca recomeça limpa.
 @MainActor
 @Observable
 public final class GuardaDaBuscaDeProfissionais {
@@ -26,7 +27,4 @@ public final class GuardaDaBuscaDeProfissionais {
     public func aoFechar() {
         if viewModel?.travadoPeloIncerto != true { viewModel = nil }
     }
-
-    /// A folha não pode fechar (botão nem gesto) enquanto um envio estiver incerto.
-    public var naoPodeFechar: Bool { viewModel?.travadoPeloIncerto ?? false }
 }
