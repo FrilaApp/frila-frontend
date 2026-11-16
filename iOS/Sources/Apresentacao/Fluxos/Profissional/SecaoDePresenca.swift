@@ -132,11 +132,16 @@ public struct SecaoDePresenca: View {
                 AvisoFrila(verbatim: Textos.avisoCheckinAntecipado, tom: .informativo)
                     .accessibilityIdentifier("aviso-checkin-antecipado")
             } else if viewModel.podeFazerCheckin {
-                BotaoDePresenca(titulo: Textos.fazerCheckin, altura: FrilaMetrica.alturaDoBotaoDePresenca, emCaixaAlta: true) {
+                BotaoDePresenca(
+                    titulo: viewModel.podeRenovarChegada ? Textos.tentarGPS : Textos.fazerCheckin,
+                    altura: FrilaMetrica.alturaDoBotaoDePresenca,
+                    emCaixaAlta: true
+                ) {
                     Task { await viewModel.iniciar(.checkin) }
                 }
-                .accessibilityIdentifier("fazer-checkin")
-            } else if viewModel.podeFazerCheckout {
+                .accessibilityIdentifier(viewModel.podeRenovarChegada ? "renovar-chegada" : "fazer-checkin")
+            }
+            if viewModel.podeFazerCheckout {
                 BotaoPrimario(verbatim: Textos.fazerCheckout) {
                     Task { await viewModel.iniciar(.checkout) }
                 }
