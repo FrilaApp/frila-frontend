@@ -255,7 +255,7 @@ struct BuscaDeProfissionaisDubleTests {
         #expect(erro?.detalhes == "recurso_desligado")
     }
 
-    @Test("O cartão traz nome com inicial, serviço com preço, regiões, faixa e reputação, sem foto")
+    @Test("O cartão traz nome com inicial, serviço com preço, regiões, faixa e reputação")
     func cartao() async throws {
         let maria = try #require(try await todas(api(), filtro()).first { $0.id == IDs.disponivel })
         #expect(maria.nome == "Maria S.")
@@ -339,18 +339,64 @@ struct BuscaDeProfissionaisDubleTests {
         #expect(erro?.detalhes == "nao_aceita_chamadas")
     }
 
-    @Test("perfil_publico de quem está na busca: nome com inicial, campos ricos sem foto, com ou sem pausa")
+    @Test("perfil_publico de quem está na busca: nome com inicial, campos ricos e a foto aprovada (0.2.90), com ou sem pausa")
     func perfilPublicoPelaBusca() async throws {
         let api = api()
         let maria = try await api.perfilPublico(id: IDs.disponivel)
         #expect(maria.nome == "Maria S.")
-        #expect(maria.fotoURL == nil)
+        #expect(maria.fotoURL != nil)
+        #expect(maria.fotoID == IDs.fotoDaDisponivel)
         #expect(maria.servicos.isEmpty == false)
         let pausado = try await api.perfilPublico(id: IDs.pausado)
         #expect(pausado.nome == "Pedro P.")
         #expect(pausado.servicos.isEmpty == false)
         let naoAceita = try await api.perfilPublico(id: IDs.naoAceita)
         #expect(naoAceita.servicos.isEmpty)
+    }
+
+    // MARK: Foto no cartão (contrato 0.2.90, CD-B07)
+
+    @Test("O cartão leva foto_url e foto_id só de quem tem foto aprovada; quem não tem vem sem os dois")
+    func cartaoComESemFoto() async throws {
+        let cartoes = try await todas(api(), filtro())
+        let maria = try #require(cartoes.first { $0.id == IDs.disponivel })
+        #expect(maria.fotoURL != nil)
+        #expect(maria.fotoID == IDs.fotoDaDisponivel)
+        let outros = cartoes.filter { $0.id != IDs.disponivel }
+        try #require(outros.isEmpty == false)
+        #expect(outros.allSatisfy { $0.fotoURL == nil && $0.fotoID == nil })
+    }
+
+    @Test("Com a chave foto_de_perfil desligada, o cartão e o perfil público saem sem foto")
+    func fotoSomeComAChaveDesligada() async throws {
+        let api = api()
+        await api.definirRecursos(RecursosDoApp(fotoDePerfil: false, chamadaDireta: true, buscaProfissionais: true))
+        let maria = try #require(try await todas(api, filtro()).first { $0.id == IDs.disponivel })
+        #expect(maria.fotoURL == nil && maria.fotoID == nil)
+        #expect(try await api.perfilPublico(id: IDs.disponivel).fotoURL == nil)
+    }
+
+    @Test("A foto não filtra nem ordena a lista: com e sem a chave, a ordem é a mesma")
+    func fotoNaoOrdena() async throws {
+        let comFoto = api()
+        let semFoto = api()
+        await semFoto.definirRecursos(RecursosDoApp(fotoDePerfil: false, chamadaDireta: true, buscaProfissionais: true))
+        let a = try await todas(comFoto, filtro()).map(\.id)
+        let b = try await todas(semFoto, filtro()).map(\.id)
+        #expect(a == b)
+    }
+
+    @Test("No perfil_publico, a foto de quem veio pela busca só abre com os Termos aceitos")
+    func fotoDoPerfilPublicoExigeOAceite() async throws {
+        let api = apiSemTermos()
+        let antes = try await api.perfilPublico(id: IDs.disponivel)
+        #expect(antes.fotoURL == nil && antes.fotoID == nil)
+        _ = try await api.aceitarTermos(versao: VersaoDosTermos.vigente)
+        let depois = try await api.perfilPublico(id: IDs.disponivel)
+        #expect(depois.fotoURL != nil)
+        #expect(depois.fotoID == IDs.fotoDaDisponivel)
+        // Quem não aceita chamadas continua sem vínculo de leitura e sem foto.
+        #expect(try await api.perfilPublico(id: IDs.naoAceita).fotoURL == nil)
     }
 
     // MARK: Termos 1.1 (contrato 0.2.90)

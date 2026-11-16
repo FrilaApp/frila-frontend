@@ -1990,10 +1990,16 @@ public struct CartaoProfissional: Hashable, Identifiable, Sendable {
     public let reputacao: Reputacao
     /// O selo "disponível nesse horário". `nil` quando a busca não tem horário.
     public let disponivelNoHorario: Bool?
+    /// 0.2.90 (CD-B07). Link de leitura de 1 h da foto aprovada, como em `PerfilPublico.fotoURL`. Ausente com a chave
+    /// `foto_de_perfil` desligada, sem foto aprovada, ou com o titular suspenso ou com a conta encerrada. Nunca filtra
+    /// nem ordena a lista (RN39). Se a foto não carregar (404 ou qualquer erro), a tela mostra a inicial.
+    public let fotoURL: URL?
+    /// 0.2.90. Identificador opaco da foto (o que `denunciar.midia_id` recebe), com as mesmas condições.
+    public let fotoID: UUID?
 
     public init(id: UUID, nome: String, servico: ServicoNoPerfil, regioes: [RegiaoAdministrativa] = [],
                 atendeTodoDF: Bool = false, distanciaFaixa: FaixaDistancia, reputacao: Reputacao,
-                disponivelNoHorario: Bool? = nil) {
+                disponivelNoHorario: Bool? = nil, fotoURL: URL? = nil, fotoID: UUID? = nil) {
         self.id = id
         self.nome = nome
         self.servico = servico
@@ -2002,6 +2008,8 @@ public struct CartaoProfissional: Hashable, Identifiable, Sendable {
         self.distanciaFaixa = distanciaFaixa
         self.reputacao = reputacao
         self.disponivelNoHorario = disponivelNoHorario
+        self.fotoURL = fotoURL
+        self.fotoID = fotoID
     }
 }
 

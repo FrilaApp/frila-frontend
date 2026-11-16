@@ -2390,19 +2390,24 @@ extension ContratoAPI {
         let distanciaFaixa: FaixaDistancia
         let reputacao: ReputacaoDTO
         let disponivelNoHorario: Bool?
+        /// 0.2.90 (CD-B07): como em `PerfilPublicoDTO`, só vêm com a foto aprovada e o recurso ligado.
+        let fotoURL: URL?
+        let fotoID: UUID?
 
         enum CodingKeys: String, CodingKey {
             case id, nome, servico, regioes, reputacao
             case atendeTodoDF = "atende_todo_df"
             case distanciaFaixa = "distancia_faixa"
             case disponivelNoHorario = "disponivel_no_horario"
+            case fotoURL = "foto_url"
+            case fotoID = "foto_id"
         }
 
         func dominio() -> CartaoProfissional {
             CartaoProfissional(
                 id: id, nome: nome, servico: servico.dominio(), regioes: regioes.map { $0.dominio() },
                 atendeTodoDF: atendeTodoDF, distanciaFaixa: distanciaFaixa, reputacao: reputacao.dominio(),
-                disponivelNoHorario: disponivelNoHorario
+                disponivelNoHorario: disponivelNoHorario, fotoURL: fotoURL, fotoID: fotoID
             )
         }
     }

@@ -477,6 +477,26 @@ struct ContratoDoClienteSupabaseTests {
         #expect(pagina.proximoCursor == "c2")
     }
 
+    @Test("buscar_profissionais lê foto_url e foto_id do cartão quando vêm, e trata como ausentes quando não vêm")
+    func buscarProfissionaisComESemFoto() async throws {
+        let semFoto = Self.cartaoDaBusca
+        let fotoID = "50000000-0000-0000-0000-000000000009"
+        let comFoto = semFoto.replacingOccurrences(
+            of: #""distancia_faixa":"ate_5_km","#,
+            with: #""distancia_faixa":"ate_5_km","foto_url":"https://frila-teste.supabase.co/ler-midia?t=abc","foto_id":"\#(fotoID)","#)
+        try #require(comFoto != semFoto)
+        let filtro = FiltroBuscaProfissionais(estabelecimentoID: UUID(), funcaoID: UUID())
+
+        BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(corpo: Data(semFoto.utf8))])
+        let sem = try #require(try await cliente().buscarProfissionais(filtro, cursor: nil, limite: nil).itens.first)
+        #expect(sem.fotoURL == nil && sem.fotoID == nil)
+
+        BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(corpo: Data(comFoto.utf8))])
+        let com = try #require(try await cliente().buscarProfissionais(filtro, cursor: nil, limite: nil).itens.first)
+        #expect(com.fotoURL?.absoluteString == "https://frila-teste.supabase.co/ler-midia?t=abc")
+        #expect(com.fotoID == UUID(uuidString: fotoID))
+    }
+
     @Test("buscar_profissionais: 429 limite_excedido e 422 cursor_invalido chegam tipados, com ou sem envelope")
     func buscarProfissionaisRecusas() async throws {
         let filtro = FiltroBuscaProfissionais(estabelecimentoID: UUID(), funcaoID: UUID())

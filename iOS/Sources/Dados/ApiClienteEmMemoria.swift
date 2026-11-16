@@ -197,7 +197,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
         /// No Prod o recurso nasce desligado; os cenários da foto o ligam, menos `fotoRecursoDesligado`.
         /// `denuncia-de-foto` liga o recurso: o `foto_id` só vem com ele ligado (contrato 0.2.54).
-        var fotoDePerfilLigada: Bool { (daFotoDePerfil && self != .fotoRecursoDesligado) || self == .denunciaDeFoto }
+        var fotoDePerfilLigada: Bool { (daFotoDePerfil && self != .fotoRecursoDesligado) || self == .denunciaDeFoto || deBusca }
 
         public var isServidorAntigo: Bool {
             self == .servidorAntigo || self == .profissionalServidorAntigo
@@ -3547,6 +3547,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         public var emPausaComACasa: Bool
         /// Turnos confirmados: não tiram ninguém da busca nem mudam o selo (0.2.88).
         public var turnosConfirmados: [Periodo]
+        /// A foto aprovada, se houver (0.2.90): o cartão e o perfil público só a levam com `foto_de_perfil` ligado.
+        public var fotoID: UUID?
 
         public init(id: UUID = UUID(), nomeCompleto: String, servicos: [ServicoNoPerfil], regioes: [Int] = [1],
                     atendeTodoDF: Bool = false, aceitaChamadas: Bool = true, pausadoAte: Date? = nil,
@@ -3554,13 +3556,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     distanciaFaixa: FaixaDistancia = .ate5km, grade: [JanelaDeDisponibilidade] = [],
                     aparelhoAtualizado: Bool = true,
                     reputacao: Reputacao = Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0),
-                    chamadasAbertasDeOutrasCasas: Int = 0, emPausaComACasa: Bool = false, turnosConfirmados: [Periodo] = []) {
+                    chamadasAbertasDeOutrasCasas: Int = 0, emPausaComACasa: Bool = false, turnosConfirmados: [Periodo] = [],
+                    fotoID: UUID? = nil) {
             self.id = id; self.nomeCompleto = nomeCompleto; self.servicos = servicos; self.regioes = regioes
             self.atendeTodoDF = atendeTodoDF; self.aceitaChamadas = aceitaChamadas; self.pausadoAte = pausadoAte
             self.suspenso = suspenso; self.aceitaDe = aceitaDe; self.antecedenciaMinimaH = antecedenciaMinimaH
             self.distanciaFaixa = distanciaFaixa; self.grade = grade; self.aparelhoAtualizado = aparelhoAtualizado
             self.reputacao = reputacao; self.chamadasAbertasDeOutrasCasas = chamadasAbertasDeOutrasCasas
-            self.emPausaComACasa = emPausaComACasa; self.turnosConfirmados = turnosConfirmados
+            self.emPausaComACasa = emPausaComACasa; self.turnosConfirmados = turnosConfirmados; self.fotoID = fotoID
         }
     }
 
@@ -3668,7 +3671,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 id: p.id, nome: Self.nomeComInicial(p.nomeCompleto), servico: servico,
                 regioes: p.regioes.compactMap { id in regioesAdministrativasCadastradas.first { $0.id == id } },
                 atendeTodoDF: p.atendeTodoDF, distanciaFaixa: p.distanciaFaixa, reputacao: p.reputacao,
-                disponivelNoHorario: disponivel
+                disponivelNoHorario: disponivel,
+                fotoURL: temFoto(p) ? Self.urlDaFotoDeExemplo : nil, fotoID: temFoto(p) ? p.fotoID : nil
             )
             let ordemDoSelo = disponivel == true ? 0 : 1
             return (cartao, ordemDoSelo, Self.ordemDaFaixa(p.distanciaFaixa), Self.fnv1a("\(conta.id)|\(dia)|\(p.id)"))
@@ -3678,6 +3682,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
             if a.2 != b.2 { return a.2 < b.2 }
             return a.3 < b.3
         }.map(\.0)
+    }
+
+    /// A foto aprovada só sai com a chave `foto_de_perfil` ligada e o titular ativo (0.2.90).
+    private func temFoto(_ p: ProfissionalSimuladoNaBusca) -> Bool {
+        recursosEfetivos.fotoDePerfil && p.fotoID != nil && !p.suspenso
     }
 
     /// O caminho da busca em `chamar_profissional`: chave ligada, `aceita_chamadas`, serviço para a
@@ -3738,10 +3747,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
             equipesDeConfianca[casa.id]?.contains(p.id) == true || cumpriuTurnoVerificado(p.id, em: casa.id)
         }
         // Desde a 0.2.90 a busca só conta como vínculo de leitura para quem aceitou os Termos 1.1.
-        let rico = temVinculo || (recursosEfetivos.buscaProfissionais && p.aceitaChamadas && VersaoDosTermos.atendeABusca(termosAceitos))
+        let viaBusca = recursosEfetivos.buscaProfissionais && p.aceitaChamadas && VersaoDosTermos.atendeABusca(termosAceitos)
+        let rico = temVinculo || viaBusca
+        // 0.2.90: o vínculo pela busca, com os Termos aceitos, abre também a foto (se a chave está ligada).
+        let comFoto = rico && temFoto(p)
         return PerfilPublico(
             id: p.id, tipo: .profissional, nome: temVinculo ? p.nomeCompleto : Self.nomeComInicial(p.nomeCompleto),
             funcoes: p.servicos.map(\.funcao.nome), reputacao: p.reputacao,
+            fotoURL: comFoto ? Self.urlDaFotoDeExemplo : nil, fotoID: comFoto ? p.fotoID : nil,
             servicos: rico ? p.servicos : [],
             regioes: rico ? p.regioes.compactMap { id in regioesAdministrativasCadastradas.first { $0.id == id } } : [],
             atendeTodoDF: rico && p.atendeTodoDF
@@ -3855,6 +3868,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         public static let semRegiao = UUID(uuidString: "b5000000-0000-0000-0000-000000000005")!
         public static let agendaCheia = UUID(uuidString: "b5000000-0000-0000-0000-000000000006")!
         public static let suspenso = UUID(uuidString: "b5000000-0000-0000-0000-000000000007")!
+        /// A foto aprovada de `disponivel` (a única com foto no exemplo).
+        public static let fotoDaDisponivel = UUID(uuidString: "b5f00000-0000-0000-0000-000000000001")!
     }
 
     /// 24 garçons que aparecem (a página tem 20, então há segunda página), em faixas e grades
@@ -3869,7 +3884,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                      "Rui Teles", "Sara Gomes", "Tiago Mota", "Úrsula Pires", "Vítor Leal", "Wanda Souto", "Xavier Rios"]
         var lista: [ProfissionalSimuladoNaBusca] = [
             ProfissionalSimuladoNaBusca(id: IDsDaBusca.disponivel, nomeCompleto: "Maria Souza", servicos: [servico],
-                                        distanciaFaixa: .ate5km, grade: todaNoite, reputacao: semHistorico),
+                                        distanciaFaixa: .ate5km, grade: todaNoite, reputacao: semHistorico,
+                                        fotoID: IDsDaBusca.fotoDaDisponivel),
             ProfissionalSimuladoNaBusca(id: IDsDaBusca.longeComReputacaoAlta, nomeCompleto: "Rosa Andrade", servicos: [servico],
                                         atendeTodoDF: true, distanciaFaixa: .maisDe15km,
                                         reputacao: Reputacao(positivas: 40, total: 40, taxaComparecimento: 1, turnosConsiderados: 40, turnosRealizados: 40)),
