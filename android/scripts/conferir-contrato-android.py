@@ -150,6 +150,7 @@ def main() -> None:
         "TransferirAdministracaoDto": "/rpc/transferir_administracao",
         "EscolherCandidatoDto": "/rpc/escolher_candidato",
         "ConfirmarCheckinManualDto": "/rpc/confirmar_checkin_manual",
+        "RemoverDispositivoDto": "/rpc/remover_dispositivo",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
