@@ -1,5 +1,7 @@
 // Shell da aplicação: navegação Compose, grafo Koin, Application e Activity únicos.
 // Cartões Trello YRGYz50G, iWYMOk5C e IZeQjV0N.
+import groovy.json.JsonSlurper
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -54,8 +56,28 @@ if (supabaseUrlDev == null || supabaseChaveDev == null) {
     )
 }
 
-// Release nunca sai sem URL e chave reais: falha nomeando a variável. A regra de TODO e de
-// `sb_secret_` espelha ConfiguracaoDoBackend.kt, que valida de novo na inicialização do app.
+// Regras da chave publicável. Espelham ConfiguracaoDoBackend.kt, que valida de novo na inicialização
+// do app. A tarefa verificarRegrasDeChaveSupabase confere esta cópia contra os mesmos casos que o
+// teste Kotlin usa (src/test/resources/supabase-chaves-casos.tsv) e roda antes de testDebugUnitTest.
+// Mudou uma regra: mude as duas cópias e acrescente o caso. O retorno nomeia o motivo, nunca o valor.
+fun ehJwtDeServiceRole(chave: String): Boolean {
+    val partes = chave.split('.')
+    if (partes.size != 3) return false
+    return runCatching {
+        val payload = String(Base64.getUrlDecoder().decode(partes[1].trimEnd('=').replace('+', '-').replace('/', '_')))
+        ((JsonSlurper().parseText(payload) as Map<*, *>)["role"] as? String)
+            ?.equals("service_role", ignoreCase = true) == true
+    }.getOrDefault(false)
+}
+
+fun motivoDeRejeicaoDaChave(chave: String): String? = when {
+    chave.startsWith("TODO", ignoreCase = true) -> "é placeholder (TODO)"
+    chave.startsWith("sb_secret_") -> "é chave secreta; use a chave publicável"
+    ehJwtDeServiceRole(chave) -> "é um JWT com role service_role; use a chave publicável"
+    else -> null
+}
+
+// Release nunca sai sem URL e chave reais: falha nomeando a variável.
 val verificarSupabaseDeRelease = tasks.register("verificarConfiguracaoSupabaseDeRelease") {
     group = "verification"
     description = "Falha o build de release se a URL ou a chave publicável do Supabase faltar ou for inválida."
@@ -70,10 +92,8 @@ val verificarSupabaseDeRelease = tasks.register("verificarConfiguracaoSupabaseDe
             }
             if (chave == null) {
                 add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY ausente")
-            } else if (chave.startsWith("TODO", ignoreCase = true)) {
-                add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY é placeholder (TODO)")
-            } else if (chave.startsWith("sb_secret_")) {
-                add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY é chave secreta; use a chave publicável")
+            } else {
+                motivoDeRejeicaoDaChave(chave)?.let { add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY $it") }
             }
         }
         if (problemas.isNotEmpty()) {
@@ -84,6 +104,29 @@ val verificarSupabaseDeRelease = tasks.register("verificarConfiguracaoSupabaseDe
         }
     }
 }
+
+val verificarRegrasDeChaveSupabase = tasks.register("verificarRegrasDeChaveSupabase") {
+    group = "verification"
+    description = "Confere a regra de chave deste script contra os casos compartilhados com o teste Kotlin."
+    val casos = file("src/test/resources/supabase-chaves-casos.tsv")
+    inputs.file(casos)
+    doLast {
+        val linhas = casos.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
+        if (linhas.size < 8) throw GradleException("supabase-chaves-casos.tsv tem só ${linhas.size} casos; esperados 8 ou mais.")
+        val divergentes = linhas.mapIndexedNotNull { indice, linha ->
+            val (veredito, chave) = linha.split('\t', limit = 2)
+            val aceitou = motivoDeRejeicaoDaChave(chave.trim()) == null
+            if ((veredito == "aceita") != aceitou) "caso ${indice + 1} ($veredito)" else null
+        }
+        if (divergentes.isNotEmpty()) {
+            throw GradleException("A regra de chave do Gradle diverge do veredito esperado em: ${divergentes.joinToString(", ")}.")
+        }
+    }
+}
+tasks.matching { it.name == "testDebugUnitTest" }.configureEach {
+    dependsOn(verificarRegrasDeChaveSupabase)
+}
+
 // Também cobre benchmarkRelease e nonMinifiedRelease (baseline profile), que herdam os campos do release.
 tasks.matching { it.name.startsWith("generate") && it.name.endsWith("ReleaseBuildConfig") }.configureEach {
     dependsOn(verificarSupabaseDeRelease)
