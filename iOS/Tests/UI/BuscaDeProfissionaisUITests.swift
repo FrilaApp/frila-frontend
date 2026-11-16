@@ -108,9 +108,11 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         let servico = app.buttons["busca-servico"]
         XCTAssertTrue(procurar(servico, em: app, paraBaixo: false), "o filtro de serviço aparece")
         servico.tap()
-        let opcoes = app.buttons.allElementsBoundByIndex.filter { $0.isHittable && $0.label != "Serviço" && !$0.label.isEmpty }
-        XCTAssertFalse(opcoes.isEmpty, "o seletor de serviço lista o catálogo")
-        if let outra = app.collectionViews.buttons.allElementsBoundByIndex.last(where: { $0.isHittable }) ?? opcoes.last { outra.tap() }
+        // Espera a opção no menu do seletor, sem perguntar isHittable a cada botão enquanto ele abre: no dublê todos
+        // oferecem Garçom (o selecionado), e "Bartender" só existe no menu.
+        let outroServico = app.collectionViews.buttons["Bartender"]
+        XCTAssertTrue(outroServico.waitForExistence(timeout: 10), "o seletor de serviço lista o catálogo")
+        outroServico.tap()
         buscar(app)
         let vazia = app.descendants(matching: .any)["busca-vazia"]
         XCTAssertTrue(vazia.waitForExistence(timeout: 15) || procurar(vazia, em: app), "sem ninguém, a busca fica vazia")
