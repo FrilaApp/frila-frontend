@@ -662,6 +662,64 @@ class BuscaDeProfissionaisViewModelTest {
     }
 
     @Test
+    fun `p-1 com J7 e p-2 incerto levando o trabalho, o Confirmar fica bloqueado ate o reenvio resolver a vaga, e entao o p-1 vai pelo vaga_id`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 3))) }
+        var atrasar = true
+        rede.rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            when {
+                id == "p-1" && "confirmo_recorrencia" !in pedido.corpo ->
+                    respond("""{"code":"recorrencia_nao_confirmada","message":"x"}""", HttpStatusCode.Conflict, json)
+                id == "p-2" && atrasar -> { kotlinx.coroutines.delay(5_000); respond(chamadaJson, HttpStatusCode.OK, json) }
+                "vaga_id" in pedido.corpo -> respond(chamadaJson.replace("\"v1\"", "\"${pedido.corpo["vaga_id"]!!.jsonPrimitive.content}\""), HttpStatusCode.OK, json)
+                else -> respond(chamadaJson.replace("\"v1\"", "\"vaga-p2\""), HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        // p-1 recebeu J7 (nada criado); p-2 levou o trabalho e ficou incerto; p-3 nem saiu.
+        var tela = vm.estado.value
+        assertEquals(ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia, tela.resultadosDaChamada["p-1"])
+        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true), tela.resultadosDaChamada["p-2"])
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, tela.resultadosDaChamada["p-3"])
+        assertTrue(tela.mostrarJ7)
+        assertTrue(tela.podeReenviar)
+        assertEquals(listOf("p-1", "p-2"), rede.doNome("chamar_profissional").map { it.corpo["profissional_id"]!!.jsonPrimitive.content })
+
+        // Confirmar o J7 agora mandaria o p-1 com o trabalho completo e poderia criar a 2ª vaga: não sai nada.
+        vm.chamar(trabalho, confirmoRecorrencia = true).join()
+        assertEquals(2, rede.doNome("chamar_profissional").size)
+        assertTrue(vm.estado.value.podeReenviar)
+
+        // O reenvio resolve a vaga do p-2 (mesma chave); o p-1 e o p-3 vão pelo vaga_id, nunca com o trabalho.
+        atrasar = false
+        vm.chamar(trabalho).join()
+        tela = vm.estado.value
+        assertFalse(tela.podeReenviar)
+        assertTrue(tela.resultadosDaChamada["p-2"] is ResultadoDaChamadaDaBusca.Enviada)
+        assertTrue(tela.resultadosDaChamada["p-3"] is ResultadoDaChamadaDaBusca.Enviada)
+        assertTrue(tela.mostrarJ7)
+
+        vm.chamar(trabalho, confirmoRecorrencia = true).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-2", "p-2", "p-1", "p-3", "p-1"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertEquals(pedidos[1]["chave"], pedidos[2]["chave"])
+        // Só o p-1 do começo e o p-2 levaram o trabalho; todo o resto foi pelo vaga_id da vaga do p-2.
+        assertEquals(listOf(0, 1, 2), pedidos.withIndex().filter { "valor_centavos" in it.value }.map { it.index })
+        pedidos.drop(3).forEach { assertEquals("vaga-p2", it["vaga_id"]!!.jsonPrimitive.content) }
+        val confirmado = pedidos.last()
+        assertEquals("chave-1", confirmado["chave"]!!.jsonPrimitive.content)
+        assertTrue(confirmado["confirmo_recorrencia"]!!.jsonPrimitive.boolean)
+        assertTrue(vm.estado.value.resultadosDaChamada["p-1"] is ResultadoDaChamadaDaBusca.Enviada)
+        assertFalse(vm.estado.value.mostrarJ7)
+    }
+
+    @Test
     fun `chamar sem selecao, ou sem resultados, nao faz nada`() = runBlocking {
         val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(emptyList())) }
         val vm = viewModelCom(rede).comFiltros()

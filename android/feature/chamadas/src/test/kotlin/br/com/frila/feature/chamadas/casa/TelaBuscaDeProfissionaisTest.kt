@@ -359,6 +359,36 @@ class TelaBuscaDeProfissionaisTest {
     }
 
     @Test
+    fun comEnvioIncertoPendenteOConfirmarDoJ7FicaDesligadoComOAviso() {
+        abrirFolha(comResultados(selecionados = listOf("p1", "p2", "p3")))
+        rule.onNodeWithTag("folha-valor").performTextInput("180")
+        rule.onNodeWithTag("folha-confirmar-total").performClick()
+        rule.onNodeWithTag("folha-enviar").performScrollTo().performClick()
+
+        estado = comResultados(selecionados = listOf("p1", "p2", "p3")) {
+            it.copy(
+                resultadosDaChamada = mapOf(
+                    "p1" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia,
+                    "p2" to ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true),
+                    "p3" to ResultadoDaChamadaDaBusca.NaoEnviada,
+                ),
+                mostrarJ7 = true,
+            )
+        }
+
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_CONFIRMAR_DEPOIS).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-confirmar-j7").performScrollTo().assertIsNotEnabled()
+
+        // Resolvido o envio pendente, o Confirmar volta.
+        estado = estado.copy(resultadosDaChamada = estado.resultadosDaChamada + ("p2" to ResultadoDaChamadaDaBusca.Enviada(
+            ChamadaDto("c", "v", "p2", "c1", "aberta", expiraEm = "2026-11-17T03:00:00Z", criadaEm = "2026-11-16T15:00:00Z"),
+        )) + ("p3" to ResultadoDaChamadaDaBusca.Enviada(
+            ChamadaDto("c3", "v", "p3", "c1", "aberta", expiraEm = "2026-11-17T03:00:00Z", criadaEm = "2026-11-16T15:00:00Z"),
+        )))
+        rule.onNodeWithTag("folha-confirmar-j7").performScrollTo().assertIsEnabled()
+    }
+
+    @Test
     fun folhaDaBuscaComHorarioNoFiltroJaSaiComEleEMostraAvisoSeFaltaCasa() {
         val horario = HorarioDaBusca(Instant.parse("2026-11-20T22:00:00Z"), Instant.parse("2026-11-21T02:00:00Z"))
         abrirFolha(comResultados(selecionados = listOf("p1")) { it.copy(horario = horario, casa = null) })

@@ -553,9 +553,11 @@ private fun FolhaDeChamadaDaBusca(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(TextosChamadaCasa.J7_TITULO, style = MaterialTheme.typography.titleMedium)
                 Text(TextosChamadaCasa.J7_MENSAGEM)
+                // Com envio incerto pendente a vaga pode já existir: confirmar agora poderia criar outra.
+                if (estado.podeReenviar) Text(TextosChamadaCasa.BUSCA_CONFIRMAR_DEPOIS, color = MaterialTheme.colorScheme.error)
                 Button(
                     onClick = { enviado?.let { aoConfirmarJ7(it.trabalho, it.recado) } },
-                    enabled = enviado != null && !estado.enviando,
+                    enabled = enviado != null && !estado.enviando && !estado.podeReenviar,
                     modifier = Modifier.fillMaxWidth().testTag("folha-confirmar-j7"),
                 ) { Text(TextosChamadaCasa.J7_CONFIRMAR) }
             }

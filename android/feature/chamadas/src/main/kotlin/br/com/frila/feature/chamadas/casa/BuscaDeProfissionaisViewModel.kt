@@ -374,8 +374,9 @@ class BuscaDeProfissionaisViewModel(
     fun chamar(trabalho: TrabalhoDaChamada, recado: String? = null, confirmoRecorrencia: Boolean = false): Job {
         val tela = _estado.value
         val pendentes = tela.selecionados.filter { tela.resultadosDaChamada[it] == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia }
-        // A confirmação J7 só vale depois da recusa correspondente.
-        if (!tela.podeChamar || (confirmoRecorrencia && pendentes.isEmpty())) return escopoDeTrabalho.launch { }
+        // A confirmação J7 só vale depois da recusa correspondente, e não enquanto houver pedido incerto que levou o trabalho:
+        // a vaga pode já existir, e o J7 iria com o trabalho completo e criaria outra. Reenvie primeiro (podeReenviar).
+        if (!tela.podeChamar || (confirmoRecorrencia && (pendentes.isEmpty() || tela.podeReenviar))) return escopoDeTrabalho.launch { }
         val alvos = tela.selecionados.filter { id ->
             when {
                 tela.resultadosDaChamada[id] is ResultadoDaChamadaDaBusca.Enviada -> false
@@ -384,7 +385,11 @@ class BuscaDeProfissionaisViewModel(
             }
             // Quem ficou incerto levando o trabalho (pedido guardado, sem vaga) vai primeiro no reenvio, com a mesma chave,
             // para a vaga existir antes de os outros irem pelo vaga_id (a ordem de quem não tem pedido guardado se mantém).
-        }.sortedBy { id -> if (tentativas[id]?.let { it.vagaId == null } == true) 0 else 1 }
+        }.sortedBy { id ->
+            val incertoComTrabalho = (tela.resultadosDaChamada[id] as? ResultadoDaChamadaDaBusca.Erro)?.incerto == true &&
+                tentativas[id]?.vagaId == null
+            if (incertoComTrabalho) 0 else 1
+        }
         val regiaoId = tela.filtroDaBusca?.regiaoId
         _estado.update { it.copy(enviando = true, mostrarJ7 = false) }
         return escopoDeTrabalho.launch {
@@ -393,8 +398,10 @@ class BuscaDeProfissionaisViewModel(
                 val guardado = tentativas[id]
                 val original = when {
                     guardado == null -> pedidoDe(id, trabalho, recado, regiaoId, vagaId)
-                    // Reenvio J7 de quem foi pelo trabalho completo, agora que a vaga existe: mesma chave, só o vaga_id.
-                    confirmoRecorrencia && guardado.vagaId == null && vagaId != null ->
+                    // Quem recebeu J7 levando o trabalho completo (a recusa J7 não cria chamada), agora que a vaga existe:
+                    // mesma chave, só o vaga_id, com ou sem a confirmação. Nunca um 2º trabalho completo.
+                    guardado.vagaId == null && vagaId != null &&
+                        tela.resultadosDaChamada[id] == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia ->
                         pedidoDe(id, trabalho, recado, regiaoId, vagaId, chave = guardado.chave)
                     else -> guardado
                 }
