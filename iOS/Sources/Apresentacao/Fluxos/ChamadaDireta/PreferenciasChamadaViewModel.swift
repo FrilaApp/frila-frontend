@@ -62,12 +62,33 @@ public final class PreferenciasChamadaViewModel {
         })?.recursos.buscaProfissionais == true
 
         do {
-            // Preferências são lidas ou padrão
-            // Podemos chamar api.meuPerfilDetalhado() ou manter valores persistidos
+            // O servidor guarda as preferências e as devolve em `meu_perfil_detalhado` (contrato 0.2.56).
+            // Prazo explícito: sem ele a tela ficaria em "carregando" com a rede presa.
+            let perfil = try await PrazoDaAbertura.esperar(.seconds(15)) {
+                try await api.meuPerfilDetalhado()
+            }
+            if let salvas = perfil.preferenciaChamadas { aplicar(salvas) }
             sucesso = false
         } catch {
             erro = TextosChamadaDireta.erro
         }
+    }
+
+    /// Mostra o que o servidor tem. `aceitaChamadas` não conta como mexido pela pessoa: só vai de
+    /// volta ao servidor depois que ela mexer nele.
+    private func aplicar(_ preferencias: PreferenciaChamadas) {
+        aceitaDeQuemJaTrabalhou = preferencias.aceitaDeQuemJaTrabalhou
+        if let pausa = preferencias.pausadoAte {
+            pausarChamadas = true
+            pausadoAte = pausa
+        } else {
+            pausarChamadas = false
+        }
+        antecedenciaMinimaH = preferencias.antecedenciaMinimaH
+        aceitaDe = preferencias.aceitaDe
+        aceitaChamadas = preferencias.aceitaChamadas
+        aceitaChamadasMexido = false
+        pendenciasParaBusca = preferencias.pendenciasParaBusca
     }
 
     public func salvar() async {
@@ -88,18 +109,7 @@ public final class PreferenciasChamadaViewModel {
                 versaoTextoBusca: aceitaChamadasMexido && aceitaChamadas ? Self.versaoDoTextoDaBusca : nil
             )
             let atualizado = try await api.definirPreferenciaChamadas(alteracao)
-            aceitaDeQuemJaTrabalhou = atualizado.aceitaDeQuemJaTrabalhou
-            if let pausa = atualizado.pausadoAte {
-                pausarChamadas = true
-                pausadoAte = pausa
-            } else {
-                pausarChamadas = false
-            }
-            antecedenciaMinimaH = atualizado.antecedenciaMinimaH
-            aceitaDe = atualizado.aceitaDe
-            aceitaChamadas = atualizado.aceitaChamadas
-            aceitaChamadasMexido = false
-            pendenciasParaBusca = atualizado.pendenciasParaBusca
+            aplicar(atualizado)
             sucesso = true
         } catch let apiErro as ErroDaApi {
             if apiErro.recursoDesligado {

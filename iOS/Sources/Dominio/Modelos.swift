@@ -403,6 +403,7 @@ public struct RegioesAtendidas: Codable, Hashable, Sendable {
     public init(regioes: [Int] = [], atendeTodoDF: Bool = false) {
         self.regioes = regioes
         self.atendeTodoDF = atendeTodoDF
+        self.preferenciaChamadas = preferenciaChamadas
     }
 }
 
@@ -416,6 +417,9 @@ public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Send
     public let idiomas: [Idioma]
     public let regioes: [RegiaoAdministrativa]
     public let atendeTodoDF: Bool
+    /// As preferências de chamada salvas no servidor (0.2.56; `aceita_chamadas` e as pendências
+    /// desde a 0.2.88). Nulo quando o servidor não as mandou: valem os padrões.
+    public let preferenciaChamadas: PreferenciaChamadas?
 
     public init(
         perfil: PerfilProfissional,
@@ -425,7 +429,8 @@ public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Send
         cursos: [String] = [],
         idiomas: [Idioma] = [],
         regioes: [RegiaoAdministrativa] = [],
-        atendeTodoDF: Bool = false
+        atendeTodoDF: Bool = false,
+        preferenciaChamadas: PreferenciaChamadas? = nil
     ) {
         self.perfil = perfil
         self.apresentacao = apresentacao
@@ -1831,7 +1836,7 @@ public enum QuemPodeChamar: String, Codable, CaseIterable, Sendable {
     case soCnpj = "so_cnpj"
 }
 
-public struct PreferenciaChamadas: Codable, Equatable, Sendable {
+public struct PreferenciaChamadas: Codable, Hashable, Sendable {
     public let aceitaDeQuemJaTrabalhou: Bool
     public let pausadoAte: Date?
     public let antecedenciaMinimaH: Int

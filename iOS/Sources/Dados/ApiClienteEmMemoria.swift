@@ -1077,7 +1077,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             cursos: apresentacaoProfissional?.cursos ?? [],
             idiomas: apresentacaoProfissional?.idiomas ?? [],
             regioes: regioesObjetos,
-            atendeTodoDF: atendeTodoDFCadastrado
+            atendeTodoDF: atendeTodoDFCadastrado,
+            preferenciaChamadas: preferenciasDeChamadaArmazenadas
         )
     }
 

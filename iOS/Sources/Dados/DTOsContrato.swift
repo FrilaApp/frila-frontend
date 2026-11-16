@@ -490,6 +490,7 @@ enum ContratoAPI {
         let servicos: [ServicoNoPerfilDTO]?
         let regioes: [RegiaoAdministrativaDTO]?
         let atendeTodoDF: Bool?
+        let preferenciaChamadas: PreferenciaChamadasDTO?
 
         enum CodingKeys: String, CodingKey {
             case id
@@ -506,6 +507,7 @@ enum ContratoAPI {
             case servicos
             case regioes
             case atendeTodoDF = "atende_todo_df"
+            case preferenciaChamadas = "preferencia_chamadas"
         }
 
         func dominio() throws -> PerfilProfissionalDetalhado {
@@ -525,7 +527,8 @@ enum ContratoAPI {
                 cursos: cursos ?? [],
                 idiomas: idiomas ?? [],
                 regioes: regioes?.map { $0.dominio() } ?? [],
-                atendeTodoDF: atendeTodoDF ?? false
+                atendeTodoDF: atendeTodoDF ?? false,
+                preferenciaChamadas: preferenciaChamadas?.dominio()
             )
         }
     }
