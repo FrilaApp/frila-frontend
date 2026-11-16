@@ -1,5 +1,9 @@
 // Shell da aplicação: navegação Compose, grafo Koin, Application e Activity únicos.
-// Cartões Trello YRGYz50G e iWYMOk5C.
+// Cartões Trello YRGYz50G, iWYMOk5C e IZeQjV0N.
+import groovy.json.JsonSlurper
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,6 +24,120 @@ val temKeystoreDeRelease: Boolean = !releaseKeystorePath.isNullOrBlank() &&
     !releaseKeystorePassword.isNullOrBlank() &&
     !releaseKeyAlias.isNullOrBlank() &&
     !releaseKeyPassword.isNullOrBlank()
+
+// Cartão IZeQjV0N: URL e chave publicável do Supabase entram por BuildConfig. O build debug usa o
+// par DEV e o release usa o par PROD, com os mesmos nomes dos segredos do repositório e do iOS
+// (iOS/Docs/Environments.md). A fonte é a variável de ambiente e, na falta dela,
+// android/local.properties (ignorado pelo Git). Nenhum valor é impresso, só o nome da variável.
+val propriedadesLocais = Properties().apply {
+    val arquivo = rootProject.file("local.properties")
+    if (arquivo.isFile) arquivo.inputStream().use { load(it) }
+}
+
+fun valorSupabase(nome: String): String? =
+    (System.getenv(nome)?.takeIf { it.isNotBlank() } ?: propriedadesLocais.getProperty(nome))
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
+fun literalBuildConfig(valor: String): String =
+    "\"" + valor.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+val supabaseUrlDev: String? = valorSupabase("FRILA_SUPABASE_DEV_URL")
+val supabaseChaveDev: String? = valorSupabase("FRILA_SUPABASE_DEV_PUBLISHABLE_KEY")
+val supabaseUrlProd: String? = valorSupabase("FRILA_SUPABASE_PROD_URL")
+val supabaseChaveProd: String? = valorSupabase("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY")
+
+// Debug sem valores continua compilando (testes unitários). O placeholder tem host `.invalid`, que
+// nunca resolve: o app em debug falha na rede, não fala com um backend por engano.
+if (supabaseUrlDev == null || supabaseChaveDev == null) {
+    logger.warn(
+        "Supabase (debug): defina FRILA_SUPABASE_DEV_URL e FRILA_SUPABASE_DEV_PUBLISHABLE_KEY " +
+            "(variável de ambiente ou android/local.properties). Sem elas, o app debug não alcança o backend.",
+    )
+}
+
+// Regras da chave publicável. Espelham ConfiguracaoDoBackend.kt, que valida de novo na inicialização
+// do app. A tarefa verificarRegrasDeChaveSupabase confere esta cópia contra os mesmos casos que o
+// teste Kotlin usa (src/test/resources/supabase-chaves-casos.tsv) e roda antes de testDebugUnitTest.
+// Mudou uma regra: mude as duas cópias e acrescente o caso. O retorno nomeia o motivo, nunca o valor.
+fun ehJwtDeServiceRole(chave: String): Boolean {
+    val partes = chave.split('.')
+    if (partes.size != 3) return false
+    return runCatching {
+        val payload = String(Base64.getUrlDecoder().decode(partes[1].trimEnd('=').replace('+', '-').replace('/', '_')))
+        ((JsonSlurper().parseText(payload) as Map<*, *>)["role"] as? String)
+            ?.equals("service_role", ignoreCase = true) == true
+    }.getOrDefault(false)
+}
+
+fun motivoDeRejeicaoDaChave(chave: String): String? = when {
+    chave.startsWith("TODO", ignoreCase = true) -> "é placeholder (TODO)"
+    chave.startsWith("sb_secret_") -> "é chave secreta; use a chave publicável"
+    ehJwtDeServiceRole(chave) -> "é um JWT com role service_role; use a chave publicável"
+    else -> null
+}
+
+// Release nunca sai sem URL e chave reais: falha nomeando a variável.
+val verificarSupabaseDeRelease = tasks.register("verificarConfiguracaoSupabaseDeRelease") {
+    group = "verification"
+    description = "Falha o build de release se a URL ou a chave publicável do Supabase faltar ou for inválida."
+    val url = supabaseUrlProd
+    val chave = supabaseChaveProd
+    doLast {
+        val problemas = buildList {
+            if (url == null) {
+                add("FRILA_SUPABASE_PROD_URL ausente")
+            } else if (url.startsWith("TODO", ignoreCase = true)) {
+                add("FRILA_SUPABASE_PROD_URL é placeholder (TODO)")
+            }
+            if (chave == null) {
+                add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY ausente")
+            } else {
+                motivoDeRejeicaoDaChave(chave)?.let { add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY $it") }
+            }
+        }
+        if (problemas.isNotEmpty()) {
+            throw GradleException(
+                "Build de release sem configuração do Supabase: ${problemas.joinToString("; ")}. " +
+                    "Defina por variável de ambiente ou em android/local.properties.",
+            )
+        }
+    }
+}
+
+val verificarRegrasDeChaveSupabase = tasks.register("verificarRegrasDeChaveSupabase") {
+    group = "verification"
+    description = "Confere a regra de chave deste script contra os casos compartilhados com o teste Kotlin."
+    val casos = file("src/test/resources/supabase-chaves-casos.tsv")
+    inputs.file(casos)
+    doLast {
+        val linhas = casos.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
+        if (linhas.size < 9) throw GradleException("supabase-chaves-casos.tsv tem só ${linhas.size} casos; esperados 9 ou mais.")
+        val divergentes = mutableListOf<String>()
+        val vazamentos = mutableListOf<String>()
+        linhas.forEachIndexed { indice, linha ->
+            val (veredito, chaveBruta) = linha.split('\t', limit = 2)
+            val chave = chaveBruta.trim()
+            val motivo = motivoDeRejeicaoDaChave(chave)
+            if ((veredito == "aceita") != (motivo == null)) divergentes += "caso ${indice + 1} ($veredito)"
+            if (motivo != null && motivo.contains(chave)) vazamentos += "caso ${indice + 1}"
+        }
+        if (divergentes.isNotEmpty()) {
+            throw GradleException("A regra de chave do Gradle diverge do veredito esperado em: ${divergentes.joinToString(", ")}.")
+        }
+        if (vazamentos.isNotEmpty()) {
+            throw GradleException("O motivo de rejeição repete o valor da chave em: ${vazamentos.joinToString(", ")}.")
+        }
+    }
+}
+tasks.matching { it.name == "testDebugUnitTest" }.configureEach {
+    dependsOn(verificarRegrasDeChaveSupabase)
+}
+
+// Também cobre benchmarkRelease e nonMinifiedRelease (baseline profile), que herdam os campos do release.
+tasks.matching { it.name.startsWith("generate") && it.name.endsWith("ReleaseBuildConfig") }.configureEach {
+    dependsOn(verificarSupabaseDeRelease)
+}
 
 android {
     namespace = "br.com.frila.app"
@@ -63,6 +181,8 @@ android {
 
     buildTypes {
         release {
+            buildConfigField("String", "SUPABASE_URL", literalBuildConfig(supabaseUrlProd.orEmpty()))
+            buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalBuildConfig(supabaseChaveProd.orEmpty()))
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -74,6 +194,16 @@ android {
             }
         }
         debug {
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                literalBuildConfig(supabaseUrlDev ?: "https://sem-configuracao.invalid"),
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_PUBLISHABLE_KEY",
+                literalBuildConfig(supabaseChaveDev ?: "sem-configuracao"),
+            )
             isMinifyEnabled = false
         }
     }
