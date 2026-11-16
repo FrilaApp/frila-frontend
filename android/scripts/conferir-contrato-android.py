@@ -163,6 +163,7 @@ def main() -> None:
         "TransferirAdministracaoDto": "/rpc/transferir_administracao",
         "EscolherCandidatoDto": "/rpc/escolher_candidato",
         "ConfirmarCheckinManualDto": "/rpc/confirmar_checkin_manual",
+        "RemoverDispositivoDto": "/rpc/remover_dispositivo",
         "DefinirServicosDto": "/rpc/definir_servicos",
         "DefinirPreferenciaChamadasDto": "/rpc/definir_preferencia_chamadas",
         "BuscarProfissionaisDto": "/rpc/buscar_profissionais",

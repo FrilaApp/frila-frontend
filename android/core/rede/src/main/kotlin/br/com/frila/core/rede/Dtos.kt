@@ -148,6 +148,12 @@ data class RegistrarDispositivoDto(
     @SerialName("plataforma") val plataforma: String = "android",
 )
 
+/** Corpo de `POST /rest/v1/rpc/remover_dispositivo`: encerra o vínculo do token com a conta (RN15). */
+@Serializable
+data class RemoverDispositivoDto(
+    @SerialName("token_fcm") val tokenFcm: String,
+)
+
 /**
  * Resposta de `/rpc/registrar_dispositivo` (schema `Dispositivo`, MEDIDO em
  * `iOS/Contrato/openapi.yaml:3200`). `vinculoId` é nulo quando o backend ainda não o devolve

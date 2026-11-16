@@ -1,6 +1,8 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.core.seguranca.Sessao
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -94,5 +96,94 @@ class ServicoDispositivoTest {
 
         assertTrue(excecao is ErroDaApi)
         assertEquals(CodigoErroAPI.NAO_AUTENTICADO, (excecao as ErroDaApi).codigo)
+    }
+
+    @Test
+    fun `removerDispositivo chama POST rpc remover_dispositivo com token_fcm`() = runTest {
+        var caminhoChamado: String? = null
+        var metodoChamado: HttpMethod? = null
+        var corpoEnviado: String? = null
+        val engine = MockEngine { request ->
+            caminhoChamado = request.url.encodedPath
+            metodoChamado = request.method
+            corpoEnviado = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """{"removido":true}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoDispositivo(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        servico.removerDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
+
+        assertEquals("/rest/v1/rpc/remover_dispositivo", caminhoChamado)
+        assertEquals(HttpMethod.Post, metodoChamado)
+        assertEquals("""{"token_fcm":"token-fcm-de-teste-com-mais-de-20-chars"}""", corpoEnviado)
+    }
+
+    @Test
+    fun `removerDispositivo com removido falso nao e erro`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"removido":false}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoDispositivo(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        servico.removerDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
+    }
+
+    @Test
+    fun `removerDispositivo com erro da API lanca ErroDaApi`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"nao_autenticado","message":"jwt expirado"}""",
+                status = HttpStatusCode.Unauthorized,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoDispositivo(
+            ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine),
+        )
+
+        val erro = org.junit.jupiter.api.assertThrows<ErroDaApi> {
+            servico.removerDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
+        }
+
+        assertEquals(CodigoErroAPI.NAO_AUTENTICADO, erro.codigo)
+    }
+
+    @Test
+    fun `removerDispositivo envia Authorization Bearer da sessao e apikey`() = runTest {
+        var cabecalhos: Map<String, List<String>>? = null
+        val engine = MockEngine { request ->
+            cabecalhos = request.headers.entries().associate { it.key.lowercase() to it.value }
+            respond(
+                content = """{"removido":true}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao(accessToken = "jwt-sintetico-123", refreshToken = "refresh-sintetico", tokenType = "bearer", expiresIn = 3_600L))
+        }
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            armazenamentoDeSessao = armazenamento,
+            engine = engine,
+        )
+
+        ServicoDispositivo(cliente).removerDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
+
+        assertEquals(listOf("Bearer jwt-sintetico-123"), cabecalhos!!["authorization"])
+        assertEquals(listOf("chave-teste"), cabecalhos!!["apikey"])
     }
 }
