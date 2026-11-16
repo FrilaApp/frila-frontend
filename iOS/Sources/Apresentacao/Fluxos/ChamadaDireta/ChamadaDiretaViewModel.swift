@@ -64,6 +64,10 @@ public final class ChamadaDiretaViewModel {
     static let duracaoMinima: TimeInterval = 2 * 3600
     static let duracaoMaxima: TimeInterval = 16 * 3600
 
+    /// Verdadeiro só quando a folha já carregou e veio preenchida com a vaga anterior (pelo turno);
+    /// pela Equipe de confiança, sem vaga, e antes de carregar é falso.
+    public var preenchidoPelaVagaAnterior: Bool { recursoHabilitado && vagaAnterior != nil }
+
     /// O início mais cedo que o seletor oferece: agora + 2 h. Um turno que já começou nem aparece (V10).
     public var inicioMinimo: Date { agora().addingTimeInterval(Self.antecedenciaMinima) }
 

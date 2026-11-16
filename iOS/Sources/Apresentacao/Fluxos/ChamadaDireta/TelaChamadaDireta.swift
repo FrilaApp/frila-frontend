@@ -92,6 +92,13 @@ public struct TelaChamadaDireta: View {
 
     private var campos: some View {
         Group {
+            if viewModel.preenchidoPelaVagaAnterior {
+                Text(verbatim: TextosChamadaDireta.preenchidoComUltimaVaga)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("aviso-preenchido-vaga-anterior")
+            }
             Picker(selection: $viewModel.funcaoID) {
                 ForEach(viewModel.funcoes) { funcao in
                     Text(verbatim: funcao.nome).tag(Optional(funcao.id))
