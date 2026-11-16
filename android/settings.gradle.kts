@@ -35,3 +35,4 @@ include(":app")
 include(":baselineprofile")
 
 include(":core:preferencias")
+include(":feature:chamadas")

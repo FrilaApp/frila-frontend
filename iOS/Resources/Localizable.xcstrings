@@ -10133,6 +10133,16 @@
         }
       }
     },
+    "Preenchido com a última vaga. Confira e ajuste o que quiser.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preenchido com a última vaga. Confira e ajuste o que quiser."
+          }
+        }
+      }
+    },
     "Preferências atualizadas com sucesso.": {
       "extractionState": "manual",
       "localizations": {

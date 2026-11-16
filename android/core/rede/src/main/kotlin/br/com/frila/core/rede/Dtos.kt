@@ -1,7 +1,10 @@
 package br.com.frila.core.rede
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * DTOs de `/rpc/vagas_abertas`, contra o schema `VagaNaLista` do contrato OpenAPI 0.2.45
@@ -34,6 +37,20 @@ data class PerfilPublicoDto(
     @SerialName("foto_url") val fotoUrl: String? = null,
     /** Identificador opaco da foto exibida, o que `denunciar.midia_id` recebe (0.2.54). */
     @SerialName("foto_id") val fotoId: String? = null,
+    /**
+     * Perfil rico (0.2.53) e `no_frila_desde` (0.2.88). Todos opcionais: a Equipe e as vagas ignoram.
+     * `nome` vem só com primeiro nome e inicial do sobrenome para a casa sem candidatura, turno ou equipe
+     * com o profissional (0.2.88).
+     */
+    @SerialName("apresentacao") val apresentacao: String? = null,
+    @SerialName("experiencia_faixa") val experienciaFaixa: String? = null,
+    @SerialName("onde_trabalhei") val ondeTrabalhei: String? = null,
+    @SerialName("cursos") val cursos: List<String>? = null,
+    @SerialName("idiomas") val idiomas: List<String>? = null,
+    @SerialName("servicos") val servicos: List<ServicoNoPerfilDto>? = null,
+    @SerialName("regioes") val regioes: List<RegiaoAdministrativaDto>? = null,
+    @SerialName("atende_todo_df") val atendeTodoDf: Boolean? = null,
+    @SerialName("no_frila_desde") val noFrilaDesde: String? = null,
 )
 
 @Serializable
@@ -735,4 +752,324 @@ data class CancelamentoDaPosicaoDto(
 @Serializable
 data class ConfirmarCheckinManualDto(
     @SerialName("turno_id") val turnoId: String,
+)
+
+// ---------------------------------------------------------------------------------------------
+// Contratação direta e busca de profissionais (contrato 0.2.88, frila-documentacao#259).
+// Campos opcionais de corpo de requisição usam `@EncodeDefault(NEVER)`: ausente e `null` não
+// significam o mesmo no contrato (ex.: `pausado_ate: null` tira a pausa; ausente mantém).
+// ---------------------------------------------------------------------------------------------
+
+/** Região administrativa do DF, do catálogo fechado (schema `RegiaoAdministrativa`, RN44). */
+@Serializable
+data class RegiaoAdministrativaDto(
+    @SerialName("id") val id: Int,
+    @SerialName("numero") val numero: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("ativo") val ativo: Boolean? = null,
+)
+
+/** Especialidade fechada de uma função (schema `Especialidade`, RN44). */
+@Serializable
+data class EspecialidadeDto(
+    @SerialName("id") val id: String,
+    @SerialName("funcao_id") val funcaoId: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("ativo") val ativo: Boolean? = null,
+)
+
+/**
+ * Um serviço como sai nas leituras (schema `ServicoNoPerfil`). `unidade` vale `hora`, `diaria`, `evento`,
+ * `pacote`, `por_pessoa` ou `a_combinar`; `leva_material`, `sim`, `nao` ou `depende`.
+ */
+@Serializable
+data class ServicoNoPerfilDto(
+    @SerialName("funcao") val funcao: FuncaoDto,
+    @SerialName("unidade") val unidade: String,
+    @SerialName("valor_centavos") val valorCentavos: Long? = null,
+    @SerialName("valor_max_centavos") val valorMaxCentavos: Long? = null,
+    @SerialName("horas_incluidas") val horasIncluidas: Int? = null,
+    @SerialName("minimo_horas") val minimoHoras: Int? = null,
+    @SerialName("duracao_tipica_h") val duracaoTipicaH: Int? = null,
+    @SerialName("ate_pessoas") val atePessoas: Int? = null,
+    @SerialName("minimo_pessoas") val minimoPessoas: Int? = null,
+    @SerialName("descricao_pacote") val descricaoPacote: String? = null,
+    @SerialName("inclui") val inclui: String? = null,
+    @SerialName("leva_material") val levaMaterial: String? = null,
+    @SerialName("especialidades") val especialidades: List<EspecialidadeDto>? = null,
+)
+
+/** Um serviço na entrada de `definir_servicos` (schema `ServicoOferecido`); só vai o que a unidade pede. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class ServicoOferecidoDto(
+    @SerialName("funcao_id") val funcaoId: String,
+    @SerialName("unidade") val unidade: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("valor_centavos") val valorCentavos: Long? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("valor_max_centavos") val valorMaxCentavos: Long? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("horas_incluidas") val horasIncluidas: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("minimo_horas") val minimoHoras: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("duracao_tipica_h") val duracaoTipicaH: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("ate_pessoas") val atePessoas: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("minimo_pessoas") val minimoPessoas: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("descricao_pacote") val descricaoPacote: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("inclui") val inclui: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("leva_material") val levaMaterial: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("especialidade_ids") val especialidadeIds: List<String>? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/definir_servicos`: **substitui** o conjunto (`servicos: []` limpa), até 10. */
+@Serializable
+data class DefinirServicosDto(
+    @SerialName("servicos") val servicos: List<ServicoOferecidoDto>,
+)
+
+/**
+ * Preferências para receber chamadas (schema `PreferenciaChamadas`, RN30/RN43/RN40).
+ * `pendencias_para_busca` lista o que ainda impede de aparecer na busca: `sem_servico_com_preco`,
+ * `sem_regiao`, `pausado` ou `sem_aparelho_atualizado`.
+ */
+@Serializable
+data class PreferenciaChamadasDto(
+    @SerialName("aceita_de_quem_ja_trabalhou") val aceitaDeQuemJaTrabalhou: Boolean,
+    @SerialName("pausado_ate") val pausadoAte: String? = null,
+    @SerialName("antecedencia_minima_h") val antecedenciaMinimaH: Int,
+    @SerialName("aceita_de") val aceitaDe: String,
+    @SerialName("aceita_chamadas") val aceitaChamadas: Boolean? = null,
+    @SerialName("pendencias_para_busca") val pendenciasParaBusca: List<String> = emptyList(),
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/definir_preferencia_chamadas`: campo enviado substitui, omitido fica como está.
+ * [pausadoAte] é um [JsonElement] para separar "ausente" (`null` do Kotlin: não mexe) de `JsonNull`
+ * (tira a pausa) e de uma data `AAAA-MM-DD`. Ligar [aceitaChamadas] exige [versaoTextoBusca].
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class DefinirPreferenciaChamadasDto(
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("aceita_de_quem_ja_trabalhou") val aceitaDeQuemJaTrabalhou: Boolean? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("pausado_ate") val pausadoAte: JsonElement? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("antecedencia_minima_h") val antecedenciaMinimaH: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("aceita_de") val aceitaDe: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("aceita_chamadas") val aceitaChamadas: Boolean? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("versao_texto_busca") val versaoTextoBusca: String? = null,
+)
+
+/** Resposta de `meu_perfil_detalhado` e `definir_servicos` (schema `PerfilProfissionalDetalhado`). */
+@Serializable
+data class PerfilProfissionalDetalhadoDto(
+    @SerialName("id") val id: String,
+    @SerialName("usuario_id") val usuarioId: String,
+    @SerialName("funcoes") val funcoes: List<FuncaoDto> = emptyList(),
+    @SerialName("ponto_base") val pontoBase: CoordenadaDto? = null,
+    @SerialName("disponibilidades") val disponibilidades: List<JanelaDeDisponibilidadeDto> = emptyList(),
+    @SerialName("reputacao") val reputacao: ReputacaoDto,
+    @SerialName("apresentacao") val apresentacao: String? = null,
+    @SerialName("onde_trabalhei") val ondeTrabalhei: String? = null,
+    @SerialName("experiencia_faixa") val experienciaFaixa: String? = null,
+    @SerialName("cursos") val cursos: List<String> = emptyList(),
+    @SerialName("idiomas") val idiomas: List<String> = emptyList(),
+    @SerialName("servicos") val servicos: List<ServicoNoPerfilDto> = emptyList(),
+    @SerialName("regioes") val regioes: List<RegiaoAdministrativaDto> = emptyList(),
+    @SerialName("atende_todo_df") val atendeTodoDf: Boolean = false,
+    @SerialName("preferencia_chamadas") val preferenciaChamadas: PreferenciaChamadasDto? = null,
+)
+
+/** Parâmetro de `perfil_publico` (o id do profissional ou do estabelecimento). Vai em POST, como `candidatos_da_vaga`. */
+@Serializable
+data class PerfilPublicoParametrosDto(
+    @SerialName("id") val id: String,
+)
+
+/**
+ * Um resultado de `buscar_profissionais` (schema `CartaoProfissional`, CD-B07). Sem foto, sem telefone, sem
+ * sobrenome completo. `disponivel_no_horario` só vem com horário e quando a grade cobre o horário inteiro.
+ * `distancia_faixa`: `ate_5_km`, `de_5_a_15_km` ou `mais_de_15_km`.
+ */
+@Serializable
+data class CartaoProfissionalDto(
+    @SerialName("id") val id: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("servico") val servico: ServicoNoPerfilDto,
+    @SerialName("regioes") val regioes: List<RegiaoAdministrativaDto> = emptyList(),
+    @SerialName("atende_todo_df") val atendeTodoDf: Boolean = false,
+    @SerialName("distancia_faixa") val distanciaFaixa: String,
+    @SerialName("reputacao") val reputacao: ReputacaoDto,
+    @SerialName("disponivel_no_horario") val disponivelNoHorario: Boolean? = null,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/buscar_profissionais`. `inicio_em` e `fim_em` vão sempre juntos; [cursor] é opaco
+ * (nunca offset) e as páginas seguintes não contam na cota; [limite] de 1 a 20 (padrão 20 no servidor).
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class BuscarProfissionaisDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("funcao_id") val funcaoId: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("regiao_id") val regiaoId: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("inicio_em") val inicioEm: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("fim_em") val fimEm: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("cursor") val cursor: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("limite") val limite: Int? = null,
+)
+
+/** Resposta de `buscar_profissionais`: até 20 cartões e o cursor da próxima página (`null` na última). */
+@Serializable
+data class PaginaDeProfissionaisDto(
+    @SerialName("itens") val itens: List<CartaoProfissionalDto>,
+    @SerialName("proximo_cursor") val proximoCursor: String? = null,
+)
+
+/** Uma chamada (schema `Chamada`). `estado`: `aberta`, `aceita`, `recusada`, `expirada`, `cancelada` ou `encerrada`. */
+@Serializable
+data class ChamadaDto(
+    @SerialName("id") val id: String,
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("profissional_id") val profissionalId: String,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("recado") val recado: String? = null,
+    @SerialName("motivo_recusa") val motivoRecusa: String? = null,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("respondida_em") val respondidaEm: String? = null,
+    @SerialName("criada_em") val criadaEm: String,
+)
+
+/** A chamada com o essencial do trabalho, para listas (schema `ChamadaResumo`: `Chamada` mais os campos abaixo). */
+@Serializable
+data class ChamadaResumoDto(
+    @SerialName("id") val id: String,
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("profissional_id") val profissionalId: String,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("recado") val recado: String? = null,
+    @SerialName("motivo_recusa") val motivoRecusa: String? = null,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("respondida_em") val respondidaEm: String? = null,
+    @SerialName("criada_em") val criadaEm: String,
+    @SerialName("funcao") val funcao: FuncaoDto,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("outra_parte") val outraParte: PerfilPublicoDto,
+)
+
+/**
+ * A chamada por inteiro (schema `ChamadaDetalhe`). `local`, `ponto`, `responsavel_local` e `turno_id` só vêm com
+ * `estado = aceita` (RN36); antes, o profissional decide pela região e pela faixa de distância. Nunca telefone.
+ */
+@Serializable
+data class ChamadaDetalheDto(
+    @SerialName("id") val id: String,
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("profissional_id") val profissionalId: String,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("recado") val recado: String? = null,
+    @SerialName("motivo_recusa") val motivoRecusa: String? = null,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("respondida_em") val respondidaEm: String? = null,
+    @SerialName("criada_em") val criadaEm: String,
+    @SerialName("funcao") val funcao: FuncaoDto,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("outra_parte") val outraParte: PerfilPublicoDto,
+    @SerialName("tipo_estabelecimento") val tipoEstabelecimento: String? = null,
+    @SerialName("conta_nova") val contaNova: Boolean? = null,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("distancia_faixa") val distanciaFaixa: String? = null,
+    @SerialName("inclui_refeicao") val incluiRefeicao: Boolean,
+    @SerialName("inclui_transporte") val incluiTransporte: Boolean,
+    @SerialName("exige_material_proprio") val exigeMaterialProprio: Boolean,
+    @SerialName("local") val local: String? = null,
+    @SerialName("ponto") val ponto: CoordenadaDto? = null,
+    @SerialName("responsavel_local") val responsavelLocal: String? = null,
+    @SerialName("turno_id") val turnoId: String? = null,
+)
+
+/** Resposta de `responder_chamada` (schema `ResultadoChamada`): no aceite traz o turno e o que a RN36 libera. */
+@Serializable
+data class ResultadoChamadaDto(
+    @SerialName("chamada") val chamada: ChamadaDto,
+    @SerialName("turno_id") val turnoId: String? = null,
+    @SerialName("local") val local: String? = null,
+    @SerialName("ponto") val ponto: CoordenadaDto? = null,
+    @SerialName("responsavel_local") val responsavelLocal: String? = null,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/chamar_profissional`. Ou [vagaId] (mais alguém para o mesmo trabalho, até 3
+ * abertas) ou os campos da RN02, nunca os dois; [regiaoId] é o da busca e a vaga direta o guarda (0.2.88).
+ * [confirmoRecorrencia] só depois de `409 recorrencia_nao_confirmada` (J7, RN45). [chave] é a de idempotência.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class ChamarProfissionalDto(
+    @SerialName("chave") val chave: String,
+    @SerialName("profissional_id") val profissionalId: String,
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("vaga_id") val vagaId: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("funcao_id") val funcaoId: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("inicio_em") val inicioEm: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("fim_em") val fimEm: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("local") val local: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("regiao_administrativa") val regiaoAdministrativa: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("regiao_id") val regiaoId: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("ponto") val ponto: CoordenadaDto? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("valor_centavos") val valorCentavos: Long? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("inclui_refeicao") val incluiRefeicao: Boolean? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("inclui_transporte") val incluiTransporte: Boolean? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("exige_material_proprio") val exigeMaterialProprio: Boolean? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("responsavel_local") val responsavelLocal: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("recado") val recado: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("confirmo_recorrencia") val confirmoRecorrencia: Boolean? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/responder_chamada`: `resposta` vale `aceitar` ou `recusar`. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class ResponderChamadaDto(
+    @SerialName("chamada_id") val chamadaId: String,
+    @SerialName("resposta") val resposta: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("motivo_recusa") val motivoRecusa: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/cancelar_chamada`. */
+@Serializable
+data class CancelarChamadaDto(
+    @SerialName("chamada_id") val chamadaId: String,
+)
+
+/** Parâmetro de `detalhe_chamada`. Vai em POST. */
+@Serializable
+data class DetalheChamadaParametrosDto(
+    @SerialName("chamada_id") val chamadaId: String,
+)
+
+/** Parâmetros de `minhas_chamadas` (estado, cursor e limite de 1 a 20). Vão em POST. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class MinhasChamadasParametrosDto(
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("estado") val estado: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("cursor") val cursor: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("limite") val limite: Int? = null,
+)
+
+/** Resposta de `minhas_chamadas`: até 20 chamadas, da mais nova para a mais antiga, e o cursor seguinte. */
+@Serializable
+data class PaginaDeChamadasDto(
+    @SerialName("itens") val itens: List<ChamadaResumoDto>,
+    @SerialName("proximo_cursor") val proximoCursor: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/publicar_a_partir_da_chamada`: [modo] vale `urgencia` (padrão) ou `selecao`. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class PublicarAPartirDaChamadaDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("chave") val chave: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("modo") val modo: String? = null,
 )

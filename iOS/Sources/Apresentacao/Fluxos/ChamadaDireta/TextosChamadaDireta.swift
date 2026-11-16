@@ -14,6 +14,7 @@ public enum TextosChamadaDireta {
     public static let faltaResponsavel = String(localized: "Para enviar, informe o responsável no local.", bundle: bundleApresentacao)
     public static let faltaAntecedencia = String(localized: "Para enviar, o início precisa ser daqui a 2 horas ou mais.", bundle: bundleApresentacao)
     public static let faltaDuracao = String(localized: "Para enviar, o turno precisa ter de 2 a 16 horas.", bundle: bundleApresentacao)
+    public static let preenchidoComUltimaVaga = String(localized: "Preenchido com a última vaga. Confira e ajuste o que quiser.", bundle: bundleApresentacao)
     public static let total = String(localized: "Confirmo que este é o valor total fechado que o profissional recebe pelo trabalho.", bundle: bundleApresentacao)
     public static let recado = String(localized: "Recado opcional (até 300 caracteres)", bundle: bundleApresentacao)
     public static let recadoLongo = String(localized: "O recado deve ter até 300 caracteres.", bundle: bundleApresentacao)

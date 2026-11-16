@@ -72,6 +72,19 @@ def carregar_contrato(caminho: pathlib.Path) -> dict:
     return json.loads(saida.stdout)
 
 
+def achatar(schema: dict, schemas: dict) -> dict:
+    """Junta properties e required de um schema com allOf (resolvendo $ref), para comparar com o DTO."""
+    if "$ref" in schema:
+        return achatar(schemas.get(schema["$ref"].rsplit("/", 1)[-1], {}), schemas)
+    propriedades = dict(schema.get("properties", {}))
+    obrigatorios = list(schema.get("required", []))
+    for parte in schema.get("allOf", []):
+        filho = achatar(parte, schemas)
+        propriedades.update(filho.get("properties", {}))
+        obrigatorios += filho.get("required", [])
+    return {"properties": propriedades, "required": obrigatorios}
+
+
 def extrair_dtos_kotlin(arquivo: pathlib.Path) -> dict[str, set[str]]:
     if not arquivo.is_file():
         return {}
@@ -151,6 +164,13 @@ def main() -> None:
         "EscolherCandidatoDto": "/rpc/escolher_candidato",
         "ConfirmarCheckinManualDto": "/rpc/confirmar_checkin_manual",
         "RemoverDispositivoDto": "/rpc/remover_dispositivo",
+        "DefinirServicosDto": "/rpc/definir_servicos",
+        "DefinirPreferenciaChamadasDto": "/rpc/definir_preferencia_chamadas",
+        "BuscarProfissionaisDto": "/rpc/buscar_profissionais",
+        "ChamarProfissionalDto": "/rpc/chamar_profissional",
+        "ResponderChamadaDto": "/rpc/responder_chamada",
+        "CancelarChamadaDto": "/rpc/cancelar_chamada",
+        "PublicarAPartirDaChamadaDto": "/rpc/publicar_a_partir_da_chamada",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
@@ -159,6 +179,8 @@ def main() -> None:
         "MembroAdicionadoDto": "/rpc/aceitar_convite_membro",
         "MembroRemovidoDto": "/rpc/remover_membro",
         "AdministracaoTransferidaDto": "/rpc/transferir_administracao",
+        "PaginaDeProfissionaisDto": "/rpc/buscar_profissionais",
+        "PaginaDeChamadasDto": "/rpc/minhas_chamadas",
     }
 
     # Leituras que o contrato descreve em GET com parâmetros de query, mas que o app envia em POST
@@ -167,6 +189,9 @@ def main() -> None:
         "EstabelecimentoParametrosDto": ("/rpc/equipe_de_confianca", "get"),
         "CandidatosDaVagaParametrosDto": ("/rpc/candidatos_da_vaga", "get"),
         "PainelParametrosDto": ("/rpc/painel_estabelecimento", "get"),
+        "PerfilPublicoParametrosDto": ("/rpc/perfil_publico", "get"),
+        "DetalheChamadaParametrosDto": ("/rpc/detalhe_chamada", "get"),
+        "MinhasChamadasParametrosDto": ("/rpc/minhas_chamadas", "get"),
     }
 
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
@@ -277,7 +302,9 @@ def main() -> None:
             else:
                 rpc_path = RPCS_RESPONSE_BODY[dto_name]
                 rotulo = "resposta 200"
-            rpc_op = paths.get(rpc_path, {}).get("post", {})
+            rota = paths.get(rpc_path, {})
+            # Leituras do contrato em GET (ex.: minhas_chamadas) têm só a resposta 200 aqui; o corpo é do POST.
+            rpc_op = rota.get("post") or rota.get("get") or {}
             if rotulo == "requestBody":
                 conteudo = rpc_op.get("requestBody", {}).get("content", {})
             else:
@@ -315,7 +342,7 @@ def main() -> None:
             erros.append(f"DTO '{dto_name}' não possui schema correspondente '{schema_name}' no OpenAPI")
             continue
 
-        schema = schemas[schema_name]
+        schema = achatar(schemas[schema_name], schemas)
         schema_props = set(schema.get("properties", {}).keys())
         required_props = set(schema.get("required", []))
 

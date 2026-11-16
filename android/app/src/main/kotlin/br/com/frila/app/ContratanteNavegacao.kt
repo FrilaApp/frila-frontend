@@ -107,6 +107,8 @@ internal fun RotaPublicarVaga(
     estabelecimentoId: String,
     servicoMembros: ServicoMembros?,
     aoVoltar: () -> Unit,
+    /** Preenche a publicação antes de a pessoa ver (a busca vazia leva o serviço e o horário buscados). */
+    aoPreparar: ((PublicarVagaViewModel) -> Unit)? = null,
 ) {
     var tentativa by remember { mutableIntStateOf(0) }
     var estado by remember(estabelecimentoId) { mutableStateOf<EstadoDoEstabelecimentoDaRota>(EstadoDoEstabelecimentoDaRota.Carregando) }
@@ -128,6 +130,7 @@ internal fun RotaPublicarVaga(
         }
         is EstadoDoEstabelecimentoDaRota.Pronto -> {
             val viewModel: PublicarVagaViewModel = koinViewModel(parameters = { parametersOf(atual.estabelecimento) })
+            if (aoPreparar != null) LaunchedEffect(viewModel) { aoPreparar(viewModel) }
             TelaPublicarVaga(viewModel = viewModel, aoPublicar = { }, aoVoltar = aoVoltar)
         }
     }

@@ -168,7 +168,7 @@ class PortaoDeAtualizacaoTest {
                 parametroPlataforma = request.url.parameters["plataforma"]
                 parametroVersaoApp = request.url.parameters["versao_app"]
                 respond(
-                    content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora","recursos":{"foto_de_perfil":true,"chamada_direta":true,"perfil_rico":true,"checkin_por_codigo":true}}""",
+                    content = """{"plataforma":"android","versao_minima":"99.0.0","versao_recomendada":"99.0.0","url_da_loja":"https://play.google.com/store/apps/details?id=br.com.frila.app","mensagem":"Atualize agora","recursos":{"foto_de_perfil":true,"chamada_direta":true,"perfil_rico":true,"checkin_por_codigo":true,"busca_profissionais":true}}""",
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -188,6 +188,7 @@ class PortaoDeAtualizacaoTest {
             assertTrue(resultado.recursos.chamadaDireta)
             assertTrue(resultado.recursos.perfilRico)
             assertTrue(resultado.recursos.checkinPorCodigo)
+            assertTrue(resultado.recursos.buscaProfissionais)
         } finally {
             cliente.http.close()
         }
@@ -235,6 +236,7 @@ class PortaoDeAtualizacaoTest {
         try {
             val recursos = consultarConfiguracaoDoApp(cliente).recursos
             assertFalse(recursos.fotoDePerfil)
+            assertFalse(recursos.buscaProfissionais)
             assertFalse(recursos.chamadaDireta)
             assertFalse(recursos.perfilRico)
             assertFalse(recursos.checkinPorCodigo)

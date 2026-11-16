@@ -348,7 +348,7 @@ struct TelaTurnoDoContratante: View {
                    let estabelecimentoID = viewModel.painel?.estabelecimentoID {
                     if chamadaHabilitada, viewModel.podeAvaliar(turno) {
                         BotaoChamarDeNovo(api: api, profissionalID: profissional.id,
-                            estabelecimentoID: estabelecimentoID, vagaID: turno.vaga.id)
+                            estabelecimentoID: estabelecimentoID, vagaAnterior: turno.vaga)
                     }
                     BotaoIncluirNaEquipe(
                         perfil: profissional, estabelecimentoID: estabelecimentoID, api: api,
