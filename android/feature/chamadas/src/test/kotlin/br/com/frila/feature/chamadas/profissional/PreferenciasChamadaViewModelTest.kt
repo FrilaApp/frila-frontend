@@ -162,6 +162,50 @@ class PreferenciasChamadaViewModelTest {
     }
 
     @Test
+    fun `pausa ja vencida vinda do servidor conta como sem pausa e nao trava o salvar`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-15"))
+        rede.ok("/rpc/definir_preferencia_chamadas", Fixtures.preferenciaJson(pausadoAte = "2026-11-15", antecedencia = 24))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        assertFalse(vm.estado.value.pausar)
+
+        vm.escolherAntecedencia(24)
+        vm.salvar().join()
+
+        val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
+        assertEquals(setOf("antecedencia_minima_h"), corpo.keys)
+        assertNull(vm.estado.value.erro)
+        assertTrue(vm.estado.value.sucesso)
+        assertFalse(vm.estado.value.pausar)
+    }
+
+    @Test
+    fun `pausa que acaba hoje tambem conta como sem pausa`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-16"))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        assertFalse(vm.estado.value.pausar)
+        assertEquals(hoje.plusDays(1), vm.estado.value.pausadoAte)
+    }
+
+    @Test
+    fun `pausa vencida no servidor, a pessoa escolhe nova data de amanha e ela vai no pedido`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-15"))
+        rede.ok("/rpc/definir_preferencia_chamadas", Fixtures.preferenciaJson(pausadoAte = "2026-11-17", pendencias = listOf("pausado")))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.alternarPausa(true)
+        vm.escolherDataDaPausa(LocalDate.of(2026, 11, 17))
+        vm.salvar().join()
+
+        val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
+        assertEquals("2026-11-17", corpo["pausado_ate"]!!.jsonPrimitive.content)
+    }
+
+    @Test
     fun `recurso desligado, conta suspensa, contratante e data recusada viram mensagem propria`() = runBlocking {
         val casos = listOf(
             Triple(HttpStatusCode.Forbidden, Fixtures.erro("sem_permissao", "recurso_desligado"), TextosChamadaProfissional.DESLIGADO),

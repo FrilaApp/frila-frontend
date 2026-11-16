@@ -136,7 +136,8 @@ class PreferenciasChamadaViewModel(
     private fun montarPedido(tela: EstadoPreferenciasChamada, servidor: PreferenciaChamadasDto): DefinirPreferenciaChamadasDto {
         val ligouAgora = tela.aceitaChamadas && servidor.aceitaChamadas != true
         val desligouAgora = !tela.aceitaChamadas && servidor.aceitaChamadas == true
-        val pausaAtual = servidor.pausadoAte
+        // Pausa já vencida no servidor vale como "sem pausa": não é mudança da pessoa, então não vai no pedido.
+        val pausaAtual = pausaVigente(servidor)?.toString()
         val pausaDaTela = if (tela.pausar) tela.pausadoAte.toString() else null
         return DefinirPreferenciaChamadasDto(
             aceitaDeQuemJaTrabalhou = tela.aceitaDeQuemJaTrabalhou.takeIf { it != servidor.aceitaDeQuemJaTrabalhou },
@@ -156,7 +157,7 @@ class PreferenciasChamadaViewModel(
     private fun aplicar(servidor: PreferenciaChamadasDto, sucesso: Boolean) {
         base = servidor
         _estado.update { tela ->
-            val pausa = servidor.pausadoAte?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            val pausa = pausaVigente(servidor)
             tela.copy(
                 carregando = false,
                 carregou = true,
@@ -173,6 +174,16 @@ class PreferenciasChamadaViewModel(
             )
         }
     }
+
+    /**
+     * A pausa que ainda vale: `pausado_ate` de hoje ou do passado já acabou (a retomada é às 00:00 do dia seguinte),
+     * então volta como sem pausa. A regra "a partir de amanhã" só vale para a data que a pessoa escolhe, nunca
+     * para o que veio do servidor, senão uma pausa vencida travaria o Salvar de qualquer outro campo.
+     */
+    private fun pausaVigente(servidor: PreferenciaChamadasDto): LocalDate? =
+        servidor.pausadoAte
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?.takeIf { it.isAfter(hoje()) }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when {
         erro.recursoDesligado -> TextosChamadaProfissional.DESLIGADO
