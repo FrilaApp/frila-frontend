@@ -25,7 +25,8 @@ private func criarTurnoExemplo(
     fim: Date,
     valor: Dinheiro = Dinheiro(centavos: 15000),
     contatoVisivelAte: Date,
-    contato: Contato? = nil
+    contato: Contato? = nil,
+    confirmadoEm: Date? = nil
 ) throws -> Turno {
     let vaga = VagaResumo(id: UUID(), funcao: funcao, local: local, regiaoAdministrativa: "Plano Piloto", periodo: try Periodo(inicio: inicio, fim: fim), valor: valor)
     let reputacao = Reputacao(positivas: 10, total: 10, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
@@ -39,7 +40,7 @@ private func criarTurnoExemplo(
         verificacao: .pendente,
         valorAcordado: valor,
         podeAvaliar: false,
-        contato: contato
+        contato: contato, confirmadoEm: confirmadoEm
     )
 }
 
@@ -333,6 +334,43 @@ struct MeuTurnoViewModelTests {
         // 5. Depois da janela: 15 minutos e 1s após o início
         relogio.agora = inicio.addingTimeInterval(15 * 60 + 1)
         #expect(!vm.podeAvisarACaminho)
+    }
+
+    @Test("Substituto pode avisar até quinze minutos após confirmação, sem antecipar abertura")
+    func avisoDoSubstituto() throws {
+        let inicio = dataReferencia()
+        let confirmado = inicio.addingTimeInterval(40 * 60)
+        let relogio = RelogioSimulado(confirmado.addingTimeInterval(60))
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: inicio.addingTimeInterval(4 * 3600),
+                                         contatoVisivelAte: inicio, confirmadoEm: confirmado)
+        let vm = MeuTurnoViewModel(turno: turno, api: ApiClienteEmMemoria(), relogio: relogio)
+        #expect(vm.podeAvisarACaminho)
+        relogio.agora = confirmado.addingTimeInterval(15 * 60)
+        #expect(vm.podeAvisarACaminho)
+        relogio.agora += 1
+        #expect(!vm.podeAvisarACaminho)
+        relogio.agora = inicio.addingTimeInterval(-3 * 3600 - 1)
+        #expect(!vm.podeAvisarACaminho)
+    }
+
+    @Test("Confirmação antecipada preserva limite nominal e cópias/cache preservam confirmação")
+    func confirmacaoAntecipadaECache() throws {
+        let inicio = dataReferencia()
+        let confirmado = inicio.addingTimeInterval(-3600)
+        let turno = try criarTurnoExemplo(inicio: inicio, fim: inicio.addingTimeInterval(4 * 3600),
+                                         contatoVisivelAte: inicio, confirmadoEm: confirmado)
+        let relogio = RelogioSimulado(inicio.addingTimeInterval(15 * 60))
+        let vm = MeuTurnoViewModel(turno: turno, api: ApiClienteEmMemoria(), relogio: relogio)
+        #expect(vm.podeAvisarACaminho)
+        relogio.agora += 1
+        #expect(!vm.podeAvisarACaminho)
+        #expect(turno.com(contato: nil).confirmadoEm == confirmado)
+        #expect(turno.com(aCaminhoEm: inicio).confirmadoEm == confirmado)
+        let dados = try JSONEncoder().encode(turno)
+        #expect(try JSONDecoder().decode(Turno.self, from: dados).confirmadoEm == confirmado)
+        var antigo = try #require(JSONSerialization.jsonObject(with: dados) as? [String: Any])
+        antigo.removeValue(forKey: "confirmadoEm")
+        #expect(try JSONDecoder().decode(Turno.self, from: JSONSerialization.data(withJSONObject: antigo)).confirmadoEm == nil)
     }
 
     @Test("Turno já avisado não oferece o botão Estou a caminho novamente")

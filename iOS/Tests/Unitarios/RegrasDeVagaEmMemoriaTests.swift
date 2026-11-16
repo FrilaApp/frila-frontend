@@ -166,6 +166,24 @@ struct RegrasDeVagaEmMemoriaTests {
 
     // MARK: 0.2.25 — estou a caminho
 
+    @Test("Substituto recém-confirmado conserva instante e pode avisar mesmo após início+15min")
+    func aCaminhoDoSubstituto() async throws {
+        let relogio = RelogioDeTeste(agora)
+        let api = ApiClienteEmMemoria(relogio: relogio)
+        let vagaID = try await publicar(api, emHoras: 4, relogio: relogio)
+        let primeiro = try await api.candidatar(vagaID: vagaID)
+        let posicao = try #require(primeiro.posicaoID)
+        relogio.avancar(para: agora.addingTimeInterval(4 * Self.hora + 16 * 60))
+        _ = try await api.reabrirPorAtraso(posicaoID: posicao)
+        let confirmado = agora.addingTimeInterval(4 * Self.hora + 40 * 60)
+        relogio.avancar(para: confirmado)
+        let turnoID = try #require(try await api.candidatar(vagaID: vagaID).turnoID)
+        #expect(try await api.meusTurnos().first(where: { $0.id == turnoID })?.confirmadoEm == confirmado)
+        relogio.avancar(para: confirmado.addingTimeInterval(60))
+        #expect(try await api.avisarACaminho(turnoID: turnoID).aCaminhoEm == relogio.agora)
+        #expect(try await api.meusTurnos().first(where: { $0.id == turnoID })?.confirmadoEm == confirmado)
+    }
+
     @Test("Estou a caminho vale a partir de 3 h antes do início, e repetir devolve o primeiro aviso (0.2.25)")
     func aCaminho() async throws {
         let relogio = RelogioDeTeste(agora)

@@ -72,7 +72,8 @@ public final class MeuTurnoViewModel {
         turno.aCaminhoEm ?? avisoACaminhoLocal
     }
 
-    /// No turno confirmado, dentro da janela (de 3 h antes até 15 min depois do início),
+    /// No turno confirmado, de 3 h antes do início até 15 min depois do maior entre
+    /// início e confirmação (0.2.85; servidor antigo usa o início),
     /// sem check-in e ainda sem aviso (US14, RF12).
     public var podeAvisarACaminho: Bool {
         guard permiteAcoesDoTurno else { return false }
@@ -82,7 +83,7 @@ public final class MeuTurnoViewModel {
         let agora = relogio.agora
         let inicio = turno.vaga.periodo.inicio
         let limiteInferior = inicio.addingTimeInterval(-3 * 60 * 60)
-        let limiteSuperior = inicio.addingTimeInterval(15 * 60)
+        let limiteSuperior = max(inicio, turno.confirmadoEm ?? inicio).addingTimeInterval(15 * 60)
         return agora >= limiteInferior && agora <= limiteSuperior
     }
 
