@@ -25,6 +25,8 @@ data class RecursosDoAppDto(
     val chamadaDireta: Boolean = false,
     val perfilRico: Boolean = false,
     val checkinPorCodigo: Boolean = false,
+    /** Busca de profissionais (contrato 0.2.88); desligada por padrão. */
+    val buscaProfissionais: Boolean = false,
 )
 
 /**
@@ -67,6 +69,7 @@ suspend fun consultarConfiguracaoDoApp(
             chamadaDireta = recursos?.get("chamada_direta")?.jsonPrimitive?.booleanOrNull ?: false,
             perfilRico = recursos?.get("perfil_rico")?.jsonPrimitive?.booleanOrNull ?: false,
             checkinPorCodigo = recursos?.get("checkin_por_codigo")?.jsonPrimitive?.booleanOrNull ?: false,
+            buscaProfissionais = recursos?.get("busca_profissionais")?.jsonPrimitive?.booleanOrNull ?: false,
         ),
     )
 }
