@@ -246,13 +246,23 @@ data class TurnoDto(
     @SerialName("cancelamento") val cancelamento: CancelamentoDoTurnoDto? = null,
 )
 
-/** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */
+/**
+ * Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela.
+ *
+ * Todos os campos são opcionais: o Auth (GoTrue) responde outro formato (`{"code":429,"error_code":
+ * "over_email_send_rate_limit","msg":"..."}`) e, em 429 de limite, pode vir sem `message`. Corpo
+ * inesperado nunca pode derrubar o app (achado D do QA da busca, F-036.10).
+ */
 @Serializable
 data class ErroPostgrestDto(
-    @SerialName("code") val code: String,
-    @SerialName("message") val message: String,
+    @SerialName("code") val code: String? = null,
+    @SerialName("message") val message: String? = null,
     @SerialName("details") val details: String? = null,
     @SerialName("hint") val hint: String? = null,
+    /** Formato do Auth: nome do erro (ex.: `over_email_send_rate_limit`). */
+    @SerialName("error_code") val errorCode: String? = null,
+    /** Formato do Auth: texto do erro, no lugar de `message`. */
+    @SerialName("msg") val msg: String? = null,
 )
 
 /**

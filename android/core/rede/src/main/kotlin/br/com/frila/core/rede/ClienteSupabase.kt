@@ -232,12 +232,28 @@ class ClienteSupabase(
         if (resposta.status.isSuccess()) {
             return resposta.body()
         }
-        val envelope = resposta.body<ErroPostgrestDto>()
-        throw ErroDaApi(
-            codigo = mapearCodigo(envelope.code, resposta.status),
-            codigoOriginal = envelope.code,
+        throw erroDaResposta(resposta)
+    }
+
+    /**
+     * Monta o [ErroDaApi] de uma resposta não 2xx. Nunca lança outra coisa: corpo vazio, HTML de proxy,
+     * JSON sem `message` ou com `code` numérico (formato do Auth) viram um [ErroDaApi] decidido pelo status
+     * HTTP, e quem chama (ViewModel) só precisa tratar [ErroDaApi]. [CancellationException] propaga.
+     */
+    suspend fun erroDaResposta(resposta: HttpResponse): ErroDaApi {
+        val envelope = try {
+            resposta.body<ErroPostgrestDto>()
+        } catch (cancelamento: CancellationException) {
+            throw cancelamento
+        } catch (_: Exception) {
+            ErroPostgrestDto()
+        }
+        val codigoCru = envelope.code ?: envelope.errorCode ?: ""
+        return ErroDaApi(
+            codigo = mapearCodigo(codigoCru, resposta.status, envelope.errorCode),
+            codigoOriginal = envelope.errorCode ?: codigoCru,
             detalhes = envelope.details,
-            mensagemCrua = envelope.message,
+            mensagemCrua = envelope.message ?: envelope.msg ?: "",
         )
     }
 
@@ -277,16 +293,22 @@ class ClienteSupabase(
          * domínio e não está no enum: tratado como não-autenticado, igual ao iOS
          * (`iOS/Sources/Dados/DecodificadorErroAPI.swift`).
          */
-        fun mapearCodigo(codeCru: String, status: HttpStatusCode): CodigoErroAPI {
+        fun mapearCodigo(codeCru: String, status: HttpStatusCode, errorCodeDoAuth: String? = null): CodigoErroAPI {
             if (codeCru == "PGRST301" || status == HttpStatusCode.Unauthorized) {
                 return CodigoErroAPI.NAO_AUTENTICADO
             }
-            return try {
+            val doDominio = try {
                 jsonFrila.decodeFromString(CodigoErroAPI.serializer(), "\"$codeCru\"")
             } catch (_: SerializationException) {
                 CodigoErroAPI.DESCONHECIDO
             }
+            if (doDominio != CodigoErroAPI.DESCONHECIDO) return doDominio
+            // O Auth (GoTrue) não usa os códigos do domínio: 429 e `over_*_rate_limit` são o mesmo limite do iOS.
+            val limiteDoAuth = status.value == 429 || errorCodeDoAuth in CODIGOS_DE_LIMITE_DO_AUTH
+            return if (limiteDoAuth) CodigoErroAPI.LIMITE_EXCEDIDO else CodigoErroAPI.DESCONHECIDO
         }
+
+        private val CODIGOS_DE_LIMITE_DO_AUTH = setOf("over_email_send_rate_limit", "over_request_rate_limit")
     }
 }
 
