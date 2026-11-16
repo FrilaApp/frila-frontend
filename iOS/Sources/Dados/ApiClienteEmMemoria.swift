@@ -277,7 +277,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var conta: Conta?
     /// A última versão dos Termos que a conta aceitou (`Usuario.termos_versao`, 0.2.90). Os cenários começam com os
     /// Termos 1.1 aceitos, menos `buscaComTermosPendentes`.
-    private var termosAceitos: String? = VersaoDosTermos.vigente
+    private var termosAceitos: String? = VersaoDosTermos.minimaParaBuscar
     /// Os aceites que `aceitar_termos` registrou, na ordem em que chegaram, para o teste conferir.
     public private(set) var aceitesDeTermosRecebidos: [String] = []
     private var perfilProfissional: PerfilProfissional?
@@ -956,8 +956,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return conta.comTermosVersao(termosAceitos)
     }
 
-    /// As versões dos Termos que o servidor tem publicadas (hoje, só a de 13/11/2026): `aceitar_termos` só vale para elas.
-    private static let versoesDosTermosPublicadas: Set<String> = ["2026-11-13"]
+    /// As versões dos Termos que o servidor tem publicadas (13/11/2026 e 16/11/2026, 0.2.91): `aceitar_termos` só vale
+    /// para elas.
+    private static let versoesDosTermosPublicadas: Set<String> = ["2026-11-13", "2026-11-16"]
 
     /// 0.2.90. Registra o aceite com o instante do relógio do dublê. Sem conta: `nao_encontrado`, como `minha_conta`.
     /// Versão vazia: `campo_obrigatorio`; fora do formato `AAAA-MM-DD`, não publicada ou anterior à já aceita:

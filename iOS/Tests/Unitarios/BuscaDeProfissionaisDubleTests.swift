@@ -415,15 +415,15 @@ struct BuscaDeProfissionaisDubleTests {
         #expect(recusa?.termosPendentes == true)
 
         let aceite = try await api.aceitarTermos(versao: VersaoDosTermos.vigente)
-        #expect(aceite.termosVersao == "2026-11-13")
+        #expect(aceite.termosVersao == "2026-11-16")
         #expect(aceite.aceitoEm == Self.agora)
-        #expect(try await api.minhaConta().termosVersao == "2026-11-13")
+        #expect(try await api.minhaConta().termosVersao == "2026-11-16")
         #expect(try await api.buscarProfissionais(filtro(), cursor: nil, limite: nil).itens.isEmpty == false)
     }
 
     @Test("O cenário com os Termos aceitos não pede o aceite; as outras recusas vêm antes do termos_pendentes")
     func cenarioComTermosAceitosEOrdemDasRecusas() async throws {
-        #expect(try await api().minhaConta().termosVersao == "2026-11-13")
+        #expect(try await api().minhaConta().termosVersao == VersaoDosTermos.minimaParaBuscar)
         // Chave desligada ganha do termos_pendentes (a ordem do contrato: as três recusas, depois os Termos).
         let desligada = ApiClienteEmMemoria(cenario: .buscaComTermosPendentes, relogio: RelogioAjustavel(Self.agora), chamadaDiretaDesligada: true)
         let erro = await #expect(throws: ErroDaApi.self) { _ = try await desligada.buscarProfissionais(filtro(), cursor: nil, limite: nil) }
@@ -447,6 +447,24 @@ struct BuscaDeProfissionaisDubleTests {
         relogio.avancar(3600)
         #expect(try await api.aceitarTermos(versao: "2026-11-13") == primeiro)
         #expect(try await api.minhaConta().termosVersao == "2026-11-13")
+
+        // A 2026-11-16 também está publicada; depois dela, a anterior não volta (o aceite não volta atrás).
+        let nova = try await api.aceitarTermos(versao: "2026-11-16")
+        #expect(nova.aceitoEm == Self.agora.addingTimeInterval(3600))
+        let volta = await #expect(throws: ErroDaApi.self) { _ = try await api.aceitarTermos(versao: "2026-11-13") }
+        #expect(volta?.codigo == .campoInvalido)
+        #expect(try await api.minhaConta().termosVersao == "2026-11-16")
+    }
+
+    @Test("A busca aceita quem tem a 2026-11-13 ou mais nova; o app manda a 2026-11-16 no aceite (contrato 0.2.91)")
+    func versoesDosTermos() {
+        #expect(VersaoDosTermos.vigente == "2026-11-16")
+        #expect(VersaoDosTermos.minimaParaBuscar == "2026-11-13")
+        #expect(VersaoDosTermos.atendeABusca(nil) == false)
+        #expect(VersaoDosTermos.atendeABusca("2026-11-12") == false)
+        #expect(VersaoDosTermos.atendeABusca("2026-11-13"))
+        #expect(VersaoDosTermos.atendeABusca("2026-11-16"))
+        #expect(VersaoDosTermos.atendeABusca(VersaoDosTermos.vigente))
     }
 
     @Test("aceitar_termos sem conta (antes de criar_conta) é 404 nao_encontrado, como minha_conta")

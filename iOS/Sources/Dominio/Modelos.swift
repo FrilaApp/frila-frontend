@@ -67,9 +67,11 @@ public struct Conta: Codable, Hashable, Identifiable, Sendable {
 
 /// As versões dos Termos e da Política (datas `AAAA-MM-DD`, que se comparam como texto, contrato 0.2.90).
 public enum VersaoDosTermos {
-    /// A que as telas de cadastro e de aceite exibem hoje (Termos 1.1 e Política, 13/11/2026).
-    public static let vigente = "2026-11-13"
-    /// A mais antiga com que o servidor deixa buscar profissionais.
+    /// A que a tela de aceite da busca exibe e manda em `aceitar_termos` (Termos 1.2 e Política 1.3, 16/11/2026, contrato
+    /// 0.2.91). O cadastro tem a sua própria constante, que se acerta à parte.
+    public static let vigente = "2026-11-16"
+    /// A mais antiga com que o servidor deixa buscar profissionais (Termos 1.1): quem já aceitou `2026-11-13` ou uma
+    /// mais nova não precisa aceitar de novo.
     public static let minimaParaBuscar = "2026-11-13"
 
     /// `true` se a versão aceita vale para a busca. Sem versão (campo ausente), não aceitou.
