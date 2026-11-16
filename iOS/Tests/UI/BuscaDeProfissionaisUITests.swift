@@ -90,24 +90,34 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         add(anexo)
     }
 
+    /// Em AX5 os filtros ocupam a tela e a lista fica abaixo: rola até o elemento aparecer.
+    private func procurar(_ elemento: XCUIElement, em app: XCUIApplication, paraBaixo: Bool = true) -> Bool {
+        for _ in 0..<12 {
+            if elemento.exists && elemento.isHittable { return true }
+            if paraBaixo { app.swipeUp() } else { app.swipeDown() }
+        }
+        return elemento.exists
+    }
+
     private func capturar(ax5: Bool) {
         let sufixo = ax5 ? "ax5" : "padrao"
         let app = abrir(cenario + (ax5 ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : []))
         abrirABusca(app)
         buscar(app)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'")).firstMatch
-            .waitForExistence(timeout: 15))
+        let primeiraPessoa = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'")).firstMatch
+        XCTAssertTrue(primeiraPessoa.waitForExistence(timeout: 15) || procurar(primeiraPessoa, em: app), "a busca traz profissionais")
         salvar(app, "busca-com-resultados-\(sufixo)")
 
         // Outro serviço: ninguém oferece, a busca fica vazia e oferece "Publicar para todos".
         let servico = app.buttons["busca-servico"]
-        XCTAssertTrue(servico.waitForExistence(timeout: 5))
+        XCTAssertTrue(procurar(servico, em: app, paraBaixo: false), "o filtro de serviço aparece")
         servico.tap()
         let opcoes = app.buttons.allElementsBoundByIndex.filter { $0.isHittable && $0.label != "Serviço" && !$0.label.isEmpty }
         XCTAssertFalse(opcoes.isEmpty, "o seletor de serviço lista o catálogo")
         if let outra = app.collectionViews.buttons.allElementsBoundByIndex.last(where: { $0.isHittable }) ?? opcoes.last { outra.tap() }
         buscar(app)
-        XCTAssertTrue(app.descendants(matching: .any)["busca-vazia"].waitForExistence(timeout: 15), "sem ninguém, a busca fica vazia")
+        let vazia = app.descendants(matching: .any)["busca-vazia"]
+        XCTAssertTrue(vazia.waitForExistence(timeout: 15) || procurar(vazia, em: app), "sem ninguém, a busca fica vazia")
         salvar(app, "busca-vazia-\(sufixo)")
     }
 

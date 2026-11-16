@@ -827,12 +827,13 @@ struct BuscaDeProfissionaisViewModelTests {
         await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido), perdeResposta: [])
         await vm.carregarMais()
         #expect(await fonte.cursoresRecebidos == [nil, "20", nil]) // refez a 1ª página
-        #expect(vm.selecionados.isEmpty)
+        // O refazer por cursor_invalido não apaga a seleção (F-035.4): quem já estava marcado continua.
+        #expect(vm.selecionados == [ids[0], ids[1]])
 
-        vm.alternarSelecao(ids[1])
         vm.alternarSelecao(ids[2])
         await vm.chamar(trabalho: try trabalho())
         let pedidos = await fonte.pedidos
+        try #require(pedidos.count >= 4)
         #expect(pedidos.count == 4)
         try #require(pedidos.count >= 4)
         #expect(pedidos[2].profissionalID == ids[1] && pedidos[2].chave == chaveIncerta && pedidos[2].vagaID == vagaID)
