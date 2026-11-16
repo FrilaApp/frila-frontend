@@ -756,6 +756,144 @@ class BuscaDeProfissionaisViewModelTest {
         assertEquals(listOf("p-1", "p-2", "p-2", "p-2"), comTrabalho.map { it["profissional_id"]!!.jsonPrimitive.content })
     }
 
+    // --- Envio incerto trava a seleção e a busca; vaga por trabalho vale entre buscas -----------------------
+
+    /** p-1 estoura o prazo (incerto) enquanto [atrasar]; as vagas nascem como `vaga-<profissional>` e quem vai por vaga_id a devolve. */
+    private fun RedeDeTeste.respondeComP1Atrasado(atrasar: () -> Boolean) {
+        rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            when {
+                id == "p-1" && atrasar() -> { kotlinx.coroutines.delay(5_000); respond(chamadaJson, HttpStatusCode.OK, json) }
+                "vaga_id" in pedido.corpo -> respond(chamadaJson.replace("\"v1\"", "\"${pedido.corpo["vaga_id"]!!.jsonPrimitive.content}\""), HttpStatusCode.OK, json)
+                else -> respond(chamadaJson.replace("\"v1\"", "\"vaga-$id\""), HttpStatusCode.OK, json)
+            }
+        }
+    }
+
+    @Test
+    fun `com envio incerto pendente nao da para desmarcar nem trocar a selecao, e outro trabalho nao sai`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 5))) }
+        rede.respondeComP1Atrasado { true }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+        assertTrue(vm.estado.value.temEnvioPendente)
+        assertTrue(vm.estado.value.selecaoTravada)
+
+        assertFalse(vm.alternarSelecao("p-1"), "desmarcar o incerto")
+        assertFalse(vm.alternarSelecao("p-2"), "desmarcar o que nem saiu")
+        assertFalse(vm.alternarSelecao("p-3"), "trocar por outro")
+        assertEquals(listOf("p-1", "p-2"), vm.estado.value.selecionados)
+
+        // Outro trabalho também fica de fora: abriria outra vaga para quem pode já ter chamada.
+        vm.chamar(trabalho.copy(valorCentavos = 25000)).join()
+        assertEquals(1, rede.doNome("chamar_profissional").size)
+    }
+
+    @Test
+    fun `com envio incerto pendente a busca fica bloqueada, e o reenvio pelo ViewModel segue com a mesma chave`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 3))) }
+        var atrasar = true
+        rede.respondeComP1Atrasado { atrasar }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+
+        assertFalse(vm.estado.value.podeBuscar)
+        vm.buscar().join()
+        assertEquals(1, rede.doNome("buscar_profissionais").size)
+        assertEquals(listOf("p-1", "p-2"), vm.estado.value.selecionados)
+        assertTrue(vm.estado.value.temEnvioPendente)
+
+        // "Tentar de novo" sem passar o trabalho (a folha pode ter fechado): o ViewModel guardou o último envio.
+        atrasar = false
+        vm.reenviar().join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-1", "p-2"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertEquals(pedidos[0]["chave"], pedidos[1]["chave"])
+        assertEquals("vaga-p-1", pedidos[2]["vaga_id"]!!.jsonPrimitive.content)
+        assertFalse(vm.estado.value.temEnvioPendente)
+        assertTrue(vm.estado.value.podeBuscar)
+    }
+
+    @Test
+    fun `cursor_invalido refaz a primeira pagina sem apagar o incerto, a selecao nem a chave`() = runBlocking {
+        val rede = RedeDeTeste()
+        var buscas = 0
+        rede.rota("buscar_profissionais") { pedido ->
+            buscas++
+            when {
+                pedido.corpo["cursor"] != null ->
+                    respond("""{"code":"cursor_invalido","message":"x"}""", HttpStatusCode.UnprocessableEntity, json)
+                buscas == 1 -> respond(pagina(ids("p", 1, 20), proximo = "velho"), HttpStatusCode.OK, json)
+                // A página nova não traz mais o p-1 (o incerto): ele continua na lista por estar selecionado.
+                else -> respond(pagina(ids("n", 1, 5)), HttpStatusCode.OK, json)
+            }
+        }
+        var atrasar = true
+        rede.respondeComP1Atrasado { atrasar }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+        val chaveDoP1 = rede.doNome("chamar_profissional").single().corpo["chave"]
+
+        vm.carregarMais().join()
+
+        val tela = vm.estado.value
+        assertEquals(ids("n", 1, 5) + listOf("p-1", "p-2"), tela.resultados.map { it.id })
+        assertEquals(listOf("p-1", "p-2"), tela.selecionados)
+        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true), tela.resultadosDaChamada["p-1"])
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, tela.resultadosDaChamada["p-2"])
+        assertEquals(EstadoDaBusca.Resultados, tela.estado)
+        assertTrue(tela.podeReenviar)
+
+        atrasar = false
+        vm.reenviar().join()
+        val reenvio = rede.doNome("chamar_profissional").drop(1).map { it.corpo }
+        assertEquals("p-1", reenvio.first()["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals(chaveDoP1, reenvio.first()["chave"])
+        assertEquals("vaga-p-1", reenvio[1]["vaga_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `nova busca com o mesmo trabalho entra na vaga que ja existe pelo vaga_id, e outro trabalho abre ciclo novo`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 5))) }
+        rede.respondeComP1Atrasado { false }
+        val vm = viewModelCom(rede).comFiltros(regiao = 7)
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+        vm.chamar(trabalho).join()
+        assertEquals("vaga-p-1", (vm.estado.value.resultadosDaChamada["p-1"] as ResultadoDaChamadaDaBusca.Enviada).chamada.vagaId)
+
+        // Nova busca (a seleção e os resultados da chamada zeram), mesmo trabalho: vai pelo vaga_id da vaga existente.
+        vm.buscar().join()
+        vm.alternarSelecao("p-2")
+        vm.chamar(trabalho).join()
+        var pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals("p-2", pedidos.last()["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals("vaga-p-1", pedidos.last()["vaga_id"]!!.jsonPrimitive.content)
+        assertFalse("valor_centavos" in pedidos.last())
+
+        // O trabalho mudou (outro valor): ciclo novo, o trabalho completo e a vaga nova.
+        vm.buscar().join()
+        vm.alternarSelecao("p-3")
+        vm.chamar(trabalho.copy(valorCentavos = 25000)).join()
+        pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals("p-3", pedidos.last()["profissional_id"]!!.jsonPrimitive.content)
+        assertFalse("vaga_id" in pedidos.last())
+        assertEquals("25000", pedidos.last()["valor_centavos"]!!.jsonPrimitive.content)
+        // A região da busca também faz parte do trabalho: outra região não entra na vaga da primeira.
+        vm.definirRegiao(8)
+        vm.buscar().join()
+        vm.alternarSelecao("p-4")
+        vm.chamar(trabalho).join()
+        assertFalse("vaga_id" in rede.doNome("chamar_profissional").last().corpo)
+    }
+
     @Test
     fun `chamar sem selecao, ou sem resultados, nao faz nada`() = runBlocking {
         val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(emptyList())) }

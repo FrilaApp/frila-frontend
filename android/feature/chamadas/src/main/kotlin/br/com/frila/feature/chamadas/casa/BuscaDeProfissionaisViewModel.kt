@@ -39,6 +39,9 @@ data class RascunhoDeVagaDaBusca(
     val horario: HorarioDaBusca? = null,
 )
 
+/** O trabalho de uma chamada sem profissional nem chave de idempotência, mais a região da busca (a vaga a guarda). */
+private data class ChaveDoTrabalho(val trabalho: TrabalhoDaChamada, val regiaoId: Int?)
+
 sealed interface EstadoDaBusca {
     data object Ocioso : EstadoDaBusca
     data object Carregando : EstadoDaBusca
@@ -93,16 +96,24 @@ data class EstadoBusca(
     internal val filtroDaBusca: RascunhoDeVagaDaBusca? = null,
 ) {
     val horarioValido: Boolean get() = horario?.valido ?: true
+    /** Bloqueada com envio pendente: uma nova busca esconderia quem pode já ter chamada criada (dinheiro). */
     val podeBuscar: Boolean
-        get() = funcaoId != null && horarioValido && estado != EstadoDaBusca.Carregando && !carregandoMais && !enviando
+        get() = funcaoId != null && horarioValido && estado != EstadoDaBusca.Carregando && !carregandoMais && !enviando &&
+            !temEnvioPendente
     val podeChamar: Boolean get() = selecionados.isNotEmpty() && !enviando && estado == EstadoDaBusca.Resultados
     fun estaSelecionado(id: String): Boolean = id in selecionados
 
-    /** Há quem possa ser reenviado: resultado incerto ou que nem saiu. O reenvio repete a chave de cada um. */
-    val podeReenviar: Boolean
-        get() = !enviando && resultadosDaChamada.values.any {
+    /** Há resultado incerto ou que nem saiu: o pedido pode ter criado a vaga. Só o reenvio resolve (mesma chave). */
+    val temEnvioPendente: Boolean
+        get() = resultadosDaChamada.values.any {
             it == ResultadoDaChamadaDaBusca.NaoEnviada || (it is ResultadoDaChamadaDaBusca.Erro && it.incerto)
         }
+
+    /** Há quem possa ser reenviado agora. O reenvio repete a chave de cada um. */
+    val podeReenviar: Boolean get() = !enviando && temEnvioPendente
+
+    /** Com envio em voo ou pendente ninguém é desmarcado nem trocado: soltaria outro com o trabalho completo e chave nova. */
+    val selecaoTravada: Boolean get() = enviando || temEnvioPendente
 
     /** "Publicar para todos" só existe com a busca vazia. */
     val rascunhoParaPublicarParaTodos: RascunhoDeVagaDaBusca?
@@ -139,10 +150,21 @@ class BuscaDeProfissionaisViewModel(
 
     private var proximoCursor: String? = null
     private var recursoConfirmado = false
-    private val tentativas = mutableMapOf<String, ChamarProfissionalDto>()
+    /**
+     * Pedidos guardados (incerto, J7 ou que nem saiu), por profissional E por trabalho: a chave de idempotência só
+     * se repete para o MESMO trabalho. Não são apagados por nova busca nem pelo refazer do cursor.
+     */
+    private val tentativas = mutableMapOf<Pair<String, ChaveDoTrabalho>, ChamarProfissionalDto>()
 
-    /** A vaga direta criada pela 1ª chamada desta busca; as seguintes vão pelo `vaga_id` dela. */
-    private var vagaDoTrabalho: String? = null
+    /**
+     * A vaga direta por TRABALHO (comparado sem profissional nem chave, com a região da busca): vale entre buscas na
+     * mesma tela. Nova busca + mesmo trabalho entra na vaga que já existe pelo `vaga_id`; se o servidor barrar
+     * (`422 por_vaga`, `409 vaga_encerrada`), o trabalho só começa ciclo novo quando a pessoa o muda.
+     */
+    private val vagasPorTrabalho = mutableMapOf<ChaveDoTrabalho, String>()
+
+    /** O último trabalho e recado enviados: o reenvio e o J7 usam estes, mesmo com a folha fechada e reaberta. */
+    private var ultimoEnvio: Pair<TrabalhoDaChamada, String?>? = null
 
     // --- Catálogos ---------------------------------------------------------------------------------
 
@@ -204,30 +226,46 @@ class BuscaDeProfissionaisViewModel(
 
     // --- Busca -------------------------------------------------------------------------------------
 
-    /** A primeira página com os filtros de agora. Zera a seleção e o resultado anterior. */
+    /**
+     * A primeira página com os filtros de agora. Zera a seleção e o resultado anterior, mas NÃO os pedidos guardados
+     * nem as vagas por trabalho. Fica bloqueada com envio pendente ([EstadoBusca.temEnvioPendente]).
+     */
     fun buscar(): Job {
         val tela = _estado.value
         val funcaoId = tela.funcaoId
         if (funcaoId == null || !tela.podeBuscar) return escopoDeTrabalho.launch { }
         val filtro = RascunhoDeVagaDaBusca(estabelecimentoId, funcaoId, tela.regiaoId, tela.horario)
         _estado.update { it.copy(estado = EstadoDaBusca.Carregando, erroAoCarregarMais = null) }
-        return escopoDeTrabalho.launch {
-            try {
-                val jaConfirmado = recursoConfirmado
-                val pagina = withTimeout(prazoMs) {
-                    if (!jaConfirmado && !recursoHabilitado()) return@withTimeout null
-                    buscarProfissionais(pedidoDaBusca(filtro, cursor = null, limite = LIMITE_DA_PAGINA))
-                }
-                if (pagina == null) {
-                    limparResultados(EstadoDaBusca.Indisponivel)
-                    return@launch
-                }
-                recursoConfirmado = true
-                val itens = semRepetidos(pagina.itens, jaTem = emptySet())
-                proximoCursor = cursorSeguinte(pagina, total = itens.size)
-                tentativas.clear()
-                vagaDoTrabalho = null
-                _estado.update {
+        return escopoDeTrabalho.launch { primeiraPagina(filtro, preservarEnvio = false) }
+    }
+
+    /**
+     * Busca a primeira página. [preservarEnvio] (refazer do `cursor_invalido`) mantém a seleção, o resultado das chamadas
+     * e os pedidos guardados, e deixa na lista quem já estava selecionado mesmo que não venha na página nova.
+     */
+    private suspend fun primeiraPagina(filtro: RascunhoDeVagaDaBusca, preservarEnvio: Boolean) {
+        try {
+            val jaConfirmado = recursoConfirmado
+            val pagina = withTimeout(prazoMs) {
+                if (!jaConfirmado && !recursoHabilitado()) return@withTimeout null
+                buscarProfissionais(pedidoDaBusca(filtro, cursor = null, limite = LIMITE_DA_PAGINA))
+            }
+            if (pagina == null) {
+                falhaDaBusca(EstadoDaBusca.Indisponivel, preservarEnvio)
+                return
+            }
+            recursoConfirmado = true
+            val itens = semRepetidos(pagina.itens, jaTem = emptySet())
+            proximoCursor = cursorSeguinte(pagina, total = itens.size)
+            _estado.update {
+                if (preservarEnvio) {
+                    val vindos = itens.map { c -> c.id }.toSet()
+                    val mantidos = it.resultados.filter { c -> c.id in it.selecionados && c.id !in vindos }
+                    it.copy(
+                        estado = EstadoDaBusca.Resultados, resultados = itens + mantidos, temMais = proximoCursor != null,
+                        carregandoMais = false, erroAoCarregarMais = null, filtroDaBusca = filtro,
+                    )
+                } else {
                     it.copy(
                         estado = if (itens.isEmpty()) EstadoDaBusca.Vazio else EstadoDaBusca.Resultados,
                         resultados = itens,
@@ -239,14 +277,26 @@ class BuscaDeProfissionaisViewModel(
                         filtroDaBusca = filtro,
                     )
                 }
-            } catch (erro: CancellationException) {
-                if (erro !is TimeoutCancellationException) throw erro
-                limparResultados(EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO))
-            } catch (erro: ErroDaApi) {
-                limparResultados(estadoDoErro(erro))
-            } catch (_: Exception) {
-                limparResultados(EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO))
             }
+        } catch (erro: CancellationException) {
+            if (erro !is TimeoutCancellationException) throw erro
+            falhaDaBusca(EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO), preservarEnvio)
+        } catch (erro: ErroDaApi) {
+            falhaDaBusca(estadoDoErro(erro), preservarEnvio)
+        } catch (_: Exception) {
+            falhaDaBusca(EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO), preservarEnvio)
+        }
+    }
+
+    /** Falha da busca. Ao refazer o cursor a lista e o envio ficam como estavam, só sem "carregar mais". */
+    private fun falhaDaBusca(novo: EstadoDaBusca, preservarEnvio: Boolean) {
+        if (!preservarEnvio) return limparResultados(novo)
+        proximoCursor = null
+        _estado.update {
+            it.copy(
+                estado = EstadoDaBusca.Resultados, temMais = false, carregandoMais = false,
+                erroAoCarregarMais = TextosChamadaCasa.BUSCA_ERRO_AO_CARREGAR_MAIS,
+            )
         }
     }
 
@@ -276,14 +326,12 @@ class BuscaDeProfissionaisViewModel(
             } catch (erro: ErroDaApi) {
                 when {
                     // Cursor de outra busca ou de outro dia: refaz a primeira página (contrato 0.2.88).
+                    // Não apaga seleção, resultado das chamadas, pedidos guardados nem vagas (o incerto e a chave seguem).
                     erro.codigo == CodigoErroAPI.CURSOR_INVALIDO -> {
                         _estado.update {
-                            it.copy(
-                                carregandoMais = false, funcaoId = filtro.funcaoId, regiaoId = filtro.regiaoId,
-                                horario = filtro.horario, estado = EstadoDaBusca.Ocioso,
-                            )
+                            it.copy(funcaoId = filtro.funcaoId, regiaoId = filtro.regiaoId, horario = filtro.horario)
                         }
-                        buscar().join()
+                        primeiraPagina(filtro, preservarEnvio = true)
                     }
                     erro.codigo == CodigoErroAPI.LIMITE_EXCEDIDO || recursoDesligado(erro) -> {
                         _estado.update { it.copy(carregandoMais = false, estado = estadoDoErro(erro)) }
@@ -310,8 +358,6 @@ class BuscaDeProfissionaisViewModel(
 
     private fun limparResultados(novo: EstadoDaBusca) {
         proximoCursor = null
-        vagaDoTrabalho = null
-        tentativas.clear()
         _estado.update {
             it.copy(
                 estado = novo, resultados = emptyList(), temMais = false, selecionados = emptyList(),
@@ -336,9 +382,11 @@ class BuscaDeProfissionaisViewModel(
 
     // --- Seleção -----------------------------------------------------------------------------------
 
-    /** Marca ou desmarca. O 4º não entra: devolve `false` e liga o aviso. */
+    /** Marca ou desmarca. O 4º não entra: devolve `false` e liga o aviso. Com envio pendente a seleção não muda (`false`). */
     fun alternarSelecao(id: String): Boolean {
         val tela = _estado.value
+        // Travada com envio em voo ou pendente: desmarcar ou trocar soltaria outro com o trabalho e chave nova.
+        if (tela.selecaoTravada) return false
         if (id in tela.selecionados) {
             _estado.update { it.copy(selecionados = it.selecionados - id, avisoDeLimiteDeSelecao = null) }
             return true
@@ -373,10 +421,17 @@ class BuscaDeProfissionaisViewModel(
      */
     fun chamar(trabalho: TrabalhoDaChamada, recado: String? = null, confirmoRecorrencia: Boolean = false): Job {
         val tela = _estado.value
+        val regiaoId = tela.filtroDaBusca?.regiaoId
+        val chaveDoTrabalho = ChaveDoTrabalho(trabalho, regiaoId)
         val pendentes = tela.selecionados.filter { tela.resultadosDaChamada[it] == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia }
+        // Com envio pendente só o reenvio do MESMO trabalho vale: outro trabalho abriria outra vaga para quem pode já ter chamada.
+        val trocouODoPendente = tela.temEnvioPendente && ultimoEnvio?.let { ChaveDoTrabalho(it.first, regiaoId) } != chaveDoTrabalho
         // A confirmação J7 só vale depois da recusa correspondente, e não enquanto houver pedido incerto que levou o trabalho:
         // a vaga pode já existir, e o J7 iria com o trabalho completo e criaria outra. Reenvie primeiro (podeReenviar).
-        if (!tela.podeChamar || (confirmoRecorrencia && (pendentes.isEmpty() || tela.podeReenviar))) return escopoDeTrabalho.launch { }
+        if (!tela.podeChamar || trocouODoPendente || (confirmoRecorrencia && (pendentes.isEmpty() || tela.podeReenviar))) {
+            return escopoDeTrabalho.launch { }
+        }
+        ultimoEnvio = trabalho to recado
         val alvos = tela.selecionados.filter { id ->
             when {
                 tela.resultadosDaChamada[id] is ResultadoDaChamadaDaBusca.Enviada -> false
@@ -387,15 +442,14 @@ class BuscaDeProfissionaisViewModel(
             // para a vaga existir antes de os outros irem pelo vaga_id (a ordem de quem não tem pedido guardado se mantém).
         }.sortedBy { id ->
             val incertoComTrabalho = (tela.resultadosDaChamada[id] as? ResultadoDaChamadaDaBusca.Erro)?.incerto == true &&
-                tentativas[id]?.vagaId == null
+                tentativas[id to chaveDoTrabalho]?.vagaId == null
             if (incertoComTrabalho) 0 else 1
         }
-        val regiaoId = tela.filtroDaBusca?.regiaoId
         _estado.update { it.copy(enviando = true, mostrarJ7 = false) }
         return escopoDeTrabalho.launch {
             for ((posicao, id) in alvos.withIndex()) {
-                val vagaId = vagaDoTrabalho
-                val guardado = tentativas[id]
+                val vagaId = vagasPorTrabalho[chaveDoTrabalho]
+                val guardado = tentativas[id to chaveDoTrabalho]
                 val original = when {
                     guardado == null -> pedidoDe(id, trabalho, recado, regiaoId, vagaId)
                     // Quem tem pedido guardado COM o trabalho (J7, ou J7 que virou NaoEnviada) e NÃO ficou incerto, agora que a
@@ -408,12 +462,12 @@ class BuscaDeProfissionaisViewModel(
                     else -> guardado
                 }
                 val pedido = if (confirmoRecorrencia) original.copy(confirmoRecorrencia = true) else original
-                tentativas[id] = pedido
+                tentativas[id to chaveDoTrabalho] = pedido
                 var incerto = false
                 val resultado = try {
                     val chamada = withTimeout(prazoMs) { chamarProfissional(pedido) }
-                    tentativas.remove(id)
-                    if (vagaDoTrabalho == null) vagaDoTrabalho = chamada.vagaId
+                    tentativas.remove(id to chaveDoTrabalho)
+                    vagasPorTrabalho.putIfAbsent(chaveDoTrabalho, chamada.vagaId)
                     ResultadoDaChamadaDaBusca.Enviada(chamada)
                 } catch (erro: CancellationException) {
                     if (erro !is TimeoutCancellationException) throw erro
@@ -424,7 +478,7 @@ class BuscaDeProfissionaisViewModel(
                         erro.codigo == CodigoErroAPI.RECORRENCIA_NAO_CONFIRMADA -> ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia
                         else -> {
                             incerto = resultadoIncerto(erro)
-                            if (!incerto) tentativas.remove(id)
+                            if (!incerto) tentativas.remove(id to chaveDoTrabalho)
                             ResultadoDaChamadaDaBusca.Erro(mensagemDaChamada(erro), incerto = incerto)
                         }
                     }
@@ -451,6 +505,12 @@ class BuscaDeProfissionaisViewModel(
             }
         }
     }
+
+    /** "Tentar de novo": repete o último envio (mesmo trabalho e recado) com a chave de cada pedido guardado. */
+    fun reenviar(): Job = ultimoEnvio?.let { chamar(it.first, it.second) } ?: escopoDeTrabalho.launch { }
+
+    /** "Li o aviso e confirmo": reenvia só quem recebeu J7, com o último trabalho e recado (a folha pode ter fechado e reaberto). */
+    fun confirmarJ7(): Job = ultimoEnvio?.let { chamar(it.first, it.second, confirmoRecorrencia = true) } ?: escopoDeTrabalho.launch { }
 
     /** Sem [vagaId]: o trabalho completo (cria a vaga direta). Com ele: só o `vaga_id` mais o recado, sem os campos da RN02. */
     private fun pedidoDe(

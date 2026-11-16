@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -82,7 +83,8 @@ class TelaBuscaDeProfissionaisTest {
         val perfis = mutableListOf<String>()
         var rascunho: RascunhoDeVagaDaBusca? = null
         var chamou: Pair<TrabalhoDaChamada, String?>? = null
-        var confirmouJ7: Pair<TrabalhoDaChamada, String?>? = null
+        var confirmouJ7 = 0
+        var reenviou = 0
         var horario: HorarioDaBusca? = null
     }
 
@@ -106,7 +108,8 @@ class TelaBuscaDeProfissionaisTest {
                     aoAbrirPerfil = { chamadas.perfis += it },
                     aoPublicarParaTodos = { chamadas.rascunho = it },
                     aoChamar = { trabalho, recado -> chamadas.chamou = trabalho to recado },
-                    aoConfirmarJ7 = { trabalho, recado -> chamadas.confirmouJ7 = trabalho to recado },
+                    aoReenviar = { chamadas.reenviou++ },
+                    aoConfirmarJ7 = { chamadas.confirmouJ7++ },
                     relogio = { agora },
                 )
             }
@@ -306,7 +309,7 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithTag("folha-valor").performTextInput("180")
         rule.onNodeWithTag("folha-confirmar-total").performClick()
         rule.onNodeWithTag("folha-enviar").performScrollTo().performClick()
-        val enviado = chamadas.chamou!!.first
+        assertNotNull(chamadas.chamou)
 
         val chamada = ChamadaDto("c", "v", "p1", "c1", "aberta", expiraEm = "2026-11-17T03:00:00Z", criadaEm = "2026-11-16T15:00:00Z")
         estado = comResultados(selecionados = listOf("p1", "p2", "p3")) {
@@ -327,11 +330,11 @@ class TelaBuscaDeProfissionaisTest {
 
         rule.onNodeWithTag("folha-confirmar-j7").performScrollTo().performClick()
 
-        assertEquals(enviado, chamadas.confirmouJ7!!.first)
+        assertEquals(1, chamadas.confirmouJ7)
         rule.onNodeWithTag("folha-fechar").performScrollTo().performClick()
         rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").assertExists()
-        assertTrue(chamadas.confirmouJ7 != null)
+        assertTrue(chamadas.confirmouJ7 == 1)
     }
 
     @Test
@@ -340,8 +343,7 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithTag("folha-valor").performTextInput("180")
         rule.onNodeWithTag("folha-confirmar-total").performClick()
         rule.onNodeWithTag("folha-enviar").performScrollTo().performClick()
-        val enviado = chamadas.chamou!!
-        chamadas.chamou = null
+        assertNotNull(chamadas.chamou)
 
         estado = comResultados(selecionados = listOf("p1", "p2")) {
             it.copy(
@@ -355,7 +357,8 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithText("João P.: ${TextosChamadaCasa.BUSCA_RESULTADO_NAO_ENVIADA}").performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("folha-reenviar").performScrollTo().performClick()
 
-        assertEquals(enviado, chamadas.chamou)
+        // O reenvio usa o trabalho que o ViewModel guardou: a folha reaberta não precisa dele.
+        assertEquals(1, chamadas.reenviou)
     }
 
     @Test
@@ -386,6 +389,33 @@ class TelaBuscaDeProfissionaisTest {
             ChamadaDto("c3", "v", "p3", "c1", "aberta", expiraEm = "2026-11-17T03:00:00Z", criadaEm = "2026-11-16T15:00:00Z"),
         )))
         rule.onNodeWithTag("folha-confirmar-j7").performScrollTo().assertIsEnabled()
+    }
+
+    @Test
+    fun comEnvioPendenteASelecaoFicaTravadaEABuscaDesligadaComOAviso() {
+        val pendente = comResultados(selecionados = listOf("p1", "p2")) {
+            it.copy(
+                resultadosDaChamada = mapOf(
+                    "p1" to ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true),
+                    "p2" to ResultadoDaChamadaDaBusca.NaoEnviada,
+                ),
+            )
+        }
+        montar(pendente.copy(funcoes = listOf(garcom), funcaoId = "f1"))
+
+        rule.onNodeWithTag("busca-envio-pendente").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
+        rolarAteTag("busca-selecionar-p3")
+        rule.onNodeWithTag("busca-selecionar-p3").assertIsNotEnabled()
+        rolarAteTag("busca-selecionar-p1")
+        rule.onNodeWithTag("busca-selecionar-p1").assertIsNotEnabled()
+
+        // Resolvido o envio, a seleção e a busca voltam.
+        estado = estado.copy(resultadosDaChamada = emptyMap())
+        rule.onNodeWithTag("busca-lista").performScrollToIndex(0)
+        rule.onNodeWithTag("busca-buscar").assertIsEnabled()
+        rolarAteTag("busca-selecionar-p3")
+        rule.onNodeWithTag("busca-selecionar-p3").assertIsEnabled()
     }
 
     @Test

@@ -36,7 +36,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,7 +77,8 @@ fun TelaBuscaDeProfissionais(
         aoAbrirPerfil = aoAbrirPerfil,
         aoPublicarParaTodos = aoPublicarParaTodos,
         aoChamar = { trabalho, recado -> viewModel.chamar(trabalho, recado) },
-        aoConfirmarJ7 = { trabalho, recado -> viewModel.chamar(trabalho, recado, confirmoRecorrencia = true) },
+        aoReenviar = { viewModel.reenviar() },
+        aoConfirmarJ7 = { viewModel.confirmarJ7() },
         modifier = modifier,
         relogio = relogio,
     )
@@ -104,7 +104,8 @@ fun ConteudoBuscaDeProfissionais(
     aoAbrirPerfil: (String) -> Unit,
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     aoChamar: (TrabalhoDaChamada, String?) -> Unit,
-    aoConfirmarJ7: (TrabalhoDaChamada, String?) -> Unit,
+    aoReenviar: () -> Unit,
+    aoConfirmarJ7: () -> Unit,
     modifier: Modifier = Modifier,
     relogio: () -> Instant = Instant::now,
 ) {
@@ -127,6 +128,7 @@ fun ConteudoBuscaDeProfissionais(
                 estado = estado,
                 relogio = relogio,
                 aoChamar = aoChamar,
+                aoReenviar = aoReenviar,
                 aoConfirmarJ7 = aoConfirmarJ7,
                 aoFechar = { folhaAberta = false },
                 modifier = Modifier.padding(preenchimento),
@@ -304,6 +306,13 @@ private fun ListaDaBusca(
                     }
                 }
 
+                if (estado.temEnvioPendente) {
+                    Text(
+                        TextosChamadaCasa.BUSCA_ENVIO_PENDENTE,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("busca-envio-pendente"),
+                    )
+                }
                 Button(
                     onClick = aoBuscar,
                     enabled = podeBuscarAgora,
@@ -347,6 +356,7 @@ private fun ListaDaBusca(
                     CartaoDoProfissional(
                         cartao = cartao,
                         selecionado = estado.estaSelecionado(cartao.id),
+                        travado = estado.selecaoTravada,
                         aoAlternarSelecao = { aoAlternarSelecao(cartao.id) },
                         aoAbrirPerfil = { aoAbrirPerfil(cartao.id) },
                     )
@@ -381,6 +391,7 @@ private fun ListaDaBusca(
 private fun CartaoDoProfissional(
     cartao: CartaoProfissionalDto,
     selecionado: Boolean,
+    travado: Boolean,
     aoAlternarSelecao: () -> Unit,
     aoAbrirPerfil: () -> Unit,
 ) {
@@ -391,6 +402,7 @@ private fun CartaoDoProfissional(
         Checkbox(
             checked = selecionado,
             onCheckedChange = { aoAlternarSelecao() },
+            enabled = !travado,
             modifier = Modifier.testTag("busca-selecionar-${cartao.id}"),
         )
         Column(modifier = Modifier.weight(1f).clickable(onClick = aoAbrirPerfil).padding(vertical = 8.dp)) {
@@ -416,7 +428,8 @@ private fun FolhaDeChamadaDaBusca(
     estado: EstadoBusca,
     relogio: () -> Instant,
     aoChamar: (TrabalhoDaChamada, String?) -> Unit,
-    aoConfirmarJ7: (TrabalhoDaChamada, String?) -> Unit,
+    aoReenviar: () -> Unit,
+    aoConfirmarJ7: () -> Unit,
     aoFechar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -430,7 +443,6 @@ private fun FolhaDeChamadaDaBusca(
     var responsavel by rememberSaveable { mutableStateOf(estado.casa?.nome.orEmpty()) }
     var recado by rememberSaveable { mutableStateOf("") }
     var faltando by rememberSaveable { mutableStateOf<String?>(null) }
-    var enviado by remember { mutableStateOf<ResultadoDaFolha.Pronto?>(null) }
     val travada = estado.enviando || estado.resultadosDaChamada.isNotEmpty()
 
     Column(
@@ -516,7 +528,6 @@ private fun FolhaDeChamadaDaBusca(
                         is ResultadoDaFolha.Falta -> faltando = resultado.motivo
                         is ResultadoDaFolha.Pronto -> {
                             faltando = null
-                            enviado = resultado
                             aoChamar(resultado.trabalho, resultado.recado)
                         }
                     }
@@ -544,8 +555,7 @@ private fun FolhaDeChamadaDaBusca(
         if (estado.podeReenviar) {
             // Mesmo trabalho e mesma chave: os campos seguem travados para o servidor devolver a chamada já criada.
             Button(
-                onClick = { enviado?.let { aoChamar(it.trabalho, it.recado) } },
-                enabled = enviado != null,
+                onClick = aoReenviar,
                 modifier = Modifier.fillMaxWidth().testTag("folha-reenviar"),
             ) { Text(TextosChamadaCasa.BUSCA_REENVIAR) }
         }
@@ -556,8 +566,8 @@ private fun FolhaDeChamadaDaBusca(
                 // Com envio incerto pendente a vaga pode já existir: confirmar agora poderia criar outra.
                 if (estado.podeReenviar) Text(TextosChamadaCasa.BUSCA_CONFIRMAR_DEPOIS, color = MaterialTheme.colorScheme.error)
                 Button(
-                    onClick = { enviado?.let { aoConfirmarJ7(it.trabalho, it.recado) } },
-                    enabled = enviado != null && !estado.enviando && !estado.podeReenviar,
+                    onClick = aoConfirmarJ7,
+                    enabled = !estado.enviando && !estado.podeReenviar,
                     modifier = Modifier.fillMaxWidth().testTag("folha-confirmar-j7"),
                 ) { Text(TextosChamadaCasa.J7_CONFIRMAR) }
             }
