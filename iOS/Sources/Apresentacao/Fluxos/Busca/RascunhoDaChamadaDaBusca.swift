@@ -6,7 +6,7 @@ import Observation
 /// Vale o mesmo para cada profissional selecionado. As regras são as da chamada direta (2 h de antecedência,
 /// turno de 2 a 16 h). O Fabrício redesenha a folha; este estado fica.
 @MainActor @Observable
-public final class RascunhoDaChamadaDaBusca {
+public final class RascunhoDaChamadaDaBusca: Identifiable {
     public var inicio: Date
     public var fim: Date
     public var valorTexto = ""

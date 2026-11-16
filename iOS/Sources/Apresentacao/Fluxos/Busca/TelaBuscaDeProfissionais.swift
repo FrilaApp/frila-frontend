@@ -13,7 +13,6 @@ public struct TelaBuscaDeProfissionais: View {
     @State private var usarHorario = false
     @State private var inicio: Date
     @State private var fim: Date
-    @State private var mostrandoChamada = false
     @State private var rascunhoDaChamada: RascunhoDaChamadaDaBusca?
     @State private var trabalhoEnviado: PublicacaoVaga?
     @State private var recadoEnviado: String?
@@ -86,7 +85,7 @@ public struct TelaBuscaDeProfissionais: View {
             }
         }
         .task { await carregarCatalogo() }
-        .sheet(isPresented: $mostrandoChamada) { folhaDeChamada }
+        .sheet(item: $rascunhoDaChamada) { rascunho in folhaDeChamada(rascunho) }
         .alert(Text(verbatim: TextosChamadaDireta.j7Titulo), isPresented: $viewModel.mostrarJ7) {
             Button(role: .cancel) { viewModel.mostrarJ7 = false } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
             Button { Task { await reenviarComJ7() } } label: { Text(verbatim: TextosChamadaDireta.j7Confirmar) }
@@ -223,7 +222,6 @@ public struct TelaBuscaDeProfissionais: View {
         guard let casa else { return }
         rascunhoDaChamada = RascunhoDaChamadaDaBusca(horario: usarHorario ? try? Periodo(inicio: inicio, fim: fim) : nil,
                                                       responsavel: casa.nome)
-        mostrandoChamada = true
     }
 
     private func enviarChamadas() async {
@@ -231,7 +229,7 @@ public struct TelaBuscaDeProfissionais: View {
               let trabalho = rascunho.trabalho(casa: casa, funcaoID: funcaoID) else { return }
         trabalhoEnviado = trabalho
         recadoEnviado = rascunho.recadoOuNada
-        mostrandoChamada = false
+        rascunhoDaChamada = nil
         await viewModel.chamar(trabalho: trabalho, recado: rascunho.recadoOuNada)
     }
 
@@ -242,38 +240,36 @@ public struct TelaBuscaDeProfissionais: View {
 
     // MARK: Folha de chamada
 
-    private var folhaDeChamada: some View {
-        NavigationStack {
-            if let rascunho = rascunhoDaChamada {
-                @Bindable var rascunho = rascunho
-                Form {
-                    Section { Text(verbatim: TextosBuscaDeProfissionais.folhaExplicacao) }
-                    Section {
-                        TextField(text: $rascunho.valorTexto) { Text(verbatim: TextosChamadaDireta.valor) }
-                            .keyboardType(.decimalPad)
-                            .accessibilityIdentifier("busca-valor-total")
-                        Toggle(isOn: $rascunho.totalConfirmado) { Text(verbatim: TextosChamadaDireta.total) }
-                            .accessibilityIdentifier("busca-confirmo-total")
-                        DatePicker(selection: $rascunho.inicio) { Text(verbatim: TextosBuscaDeProfissionais.inicio) }
-                        DatePicker(selection: $rascunho.fim) { Text(verbatim: TextosBuscaDeProfissionais.termino) }
-                        TextField(text: $rascunho.responsavel) { Text(verbatim: TextosChamadaDireta.responsavel) }
-                            .accessibilityIdentifier("busca-responsavel")
-                        TextField(text: $rascunho.recado, axis: .vertical) { Text(verbatim: TextosChamadaDireta.recado) }
-                    }
-                    Section {
-                        if let falta = rascunho.oQueFalta { Text(verbatim: falta) }
-                        Button { Task { await enviarChamadas() } } label: { Text(verbatim: TextosBuscaDeProfissionais.enviarChamadas) }
-                            .disabled(!rascunho.podeEnviar)
-                            .accessibilityIdentifier("busca-enviar-chamadas")
-                    }
+    private func folhaDeChamada(_ rascunhoAtual: RascunhoDaChamadaDaBusca) -> some View {
+        @Bindable var rascunho = rascunhoAtual
+        return NavigationStack {
+            Form {
+                Section { Text(verbatim: TextosBuscaDeProfissionais.folhaExplicacao) }
+                Section {
+                    TextField(text: $rascunho.valorTexto) { Text(verbatim: TextosChamadaDireta.valor) }
+                        .keyboardType(.decimalPad)
+                        .accessibilityIdentifier("busca-valor-total")
+                    Toggle(isOn: $rascunho.totalConfirmado) { Text(verbatim: TextosChamadaDireta.total) }
+                        .accessibilityIdentifier("busca-confirmo-total")
+                    DatePicker(selection: $rascunho.inicio) { Text(verbatim: TextosBuscaDeProfissionais.inicio) }
+                    DatePicker(selection: $rascunho.fim) { Text(verbatim: TextosBuscaDeProfissionais.termino) }
+                    TextField(text: $rascunho.responsavel) { Text(verbatim: TextosChamadaDireta.responsavel) }
+                        .accessibilityIdentifier("busca-responsavel")
+                    TextField(text: $rascunho.recado, axis: .vertical) { Text(verbatim: TextosChamadaDireta.recado) }
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .navigationTitle(Text(verbatim: TextosBuscaDeProfissionais.folhaTitulo))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button { mostrandoChamada = false } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
-                    }
+                Section {
+                    if let falta = rascunho.oQueFalta { Text(verbatim: falta) }
+                    Button { Task { await enviarChamadas() } } label: { Text(verbatim: TextosBuscaDeProfissionais.enviarChamadas) }
+                        .disabled(!rascunho.podeEnviar)
+                        .accessibilityIdentifier("busca-enviar-chamadas")
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle(Text(verbatim: TextosBuscaDeProfissionais.folhaTitulo))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { rascunhoDaChamada = nil } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
                 }
             }
         }
