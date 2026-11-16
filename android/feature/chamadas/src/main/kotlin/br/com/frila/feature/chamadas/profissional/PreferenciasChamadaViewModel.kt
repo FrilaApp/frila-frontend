@@ -48,7 +48,7 @@ data class EstadoPreferenciasChamada(
  * está, e `aceita_chamadas` ligado de novo gravaria outro registro do pedido do titular sem necessidade.
  *
  * [carregarPerfil] é `ServicoChamadaDireta.meuPerfilDetalhado`; [definirPreferencias] é `definirPreferenciaChamadas`.
- * [hoje] devolve o dia civil de Brasília (teste injeta); a pausa só vale a partir de amanhã.
+ * [hoje] devolve o dia civil de Brasília (teste injeta); uma pausa NOVA só vale a partir de amanhã, e a do servidor (inclusiva) vale até hoje.
  */
 class PreferenciasChamadaViewModel(
     private val carregarPerfil: suspend () -> PerfilProfissionalDetalhadoDto,
@@ -108,7 +108,8 @@ class PreferenciasChamadaViewModel(
         val atual = _estado.value
         val servidor = base
         if (!atual.carregou || atual.salvando || servidor == null) return escopoDeTrabalho.launch { }
-        if (atual.pausar && !atual.pausadoAte.isAfter(hoje())) {
+        // "A partir de amanhã" vale só para uma data que a pessoa mudou; a pausa que o servidor já tem (até hoje, inclusive) segue.
+        if (atual.pausar && atual.pausadoAte != pausaVigente(servidor) && !atual.pausadoAte.isAfter(hoje())) {
             _estado.update { it.copy(erro = TextosChamadaProfissional.DATA_DA_PAUSA_INVALIDA, sucesso = false) }
             return escopoDeTrabalho.launch { }
         }
@@ -176,14 +177,15 @@ class PreferenciasChamadaViewModel(
     }
 
     /**
-     * A pausa que ainda vale: `pausado_ate` de hoje ou do passado já acabou (a retomada é às 00:00 do dia seguinte),
-     * então volta como sem pausa. A regra "a partir de amanhã" só vale para a data que a pessoa escolhe, nunca
+     * A pausa que ainda vale: `pausado_ate` é INCLUSIVO (a data até a qual ninguém chama; a retomada é às 00:00 do dia
+     * seguinte), então uma pausa até hoje continua em vigor e a pessoa pode tirá-la (vai `pausado_ate: null`). Só data
+     * ANTES de hoje volta como sem pausa. A regra "a partir de amanhã" vale para a data que a pessoa escolhe, nunca
      * para o que veio do servidor, senão uma pausa vencida travaria o Salvar de qualquer outro campo.
      */
     private fun pausaVigente(servidor: PreferenciaChamadasDto): LocalDate? =
         servidor.pausadoAte
             ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-            ?.takeIf { it.isAfter(hoje()) }
+            ?.takeIf { !it.isBefore(hoje()) }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when {
         erro.recursoDesligado -> TextosChamadaProfissional.DESLIGADO

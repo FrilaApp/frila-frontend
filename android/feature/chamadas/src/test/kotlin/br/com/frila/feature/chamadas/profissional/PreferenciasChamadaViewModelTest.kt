@@ -181,13 +181,62 @@ class PreferenciasChamadaViewModelTest {
     }
 
     @Test
-    fun `pausa que acaba hoje tambem conta como sem pausa`() = runBlocking {
+    fun `pausa que acaba hoje continua em vigor, aparece ligada e a pessoa pode tirar com pausado_ate null`() = runBlocking {
         val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-16"))
+        rede.ok("/rpc/definir_preferencia_chamadas", Fixtures.preferenciaJson(pausadoAte = null))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        assertTrue(vm.estado.value.pausar)
+        assertEquals(hoje, vm.estado.value.pausadoAte)
+
+        vm.alternarPausa(false)
+        vm.salvar().join()
+
+        val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
+        assertEquals(setOf("pausado_ate"), corpo.keys)
+        assertEquals(JsonNull, corpo["pausado_ate"])
+        assertNull(vm.estado.value.erro)
+        assertFalse(vm.estado.value.pausar)
+    }
+
+    @Test
+    fun `pausa que acaba hoje no servidor nao bloqueia salvar outro campo nem manda a data de volta`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-16"))
+        rede.ok("/rpc/definir_preferencia_chamadas", Fixtures.preferenciaJson(pausadoAte = "2026-11-16", antecedencia = 24))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.escolherAntecedencia(24)
+        vm.salvar().join()
+
+        val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
+        assertEquals(setOf("antecedencia_minima_h"), corpo.keys)
+        assertNull(vm.estado.value.erro)
+        assertTrue(vm.estado.value.pausar)
+    }
+
+    @Test
+    fun `pausa que acabou ontem no servidor volta como sem pausa`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-15"))
         val vm = viewModelCom(rede)
         vm.carregar().join()
 
         assertFalse(vm.estado.value.pausar)
         assertEquals(hoje.plusDays(1), vm.estado.value.pausadoAte)
+    }
+
+    @Test
+    fun `trocar a pausa do servidor por hoje continua recusado, so vale a partir de amanha`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(pausadoAte = "2026-11-18"))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.escolherDataDaPausa(hoje)
+        vm.salvar().join()
+
+        assertTrue(rede.doCaminho("/rpc/definir_preferencia_chamadas").isEmpty())
+        assertEquals(TextosChamadaProfissional.DATA_DA_PAUSA_INVALIDA, vm.estado.value.erro)
     }
 
     @Test
