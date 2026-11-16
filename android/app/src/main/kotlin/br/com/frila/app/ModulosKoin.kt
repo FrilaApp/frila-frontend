@@ -69,9 +69,9 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.onClose
 import org.koin.dsl.module
 
-/** Endpoint real do Supabase do Frila. Em produção isto vem de `BuildConfig`, não de literal. */
-private const val SUPABASE_URL = "https://frila.supabase.co"
-private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
+/** URL e chave publicável do Supabase vêm de `BuildConfig` (cartão IZeQjV0N) e são validadas aqui. */
+internal fun configuracaoDoBackend(): ConfiguracaoDoBackend =
+    ConfiguracaoDoBackend.validar(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_PUBLISHABLE_KEY)
 
 /** Qualificador do [CoroutineScope] cujos filhos o logout cancela. */
 const val ESCOPO_DA_SESSAO = "escopoDaSessao"
@@ -111,12 +111,14 @@ val moduloRede = module {
             ?.let(::MonitorDeConectividadeAndroid)
             ?: MonitorDeConectividadeFalso()
     }
+    single { configuracaoDoBackend() }
     /** Cartão 101: gestor de ciclo de vida do cliente Ktor para recriação limpa após logout. */
     single {
+        val configuracao = get<ConfiguracaoDoBackend>()
         GestorClienteKtor {
             ClienteSupabase(
-                baseUrl = SUPABASE_URL,
-                apiKey = SUPABASE_ANON_KEY,
+                baseUrl = configuracao.url,
+                apiKey = configuracao.chavePublicavel,
                 armazenamentoDeSessao = get(),
                 monitorDeConectividade = get(),
             )

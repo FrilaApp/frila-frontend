@@ -1,5 +1,7 @@
 // Shell da aplicação: navegação Compose, grafo Koin, Application e Activity únicos.
-// Cartões Trello YRGYz50G e iWYMOk5C.
+// Cartões Trello YRGYz50G, iWYMOk5C e IZeQjV0N.
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,6 +22,72 @@ val temKeystoreDeRelease: Boolean = !releaseKeystorePath.isNullOrBlank() &&
     !releaseKeystorePassword.isNullOrBlank() &&
     !releaseKeyAlias.isNullOrBlank() &&
     !releaseKeyPassword.isNullOrBlank()
+
+// Cartão IZeQjV0N: URL e chave publicável do Supabase entram por BuildConfig. O build debug usa o
+// par DEV e o release usa o par PROD, com os mesmos nomes dos segredos do repositório e do iOS
+// (iOS/Docs/Environments.md). A fonte é a variável de ambiente e, na falta dela,
+// android/local.properties (ignorado pelo Git). Nenhum valor é impresso, só o nome da variável.
+val propriedadesLocais = Properties().apply {
+    val arquivo = rootProject.file("local.properties")
+    if (arquivo.isFile) arquivo.inputStream().use { load(it) }
+}
+
+fun valorSupabase(nome: String): String? =
+    (System.getenv(nome)?.takeIf { it.isNotBlank() } ?: propriedadesLocais.getProperty(nome))
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
+fun literalBuildConfig(valor: String): String =
+    "\"" + valor.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+val supabaseUrlDev: String? = valorSupabase("FRILA_SUPABASE_DEV_URL")
+val supabaseChaveDev: String? = valorSupabase("FRILA_SUPABASE_DEV_PUBLISHABLE_KEY")
+val supabaseUrlProd: String? = valorSupabase("FRILA_SUPABASE_PROD_URL")
+val supabaseChaveProd: String? = valorSupabase("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY")
+
+// Debug sem valores continua compilando (testes unitários). O placeholder tem host `.invalid`, que
+// nunca resolve: o app em debug falha na rede, não fala com um backend por engano.
+if (supabaseUrlDev == null || supabaseChaveDev == null) {
+    logger.warn(
+        "Supabase (debug): defina FRILA_SUPABASE_DEV_URL e FRILA_SUPABASE_DEV_PUBLISHABLE_KEY " +
+            "(variável de ambiente ou android/local.properties). Sem elas, o app debug não alcança o backend.",
+    )
+}
+
+// Release nunca sai sem URL e chave reais: falha nomeando a variável. A regra de TODO e de
+// `sb_secret_` espelha ConfiguracaoDoBackend.kt, que valida de novo na inicialização do app.
+val verificarSupabaseDeRelease = tasks.register("verificarConfiguracaoSupabaseDeRelease") {
+    group = "verification"
+    description = "Falha o build de release se a URL ou a chave publicável do Supabase faltar ou for inválida."
+    val url = supabaseUrlProd
+    val chave = supabaseChaveProd
+    doLast {
+        val problemas = buildList {
+            if (url == null) {
+                add("FRILA_SUPABASE_PROD_URL ausente")
+            } else if (url.startsWith("TODO", ignoreCase = true)) {
+                add("FRILA_SUPABASE_PROD_URL é placeholder (TODO)")
+            }
+            if (chave == null) {
+                add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY ausente")
+            } else if (chave.startsWith("TODO", ignoreCase = true)) {
+                add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY é placeholder (TODO)")
+            } else if (chave.startsWith("sb_secret_")) {
+                add("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY é chave secreta; use a chave publicável")
+            }
+        }
+        if (problemas.isNotEmpty()) {
+            throw GradleException(
+                "Build de release sem configuração do Supabase: ${problemas.joinToString("; ")}. " +
+                    "Defina por variável de ambiente ou em android/local.properties.",
+            )
+        }
+    }
+}
+// Também cobre benchmarkRelease e nonMinifiedRelease (baseline profile), que herdam os campos do release.
+tasks.matching { it.name.startsWith("generate") && it.name.endsWith("ReleaseBuildConfig") }.configureEach {
+    dependsOn(verificarSupabaseDeRelease)
+}
 
 android {
     namespace = "br.com.frila.app"
@@ -63,6 +131,8 @@ android {
 
     buildTypes {
         release {
+            buildConfigField("String", "SUPABASE_URL", literalBuildConfig(supabaseUrlProd.orEmpty()))
+            buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalBuildConfig(supabaseChaveProd.orEmpty()))
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -74,6 +144,16 @@ android {
             }
         }
         debug {
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                literalBuildConfig(supabaseUrlDev ?: "https://sem-configuracao.invalid"),
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_PUBLISHABLE_KEY",
+                literalBuildConfig(supabaseChaveDev ?: "sem-configuracao"),
+            )
             isMinifyEnabled = false
         }
     }
