@@ -557,6 +557,111 @@ class BuscaDeProfissionaisViewModelTest {
     }
 
     @Test
+    fun `1a incerta por prazo estourado nao promove ninguem, e o reenvio repete a chave dela e so depois os outros vao pelo vaga_id`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 3))) }
+        var atrasar = true
+        rede.rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            when {
+                id == "p-1" && atrasar -> { kotlinx.coroutines.delay(5_000); respond(chamadaJson, HttpStatusCode.OK, json) }
+                "vaga_id" in pedido.corpo -> respond(chamadaJson.replace("\"v1\"", "\"${pedido.corpo["vaga_id"]!!.jsonPrimitive.content}\""), HttpStatusCode.OK, json)
+                else -> respond(chamadaJson.replace("\"v1\"", "\"vaga-p1\""), HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        // Só o pedido do p-1 saiu; nenhum de p-2/p-3 foi com o trabalho.
+        val primeiros = rede.doNome("chamar_profissional")
+        assertEquals(listOf("p-1"), primeiros.map { it.corpo["profissional_id"]!!.jsonPrimitive.content })
+        val tela = vm.estado.value
+        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true), tela.resultadosDaChamada["p-1"])
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, tela.resultadosDaChamada["p-2"])
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, tela.resultadosDaChamada["p-3"])
+        assertFalse(tela.enviando)
+        assertTrue(tela.podeReenviar)
+
+        atrasar = false
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(4, pedidos.size)
+        assertEquals(listOf("p-1", "p-1", "p-2", "p-3"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        // O reenvio do p-1 repete a MESMA chave e o trabalho; os outros vão pelo vaga_id que a resposta trouxe.
+        assertEquals(pedidos[0]["chave"], pedidos[1]["chave"])
+        assertTrue("valor_centavos" in pedidos[1])
+        assertEquals(listOf("vaga-p1", "vaga-p1"), pedidos.drop(2).map { it["vaga_id"]!!.jsonPrimitive.content })
+        assertTrue(pedidos.drop(2).none { "valor_centavos" in it })
+        assertTrue(vm.estado.value.resultadosDaChamada.values.all { it is ResultadoDaChamadaDaBusca.Enviada })
+        assertFalse(vm.estado.value.podeReenviar)
+    }
+
+    @Test
+    fun `1a com resposta ilegivel tambem para o laco, mas recusa definitiva promove o proximo`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 3))) }
+        rede.rota("chamar_profissional") { pedido ->
+            when (pedido.corpo["profissional_id"]!!.jsonPrimitive.content) {
+                "p-1" -> respond("isto nao e json", HttpStatusCode.OK, json)
+                else -> respond(chamadaJson, HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        assertEquals(1, rede.doNome("chamar_profissional").size)
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, vm.estado.value.resultadosDaChamada["p-3"])
+
+        // Já a recusa DEFINITIVA do servidor (4xx com código) continua promovendo o próximo (teste do "1a falhar").
+        val definitiva = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 2)))
+            respondeComVagaPropria(falhas = setOf("p-1"))
+        }
+        val vm2 = viewModelCom(definitiva).comFiltros()
+        vm2.buscar().join()
+        listOf("p-1", "p-2").forEach(vm2::alternarSelecao)
+        vm2.chamar(trabalho).join()
+        assertEquals(2, definitiva.doNome("chamar_profissional").size)
+        assertFalse(vm2.estado.value.podeReenviar)
+    }
+
+    @Test
+    fun `1a recusada e a 2a incerta, o reenvio manda a 2a primeiro com a mesma chave para nao criar duas vagas`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 3))) }
+        var atrasar = true
+        rede.rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            when {
+                id == "p-1" -> respond("""{"code":"profissional_indisponivel","message":"x"}""", HttpStatusCode.UnprocessableEntity, json)
+                id == "p-2" && atrasar -> { kotlinx.coroutines.delay(5_000); respond(chamadaJson, HttpStatusCode.OK, json) }
+                "vaga_id" in pedido.corpo -> respond(chamadaJson, HttpStatusCode.OK, json)
+                else -> respond(chamadaJson, HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+        assertEquals(listOf("p-1", "p-2"), rede.doNome("chamar_profissional").map { it.corpo["profissional_id"]!!.jsonPrimitive.content })
+        val chaveDoP2 = rede.doNome("chamar_profissional")[1].corpo["chave"]
+
+        atrasar = false
+        vm.chamar(trabalho).join()
+
+        val reenvio = rede.doNome("chamar_profissional").drop(2).map { it.corpo }
+        // O p-2 (incerto, levando o trabalho) vai antes do p-1 (recusado antes), com a mesma chave.
+        assertEquals("p-2", reenvio.first()["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals(chaveDoP2, reenvio.first()["chave"])
+        assertTrue("valor_centavos" in reenvio.first())
+        assertTrue(reenvio.drop(1).all { "vaga_id" in it && "valor_centavos" !in it })
+    }
+
+    @Test
     fun `chamar sem selecao, ou sem resultados, nao faz nada`() = runBlocking {
         val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(emptyList())) }
         val vm = viewModelCom(rede).comFiltros()

@@ -58,7 +58,11 @@ sealed interface ResultadoDaChamadaDaBusca {
 
     /** J7: o servidor pediu a confirmação da recorrência; reenvie com `confirmoRecorrencia = true`. */
     data object PedeConfirmacaoDeRecorrencia : ResultadoDaChamadaDaBusca
-    data class Erro(val mensagem: String) : ResultadoDaChamadaDaBusca
+    /** [incerto]: a chamada pode ter sido criada (prazo, sem rede, resposta ilegível); reenviar repete a mesma chave. */
+    data class Erro(val mensagem: String, val incerto: Boolean = false) : ResultadoDaChamadaDaBusca
+
+    /** O pedido que leva o trabalho terminou incerto: este nem saiu, para não criar outra vaga. Tente de novo. */
+    data object NaoEnviada : ResultadoDaChamadaDaBusca
 }
 
 data class EstadoBusca(
@@ -93,6 +97,12 @@ data class EstadoBusca(
         get() = funcaoId != null && horarioValido && estado != EstadoDaBusca.Carregando && !carregandoMais && !enviando
     val podeChamar: Boolean get() = selecionados.isNotEmpty() && !enviando && estado == EstadoDaBusca.Resultados
     fun estaSelecionado(id: String): Boolean = id in selecionados
+
+    /** Há quem possa ser reenviado: resultado incerto ou que nem saiu. O reenvio repete a chave de cada um. */
+    val podeReenviar: Boolean
+        get() = !enviando && resultadosDaChamada.values.any {
+            it == ResultadoDaChamadaDaBusca.NaoEnviada || (it is ResultadoDaChamadaDaBusca.Erro && it.incerto)
+        }
 
     /** "Publicar para todos" só existe com a busca vazia. */
     val rascunhoParaPublicarParaTodos: RascunhoDeVagaDaBusca?
@@ -354,6 +364,12 @@ class BuscaDeProfissionaisViewModel(
      * chave; se o servidor pedir J7, o reenvio ([confirmoRecorrencia]) usa a mesma chave, e quem foi pelo
      * trabalho completo passa a ir pelo `vaga_id` se a vaga já existir (a recusa J7 não cria chamada). Quem já
      * tem chamada enviada não é chamado de novo.
+     *
+     * DINHEIRO: se o pedido que leva o trabalho (o 1º, ainda sem vaga) termina INCERTO (prazo, sem rede, resposta
+     * ilegível, desconhecido), nenhum outro é promovido a 1º: o laço para, os restantes ficam
+     * [ResultadoDaChamadaDaBusca.NaoEnviada] e o reenvio (`chamar` de novo) repete a MESMA chave desse pedido; o servidor
+     * é idempotente pela chave e devolve a chamada já criada, com o `vaga_id` que os outros usam. Recusa definitiva do
+     * servidor continua promovendo o próximo.
      */
     fun chamar(trabalho: TrabalhoDaChamada, recado: String? = null, confirmoRecorrencia: Boolean = false): Job {
         val tela = _estado.value
@@ -366,11 +382,13 @@ class BuscaDeProfissionaisViewModel(
                 confirmoRecorrencia -> id in pendentes
                 else -> true
             }
-        }
+            // Quem ficou incerto levando o trabalho (pedido guardado, sem vaga) vai primeiro no reenvio, com a mesma chave,
+            // para a vaga existir antes de os outros irem pelo vaga_id (a ordem de quem não tem pedido guardado se mantém).
+        }.sortedBy { id -> if (tentativas[id]?.let { it.vagaId == null } == true) 0 else 1 }
         val regiaoId = tela.filtroDaBusca?.regiaoId
         _estado.update { it.copy(enviando = true, mostrarJ7 = false) }
         return escopoDeTrabalho.launch {
-            for (id in alvos) {
+            for ((posicao, id) in alvos.withIndex()) {
                 val vagaId = vagaDoTrabalho
                 val guardado = tentativas[id]
                 val original = when {
@@ -382,6 +400,7 @@ class BuscaDeProfissionaisViewModel(
                 }
                 val pedido = if (confirmoRecorrencia) original.copy(confirmoRecorrencia = true) else original
                 tentativas[id] = pedido
+                var incerto = false
                 val resultado = try {
                     val chamada = withTimeout(prazoMs) { chamarProfissional(pedido) }
                     tentativas.remove(id)
@@ -389,19 +408,31 @@ class BuscaDeProfissionaisViewModel(
                     ResultadoDaChamadaDaBusca.Enviada(chamada)
                 } catch (erro: CancellationException) {
                     if (erro !is TimeoutCancellationException) throw erro
-                    ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO)
+                    incerto = true
+                    ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true)
                 } catch (erro: ErroDaApi) {
                     when {
                         erro.codigo == CodigoErroAPI.RECORRENCIA_NAO_CONFIRMADA -> ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia
                         else -> {
-                            if (!resultadoIncerto(erro)) tentativas.remove(id)
-                            ResultadoDaChamadaDaBusca.Erro(mensagemDaChamada(erro))
+                            incerto = resultadoIncerto(erro)
+                            if (!incerto) tentativas.remove(id)
+                            ResultadoDaChamadaDaBusca.Erro(mensagemDaChamada(erro), incerto = incerto)
                         }
                     }
                 } catch (_: Exception) {
-                    ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO)
+                    incerto = true
+                    ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true)
                 }
                 _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + (id to resultado)) }
+                // O pedido que leva o trabalho (ainda sem vaga) ficou incerto: a vaga pode ter sido criada e a resposta se
+                // perdido. Promover o próximo criaria outra vaga. Para aqui; o reenvio repete a chave deste, o servidor
+                // devolve a chamada já criada (com o vaga_id) e só então os outros vão pelo vaga_id.
+                // Recusa definitiva do servidor continua promovendo o próximo.
+                if (incerto && pedido.vagaId == null) {
+                    val naoEnviados = alvos.drop(posicao + 1).associateWith { ResultadoDaChamadaDaBusca.NaoEnviada }
+                    _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + naoEnviados) }
+                    break
+                }
             }
             _estado.update {
                 it.copy(

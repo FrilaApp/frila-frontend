@@ -169,6 +169,8 @@ object TextosChamadaCasa {
     const val BUSCA_FOLHA_TITULO = "Chamar selecionados"
     const val BUSCA_FOLHA_ENVIAR = "Enviar chamadas"
     const val BUSCA_RESULTADO_ENVIADA = "Chamada enviada"
+    const val BUSCA_RESULTADO_NAO_ENVIADA = "Não enviada. Tente de novo."
+    const val BUSCA_REENVIAR = "Tentar de novo"
     const val BUSCA_RESULTADO_J7 = "Aguardando a sua confirmação do aviso"
 
     fun buscaChamar(quantos: Int) = "Chamar ($quantos)"

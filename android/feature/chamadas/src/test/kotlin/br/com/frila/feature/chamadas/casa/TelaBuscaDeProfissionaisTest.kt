@@ -335,6 +335,30 @@ class TelaBuscaDeProfissionaisTest {
     }
 
     @Test
+    fun folhaComEnvioIncertoMostraNaoEnviadosEOBotaoDeTentarDeNovoReenviaOMesmoTrabalho() {
+        abrirFolha(comResultados(selecionados = listOf("p1", "p2")))
+        rule.onNodeWithTag("folha-valor").performTextInput("180")
+        rule.onNodeWithTag("folha-confirmar-total").performClick()
+        rule.onNodeWithTag("folha-enviar").performScrollTo().performClick()
+        val enviado = chamadas.chamou!!
+        chamadas.chamou = null
+
+        estado = comResultados(selecionados = listOf("p1", "p2")) {
+            it.copy(
+                resultadosDaChamada = mapOf(
+                    "p1" to ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true),
+                    "p2" to ResultadoDaChamadaDaBusca.NaoEnviada,
+                ),
+            )
+        }
+
+        rule.onNodeWithText("João P.: ${TextosChamadaCasa.BUSCA_RESULTADO_NAO_ENVIADA}").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-reenviar").performScrollTo().performClick()
+
+        assertEquals(enviado, chamadas.chamou)
+    }
+
+    @Test
     fun folhaDaBuscaComHorarioNoFiltroJaSaiComEleEMostraAvisoSeFaltaCasa() {
         val horario = HorarioDaBusca(Instant.parse("2026-11-20T22:00:00Z"), Instant.parse("2026-11-21T02:00:00Z"))
         abrirFolha(comResultados(selecionados = listOf("p1")) { it.copy(horario = horario, casa = null) })

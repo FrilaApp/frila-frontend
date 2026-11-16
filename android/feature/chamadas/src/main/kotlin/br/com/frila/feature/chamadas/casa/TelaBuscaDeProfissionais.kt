@@ -534,11 +534,20 @@ private fun FolhaDeChamadaDaBusca(
                 val texto = when (val resultado = estado.resultadosDaChamada[id]) {
                     is ResultadoDaChamadaDaBusca.Enviada -> TextosChamadaCasa.BUSCA_RESULTADO_ENVIADA
                     ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia -> TextosChamadaCasa.BUSCA_RESULTADO_J7
+                    ResultadoDaChamadaDaBusca.NaoEnviada -> TextosChamadaCasa.BUSCA_RESULTADO_NAO_ENVIADA
                     is ResultadoDaChamadaDaBusca.Erro -> resultado.mensagem
                     null -> TextosChamadaCasa.CARREGANDO
                 }
                 Text("$nome: $texto", modifier = Modifier.testTag("folha-resultado-$id"))
             }
+        }
+        if (estado.podeReenviar) {
+            // Mesmo trabalho e mesma chave: os campos seguem travados para o servidor devolver a chamada já criada.
+            Button(
+                onClick = { enviado?.let { aoChamar(it.trabalho, it.recado) } },
+                enabled = enviado != null,
+                modifier = Modifier.fillMaxWidth().testTag("folha-reenviar"),
+            ) { Text(TextosChamadaCasa.BUSCA_REENVIAR) }
         }
         if (estado.mostrarJ7) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
