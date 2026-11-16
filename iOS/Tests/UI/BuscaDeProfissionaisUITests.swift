@@ -4,7 +4,8 @@ import XCTest
 /// Minhas vagas → Encontrar profissional → buscar → selecionar 2 → chamar → "enviada".
 @MainActor
 final class BuscaDeProfissionaisUITests: XCTestCase {
-    private let cenario = ["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "busca-de-profissionais"]
+    // Pelo fluxo real do contratante (o atalho -FRILA_ABRIR_MINHAS_VAGAS monta a tela sem o fluxo e sem a entrada da busca).
+    private let cenario = ["-FRILA_SCENARIO", "busca-de-profissionais"]
 
     override func setUp() {
         super.setUp()
@@ -69,7 +70,7 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
 
     func testComAChaveDesligadaOBotaoNaoExiste() {
         let app = abrir(cenario + ["-FRILA_CHAMADA_DIRETA_DESLIGADA"])
-        XCTAssertTrue(app.navigationBars["Minhas vagas"].waitForExistence(timeout: 20), "Minhas vagas abre")
+        XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 20) || app.navigationBars["Minhas vagas"].waitForExistence(timeout: 5), "Minhas vagas abre")
         XCTAssertFalse(app.buttons["encontrar-profissional"].waitForExistence(timeout: 6),
                        "com a chave desligada, Encontrar profissional não existe")
     }
