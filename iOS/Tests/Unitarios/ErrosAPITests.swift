@@ -98,4 +98,15 @@ struct ErrosAPITests {
         #expect(comEnvelope.codigo == .limiteExcedido)
         #expect(comEnvelope.codigoOriginal == "limite_excedido")
     }
+
+    @Test("409 trabalho_ja_aberto (0.2.95) traz o vaga_id em details; sem uuid, ou em outro código, não há vaga")
+    func trabalhoJaAberto() {
+        let corpo = #"{"code":"trabalho_ja_aberto","message":"trabalho_ja_aberto","details":"7c1f0c1e-5b0a-4a53-9d1e-2f6c8f0a4b11","hint":null}"#
+        let erro = DecodificadorErroAPI.mapear(statusCode: 409, dados: Data(corpo.utf8))
+        #expect(erro.codigo == .trabalhoJaAberto)
+        #expect(erro.vagaDoTrabalhoAberto == UUID(uuidString: "7c1f0c1e-5b0a-4a53-9d1e-2f6c8f0a4b11"))
+        #expect(ErroDaApi(codigo: .trabalhoJaAberto).vagaDoTrabalhoAberto == nil)
+        #expect(ErroDaApi(codigo: .trabalhoJaAberto, detalhes: "outra_coisa").vagaDoTrabalhoAberto == nil)
+        #expect(ErroDaApi(codigo: .chamadaJaAberta, detalhes: "7c1f0c1e-5b0a-4a53-9d1e-2f6c8f0a4b11").vagaDoTrabalhoAberto == nil)
+    }
 }
