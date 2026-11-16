@@ -56,7 +56,8 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         valor.typeText("200")
         let confirmo = app.switches["busca-confirmo-total"]
         XCTAssertTrue(confirmo.waitForExistence(timeout: 5))
-        confirmo.tap()
+        // O centro da linha não aciona o switch: toca no lado dele (como na chamada direta).
+        confirmo.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
         let enviar = app.buttons["busca-enviar-chamadas"]
         for _ in 0..<4 where !(enviar.exists && enviar.isHittable) { app.swipeUp() }
         XCTAssertTrue(enviar.waitForExistence(timeout: 5))

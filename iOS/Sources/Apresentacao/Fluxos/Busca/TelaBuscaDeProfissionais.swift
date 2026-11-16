@@ -182,6 +182,7 @@ public struct TelaBuscaDeProfissionais: View {
         case .enviada: TextosBuscaDeProfissionais.resultadoEnviada
         case .pedeConfirmacaoDeRecorrencia: TextosBuscaDeProfissionais.resultadoPedeConfirmacao
         case let .erro(mensagem): mensagem
+        case .naoEnviada: TextosBuscaDeProfissionais.resultadoNaoEnviada
         }
     }
 

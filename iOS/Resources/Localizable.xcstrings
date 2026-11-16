@@ -15175,6 +15175,17 @@
           }
         }
       }
+    },
+    "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
