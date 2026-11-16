@@ -115,6 +115,21 @@ struct ChamadaDeNovoPreenchidaTests {
         #expect(modelo.resultado != nil)
     }
 
+    @Test("Só avisa que veio preenchido quando a folha carregou com a vaga anterior")
+    func avisoDePreenchido() async throws {
+        let agora = try data("2026-11-19T10:00:00-03:00")
+        let base = ApiClienteEmMemoria(cenario: .chamadaDireta, relogio: RelogioFixo(agora: agora))
+        let casa = try #require(try await base.meusEstabelecimentos().first)
+        let antes = ChamadaDiretaViewModel(api: base, profissionalID: profissionalID,
+            estabelecimentoID: casa.id, vagaAnterior: try vaga(), agora: { agora })
+        #expect(!antes.preenchidoPelaVagaAnterior, "antes de carregar, nada foi preenchido")
+        await antes.carregar()
+        #expect(antes.preenchidoPelaVagaAnterior)
+
+        let (_, equipe) = try await preparar()
+        #expect(!equipe.preenchidoPelaVagaAnterior, "pela Equipe de confiança não há vaga anterior")
+    }
+
     @Test("Sem vaga anterior mantém os padrões da Equipe de confiança")
     func semVagaAnterior() async throws {
         let (api, modelo) = try await preparar()
