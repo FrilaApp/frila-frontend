@@ -15186,6 +15186,17 @@
           }
         }
       }
+    },
+    "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

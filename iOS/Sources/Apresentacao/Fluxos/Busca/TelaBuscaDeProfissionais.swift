@@ -62,6 +62,16 @@ public struct TelaBuscaDeProfissionais: View {
                     .disabled(!viewModel.podeBuscar)
                     .accessibilityIdentifier("buscar-profissionais")
             }
+            if viewModel.travadoPeloIncerto {
+                // Um envio que levou o trabalho ficou incerto: nada de busca nova nem de trocar a seleção até resolver.
+                Section {
+                    Text(verbatim: TextosBuscaDeProfissionais.envioIncerto)
+                        .accessibilityIdentifier("busca-envio-incerto")
+                    Button { abrirChamada() } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
+                        .disabled(!viewModel.podeChamar || casa == nil)
+                        .accessibilityIdentifier("busca-tentar-de-novo")
+                }
+            }
             situacao
             if let aviso = viewModel.avisoDeLimiteDeSelecao {
                 Section { Text(verbatim: aviso).accessibilityIdentifier("busca-aviso-limite") }
@@ -146,6 +156,7 @@ public struct TelaBuscaDeProfissionais: View {
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.borderless)
+            .disabled(viewModel.travadoPeloIncerto)
             .accessibilityLabel(Text(verbatim: selecionado ? TextosBuscaDeProfissionais.desmarcar(cartao.nome)
                                                              : TextosBuscaDeProfissionais.selecionar(cartao.nome)))
             .accessibilityIdentifier("selecionar-profissional-\(cartao.id)")

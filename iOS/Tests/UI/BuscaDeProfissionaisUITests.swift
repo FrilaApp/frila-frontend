@@ -51,7 +51,7 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         chamar.tap()
 
         let valor = app.textFields["busca-valor-total"]
-        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre")
+        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre\n\(app.debugDescription)")
         valor.tap()
         valor.typeText("200")
         let confirmo = app.switches["busca-confirmo-total"]
