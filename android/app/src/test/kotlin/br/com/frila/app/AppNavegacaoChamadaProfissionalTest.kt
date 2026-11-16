@@ -66,7 +66,7 @@ class AppNavegacaoChamadaProfissionalTest {
         """{"id":"$id","vaga_id":"v","profissional_id":"p","estabelecimento_id":"c","estado":"aberta","expira_em":"2099-01-01T12:00:00Z","criada_em":"2026-11-16T20:00:00Z","funcao":{"id":"f","nome":"Garçom","categoria":"salao"},"inicio_em":"2099-01-02T22:00:00Z","fim_em":"2099-01-03T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"c","tipo":"estabelecimento","nome":"Bistrô Aurora","reputacao":{"positivas":1,"total":1,"turnos_considerados":1,"turnos_realizados":1}},"regiao_administrativa":"Plano Piloto","inclui_refeicao":false,"inclui_transporte":false,"exige_material_proprio":false}""",
     )
 
-    private fun montar(chamadaDireta: Boolean, inicio: String? = null) {
+    private fun montar(chamadaDireta: Boolean, inicio: String? = null, busca: Boolean = true) {
         val entrada = mockk<EntradaViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoEntrada())
         }
@@ -111,6 +111,7 @@ class AppNavegacaoChamadaProfissionalTest {
                     monitorDeConectividade = MonitorDeConectividadeFalso(),
                     navController = nav,
                     chamadaDiretaHabilitada = chamadaDireta,
+                    buscaProfissionaisHabilitada = busca,
                     servicoMembros = null,
                 )
             }
@@ -135,6 +136,22 @@ class AppNavegacaoChamadaProfissionalTest {
         montar(chamadaDireta = false, inicio = Rotas.PERFIL)
         rule.waitForIdle()
         rule.onAllNodesWithTag("perfil-chamadas-diretas").assertCountEquals(0)
+    }
+
+    @Test
+    fun preferenciasSemAChaveDaBuscaNaoMostramAceitoChamadasMasMostramOResto() {
+        montar(chamadaDireta = true, inicio = RotasChamadaProfissional.PREFERENCIAS, busca = false)
+
+        rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).assertExists()
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertDoesNotExist()
+        rule.onAllNodesWithTag("chave-aceita-chamadas").assertCountEquals(0)
+    }
+
+    @Test
+    fun preferenciasComAChaveDaBuscaMostramAceitoChamadas() {
+        montar(chamadaDireta = true, inicio = RotasChamadaProfissional.PREFERENCIAS, busca = true)
+
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertExists()
     }
 
     @Test

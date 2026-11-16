@@ -63,6 +63,7 @@ class TelasDoProfissionalTest {
         tela: EstadoPreferenciasChamada,
         p: Preferencias = Preferencias(),
         servicos: Boolean = true,
+        busca: Boolean = true,
     ): Preferencias {
         rule.setContent {
             FrilaTheme {
@@ -78,6 +79,7 @@ class TelasDoProfissionalTest {
                     aoSalvar = { p.salvou++ },
                     aoVoltar = { p.voltou++ },
                     aoEditarServicos = if (servicos) ({ p.servicos++ }) else null,
+                    buscaProfissionaisHabilitada = busca,
                     hoje = LocalDate.of(2026, 11, 16),
                 )
             }
@@ -104,6 +106,37 @@ class TelasDoProfissionalTest {
         rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.ANTECEDENCIA_MINIMA).assertExists()
         rule.onNodeWithText(TextosChamadaProfissional.QUEM_PODE_CHAMAR).assertExists()
+    }
+
+    @Test
+    fun preferenciasComAChaveDaBuscaDesligadaNaoTemOBlocoAceitoChamadasNemPendenciasNemAtalhoDeServicos() {
+        montarPreferencias(
+            preferencias { copy(aceitaChamadas = true, pendencias = listOf("sem_regiao")) },
+            busca = false,
+        )
+
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertDoesNotExist()
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TEXTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_O_QUE_APARECE).assertDoesNotExist()
+        rule.onNodeWithTag("chave-aceita-chamadas").assertDoesNotExist()
+        rule.onNodeWithTag("pendencias-busca").assertDoesNotExist()
+        rule.onNodeWithTag("editar-servicos").assertDoesNotExist()
+        // O resto fica como no iOS de hoje.
+        rule.onNodeWithText(TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU).assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaProfissional.ANTECEDENCIA_MINIMA).performScrollTo().assertExists()
+        rule.onNodeWithText(TextosChamadaProfissional.QUEM_PODE_CHAMAR).performScrollTo().assertExists()
+        rule.onNodeWithTag("salvar-preferencias-chamada").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun preferenciasComAChaveDaBuscaLigadaTemOBlocoAceitoChamadas() {
+        montarPreferencias(preferencias { copy(aceitaChamadas = true, pendencias = listOf("sem_regiao")) }, busca = true)
+
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertIsDisplayed()
+        rule.onNodeWithTag("chave-aceita-chamadas").assertIsDisplayed()
+        rule.onNodeWithTag("pendencias-busca").assertIsDisplayed()
+        rule.onNodeWithTag("editar-servicos").performScrollTo().assertExists()
     }
 
     @Test

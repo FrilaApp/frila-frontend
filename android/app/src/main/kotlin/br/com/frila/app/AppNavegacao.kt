@@ -207,6 +207,11 @@ fun AppNavegacao(
      */
     chamadaDiretaHabilitada: Boolean = false,
     /**
+     * Chave `busca_profissionais` (`configuracao_do_app`, RN46): desligada, as preferências de chamada ficam como no
+     * iOS de hoje, sem o "Aceito chamadas diretas" nem as pendências da busca.
+     */
+    buscaProfissionaisHabilitada: Boolean = false,
+    /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
      * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
@@ -652,7 +657,7 @@ fun AppNavegacao(
             }
 
             rotasDaChamadaDiretaCasa(navController, guardaBiometrico)
-            rotasDaChamadaDiretaProfissional(navController, guardaBiometrico)
+            rotasDaChamadaDiretaProfissional(navController, guardaBiometrico, buscaProfissionaisHabilitada)
 
             composable(Rotas.CADASTRO_ESTABELECIMENTO) {
                 RotaProtegida(guardaBiometrico) {

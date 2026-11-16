@@ -52,6 +52,8 @@ fun TelaPreferenciasDeChamada(
     modifier: Modifier = Modifier,
     /** Abre "Editar serviços"; nulo esconde o atalho. */
     aoEditarServicos: (() -> Unit)? = null,
+    /** Chave `busca_profissionais` (RN46): desligada, o bloco "Aceito chamadas diretas" e as pendências não aparecem. */
+    buscaProfissionaisHabilitada: Boolean = false,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -67,6 +69,7 @@ fun TelaPreferenciasDeChamada(
         aoSalvar = { viewModel.salvar() },
         aoVoltar = aoVoltar,
         aoEditarServicos = aoEditarServicos,
+        buscaProfissionaisHabilitada = buscaProfissionaisHabilitada,
         modifier = modifier,
     )
 }
@@ -91,6 +94,7 @@ fun ConteudoPreferenciasDeChamada(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     aoEditarServicos: (() -> Unit)? = null,
+    buscaProfissionaisHabilitada: Boolean = false,
     hoje: LocalDate = LocalDate.now(FormatoChamada.fuso),
 ) {
     var escolhendoData by rememberSaveable { mutableStateOf(false) }
@@ -130,6 +134,7 @@ fun ConteudoPreferenciasDeChamada(
                     aoEscolherQuemPodeChamar = aoEscolherQuemPodeChamar,
                     aoSalvar = aoSalvar,
                     aoEditarServicos = aoEditarServicos,
+                    buscaProfissionaisHabilitada = buscaProfissionaisHabilitada,
                 )
             }
         }
@@ -173,6 +178,7 @@ private fun Formulario(
     aoEscolherQuemPodeChamar: (String) -> Unit,
     aoSalvar: () -> Unit,
     aoEditarServicos: (() -> Unit)?,
+    buscaProfissionaisHabilitada: Boolean,
 ) {
     val livre = !tela.salvando
     tela.erro?.let { erro ->
@@ -186,53 +192,55 @@ private fun Formulario(
         )
     }
 
-    // "Aceito chamadas diretas" (CD-P10 a CD-P12): o pedido do titular, sem "autorizo" nem "consinto" (J1).
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-        Text(
-            text = TextosChamadaProfissional.ACEITO_TITULO,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        LinhaComChave(
-            titulo = TextosChamadaProfissional.ACEITO_TEXTO,
-            ligado = tela.aceitaChamadas,
-            aoMudar = aoAlternarAceitaChamadas,
-            habilitado = livre,
-            modifier = Modifier.testTag("chave-aceita-chamadas"),
-        )
-        Text(
-            text = TextosChamadaProfissional.ACEITO_O_QUE_APARECE,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = TextosChamadaProfissional.ACEITO_DESLIGAR,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        val pendencias = tela.pendencias.mapNotNull(TextosChamadaProfissional::pendencia)
-        if (tela.aceitaChamadas && pendencias.isNotEmpty()) {
-            Column(
-                modifier = Modifier.testTag("pendencias-busca"),
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-            ) {
-                Text(
-                    text = TextosChamadaProfissional.PENDENCIAS_TITULO,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
+    if (buscaProfissionaisHabilitada) {
+        // "Aceito chamadas diretas" (CD-P10 a CD-P12): o pedido do titular, sem "autorizo" nem "consinto" (J1).
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
+            Text(
+                text = TextosChamadaProfissional.ACEITO_TITULO,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            LinhaComChave(
+                titulo = TextosChamadaProfissional.ACEITO_TEXTO,
+                ligado = tela.aceitaChamadas,
+                aoMudar = aoAlternarAceitaChamadas,
+                habilitado = livre,
+                modifier = Modifier.testTag("chave-aceita-chamadas"),
+            )
+            Text(
+                text = TextosChamadaProfissional.ACEITO_O_QUE_APARECE,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = TextosChamadaProfissional.ACEITO_DESLIGAR,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val pendencias = tela.pendencias.mapNotNull(TextosChamadaProfissional::pendencia)
+            if (tela.aceitaChamadas && pendencias.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.testTag("pendencias-busca"),
+                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+                ) {
+                    Text(
+                        text = TextosChamadaProfissional.PENDENCIAS_TITULO,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    pendencias.forEach { Text(text = "• $it", style = MaterialTheme.typography.bodyMedium) }
+                }
+            }
+            if (aoEditarServicos != null) {
+                BotaoSecundario(
+                    texto = TextosChamadaProfissional.EDITAR_SERVICOS,
+                    aoClicar = aoEditarServicos,
+                    modifier = Modifier.fillMaxWidth().testTag("editar-servicos"),
                 )
-                pendencias.forEach { Text(text = "• $it", style = MaterialTheme.typography.bodyMedium) }
             }
         }
-        if (aoEditarServicos != null) {
-            BotaoSecundario(
-                texto = TextosChamadaProfissional.EDITAR_SERVICOS,
-                aoClicar = aoEditarServicos,
-                modifier = Modifier.fillMaxWidth().testTag("editar-servicos"),
-            )
-        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
         LinhaComChave(

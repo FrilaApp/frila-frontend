@@ -32,7 +32,12 @@ internal object RotasChamadaProfissional {
     fun recebida(chamadaId: String) = "chamada/recebida/${Uri.encode(chamadaId)}"
 }
 
-internal fun NavGraphBuilder.rotasDaChamadaDiretaProfissional(navController: NavHostController, guardaBiometrico: GuardaBiometrico) {
+internal fun NavGraphBuilder.rotasDaChamadaDiretaProfissional(
+    navController: NavHostController,
+    guardaBiometrico: GuardaBiometrico,
+    /** Chave `busca_profissionais`: desligada, as preferências escondem "Aceito chamadas diretas" e as pendências. */
+    buscaProfissionaisHabilitada: Boolean = false,
+) {
     composable(RotasChamadaProfissional.PREFERENCIAS) {
         RotaProtegida(guardaBiometrico) {
             val viewModel: PreferenciasChamadaViewModel = koinViewModel()
@@ -40,6 +45,7 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaProfissional(navController: Nav
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
                 aoEditarServicos = { navController.navigate(RotasChamadaProfissional.SERVICOS) },
+                buscaProfissionaisHabilitada = buscaProfissionaisHabilitada,
             )
         }
     }
