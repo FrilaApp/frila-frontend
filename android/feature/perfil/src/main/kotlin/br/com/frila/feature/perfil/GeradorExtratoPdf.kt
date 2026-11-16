@@ -6,6 +6,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.pdf.PdfDocument
 import br.com.frila.core.dominio.modelo.Dinheiro
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.TurnoDto
 import java.io.File
 import java.io.FileOutputStream
@@ -132,7 +133,7 @@ object GeradorExtratoPdf {
         diretorioSaida.mkdirs()
         val arquivo = File(diretorioSaida, nomeArquivo(instanteGeracao))
 
-        val ordenados = turnos.sortedByDescending { runCatching { Instant.parse(it.vaga.inicioEm) }.getOrNull() }
+        val ordenados = turnos.sortedByDescending { runCatching { instanteDoServidor(it.vaga.inicioEm) }.getOrNull() }
         val paginas = dividirEmPaginas(ordenados)
         val totalPaginas = paginas.size
 
@@ -281,7 +282,7 @@ object GeradorExtratoPdf {
 
         for (turno in turnos) {
             val dataFormatada = runCatching {
-                Instant.parse(turno.vaga.inicioEm).atZone(FUSO_BRASILIA).format(FORMATO_LINHA)
+                instanteDoServidor(turno.vaga.inicioEm).atZone(FUSO_BRASILIA).format(FORMATO_LINHA)
             }.getOrDefault(turno.vaga.inicioEm)
 
             tela.drawText(dataFormatada, colData, y, pincelLinha)

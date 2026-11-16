@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
@@ -43,7 +44,7 @@ class MonitorizadorDeTurnosProximos(
                 return@forEach
             }
 
-            val expiraEm = runCatching { Instant.parse(turno.vaga.fimEm) }.getOrNull()
+            val expiraEm = runCatching { instanteDoServidor(turno.vaga.fimEm) }.getOrNull()
             gerenciadorGeofencing.registrarAlerta(
                 id = turno.id,
                 centro = resolvida.coordenada,
