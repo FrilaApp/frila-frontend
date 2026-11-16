@@ -195,8 +195,10 @@ fun AppNavegacao(
     /**
      * #789: o padrão é o [CoordenadorDeLogout], porque as saídas desta navegação (conta suspensa, "outra conta"
      * no desbloqueio) chamam `limparSessao()` aqui, e só o coordenador fecha o cliente Ktor da conta que saiu.
+     * Grafo sem o coordenador (testes com Koin mínimo) usa o armazenamento; o de produção sempre o tem
+     * (`KoinGrafoTest`), e o token em memória já não passa de uma conta a outra pelo próprio `ClienteSupabase`.
      */
-    armazenamentoDeSessao: ArmazenamentoDeSessao = koinInject<CoordenadorDeLogout>(),
+    armazenamentoDeSessao: ArmazenamentoDeSessao = getKoin().getOrNull<CoordenadorDeLogout>() ?: koinInject(),
     monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
     aoPronto: (() -> Unit)? = null,
