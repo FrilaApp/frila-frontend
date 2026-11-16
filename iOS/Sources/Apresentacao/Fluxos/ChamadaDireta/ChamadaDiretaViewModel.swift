@@ -189,8 +189,7 @@ public final class ChamadaDiretaViewModel {
             inclusos: Inclusos(refeicao: refeicao, transporte: transporte, exigeMaterialProprio: materialProprio),
             responsavelLocal: responsavel, modo: .urgencia, chave: UUID()),
             recado: recado.isEmpty ? nil : recado)
-        let pedido = PedidoChamada(profissionalID: original.profissionalID, trabalho: original.trabalho,
-                                  recado: original.recado, confirmoRecorrencia: confirmoRecorrencia || original.confirmoRecorrencia)
+        let pedido = original.confirmando(confirmoRecorrencia || original.confirmoRecorrencia)
         tentativa = pedido
         enviando = true
         erro = nil

@@ -12,7 +12,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// aberta, que dá para cancelar, e outra com a chamada recusada, que libera "Publicar para
         /// todos" (RN35). Vitrine de Acompanhar chamadas.
         case chamadasEnviadas = "chamadas-enviadas"
-        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente || self == .chamadasEnviadas }
+        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente || self == .chamadasEnviadas || self == .buscaDeProfissionais }
         /// Conta de profissional com a chamada direta ligada (Preferências de chamada, CD-RF10) e uma
         /// chamada aberta da casa de exemplo (`chamadaRecebidaID`, CD-RF08). Abre com
         /// `-FRILA_PUSH chamada_recebida -FRILA_PUSH_CHAMADA_ID <chamadaRecebidaID>`.
@@ -172,6 +172,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case fotoOcultada = "foto-ocultada"
         /// O servidor desligou o recurso (`recursos.foto_de_perfil = false`) e há uma foto aprovada: só remover.
         case fotoRecursoDesligado = "foto-recurso-desligado"
+        /// Busca de profissionais (0.2.88): como `chamadaDireta`, com a chave `busca_profissionais`
+        /// ligada e profissionais simulados na busca (`profissionaisNaBuscaDeExemplo`), entre eles os
+        /// que as regras tiram da lista.
+        case buscaDeProfissionais = "busca-de-profissionais"
         #if DEBUG
         /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
         case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
@@ -241,6 +245,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var denunciasRecebidas: [Denuncia] = []
     private var chamadasPorChave: [UUID: Chamada] = [:]
     private var chamadasPorID: [UUID: Chamada] = [:]
+    /// O `regiao_id` com que cada vaga direta nasceu: as chamadas seguintes pelo `vaga_id` usam o dela.
+    private var regiaoDaVagaDireta: [UUID: Int] = [:]
     private var preferenciasDeChamadaArmazenadas = PreferenciaChamadas()
     public private(set) var ultimaVersaoAppRegistrada: String?
     public private(set) var pedidosChamadaRecebidos: [PedidoChamada] = []
@@ -411,7 +417,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     // `chamadaDiretaDesligada`: a chave desligada depois que a vaga direta já existe.
                     chamadaDireta: !chamadaDiretaDesligada && (cenario.deChamada || cenario == .chamadaRecebida),
                     perfilRico: perfilRicoHabilitado,
-                    checkinPorCodigo: cenario.checkinPorCodigoLigado
+                    checkinPorCodigo: cenario.checkinPorCodigoLigado,
+                    buscaProfissionais: !chamadaDiretaDesligada && cenario == .buscaDeProfissionais
                 )
             )
             midias = Self.midiasIniciais(cenario, agora: relogio.agora)
@@ -1366,6 +1373,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private func perfilDoProfissional(_ id: UUID) -> PerfilPublico? {
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
+        if let daBusca = profissionalNaBusca(id) { return perfilPublicoDaBusca(daBusca) }
         return profissionaisEscolhidos.values.first { $0.id == id }
     }
 
@@ -1400,19 +1408,24 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return regioesAdministrativasCadastradas
     }
 
-    public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
-        pedidosChamadaRecebidos.append(pedido)
-        try exigirAdministrador(de: pedido.trabalho.estabelecimentoID)
+    public func chamarProfissional(_ recebido: PedidoChamada) async throws -> Chamada {
+        pedidosChamadaRecebidos.append(recebido)
+        try exigirAdministrador(de: recebido.estabelecimentoID)
         guard cenario.deChamada else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
-        guard let perfil = perfilDoProfissional(pedido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
+        guard let perfil = perfilDoProfissional(recebido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
             throw erro("nao_encontrado")
         }
-        let t = pedido.trabalho
-        if let existente = chamadasPorChave[t.chave] { return existente }
+        if let existente = chamadasPorChave[recebido.chave] { return existente }
+        // Pelo `vaga_id`, as regras abaixo valem com a função, o horário e a região da vaga direta.
+        let (pedido, vagaExistente) = try pedidoComAVagaDireta(recebido)
+        guard let t = pedido.trabalho else { throw erro("campo_invalido", detalhes: "vaga_id") }
+        let pelaBusca = try entraPelaBusca(perfil.id, pedido: pedido)
         guard equipesDeConfianca[t.estabelecimentoID]?.contains(perfil.id) == true
-                || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID) else {
+                || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID)
+                || pelaBusca else {
             throw erro("profissional_indisponivel", detalhes: "nao_aceita_chamadas")
         }
+        try conferirRegrasDoProfissionalDaBusca(perfil.id, pedido: pedido)
         guard let funcao = catalogo.first(where: { $0.id == t.funcaoID }), perfil.funcoes.contains(funcao.nome) else {
             throw erro("funcao_incompativel")
         }
@@ -1429,14 +1442,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard !abertas.contains(where: { $0.profissionalID == perfil.id && $0.estabelecimentoID == t.estabelecimentoID }) else {
             throw erro("chamada_ja_aberta")
         }
-        guard abertas.filter({ $0.profissionalID == perfil.id }).count < 5 else {
+        guard abertas.filter({ $0.profissionalID == perfil.id }).count + chamadasAbertasForaDoDuble(perfil.id) < 5 else {
             throw erro("profissional_indisponivel", detalhes: "agenda_cheia")
         }
         guard abertas.filter({ $0.estabelecimentoID == t.estabelecimentoID }).count < 10 else { throw erro("limite_de_chamadas") }
         // Este cenário representa uma casa CPF com duas chamadas anteriores na janela de sete dias.
         if cenario == .chamadaRecorrente, !pedido.confirmoRecorrencia { throw erro("recorrencia_nao_confirmada") }
         let casa = estabelecimentos.first { $0.id == t.estabelecimentoID }!
-        let vaga = Vaga(id: UUID(), estabelecimento: perfilDo(casa), funcao: funcao, periodo: t.periodo,
+        let vaga = vagaExistente ?? Vaga(id: UUID(), estabelecimento: perfilDo(casa), funcao: funcao, periodo: t.periodo,
                         local: t.local, regiaoAdministrativa: t.regiaoAdministrativa, ponto: t.ponto,
                         valor: t.valor, posicoes: 1, posicoesAbertas: 1, inclusos: t.inclusos,
                         responsavelLocal: t.responsavelLocal, modo: .urgencia, estado: .publicada,
@@ -1452,10 +1465,36 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let chamada = Chamada(id: UUID(), vagaID: vaga.id, profissionalID: perfil.id,
                               estabelecimentoID: casa.id, recado: pedido.recado,
                               expiraEm: min(envio.addingTimeInterval(12 * 3600), t.periodo.inicio.addingTimeInterval(-3600)), criadaEm: relogio.agora)
-        vagas.append(vaga)
+        if vagaExistente == nil {
+            vagas.append(vaga)
+            regiaoDaVagaDireta[vaga.id] = pedido.regiaoID
+        }
         chamadasPorChave[t.chave] = chamada
         chamadasPorID[chamada.id] = chamada
         return chamada
+    }
+
+    /// `vaga_id` em `chamar_profissional` (contrato 0.2.55): vaga de outra casa ou que não existe é
+    /// `404`; vaga normal, já sem posição aberta, encerrada ou já começada é `409 vaga_encerrada`;
+    /// 3 chamadas abertas na vaga é `422 limite_de_chamadas` (`por_vaga`). Devolve o pedido com os
+    /// campos da vaga (para as mesmas regras do trabalho novo) e a vaga, que não é criada de novo.
+    private func pedidoComAVagaDireta(_ pedido: PedidoChamada) throws -> (PedidoChamada, Vaga?) {
+        guard case let .vagaExistente(vagaID, estabelecimentoID, chave) = pedido.alvo else { return (pedido, nil) }
+        guard let vaga = vagas.first(where: { $0.id == vagaID }), vaga.estabelecimento.id == estabelecimentoID else {
+            throw erro("nao_encontrado")
+        }
+        guard vaga.origem == .chamadaDireta, vaga.posicoes == 1, vaga.posicoesAbertas > 0, vaga.estado == .publicada,
+              vaga.periodo.inicio > relogio.agora else { throw erro("vaga_encerrada") }
+        guard chamadasAbertasNoDuble().filter({ $0.vagaID == vagaID }).count < 3 else {
+            throw erro("limite_de_chamadas", detalhes: "por_vaga")
+        }
+        let trabalho = PublicacaoVaga(
+            estabelecimentoID: estabelecimentoID, funcaoID: vaga.funcao.id, periodo: vaga.periodo, local: vaga.local,
+            regiaoAdministrativa: vaga.regiaoAdministrativa, ponto: vaga.ponto, valor: vaga.valor, posicoes: 1,
+            inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, modo: .urgencia, chave: chave)
+        let comOsCampos = PedidoChamada(profissionalID: pedido.profissionalID, trabalho: trabalho, recado: pedido.recado,
+                                        confirmoRecorrencia: pedido.confirmoRecorrencia, regiaoID: regiaoDaVagaDireta[vagaID])
+        return (comOsCampos, vaga)
     }
 
     public func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada? = nil) async throws -> ResultadoChamada {
@@ -1714,12 +1753,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
         } else {
             novaPausa = preferenciasDeChamadaArmazenadas.pausadoAte
         }
+        let aceitaChamadas = try conferirAceitaChamadas(alteracao) ?? preferenciasDeChamadaArmazenadas.aceitaChamadas
 
         preferenciasDeChamadaArmazenadas = PreferenciaChamadas(
             aceitaDeQuemJaTrabalhou: alteracao.aceitaDeQuemJaTrabalhou ?? preferenciasDeChamadaArmazenadas.aceitaDeQuemJaTrabalhou,
             pausadoAte: novaPausa,
             antecedenciaMinimaH: alteracao.antecedenciaMinimaH ?? preferenciasDeChamadaArmazenadas.antecedenciaMinimaH,
-            aceitaDe: alteracao.aceitaDe ?? preferenciasDeChamadaArmazenadas.aceitaDe
+            aceitaDe: alteracao.aceitaDe ?? preferenciasDeChamadaArmazenadas.aceitaDe,
+            aceitaChamadas: aceitaChamadas,
+            pendenciasParaBusca: aceitaChamadas ? pendenciasDaContaParaBusca(pausadoAte: novaPausa) : []
         )
         return preferenciasDeChamadaArmazenadas
     }
@@ -2073,6 +2115,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard !bloqueios.keys.contains(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
+        if let daBusca = profissionalNaBusca(id) { return perfilPublicoDaBusca(daBusca) }
         guard let perfil = vagas.map(\.estabelecimento).first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         return perfil
     }
@@ -3303,6 +3346,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             alvo.id == perfilPublicoDeExemplo.id
             || candidaturas.contains { $0.profissional.id == alvo.id }
             || equipesDeConfianca.values.contains { $0.contains(alvo.id) }
+            || profissionalNaBusca(alvo.id) != nil
         case .estabelecimento:
             estabelecimentos.contains { $0.id == alvo.id } || vagas.contains { $0.estabelecimento.id == alvo.id }
         }
@@ -3314,6 +3358,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             if alvo.id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo.nome }
             if let c = candidaturas.first(where: { $0.profissional.id == alvo.id }) { return c.profissional.nome }
             if let t = turnos.first(where: { $0.contraparte.id == alvo.id }) { return t.contraparte.nome }
+            if let daBusca = profissionalNaBusca(alvo.id) { return perfilPublicoDaBusca(daBusca).nome }
             return "Profissional"
         case .estabelecimento:
             if let e = estabelecimentos.first(where: { $0.id == alvo.id }) { return e.nome }
@@ -3431,6 +3476,378 @@ public actor ApiClienteEmMemoria: ApiCliente {
             participaRateio: vaga.participaRateio, observacoes: vaga.observacoes, modo: modo ?? vaga.modo,
             estado: estado ?? vaga.estado, oculta: oculta ?? vaga.oculta, publicadoEm: publicadoEm ?? vaga.publicadoEm, origem: vaga.origem, vagaOrigemId: vaga.vagaOrigemId
         )
+    }
+
+    // MARK: Busca de profissionais (contrato 0.2.88)
+
+    /// Um profissional como o servidor o vê para a busca: preferências, serviços, regiões, grade e o
+    /// que as regras da busca conferem. Os testes montam os casos com `definirProfissionaisNaBusca`.
+    public struct ProfissionalSimuladoNaBusca: Sendable {
+        public var id: UUID
+        /// O nome inteiro; a casa sem vínculo só vê o primeiro nome e a inicial.
+        public var nomeCompleto: String
+        public var servicos: [ServicoNoPerfil]
+        public var regioes: [Int]
+        public var atendeTodoDF: Bool
+        public var aceitaChamadas: Bool
+        /// Dia final da pausa (inclusive), como `pausado_ate`.
+        public var pausadoAte: Date?
+        public var suspenso: Bool
+        public var aceitaDe: QuemPodeChamar
+        public var antecedenciaMinimaH: Int
+        public var distanciaFaixa: FaixaDistancia
+        /// Grade semanal em America/Sao_Paulo.
+        public var grade: [JanelaDeDisponibilidade]
+        public var aparelhoAtualizado: Bool
+        public var reputacao: Reputacao
+        /// Chamadas abertas de outras casas, que o dublê não guarda (o teto é 5, CD-B10).
+        public var chamadasAbertasDeOutrasCasas: Int
+        /// `par_em_pausa` ou `par_bloqueado_temporariamente` com a casa (RN33, RN34).
+        public var emPausaComACasa: Bool
+        /// Turnos confirmados: não tiram ninguém da busca nem mudam o selo (0.2.88).
+        public var turnosConfirmados: [Periodo]
+
+        public init(id: UUID = UUID(), nomeCompleto: String, servicos: [ServicoNoPerfil], regioes: [Int] = [1],
+                    atendeTodoDF: Bool = false, aceitaChamadas: Bool = true, pausadoAte: Date? = nil,
+                    suspenso: Bool = false, aceitaDe: QuemPodeChamar = .todos, antecedenciaMinimaH: Int = 2,
+                    distanciaFaixa: FaixaDistancia = .ate5km, grade: [JanelaDeDisponibilidade] = [],
+                    aparelhoAtualizado: Bool = true,
+                    reputacao: Reputacao = Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0),
+                    chamadasAbertasDeOutrasCasas: Int = 0, emPausaComACasa: Bool = false, turnosConfirmados: [Periodo] = []) {
+            self.id = id; self.nomeCompleto = nomeCompleto; self.servicos = servicos; self.regioes = regioes
+            self.atendeTodoDF = atendeTodoDF; self.aceitaChamadas = aceitaChamadas; self.pausadoAte = pausadoAte
+            self.suspenso = suspenso; self.aceitaDe = aceitaDe; self.antecedenciaMinimaH = antecedenciaMinimaH
+            self.distanciaFaixa = distanciaFaixa; self.grade = grade; self.aparelhoAtualizado = aparelhoAtualizado
+            self.reputacao = reputacao; self.chamadasAbertasDeOutrasCasas = chamadasAbertasDeOutrasCasas
+            self.emPausaComACasa = emPausaComACasa; self.turnosConfirmados = turnosConfirmados
+        }
+    }
+
+    /// Buscas por hora por conta antes do `429 limite_excedido` (CD-B08).
+    public static let limiteDeBuscasPorHora = 60
+
+    private var profissionaisNaBuscaGuardados: [ProfissionalSimuladoNaBusca]?
+    /// Instantes das buscas que contaram (as primeiras páginas), para o limite por hora.
+    private var buscasQueContaram: [Date] = []
+    /// Os filtros que a busca recebeu, na ordem: os testes conferem o que chegou.
+    public private(set) var buscasRecebidas: [FiltroBuscaProfissionais] = []
+
+    /// Troca quem está na busca (os testes montam cada regra com os seus casos).
+    public func definirProfissionaisNaBusca(_ profissionais: [ProfissionalSimuladoNaBusca]) {
+        profissionaisNaBuscaGuardados = profissionais
+    }
+
+    /// Quem está na busca: o que o teste definiu, ou os de exemplo do cenário.
+    private var profissionaisNaBusca: [ProfissionalSimuladoNaBusca] {
+        if let profissionaisNaBuscaGuardados { return profissionaisNaBuscaGuardados }
+        let exemplo = cenario == .buscaDeProfissionais ? Self.profissionaisNaBuscaDeExemplo(catalogo: catalogo, agora: relogio.agora) : []
+        profissionaisNaBuscaGuardados = exemplo
+        return exemplo
+    }
+
+    private func profissionalNaBusca(_ id: UUID) -> ProfissionalSimuladoNaBusca? {
+        profissionaisNaBusca.first { $0.id == id }
+    }
+
+    public func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais {
+        buscasRecebidas.append(filtro)
+        try verificarRede()
+        guard let conta else { throw erro("nao_autenticado") }
+        guard conta.perfil == .contratante else { throw erro("sem_permissao") }
+        guard conta.estado != .suspensa, suspensao == nil, cenario != .contaSuspensa else {
+            throw erro("sem_permissao", detalhes: "conta_suspensa")
+        }
+        guard recursosEfetivos.buscaProfissionais else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+        guard let casa = estabelecimentos.first(where: { $0.id == filtro.estabelecimentoID }) else { throw erro("sem_permissao") }
+        if let limite, !(1...FiltroBuscaProfissionais.limiteDaPagina).contains(limite) { throw erro("campo_invalido", detalhes: "limite") }
+        guard catalogo.contains(where: { $0.id == filtro.funcaoID }) else { throw erro("campo_invalido", detalhes: "funcao_id") }
+        let regiaoID: Int
+        if let pedida = filtro.regiaoID {
+            guard regioesAdministrativasCadastradas.contains(where: { $0.id == pedida && $0.ativo != false }) else {
+                throw erro("campo_invalido", detalhes: "regiao_id")
+            }
+            regiaoID = pedida
+        } else {
+            guard let daCasa = regioesAdministrativasCadastradas.first(where: { $0.nome == casa.regiaoAdministrativa }) else {
+                throw erro("campo_obrigatorio", detalhes: "regiao_id")
+            }
+            regiaoID = daCasa.id
+        }
+        if let horario = filtro.horario, horario.inicio < relogio.agora { throw erro("campo_invalido", detalhes: "inicio_em") }
+
+        let dia = Self.diaEmBrasilia(relogio.agora)
+        let assinatura = Self.assinatura(filtro, regiaoID: regiaoID)
+        let inicio: Int
+        if let cursor {
+            // O cursor não conta como busca nova; de outra busca, de outro dia ou adulterado é 422.
+            guard let deslocamento = Self.lerCursor(cursor, assinatura: assinatura, dia: dia) else {
+                throw erro("cursor_invalido")
+            }
+            inicio = deslocamento
+        } else {
+            let umaHoraAtras = relogio.agora.addingTimeInterval(-3600)
+            buscasQueContaram.removeAll { $0 <= umaHoraAtras }
+            guard buscasQueContaram.count < Self.limiteDeBuscasPorHora else { throw erro("limite_excedido") }
+            buscasQueContaram.append(relogio.agora)
+            inicio = 0
+        }
+
+        let todos = Array(resultadosDaBusca(filtro, regiaoID: regiaoID, casa: casa, conta: conta, dia: dia)
+            .prefix(FiltroBuscaProfissionais.maximoDeResultados))
+        let tamanho = limite ?? FiltroBuscaProfissionais.limiteDaPagina
+        let fim = min(inicio + tamanho, todos.count)
+        let itens = inicio < fim ? Array(todos[inicio..<fim]) : []
+        let proximo = fim < todos.count ? Self.cursor(assinatura: assinatura, dia: dia, deslocamento: fim) : nil
+        return PaginaBuscaProfissionais(itens: itens, proximoCursor: proximo)
+    }
+
+    /// As regras do contrato, na ordem: quem aparece, depois disponível no horário → faixa de
+    /// distância → embaralhado estável por contratante e por dia. A reputação não entra na ordem.
+    private func resultadosDaBusca(_ filtro: FiltroBuscaProfissionais, regiaoID: Int, casa: Estabelecimento,
+                                   conta: Conta, dia: String) -> [CartaoProfissional] {
+        let casaPessoaFisica = casa.documento.filter(\.isNumber).count == 11
+        let candidatos = profissionaisNaBusca.compactMap { p -> (CartaoProfissional, Int, Int, UInt64)? in
+            guard p.aceitaChamadas, !pausaEmVigor(p.pausadoAte), !p.suspenso, p.aparelhoAtualizado,
+                  let servico = p.servicos.first(where: { $0.funcao.id == filtro.funcaoID }),
+                  p.atendeTodoDF || p.regioes.contains(regiaoID),
+                  bloqueios[Alvo(tipo: .profissional, id: p.id)] == nil,
+                  !(p.aceitaDe == .soCnpj && casaPessoaFisica),
+                  !p.emPausaComACasa,
+                  totalDeChamadasAbertas(p.id) < 5,
+                  !temChamadaAberta(p.id, da: casa.id) else { return nil }
+            var disponivel: Bool?
+            if let horario = filtro.horario {
+                let prazo = Double(max(2, p.antecedenciaMinimaH)) * 3600
+                guard horario.inicio.timeIntervalSince(relogio.agora) >= prazo else { return nil }
+                disponivel = Self.gradeCobre(p.grade, horario)
+            }
+            let cartao = CartaoProfissional(
+                id: p.id, nome: Self.nomeComInicial(p.nomeCompleto), servico: servico,
+                regioes: p.regioes.compactMap { id in regioesAdministrativasCadastradas.first { $0.id == id } },
+                atendeTodoDF: p.atendeTodoDF, distanciaFaixa: p.distanciaFaixa, reputacao: p.reputacao,
+                disponivelNoHorario: disponivel
+            )
+            let ordemDoSelo = disponivel == true ? 0 : 1
+            return (cartao, ordemDoSelo, Self.ordemDaFaixa(p.distanciaFaixa), Self.fnv1a("\(conta.id)|\(dia)|\(p.id)"))
+        }
+        return candidatos.sorted { a, b in
+            if a.1 != b.1 { return a.1 < b.1 }
+            if a.2 != b.2 { return a.2 < b.2 }
+            return a.3 < b.3
+        }.map(\.0)
+    }
+
+    /// O caminho da busca em `chamar_profissional`: chave ligada, `aceita_chamadas`, serviço para a
+    /// função e região atendida (a do `regiao_id` copiado da busca; sem ele, a de mesmo nome).
+    /// A pausa não decide aqui: ela é a recusa `pausado`, depois das genéricas.
+    private func entraPelaBusca(_ id: UUID, pedido: PedidoChamada) throws -> Bool {
+        guard recursosEfetivos.buscaProfissionais, let p = profissionalNaBusca(id), p.aceitaChamadas, !p.suspenso,
+              let t = pedido.trabalho else { return false }
+        let regiaoID: Int?
+        if let pedida = pedido.regiaoID {
+            guard let regiao = regioesAdministrativasCadastradas.first(where: { $0.id == pedida && $0.ativo != false }),
+                  regiao.nome == t.regiaoAdministrativa else { throw erro("campo_invalido", detalhes: "regiao_id") }
+            regiaoID = pedida
+        } else {
+            regiaoID = regioesAdministrativasCadastradas.first { $0.nome == t.regiaoAdministrativa }?.id
+        }
+        let atende = p.atendeTodoDF || regiaoID.map { p.regioes.contains($0) } == true
+        return atende && p.servicos.contains { $0.funcao.id == t.funcaoID }
+    }
+
+    /// As regras do próprio profissional da busca que a chamada confere: pausa e antecedência mínima.
+    private func conferirRegrasDoProfissionalDaBusca(_ id: UUID, pedido: PedidoChamada) throws {
+        guard let p = profissionalNaBusca(id) else { return }
+        if pausaEmVigor(p.pausadoAte) { throw erro("profissional_indisponivel", detalhes: "pausado") }
+        let prazo = Double(max(2, p.antecedenciaMinimaH)) * 3600
+        if let t = pedido.trabalho, t.periodo.inicio.timeIntervalSince(relogio.agora) < prazo {
+            throw erro("profissional_indisponivel", detalhes: "antecedencia_insuficiente")
+        }
+    }
+
+    private func chamadasAbertasForaDoDuble(_ id: UUID) -> Int {
+        profissionalNaBusca(id)?.chamadasAbertasDeOutrasCasas ?? 0
+    }
+
+    private func chamadasAbertasNoDuble() -> [Chamada] {
+        chamadasPorChave.values.filter { $0.estado == .aberta && $0.expiraEm > relogio.agora }
+    }
+
+    private func totalDeChamadasAbertas(_ id: UUID) -> Int {
+        chamadasAbertasNoDuble().filter { $0.profissionalID == id }.count + chamadasAbertasForaDoDuble(id)
+    }
+
+    private func temChamadaAberta(_ id: UUID, da estabelecimentoID: UUID) -> Bool {
+        chamadasAbertasNoDuble().contains { $0.profissionalID == id && $0.estabelecimentoID == estabelecimentoID }
+    }
+
+    /// `pausado_ate` é o último dia da pausa, inclusive.
+    private func pausaEmVigor(_ pausadoAte: Date?) -> Bool {
+        guard let pausadoAte else { return false }
+        return pausadoAte.addingTimeInterval(24 * 3600) > relogio.agora
+    }
+
+    /// O perfil público de quem veio da busca: com `aceita_chamadas` ligado, os campos ricos valem
+    /// como vínculo de leitura (com ou sem pausa), mas sem foto e com o nome cortado para a casa sem
+    /// candidatura, turno ou equipe com ele (0.2.88).
+    private func perfilPublicoDaBusca(_ p: ProfissionalSimuladoNaBusca) -> PerfilPublico {
+        let temVinculo = estabelecimentos.contains { casa in
+            equipesDeConfianca[casa.id]?.contains(p.id) == true || cumpriuTurnoVerificado(p.id, em: casa.id)
+        }
+        let rico = temVinculo || (recursosEfetivos.buscaProfissionais && p.aceitaChamadas)
+        return PerfilPublico(
+            id: p.id, tipo: .profissional, nome: temVinculo ? p.nomeCompleto : Self.nomeComInicial(p.nomeCompleto),
+            funcoes: p.servicos.map(\.funcao.nome), reputacao: p.reputacao,
+            servicos: rico ? p.servicos : [],
+            regioes: rico ? p.regioes.compactMap { id in regioesAdministrativasCadastradas.first { $0.id == id } } : [],
+            atendeTodoDF: rico && p.atendeTodoDF
+        )
+    }
+
+    /// `aceita_chamadas` em `definir_preferencia_chamadas`: chave desligada é 403; ligar sem a versão
+    /// do texto (1 a 20 caracteres) é `422 campo_obrigatorio`.
+    private func conferirAceitaChamadas(_ alteracao: AlteracaoPreferenciaChamadas) throws -> Bool? {
+        guard let aceita = alteracao.aceitaChamadas else { return nil }
+        guard recursosEfetivos.buscaProfissionais else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
+        if aceita {
+            let versao = alteracao.versaoTextoBusca?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !versao.isEmpty else { throw erro("campo_obrigatorio", detalhes: "versao_texto_busca") }
+            guard versao.count <= 20 else { throw erro("campo_invalido", detalhes: "versao_texto_busca") }
+        }
+        return aceita
+    }
+
+    /// O que falta para a conta do dublê aparecer na busca.
+    private func pendenciasDaContaParaBusca(pausadoAte: Date?) -> [PendenciaParaBusca] {
+        var pendencias: [PendenciaParaBusca] = []
+        if (servicosDoPerfil ?? []).isEmpty { pendencias.append(.semServicoComPreco) }
+        if regioesAtendidasCadastradas.isEmpty && !atendeTodoDFCadastrado { pendencias.append(.semRegiao) }
+        if pausaEmVigor(pausadoAte) { pendencias.append(.pausado) }
+        if dispositivos.isEmpty { pendencias.append(.semAparelhoAtualizado) }
+        return pendencias
+    }
+
+    // Apoio da busca
+
+    /// "Maria Souza" vira "Maria S.", como o `CartaoProfissional.nome`.
+    static func nomeComInicial(_ completo: String) -> String {
+        let partes = completo.split(whereSeparator: \.isWhitespace)
+        guard let primeiro = partes.first else { return completo }
+        guard partes.count > 1, let inicial = partes.last?.first else { return String(primeiro) }
+        return "\(primeiro) \(inicial)."
+    }
+
+    private static func ordemDaFaixa(_ faixa: FaixaDistancia) -> Int {
+        switch faixa {
+        case .ate5km: 0
+        case .de5a15km: 1
+        case .maisDe15km: 2
+        }
+    }
+
+    private static var calendarioDeBrasilia: Calendar {
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = TimeZone(identifier: "America/Sao_Paulo")!
+        return calendario
+    }
+
+    private static func diaEmBrasilia(_ instante: Date) -> String {
+        let c = calendarioDeBrasilia.dateComponents([.year, .month, .day], from: instante)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
+    /// Uma janela da grade cobre o horário inteiro (America/Sao_Paulo). Janela com fim antes do
+    /// início passa da meia-noite; a do dia anterior que atravessa a noite também vale.
+    static func gradeCobre(_ grade: [JanelaDeDisponibilidade], _ horario: Periodo) -> Bool {
+        let calendario = calendarioDeBrasilia
+        let inicioDoDia = calendario.startOfDay(for: horario.inicio)
+        let diaDaSemana = calendario.component(.weekday, from: horario.inicio) - 1
+        let de = horario.inicio.timeIntervalSince(inicioDoDia) / 60
+        let ate = horario.fim.timeIntervalSince(inicioDoDia) / 60
+        return grade.contains { janela in
+            let abre = Double(janela.inicio.hora * 60 + janela.inicio.minuto)
+            var fecha = Double(janela.fim.hora * 60 + janela.fim.minuto)
+            if fecha <= abre { fecha += 24 * 60 }
+            if janela.diaDaSemana == diaDaSemana, abre <= de, ate <= fecha { return true }
+            if janela.diaDaSemana == (diaDaSemana + 6) % 7, fecha > 24 * 60, ate <= fecha - 24 * 60 { return true }
+            return false
+        }
+    }
+
+    /// Hash estável entre execuções (o `Hasher` do Swift muda a cada processo).
+    private static func fnv1a(_ texto: String) -> UInt64 {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in texto.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return hash
+    }
+
+    private static func assinatura(_ filtro: FiltroBuscaProfissionais, regiaoID: Int) -> String {
+        let horario = filtro.horario.map { "\($0.inicio.timeIntervalSince1970)-\($0.fim.timeIntervalSince1970)" } ?? "-"
+        return "\(filtro.estabelecimentoID)|\(filtro.funcaoID)|\(regiaoID)|\(horario)"
+    }
+
+    private static func cursor(assinatura: String, dia: String, deslocamento: Int) -> String {
+        Data("v1|\(fnv1a(assinatura))|\(dia)|\(deslocamento)".utf8).base64EncodedString()
+    }
+
+    private static func lerCursor(_ cursor: String, assinatura: String, dia: String) -> Int? {
+        guard let dados = Data(base64Encoded: cursor), let texto = String(data: dados, encoding: .utf8) else { return nil }
+        let partes = texto.split(separator: "|").map(String.init)
+        guard partes.count == 4, partes[0] == "v1", partes[1] == "\(fnv1a(assinatura))", partes[2] == dia,
+              let deslocamento = Int(partes[3]), deslocamento > 0,
+              deslocamento < FiltroBuscaProfissionais.maximoDeResultados else { return nil }
+        return deslocamento
+    }
+
+    /// Os ids fixos do cenário `busca-de-profissionais`, para testes e previews.
+    public enum IDsDaBusca {
+        public static let disponivel = UUID(uuidString: "b5000000-0000-0000-0000-000000000001")!
+        public static let longeComReputacaoAlta = UUID(uuidString: "b5000000-0000-0000-0000-000000000002")!
+        public static let pausado = UUID(uuidString: "b5000000-0000-0000-0000-000000000003")!
+        public static let naoAceita = UUID(uuidString: "b5000000-0000-0000-0000-000000000004")!
+        public static let semRegiao = UUID(uuidString: "b5000000-0000-0000-0000-000000000005")!
+        public static let agendaCheia = UUID(uuidString: "b5000000-0000-0000-0000-000000000006")!
+        public static let suspenso = UUID(uuidString: "b5000000-0000-0000-0000-000000000007")!
+    }
+
+    /// 24 garçons que aparecem (a página tem 20, então há segunda página), em faixas e grades
+    /// diferentes, e um de cada regra que tira da lista. Todos atendem o Plano Piloto (região 1).
+    static func profissionaisNaBuscaDeExemplo(catalogo: [Funcao], agora: Date) -> [ProfissionalSimuladoNaBusca] {
+        guard let garcom = catalogo.first else { return [] }
+        let servico = ServicoNoPerfil(funcao: garcom, servico: ServicoOferecido(funcaoID: garcom.id, unidade: .hora, valorCentavos: 3_500))
+        let semHistorico = Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
+        let todaNoite = (0...6).map { (try? JanelaDeDisponibilidade(diaDaSemana: $0, inicio: HoraDoDia(hora: 17, minuto: 0), fim: HoraDoDia(hora: 2, minuto: 0))) }.compactMap { $0 }
+        let nomes = ["Ana Lima", "Bruno Costa", "Carla Dias", "Davi Rocha", "Elisa Prado", "Fábio Nunes", "Gabi Melo", "Hugo Reis",
+                     "Iara Luz", "João Paz", "Kátia Sá", "Léo Brito", "Marta Cruz", "Nina Faria", "Otávio Lins", "Paula Vaz",
+                     "Rui Teles", "Sara Gomes", "Tiago Mota", "Úrsula Pires", "Vítor Leal", "Wanda Souto", "Xavier Rios"]
+        var lista: [ProfissionalSimuladoNaBusca] = [
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.disponivel, nomeCompleto: "Maria Souza", servicos: [servico],
+                                        distanciaFaixa: .ate5km, grade: todaNoite, reputacao: semHistorico),
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.longeComReputacaoAlta, nomeCompleto: "Rosa Andrade", servicos: [servico],
+                                        atendeTodoDF: true, distanciaFaixa: .maisDe15km,
+                                        reputacao: Reputacao(positivas: 40, total: 40, taxaComparecimento: 1, turnosConsiderados: 40, turnosRealizados: 40)),
+        ]
+        let faixas: [FaixaDistancia] = [.ate5km, .de5a15km, .maisDe15km]
+        for (indice, nome) in nomes.enumerated() {
+            lista.append(ProfissionalSimuladoNaBusca(
+                id: UUID(uuidString: String(format: "b5100000-0000-0000-0000-%012d", indice + 1))!,
+                nomeCompleto: nome, servicos: [servico], distanciaFaixa: faixas[indice % 3],
+                grade: indice.isMultiple(of: 4) ? todaNoite : [],
+                reputacao: Reputacao(positivas: indice, total: indice + 1, taxaComparecimento: 0.9, turnosConsiderados: indice + 1, turnosRealizados: indice + 1)
+            ))
+        }
+        lista += [
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.pausado, nomeCompleto: "Pedro Pausa", servicos: [servico],
+                                        pausadoAte: agora.addingTimeInterval(3 * 24 * 3600)),
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.naoAceita, nomeCompleto: "Nuno Fora", servicos: [servico], aceitaChamadas: false),
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.semRegiao, nomeCompleto: "Sílvia Sem", servicos: [servico], regioes: []),
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.agendaCheia, nomeCompleto: "Caio Cheio", servicos: [servico], chamadasAbertasDeOutrasCasas: 5),
+            ProfissionalSimuladoNaBusca(id: IDsDaBusca.suspenso, nomeCompleto: "Sérgio Susp", servicos: [servico], suspenso: true),
+        ]
+        return lista
     }
 }
 

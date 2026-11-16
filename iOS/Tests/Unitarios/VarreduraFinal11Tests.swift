@@ -158,7 +158,7 @@ struct VarreduraFinal11Tests {
         await model.enviar()
         let valido = try #require(await api.pedidosChamadaRecebidos.last)
 
-        let t = valido.trabalho
+        let t = try #require(valido.trabalho)
         let zerado = PedidoChamada(profissionalID: valido.profissionalID, trabalho: PublicacaoVaga(
             estabelecimentoID: t.estabelecimentoID, funcaoID: t.funcaoID, periodo: t.periodo, local: t.local,
             regiaoAdministrativa: t.regiaoAdministrativa, ponto: t.ponto, valor: Dinheiro(centavos: 0), posicoes: 1,
@@ -193,8 +193,8 @@ struct VarreduraFinal11Tests {
         #expect(model.resultado != nil)
         let pedido = try #require(await api.pedidosChamadaRecebidos.last)
         #expect(pedido.profissionalID == profissionalID)
-        #expect(pedido.trabalho.valor == vaga.valor)
-        #expect(pedido.trabalho.funcaoID == vaga.funcao.id)
+        #expect(pedido.trabalho?.valor == vaga.valor)
+        #expect(pedido.trabalho?.funcaoID == vaga.funcao.id)
     }
 
     // MARK: A6: versao_app (I5d)

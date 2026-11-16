@@ -372,10 +372,24 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
                 pausadoAte: dataTexto,
                 removerPausa: preferencias.removerPausa,
                 antecedenciaMinimaH: preferencias.antecedenciaMinimaH,
-                aceitaDe: preferencias.aceitaDe?.rawValue
+                aceitaDe: preferencias.aceitaDe?.rawValue,
+                aceitaChamadas: preferencias.aceitaChamadas,
+                versaoTextoBusca: preferencias.versaoTextoBusca
             )
         )
         return try dto.dominio()
+    }
+
+    /// 0.2.88. `POST` mesmo sendo leitura: a busca grava o contador do limite. Não entra nas RPCs
+    /// de leitura retentadas, para uma retentativa não gastar duas buscas do limite de 60 por hora.
+    public func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String? = nil, limite: Int? = nil) async throws -> PaginaBuscaProfissionais {
+        let dto: ContratoAPI.RespostaBuscarProfissionais = try await rpc(
+            "buscar_profissionais",
+            params: ContratoAPI.BuscarProfissionais(filtro: filtro, cursor: cursor, limite: limite)
+        )
+        let (pagina, descartados) = dto.dominio()
+        Self.registrarDescartados(descartados, rpc: "buscar_profissionais")
+        return pagina
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
@@ -907,6 +921,11 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
         if case let FunctionsError.httpError(codigo, dados) = error {
             return DecodificadorErroAPI.mapear(statusCode: codigo, dados: dados)
+        }
+        // 429 sem o envelope do contrato (o gateway na frente do PostgREST): é o limite, como o
+        // `limite_excedido` da busca (0.2.88). Os outros status sem envelope seguem como antes.
+        if let http = error as? HTTPError, http.response.statusCode == 429 {
+            return DecodificadorErroAPI.mapear(statusCode: 429, dados: http.data)
         }
         if error is DecodingError {
             return ErroDaApi(codigo: .respostaInvalida)

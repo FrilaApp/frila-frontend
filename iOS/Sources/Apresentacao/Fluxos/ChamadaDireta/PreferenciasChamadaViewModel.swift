@@ -9,12 +9,23 @@ public final class PreferenciasChamadaViewModel {
     public var pausadoAte: Date
     public var antecedenciaMinimaH: Int = 6
     public var aceitaDe: QuemPodeChamar = .todos
+    /// "Aceito chamadas diretas" (0.2.88): põe o profissional na busca. Só vai ao servidor depois que a pessoa mexe nele.
+    public var aceitaChamadas: Bool = false {
+        didSet { if aceitaChamadas != oldValue { aceitaChamadasMexido = true } }
+    }
+    /// O que ainda impede de aparecer na busca, como o servidor devolveu na última resposta.
+    public private(set) var pendenciasParaBusca: [PendenciaParaBusca] = []
 
     public private(set) var carregando = false
     public private(set) var salvando = false
     public private(set) var erro: String?
     public private(set) var sucesso: Bool = false
 
+    /// A versão do texto da busca que a tela mostra ao profissional (1 a 20 caracteres, contrato 0.2.88).
+    // TODO texto do Fabrício: troca a versão quando o texto da busca mudar.
+    public static let versaoDoTextoDaBusca = "busca-1"
+
+    private var aceitaChamadasMexido = false
     private let api: any ApiCliente
     private let agora: @Sendable () -> Date
     private let formatador = FormatadorFrila()
@@ -24,6 +35,9 @@ public final class PreferenciasChamadaViewModel {
         self.agora = agora
         self.pausadoAte = agora().addingTimeInterval(24 * 3600)
     }
+
+    /// Ligou "Aceito chamadas diretas" e nada falta: aparece na busca.
+    public var apareceNaBusca: Bool { aceitaChamadas && pendenciasParaBusca.isEmpty }
 
     public var textoRetomadaPausa: String {
         let fuso = TimeZone(identifier: "America/Sao_Paulo")!
@@ -62,7 +76,9 @@ public final class PreferenciasChamadaViewModel {
                 pausadoAte: pausarChamadas ? pausadoAte : nil,
                 removerPausa: !pausarChamadas,
                 antecedenciaMinimaH: antecedenciaMinimaH,
-                aceitaDe: aceitaDe
+                aceitaDe: aceitaDe,
+                aceitaChamadas: aceitaChamadasMexido ? aceitaChamadas : nil,
+                versaoTextoBusca: aceitaChamadasMexido && aceitaChamadas ? Self.versaoDoTextoDaBusca : nil
             )
             let atualizado = try await api.definirPreferenciaChamadas(alteracao)
             aceitaDeQuemJaTrabalhou = atualizado.aceitaDeQuemJaTrabalhou
@@ -74,6 +90,9 @@ public final class PreferenciasChamadaViewModel {
             }
             antecedenciaMinimaH = atualizado.antecedenciaMinimaH
             aceitaDe = atualizado.aceitaDe
+            aceitaChamadas = atualizado.aceitaChamadas
+            aceitaChamadasMexido = false
+            pendenciasParaBusca = atualizado.pendenciasParaBusca
             sucesso = true
         } catch let apiErro as ErroDaApi {
             if apiErro.recursoDesligado {

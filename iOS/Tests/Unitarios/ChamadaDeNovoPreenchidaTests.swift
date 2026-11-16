@@ -106,7 +106,7 @@ struct ChamadaDeNovoPreenchidaTests {
         #expect(!modelo.refeicao && !modelo.transporte && !modelo.materialProprio)
         modelo.totalConfirmado = true
         await modelo.enviar()
-        let trabalho = try #require(await api.pedidosChamadaRecebidos.first).trabalho
+        let trabalho = try #require(await api.pedidosChamadaRecebidos.first?.trabalho)
         #expect(trabalho.local == casa.endereco)
         #expect(trabalho.regiaoAdministrativa == casa.regiaoAdministrativa)
         #expect(trabalho.ponto == casa.ponto)

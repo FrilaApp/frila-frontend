@@ -15,6 +15,12 @@ public enum DecodificadorErroAPI {
             let original = erro.codigo == .respostaInvalida ? "http_400" : erro.codigoOriginal
             return ErroDaApi(codigo: .respostaInvalida, codigoOriginal: original, detalhes: erro.detalhes)
         }
+        // 429 sem o envelope do contrato (gateway ou proxy na frente do PostgREST): o status já diz
+        // que é o limite, como `limite_excedido` da busca de profissionais (0.2.88).
+        if statusCode == 429, erro.codigo == .desconhecido || erro.codigo == .respostaInvalida {
+            let original = erro.codigo == .respostaInvalida ? "http_429" : erro.codigoOriginal
+            return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original, detalhes: erro.detalhes)
+        }
         return erro
     }
 

@@ -33,7 +33,7 @@ struct ChamadaDiretaTests {
         model.totalConfirmado = true
         await model.enviar()
         let pedido = try #require(await api.pedidosChamadaRecebidos.first)
-        #expect(pedido.trabalho.valor.centavos == 25_076)
+        #expect(pedido.trabalho?.valor.centavos == 25_076)
         #expect(!pedido.confirmoRecorrencia)
         #expect(model.resultado?.estado == .aberta)
     }
@@ -80,7 +80,7 @@ struct ChamadaDiretaTests {
         await model.enviar()
         let pedido = try #require(model.tentativa)
         #expect(try await api.chamarProfissional(pedido) == model.resultado)
-        let t = pedido.trabalho
+        let t = try #require(pedido.trabalho)
         let outro = PublicacaoVaga(estabelecimentoID: t.estabelecimentoID, funcaoID: t.funcaoID,
             periodo: t.periodo, local: t.local, regiaoAdministrativa: t.regiaoAdministrativa,
             ponto: t.ponto, valor: t.valor, posicoes: 1, inclusos: t.inclusos,

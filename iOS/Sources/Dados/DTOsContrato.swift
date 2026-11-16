@@ -811,30 +811,38 @@ enum ContratoAPI {
         }
     }
 
+    /// O corpo de `chamar_profissional`: ou o `vaga_id` de uma vaga direta que já existe, ou os campos
+    /// da RN02 (com o `regiao_id` da busca, quando houver). Nunca os dois (`oneOf` do contrato).
     struct ChamarProfissional: Encodable {
         let pedido: PedidoChamada
         enum CodingKeys: String, CodingKey {
-            case chave, profissional_id, estabelecimento_id, funcao_id, inicio_em, fim_em
+            case chave, profissional_id, estabelecimento_id, vaga_id, funcao_id, inicio_em, fim_em
             case local, regiao_administrativa, ponto, valor_centavos, inclui_refeicao
             case inclui_transporte, exige_material_proprio, responsavel_local, recado, confirmo_recorrencia
+            case regiao_id
         }
         func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
-            let t = pedido.trabalho
-            try c.encode(t.chave, forKey: .chave)
+            try c.encode(pedido.chave, forKey: .chave)
             try c.encode(pedido.profissionalID, forKey: .profissional_id)
-            try c.encode(t.estabelecimentoID, forKey: .estabelecimento_id)
-            try c.encode(t.funcaoID, forKey: .funcao_id)
-            try c.encode(ContratoAPI.texto(t.periodo.inicio), forKey: .inicio_em)
-            try c.encode(ContratoAPI.texto(t.periodo.fim), forKey: .fim_em)
-            try c.encode(t.local, forKey: .local)
-            try c.encode(t.regiaoAdministrativa, forKey: .regiao_administrativa)
-            try c.encode(CoordenadaDTO(t.ponto), forKey: .ponto)
-            try c.encode(t.valor.centavos, forKey: .valor_centavos)
-            try c.encode(t.inclusos.refeicao, forKey: .inclui_refeicao)
-            try c.encode(t.inclusos.transporte, forKey: .inclui_transporte)
-            try c.encode(t.inclusos.exigeMaterialProprio, forKey: .exige_material_proprio)
-            try c.encode(t.responsavelLocal, forKey: .responsavel_local)
+            try c.encode(pedido.estabelecimentoID, forKey: .estabelecimento_id)
+            switch pedido.alvo {
+            case let .vagaExistente(vagaID, _, _):
+                try c.encode(vagaID, forKey: .vaga_id)
+            case let .novoTrabalho(t, regiaoID):
+                try c.encode(t.funcaoID, forKey: .funcao_id)
+                try c.encode(ContratoAPI.texto(t.periodo.inicio), forKey: .inicio_em)
+                try c.encode(ContratoAPI.texto(t.periodo.fim), forKey: .fim_em)
+                try c.encode(t.local, forKey: .local)
+                try c.encode(t.regiaoAdministrativa, forKey: .regiao_administrativa)
+                try c.encode(CoordenadaDTO(t.ponto), forKey: .ponto)
+                try c.encode(t.valor.centavos, forKey: .valor_centavos)
+                try c.encode(t.inclusos.refeicao, forKey: .inclui_refeicao)
+                try c.encode(t.inclusos.transporte, forKey: .inclui_transporte)
+                try c.encode(t.inclusos.exigeMaterialProprio, forKey: .exige_material_proprio)
+                try c.encode(t.responsavelLocal, forKey: .responsavel_local)
+                try c.encodeIfPresent(regiaoID, forKey: .regiao_id)
+            }
             try c.encodeIfPresent(pedido.recado, forKey: .recado)
             try c.encode(pedido.confirmoRecorrencia, forKey: .confirmo_recorrencia)
         }
@@ -877,6 +885,10 @@ enum ContratoAPI {
         let removerPausa: Bool
         let antecedenciaMinimaH: Int?
         let aceitaDe: String?
+        /// 0.2.88. "Aceito chamadas diretas".
+        var aceitaChamadas: Bool? = nil
+        /// 0.2.88. Só vai junto de `aceita_chamadas: true`; nos outros casos o servidor a ignora.
+        var versaoTextoBusca: String? = nil
 
         func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
@@ -888,6 +900,10 @@ enum ContratoAPI {
             }
             try c.encodeIfPresent(antecedenciaMinimaH, forKey: .antecedenciaMinimaH)
             try c.encodeIfPresent(aceitaDe, forKey: .aceitaDe)
+            try c.encodeIfPresent(aceitaChamadas, forKey: .aceitaChamadas)
+            if aceitaChamadas == true {
+                try c.encodeIfPresent(versaoTextoBusca, forKey: .versaoTextoBusca)
+            }
         }
 
         enum CodingKeys: String, CodingKey {
@@ -895,6 +911,8 @@ enum ContratoAPI {
             case pausadoAte = "pausado_ate"
             case antecedenciaMinimaH = "antecedencia_minima_h"
             case aceitaDe = "aceita_de"
+            case aceitaChamadas = "aceita_chamadas"
+            case versaoTextoBusca = "versao_texto_busca"
         }
     }
 
@@ -903,12 +921,18 @@ enum ContratoAPI {
         let pausadoAte: String?
         let antecedenciaMinimaH: Int
         let aceitaDe: String
+        /// 0.2.88. Ausente vale `false`.
+        let aceitaChamadas: Bool?
+        /// 0.2.88. Valor que este app não conhece sai da lista em vez de derrubar a resposta.
+        let pendenciasParaBusca: [String]?
 
         enum CodingKeys: String, CodingKey {
             case aceitaDeQuemJaTrabalhou = "aceita_de_quem_ja_trabalhou"
             case pausadoAte = "pausado_ate"
             case antecedenciaMinimaH = "antecedencia_minima_h"
             case aceitaDe = "aceita_de"
+            case aceitaChamadas = "aceita_chamadas"
+            case pendenciasParaBusca = "pendencias_para_busca"
         }
 
         func dominio() -> PreferenciaChamadas {
@@ -926,7 +950,9 @@ enum ContratoAPI {
                 aceitaDeQuemJaTrabalhou: aceitaDeQuemJaTrabalhou,
                 pausadoAte: dataPausa,
                 antecedenciaMinimaH: antecedenciaMinimaH,
-                aceitaDe: quem
+                aceitaDe: quem,
+                aceitaChamadas: aceitaChamadas ?? false,
+                pendenciasParaBusca: (pendenciasParaBusca ?? []).compactMap(PendenciaParaBusca.init(rawValue:))
             )
         }
     }
@@ -2054,12 +2080,15 @@ enum ContratoAPI {
         let chamadaDireta: Bool?
         let perfilRico: Bool?
         let checkinPorCodigo: Bool?
+        /// 0.2.88. Só vale `true` com `chamada_direta` também `true` (o domínio confere).
+        let buscaProfissionais: Bool?
 
         enum CodingKeys: String, CodingKey {
             case fotoDePerfil = "foto_de_perfil"
             case chamadaDireta = "chamada_direta"
             case perfilRico = "perfil_rico"
             case checkinPorCodigo = "checkin_por_codigo"
+            case buscaProfissionais = "busca_profissionais"
         }
 
         func dominio() -> RecursosDoApp {
@@ -2067,7 +2096,8 @@ enum ContratoAPI {
                 fotoDePerfil: fotoDePerfil ?? false,
                 chamadaDireta: chamadaDireta ?? false,
                 perfilRico: perfilRico ?? false,
-                checkinPorCodigo: checkinPorCodigo ?? false
+                checkinPorCodigo: checkinPorCodigo ?? false,
+                buscaProfissionais: buscaProfissionais ?? false
             )
         }
     }
@@ -2287,4 +2317,82 @@ private struct ChaveDinamica: CodingKey {
     let intValue: Int? = nil
     init?(stringValue: String) { self.stringValue = stringValue }
     init?(intValue: Int) { nil }
+}
+
+// MARK: - Busca de profissionais (contrato 0.2.88)
+
+extension ContratoAPI {
+    /// Corpo de `POST /rpc/buscar_profissionais`. Campo ausente fica fora do corpo: sem `regiao_id`
+    /// vale a região da casa, e o horário vai inteiro (início e fim) ou não vai.
+    struct BuscarProfissionais: Encodable {
+        let filtro: FiltroBuscaProfissionais
+        let cursor: String?
+        let limite: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case estabelecimentoID = "estabelecimento_id"
+            case funcaoID = "funcao_id"
+            case regiaoID = "regiao_id"
+            case inicioEm = "inicio_em"
+            case fimEm = "fim_em"
+            case cursor, limite
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(filtro.estabelecimentoID, forKey: .estabelecimentoID)
+            try c.encode(filtro.funcaoID, forKey: .funcaoID)
+            try c.encodeIfPresent(filtro.regiaoID, forKey: .regiaoID)
+            if let horario = filtro.horario {
+                try c.encode(ContratoAPI.texto(horario.inicio), forKey: .inicioEm)
+                try c.encode(ContratoAPI.texto(horario.fim), forKey: .fimEm)
+            }
+            try c.encodeIfPresent(cursor, forKey: .cursor)
+            try c.encodeIfPresent(limite.map { min(max($0, 1), FiltroBuscaProfissionais.limiteDaPagina) }, forKey: .limite)
+        }
+    }
+
+    /// `CartaoProfissional`: um resultado da busca, sem foto e sem contato.
+    struct CartaoProfissionalDTO: Decodable {
+        let id: UUID
+        let nome: String
+        let servico: ServicoNoPerfilDTO
+        let regioes: [RegiaoAdministrativaDTO]
+        let atendeTodoDF: Bool
+        let distanciaFaixa: FaixaDistancia
+        let reputacao: ReputacaoDTO
+        let disponivelNoHorario: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case id, nome, servico, regioes, reputacao
+            case atendeTodoDF = "atende_todo_df"
+            case distanciaFaixa = "distancia_faixa"
+            case disponivelNoHorario = "disponivel_no_horario"
+        }
+
+        func dominio() -> CartaoProfissional {
+            CartaoProfissional(
+                id: id, nome: nome, servico: servico.dominio(), regioes: regioes.map { $0.dominio() },
+                atendeTodoDF: atendeTodoDF, distanciaFaixa: distanciaFaixa, reputacao: reputacao.dominio(),
+                disponivelNoHorario: disponivelNoHorario
+            )
+        }
+    }
+
+    /// Resposta 200 de `buscar_profissionais`. O cartão com valor que este app não conhece (faixa de
+    /// distância nova, unidade nova) sai da página, e os outros seguem.
+    struct RespostaBuscarProfissionais: Decodable {
+        let itens: [ItemTolerante<CartaoProfissionalDTO>]
+        let proximoCursor: String?
+
+        enum CodingKeys: String, CodingKey {
+            case itens
+            case proximoCursor = "proximo_cursor"
+        }
+
+        func dominio() -> (pagina: PaginaBuscaProfissionais, descartados: Int) {
+            let (cartoes, descartados) = itens.validos { $0.dominio() }
+            return (PaginaBuscaProfissionais(itens: cartoes, proximoCursor: proximoCursor), descartados)
+        }
+    }
 }

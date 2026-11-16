@@ -446,6 +446,64 @@ struct ContratoDoClienteSupabaseTests {
         await cliente.sair(tokenFCM: nil)
         #expect(BackendDeContrato.requisicoes.contains { $0.rota == "/rest/v1/rpc/remover_dispositivo" } == false)
     }
+
+    // MARK: Busca de profissionais (0.2.88)
+
+    private static let cartaoDaBusca = #"""
+    {"itens":[{"id":"b5000000-0000-0000-0000-000000000001","nome":"Maria S.",
+      "servico":{"funcao":{"id":"20000000-0000-0000-0000-000000000001","nome":"Garçom","categoria":"Salão"},"unidade":"hora","valor_centavos":3500},
+      "regioes":[{"id":1,"numero":"I","nome":"Plano Piloto","ativo":true}],"atende_todo_df":false,"distancia_faixa":"ate_5_km",
+      "reputacao":{"positivas":9,"total":10,"taxa_comparecimento":0.9,"turnos_considerados":10,"turnos_realizados":9}}],
+     "proximo_cursor":"c2"}
+    """#
+
+    @Test("buscar_profissionais vai por POST com o corpo do contrato e lê a página com o cursor")
+    func buscarProfissionais() async throws {
+        BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(corpo: Data(Self.cartaoDaBusca.utf8))])
+        let casa = UUID(uuidString: "30000000-0000-0000-0000-000000000001")!
+        let garcom = UUID(uuidString: "20000000-0000-0000-0000-000000000001")!
+        let horario = try Periodo(inicio: ContratoAPI.instante("2026-11-17T23:00:00Z")!, fim: ContratoAPI.instante("2026-11-18T02:00:00Z")!)
+        let pagina = try await cliente().buscarProfissionais(
+            FiltroBuscaProfissionais(estabelecimentoID: casa, funcaoID: garcom, regiaoID: 1, horario: horario), cursor: "c1", limite: 20
+        )
+
+        // Com corpo, o PostgREST recebeu um POST (o GET levaria os filtros na URL).
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/buscar_profissionais") == [
+            "estabelecimento_id": casa.uuidString.lowercased(), "funcao_id": garcom.uuidString.lowercased(), "regiao_id": 1,
+            "inicio_em": "2026-11-17T23:00:00Z", "fim_em": "2026-11-18T02:00:00Z", "cursor": "c1", "limite": 20,
+        ])
+        #expect(pagina.itens.map(\.nome) == ["Maria S."])
+        #expect(pagina.itens.first?.distanciaFaixa == .ate5km)
+        #expect(pagina.proximoCursor == "c2")
+    }
+
+    @Test("buscar_profissionais: 429 limite_excedido e 422 cursor_invalido chegam tipados, com ou sem envelope")
+    func buscarProfissionaisRecusas() async throws {
+        let filtro = FiltroBuscaProfissionais(estabelecimentoID: UUID(), funcaoID: UUID())
+        let casos: [(Int, String, CodigoErroAPI)] = [
+            (429, #"{"code":"limite_excedido","message":"limite_excedido","details":null,"hint":null}"#, .limiteExcedido),
+            (429, "Too Many Requests", .limiteExcedido),
+            (422, #"{"code":"cursor_invalido","message":"cursor_invalido","details":null,"hint":null}"#, .cursorInvalido),
+        ]
+        for (status, corpo, esperado) in casos {
+            BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(status: status, corpo: Data(corpo.utf8))])
+            let erro = await #expect(throws: ErroDaApi.self) { _ = try await cliente().buscarProfissionais(filtro, cursor: nil, limite: nil) }
+            #expect(erro?.codigo == esperado, "status \(status)")
+            // Sem retentativa: cada repetição gastaria uma busca do limite de 60 por hora.
+            #expect(BackendDeContrato.requisicoes.filter { $0.rota == "/rest/v1/rpc/buscar_profissionais" }.count == 1)
+        }
+    }
+
+    @Test("definir_preferencia_chamadas manda aceita_chamadas com a versão do texto e lê as pendências")
+    func definirAceitaChamadas() async throws {
+        let resposta = #"{"aceita_de_quem_ja_trabalhou":true,"pausado_ate":null,"antecedencia_minima_h":6,"aceita_de":"todos","aceita_chamadas":true,"pendencias_para_busca":["sem_regiao"]}"#
+        BackendDeContrato.preparar(["/rest/v1/rpc/definir_preferencia_chamadas": .init(corpo: Data(resposta.utf8))])
+        let preferencia = try await cliente().definirPreferenciaChamadas(AlteracaoPreferenciaChamadas(aceitaChamadas: true, versaoTextoBusca: "busca-v1"))
+
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/definir_preferencia_chamadas") == ["aceita_chamadas": true, "versao_texto_busca": "busca-v1"])
+        #expect(preferencia.aceitaChamadas)
+        #expect(preferencia.pendenciasParaBusca == [.semRegiao])
+    }
 }
 
 // MARK: - Rede ruim e valor novo do contrato (robustez antes do TestFlight)
