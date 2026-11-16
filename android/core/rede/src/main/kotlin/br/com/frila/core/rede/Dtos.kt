@@ -896,6 +896,10 @@ data class CartaoProfissionalDto(
     @SerialName("distancia_faixa") val distanciaFaixa: String,
     @SerialName("reputacao") val reputacao: ReputacaoDto,
     @SerialName("disponivel_no_horario") val disponivelNoHorario: Boolean? = null,
+    /** Link de 1 h (`ler-midia`, miniatura de 320 px) da foto aprovada, sem cabeçalho; ausente sem foto (0.2.90, CD-B07). */
+    @SerialName("foto_url") val fotoUrl: String? = null,
+    /** Identificador opaco da foto, o que `denunciar.midia_id` recebe (0.2.90). */
+    @SerialName("foto_id") val fotoId: String? = null,
 )
 
 /**
@@ -1072,4 +1076,20 @@ data class PublicarAPartirDaChamadaDto(
     @SerialName("vaga_id") val vagaId: String,
     @SerialName("chave") val chave: String,
     @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("modo") val modo: String? = null,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/aceitar_termos` (contrato 0.2.90): a versão dos Termos que a tela exibiu, no formato
+ * `AAAA-MM-DD`, só uma versão PUBLICADA (hoje `2026-11-13` e `2026-11-16`; o app manda a da página, `2026-11-16`; o servidor mantém a lista). O instante do aceite é do servidor; o app não manda data.
+ */
+@Serializable
+data class AceitarTermosDto(
+    @SerialName("termos_versao") val termosVersao: String,
+)
+
+/** Resposta de `aceitar_termos`: o aceite em vigor (repetir a mesma versão devolve o que já existe). */
+@Serializable
+data class AceiteDeTermosDto(
+    @SerialName("termos_versao") val termosVersao: String,
+    @SerialName("aceito_em") val aceitoEm: String,
 )

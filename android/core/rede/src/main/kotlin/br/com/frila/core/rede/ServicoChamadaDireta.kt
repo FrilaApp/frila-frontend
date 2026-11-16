@@ -78,6 +78,16 @@ class ServicoChamadaDireta(private val provedorDeCliente: () -> ClienteSupabase)
     suspend fun buscarProfissionais(busca: BuscarProfissionaisDto): PaginaDeProfissionaisDto =
         rpc("buscar_profissionais", busca)
 
+    /**
+     * `aceitar_termos` (0.2.90): registra o aceite de [termosVersao] pela conta que já existe; o servidor carimba o
+     * instante. Repetir a mesma versão devolve o aceite que já existe (idempotente). Erros: `422 campo_obrigatorio`
+     * (versão vazia) e `422 campo_invalido` (fora do formato `AAAA-MM-DD`, fora da lista de versões publicadas ou
+     * anterior à já aceita); sem conta, `404 nao_encontrado`. O uso é a busca: `403 sem_permissao`
+     * (`details: termos_pendentes`) leva o app a pedir o aceite por aqui e a repetir a busca.
+     */
+    suspend fun aceitarTermos(termosVersao: String): AceiteDeTermosDto =
+        rpc("aceitar_termos", AceitarTermosDto(termosVersao = termosVersao))
+
     // --- Chamada direta ------------------------------------------------------------------------
 
     /**
