@@ -118,6 +118,9 @@ class BuscaDeProfissionaisViewModel(
     private var recursoConfirmado = false
     private val tentativas = mutableMapOf<String, ChamarProfissionalDto>()
 
+    /** A vaga direta criada pela 1ª chamada desta busca; as seguintes vão pelo `vaga_id` dela. */
+    private var vagaDoTrabalho: String? = null
+
     // --- Filtros -----------------------------------------------------------------------------------
 
     fun definirFuncao(funcaoId: String?) = _estado.update { it.copy(funcaoId = funcaoId) }
@@ -148,6 +151,7 @@ class BuscaDeProfissionaisViewModel(
                 val itens = semRepetidos(pagina.itens, jaTem = emptySet())
                 proximoCursor = cursorSeguinte(pagina, total = itens.size)
                 tentativas.clear()
+                vagaDoTrabalho = null
                 _estado.update {
                     it.copy(
                         estado = if (itens.isEmpty()) EstadoDaBusca.Vazio else EstadoDaBusca.Resultados,
@@ -231,6 +235,8 @@ class BuscaDeProfissionaisViewModel(
 
     private fun limparResultados(novo: EstadoDaBusca) {
         proximoCursor = null
+        vagaDoTrabalho = null
+        tentativas.clear()
         _estado.update {
             it.copy(
                 estado = novo, resultados = emptyList(), temMais = false, selecionados = emptyList(),
@@ -276,9 +282,13 @@ class BuscaDeProfissionaisViewModel(
     // --- Chamar ------------------------------------------------------------------------------------
 
     /**
-     * Cria a chamada de cada selecionado pela `chamarProfissional`, uma de cada vez. Cada profissional leva a sua
-     * chave; se o servidor pedir J7, o reenvio ([confirmoRecorrencia]) usa o mesmo trabalho e a mesma chave. A
-     * região da busca vai junto. Quem já tem chamada enviada não é chamado de novo.
+     * Cria a chamada de cada selecionado pela `chamarProfissional`, uma de cada vez, todas para o MESMO trabalho
+     * (contrato `chamar_profissional`): a 1ª que der certo leva os campos do trabalho e cria a vaga direta; as
+     * seguintes levam só o `vaga_id` dela (nunca os dois), com `recado`, e a vaga guarda a região da busca. Se a
+     * 1ª falhar (recusa, erro ou J7 pendente), a próxima que der certo vira a 1ª. Cada profissional leva a sua
+     * chave; se o servidor pedir J7, o reenvio ([confirmoRecorrencia]) usa a mesma chave, e quem foi pelo
+     * trabalho completo passa a ir pelo `vaga_id` se a vaga já existir (a recusa J7 não cria chamada). Quem já
+     * tem chamada enviada não é chamado de novo.
      */
     fun chamar(trabalho: TrabalhoDaChamada, recado: String? = null, confirmoRecorrencia: Boolean = false): Job {
         val tela = _estado.value
@@ -296,17 +306,22 @@ class BuscaDeProfissionaisViewModel(
         _estado.update { it.copy(enviando = true, mostrarJ7 = false) }
         return escopoDeTrabalho.launch {
             for (id in alvos) {
-                val original = tentativas[id] ?: trabalho.paraPedido(
-                    profissionalId = id,
-                    estabelecimentoId = estabelecimentoId,
-                    chave = novaChave(),
-                    recado = recado?.trim(),
-                    regiaoId = regiaoId,
-                )
+                val vagaId = vagaDoTrabalho
+                val guardado = tentativas[id]
+                val original = when {
+                    guardado == null -> pedidoDe(id, trabalho, recado, regiaoId, vagaId)
+                    // Reenvio J7 de quem foi pelo trabalho completo, agora que a vaga existe: mesma chave, só o vaga_id.
+                    confirmoRecorrencia && guardado.vagaId == null && vagaId != null ->
+                        pedidoDe(id, trabalho, recado, regiaoId, vagaId, chave = guardado.chave)
+                    else -> guardado
+                }
                 val pedido = if (confirmoRecorrencia) original.copy(confirmoRecorrencia = true) else original
                 tentativas[id] = pedido
                 val resultado = try {
-                    ResultadoDaChamadaDaBusca.Enviada(withTimeout(prazoMs) { chamarProfissional(pedido) }).also { tentativas.remove(id) }
+                    val chamada = withTimeout(prazoMs) { chamarProfissional(pedido) }
+                    tentativas.remove(id)
+                    if (vagaDoTrabalho == null) vagaDoTrabalho = chamada.vagaId
+                    ResultadoDaChamadaDaBusca.Enviada(chamada)
                 } catch (erro: CancellationException) {
                     if (erro !is TimeoutCancellationException) throw erro
                     ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO)
@@ -329,6 +344,35 @@ class BuscaDeProfissionaisViewModel(
                     mostrarJ7 = it.resultadosDaChamada.values.any { r -> r == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia },
                 )
             }
+        }
+    }
+
+    /** Sem [vagaId]: o trabalho completo (cria a vaga direta). Com ele: só o `vaga_id` mais o recado, sem os campos da RN02. */
+    private fun pedidoDe(
+        profissionalId: String,
+        trabalho: TrabalhoDaChamada,
+        recado: String?,
+        regiaoId: Int?,
+        vagaId: String?,
+        chave: String = novaChave(),
+    ): ChamarProfissionalDto {
+        val completo = trabalho.paraPedido(
+            profissionalId = profissionalId,
+            estabelecimentoId = estabelecimentoId,
+            chave = chave,
+            recado = recado?.trim(),
+            regiaoId = regiaoId,
+        )
+        return if (vagaId == null) {
+            completo
+        } else {
+            ChamarProfissionalDto(
+                chave = chave,
+                profissionalId = profissionalId,
+                estabelecimentoId = estabelecimentoId,
+                vagaId = vagaId,
+                recado = completo.recado,
+            )
         }
     }
 

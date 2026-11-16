@@ -352,7 +352,7 @@ class BuscaDeProfissionaisViewModelTest {
     }
 
     @Test
-    fun `chamar cria uma chamada por selecionado, cada uma com a sua chave e o regiao_id da busca`() = runBlocking {
+    fun `chamar manda o trabalho na 1a chamada e so o vaga_id dela nas outras, cada uma com a sua chave`() = runBlocking {
         val rede = RedeDeTeste().apply {
             ok("buscar_profissionais", pagina(ids("p", 1, 5)))
             ok("chamar_profissional", chamadaJson)
@@ -366,10 +366,18 @@ class BuscaDeProfissionaisViewModelTest {
         val pedidos = rede.doNome("chamar_profissional")
         assertEquals(listOf("p-1", "p-3", "p-5"), pedidos.map { it.corpo["profissional_id"]!!.jsonPrimitive.content })
         assertEquals(listOf("chave-1", "chave-2", "chave-3"), pedidos.map { it.corpo["chave"]!!.jsonPrimitive.content })
-        assertTrue(pedidos.all { it.corpo["regiao_id"]!!.jsonPrimitive.int == 7 })
         assertTrue(pedidos.all { it.corpo["recado"]!!.jsonPrimitive.content == "Traga avental" })
         assertTrue(pedidos.all { it.corpo["estabelecimento_id"]!!.jsonPrimitive.content == casa })
-        assertTrue(pedidos.all { it.corpo["valor_centavos"]!!.jsonPrimitive.content == "18000" })
+        // A 1ª leva o trabalho inteiro e o regiao_id da busca, sem vaga_id.
+        val primeira = pedidos.first().corpo
+        assertEquals(7, primeira["regiao_id"]!!.jsonPrimitive.int)
+        assertEquals("18000", primeira["valor_centavos"]!!.jsonPrimitive.content)
+        assertFalse("vaga_id" in primeira)
+        // A 2ª e a 3ª levam só o vaga_id da resposta da 1ª (a vaga guarda a região), nunca os dois.
+        pedidos.drop(1).forEach {
+            assertEquals("v1", it.corpo["vaga_id"]!!.jsonPrimitive.content)
+            assertEquals(setOf("chave", "profissional_id", "estabelecimento_id", "vaga_id", "recado"), it.corpo.keys)
+        }
         assertTrue(vm.estado.value.resultadosDaChamada.values.all { it is ResultadoDaChamadaDaBusca.Enviada })
         assertFalse(vm.estado.value.enviando)
         assertFalse(vm.estado.value.mostrarJ7)
@@ -377,6 +385,90 @@ class BuscaDeProfissionaisViewModelTest {
         // Quem já tem chamada enviada não é chamado de novo.
         vm.chamar(trabalho).join()
         assertEquals(3, rede.doNome("chamar_profissional").size)
+    }
+
+    /** Responde cada chamada com a vaga `vaga-<n>` (uma por pedido que cria vaga, isto é, sem vaga_id). */
+    private fun RedeDeTeste.respondeComVagaPropria(falhas: Set<String> = emptySet()) {
+        var vagas = 0
+        rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            when {
+                id in falhas -> respond("""{"code":"profissional_indisponivel","message":"x"}""", HttpStatusCode.UnprocessableEntity, json)
+                "vaga_id" in pedido.corpo -> respond(chamadaJson.replace("\"v1\"", "\"${pedido.corpo["vaga_id"]!!.jsonPrimitive.content}\""), HttpStatusCode.OK, json)
+                else -> respond(chamadaJson.replace("\"v1\"", "\"vaga-${++vagas}\""), HttpStatusCode.OK, json)
+            }
+        }
+    }
+
+    @Test
+    fun `3 selecionados geram 1 pedido com o trabalho e 2 com o vaga_id da resposta, e nunca criam 3 vagas`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 3)))
+            respondeComVagaPropria()
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(3, pedidos.size)
+        assertEquals(1, pedidos.count { "valor_centavos" in it })
+        assertEquals(listOf("vaga-1", "vaga-1"), pedidos.drop(1).map { it["vaga_id"]!!.jsonPrimitive.content })
+        assertTrue(pedidos.drop(1).none { "valor_centavos" in it || "funcao_id" in it || "regiao_id" in it })
+        assertEquals(3, pedidos.map { it["chave"]!!.jsonPrimitive.content }.toSet().size)
+    }
+
+    @Test
+    fun `se a 1a falhar, a proxima que der certo vira a 1a e as outras vao pelo vaga_id dela`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 3)))
+            respondeComVagaPropria(falhas = setOf("p-1"))
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-2", "p-3"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        // p-1 tentou criar a vaga e foi recusada; p-2 criou; p-3 foi pelo vaga_id de p-2.
+        assertTrue("valor_centavos" in pedidos[0])
+        assertTrue("valor_centavos" in pedidos[1])
+        assertFalse("vaga_id" in pedidos[1])
+        assertEquals("vaga-1", pedidos[2]["vaga_id"]!!.jsonPrimitive.content)
+        assertFalse("valor_centavos" in pedidos[2])
+        assertTrue(vm.estado.value.resultadosDaChamada["p-1"] is ResultadoDaChamadaDaBusca.Erro)
+    }
+
+    @Test
+    fun `J7 da 1a, quem estava pendente reenvia pelo vaga_id da vaga que outro criou, com a mesma chave`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 2))) }
+        var confirmado = false
+        rede.rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            if (id == "p-1" && !confirmado) respond("""{"code":"recorrencia_nao_confirmada","message":"x"}""", HttpStatusCode.Conflict, json)
+            else respond(chamadaJson.replace("\"v1\"", "\"vaga-9\""), HttpStatusCode.OK, json)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+        confirmado = true
+        vm.chamar(trabalho, confirmoRecorrencia = true).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(3, pedidos.size)
+        assertTrue("valor_centavos" in pedidos[1], "p-2 virou a 1ª")
+        val reenvio = pedidos[2]
+        assertEquals("p-1", reenvio["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals("chave-1", reenvio["chave"]!!.jsonPrimitive.content)
+        assertEquals("vaga-9", reenvio["vaga_id"]!!.jsonPrimitive.content)
+        assertFalse("valor_centavos" in reenvio)
+        assertTrue(reenvio["confirmo_recorrencia"]!!.jsonPrimitive.boolean)
     }
 
     @Test
