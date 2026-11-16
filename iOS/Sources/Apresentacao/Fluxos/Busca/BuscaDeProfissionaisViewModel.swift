@@ -14,6 +14,16 @@ public protocol FonteDaBuscaDeProfissionais: Sendable {
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
 }
 
+public extension FonteDaBuscaDeProfissionais {
+    /// Fonte sem as leituras (dublê que não simula o 409 da 0.2.95): a leitura dos termos falha, e o 409 vira o erro
+    /// genérico, sem repetir. A fonte real é `FonteDaBuscaPelaApi`, que lê pela API.
+    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
+        throw ErroDaApi(codigo: .naoEncontrado)
+    }
+
+    func detalheChamada(id: UUID) async throws -> ChamadaDetalhe { throw ErroDaApi(codigo: .naoEncontrado) }
+}
+
 /// Liga a porta `ApiCliente` à fonte da busca.
 public struct FonteDaBuscaPelaApi: FonteDaBuscaDeProfissionais {
     private let api: any ApiCliente
@@ -87,6 +97,19 @@ public struct RascunhoDeVagaDaBusca: Equatable, Sendable {
     }
 }
 
+extension PublicarVagaViewModel {
+    /// A publicação normal abre já com o serviço e o horário da busca vazia (CD-RN35). A região da busca não
+    /// entra: a vaga leva a região do estabelecimento (contrato 0.2.20). Sem rascunho nada muda.
+    public func preencher(com rascunho: RascunhoDeVagaDaBusca?) {
+        guard let rascunho else { return }
+        funcaoID = rascunho.funcaoID
+        if let horario = rascunho.horario {
+            inicio = horario.inicio
+            fim = horario.fim
+        }
+    }
+}
+
 @MainActor @Observable
 public final class BuscaDeProfissionaisViewModel {
     public enum Estado: Equatable, Sendable {
@@ -143,18 +166,29 @@ public final class BuscaDeProfissionaisViewModel {
     private var incertos: Set<UUID> = []
     /// 0.2.95: a vaga aberta do trabalho tem termos diferentes dos digitados. Nada do trabalho sai até a casa confirmar.
     private var confirmacaoDosTermos: ConfirmacaoDosTermos?
+    /// O trabalho e o recado do 1º envio. DINHEIRO: depois dele, todo reenvio (Tentar de novo, Chamar selecionados
+    /// de novo, J7) repete ESTE trabalho, sem folha nova: um trabalho diferente (horário que muda a cada abertura,
+    /// outro valor) faria quem ainda não foi chamado abrir uma 2ª vaga.
+    public private(set) var trabalhoEnviado: PublicacaoVaga?
+    public private(set) var recadoEnviado: String?
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
+    /// O prazo de cada `await` de rede; o teste injeta um menor.
+    private let prazo: Duration
 
     /// `versaoDosTermos`: a versão que a tela de aceite exibe e que `aceitar_termos` recebe.
-    public init(fonte: any FonteDaBuscaDeProfissionais, estabelecimentoID: UUID, versaoDosTermos: String = VersaoDosTermos.vigente) {
+    public init(fonte: any FonteDaBuscaDeProfissionais, estabelecimentoID: UUID, prazo: Duration = .seconds(15),
+                versaoDosTermos: String = VersaoDosTermos.vigente) {
         self.fonte = fonte
         self.estabelecimentoID = estabelecimentoID
+        self.prazo = prazo
         self.versaoDosTermos = versaoDosTermos
     }
 
-    public convenience init(api: any ApiCliente, estabelecimentoID: UUID, versaoDosTermos: String = VersaoDosTermos.vigente) {
-        self.init(fonte: FonteDaBuscaPelaApi(api: api), estabelecimentoID: estabelecimentoID, versaoDosTermos: versaoDosTermos)
+    public convenience init(api: any ApiCliente, estabelecimentoID: UUID, prazo: Duration = .seconds(15),
+                            versaoDosTermos: String = VersaoDosTermos.vigente) {
+        self.init(fonte: FonteDaBuscaPelaApi(api: api), estabelecimentoID: estabelecimentoID, prazo: prazo,
+                  versaoDosTermos: versaoDosTermos)
     }
 
     public var podeBuscar: Bool {
@@ -189,8 +223,9 @@ public final class BuscaDeProfissionaisViewModel {
         erroAoCarregarMais = nil
         do {
             let fonte = fonte
+            let prazo = prazo
             let jaConfirmado = recursoConfirmado
-            let pagina = try await PrazoDaAbertura.esperar(.seconds(15)) { () -> PaginaBuscaProfissionais? in
+            let pagina = try await PrazoDaAbertura.esperar(prazo) { () -> PaginaBuscaProfissionais? in
                 if !jaConfirmado {
                     let configuracao = try await fonte.configuracaoDoApp()
                     guard configuracao.recursos.buscaProfissionais else { return nil }
@@ -222,7 +257,7 @@ public final class BuscaDeProfissionaisViewModel {
     }
 
     /// A pessoa aceitou os Termos na tela provisória: chama `aceitar_termos` com a versão exibida e, com o aceite em
-    /// vigor, repete a busca com os mesmos filtros que o servidor recusou. Se o aceite falha (prazo de 15 s, sem rede,
+    /// vigor, repete a busca com os mesmos filtros que o servidor recusou. Se o aceite falha (`prazo`, sem rede,
     /// recusa), o estado continua `termosPendentes`, com `erroNoAceiteDosTermos`, e nenhuma busca sai. Repetir o aceite
     /// é seguro: o servidor devolve o que já existe para a mesma versão.
     public func aceitarTermosERepetirABusca() async {
@@ -232,7 +267,7 @@ public final class BuscaDeProfissionaisViewModel {
         do {
             let fonte = fonte
             let versao = versaoDosTermos
-            _ = try await PrazoDaAbertura.esperar(.seconds(15)) { try await fonte.aceitarTermos(versao: versao) }
+            _ = try await PrazoDaAbertura.esperar(prazo) { try await fonte.aceitarTermos(versao: versao) }
         } catch {
             aceitandoTermos = false
             erroNoAceiteDosTermos = true
@@ -256,7 +291,7 @@ public final class BuscaDeProfissionaisViewModel {
         let limite = min(FiltroBuscaProfissionais.limiteDaPagina, faltam)
         do {
             let fonte = fonte
-            let pagina = try await PrazoDaAbertura.esperar(.seconds(15)) {
+            let pagina = try await PrazoDaAbertura.esperar(prazo) {
                 try await fonte.buscarProfissionais(filtro, cursor: cursor, limite: limite)
             }
             let novos = Self.semRepetidos(pagina.itens, jaTem: Set(resultados.map(\.id)))
@@ -264,25 +299,46 @@ public final class BuscaDeProfissionaisViewModel {
             proximoCursor = Self.cursorSeguinte(pagina, total: resultados.count)
         } catch let erro as ErroDaApi where erro.codigo == .cursorInvalido {
             // Cursor de outra busca ou de outro dia: refaz a primeira página (contrato 0.2.88).
-            carregandoMais = false
-            await refazerAPartirDoFiltroDaBusca(filtro)
+            await refazerPrimeiraPaginaDaBusca(filtro)
         } catch let erro as ErroDaApi where erro.codigo == .limiteExcedido || erro.recursoDesligado || erro.termosPendentes {
-            estado = Self.estado(para: erro)
-            if estado == .termosPendentes {
-                limparResultados()
-                filtroDaBuscaPendenteDeTermos = filtro
-            }
+            recusarSemPagina(erro, filtro: filtro)
         } catch {
             erroAoCarregarMais = TextosBuscaDeProfissionais.erroAoCarregarMais
         }
     }
 
-    private func refazerAPartirDoFiltroDaBusca(_ filtro: FiltroBuscaProfissionais) async {
-        funcaoID = filtro.funcaoID
-        regiaoID = filtro.regiaoID
-        horario = filtro.horario
-        estado = .ocioso
-        await buscar()
+    /// `cursor_invalido` no meio do uso: relê a primeira página com o filtro DA BUSCA (não com o que a tela
+    /// edita) e troca só a lista e o cursor. Os filtros em edição, as chamadas já enviadas e o J7 pendente ficam.
+    /// Quem já foi chamado continua na lista (o servidor o tira, porque a chamada está aberta) para a tela
+    /// seguir mostrando o resultado dele.
+    private func refazerPrimeiraPaginaDaBusca(_ filtro: FiltroBuscaProfissionais) async {
+        do {
+            let fonte = fonte
+            let pagina = try await PrazoDaAbertura.esperar(prazo) {
+                try await fonte.buscarProfissionais(filtro, cursor: nil, limite: FiltroBuscaProfissionais.limiteDaPagina)
+            }
+            let chamados = resultados.filter { resultadosDaChamada[$0.id] != nil }
+            let novos = Self.semRepetidos(pagina.itens, jaTem: Set(chamados.map(\.id)))
+            resultados = Array((chamados + novos).prefix(FiltroBuscaProfissionais.maximoDeResultados))
+            let presentes = Set(resultados.map(\.id))
+            selecionados = selecionados.filter { presentes.contains($0) }
+            proximoCursor = Self.cursorSeguinte(pagina, total: resultados.count)
+            estado = resultados.isEmpty ? .vazio : .resultados
+        } catch let erro as ErroDaApi where erro.codigo == .limiteExcedido || erro.recursoDesligado || erro.termosPendentes {
+            recusarSemPagina(erro, filtro: filtro)
+        } catch {
+            erroAoCarregarMais = TextosBuscaDeProfissionais.erroAoCarregarMais
+        }
+    }
+
+    /// A página seguinte (ou a releitura do `cursor_invalido`) foi recusada por limite, chave desligada ou
+    /// `termos_pendentes`. Com `termos_pendentes` a lista sai e a busca guarda o filtro para repetir depois do aceite.
+    private func recusarSemPagina(_ erro: ErroDaApi, filtro: FiltroBuscaProfissionais) {
+        estado = Self.estado(para: erro)
+        if estado == .termosPendentes {
+            limparResultados()
+            filtroDaBuscaPendenteDeTermos = filtro
+        }
     }
 
     private func limparResultados() {
@@ -304,9 +360,16 @@ public final class BuscaDeProfissionaisViewModel {
     private static func estado(para erro: Error) -> Estado {
         guard let api = erro as? ErroDaApi else { return .erro(TextosBuscaDeProfissionais.erro) }
         if api.recursoDesligado { return .indisponivel }
+        // Antes do `switch`: `termos_pendentes` chega como `sem_permissao` e não é a mensagem de permissão.
         if api.termosPendentes { return .termosPendentes }
-        if api.codigo == .limiteExcedido { return .erro(TextosBuscaDeProfissionais.limiteDeBuscas) }
-        return .erro(TextosBuscaDeProfissionais.erro)
+        switch api.codigo {
+        case .limiteExcedido: return .erro(TextosBuscaDeProfissionais.limiteDeBuscas)
+        case .contaSuspensa: return .erro(TextosBuscaDeProfissionais.contaSuspensa)
+        case .semPermissao:
+            return .erro(api.detalhes == CodigoErroAPI.contaSuspensa.rawValue
+                         ? TextosBuscaDeProfissionais.contaSuspensa : TextosBuscaDeProfissionais.semPermissao)
+        default: return .erro(TextosBuscaDeProfissionais.erro)
+        }
     }
 
     // MARK: - Seleção
@@ -344,6 +407,9 @@ public final class BuscaDeProfissionaisViewModel {
     /// 0.2.95: os termos da vaga já aberta que a tela provisória mostra para a casa confirmar; `nil` sem pendência.
     public var termosParaConfirmar: TermosDaVagaAberta? { confirmacaoDosTermos?.termos }
 
+    /// Já houve um envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma folha nova.
+    public var temEnvioRegistrado: Bool { trabalhoEnviado != nil }
+
     /// Há selecionado com erro ou que nem saiu: `chamar` de novo reenvia só esses, cada um com a chave que já tinha.
     public var podeReenviar: Bool {
         podeChamar && selecionados.contains { id in
@@ -377,6 +443,10 @@ public final class BuscaDeProfissionaisViewModel {
         let alvos = primeiros + selecionados.filter { id in
             if case .enviada = resultadosDaChamada[id] { return false }
             return !primeiros.contains(id) && (!confirmoRecorrencia || pendentes.contains(id))
+        }
+        if trabalhoEnviado == nil {
+            trabalhoEnviado = trabalho
+            recadoEnviado = recado
         }
         enviando = true
         defer { enviando = false }
@@ -426,6 +496,13 @@ public final class BuscaDeProfissionaisViewModel {
         mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
     }
 
+    /// Reenvia com o trabalho e o recado do 1º envio (nunca um novo). Sem envio anterior não faz nada: o 1º envio
+    /// passa pela folha de chamada e por `chamar(trabalho:)`.
+    public func reenviar(confirmoRecorrencia: Bool = false, chave: () -> UUID = UUID.init) async {
+        guard let trabalho = trabalhoEnviado else { return }
+        await chamar(trabalho: trabalho, recado: recadoEnviado, confirmoRecorrencia: confirmoRecorrencia, chave: chave)
+    }
+
     /// O pedido de um selecionado nesta rodada. Quem ainda não tentou leva o `vaga_id` da vaga do trabalho, se
     /// ela já existe, ou o trabalho com uma chave nova. Quem tentou repete a chave; se foi pelo trabalho e a vaga
     /// passou a existir, vai pelo `vaga_id` dela: o servidor só guarda a chave quando cria a chamada e, se o
@@ -450,7 +527,7 @@ public final class BuscaDeProfissionaisViewModel {
         return base.confirmando(confirmando || base.confirmoRecorrencia)
     }
 
-    /// Manda o pedido com o prazo de 15 s. 0.2.95: `409 trabalho_ja_aberto` diz que a casa já tem este trabalho aberto
+    /// Manda o pedido com o `prazo`. 0.2.95: `409 trabalho_ja_aberto` diz que a casa já tem este trabalho aberto
     /// numa vaga direta, e nada foi criado. A chamada só pode entrar nela, com os termos dela: o app lê o valor e os
     /// inclusos da vaga (`lerTermos`). Iguais aos de `digitado`, o `vaga_id` de `details` passa a ser a vaga do trabalho
     /// e o mesmo profissional vai de novo por ele, num pedido novo com chave nova, como a 2ª e a 3ª chamadas. Diferentes,
@@ -476,15 +553,15 @@ public final class BuscaDeProfissionaisViewModel {
 
     private func enviarComPrazo(_ pedido: PedidoChamada) async throws -> Chamada {
         let fonte = fonte
-        return try await PrazoDaAbertura.esperar(.seconds(15)) { try await fonte.chamarProfissional(pedido) }
+        return try await PrazoDaAbertura.esperar(prazo) { try await fonte.chamarProfissional(pedido) }
     }
 
     /// Os termos da vaga aberta como a casa os lê (0.2.95, e não por `detalhe_vaga`): o valor no item `aberta` de
     /// `minhas_chamadas` com esse `vaga_id` (o trabalho aberto sempre tem um, e a casa tem no máximo 10 abertas, RN34) e
-    /// os inclusos no `detalhe_chamada` dele. Prazo de 15 s para as duas leituras; sem o item, falha.
+    /// os inclusos no `detalhe_chamada` dele. O mesmo `prazo` para as duas leituras; sem o item, falha.
     private func lerTermos(daVaga vagaID: UUID) async throws -> TermosDaVagaAberta {
         let fonte = fonte
-        return try await PrazoDaAbertura.esperar(.seconds(15)) {
+        return try await PrazoDaAbertura.esperar(prazo) {
             let abertas = try await fonte.minhasChamadas(estado: .aberta, cursor: nil, limite: nil)
             guard let chamada = abertas.first(where: { $0.vagaID == vagaID }) else { throw ErroDaApi(codigo: .naoEncontrado) }
             let detalhe = try await fonte.detalheChamada(id: chamada.id)

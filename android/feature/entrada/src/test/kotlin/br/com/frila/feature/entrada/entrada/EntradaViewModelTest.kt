@@ -118,4 +118,53 @@ class EntradaViewModelTest {
         assertTrue(erro != null && !erro.contains("postgres"))
         assertFalse(viewModel.estado.value.otpSolicitado)
     }
+
+    @Test
+    fun `429 do Auth sem message nao derruba o app e mostra a mensagem de limite`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = """{"code":429,"error_code":"over_email_send_rate_limit"}""",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.aoMudarEmail("profissional@exemplo.com")
+        viewModel.solicitarCodigo()?.join()
+
+        assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, viewModel.estado.value.erro)
+        assertFalse(viewModel.estado.value.carregando)
+        assertFalse(viewModel.estado.value.otpSolicitado)
+    }
+
+    @Test
+    fun `429 sem corpo nenhum tambem mostra a mensagem de limite`() = runBlocking {
+        val viewModel = viewModelComEngine(MockEngine { respond("", HttpStatusCode.TooManyRequests) })
+
+        viewModel.aoMudarEmail("profissional@exemplo.com")
+        viewModel.solicitarCodigo()?.join()
+
+        assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, viewModel.estado.value.erro)
+    }
+
+    @Test
+    fun `corpo de erro que nao e json nao derruba o app`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "<html>Bad Gateway</html>",
+                    status = HttpStatusCode.InternalServerError,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+            },
+        )
+
+        viewModel.aoMudarEmail("profissional@exemplo.com")
+        viewModel.solicitarCodigo()?.join()
+
+        assertEquals("Não foi possível enviar o código. Tente de novo em instantes.", viewModel.estado.value.erro)
+        assertFalse(viewModel.estado.value.carregando)
+    }
 }

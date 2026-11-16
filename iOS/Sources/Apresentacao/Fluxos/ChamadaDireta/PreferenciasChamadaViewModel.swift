@@ -15,6 +15,8 @@ public final class PreferenciasChamadaViewModel {
     }
     /// O que ainda impede de aparecer na busca, como o servidor devolveu na última resposta.
     public private(set) var pendenciasParaBusca: [PendenciaParaBusca] = []
+    /// A chave `busca_profissionais` do servidor: desligada, a tela não mostra "Aceito chamadas diretas".
+    public private(set) var buscaHabilitada = false
 
     public private(set) var carregando = false
     public private(set) var salvando = false
@@ -53,6 +55,11 @@ public final class PreferenciasChamadaViewModel {
         carregando = true
         erro = nil
         defer { carregando = false }
+
+        let api = api
+        buscaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
+            try await api.configuracaoDoApp()
+        })?.recursos.buscaProfissionais == true
 
         do {
             // Preferências são lidas ou padrão

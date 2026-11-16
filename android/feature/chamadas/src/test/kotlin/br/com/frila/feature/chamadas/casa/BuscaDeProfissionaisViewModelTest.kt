@@ -56,6 +56,7 @@ class BuscaDeProfissionaisViewModelTest {
             recursoHabilitado = { recurso },
             buscarProfissionais = rede.chamadas::buscarProfissionais,
             chamarProfissional = rede.chamadas::chamarProfissional,
+            aceitarTermos = rede.chamadas::aceitarTermos,
             novaChave = { "chave-${++contador}" },
             prazoMs = prazoMs,
             escopo = CoroutineScope(Dispatchers.Unconfined),
@@ -469,6 +470,134 @@ class BuscaDeProfissionaisViewModelTest {
         assertEquals("vaga-9", reenvio["vaga_id"]!!.jsonPrimitive.content)
         assertFalse("valor_centavos" in reenvio)
         assertTrue(reenvio["confirmo_recorrencia"]!!.jsonPrimitive.boolean)
+    }
+
+    // --- Aceite dos Termos 1.1 (contrato 0.2.90) -----------------------------------------------------------
+
+    /** A busca responde `termos_pendentes` na 1ª vez e a página na seguinte (como o servidor depois do aceite). */
+    private fun RedeDeTeste.buscaQueExigeOAceite(depoisDoAceite: String = pagina(listOf("a", "b"))) {
+        rota("buscar_profissionais") {
+            if (doNome("aceitar_termos").isEmpty()) {
+                respond("""{"code":"sem_permissao","message":"x","details":"termos_pendentes"}""", HttpStatusCode.Forbidden, json)
+            } else {
+                respond(depoisDoAceite, HttpStatusCode.OK, json)
+            }
+        }
+    }
+
+    @Test
+    fun `termos_pendentes na busca vira o estado de aceite, sem lista e com a busca bloqueada`() = runBlocking {
+        val rede = RedeDeTeste().apply { buscaQueExigeOAceite() }
+        val vm = viewModelCom(rede).comFiltros()
+
+        vm.buscar().join()
+
+        val tela = vm.estado.value
+        assertEquals(EstadoDaBusca.TermosPendentes(), tela.estado)
+        assertTrue(tela.resultados.isEmpty())
+        assertFalse(tela.podeBuscar)
+        vm.buscar().join()
+        assertEquals(1, rede.doNome("buscar_profissionais").size)
+    }
+
+    @Test
+    fun `aceitar chama aceitar_termos com a versao exigida e repete a busca com os mesmos filtros`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            buscaQueExigeOAceite()
+            ok("aceitar_termos", """{"termos_versao":"2026-11-16","aceito_em":"2026-11-16T20:00:00Z"}""")
+        }
+        val vm = viewModelCom(rede).comFiltros(regiao = 7, horario = HorarioDaBusca(inicio, fim))
+        vm.buscar().join()
+
+        vm.aceitarTermosEBuscar().join()
+
+        val aceite = rede.doNome("aceitar_termos").single().corpo
+        assertEquals(BuscaDeProfissionaisViewModel.TERMOS_VERSAO_EXIGIDA, aceite["termos_versao"]!!.jsonPrimitive.content)
+        assertEquals("2026-11-16", aceite["termos_versao"]!!.jsonPrimitive.content)
+        val buscas = rede.doNome("buscar_profissionais")
+        assertEquals(2, buscas.size)
+        assertEquals(buscas[0].corpo, buscas[1].corpo)
+        assertEquals(7, buscas[1].corpo["regiao_id"]!!.jsonPrimitive.int)
+        val tela = vm.estado.value
+        assertEquals(EstadoDaBusca.Resultados, tela.estado)
+        assertEquals(listOf("a", "b"), tela.resultados.map { it.id })
+    }
+
+    @Test
+    fun `erro no aceite mostra a mensagem e a busca continua bloqueada, sem repetir a busca`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            buscaQueExigeOAceite()
+            recusa("aceitar_termos", HttpStatusCode.InternalServerError, "desconhecido")
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+
+        vm.aceitarTermosEBuscar().join()
+
+        val tela = vm.estado.value
+        assertEquals(EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO), tela.estado)
+        assertFalse(tela.podeBuscar)
+        assertEquals(1, rede.doNome("buscar_profissionais").size)
+    }
+
+    @Test
+    fun `depois de um erro no aceite tocar de novo tenta outra vez e libera a busca`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            buscaQueExigeOAceite()
+            recusa("aceitar_termos", HttpStatusCode.InternalServerError, "desconhecido")
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.aceitarTermosEBuscar().join()
+        rede.ok("aceitar_termos", """{"termos_versao":"2026-11-16","aceito_em":"2026-11-16T20:00:00Z"}""")
+
+        vm.aceitarTermosEBuscar().join()
+
+        assertEquals(2, rede.doNome("aceitar_termos").size)
+        assertEquals(EstadoDaBusca.Resultados, vm.estado.value.estado)
+    }
+
+    @Test
+    fun `aceite que estoura o prazo vira erro de aceite e a busca fica bloqueada`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            buscaQueExigeOAceite()
+            rota("aceitar_termos") { kotlinx.coroutines.delay(5_000); respond("{}", HttpStatusCode.OK, json) }
+        }
+        val vm = viewModelCom(rede, prazoMs = 50).comFiltros()
+        vm.buscar().join()
+
+        vm.aceitarTermosEBuscar().join()
+
+        assertEquals(EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO), vm.estado.value.estado)
+        assertEquals(1, rede.doNome("buscar_profissionais").size)
+    }
+
+    @Test
+    fun `aceitar sem a busca ter sido barrada por termos nao chama nada`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(listOf("a"))) }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+
+        vm.aceitarTermosEBuscar().join()
+
+        assertTrue(rede.doNome("aceitar_termos").isEmpty())
+        assertEquals(EstadoDaBusca.Resultados, vm.estado.value.estado)
+    }
+
+    @Test
+    fun `se o servidor ainda pede os Termos depois do aceite volta ao estado de aceite sem laco`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            recusa("buscar_profissionais", HttpStatusCode.Forbidden, "sem_permissao", "termos_pendentes")
+            ok("aceitar_termos", """{"termos_versao":"2026-11-16","aceito_em":"2026-11-16T20:00:00Z"}""")
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+
+        vm.aceitarTermosEBuscar().join()
+
+        assertEquals(EstadoDaBusca.TermosPendentes(), vm.estado.value.estado)
+        assertEquals(2, rede.doNome("buscar_profissionais").size)
+        assertEquals(1, rede.doNome("aceitar_termos").size)
     }
 
     // --- Catálogos dos filtros ---------------------------------------------------------------------------

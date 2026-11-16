@@ -4,17 +4,22 @@ import android.app.Application
 import android.content.Context
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
+import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
 import br.com.frila.feature.perfil.CompressorDeFotoPerfil
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import java.net.UnknownHostException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -218,5 +223,167 @@ class LimpezaSeguraLogoutTest {
         assertFalse("Avatar deve ser removido", avatar.exists())
         assertTrue("config.json deve ser preservado", arquivoJson.exists())
         assertTrue("arquivo de estado em subpasta deve ser preservado", arquivoDados.exists())
+    }
+
+    // --- Cartão 0G88x7YT: logout chama remover_dispositivo sem nunca travar a limpeza local ---
+
+    private val tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars"
+
+    private class RegistroDeChamadas {
+        val rotas = mutableListOf<String>()
+        val sessaoPresenteNaChamada = mutableListOf<Boolean>()
+    }
+
+    private fun coordenadorComRemocao(
+        registro: RegistroDeChamadas,
+        provedorDeToken: (suspend () -> String?)? = { tokenFcm },
+        tempoMaximoRemocaoMs: Long = 5_000L,
+        resposta: suspend io.ktor.client.engine.mock.MockRequestHandleScope.() -> io.ktor.client.request.HttpResponseData = {
+            respond(
+                content = """{"removido":true}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        },
+    ): CoordenadorDeLogout {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-anonima-teste",
+            engine = MockEngine { request ->
+                registro.rotas += request.url.encodedPath
+                registro.sessaoPresenteNaChamada += (armazenamento.obterSessao() != null)
+                resposta()
+            },
+        )
+        return CoordenadorDeLogout(
+            armazenamentoDeSessao = armazenamento,
+            contexto = contexto,
+            escopoDeCorrotinas = escopo,
+            servicoDispositivo = ServicoDispositivo(cliente),
+            provedorDeTokenFcm = provedorDeToken,
+            tempoMaximoRemocaoMs = tempoMaximoRemocaoMs,
+        )
+    }
+
+    @Test
+    fun `logout chama remover_dispositivo antes de limpar a sessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        val resultado = coordenadorComRemocao(registro).deslogarRemovendoDispositivo()
+
+        assertEquals(listOf("/rest/v1/rpc/remover_dispositivo"), registro.rotas)
+        assertEquals("a sessão ainda existia quando a chamada saiu", listOf(true), registro.sessaoPresenteNaChamada)
+        assertNull(armazenamento.obterSessao())
+        assertTrue(resultado.sessaoVazia)
+    }
+
+    @Test
+    fun `falha de rede em remover_dispositivo nao impede limparSessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        val resultado = coordenadorComRemocao(registro) { throw UnknownHostException("sem rede") }
+            .deslogarRemovendoDispositivo()
+
+        assertEquals(1, registro.rotas.size)
+        assertNull(armazenamento.obterSessao())
+        assertTrue(resultado.sessaoVazia)
+    }
+
+    @Test
+    fun `erro da API em remover_dispositivo nao impede limparSessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro) {
+            respond(
+                content = """{"code":"nao_autenticado","message":"jwt expirado"}""",
+                status = HttpStatusCode.Unauthorized,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }.deslogarRemovendoDispositivo()
+
+        assertEquals(1, registro.rotas.size)
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `excecao do provedor de token nao impede limparSessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro, provedorDeToken = { error("FCM indisponível") })
+            .deslogarRemovendoDispositivo()
+
+        assertTrue(registro.rotas.isEmpty())
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `remover_dispositivo lento nao trava o logout`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro, tempoMaximoRemocaoMs = 200L) {
+            delay(60_000)
+            respond("{}", HttpStatusCode.OK)
+        }.deslogarRemovendoDispositivo()
+
+        assertEquals(1, registro.rotas.size)
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `sem token nao chama remover_dispositivo mas limpa a sessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro, provedorDeToken = { null }).deslogarRemovendoDispositivo()
+
+        assertTrue(registro.rotas.isEmpty())
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `sem servico de dispositivo o logout so limpa localmente`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val coordenador = CoordenadorDeLogout(armazenamentoDeSessao = armazenamento, contexto = contexto)
+
+        val resultado = coordenador.deslogarRemovendoDispositivo()
+
+        assertNull(armazenamento.obterSessao())
+        assertTrue(resultado.sessaoVazia)
+    }
+
+    @Test
+    fun `provedor com token em branco nao chama remover_dispositivo mas limpa a sessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro, provedorDeToken = { "   " }).deslogarRemovendoDispositivo()
+
+        assertTrue(registro.rotas.isEmpty())
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `cancelar o chamador no meio de remover_dispositivo ainda limpa a sessao local`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+        val requisicaoEmVoo = CompletableDeferred<Unit>()
+        val coordenador = coordenadorComRemocao(registro, tempoMaximoRemocaoMs = 300L) {
+            requisicaoEmVoo.complete(Unit)
+            delay(60_000)
+            respond("{}", HttpStatusCode.OK)
+        }
+
+        val chamador = launch(Dispatchers.Default) { coordenador.deslogarRemovendoDispositivo() }
+        requisicaoEmVoo.await()
+        chamador.cancel()
+        chamador.join()
+
+        assertEquals(1, registro.rotas.size)
+        assertNull("sessão local precisa ser limpa mesmo com o chamador cancelado", armazenamento.obterSessao())
     }
 }

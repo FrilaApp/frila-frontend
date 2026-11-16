@@ -26,4 +26,17 @@ class ServicoDispositivo(private val provedorDeCliente: () -> ClienteSupabase) {
         }
         return cliente.corpoOuErro(resposta)
     }
+
+    /**
+     * `POST /rest/v1/rpc/remover_dispositivo`. Chamar no logout, ainda com a sessão válida, para
+     * encerrar o vínculo deste token com a conta: o registro seguinte recebe `vinculo_id` novo.
+     * A resposta (`removido` verdadeiro ou falso) não muda nada para o app e é descartada.
+     */
+    suspend fun removerDispositivo(tokenFcm: String) {
+        val resposta = cliente.http.post(cliente.urlRpc("remover_dispositivo")) {
+            contentType(ContentType.Application.Json)
+            setBody(RemoverDispositivoDto(tokenFcm = tokenFcm))
+        }
+        cliente.corpoOuErro<Unit>(resposta)
+    }
 }

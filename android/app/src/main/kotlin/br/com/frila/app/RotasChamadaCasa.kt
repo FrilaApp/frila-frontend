@@ -1,7 +1,9 @@
 package br.com.frila.app
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -14,6 +16,7 @@ import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.chamadas.casa.RascunhoDeVagaDaBusca
 import br.com.frila.feature.chamadas.casa.HorarioDaBusca
 import br.com.frila.core.rede.ServicoMembros
+import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.chamadas.casa.TelaAcompanharChamadas
 import br.com.frila.feature.chamadas.casa.TelaBuscaDeProfissionais
 import br.com.frila.feature.chamadas.casa.TelaChamadaDireta
@@ -155,11 +158,21 @@ private fun NavGraphBuilder.rotasDaBuscaDeProfissionais(
         RotaProtegida(guardaBiometrico) {
             val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
             val viewModel: BuscaDeProfissionaisViewModel = koinViewModel(parameters = { parametersOf(estabelecimentoId) })
+            val contexto = LocalContext.current
             TelaBuscaDeProfissionais(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
                 aoAbrirPerfil = { navController.navigate(RotasChamadaCasa.perfilPublico(estabelecimentoId, it)) },
                 aoPublicarParaTodos = { navController.navigate(RotasChamadaCasa.publicarDaBusca(it)) },
+                aoAbrirTermos = {
+                    try {
+                        contexto.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(EnderecosOficiais.padrao.termosDeUso)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            },
+                        )
+                    } catch (_: Exception) { }
+                },
             )
         }
     }

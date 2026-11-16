@@ -3,6 +3,7 @@ package br.com.frila.feature.entrada.codigo
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.feature.entrada.entrada.MENSAGEM_LIMITE_DE_CODIGOS
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -136,5 +137,24 @@ class CodigoViewModelTest {
         assertEquals(1, chamadas)
         assertTrue(viewModel.estado.value.reenviado)
         assertEquals("", viewModel.estado.value.codigo)
+    }
+
+    @Test
+    fun `reenviarCodigo com 429 do Auth sem message mostra a mensagem de limite`() = runBlocking {
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = """{"code":429,"error_code":"over_email_send_rate_limit"}""",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.reenviarCodigo()?.join()
+
+        assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, viewModel.estado.value.erro)
+        assertFalse(viewModel.estado.value.reenviado)
+        assertFalse(viewModel.estado.value.carregando)
     }
 }

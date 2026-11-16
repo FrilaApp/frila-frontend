@@ -52,7 +52,7 @@ public struct FotoDoCartaoDaBusca: View {
         }
         .frame(width: Self.lado, height: Self.lado)
         .clipShape(Circle())
-        .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        .overlay { Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1) }
         .accessibilityHidden(true)
     }
 
@@ -65,7 +65,8 @@ public struct FotoDoCartaoDaBusca: View {
     }
 }
 
-/// O cartão de um resultado da busca, provisório: foto ou inicial, nome e serviço.
+/// O cartão de um resultado da busca, provisório: foto ou inicial, nome, serviço com preço, faixa de distância e o
+/// selo "disponível nesse horário". É o rótulo da linha da lista em `TelaBuscaDeProfissionais`.
 public struct CartaoDaBuscaProvisorio: View {
     private let cartao: CartaoProfissional
 
@@ -74,15 +75,17 @@ public struct CartaoDaBuscaProvisorio: View {
     public var body: some View {
         HStack(spacing: FrilaEspaco.pequeno) {
             FotoDoCartaoDaBusca(nome: cartao.nome, fotoURL: cartao.fotoURL)
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: cartao.nome).font(FrilaTipo.resumo)
-                Text(verbatim: cartao.servico.funcao.nome)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
+            VStack(alignment: .leading) {
+                Text(verbatim: cartao.nome)
+                Text(verbatim: TextosDosServicos.resumoDoServico(cartao.servico.servico) ?? cartao.servico.funcao.nome)
+                Text(verbatim: cartao.distanciaFaixa.rotulo)
+                if cartao.disponivelNoHorario == true {
+                    Text(verbatim: TextosBuscaDeProfissionais.disponivelNesseHorario)
+                        .accessibilityIdentifier("disponivel-\(cartao.id)")
+                }
             }
             Spacer(minLength: 0)
         }
         .frame(minHeight: 44)
-        .accessibilityElement(children: .combine)
     }
 }

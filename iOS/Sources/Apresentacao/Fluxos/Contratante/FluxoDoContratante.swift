@@ -224,6 +224,8 @@ private struct DestinoDasVagasDoContratante: View {
     private let abrirPerfil: (() -> Void)?
     @State private var model: MinhasVagasViewModel
     @State private var publicacao: PublicacaoDaCasaViewModel
+    /// O que a busca vazia leva para a publicação ("Publicar para todos"); `nil` na publicação de sempre.
+    @State private var rascunhoDaBusca: RascunhoDeVagaDaBusca?
     @Binding private var publicando: Bool
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
@@ -250,13 +252,14 @@ private struct DestinoDasVagasDoContratante: View {
         Group {
             if publicando, let fila {
                 DestinoDePublicarVaga(
-                    api: api, fila: fila, modelo: publicacao, sair: sair ?? {},
-                    cancelar: { publicando = false },
+                    api: api, fila: fila, modelo: publicacao, rascunhoDaBusca: rascunhoDaBusca, sair: sair ?? {},
+                    cancelar: { publicando = false; rascunhoDaBusca = nil },
                     aoPublicar: {
                         // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
                         // momento de explicar a notificação a quem contrata (#8).
                         guard publicando else { return }
                         publicando = false
+                        rascunhoDaBusca = nil
                         Task { await permissaoDePush?.oferecerAposPublicar() }
                     }
                 )
@@ -268,7 +271,12 @@ private struct DestinoDasVagasDoContratante: View {
                     api: api,
                     fila: fila,
                     roteador: roteador,
-                    publicarVaga: fila == nil ? nil : { publicando = true },
+                    publicarVaga: fila == nil ? nil : { rascunhoDaBusca = nil; publicando = true },
+                    // Sem o banco local não há fila para publicar: a busca vazia não oferece "Publicar para todos".
+                    publicarParaTodosDaBusca: fila == nil ? nil : { rascunho in
+                        rascunhoDaBusca = rascunho
+                        publicando = true
+                    },
                     sair: sair,
                     abrirPerfil: abrirPerfil
                 )
