@@ -61,8 +61,24 @@ class DetalheVagaViewModel(
      */
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.POSICAO_JA_PREENCHIDA -> "Que pena, a vaga acabou de ser preenchida."
-        CodigoErroAPI.INELEGIVEL -> "Você não está elegível para este turno."
         CodigoErroAPI.VAGA_ENCERRADA -> "Esta vaga foi encerrada."
+        CodigoErroAPI.CONTA_SUSPENSA -> MENSAGEM_SUSPENSAO
+        CodigoErroAPI.INELEGIVEL -> when (erro.detalhes) {
+            "turno_sobreposto" ->
+                "Você já tem um turno confirmado que coincide com o horário desta vaga. " +
+                    "Não é possível assumir dois turnos ao mesmo tempo."
+            "perfil_suspenso" -> MENSAGEM_SUSPENSAO
+            "funcao_incompativel" -> "Esta vaga exige uma função que não está cadastrada no seu perfil profissional."
+            else -> "Você não está elegível para este turno."
+        }
+        CodigoErroAPI.NAO_ENCONTRADO -> "Esta vaga não está mais disponível. Volte para a lista e escolha outra."
+        CodigoErroAPI.SEM_REDE -> "Não foi possível confirmar o envio. Tente de novo quando a conexão voltar."
         else -> "Não foi possível enviar sua candidatura. Tente de novo em instantes."
+    }
+
+    private companion object {
+        const val MENSAGEM_SUSPENSAO =
+            "Enquanto a suspensão durar, você não pode se candidatar a vagas. " +
+                "O motivo e o caminho para contestar ficam na área da sua conta."
     }
 }
