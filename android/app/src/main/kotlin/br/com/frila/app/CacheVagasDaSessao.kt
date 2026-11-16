@@ -26,6 +26,10 @@ internal class CacheVagasDaSessao(private val raiz: File?) {
         raiz?.resolve("vagas")?.let {
             if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar o cache de vagas")
         }
+        // O destino guardado (tela inicial por papel) é da conta que saiu; a próxima avalia de novo.
+        raiz?.resolve(DestinoGuardadoEmArquivo.PASTA)?.let {
+            if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar o destino guardado")
+        }
         falha?.let { throw it }
     }
 }

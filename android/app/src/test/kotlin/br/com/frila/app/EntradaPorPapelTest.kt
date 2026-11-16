@@ -1,6 +1,7 @@
 package br.com.frila.app
 
 import android.app.Application
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -13,6 +14,7 @@ import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PainelDto
 import br.com.frila.core.rede.ServicoAutenticacao
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoVagas
@@ -127,6 +129,16 @@ class EntradaPorPapelTest {
                         single { ServicoVagas(cliente) }
                         single { ServicoPerfil(cliente) }
                         single { servicoMembros }
+                        single {
+                            val conta = ServicoConta(cliente)
+                            val perfil = ServicoPerfil(cliente)
+                            AvaliadorDeDestino(
+                                descobrir = {
+                                    avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
+                                },
+                                guardado = DestinoGuardadoEmMemoria(),
+                            )
+                        }
                         viewModel { EntradaViewModel(ServicoAutenticacao(cliente), CoroutineScope(Dispatchers.Default)) }
                         viewModel { (email: String) ->
                             CodigoViewModel(email, ServicoAutenticacao(cliente), sessao, CoroutineScope(Dispatchers.Default))
@@ -164,16 +176,22 @@ class EntradaPorPapelTest {
 
     /** Espera até [prazoMs] pela condição; devolve se ela ficou verdadeira (sem lançar). */
     private fun aguardar(prazoMs: Long = 4_000, condicao: () -> Boolean): Boolean =
-        runCatching { rule.waitUntil(prazoMs) { condicao() } }.isSuccess
+        try {
+            // runOnIdle roda a fila da thread principal: sem isso o ViewModel do feed só dispara quando outra coisa a esvazia.
+            rule.waitUntil(prazoMs) { rule.runOnIdle { }; condicao() }
+            true
+        } catch (_: ComposeTimeoutException) {
+            false
+        }
 
     /** Entra pela tela de código, como a pessoa faz, e espera o app sair dela. */
     private fun entrarComCodigo(): String? {
         rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
         rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
         rule.onNodeWithText("Confirmar código").performClick()
-        aguardar { rotaAtual() != Rotas.CODIGO }
+        aguardar { rotaAtual() != Rotas.CODIGO && rotaAtual() != Rotas.ABERTURA }
         // Dá tempo de uma decisão que dependa do servidor terminar de rotear.
-        aguardar(1_500) { rotaAtual() != Rotas.CADASTRO && rotaAtual() != Rotas.CODIGO }
+        aguardar(1_500) { rotaAtual() !in listOf(Rotas.CADASTRO, Rotas.CODIGO, Rotas.ABERTURA) }
         return rotaAtual()
     }
 
@@ -209,6 +227,11 @@ class EntradaPorPapelTest {
         val rota = entrarComCodigo()
 
         assertNotEquals("conta existente caiu no cadastro local", Rotas.CADASTRO, rota)
+        assertEquals("a casa abre Minhas vagas", Rotas.MINHAS_VAGAS, rota)
+        assertFalse(
+            "a casa nunca pede o feed do profissional (chamadas: $chamadas)",
+            chamadas.any { it.endsWith("/rpc/vagas_abertas") },
+        )
     }
 
     // ───────────────────── #783: tela inicial por papel ─────────────────────
@@ -218,22 +241,30 @@ class EntradaPorPapelTest {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true)
 
         // rotaInicial(): sessão válida sem biometria abre FEED para qualquer papel.
-        aguardar(3_000) { chamadas.any { it.endsWith("/rpc/vagas_abertas") } || rotaAtual() != Rotas.FEED }
+        aguardar(8_000) { chamadas.any { it.endsWith("/rpc/vagas_abertas") } || rotaAtual() == Rotas.MINHAS_VAGAS }
 
         assertFalse(
             "a casa pediu /rpc/vagas_abertas e recebeu 422 perfil_incompativel (chamadas: $chamadas)",
             chamadas.any { it.endsWith("/rpc/vagas_abertas") },
         )
-        assertNotEquals(Rotas.FEED, rotaAtual())
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
     }
 
     @Test
     fun `controle - profissional com sessao guardada abre o feed e le as vagas`() {
         montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
 
-        val leu = aguardar(3_000) { chamadas.any { it.endsWith("/rpc/vagas_abertas") } }
+        val leu = aguardar(8_000) { chamadas.any { it.endsWith("/rpc/vagas_abertas") } }
 
-        assertTrue("o feed do profissional deveria ler as vagas (chamadas: $chamadas)", leu)
+        assertTrue("o feed do profissional deveria ler as vagas (rota: ${rotaAtual()}, chamadas: $chamadas)", leu)
         assertEquals(Rotas.FEED, rotaAtual())
     }
+}
+
+/** Destino guardado só em memória, para o teste não depender de arquivo nem de JWT. */
+internal class DestinoGuardadoEmMemoria : DestinoGuardado {
+    private var atual: DestinoDaConta? = null
+    override fun obter() = atual
+    override fun salvar(destino: DestinoDaConta) { atual = destino }
+    override fun limpar() { atual = null }
 }
