@@ -38,10 +38,10 @@ O build debug lê o par `FRILA_SUPABASE_DEV_URL` e `FRILA_SUPABASE_DEV_PUBLISHAB
 repositório e do iOS, ver `iOS/Docs/Environments.md`). Cada valor vem da variável de ambiente ou, na
 falta dela, de `android/local.properties` (ignorado pelo Git), no formato `NOME=valor`.
 
-- Release sem valor, com valor `TODO...` ou com chave `sb_secret_...` falha o build e nomeia a variável.
+- Release sem valor, com valor `TODO...`, com chave `sb_secret_...` ou com JWT legado de `role` `service_role` falha o build e nomeia a variável.
   Isso vale para `assembleRelease`, `bundleRelease` e as variantes de baseline profile.
 - Debug sem valor compila (testes unitários) e usa um host `.invalid`: o app debug não alcança o backend.
-- `ConfiguracaoDoBackend.validar` repete a conferência na inicialização do app e nunca imprime a chave.
+- `ConfiguracaoDoBackend.validar` repete a conferência na inicialização do app e nunca imprime a chave. A regra de chave existe em Kotlin e em `build.gradle.kts`; ambas leem os casos de `app/src/test/resources/supabase-chaves-casos.tsv` (teste Kotlin e tarefa `verificarRegrasDeChaveSupabase`, que roda antes de `testDebugUnitTest`).
 - Use só a chave **publicável**: ela entra no APK e é pública por desenho. Nunca `service_role` nem `sb_secret_`.
 
 Timeouts replicam exatamente os do iOS (15s por requisição, 60s para o conjunto), especificado em
