@@ -131,8 +131,11 @@ class ConfiguracaoDoBackendTest {
 
         for (linha in linhas) {
             val (veredito, chave) = linha.split('\t', limit = 2)
-            val aceitou = runCatching { ConfiguracaoDoBackend.validar(urlSintetica, chave) }.isSuccess
-            assertEquals(veredito == "aceita", aceitou, "veredito divergente para o caso '$veredito' (${chave.take(12)}...)")
+            val resultado = runCatching { ConfiguracaoDoBackend.validar(urlSintetica, chave) }
+            assertEquals(veredito == "aceita", resultado.isSuccess, "veredito divergente para o caso '$veredito' (${chave.take(12)}...)")
+            resultado.exceptionOrNull()?.let {
+                assertFalse(it.message.orEmpty().contains(chave), "a mensagem repete o valor da chave (${chave.take(12)}...)")
+            }
         }
     }
 }

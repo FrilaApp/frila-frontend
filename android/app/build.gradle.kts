@@ -113,13 +113,20 @@ val verificarRegrasDeChaveSupabase = tasks.register("verificarRegrasDeChaveSupab
     doLast {
         val linhas = casos.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
         if (linhas.size < 9) throw GradleException("supabase-chaves-casos.tsv tem só ${linhas.size} casos; esperados 9 ou mais.")
-        val divergentes = linhas.mapIndexedNotNull { indice, linha ->
-            val (veredito, chave) = linha.split('\t', limit = 2)
-            val aceitou = motivoDeRejeicaoDaChave(chave.trim()) == null
-            if ((veredito == "aceita") != aceitou) "caso ${indice + 1} ($veredito)" else null
+        val divergentes = mutableListOf<String>()
+        val vazamentos = mutableListOf<String>()
+        linhas.forEachIndexed { indice, linha ->
+            val (veredito, chaveBruta) = linha.split('\t', limit = 2)
+            val chave = chaveBruta.trim()
+            val motivo = motivoDeRejeicaoDaChave(chave)
+            if ((veredito == "aceita") != (motivo == null)) divergentes += "caso ${indice + 1} ($veredito)"
+            if (motivo != null && motivo.contains(chave)) vazamentos += "caso ${indice + 1}"
         }
         if (divergentes.isNotEmpty()) {
             throw GradleException("A regra de chave do Gradle diverge do veredito esperado em: ${divergentes.joinToString(", ")}.")
+        }
+        if (vazamentos.isNotEmpty()) {
+            throw GradleException("O motivo de rejeição repete o valor da chave em: ${vazamentos.joinToString(", ")}.")
         }
     }
 }
