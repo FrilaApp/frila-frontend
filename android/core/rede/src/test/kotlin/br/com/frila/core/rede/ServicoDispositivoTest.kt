@@ -172,7 +172,7 @@ class ServicoDispositivoTest {
             )
         }
         val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
-            salvarSessao(Sessao(accessToken = "jwt-sintetico-123", refreshToken = "refresh-sintetico", tokenType = "bearer", expiresIn = 3_600L))
+            salvarSessao(Sessao(accessToken = "jwt-casa", refreshToken = "ref-casa", tokenType = "bearer", expiresIn = 3_600L))
         }
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -183,7 +183,7 @@ class ServicoDispositivoTest {
 
         ServicoDispositivo(cliente).removerDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
 
-        assertEquals(listOf("Bearer jwt-sintetico-123"), cabecalhos!!["authorization"])
+        assertEquals(listOf("Bearer jwt-casa"), cabecalhos!!["authorization"])
         assertEquals(listOf("chave-teste"), cabecalhos!!["apikey"])
     }
 }
