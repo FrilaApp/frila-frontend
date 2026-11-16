@@ -15187,6 +15187,17 @@
         }
       }
     },
+    "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo."
+          }
+        }
+      }
+    },
     "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas." : {
       "extractionState" : "manual",
       "localizations" : {

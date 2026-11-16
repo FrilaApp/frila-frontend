@@ -52,9 +52,7 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         chamar.tap()
 
         let valor = app.textFields["busca-valor-total"]
-        // Em ~metade das execuções o 1º toque não abriu a folha no simulador; um 2º toque abre (registrado no retorno).
-        if !valor.waitForExistence(timeout: 5) { chamar.tap() }
-        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre")
+        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre com um toque só")
         valor.tap()
         valor.typeText("200")
         let confirmo = app.switches["busca-confirmo-total"]
@@ -79,14 +77,10 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
                        "com a chave desligada, Encontrar profissional não existe")
     }
 
-    // MARK: Capturas (padrão e AX5), em /tmp/f035-4-capturas/
+    // MARK: Capturas (padrão e AX5), só como anexos do XCTest
 
     private func salvar(_ app: XCUIApplication, _ nome: String) {
-        let pasta = URL(fileURLWithPath: "/tmp/f035-4-capturas", isDirectory: true)
-        try? FileManager.default.createDirectory(at: pasta, withIntermediateDirectories: true)
-        let captura = app.screenshot()
-        try? captura.pngRepresentation.write(to: pasta.appendingPathComponent("\(nome).png"))
-        let anexo = XCTAttachment(screenshot: captura)
+        let anexo = XCTAttachment(screenshot: app.screenshot())
         anexo.name = nome
         anexo.lifetime = .keepAlways
         add(anexo)
@@ -114,9 +108,11 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         let servico = app.buttons["busca-servico"]
         XCTAssertTrue(procurar(servico, em: app, paraBaixo: false), "o filtro de serviço aparece")
         servico.tap()
-        let opcoes = app.buttons.allElementsBoundByIndex.filter { $0.isHittable && $0.label != "Serviço" && !$0.label.isEmpty }
-        XCTAssertFalse(opcoes.isEmpty, "o seletor de serviço lista o catálogo")
-        if let outra = app.collectionViews.buttons.allElementsBoundByIndex.last(where: { $0.isHittable }) ?? opcoes.last { outra.tap() }
+        // Espera a opção no menu do seletor, sem perguntar isHittable a cada botão enquanto ele abre: no dublê todos
+        // oferecem Garçom (o selecionado), e "Bartender" só existe no menu.
+        let outroServico = app.collectionViews.buttons["Bartender"]
+        XCTAssertTrue(outroServico.waitForExistence(timeout: 10), "o seletor de serviço lista o catálogo")
+        outroServico.tap()
         buscar(app)
         let vazia = app.descendants(matching: .any)["busca-vazia"]
         XCTAssertTrue(vazia.waitForExistence(timeout: 15) || procurar(vazia, em: app), "sem ninguém, a busca fica vazia")

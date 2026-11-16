@@ -261,6 +261,65 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun erroDaCasaMostraEncontrarProfissionalQuandoACasaPodeEOCallbackExiste() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"perfil_incompativel","message":"perfil_incompativel"}""",
+                statusHttp = HttpStatusCode.UnprocessableEntity,
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+            var aberta = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoEncontrarProfissional = { aberta++ },
+                        aoAbrirChamadasDiretas = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-encontrar-profissional")
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, aberta)
+            // O atalho de preferências é do profissional: continua fora do estado de erro.
+            rule.onAllNodesWithText("Preferências de chamadas").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun erroSemPermissaoDeContratanteEscondeEncontrarProfissional() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"perfil_incompativel","message":"perfil_incompativel"}""",
+                statusHttp = HttpStatusCode.UnprocessableEntity,
+            )
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoEncontrarProfissional = {},
+                        manterAtalhosDeContratanteNoErro = false,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-encontrar-profissional").assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun erroEscondeAtalhosDeContratanteQuandoNaoPermitido() {
         runBlocking {
             val viewModel = criarViewModel(

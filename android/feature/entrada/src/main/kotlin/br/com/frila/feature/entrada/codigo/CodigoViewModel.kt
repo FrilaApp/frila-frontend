@@ -8,6 +8,7 @@ import br.com.frila.core.rede.SessaoDto
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.feature.entrada.entrada.MENSAGEM_LIMITE_DE_CODIGOS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,6 +88,7 @@ class CodigoViewModel(
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
         "CAMPO_INVALIDO" -> "Código incorreto. Confira os 6 dígitos e tente de novo."
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
+        "LIMITE_EXCEDIDO" -> MENSAGEM_LIMITE_DE_CODIGOS
         else -> "Não foi possível confirmar o código. Tente de novo em instantes."
     }
 }

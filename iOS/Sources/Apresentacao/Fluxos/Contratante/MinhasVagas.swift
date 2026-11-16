@@ -314,6 +314,8 @@ public struct TelaMinhasVagas: View {
     /// A chave `busca_profissionais` do servidor (desligada no Prod).
     @State private var buscaHabilitada = false
     @State private var mostrandoBusca = false
+    /// Segura o view model da busca enquanto um envio estiver incerto (a folha é recriada a cada abertura).
+    @State private var guardaDaBusca: GuardaDaBuscaDeProfissionais
 
     /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
     /// `publicarVaga` abre a publicação de uma vaga nova; sem ele, a entrada não aparece.
@@ -332,6 +334,10 @@ public struct TelaMinhasVagas: View {
             api: api, estabelecimentoID: viewModel.estabelecimentoID, fila: fila, aoMudar: { await viewModel.carregar() }
         ))
         _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
+        let estabelecimentoID = viewModel.estabelecimentoID
+        _guardaDaBusca = State(initialValue: GuardaDaBuscaDeProfissionais {
+            BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID)
+        })
         self.api = api
         self.fila = fila
         self.publicarVaga = publicarVaga
@@ -343,10 +349,11 @@ public struct TelaMinhasVagas: View {
     public var body: some View {
         conteudoDaTela
             .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
-            .sheet(isPresented: $mostrandoBusca) {
-                if let publicarParaTodosDaBusca {
+            .sheet(isPresented: $mostrandoBusca, onDismiss: { guardaDaBusca.aoFechar() }) {
+                if let publicarParaTodosDaBusca, let buscaViewModel = guardaDaBusca.viewModel {
                     NavigationStack {
-                        TelaBuscaDeProfissionais(api: api, estabelecimentoID: viewModel.estabelecimentoID) { rascunho in
+                        TelaBuscaDeProfissionais(viewModel: buscaViewModel, api: api,
+                                                 estabelecimentoID: viewModel.estabelecimentoID) { rascunho in
                             mostrandoBusca = false
                             publicarParaTodosDaBusca(rascunho)
                         }
@@ -383,7 +390,7 @@ public struct TelaMinhasVagas: View {
 
                     // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
                     if buscaHabilitada {
-                        Button { mostrandoBusca = true } label: {
+                        Button { _ = guardaDaBusca.aoAbrir(); mostrandoBusca = true } label: {
                             Label(TextosBuscaDeProfissionais.titulo, systemImage: "magnifyingglass")
                                 .frame(minHeight: 44)
                         }

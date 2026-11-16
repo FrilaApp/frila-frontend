@@ -27,6 +27,7 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -88,6 +89,8 @@ object Rotas {
     const val ENTRADA = "entrada"
     const val CODIGO = "codigo/{email}"
     const val CADASTRO = "cadastro"
+    /** Pergunta ao servidor quem é a conta e segue para a tela do papel (#782, #783). */
+    const val ABERTURA = "abertura"
     const val FEED = "feed"
     const val DETALHE = "detalhe/{vagaId}"
     const val MEUS_TURNOS = "meus_turnos"
@@ -191,7 +194,13 @@ fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String = when {
 
 @Composable
 fun AppNavegacao(
-    armazenamentoDeSessao: ArmazenamentoDeSessao = koinInject(),
+    /**
+     * #789: o padrão é o [CoordenadorDeLogout], porque as saídas desta navegação (conta suspensa, "outra conta"
+     * no desbloqueio) chamam `limparSessao()` aqui, e só o coordenador fecha o cliente Ktor da conta que saiu.
+     * Grafo sem o coordenador (testes com Koin mínimo) usa o armazenamento; o de produção sempre o tem
+     * (`KoinGrafoTest`), e o token em memória já não passa de uma conta a outra pelo próprio `ClienteSupabase`.
+     */
+    armazenamentoDeSessao: ArmazenamentoDeSessao = getKoin().getOrNull<CoordenadorDeLogout>() ?: koinInject(),
     monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
     aoPronto: (() -> Unit)? = null,
@@ -219,8 +228,15 @@ fun AppNavegacao(
     servicoMembros: ServicoMembros? = getKoin().getOrNull(),
     /** Lê o painel para a rota do turno do contratante. Nulo (grafo sem o serviço) mostra a falha da rota. */
     servicoVagas: ServicoVagas? = getKoin().getOrNull(),
+    /**
+     * Decide a tela inicial pelo papel da conta, depois do código e a cada abertura com sessão. Nulo (grafo
+     * sem o serviço) mantém o caminho antigo: cadastro depois do código e feed na abertura.
+     */
+    avaliadorDeDestino: AvaliadorDeDestino? = getKoin().getOrNull(),
 ) {
-    val destinoInicial = remember(armazenamentoDeSessao) { rotaInicial(armazenamentoDeSessao) }
+    val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino) {
+        rotaInicial(armazenamentoDeSessao).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
+    }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
     // frila://meus_turnos, frila://suporte) que chega direto numa rota autenticada sem passar
     // pela decisão de abertura (MEDIDO, Shisui PR #591). Ver GuardaBiometrico.
@@ -260,11 +276,45 @@ fun AppNavegacao(
                 TelaCodigo(
                     viewModel = viewModel,
                     aoAutenticar = {
-                        navController.navigate(Rotas.CADASTRO) {
+                        navController.navigate(if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO) {
                             popUpTo(Rotas.ENTRADA) { inclusive = true }
                         }
                     },
                 )
+            }
+
+            composable(Rotas.ABERTURA) {
+                RotaProtegida(guardaBiometrico) {
+                    if (avaliadorDeDestino != null) {
+                        RotaDeAbertura(
+                            avaliador = avaliadorDeDestino,
+                            aoDecidir = { destino ->
+                                if (destino is DestinoDaConta.Contratante) {
+                                    // A casa não tem feed para voltar: o Perfil (Sair, Equipe, Excluir conta) fica
+                                    // como raiz da pilha, e a tela inicial da casa entra por cima dele. "Voltar" da
+                                    // tela inicial leva ao Perfil; "Voltar" no Perfil sai do app (pilha nunca vazia).
+                                    navController.navigate(Rotas.PERFIL) {
+                                        popUpTo(Rotas.ABERTURA) { inclusive = true }
+                                    }
+                                    navController.navigate(destino.rota())
+                                } else {
+                                    navController.navigate(destino.rota()) {
+                                        popUpTo(Rotas.ABERTURA) { inclusive = true }
+                                    }
+                                }
+                            },
+                            aoSessaoVencida = {
+                                // 401: a renovação já falhou; sai da árvore autenticada como o logout faz.
+                                armazenamentoDeSessao.limparSessao()
+                                guardaBiometrico.liberarAposLimparSessao()
+                                navController.navigate(Rotas.ENTRADA) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            },
+                            aoTerminarDeAvaliar = { aoPronto?.invoke() },
+                        )
+                    }
+                }
             }
 
             composable(Rotas.CADASTRO) {
@@ -481,7 +531,9 @@ fun AppNavegacao(
                 }
                 TelaDesbloqueioBiometrico(
                     aoDesbloquear = {
-                        val destino = guardaBiometrico.aoDesbloquearComSucesso()
+                        val liberado = guardaBiometrico.aoDesbloquearComSucesso()
+                        // Sem deep link pendente a guarda devolve o feed: a casa não pode cair nele (#783).
+                        val destino = if (liberado == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else liberado
                         navController.navigate(destino) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -492,6 +544,7 @@ fun AppNavegacao(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    armazenamentoDeSessao = armazenamentoDeSessao,
                 )
             }
 
