@@ -57,6 +57,7 @@ public enum TextosBuscaDeProfissionais {
     public static let resultadoPedeConfirmacao = String(localized: "Falta confirmar o aviso da chamada recorrente", bundle: bundleApresentacao)
     public static let resultadoNaoEnviada = String(localized: "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo.", bundle: bundleApresentacao)
     public static let envioIncerto = String(localized: "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas.", bundle: bundleApresentacao)
+    public static let catalogoIndisponivel = String(localized: "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo.", bundle: bundleApresentacao)
     public static let resultados = String(localized: "Resultado das chamadas", bundle: bundleApresentacao)
 
     // MARK: Preferências do profissional

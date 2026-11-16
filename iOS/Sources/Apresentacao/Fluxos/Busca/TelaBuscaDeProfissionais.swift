@@ -5,17 +5,18 @@ import SwiftUI
 /// Busca de profissionais (CD-B01 a CD-B11), só com controles nativos: filtros, lista, seleção de até 3,
 /// chamar e "Publicar para todos". Atrás da chave `buscaProfissionais`.
 public struct TelaBuscaDeProfissionais: View {
-    @State private var viewModel: BuscaDeProfissionaisViewModel
+    /// Vem de fora: vive enquanto a busca existir (não só enquanto a folha está aberta), para um envio incerto
+    /// continuar travado mesmo se a tela for fechada e aberta de novo.
+    private let viewModel: BuscaDeProfissionaisViewModel
     @State private var funcoes: [Funcao] = []
     @State private var regioes: [RegiaoAdministrativa] = []
     @State private var casa: Estabelecimento?
     @State private var catalogoCarregado = false
+    @State private var catalogoComErro = false
     @State private var usarHorario = false
     @State private var inicio: Date
     @State private var fim: Date
     @State private var rascunhoDaChamada: RascunhoDaChamadaDaBusca?
-    @State private var trabalhoEnviado: PublicacaoVaga?
-    @State private var recadoEnviado: String?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @Environment(\.dismiss) private var fechar
@@ -25,9 +26,9 @@ public struct TelaBuscaDeProfissionais: View {
     private let aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Void
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
 
-    public init(api: any ApiCliente, estabelecimentoID: UUID,
+    public init(viewModel: BuscaDeProfissionaisViewModel, api: any ApiCliente, estabelecimentoID: UUID,
                 aoPublicarParaTodos: @escaping (RascunhoDeVagaDaBusca) -> Void) {
-        _viewModel = State(initialValue: BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID))
+        self.viewModel = viewModel
         let amanha = Date.now.addingTimeInterval(24 * 3600)
         _inicio = State(initialValue: amanha)
         _fim = State(initialValue: amanha.addingTimeInterval(4 * 3600))
@@ -37,7 +38,8 @@ public struct TelaBuscaDeProfissionais: View {
     }
 
     public var body: some View {
-        Form {
+        @Bindable var viewModel = viewModel
+        return Form {
             Section(TextosBuscaDeProfissionais.filtros) {
                 Picker(selection: $viewModel.funcaoID) {
                     Text(verbatim: TextosBuscaDeProfissionais.escolhaOServico).tag(UUID?.none)
@@ -61,13 +63,21 @@ public struct TelaBuscaDeProfissionais: View {
                     .disabled(!viewModel.podeBuscar)
                     .accessibilityIdentifier("buscar-profissionais")
             }
+            if catalogoComErro && !catalogoCarregado {
+                Section {
+                    Text(verbatim: TextosBuscaDeProfissionais.catalogoIndisponivel)
+                        .accessibilityIdentifier("busca-catalogo-erro")
+                    Button { Task { await carregarCatalogo() } } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
+                        .accessibilityIdentifier("busca-catalogo-tentar-de-novo")
+                }
+            }
             if viewModel.travadoPeloIncerto {
                 // Um envio que levou o trabalho ficou incerto: nada de busca nova nem de trocar a seleção até resolver.
                 Section {
                     Text(verbatim: TextosBuscaDeProfissionais.envioIncerto)
                         .accessibilityIdentifier("busca-envio-incerto")
-                    Button { abrirChamada() } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
-                        .disabled(!viewModel.podeChamar || casa == nil)
+                    Button { chamarSelecionados() } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
+                        .disabled(!podeChamarAgora)
                         .accessibilityIdentifier("busca-tentar-de-novo")
                 }
             }
@@ -81,9 +91,13 @@ public struct TelaBuscaDeProfissionais: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
+                // Com envio incerto, a saída é o "Tentar de novo": fechar e arrastar a folha ficam desligados.
                 Button { fechar() } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
+                    .disabled(viewModel.travadoPeloIncerto)
+                    .accessibilityIdentifier("busca-fechar")
             }
         }
+        .interactiveDismissDisabled(viewModel.travadoPeloIncerto)
         .task { await carregarCatalogo() }
         .sheet(item: $rascunhoDaChamada) { rascunho in folhaDeChamada(rascunho) }
         .alert(Text(verbatim: TextosChamadaDireta.j7Titulo), isPresented: $viewModel.mostrarJ7) {
@@ -126,8 +140,8 @@ public struct TelaBuscaDeProfissionais: View {
 
     private var lista: some View {
         Section {
-            Button { abrirChamada() } label: { Text(verbatim: TextosBuscaDeProfissionais.chamarSelecionados) }
-                .disabled(!viewModel.podeChamar || casa == nil)
+            Button { chamarSelecionados() } label: { Text(verbatim: TextosBuscaDeProfissionais.chamarSelecionados) }
+                .disabled(!podeChamarAgora)
                 .accessibilityIdentifier("chamar-selecionados")
             ForEach(viewModel.resultados) { cartao in linha(cartao) }
             if viewModel.temMais {
@@ -202,20 +216,39 @@ public struct TelaBuscaDeProfissionais: View {
         guard !catalogoCarregado else { return }
         let api = api
         let id = estabelecimentoID
-        if let dados = try? await PrazoDaAbertura.esperar(.seconds(15), {
+        catalogoComErro = false
+        guard let dados = try? await PrazoDaAbertura.esperar(.seconds(15), {
             (try await api.funcoes(), try await api.regioesAdministrativas(), try await api.meuEstabelecimento(id: id))
-        }) {
-            funcoes = dados.0
-            regioes = dados.1.filter { $0.ativo != false }
-            casa = dados.2
-            if viewModel.funcaoID == nil { viewModel.funcaoID = funcoes.first?.id }
-            catalogoCarregado = true
+        }) else {
+            // Sem o catálogo o Buscar não liga: mostra o erro e deixa tentar de novo.
+            catalogoComErro = true
+            return
         }
+        funcoes = dados.0
+        regioes = dados.1.filter { $0.ativo != false }
+        casa = dados.2
+        if viewModel.funcaoID == nil { viewModel.funcaoID = funcoes.first?.id }
+        catalogoCarregado = true
     }
 
     private func buscar() async {
         viewModel.horario = usarHorario ? try? Periodo(inicio: inicio, fim: fim) : nil
         await viewModel.buscar()
+    }
+
+    /// Pode chamar agora: com envio registrado o reenvio não precisa da casa nem da folha.
+    private var podeChamarAgora: Bool {
+        viewModel.podeChamar && (viewModel.temEnvioRegistrado || casa != nil)
+    }
+
+    /// 1º envio: abre a folha. Depois dele (pendente ou feito), reenvia o MESMO trabalho direto, sem folha nova:
+    /// uma folha nova traria outro horário (agora + 24 h) e o servidor abriria uma 2ª vaga para quem ainda não foi chamado.
+    private func chamarSelecionados() {
+        if viewModel.temEnvioRegistrado {
+            Task { await viewModel.reenviar() }
+        } else {
+            abrirChamada()
+        }
     }
 
     private func abrirChamada() {
@@ -227,15 +260,12 @@ public struct TelaBuscaDeProfissionais: View {
     private func enviarChamadas() async {
         guard let rascunho = rascunhoDaChamada, let casa, let funcaoID = viewModel.funcaoID,
               let trabalho = rascunho.trabalho(casa: casa, funcaoID: funcaoID) else { return }
-        trabalhoEnviado = trabalho
-        recadoEnviado = rascunho.recadoOuNada
         rascunhoDaChamada = nil
         await viewModel.chamar(trabalho: trabalho, recado: rascunho.recadoOuNada)
     }
 
     private func reenviarComJ7() async {
-        guard let trabalho = trabalhoEnviado else { return }
-        await viewModel.chamar(trabalho: trabalho, recado: recadoEnviado, confirmoRecorrencia: true)
+        await viewModel.reenviar(confirmoRecorrencia: true)
     }
 
     // MARK: Folha de chamada

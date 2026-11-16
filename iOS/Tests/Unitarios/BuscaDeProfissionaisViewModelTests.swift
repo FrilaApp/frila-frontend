@@ -809,6 +809,92 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(pedidos.last?.profissionalID == ids[3] && pedidos.last?.vagaID == vagaID && pedidos.last?.trabalho == nil)
     }
 
+    // MARK: Reenvio do mesmo trabalho, sem folha nova (IMPORTANTE 1 do Lince N no #790)
+
+    @Test("Sem envio anterior, reenviar não faz nada e não há envio registrado")
+    func reenviarSemEnvioNaoFazNada() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
+        #expect(!vm.temEnvioRegistrado)
+        await vm.reenviar()
+        #expect(await fonte.pedidos.isEmpty)
+    }
+
+    @Test("Tentar de novo do incerto repete o trabalho e o recado do 1º envio: 1 vaga, mesmo com outra folha na tela",
+          .timeLimit(.minutes(1)))
+    func reenviarRepeteOTrabalhoDoPrimeiroEnvio() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        let primeiro = try trabalho(valor: 20_000)
+        await vm.chamar(trabalho: primeiro, recado: "Traje preto")
+        #expect(vm.temEnvioRegistrado && vm.travadoPeloIncerto)
+        #expect(vm.trabalhoEnviado == primeiro && vm.recadoEnviado == "Traje preto")
+
+        // Uma folha nova traria outro valor e horário; o reenvio da tela não passa por ela: usa o do 1º envio.
+        await fonte.ajustar(perdeResposta: [])
+        await vm.reenviar()
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        try #require(pedidos.count >= 4)
+        #expect(pedidos[1] == pedidos[0]) // mesma chave, mesmo trabalho: o servidor devolve a chamada já criada
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 2)
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        #expect(pedidos.suffix(2).allSatisfy { $0.vagaID == vagaID && $0.trabalho == nil && $0.recado == "Traje preto" })
+        #expect(vagas(vm, ids) == [vagaID])
+        #expect(!vm.travadoPeloIncerto)
+    }
+
+    @Test("Contraprova: com outro trabalho, quem ainda não saiu abre 2ª vaga; com reenviar, entra na vaga do 1º envio")
+    func reenviarComOutroTrabalhoAbriaSegundaVaga() async throws {
+        // Contraprova: o caminho antigo (folha nova com valor/horário diferentes) abre outra vaga para quem não tentou.
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        await vm.chamar(trabalho: try trabalho(valor: 20_000))
+        await fonte.ajustar(perdeResposta: [])
+        await vm.chamar(trabalho: try trabalho(valor: 25_000))
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.last?.profissionalID == ids[1] && pedidos.last?.trabalho != nil, "outro trabalho: 2ª vaga (o que a tela evita)")
+
+        let (fonte2, vm2) = preparar(total: 2)
+        await vm2.buscar()
+        let ids2 = vm2.resultados.map(\.id)
+        try #require(ids2.count >= 2)
+        ids2.forEach { vm2.alternarSelecao($0) }
+        await fonte2.ajustar(perdeResposta: [ids2[0]])
+        await vm2.chamar(trabalho: try trabalho(valor: 20_000))
+        await fonte2.ajustar(perdeResposta: [])
+        await vm2.reenviar()
+        pedidos = await fonte2.pedidos
+        let vagaID = try #require(enviada(vm2.resultadosDaChamada[ids2[0]])).vagaID
+        #expect(pedidos.last?.profissionalID == ids2[1] && pedidos.last?.vagaID == vagaID && pedidos.last?.trabalho == nil)
+    }
+
+    @Test("J7: reenviar com a confirmação repete o trabalho do 1º envio")
+    func reenviarJ7() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(recorrenciaPendente: [ids[0]])
+        await vm.chamar(trabalho: try trabalho(), recado: "Oi")
+        #expect(vm.mostrarJ7)
+        await vm.reenviar(confirmoRecorrencia: true)
+        let pedidos = await fonte.pedidos
+        let confirmado = try #require(pedidos.last { $0.profissionalID == ids[0] })
+        #expect(confirmado.confirmoRecorrencia && confirmado.recado == "Oi")
+        #expect(enviada(vm.resultadosDaChamada[ids[0]]) != nil)
+    }
+
     @Test("cursor_invalido refaz a busca e guarda o incerto, a chave dele e a vaga do trabalho")
     func cursorInvalidoGuardaIncertoEChave() async throws {
         let (fonte, vm) = preparar(total: 45)

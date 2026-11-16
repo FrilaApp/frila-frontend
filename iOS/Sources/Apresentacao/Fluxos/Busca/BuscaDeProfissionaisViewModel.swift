@@ -102,6 +102,11 @@ public final class BuscaDeProfissionaisViewModel {
     /// Quem terminou a última tentativa sem resposta definitiva: a chamada pode ter sido criada. Nova busca não
     /// apaga nem eles nem a tentativa (a chave) deles: só a mesma chave descobre o que o servidor fez.
     private var incertos: Set<UUID> = []
+    /// O trabalho e o recado do 1º envio. DINHEIRO: depois dele, todo reenvio (Tentar de novo, Chamar selecionados
+    /// de novo, J7) repete ESTE trabalho, sem folha nova: um trabalho diferente (horário que muda a cada abertura,
+    /// outro valor) faria quem ainda não foi chamado abrir uma 2ª vaga.
+    public private(set) var trabalhoEnviado: PublicacaoVaga?
+    public private(set) var recadoEnviado: String?
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
     /// O prazo de cada `await` de rede; o teste injeta um menor.
@@ -286,6 +291,9 @@ public final class BuscaDeProfissionaisViewModel {
 
     public var podeChamar: Bool { !selecionados.isEmpty && !enviando && estado == .resultados }
 
+    /// Já houve um envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma folha nova.
+    public var temEnvioRegistrado: Bool { trabalhoEnviado != nil }
+
     /// Há selecionado com erro ou que nem saiu: `chamar` de novo reenvia só esses, cada um com a chave que já tinha.
     public var podeReenviar: Bool {
         podeChamar && selecionados.contains { id in
@@ -318,6 +326,10 @@ public final class BuscaDeProfissionaisViewModel {
         let alvos = primeiros + selecionados.filter { id in
             if case .enviada = resultadosDaChamada[id] { return false }
             return !primeiros.contains(id) && (!confirmoRecorrencia || pendentes.contains(id))
+        }
+        if trabalhoEnviado == nil {
+            trabalhoEnviado = trabalho
+            recadoEnviado = recado
         }
         enviando = true
         defer { enviando = false }
@@ -352,6 +364,13 @@ public final class BuscaDeProfissionaisViewModel {
             }
         }
         mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
+    }
+
+    /// Reenvia com o trabalho e o recado do 1º envio (nunca um novo). Sem envio anterior não faz nada: o 1º envio
+    /// passa pela folha de chamada e por `chamar(trabalho:)`.
+    public func reenviar(confirmoRecorrencia: Bool = false, chave: () -> UUID = UUID.init) async {
+        guard let trabalho = trabalhoEnviado else { return }
+        await chamar(trabalho: trabalho, recado: recadoEnviado, confirmoRecorrencia: confirmoRecorrencia, chave: chave)
     }
 
     /// O pedido de um selecionado nesta rodada. Quem ainda não tentou leva o `vaga_id` da vaga do trabalho, se

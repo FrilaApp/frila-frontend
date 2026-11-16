@@ -52,9 +52,7 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         chamar.tap()
 
         let valor = app.textFields["busca-valor-total"]
-        // Em ~metade das execuções o 1º toque não abriu a folha no simulador; um 2º toque abre (registrado no retorno).
-        if !valor.waitForExistence(timeout: 5) { chamar.tap() }
-        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre")
+        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre com um toque só")
         valor.tap()
         valor.typeText("200")
         let confirmo = app.switches["busca-confirmo-total"]
@@ -79,14 +77,10 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
                        "com a chave desligada, Encontrar profissional não existe")
     }
 
-    // MARK: Capturas (padrão e AX5), em /tmp/f035-4-capturas/
+    // MARK: Capturas (padrão e AX5), só como anexos do XCTest
 
     private func salvar(_ app: XCUIApplication, _ nome: String) {
-        let pasta = URL(fileURLWithPath: "/tmp/f035-4-capturas", isDirectory: true)
-        try? FileManager.default.createDirectory(at: pasta, withIntermediateDirectories: true)
-        let captura = app.screenshot()
-        try? captura.pngRepresentation.write(to: pasta.appendingPathComponent("\(nome).png"))
-        let anexo = XCTAttachment(screenshot: captura)
+        let anexo = XCTAttachment(screenshot: app.screenshot())
         anexo.name = nome
         anexo.lifetime = .keepAlways
         add(anexo)
