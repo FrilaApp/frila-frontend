@@ -112,7 +112,7 @@ val verificarRegrasDeChaveSupabase = tasks.register("verificarRegrasDeChaveSupab
     inputs.file(casos)
     doLast {
         val linhas = casos.readLines().filter { it.isNotBlank() && !it.startsWith("#") }
-        if (linhas.size < 8) throw GradleException("supabase-chaves-casos.tsv tem só ${linhas.size} casos; esperados 8 ou mais.")
+        if (linhas.size < 9) throw GradleException("supabase-chaves-casos.tsv tem só ${linhas.size} casos; esperados 9 ou mais.")
         val divergentes = linhas.mapIndexedNotNull { indice, linha ->
             val (veredito, chave) = linha.split('\t', limit = 2)
             val aceitou = motivoDeRejeicaoDaChave(chave.trim()) == null

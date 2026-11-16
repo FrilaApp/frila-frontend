@@ -127,7 +127,7 @@ class ConfiguracaoDoBackendTest {
         val linhas = checkNotNull(javaClass.getResourceAsStream("/supabase-chaves-casos.tsv")) {
             "supabase-chaves-casos.tsv ausente dos recursos de teste"
         }.bufferedReader().readLines().filter { it.isNotBlank() && !it.startsWith("#") }
-        assertTrue(linhas.size >= 8)
+        assertTrue(linhas.size >= 9)
 
         for (linha in linhas) {
             val (veredito, chave) = linha.split('\t', limit = 2)
