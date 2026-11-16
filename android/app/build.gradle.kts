@@ -137,6 +137,7 @@ dependencies {
     implementation(project(":feature:suporte"))
     implementation(project(":feature:equipe"))
     implementation(project(":feature:estabelecimento"))
+    implementation(project(":feature:chamadas"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

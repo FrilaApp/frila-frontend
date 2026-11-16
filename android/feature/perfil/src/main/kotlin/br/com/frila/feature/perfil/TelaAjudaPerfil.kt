@@ -37,8 +37,8 @@ import br.com.frila.core.designsystem.tema.FrilaMetricas
  * (paridade com `EnderecosOficiais.swift` e `TelaAjudaPerfil.swift`).
  */
 data class EnderecosOficiais(
-    val termosDeUso: String = "https://frila.netlify.app/termos",
-    val politicaDePrivacidade: String = "https://frila.netlify.app/privacidade",
+    val termosDeUso: String = "https://frilabr.com/termos",
+    val politicaDePrivacidade: String = "https://frilabr.com/privacidade",
     val emailSuporte: String = "suporte@frilabr.com",
 ) {
     val urlSuporte: String get() = "mailto:$emailSuporte"

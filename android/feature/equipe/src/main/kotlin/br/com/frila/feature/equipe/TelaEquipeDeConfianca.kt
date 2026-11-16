@@ -50,6 +50,7 @@ fun TelaEquipeDeConfianca(
     viewModel: EquipeDeConfiancaViewModel,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    aoChamarDeNovo: ((PerfilPublicoDto) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -59,6 +60,7 @@ fun TelaEquipeDeConfianca(
         aoRemover = { viewModel.remover(it) },
         aoVoltar = aoVoltar,
         modifier = modifier,
+        aoChamarDeNovo = aoChamarDeNovo,
     )
 }
 
@@ -75,6 +77,8 @@ fun ConteudoEquipeDeConfianca(
     aoRemover: (PerfilPublicoDto) -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    /** "Chamar de novo" por profissional da equipe (chamada direta). `null`, com a chave desligada, esconde o botão. */
+    aoChamarDeNovo: ((PerfilPublicoDto) -> Unit)? = null,
 ) {
     var idParaRemover by rememberSaveable { mutableStateOf<String?>(null) }
     val membros = (tela.estado as? EstadoEquipe.Conteudo)?.membros.orEmpty()
@@ -155,6 +159,7 @@ fun ConteudoEquipeDeConfianca(
                             removendo = tela.removendo == perfil.id,
                             bloqueado = tela.ocupado,
                             aoRemover = { idParaRemover = perfil.id },
+                            aoChamarDeNovo = aoChamarDeNovo?.let { chamar -> { chamar(perfil) } },
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
@@ -201,6 +206,7 @@ private fun LinhaDoMembro(
     removendo: Boolean,
     bloqueado: Boolean,
     aoRemover: () -> Unit,
+    aoChamarDeNovo: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -233,6 +239,14 @@ private fun LinhaDoMembro(
                 modifier = Modifier.semantics { contentDescription = TextosEquipe.rotuloRemover(perfil.nome) },
             )
             if (removendo) CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        }
+        if (aoChamarDeNovo != null) {
+            BotaoPrimario(
+                texto = TextosEquipe.CHAMAR_DE_NOVO,
+                aoClicar = aoChamarDeNovo,
+                habilitado = !bloqueado,
+                modifier = Modifier.semantics { contentDescription = TextosEquipe.rotuloChamarDeNovo(perfil.nome) },
+            )
         }
     }
 }

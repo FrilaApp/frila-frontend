@@ -13,6 +13,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.net.UnknownHostException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -151,6 +152,116 @@ class DetalheVagaViewModelTest {
 
         assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
         assertEquals("Esta vaga foi encerrada.", viewModel.estado.value.mensagem)
+    }
+
+    private fun mensagemAposErro(status: HttpStatusCode, corpo: String): String? = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = corpo,
+                    status = status,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        viewModel.estado.value.mensagem
+    }
+
+    private val mensagemSuspensao =
+        "Enquanto a suspensão durar, você não pode se candidatar a vagas. " +
+            "O motivo e o caminho para contestar ficam na área da sua conta."
+
+    @Test
+    fun `candidatar com inelegivel por turno_sobreposto explica o conflito de horario`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.UnprocessableEntity,
+            """{"code":"inelegivel","message":"inelegivel","details":"turno_sobreposto"}""",
+        )
+
+        assertEquals(
+            "Você já tem um turno confirmado que coincide com o horário desta vaga. " +
+                "Não é possível assumir dois turnos ao mesmo tempo.",
+            mensagem,
+        )
+    }
+
+    @Test
+    fun `candidatar com inelegivel por perfil_suspenso explica a suspensao`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.UnprocessableEntity,
+            """{"code":"inelegivel","message":"inelegivel","details":"perfil_suspenso"}""",
+        )
+
+        assertEquals(mensagemSuspensao, mensagem)
+    }
+
+    @Test
+    fun `candidatar com conta_suspensa explica a suspensao`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.Forbidden,
+            """{"code":"conta_suspensa","message":"conta suspensa"}""",
+        )
+
+        assertEquals(mensagemSuspensao, mensagem)
+    }
+
+    @Test
+    fun `candidatar com inelegivel por funcao_incompativel aponta a funcao do perfil`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.UnprocessableEntity,
+            """{"code":"inelegivel","message":"inelegivel","details":"funcao_incompativel"}""",
+        )
+
+        assertEquals("Esta vaga exige uma função que não está cadastrada no seu perfil profissional.", mensagem)
+    }
+
+    @Test
+    fun `candidatar com inelegivel de outro detalhe usa a mensagem generica de elegibilidade`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.UnprocessableEntity,
+            """{"code":"inelegivel","message":"inelegivel","details":"outro_motivo"}""",
+        )
+
+        assertEquals("Você não está elegível para este turno.", mensagem)
+    }
+
+    @Test
+    fun `candidatar com nao_encontrado manda voltar para a lista`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.NotFound,
+            """{"code":"nao_encontrado","message":"vaga inexistente"}""",
+        )
+
+        assertEquals("Esta vaga não está mais disponível. Volte para a lista e escolha outra.", mensagem)
+    }
+
+    @Test
+    fun `candidatar sem rede pede para tentar quando a conexao voltar`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine { throw UnknownHostException("sem rede") },
+        )
+
+        viewModel.candidatar().join()
+
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertEquals(
+            "Não foi possível confirmar o envio. Tente de novo quando a conexão voltar.",
+            viewModel.estado.value.mensagem,
+        )
+    }
+
+    @Test
+    fun `candidatar com codigo sem mapeamento usa a mensagem padrao`() {
+        val mensagem = mensagemAposErro(
+            HttpStatusCode.InternalServerError,
+            """{"code":"codigo_que_nao_existe","message":"erro"}""",
+        )
+
+        assertEquals("Não foi possível enviar sua candidatura. Tente de novo em instantes.", mensagem)
     }
 
     @Test

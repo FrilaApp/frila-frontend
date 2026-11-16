@@ -202,6 +202,16 @@ fun AppNavegacao(
      */
     recursoSeloHabilitado: Boolean = false,
     /**
+     * Chave `chamada_direta` (`configuracao_do_app`): desligada, "Chamar de novo" nem aparece na equipe de
+     * confiança. Ligada, a equipe leva à folha de chamar do lado da casa.
+     */
+    chamadaDiretaHabilitada: Boolean = false,
+    /**
+     * Chave `busca_profissionais` (`configuracao_do_app`, RN46): desligada, as preferências de chamada ficam como no
+     * iOS de hoje, sem o "Aceito chamadas diretas" nem as pendências da busca.
+     */
+    buscaProfissionaisHabilitada: Boolean = false,
+    /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
      * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
@@ -526,6 +536,20 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
+                        aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
+                            { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
+                        } else {
+                            null
+                        },
+                        // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
+                        // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
+                        // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
+                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -630,9 +654,19 @@ fun AppNavegacao(
                     TelaEquipeDeConfianca(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        aoChamarDeNovo = if (chamadaDiretaHabilitada) {
+                            { profissional ->
+                                navController.navigate(RotasChamadaCasa.chamar(estabelecimentoId, profissional.id))
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
+
+            rotasDaChamadaDiretaCasa(navController, guardaBiometrico, buscaProfissionaisHabilitada, servicoMembros)
+            rotasDaChamadaDiretaProfissional(navController, guardaBiometrico, buscaProfissionaisHabilitada)
 
             composable(Rotas.CADASTRO_ESTABELECIMENTO) {
                 RotaProtegida(guardaBiometrico) {

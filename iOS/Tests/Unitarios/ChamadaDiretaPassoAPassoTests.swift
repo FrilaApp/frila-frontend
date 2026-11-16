@@ -8,7 +8,7 @@ import Testing
 import UIKit
 
 /// A casa que chama de novo pelo turno: o servidor só entrega `detalhe_vaga` ao profissional
-/// (contratante recebe `422 perfil_incompativel`), então a leitura da vaga anterior é um extra.
+/// (contratante recebe `422 perfil_incompativel`); a folha usa o resumo do turno sem essa leitura.
 private final class ApiDetalheDaVagaSoDoProfissional: ApiClienteEncaminhador, @unchecked Sendable {
     override func detalheDaVaga(id: UUID) async throws -> Vaga {
         throw ErroDaApi(codigo: .perfilIncompativel)
@@ -43,17 +43,17 @@ struct ChamadaDiretaPassoAPassoTests {
         let api = ApiDetalheDaVagaSoDoProfissional(base: base)
         let casa = try #require(try await base.meusEstabelecimentos().first)
         let dadosDaCasa = try await base.meuEstabelecimento(id: casa.id)
-        let vagaDoTurno = UUID()
+        let vagaDoTurno = try await base.detalheDaVaga(id: UUID(uuidString: "40000000-0000-0000-0000-000000000001")!).resumo
 
         let modelo = ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
-                                            estabelecimentoID: casa.id, vagaID: vagaDoTurno)
+                                            estabelecimentoID: casa.id, vagaAnterior: vagaDoTurno)
         await modelo.carregar()
 
         #expect(modelo.erro == nil, "A folha não pode cair na mensagem de conexão por causa da vaga anterior")
         #expect(modelo.recursoHabilitado)
         #expect(!modelo.funcoes.isEmpty)
         #expect(modelo.funcaoID != nil)
-        #expect(modelo.local == dadosDaCasa.endereco, "Sem a vaga anterior, os dados vêm da casa, como na Equipe de confiança")
+        #expect(modelo.local == dadosDaCasa.endereco, "Mesmo com o resumo da vaga anterior, o local continua sendo o da casa")
         #expect(modelo.responsavel == dadosDaCasa.nome)
     }
 

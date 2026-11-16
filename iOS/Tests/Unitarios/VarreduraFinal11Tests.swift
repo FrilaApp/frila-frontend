@@ -119,9 +119,9 @@ struct VarreduraFinal11Tests {
 
     // MARK: A6: RN29
 
-    private func formulario(_ api: ApiClienteEmMemoria, vagaID: UUID? = nil) async throws -> ChamadaDiretaViewModel {
+    private func formulario(_ api: ApiClienteEmMemoria, vagaAnterior: VagaResumo? = nil) async throws -> ChamadaDiretaViewModel {
         let casa = try #require(try await api.meusEstabelecimentos().first)
-        let model = ChamadaDiretaViewModel(api: api, profissionalID: profissionalID, estabelecimentoID: casa.id, vagaID: vagaID)
+        let model = ChamadaDiretaViewModel(api: api, profissionalID: profissionalID, estabelecimentoID: casa.id, vagaAnterior: vagaAnterior)
         await model.carregar()
         return model
     }
@@ -173,17 +173,18 @@ struct VarreduraFinal11Tests {
 
     // MARK: A6: Chamar de novo (CD-RF07)
 
-    @Test("Chamar de novo a partir de um turno traz a função, o valor e o responsável da vaga, e pede confirmar o total de novo")
+    @Test("Chamar de novo traz função e valor da vaga, local e responsável da casa, e pede confirmar o total de novo")
     func chamarDeNovoPreencheComAVaga() async throws {
         let api = ApiClienteEmMemoria(cenario: .chamadaDireta)
         let vaga = try await api.detalheDaVaga(id: vagaDaCasa)
-        let model = try await formulario(api, vagaID: vaga.id)
+        let casa = try await api.meuEstabelecimento(id: vaga.estabelecimento.id)
+        let model = try await formulario(api, vagaAnterior: vaga.resumo)
 
         #expect(model.recursoHabilitado)
         #expect(model.funcaoID == vaga.funcao.id)
         #expect(model.valorCentavos == vaga.valor.centavos)
-        #expect(model.local == vaga.local)
-        #expect(model.responsavel == (vaga.responsavelLocal ?? model.responsavel))
+        #expect(model.local == casa.endereco)
+        #expect(model.responsavel == casa.nome)
         #expect(!model.totalConfirmado, "o total é confirmado a cada chamada")
         #expect(!model.podeEnviar)
 
