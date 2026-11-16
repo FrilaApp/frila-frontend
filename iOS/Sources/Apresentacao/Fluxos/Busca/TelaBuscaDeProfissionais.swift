@@ -180,13 +180,7 @@ public struct TelaBuscaDeProfissionais: View {
                     .navigationTitle(Text(verbatim: cartao.nome))
             } label: {
                 VStack(alignment: .leading) {
-                    Text(verbatim: cartao.nome)
-                    Text(verbatim: TextosDosServicos.resumoDoServico(cartao.servico.servico) ?? cartao.servico.funcao.nome)
-                    Text(verbatim: cartao.distanciaFaixa.rotulo)
-                    if cartao.disponivelNoHorario == true {
-                        Text(verbatim: TextosBuscaDeProfissionais.disponivelNesseHorario)
-                            .accessibilityIdentifier("disponivel-\(cartao.id)")
-                    }
+                    CartaoDaBuscaProvisorio(cartao: cartao)
                     if let resultado = viewModel.resultadosDaChamada[cartao.id] {
                         Text(verbatim: Self.texto(resultado))
                             .accessibilityIdentifier("resultado-chamada-\(cartao.id)")
