@@ -254,6 +254,20 @@ class ServicoChamadaDiretaTest {
     }
 
     @Test
+    fun `buscarProfissionais decodifica foto_url e foto_id do cartao, ausentes quando nao ha foto`() = runTest {
+        val fotoId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        val pagina = servico(
+            Visto(),
+            """{"itens":[{"id":"$profissional","nome":"Maria S.","servico":$servicoJson,"regioes":[],"atende_todo_df":true,"distancia_faixa":"ate_5_km","reputacao":$reputacaoJson,"foto_url":"https://frila.supabase.co/functions/v1/ler-midia?midia_id=$fotoId&token=t","foto_id":"$fotoId"},{"id":"99999999-9999-9999-9999-999999999999","nome":"João P.","servico":$servicoJson,"regioes":[],"atende_todo_df":true,"distancia_faixa":"ate_5_km","reputacao":$reputacaoJson}],"proximo_cursor":null}""",
+        ).buscarProfissionais(BuscarProfissionaisDto(estabelecimentoId = casa, funcaoId = funcao))
+
+        assertEquals("https://frila.supabase.co/functions/v1/ler-midia?midia_id=$fotoId&token=t", pagina.itens[0].fotoUrl)
+        assertEquals(fotoId, pagina.itens[0].fotoId)
+        assertNull(pagina.itens[1].fotoUrl)
+        assertNull(pagina.itens[1].fotoId)
+    }
+
+    @Test
     fun `buscarProfissionais da pagina seguinte manda o cursor e ultima pagina volta sem proximo_cursor`() = runTest {
         val visto = Visto()
         val pagina = servico(visto, """{"itens":[],"proximo_cursor":null}""").buscarProfissionais(

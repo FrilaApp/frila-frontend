@@ -890,6 +890,10 @@ data class CartaoProfissionalDto(
     @SerialName("distancia_faixa") val distanciaFaixa: String,
     @SerialName("reputacao") val reputacao: ReputacaoDto,
     @SerialName("disponivel_no_horario") val disponivelNoHorario: Boolean? = null,
+    /** Link de 1 h (`ler-midia`, miniatura de 320 px) da foto aprovada, sem cabeçalho; ausente sem foto (0.2.90, CD-B07). */
+    @SerialName("foto_url") val fotoUrl: String? = null,
+    /** Identificador opaco da foto, o que `denunciar.midia_id` recebe (0.2.90). */
+    @SerialName("foto_id") val fotoId: String? = null,
 )
 
 /**

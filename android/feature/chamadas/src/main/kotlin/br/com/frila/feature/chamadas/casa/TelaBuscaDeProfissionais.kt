@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -63,6 +65,7 @@ fun TelaBuscaDeProfissionais(
     relogio: () -> Instant = Instant::now,
     /** Abre os Termos de Uso (o link que o app já usa) para quem vai aceitá-los antes de buscar (0.2.90). */
     aoAbrirTermos: () -> Unit = {},
+    carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregarCatalogos() }
@@ -85,6 +88,7 @@ fun TelaBuscaDeProfissionais(
         relogio = relogio,
         aoAbrirTermos = aoAbrirTermos,
         aoAceitarTermos = { viewModel.aceitarTermosEBuscar() },
+        carregarFoto = carregarFoto,
     )
 }
 
@@ -114,6 +118,7 @@ fun ConteudoBuscaDeProfissionais(
     relogio: () -> Instant = Instant::now,
     aoAbrirTermos: () -> Unit = {},
     aoAceitarTermos: () -> Unit = {},
+    carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
 ) {
     var folhaAberta by rememberSaveable { mutableStateOf(false) }
     Scaffold(
@@ -155,6 +160,7 @@ fun ConteudoBuscaDeProfissionais(
                 aoAbrirFolha = { folhaAberta = true },
                 aoAbrirTermos = aoAbrirTermos,
                 aoAceitarTermos = aoAceitarTermos,
+                carregarFoto = carregarFoto,
                 modifier = Modifier.padding(preenchimento),
             )
         }
@@ -178,6 +184,7 @@ private fun ListaDaBusca(
     aoAbrirFolha: () -> Unit,
     aoAbrirTermos: () -> Unit,
     aoAceitarTermos: () -> Unit,
+    carregarFoto: CarregadorDeFoto,
     modifier: Modifier = Modifier,
 ) {
     var usarHorario by rememberSaveable { mutableStateOf(false) }
@@ -406,6 +413,7 @@ private fun ListaDaBusca(
                         travado = estado.selecaoTravada,
                         aoAlternarSelecao = { aoAlternarSelecao(cartao.id) },
                         aoAbrirPerfil = { aoAbrirPerfil(cartao.id) },
+                        carregarFoto = carregarFoto,
                     )
                 }
                 item {
@@ -441,6 +449,7 @@ private fun CartaoDoProfissional(
     travado: Boolean,
     aoAlternarSelecao: () -> Unit,
     aoAbrirPerfil: () -> Unit,
+    carregarFoto: CarregadorDeFoto,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().testTag("busca-cartao-${cartao.id}"),
@@ -452,6 +461,8 @@ private fun CartaoDoProfissional(
             enabled = !travado,
             modifier = Modifier.testTag("busca-selecionar-${cartao.id}"),
         )
+        FotoDoCartao(id = cartao.id, nome = cartao.nome, fotoUrl = cartao.fotoUrl, carregar = carregarFoto)
+        Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f).clickable(onClick = aoAbrirPerfil).padding(vertical = 8.dp)) {
             Text(cartao.nome, style = MaterialTheme.typography.titleMedium)
             Text("${cartao.servico.funcao.nome}: ${resumoDoServico(cartao.servico).orEmpty()}")
