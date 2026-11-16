@@ -1548,7 +1548,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             contatoVisivelAte: vaga.periodo.fim.addingTimeInterval(7 * 24 * 3600),
             verificacao: .pendente,
             valorAcordado: vaga.valor,
-            podeAvaliar: false
+            podeAvaliar: false, confirmadoEm: relogio.agora
         )
         turnos.append(turno)
 
@@ -2053,7 +2053,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let posicaoID = ocuparPosicaoAberta(vagaID)
         let turno = Turno(
             id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo, contraparte: vaga.estabelecimento, contatoVisivelAte: visivelAte,
-            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false
+            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false, confirmadoEm: relogio.agora
         )
         turnos.append(turno)
         contatos[turno.id] = contato
@@ -3120,7 +3120,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let turno = Turno(
             id: UUID(), posicaoID: posicaoID, vaga: vaga.resumo,
             contraparte: escolhida.daConta ? vaga.estabelecimento : escolhida.profissional, contatoVisivelAte: visivelAte,
-            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false
+            verificacao: .pendente, valorAcordado: vaga.valor, podeAvaliar: false, confirmadoEm: relogio.agora
         )
         turnos.append(turno)
         if escolhida.daConta {
