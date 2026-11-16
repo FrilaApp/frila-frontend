@@ -3,13 +3,18 @@ package br.com.frila.core.localizacao
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.tasks.CancellationToken
+import com.google.android.gms.tasks.OnFailureListener
+import com.google.android.gms.tasks.OnSuccessListener
+import com.google.android.gms.tasks.Task
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -96,5 +101,50 @@ class ProvedorDeLocalizacaoTest {
         val provedor = ProvedorDeLocalizacaoFused(contexto, mockk<FusedLocationProviderClient>())
 
         assertFalse(provedor.isGpsAtivado())
+    }
+
+    private fun contextoComPermissaoFina(): Context {
+        val contexto = mockk<Context>()
+        every { contexto.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) } returns PackageManager.PERMISSION_GRANTED
+        every { contexto.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) } returns PackageManager.PERMISSION_GRANTED
+        return contexto
+    }
+
+    /** Em lugar fechado o Play Services demora; a leitura do check-in desiste em 10 s, como no iOS. */
+    @Test
+    fun `leitura para o checkin que nao chega dentro do prazo devolve nulo`() = runTest {
+        val clienteFused = mockk<FusedLocationProviderClient>()
+        // Tarefa que nunca responde: os ouvintes são registrados e nada acontece.
+        every { clienteFused.getCurrentLocation(any<Int>(), any<CancellationToken>()) } returns mockk<Task<Location>>(relaxed = true)
+        val provedor = ProvedorDeLocalizacaoFused(contextoComPermissaoFina(), clienteFused)
+
+        val leitura = provedor.lerParaCheckin()
+
+        assertNull(leitura)
+    }
+
+    @Test
+    fun `leitura para o checkin leva a coordenada a precisao e a origem`() = runTest {
+        val local = mockk<Location>()
+        every { local.latitude } returns -15.7932
+        every { local.longitude } returns -47.8822
+        every { local.hasAccuracy() } returns true
+        every { local.accuracy } returns 35f
+        every { local.isFromMockProvider } returns false
+        val tarefa = mockk<Task<Location>>()
+        every { tarefa.addOnSuccessListener(any<OnSuccessListener<in Location>>()) } answers {
+            firstArg<OnSuccessListener<Location>>().onSuccess(local)
+            tarefa
+        }
+        every { tarefa.addOnFailureListener(any<OnFailureListener>()) } returns tarefa
+        val clienteFused = mockk<FusedLocationProviderClient>()
+        every { clienteFused.getCurrentLocation(any<Int>(), any<CancellationToken>()) } returns tarefa
+        val provedor = ProvedorDeLocalizacaoFused(contextoComPermissaoFina(), clienteFused)
+
+        val leitura = provedor.lerParaCheckin()
+
+        assertEquals(-15.7932, leitura!!.coordenada.latitude)
+        assertEquals(35f, leitura.precisaoMetros)
+        assertFalse(leitura.simulada)
     }
 }
