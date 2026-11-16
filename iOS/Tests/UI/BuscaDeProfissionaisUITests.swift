@@ -138,13 +138,16 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["aceite-termos-link"].exists, "o aceite leva aos Termos de Uso")
         let selecoes = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'"))
         XCTAssertEqual(selecoes.count, 0, "antes do aceite a busca não traz ninguém")
+        // Em AX5 os filtros ocupam a tela: a captura sai depois de rolar até o aceite.
+        XCTAssertTrue(procurar(aceitar, em: app), "o botão Aceitar fica alcançável")
         salvar(app, "busca-termos-pendentes-\(sufixo)")
 
-        XCTAssertTrue(procurar(aceitar, em: app), "o botão Aceitar fica alcançável")
         aceitar.tap()
-        XCTAssertTrue(selecoes.firstMatch.waitForExistence(timeout: 15) || procurar(selecoes.firstMatch, em: app),
+        let primeira = selecoes.firstMatch
+        XCTAssertTrue(primeira.waitForExistence(timeout: 15) || procurar(primeira, em: app),
                       "depois do aceite, a mesma busca traz profissionais")
         XCTAssertFalse(app.buttons["aceite-termos-aceitar"].exists, "com o aceite feito, o pedido some")
+        XCTAssertTrue(procurar(primeira, em: app), "o primeiro cartão fica alcançável")
         salvar(app, "busca-depois-do-aceite-\(sufixo)")
     }
 
