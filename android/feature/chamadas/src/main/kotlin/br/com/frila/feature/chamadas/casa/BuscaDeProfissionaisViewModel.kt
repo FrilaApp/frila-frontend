@@ -3,6 +3,7 @@ package br.com.frila.feature.chamadas.casa
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.rede.AceiteDeTermosDto
 import br.com.frila.core.rede.BuscarProfissionaisDto
 import br.com.frila.core.rede.CartaoProfissionalDto
 import br.com.frila.core.rede.ChamadaDto
@@ -53,6 +54,12 @@ sealed interface EstadoDaBusca {
     /** A chave `busca_profissionais` está desligada (ou o servidor recusou com `recurso_desligado`). */
     data object Indisponivel : EstadoDaBusca
     data class Erro(val mensagem: String) : EstadoDaBusca
+
+    /**
+     * O servidor recusou a busca com `403 sem_permissao` (`termos_pendentes`, 0.2.90): a casa precisa aceitar os Termos
+     * 1.1 antes. [aceitando] é o `aceitar_termos` em voo; [erro] é a falha do aceite (a busca segue bloqueada).
+     */
+    data class TermosPendentes(val aceitando: Boolean = false, val erro: String? = null) : EstadoDaBusca
 }
 
 /** O que a busca devolveu para um profissional escolhido ao chamar. */
@@ -98,8 +105,8 @@ data class EstadoBusca(
     val horarioValido: Boolean get() = horario?.valido ?: true
     /** Bloqueada com envio pendente: uma nova busca esconderia quem pode já ter chamada criada (dinheiro). */
     val podeBuscar: Boolean
-        get() = funcaoId != null && horarioValido && estado != EstadoDaBusca.Carregando && !carregandoMais && !enviando &&
-            !temEnvioPendente
+        get() = funcaoId != null && horarioValido && estado != EstadoDaBusca.Carregando && estado !is EstadoDaBusca.TermosPendentes &&
+            !carregandoMais && !enviando && !temEnvioPendente
     /**
      * Com envio pendente o reenvio e o J7 valem em QUALQUER estado da lista (Erro, Indisponível, 429): o pedido que
      * levou o trabalho pode ter criado a vaga, e travá-lo por causa da lista deixaria a casa sem como resolver.
@@ -139,6 +146,8 @@ class BuscaDeProfissionaisViewModel(
     private val recursoHabilitado: suspend () -> Boolean,
     private val buscarProfissionais: suspend (BuscarProfissionaisDto) -> PaginaDeProfissionaisDto,
     private val chamarProfissional: suspend (ChamarProfissionalDto) -> ChamadaDto,
+    /** `ServicoChamadaDireta.aceitarTermos` (0.2.90). Sem ela, o aceite não sai e a busca fica bloqueada. */
+    private val aceitarTermos: (suspend (termosVersao: String) -> AceiteDeTermosDto)? = null,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     private val prazoMs: Long = ChamadaDiretaViewModel.PRAZO_PADRAO_MS,
     /** `ServicoVagas.listarFuncoes`, `ServicoDeRegioes.regioesAtivas` e `ServicoMembros.meuEstabelecimento`. */
@@ -155,6 +164,9 @@ class BuscaDeProfissionaisViewModel(
 
     private var proximoCursor: String? = null
     private var recursoConfirmado = false
+
+    /** Os filtros da busca que o servidor barrou por `termos_pendentes`: o aceite repete esta mesma busca. */
+    private var filtroBarradoPorTermos: RascunhoDeVagaDaBusca? = null
     /**
      * Pedidos guardados (incerto, J7 ou que nem saiu), por profissional E por trabalho: a chave de idempotência só
      * se repete para o MESMO trabalho. Não são apagados por nova busca nem pelo refazer do cursor.
@@ -287,9 +299,43 @@ class BuscaDeProfissionaisViewModel(
             if (erro !is TimeoutCancellationException) throw erro
             falhaDaBusca(EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO), preservarEnvio)
         } catch (erro: ErroDaApi) {
+            if (termosPendentes(erro)) filtroBarradoPorTermos = filtro
             falhaDaBusca(estadoDoErro(erro), preservarEnvio)
         } catch (_: Exception) {
             falhaDaBusca(EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO), preservarEnvio)
+        }
+    }
+
+    // --- Aceite dos Termos (0.2.90) ------------------------------------------------------------------
+
+    /**
+     * Registra o aceite de [TERMOS_VERSAO_EXIGIDA] (`aceitar_termos`) e, se der certo, repete a busca com os MESMOS filtros
+     * da que o servidor barrou. Só vale com a busca em [EstadoDaBusca.TermosPendentes]. Falha ou prazo: a mensagem fica no
+     * estado e a busca segue bloqueada; tocar de novo repete o pedido (o servidor é idempotente pela versão).
+     */
+    fun aceitarTermosEBuscar(): Job {
+        val pendente = _estado.value.estado as? EstadoDaBusca.TermosPendentes
+        val filtro = filtroBarradoPorTermos
+        if (pendente == null || pendente.aceitando || filtro == null) return escopoDeTrabalho.launch { }
+        _estado.update { it.copy(estado = EstadoDaBusca.TermosPendentes(aceitando = true)) }
+        return escopoDeTrabalho.launch {
+            val aceito = try {
+                val envio = aceitarTermos ?: error("aceitar_termos não ligado")
+                withTimeout(prazoMs) { envio(TERMOS_VERSAO_EXIGIDA) }
+                true
+            } catch (erro: CancellationException) {
+                if (erro !is TimeoutCancellationException) throw erro
+                false
+            } catch (_: Exception) {
+                false
+            }
+            if (!aceito) {
+                _estado.update { it.copy(estado = EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO)) }
+                return@launch
+            }
+            filtroBarradoPorTermos = null
+            _estado.update { it.copy(estado = EstadoDaBusca.Carregando, erroAoCarregarMais = null) }
+            primeiraPagina(filtro, preservarEnvio = false)
         }
     }
 
@@ -383,6 +429,7 @@ class BuscaDeProfissionaisViewModel(
 
     private fun estadoDoErro(erro: ErroDaApi): EstadoDaBusca = when {
         recursoDesligado(erro) -> EstadoDaBusca.Indisponivel
+        termosPendentes(erro) -> EstadoDaBusca.TermosPendentes()
         erro.codigo == CodigoErroAPI.LIMITE_EXCEDIDO -> EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_LIMITE_DE_BUSCAS)
         else -> EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO)
     }
@@ -553,5 +600,12 @@ class BuscaDeProfissionaisViewModel(
         const val MAXIMO_DE_SELECIONADOS = 3
         const val LIMITE_DA_PAGINA = 20
         const val MAXIMO_DE_RESULTADOS = 200
+
+        /**
+         * A versão dos Termos que a tela exibe e o `aceitar_termos` envia. O contrato (0.2.90) só aceita versão PUBLICADA, no
+         * formato `AAAA-MM-DD`, e diz qual é hoje: `2026-11-13` (os Termos 1.1). Quando o servidor publicar outra, o contrato
+         * a indica e esta constante muda com ele; o app não inventa versão.
+         */
+        const val TERMOS_VERSAO_EXIGIDA = "2026-11-13"
     }
 }

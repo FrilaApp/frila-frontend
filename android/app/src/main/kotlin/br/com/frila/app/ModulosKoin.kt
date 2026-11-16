@@ -327,6 +327,7 @@ val moduloFeatures = module {
             recursoHabilitado = { consultarConfiguracaoDoApp(gestor.clienteAtual).recursos.buscaProfissionais },
             buscarProfissionais = chamadas::buscarProfissionais,
             chamarProfissional = chamadas::chamarProfissional,
+            aceitarTermos = chamadas::aceitarTermos,
             listarFuncoes = get<ServicoVagas>()::listarFuncoes,
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
             buscarCasa = get<ServicoMembros>()::meuEstabelecimento,

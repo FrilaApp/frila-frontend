@@ -1067,3 +1067,19 @@ data class PublicarAPartirDaChamadaDto(
     @SerialName("chave") val chave: String,
     @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("modo") val modo: String? = null,
 )
+
+/**
+ * Corpo de `POST /rest/v1/rpc/aceitar_termos` (contrato 0.2.90): a versão dos Termos que a tela exibiu, no formato
+ * `AAAA-MM-DD`, só uma versão PUBLICADA (hoje `2026-11-13`; o servidor mantém a lista). O instante do aceite é do servidor; o app não manda data.
+ */
+@Serializable
+data class AceitarTermosDto(
+    @SerialName("termos_versao") val termosVersao: String,
+)
+
+/** Resposta de `aceitar_termos`: o aceite em vigor (repetir a mesma versão devolve o que já existe). */
+@Serializable
+data class AceiteDeTermosDto(
+    @SerialName("termos_versao") val termosVersao: String,
+    @SerialName("aceito_em") val aceitoEm: String,
+)

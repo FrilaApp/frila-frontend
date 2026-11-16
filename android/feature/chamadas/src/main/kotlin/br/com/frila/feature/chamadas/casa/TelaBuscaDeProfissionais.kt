@@ -61,6 +61,8 @@ fun TelaBuscaDeProfissionais(
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     modifier: Modifier = Modifier,
     relogio: () -> Instant = Instant::now,
+    /** Abre os Termos de Uso (o link que o app já usa) para quem vai aceitá-los antes de buscar (0.2.90). */
+    aoAbrirTermos: () -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregarCatalogos() }
@@ -81,6 +83,8 @@ fun TelaBuscaDeProfissionais(
         aoConfirmarJ7 = { viewModel.confirmarJ7() },
         modifier = modifier,
         relogio = relogio,
+        aoAbrirTermos = aoAbrirTermos,
+        aoAceitarTermos = { viewModel.aceitarTermosEBuscar() },
     )
 }
 
@@ -108,6 +112,8 @@ fun ConteudoBuscaDeProfissionais(
     aoConfirmarJ7: () -> Unit,
     modifier: Modifier = Modifier,
     relogio: () -> Instant = Instant::now,
+    aoAbrirTermos: () -> Unit = {},
+    aoAceitarTermos: () -> Unit = {},
 ) {
     var folhaAberta by rememberSaveable { mutableStateOf(false) }
     Scaffold(
@@ -147,6 +153,8 @@ fun ConteudoBuscaDeProfissionais(
                 aoAbrirPerfil = aoAbrirPerfil,
                 aoPublicarParaTodos = aoPublicarParaTodos,
                 aoAbrirFolha = { folhaAberta = true },
+                aoAbrirTermos = aoAbrirTermos,
+                aoAceitarTermos = aoAceitarTermos,
                 modifier = Modifier.padding(preenchimento),
             )
         }
@@ -168,6 +176,8 @@ private fun ListaDaBusca(
     aoAbrirPerfil: (String) -> Unit,
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     aoAbrirFolha: () -> Unit,
+    aoAbrirTermos: () -> Unit,
+    aoAceitarTermos: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var usarHorario by rememberSaveable { mutableStateOf(false) }
@@ -343,6 +353,32 @@ private fun ListaDaBusca(
             }
             EstadoDaBusca.Indisponivel -> item {
                 Text(TextosChamadaCasa.BUSCA_INDISPONIVEL, modifier = Modifier.testTag("busca-indisponivel"))
+            }
+            is EstadoDaBusca.TermosPendentes -> item {
+                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício. A busca só volta depois do aceite.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.testTag("busca-termos-pendentes"),
+                ) {
+                    Text(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO)
+                    OutlinedButton(onClick = aoAbrirTermos, modifier = Modifier.testTag("busca-termos-ler")) {
+                        Text(TextosChamadaCasa.BUSCA_TERMOS_LER)
+                    }
+                    situacao.erro?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-termos-erro"))
+                    }
+                    if (situacao.aceitando) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.padding(4.dp))
+                            Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO)
+                        }
+                    }
+                    Button(
+                        onClick = aoAceitarTermos,
+                        enabled = !situacao.aceitando,
+                        modifier = Modifier.fillMaxWidth().testTag("busca-termos-aceitar"),
+                    ) { Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITAR) }
+                }
             }
             is EstadoDaBusca.Erro -> item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

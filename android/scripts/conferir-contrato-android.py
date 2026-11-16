@@ -170,6 +170,7 @@ def main() -> None:
         "ResponderChamadaDto": "/rpc/responder_chamada",
         "CancelarChamadaDto": "/rpc/cancelar_chamada",
         "PublicarAPartirDaChamadaDto": "/rpc/publicar_a_partir_da_chamada",
+        "AceitarTermosDto": "/rpc/aceitar_termos",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
@@ -180,6 +181,7 @@ def main() -> None:
         "AdministracaoTransferidaDto": "/rpc/transferir_administracao",
         "PaginaDeProfissionaisDto": "/rpc/buscar_profissionais",
         "PaginaDeChamadasDto": "/rpc/minhas_chamadas",
+        "AceiteDeTermosDto": "/rpc/aceitar_termos",
     }
 
     # Leituras que o contrato descreve em GET com parâmetros de query, mas que o app envia em POST

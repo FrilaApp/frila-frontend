@@ -88,6 +88,8 @@ class TelaBuscaDeProfissionaisTest {
         var confirmouJ7 = 0
         var reenviou = 0
         var horario: HorarioDaBusca? = null
+        var abriuTermos = 0
+        var aceitou = 0
     }
 
     private val chamadas = Chamadas()
@@ -113,6 +115,8 @@ class TelaBuscaDeProfissionaisTest {
                     aoReenviar = { chamadas.reenviou++ },
                     aoConfirmarJ7 = { chamadas.confirmouJ7++ },
                     relogio = { agora },
+                    aoAbrirTermos = { chamadas.abriuTermos++ },
+                    aoAceitarTermos = { chamadas.aceitou++ },
                 )
             }
         }
@@ -136,6 +140,35 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithTag("busca-regiao").performClick()
         rule.onNodeWithText("Plano Piloto").performClick()
         assertEquals(1, chamadas.regiao)
+    }
+
+    @Test
+    fun termosPendentesMostramOAceiteEBloqueiamABusca() {
+        montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes()))
+
+        rule.onNodeWithTag("busca-termos-pendentes").assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO).assertIsDisplayed()
+        rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
+        rule.onAllNodesWithTag("busca-termos-erro").assertCountEquals(0)
+
+        rule.onNodeWithTag("busca-termos-ler").performClick()
+        rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled().performClick()
+        assertEquals(1, chamadas.abriuTermos)
+        assertEquals(1, chamadas.aceitou)
+    }
+
+    @Test
+    fun aceitandoDesligaOBotaoEErroDoAceiteAparece() {
+        montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes(aceitando = true)))
+        rule.onNodeWithTag("busca-termos-aceitar").assertIsNotEnabled()
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO).assertIsDisplayed()
+
+        estado = estado.copy(estado = EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO))
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("busca-termos-erro").assertIsDisplayed()
+        rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled()
+        rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
     }
 
     @Test

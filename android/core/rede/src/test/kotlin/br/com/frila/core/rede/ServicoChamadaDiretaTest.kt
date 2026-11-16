@@ -310,6 +310,48 @@ class ServicoChamadaDiretaTest {
     }
 
     @Test
+    fun `buscarProfissionais sem os Termos aceitos propaga 403 sem_permissao com details termos_pendentes`() = runTest {
+        val servico = servico(
+            Visto(),
+            """{"code":"sem_permissao","message":"termos","details":"termos_pendentes"}""",
+            HttpStatusCode.Forbidden,
+        )
+
+        val erro = erroDe { servico.buscarProfissionais(BuscarProfissionaisDto(estabelecimentoId = casa, funcaoId = funcao)) }
+
+        assertEquals(CodigoErroAPI.SEM_PERMISSAO, erro.codigo)
+        assertEquals("termos_pendentes", erro.detalhes)
+    }
+
+    @Test
+    fun `aceitarTermos manda POST rpc aceitar_termos so com a versao e decodifica o aceite`() = runTest {
+        val visto = Visto()
+        val aceite = servico(visto, """{"termos_versao":"2026-11-13","aceito_em":"2026-11-16T20:00:00Z"}""")
+            .aceitarTermos("2026-11-13")
+
+        assertEquals(HttpMethod.Post, visto.metodo)
+        assertEquals("/rest/v1/rpc/aceitar_termos", visto.caminho)
+        assertEquals(setOf("termos_versao"), visto.corpo!!.keys)
+        assertEquals("2026-11-13", visto.corpo!!["termos_versao"]!!.jsonPrimitive.content)
+        assertEquals("2026-11-13", aceite.termosVersao)
+        assertEquals("2026-11-16T20:00:00Z", aceite.aceitoEm)
+    }
+
+    @Test
+    fun `aceitarTermos com versao fora da lista publicada ou anterior a ja aceita propaga 422 campo_invalido`() = runTest {
+        val servico = servico(
+            Visto(),
+            """{"code":"campo_invalido","message":"versao antiga","details":"termos_versao"}""",
+            HttpStatusCode.UnprocessableEntity,
+        )
+
+        val erro = erroDe { servico.aceitarTermos("2026-01-01") }
+
+        assertEquals(CodigoErroAPI.CAMPO_INVALIDO, erro.codigo)
+        assertEquals("termos_versao", erro.detalhes)
+    }
+
+    @Test
     fun `chamarProfissional novo trabalho manda os campos da vaga com regiao_id da busca e decodifica a Chamada`() = runTest {
         val visto = Visto()
         val chamada = servico(visto, chamadaJson).chamarProfissional(
