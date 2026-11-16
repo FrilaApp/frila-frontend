@@ -21,6 +21,7 @@ final class Roteiro: @unchecked Sendable {
     private var _otp: Resposta = .http(200, "{}")
     private var _tabela: Resposta = .http(200, "[]")
     private var _logouts = 0
+    private var _autorizacoesDasRPCs: [String] = []
     private var _segurarRPC = false
     private var retidas: [URLProtocol] = []
     private let chegadas: AsyncStream<Void>
@@ -63,6 +64,10 @@ final class Roteiro: @unchecked Sendable {
     }
     var logouts: Int { trava.withLock { _logouts } }
     func contarLogout() { trava.withLock { _logouts += 1 } }
+
+    /// O cabeçalho `Authorization` de cada RPC que chegou ao stub, na ordem (vazio se não havia).
+    var autorizacoesDasRPCs: [String] { trava.withLock { _autorizacoesDasRPCs } }
+    func registrarAutorizacaoDaRPC(_ valor: String?) { trava.withLock { _autorizacoesDasRPCs.append(valor ?? "") } }
 
     /// A partir daqui, cada RPC fica parada no stub até `liberar`.
     func segurarRPCs() { trava.withLock { _segurarRPC = true } }
@@ -129,6 +134,7 @@ private final class StubDeAuth: URLProtocol {
             roteiro.contarLogout()
             Self.responder(self, com: roteiro.logout)
         case let caminho where caminho.hasPrefix("/rest/v1/rpc/"):
+            roteiro.registrarAutorizacaoDaRPC(request.value(forHTTPHeaderField: "Authorization"))
             if !roteiro.reter(self) { Self.responder(self, com: roteiro.rpc) }
         case let caminho where caminho.hasPrefix("/functions/v1/"):
             Self.responder(self, com: roteiro.funcao)
@@ -515,6 +521,49 @@ struct ErrosDaEntradaTests {
         #expect(erro?.codigo == .naoAutenticado)
         #expect(!cliente.haSessaoGuardada)
         #expect(roteiro.logouts == 1)
+    }
+
+    // F-035.11 item 2 (achado do #789 no Android: depois de Sair, a próxima conta usava o token da
+    // anterior). No iOS quem anexa o token é o SDK, a partir da sessão guardada: o teste prova que a
+    // sessão de A some na saída e que a primeira RPC de B leva só o token de B.
+    @Test("Sair da conta A e entrar com a B: a RPC de B leva só o token de B")
+    func saidaDeAEntradaDeBUsaSoOTokenDeB() async throws {
+        let roteiro = Roteiro()
+        let cliente = try clienteDeTeste(roteiro)
+
+        roteiro.tokenDoVerify = "token-a"
+        try await cliente.verificarCodigo(email: "a@example.com", codigo: "111111")
+        _ = try? await cliente.minhaConta()
+        #expect(roteiro.autorizacoesDasRPCs.last == "Bearer token-a")
+
+        await cliente.sair(tokenFCM: nil)
+        #expect(!cliente.haSessaoGuardada)
+
+        roteiro.tokenDoVerify = "token-b"
+        try await cliente.verificarCodigo(email: "b@example.com", codigo: "222222")
+        _ = try? await cliente.minhaConta()
+
+        let autorizacoes = roteiro.autorizacoesDasRPCs
+        try #require(autorizacoes.count == 2)
+        #expect(autorizacoes[1] == "Bearer token-b")
+        #expect(!autorizacoes[1].contains("token-a"))
+    }
+
+    @Test("Depois de Sair, uma chamada antes da próxima entrada não leva o token de quem saiu",
+          arguments: [Roteiro.Resposta.http(204, ""), .http(500, "{}"), .semRede])
+    func chamadaSemSessaoNaoLevaOTokenAnterior(logout: Roteiro.Resposta) async throws {
+        let roteiro = Roteiro()
+        roteiro.logout = logout
+        let cliente = try clienteDeTeste(roteiro)
+        try await cliente.verificarCodigo(email: "a@example.com", codigo: "111111")
+
+        await cliente.sair(tokenFCM: nil)
+        _ = try? await cliente.minhaConta()
+
+        // Falha do /logout no servidor não mantém a sessão local: a RPC sai só com a chave pública.
+        #expect(!cliente.haSessaoGuardada)
+        #expect(roteiro.autorizacoesDasRPCs.count == 1)
+        #expect(roteiro.autorizacoesDasRPCs.first?.contains("token-a") == false)
     }
 
     @Test("Erro do Keychain (errSecInteractionNotAllowed, errSecAuthFailed) NÃO é considerado sessão inválida e não encerra sessão")
