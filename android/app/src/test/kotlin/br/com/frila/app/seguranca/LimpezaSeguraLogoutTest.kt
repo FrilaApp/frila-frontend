@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import java.net.UnknownHostException
 import kotlinx.coroutines.launch
@@ -353,5 +354,36 @@ class LimpezaSeguraLogoutTest {
 
         assertNull(armazenamento.obterSessao())
         assertTrue(resultado.sessaoVazia)
+    }
+
+    @Test
+    fun `provedor com token em branco nao chama remover_dispositivo mas limpa a sessao`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro, provedorDeToken = { "   " }).deslogarRemovendoDispositivo()
+
+        assertTrue(registro.rotas.isEmpty())
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `cancelar o chamador no meio de remover_dispositivo ainda limpa a sessao local`() = runBlocking {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+        val requisicaoEmVoo = CompletableDeferred<Unit>()
+        val coordenador = coordenadorComRemocao(registro, tempoMaximoRemocaoMs = 300L) {
+            requisicaoEmVoo.complete(Unit)
+            delay(60_000)
+            respond("{}", HttpStatusCode.OK)
+        }
+
+        val chamador = launch(Dispatchers.Default) { coordenador.deslogarRemovendoDispositivo() }
+        requisicaoEmVoo.await()
+        chamador.cancel()
+        chamador.join()
+
+        assertEquals(1, registro.rotas.size)
+        assertNull("sessão local precisa ser limpa mesmo com o chamador cancelado", armazenamento.obterSessao())
     }
 }

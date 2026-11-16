@@ -1,6 +1,8 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.core.seguranca.Sessao
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -156,5 +158,32 @@ class ServicoDispositivoTest {
         }
 
         assertEquals(CodigoErroAPI.NAO_AUTENTICADO, erro.codigo)
+    }
+
+    @Test
+    fun `removerDispositivo envia Authorization Bearer da sessao e apikey`() = runTest {
+        var cabecalhos: Map<String, List<String>>? = null
+        val engine = MockEngine { request ->
+            cabecalhos = request.headers.entries().associate { it.key.lowercase() to it.value }
+            respond(
+                content = """{"removido":true}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao(accessToken = "jwt-sintetico-123", refreshToken = "refresh-sintetico", tokenType = "bearer", expiresIn = 3_600L))
+        }
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            armazenamentoDeSessao = armazenamento,
+            engine = engine,
+        )
+
+        ServicoDispositivo(cliente).removerDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
+
+        assertEquals(listOf("Bearer jwt-sintetico-123"), cabecalhos!!["authorization"])
+        assertEquals(listOf("chave-teste"), cabecalhos!!["apikey"])
     }
 }
