@@ -720,6 +720,43 @@ class BuscaDeProfissionaisViewModelTest {
     }
 
     @Test
+    fun `p-1 de J7 que virou nao enviado volta pelo vaga_id quando a vaga ja existe, nunca com o trabalho`() = runBlocking {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 3))) }
+        var atrasar = true
+        rede.rota("chamar_profissional") { pedido ->
+            val id = pedido.corpo["profissional_id"]!!.jsonPrimitive.content
+            when {
+                id == "p-1" && "confirmo_recorrencia" !in pedido.corpo ->
+                    respond("""{"code":"recorrencia_nao_confirmada","message":"x"}""", HttpStatusCode.Conflict, json)
+                id == "p-2" && atrasar -> { kotlinx.coroutines.delay(5_000); respond(chamadaJson, HttpStatusCode.OK, json) }
+                "vaga_id" in pedido.corpo -> respond(chamadaJson.replace("\"v1\"", "\"${pedido.corpo["vaga_id"]!!.jsonPrimitive.content}\""), HttpStatusCode.OK, json)
+                else -> respond(chamadaJson.replace("\"v1\"", "\"vaga-p2\""), HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join() // p-1 J7, p-2 incerto, p-3 nem saiu
+        vm.chamar(trabalho).join() // o reenvio do p-2 estoura de novo: o laço para antes do p-1, que vira NaoEnviada
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, vm.estado.value.resultadosDaChamada["p-1"])
+        assertEquals(listOf("p-1", "p-2", "p-2"), rede.doNome("chamar_profissional").map { it.corpo["profissional_id"]!!.jsonPrimitive.content })
+
+        atrasar = false
+        vm.chamar(trabalho).join() // agora a vaga do p-2 existe
+
+        val depois = rede.doNome("chamar_profissional").drop(3).map { it.corpo }
+        assertEquals(listOf("p-2", "p-1", "p-3"), depois.map { it["profissional_id"]!!.jsonPrimitive.content })
+        val p1 = depois[1]
+        assertEquals("vaga-p2", p1["vaga_id"]!!.jsonPrimitive.content)
+        assertFalse("valor_centavos" in p1 || "funcao_id" in p1)
+        assertEquals("chave-1", p1["chave"]!!.jsonPrimitive.content)
+        // Em todo o fluxo só o p-1 inicial e o p-2 (duas vezes, mesma chave) levaram o trabalho.
+        val comTrabalho = rede.doNome("chamar_profissional").map { it.corpo }.filter { "valor_centavos" in it }
+        assertEquals(listOf("p-1", "p-2", "p-2", "p-2"), comTrabalho.map { it["profissional_id"]!!.jsonPrimitive.content })
+    }
+
+    @Test
     fun `chamar sem selecao, ou sem resultados, nao faz nada`() = runBlocking {
         val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(emptyList())) }
         val vm = viewModelCom(rede).comFiltros()

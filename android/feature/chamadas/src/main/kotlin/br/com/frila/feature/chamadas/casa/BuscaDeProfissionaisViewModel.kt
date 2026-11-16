@@ -398,10 +398,12 @@ class BuscaDeProfissionaisViewModel(
                 val guardado = tentativas[id]
                 val original = when {
                     guardado == null -> pedidoDe(id, trabalho, recado, regiaoId, vagaId)
-                    // Quem recebeu J7 levando o trabalho completo (a recusa J7 não cria chamada), agora que a vaga existe:
-                    // mesma chave, só o vaga_id, com ou sem a confirmação. Nunca um 2º trabalho completo.
+                    // Quem tem pedido guardado COM o trabalho (J7, ou J7 que virou NaoEnviada) e NÃO ficou incerto, agora que a
+                    // vaga existe: mesma chave, só o vaga_id, com ou sem a confirmação. Quem já tem vaga sempre vai pelo
+                    // vaga_id: nunca um 2º trabalho completo. O incerto que levou o trabalho repete o pedido como está (o
+                    // servidor devolve a chamada já criada pela chave).
                     guardado.vagaId == null && vagaId != null &&
-                        tela.resultadosDaChamada[id] == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia ->
+                        (tela.resultadosDaChamada[id] as? ResultadoDaChamadaDaBusca.Erro)?.incerto != true ->
                         pedidoDe(id, trabalho, recado, regiaoId, vagaId, chave = guardado.chave)
                     else -> guardado
                 }
