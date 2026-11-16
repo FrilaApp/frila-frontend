@@ -15,6 +15,7 @@ import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.RefreshTokensParams
 import io.ktor.client.plugins.auth.providers.bearer
@@ -22,6 +23,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.plugin
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -84,6 +86,15 @@ class ClienteSupabase(
     private val bloqueioSemCredenciais = Any()
     private var _httpSemCredenciais: HttpClient? = null
 
+    /**
+     * #789: o token que o plugin `Auth` guarda em memória (o último de `loadTokens` ou `refreshTokens`).
+     * Antes de cada pedido ele é comparado com a sessão guardada; se divergirem (sessão limpa, outra conta
+     * entrou), o Auth esquece o dele e relê a sessão. Sem isto, a conta que entrava depois de um "Sair" no
+     * mesmo processo mandava o token da anterior.
+     */
+    @Volatile
+    private var tokenEmMemoriaNoAuth: String? = null
+
     override fun close() {
         if (_fechado.compareAndSet(false, true)) {
             http.close()
@@ -118,14 +129,28 @@ class ClienteSupabase(
             },
         )
         if (comCredenciais) {
+            // Instalado antes do Auth: roda antes de ele pôr o `Authorization` do token em memória.
+            install(
+                createClientPlugin("TokenDaSessaoVigente") {
+                    val clienteHttp = client
+                    onRequest { _, _ ->
+                        if (tokenDeAcessoAtual() != tokenEmMemoriaNoAuth) {
+                            clienteHttp.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>().forEach { it.clearToken() }
+                            tokenEmMemoriaNoAuth = null
+                        }
+                    }
+                },
+            )
             install(Auth) {
                 bearer {
                     loadTokens {
-                        armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
-                            ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
+                        (
+                            armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
+                                ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
+                            ).also { tokenEmMemoriaNoAuth = it?.accessToken }
                     }
                     refreshTokens {
-                        renovarTokens(this)
+                        renovarTokens(this).also { tokenEmMemoriaNoAuth = it?.accessToken }
                     }
                 }
             }

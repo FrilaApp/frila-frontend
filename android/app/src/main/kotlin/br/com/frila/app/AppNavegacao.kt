@@ -27,6 +27,7 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -193,7 +194,13 @@ fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String = when {
 
 @Composable
 fun AppNavegacao(
-    armazenamentoDeSessao: ArmazenamentoDeSessao = koinInject(),
+    /**
+     * #789: o padrão é o [CoordenadorDeLogout], porque as saídas desta navegação (conta suspensa, "outra conta"
+     * no desbloqueio) chamam `limparSessao()` aqui, e só o coordenador fecha o cliente Ktor da conta que saiu.
+     * Grafo sem o coordenador (testes com Koin mínimo) usa o armazenamento; o de produção sempre o tem
+     * (`KoinGrafoTest`), e o token em memória já não passa de uma conta a outra pelo próprio `ClienteSupabase`.
+     */
+    armazenamentoDeSessao: ArmazenamentoDeSessao = getKoin().getOrNull<CoordenadorDeLogout>() ?: koinInject(),
     monitorDeConectividade: MonitorDeConectividade = koinInject(),
     navController: NavHostController = rememberNavController(),
     aoPronto: (() -> Unit)? = null,
@@ -537,6 +544,7 @@ fun AppNavegacao(
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    armazenamentoDeSessao = armazenamentoDeSessao,
                 )
             }
 
