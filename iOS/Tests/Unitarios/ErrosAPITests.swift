@@ -88,4 +88,14 @@ struct ErrosAPITests {
         #expect(erro.codigo == .respostaInvalida)
         #expect(erro.codigoOriginal == "http_400")
     }
+
+    @Test("429 sem envelope do contrato vira limiteExcedido com a etiqueta http_429; com envelope, mantém o código")
+    func limiteSemEnvelope() {
+        let semEnvelope = DecodificadorErroAPI.mapear(statusCode: 429, dados: Data("Too Many Requests".utf8))
+        #expect(semEnvelope.codigo == .limiteExcedido)
+        #expect(semEnvelope.codigoOriginal == "http_429")
+        let comEnvelope = DecodificadorErroAPI.mapear(statusCode: 429, dados: Data(#"{"code":"limite_excedido","message":"x","details":null,"hint":null}"#.utf8))
+        #expect(comEnvelope.codigo == .limiteExcedido)
+        #expect(comEnvelope.codigoOriginal == "limite_excedido")
+    }
 }
