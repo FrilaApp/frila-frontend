@@ -306,9 +306,14 @@ public struct TelaMinhasVagas: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let publicarVaga: (() -> Void)?
+    /// Abre a publicação já preenchida com a busca vazia ("Publicar para todos"). Sem ele, a entrada da busca não aparece.
+    private let publicarParaTodosDaBusca: ((RascunhoDeVagaDaBusca) -> Void)?
     private let sair: (() -> Void)?
     private let abrirPerfil: (() -> Void)?
     private let formatador = FormatadorFrila()
+    /// A chave `busca_profissionais` do servidor (desligada no Prod).
+    @State private var buscaHabilitada = false
+    @State private var mostrandoBusca = false
 
     /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
     /// `publicarVaga` abre a publicação de uma vaga nova; sem ele, a entrada não aparece.
@@ -318,6 +323,7 @@ public struct TelaMinhasVagas: View {
         fila: (any FilaDeAcoes)? = nil,
         roteador: RoteadorDoContratante? = nil,
         publicarVaga: (() -> Void)? = nil,
+        publicarParaTodosDaBusca: ((RascunhoDeVagaDaBusca) -> Void)? = nil,
         sair: (() -> Void)? = nil,
         abrirPerfil: (() -> Void)? = nil
     ) {
@@ -329,6 +335,7 @@ public struct TelaMinhasVagas: View {
         self.api = api
         self.fila = fila
         self.publicarVaga = publicarVaga
+        self.publicarParaTodosDaBusca = publicarParaTodosDaBusca
         self.sair = sair
         self.abrirPerfil = abrirPerfil
     }
@@ -336,6 +343,23 @@ public struct TelaMinhasVagas: View {
     public var body: some View {
         conteudoDaTela
             .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+            .sheet(isPresented: $mostrandoBusca) {
+                if let publicarParaTodosDaBusca {
+                    NavigationStack {
+                        TelaBuscaDeProfissionais(api: api, estabelecimentoID: viewModel.estabelecimentoID) { rascunho in
+                            mostrandoBusca = false
+                            publicarParaTodosDaBusca(rascunho)
+                        }
+                    }
+                    .environment(bloqueios)
+                }
+            }
+            .task {
+                guard publicarParaTodosDaBusca != nil else { return }
+                buscaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
+                    try await api.configuracaoDoApp()
+                })?.recursos.buscaProfissionais == true
+            }
     }
 
     @ViewBuilder
@@ -356,6 +380,15 @@ public struct TelaMinhasVagas: View {
                     }
 
                     AvisoDePermissaoDePush(perfil: .contratante)
+
+                    // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+                    if buscaHabilitada {
+                        Button { mostrandoBusca = true } label: {
+                            Label(TextosBuscaDeProfissionais.titulo, systemImage: "magnifyingglass")
+                                .frame(minHeight: 44)
+                        }
+                        .accessibilityIdentifier("encontrar-profissional")
+                    }
 
                     if viewModel.vagas.isEmpty {
                         if viewModel.erro != nil || executandoTentativa {
