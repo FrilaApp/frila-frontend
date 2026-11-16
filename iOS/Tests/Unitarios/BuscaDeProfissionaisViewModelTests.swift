@@ -92,6 +92,19 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     static let funcaoID = UUID(uuidString: "F0000000-0000-0000-0000-000000000001")!
 }
 
+/// Uma fonte que responde, mas depois de muito tempo (o teste injeta um prazo bem menor).
+private struct FonteDaBuscaLenta: FonteDaBuscaDeProfissionais {
+    func configuracaoDoApp() async throws -> ConfiguracaoApp {
+        ConfiguracaoApp(versaoMinima: "1.0", versaoRecomendada: "1.0", mensagem: nil, urlDaLoja: URL(string: "https://example.com")!,
+                        recursos: RecursosDoApp(chamadaDireta: true, buscaProfissionais: true))
+    }
+    func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais {
+        try await Task.sleep(for: .seconds(30))
+        return PaginaBuscaProfissionais(itens: [])
+    }
+    func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada { throw ErroDaApi(codigo: .semRede) }
+}
+
 @Suite("Busca de profissionais: view model")
 @MainActor
 struct BuscaDeProfissionaisViewModelTests {
@@ -288,6 +301,66 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(await fonte.cursoresRecebidos == [nil, "20", nil])
         #expect(vm.resultados.count == 20)
         #expect(vm.estado == .resultados)
+    }
+
+    // MARK: Ajustes do Lince O (F-035.4)
+
+    @Test("sem_permissao e conta_suspensa têm mensagem própria, não a de conexão")
+    func permissaoESuspensao() async {
+        let casos: [(ErroDaApi, String)] = [
+            (ErroDaApi(codigo: .semPermissao), TextosBuscaDeProfissionais.semPermissao),
+            (ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"), TextosBuscaDeProfissionais.contaSuspensa),
+            (ErroDaApi(codigo: .contaSuspensa), TextosBuscaDeProfissionais.contaSuspensa),
+        ]
+        for (erro, texto) in casos {
+            let (fonte, vm) = preparar(total: 5)
+            await fonte.ajustar(erroNaBusca: erro)
+            await vm.buscar()
+            #expect(vm.estado == .erro(texto))
+            #expect(texto != TextosBuscaDeProfissionais.erro)
+        }
+    }
+
+    @Test("cursor_invalido refaz a 1ª página sem apagar as chamadas enviadas, o J7 pendente nem os filtros em edição")
+    func cursorInvalidoPreservaOEstado() async throws {
+        let (fonte, vm) = preparar(total: 45)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        await fonte.ajustar(recorrenciaPendente: [ids[1]])
+        vm.alternarSelecao(ids[0])
+        vm.alternarSelecao(ids[1])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(vm.resultadosDaChamada.count == 2)
+        #expect(vm.resultadosDaChamada[ids[1]] == .pedeConfirmacaoDeRecorrencia)
+        let pedidosAntes = await fonte.pedidos.count
+        // A pessoa mexe nos filtros depois de buscar; o servidor recusa o cursor.
+        vm.regiaoID = 99
+        await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido))
+        await vm.carregarMais()
+        let filtros = await fonte.filtrosRecebidos
+        #expect(await fonte.cursoresRecebidos == [nil, "20", nil])
+        #expect(filtros[2] == filtros[0], "a 1ª página volta com o filtro da busca, não com o que a tela editava")
+        #expect(vm.regiaoID == 99, "o filtro em edição continua como estava")
+        #expect(vm.resultadosDaChamada.count == 2)
+        #expect(vm.resultadosDaChamada[ids[1]] == .pedeConfirmacaoDeRecorrencia)
+        #expect(vm.selecionados == [ids[0], ids[1]])
+        #expect(vm.estado == .resultados)
+        #expect(await fonte.pedidos.count == pedidosAntes, "refazer a lista não chama ninguém de novo")
+        #expect(Set(vm.resultados.map(\.id)).count == vm.resultados.count)
+        // O J7 pendente ainda se confirma com a mesma chave.
+        await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
+        #expect(vm.resultadosDaChamada[ids[1]] != .pedeConfirmacaoDeRecorrencia)
+    }
+
+    @Test("Fonte que demora mais que o prazo injetável leva ao estado de erro")
+    func prazoVencido() async {
+        let fonte = FonteDaBuscaLenta()
+        let vm = BuscaDeProfissionaisViewModel(fonte: fonte, estabelecimentoID: casaID, prazo: .milliseconds(50))
+        vm.funcaoID = funcaoID
+        await vm.buscar()
+        #expect(vm.estado == .erro(TextosBuscaDeProfissionais.erro))
+        #expect(vm.resultados.isEmpty)
+        #expect(vm.podeBuscar, "o prazo vencido deixa buscar de novo")
     }
 
     // MARK: Seleção e chamada
