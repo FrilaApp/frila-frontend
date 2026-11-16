@@ -2,6 +2,7 @@ package br.com.frila.feature.vagas.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
@@ -128,7 +129,7 @@ class FeedVagasViewModel(
             aplicarFiltros()
             if (resultado.emCache) validadeDoCache = escopoDeTrabalho.launch {
                 while (vagasCarregadas.isNotEmpty()) {
-                    val proximoFim = vagasCarregadas.minOf { Instant.parse(it.fimEm) }
+                    val proximoFim = vagasCarregadas.minOf { instanteDoServidor(it.fimEm) }
                     delay(Duration.between(agora(), proximoFim).toMillis().coerceAtLeast(1))
                     repositorioVagas?.usarSeValido { aplicarFiltros() }
                 }
@@ -322,8 +323,8 @@ private fun comparadorPara(opcao: OpcaoOrdenacaoVagas): Comparator<VagaAbertaDto
  * O valor anunciado é integral sem comissões da plataforma (RN01).
  */
 fun VagaAbertaDto.calcularValorHoraReais(): Double {
-    val inicio = runCatching { Instant.parse(inicioEm) }.getOrNull()
-    val fim = runCatching { Instant.parse(fimEm) }.getOrNull()
+    val inicio = runCatching { instanteDoServidor(inicioEm) }.getOrNull()
+    val fim = runCatching { instanteDoServidor(fimEm) }.getOrNull()
     val duracaoHoras = if (inicio != null && fim != null) {
         val minutos = Duration.between(inicio, fim).toMinutes()
         if (minutos > 0) minutos / 60.0 else 1.0
@@ -337,7 +338,7 @@ fun VagaAbertaDto.calcularValorHoraReais(): Double {
 private fun FiltroPeriodo.aceita(inicioEm: String): Boolean {
     if (this == FiltroPeriodo.QUALQUER) return true
 
-    val horario = Instant.parse(inicioEm).atZone(FUSO_BRASILIA).toLocalTime()
+    val horario = instanteDoServidor(inicioEm).atZone(FUSO_BRASILIA).toLocalTime()
     return when (this) {
         FiltroPeriodo.QUALQUER -> true
         FiltroPeriodo.MANHA -> horario >= INICIO_MANHA && horario < INICIO_TARDE

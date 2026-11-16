@@ -3,6 +3,7 @@ package br.com.frila.feature.turnos.contratante
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.PosicaoNoPainelDto
@@ -166,4 +167,4 @@ class AcompanhamentoContratanteViewModel(
     }
 }
 
-private fun lerInstante(texto: String): Instant? = runCatching { Instant.parse(texto) }.getOrNull()
+private fun lerInstante(texto: String): Instant? = runCatching { instanteDoServidor(texto) }.getOrNull()

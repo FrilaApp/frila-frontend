@@ -2,6 +2,7 @@ package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -20,7 +21,7 @@ data class ResultadoVagas(val vagas: List<VagaAbertaDto>, val emCache: Boolean)
 
 /** O snapshot não confirma cancelamentos remotos; só rede pode confirmar disponibilidade. */
 fun VagaAbertaDto.aindaDisponivelEm(instante: Instant): Boolean =
-    posicoesAbertas > 0 && runCatching { Instant.parse(fimEm).isAfter(instante) }.getOrDefault(false)
+    posicoesAbertas > 0 && runCatching { instanteDoServidor(fimEm).isAfter(instante) }.getOrDefault(false)
 
 /** Fallback só para SEM_REDE; invalidação é definitiva e não espera uma chamada de rede. */
 class RepositorioVagas(

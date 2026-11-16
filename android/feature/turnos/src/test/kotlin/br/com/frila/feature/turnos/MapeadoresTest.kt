@@ -186,4 +186,26 @@ class MapeadoresTest {
             mapearTipoVerificacaoCheckin("desconhecido_xyz"),
         )
     }
+
+    /**
+     * O servidor devolve os instantes com `+00:00` (Postgres). No Android 9 a 11 `Instant.parse` não lê
+     * esse formato e derrubava Meus turnos; a leitura passa por `instanteDoServidor`. No Java 17 dos
+     * testes os dois leem: a prova do defeito é em aparelho API 28 a 30.
+     */
+    @Test
+    fun `turno com datas em mais zero zero do servidor mapeia inicio fim e horario de Brasilia`() {
+        val base = criarTurnoDto()
+        val dto = base.copy(
+            vaga = base.vaga.copy(
+                inicioEm = "2026-11-01T21:00:00+00:00",
+                fimEm = "2026-11-02T03:00:00+00:00",
+            ),
+        )
+
+        val item = dto.paraItem()
+
+        assertEquals(java.time.Instant.parse("2026-11-01T21:00:00Z"), item.inicio)
+        assertEquals(java.time.Instant.parse("2026-11-02T03:00:00Z"), item.fim)
+        assertEquals("01/11 18:00", item.dataHorarioFormatado)
+    }
 }
