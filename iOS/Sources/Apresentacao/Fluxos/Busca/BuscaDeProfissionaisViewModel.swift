@@ -79,6 +79,9 @@ public final class BuscaDeProfissionaisViewModel {
     private var filtroDaBusca: FiltroBuscaProfissionais?
     private var recursoConfirmado = false
     private var tentativas: [UUID: PedidoChamada] = [:]
+    /// A vaga direta que a 1ª chamada que deu certo criou, com o trabalho dela (sem a chave). As chamadas
+    /// seguintes para o mesmo trabalho entram nela pelo `vaga_id`, em vez de criar outra vaga.
+    private var vagaDoTrabalho: (id: UUID, trabalho: PublicacaoVaga)?
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
 
@@ -227,8 +230,10 @@ public final class BuscaDeProfissionaisViewModel {
 
     public var podeChamar: Bool { !selecionados.isEmpty && !enviando && estado == .resultados }
 
-    /// Cria a chamada para cada selecionado pela `chamarProfissional`, uma de cada vez. Cada profissional leva
-    /// a sua chave e, se pedir J7, o reenvio usa o mesmo trabalho e a mesma chave. A região da busca vai junto.
+    /// Cria a chamada para cada selecionado pela `chamarProfissional`, uma de cada vez. A 1ª que der certo leva o
+    /// trabalho (com a região da busca) e o servidor cria a vaga direta; as seguintes levam o `vaga_id` dela, para
+    /// as até 3 chamadas serem do mesmo trabalho (contrato 0.2.55). Se a 1ª falhar (erro ou J7), a próxima vira a 1ª.
+    /// Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave.
     public func chamar(trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
                        chave: () -> UUID = UUID.init) async {
         guard podeChamar else { return }
@@ -242,14 +247,16 @@ public final class BuscaDeProfissionaisViewModel {
         enviando = true
         defer { enviando = false }
         for id in alvos {
-            let original = tentativas[id] ?? Self.pedido(para: id, trabalho: trabalho, chave: chave(),
-                                                         recado: recado, regiaoID: filtroDaBusca?.regiaoID)
-            let pedido = Self.pedido(original, confirmando: confirmoRecorrencia || original.confirmoRecorrencia)
+            let pedido = pedidoDaVez(para: id, trabalho: trabalho, recado: recado, chave: chave,
+                                     confirmando: confirmoRecorrencia)
             tentativas[id] = pedido
             do {
                 let fonte = fonte
                 let chamada = try await PrazoDaAbertura.esperar(.seconds(15)) { try await fonte.chamarProfissional(pedido) }
                 resultadosDaChamada[id] = .enviada(chamada)
+                if vagaDoTrabalho == nil, let enviado = pedido.trabalho {
+                    vagaDoTrabalho = (chamada.vagaID, enviado.comChave(Self.semChave))
+                }
             } catch let recusa as ErroDaApi where recusa.codigo == .recorrenciaNaoConfirmada {
                 resultadosDaChamada[id] = .pedeConfirmacaoDeRecorrencia
             } catch {
@@ -259,17 +266,39 @@ public final class BuscaDeProfissionaisViewModel {
         mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
     }
 
-    // Os dois lugares que montam `PedidoChamada`: leva o `regiao_id` do filtro da busca, quando houver.
-    private static func pedido(para profissionalID: UUID, trabalho: PublicacaoVaga, chave: UUID,
-                               recado: String?, regiaoID: Int?) -> PedidoChamada {
-        PedidoChamada(profissionalID: profissionalID, trabalho: trabalho.comChave(chave),
-                      recado: recado?.isEmpty == true ? nil : recado, regiaoID: regiaoID)
+    /// O pedido de um selecionado nesta rodada. Quem ainda não tentou leva o `vaga_id` da vaga do trabalho, se
+    /// ela já existe, ou o trabalho com uma chave nova. Quem tentou repete a chave; se foi pelo trabalho e a vaga
+    /// passou a existir, vai pelo `vaga_id` dela: o servidor só guarda a chave quando cria a chamada e, se o
+    /// envio anterior criou (resposta perdida), a mesma chave devolve aquela chamada em vez de abrir outra.
+    private func pedidoDaVez(para id: UUID, trabalho: PublicacaoVaga, recado: String?, chave: () -> UUID,
+                             confirmando: Bool) -> PedidoChamada {
+        let base: PedidoChamada
+        if let anterior = tentativas[id] {
+            if let antigo = anterior.trabalho, let vagaID = vagaReutilizavel(para: antigo) {
+                base = PedidoChamada(profissionalID: id, vagaID: vagaID, estabelecimentoID: antigo.estabelecimentoID,
+                                     chave: anterior.chave, recado: anterior.recado)
+            } else {
+                base = anterior
+            }
+        } else if let vagaID = vagaReutilizavel(para: trabalho) {
+            base = PedidoChamada(profissionalID: id, vagaID: vagaID, estabelecimentoID: trabalho.estabelecimentoID,
+                                 chave: chave(), recado: Self.recadoEnviado(recado))
+        } else {
+            base = PedidoChamada(profissionalID: id, trabalho: trabalho.comChave(chave()), recado: Self.recadoEnviado(recado),
+                                 regiaoID: filtroDaBusca?.regiaoID)
+        }
+        return base.confirmando(confirmando || base.confirmoRecorrencia)
     }
 
-    private static func pedido(_ pedido: PedidoChamada, confirmando: Bool) -> PedidoChamada {
-        PedidoChamada(profissionalID: pedido.profissionalID, trabalho: pedido.trabalho,
-                      recado: pedido.recado, confirmoRecorrencia: confirmando, regiaoID: pedido.regiaoID)
+    /// A vaga direta do trabalho, se é o mesmo trabalho (sem contar a chave) que a criou.
+    private func vagaReutilizavel(para trabalho: PublicacaoVaga) -> UUID? {
+        guard let vagaDoTrabalho, vagaDoTrabalho.trabalho == trabalho.comChave(Self.semChave) else { return nil }
+        return vagaDoTrabalho.id
     }
+
+    private static let semChave = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+    private static func recadoEnviado(_ recado: String?) -> String? { recado?.isEmpty == true ? nil : recado }
 
     private static func mensagemDaChamada(_ erro: Error) -> String {
         switch (erro as? ErroDaApi)?.codigo {

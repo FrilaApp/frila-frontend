@@ -290,6 +290,45 @@ struct BuscaDeProfissionaisDubleTests {
         #expect(try await api.chamarProfissional(pedido(para: IDs.disponivel, inicio: inicio, regiaoID: nil)).estado == .aberta)
     }
 
+    @Test("Pelo vaga_id, a 2ª e a 3ª chamada entram na vaga da 1ª; a 4ª aberta na vaga é limite_de_chamadas por_vaga")
+    func chamarPeloVagaID() async throws {
+        let api = api()
+        let outros = try await todas(api, filtro(regiao: 1)).map(\.id).filter { $0 != IDs.disponivel }
+        #expect(outros.count >= 3)
+        let primeira = try await api.chamarProfissional(pedido(para: IDs.disponivel, inicio: Self.agora.addingTimeInterval(72 * 3600)))
+        func pelaVaga(_ profissionalID: UUID, chave: UUID = UUID()) -> PedidoChamada {
+            PedidoChamada(profissionalID: profissionalID, vagaID: primeira.vagaID, estabelecimentoID: Self.casaID, chave: chave)
+        }
+        let chaveDaSegunda = UUID()
+        let segunda = try await api.chamarProfissional(pelaVaga(outros[0], chave: chaveDaSegunda))
+        let terceira = try await api.chamarProfissional(pelaVaga(outros[1]))
+        #expect(segunda.vagaID == primeira.vagaID && terceira.vagaID == primeira.vagaID)
+        #expect(Set([primeira.id, segunda.id, terceira.id]).count == 3)
+        // A mesma chave devolve a mesma chamada, sem gastar cota.
+        #expect(try await api.chamarProfissional(pelaVaga(outros[0], chave: chaveDaSegunda)) == segunda)
+        let quarta = await #expect(throws: ErroDaApi.self) { _ = try await api.chamarProfissional(pelaVaga(outros[2])) }
+        #expect(quarta?.codigo == .limiteDeChamadas)
+        #expect(quarta?.detalhes == "por_vaga")
+    }
+
+    @Test("Pelo vaga_id: vaga que não existe é nao_encontrado; vaga que já começou é vaga_encerrada")
+    func vagaIDInvalido() async throws {
+        let relogio = RelogioAjustavel(Self.agora)
+        let api = api(relogio)
+        let primeira = try await api.chamarProfissional(pedido(para: IDs.disponivel, inicio: Self.agora.addingTimeInterval(24 * 3600)))
+        let outro = try #require(try await todas(api, filtro(regiao: 1)).first?.id)
+        let inexistente = await #expect(throws: ErroDaApi.self) {
+            _ = try await api.chamarProfissional(PedidoChamada(profissionalID: outro, vagaID: UUID(), estabelecimentoID: Self.casaID, chave: UUID()))
+        }
+        #expect(inexistente?.codigo == .naoEncontrado)
+        relogio.avancar(25 * 3600)
+        let encerrada = await #expect(throws: ErroDaApi.self) {
+            _ = try await api.chamarProfissional(PedidoChamada(profissionalID: outro, vagaID: primeira.vagaID,
+                                                              estabelecimentoID: Self.casaID, chave: UUID()))
+        }
+        #expect(encerrada?.codigo == .vagaEncerrada)
+    }
+
     @Test("Com a chave da busca desligada, chamar quem só veio da busca é a recusa genérica")
     func chamarComChaveDesligada() async throws {
         let api = api()

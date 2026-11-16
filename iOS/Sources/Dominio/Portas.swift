@@ -267,23 +267,81 @@ public struct Chamada: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
-/// I5a cria um trabalho novo com uma posição; o total é o valor integral que o profissional recebe.
+/// Para onde vai a chamada (contrato 0.2.55): ou o servidor cria um trabalho novo com os campos da RN02,
+/// ou a chamada entra numa vaga direta que já existe pelo `vaga_id`. Nunca os dois: o tipo não deixa.
+public enum AlvoDaChamada: Equatable, Sendable {
+    /// I5a: o servidor cria a vaga direta de uma posição. O total é o valor integral que o profissional
+    /// recebe. `regiaoID` é o `regiao_id` da busca (0.2.88); `nil` fora dela.
+    case novoTrabalho(PublicacaoVaga, regiaoID: Int?)
+    /// A 2ª e a 3ª chamada do mesmo trabalho levam o `vaga_id` da 1ª: a função e a região são as da
+    /// vaga, que guarda o `regiao_id` com que nasceu.
+    case vagaExistente(vagaID: UUID, estabelecimentoID: UUID, chave: UUID)
+}
+
 public struct PedidoChamada: Equatable, Sendable {
     public let profissionalID: UUID
-    public let trabalho: PublicacaoVaga
+    public let alvo: AlvoDaChamada
     public let recado: String?
     public let confirmoRecorrencia: Bool
-    /// 0.2.88. O `regiao_id` da busca (`FiltroBuscaProfissionais.regiaoID`), copiado para a chamada:
-    /// é com ele que o servidor confere a região atendida pelo caminho da busca. O `nome` dessa região
-    /// tem de ser igual a `trabalho.regiaoAdministrativa`. `nil` fora da busca.
-    public let regiaoID: Int?
+
+    /// Um trabalho novo. 0.2.88: `regiaoID` é o `regiao_id` da busca (`FiltroBuscaProfissionais.regiaoID`),
+    /// copiado para a chamada: é com ele que o servidor confere a região atendida pelo caminho da busca.
+    /// O `nome` dessa região tem de ser igual a `trabalho.regiaoAdministrativa`. `nil` fora da busca.
     public init(profissionalID: UUID, trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
                 regiaoID: Int? = nil) {
+        self.init(profissionalID: profissionalID, alvo: .novoTrabalho(trabalho, regiaoID: regiaoID),
+                  recado: recado, confirmoRecorrencia: confirmoRecorrencia)
+    }
+
+    /// Mais alguém para uma vaga direta que já existe (`vaga_id`).
+    public init(profissionalID: UUID, vagaID: UUID, estabelecimentoID: UUID, chave: UUID, recado: String? = nil,
+                confirmoRecorrencia: Bool = false) {
+        self.init(profissionalID: profissionalID, alvo: .vagaExistente(vagaID: vagaID, estabelecimentoID: estabelecimentoID, chave: chave),
+                  recado: recado, confirmoRecorrencia: confirmoRecorrencia)
+    }
+
+    public init(profissionalID: UUID, alvo: AlvoDaChamada, recado: String? = nil, confirmoRecorrencia: Bool = false) {
         self.profissionalID = profissionalID
-        self.trabalho = trabalho
+        self.alvo = alvo
         self.recado = recado
         self.confirmoRecorrencia = confirmoRecorrencia
-        self.regiaoID = regiaoID
+    }
+
+    /// Os campos do trabalho novo; `nil` quando a chamada vai pelo `vaga_id`.
+    public var trabalho: PublicacaoVaga? {
+        if case let .novoTrabalho(trabalho, _) = alvo { return trabalho }
+        return nil
+    }
+
+    /// O `vaga_id` da vaga direta que já existe; `nil` no trabalho novo.
+    public var vagaID: UUID? {
+        if case let .vagaExistente(vagaID, _, _) = alvo { return vagaID }
+        return nil
+    }
+
+    /// O `regiao_id` da busca. Só o trabalho novo leva: pelo `vaga_id`, vale o da vaga.
+    public var regiaoID: Int? {
+        if case let .novoTrabalho(_, regiaoID) = alvo { return regiaoID }
+        return nil
+    }
+
+    public var chave: UUID {
+        switch alvo {
+        case let .novoTrabalho(trabalho, _): trabalho.chave
+        case let .vagaExistente(_, _, chave): chave
+        }
+    }
+
+    public var estabelecimentoID: UUID {
+        switch alvo {
+        case let .novoTrabalho(trabalho, _): trabalho.estabelecimentoID
+        case let .vagaExistente(_, estabelecimentoID, _): estabelecimentoID
+        }
+    }
+
+    /// O mesmo pedido (mesmo alvo e mesma chave), com a confirmação da recorrência (J7).
+    public func confirmando(_ confirmoRecorrencia: Bool) -> PedidoChamada {
+        PedidoChamada(profissionalID: profissionalID, alvo: alvo, recado: recado, confirmoRecorrencia: confirmoRecorrencia)
     }
 }
 

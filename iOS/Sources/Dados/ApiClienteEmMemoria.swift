@@ -245,6 +245,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var denunciasRecebidas: [Denuncia] = []
     private var chamadasPorChave: [UUID: Chamada] = [:]
     private var chamadasPorID: [UUID: Chamada] = [:]
+    /// O `regiao_id` com que cada vaga direta nasceu: as chamadas seguintes pelo `vaga_id` usam o dela.
+    private var regiaoDaVagaDireta: [UUID: Int] = [:]
     private var preferenciasDeChamadaArmazenadas = PreferenciaChamadas()
     public private(set) var ultimaVersaoAppRegistrada: String?
     public private(set) var pedidosChamadaRecebidos: [PedidoChamada] = []
@@ -1406,15 +1408,17 @@ public actor ApiClienteEmMemoria: ApiCliente {
         return regioesAdministrativasCadastradas
     }
 
-    public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
-        pedidosChamadaRecebidos.append(pedido)
-        try exigirAdministrador(de: pedido.trabalho.estabelecimentoID)
+    public func chamarProfissional(_ recebido: PedidoChamada) async throws -> Chamada {
+        pedidosChamadaRecebidos.append(recebido)
+        try exigirAdministrador(de: recebido.estabelecimentoID)
         guard cenario.deChamada else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
-        guard let perfil = perfilDoProfissional(pedido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
+        guard let perfil = perfilDoProfissional(recebido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
             throw erro("nao_encontrado")
         }
-        let t = pedido.trabalho
-        if let existente = chamadasPorChave[t.chave] { return existente }
+        if let existente = chamadasPorChave[recebido.chave] { return existente }
+        // Pelo `vaga_id`, as regras abaixo valem com a função, o horário e a região da vaga direta.
+        let (pedido, vagaExistente) = try pedidoComAVagaDireta(recebido)
+        guard let t = pedido.trabalho else { throw erro("campo_invalido", detalhes: "vaga_id") }
         let pelaBusca = try entraPelaBusca(perfil.id, pedido: pedido)
         guard equipesDeConfianca[t.estabelecimentoID]?.contains(perfil.id) == true
                 || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID)
@@ -1445,7 +1449,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         // Este cenário representa uma casa CPF com duas chamadas anteriores na janela de sete dias.
         if cenario == .chamadaRecorrente, !pedido.confirmoRecorrencia { throw erro("recorrencia_nao_confirmada") }
         let casa = estabelecimentos.first { $0.id == t.estabelecimentoID }!
-        let vaga = Vaga(id: UUID(), estabelecimento: perfilDo(casa), funcao: funcao, periodo: t.periodo,
+        let vaga = vagaExistente ?? Vaga(id: UUID(), estabelecimento: perfilDo(casa), funcao: funcao, periodo: t.periodo,
                         local: t.local, regiaoAdministrativa: t.regiaoAdministrativa, ponto: t.ponto,
                         valor: t.valor, posicoes: 1, posicoesAbertas: 1, inclusos: t.inclusos,
                         responsavelLocal: t.responsavelLocal, modo: .urgencia, estado: .publicada,
@@ -1461,10 +1465,36 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let chamada = Chamada(id: UUID(), vagaID: vaga.id, profissionalID: perfil.id,
                               estabelecimentoID: casa.id, recado: pedido.recado,
                               expiraEm: min(envio.addingTimeInterval(12 * 3600), t.periodo.inicio.addingTimeInterval(-3600)), criadaEm: relogio.agora)
-        vagas.append(vaga)
+        if vagaExistente == nil {
+            vagas.append(vaga)
+            regiaoDaVagaDireta[vaga.id] = pedido.regiaoID
+        }
         chamadasPorChave[t.chave] = chamada
         chamadasPorID[chamada.id] = chamada
         return chamada
+    }
+
+    /// `vaga_id` em `chamar_profissional` (contrato 0.2.55): vaga de outra casa ou que não existe é
+    /// `404`; vaga normal, já sem posição aberta, encerrada ou já começada é `409 vaga_encerrada`;
+    /// 3 chamadas abertas na vaga é `422 limite_de_chamadas` (`por_vaga`). Devolve o pedido com os
+    /// campos da vaga (para as mesmas regras do trabalho novo) e a vaga, que não é criada de novo.
+    private func pedidoComAVagaDireta(_ pedido: PedidoChamada) throws -> (PedidoChamada, Vaga?) {
+        guard case let .vagaExistente(vagaID, estabelecimentoID, chave) = pedido.alvo else { return (pedido, nil) }
+        guard let vaga = vagas.first(where: { $0.id == vagaID }), vaga.estabelecimento.id == estabelecimentoID else {
+            throw erro("nao_encontrado")
+        }
+        guard vaga.origem == .chamadaDireta, vaga.posicoes == 1, vaga.posicoesAbertas > 0, vaga.estado == .publicada,
+              vaga.periodo.inicio > relogio.agora else { throw erro("vaga_encerrada") }
+        guard chamadasAbertasNoDuble().filter({ $0.vagaID == vagaID }).count < 3 else {
+            throw erro("limite_de_chamadas", detalhes: "por_vaga")
+        }
+        let trabalho = PublicacaoVaga(
+            estabelecimentoID: estabelecimentoID, funcaoID: vaga.funcao.id, periodo: vaga.periodo, local: vaga.local,
+            regiaoAdministrativa: vaga.regiaoAdministrativa, ponto: vaga.ponto, valor: vaga.valor, posicoes: 1,
+            inclusos: vaga.inclusos, responsavelLocal: vaga.responsavelLocal, modo: .urgencia, chave: chave)
+        let comOsCampos = PedidoChamada(profissionalID: pedido.profissionalID, trabalho: trabalho, recado: pedido.recado,
+                                        confirmoRecorrencia: pedido.confirmoRecorrencia, regiaoID: regiaoDaVagaDireta[vagaID])
+        return (comOsCampos, vaga)
     }
 
     public func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada? = nil) async throws -> ResultadoChamada {
@@ -3611,8 +3641,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// função e região atendida (a do `regiao_id` copiado da busca; sem ele, a de mesmo nome).
     /// A pausa não decide aqui: ela é a recusa `pausado`, depois das genéricas.
     private func entraPelaBusca(_ id: UUID, pedido: PedidoChamada) throws -> Bool {
-        guard recursosEfetivos.buscaProfissionais, let p = profissionalNaBusca(id), p.aceitaChamadas, !p.suspenso else { return false }
-        let t = pedido.trabalho
+        guard recursosEfetivos.buscaProfissionais, let p = profissionalNaBusca(id), p.aceitaChamadas, !p.suspenso,
+              let t = pedido.trabalho else { return false }
         let regiaoID: Int?
         if let pedida = pedido.regiaoID {
             guard let regiao = regioesAdministrativasCadastradas.first(where: { $0.id == pedida && $0.ativo != false }),
@@ -3630,7 +3660,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard let p = profissionalNaBusca(id) else { return }
         if pausaEmVigor(p.pausadoAte) { throw erro("profissional_indisponivel", detalhes: "pausado") }
         let prazo = Double(max(2, p.antecedenciaMinimaH)) * 3600
-        if pedido.trabalho.periodo.inicio.timeIntervalSince(relogio.agora) < prazo {
+        if let t = pedido.trabalho, t.periodo.inicio.timeIntervalSince(relogio.agora) < prazo {
             throw erro("profissional_indisponivel", detalhes: "antecedencia_insuficiente")
         }
     }

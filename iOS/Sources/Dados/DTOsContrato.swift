@@ -811,34 +811,40 @@ enum ContratoAPI {
         }
     }
 
+    /// O corpo de `chamar_profissional`: ou o `vaga_id` de uma vaga direta que já existe, ou os campos
+    /// da RN02 (com o `regiao_id` da busca, quando houver). Nunca os dois (`oneOf` do contrato).
     struct ChamarProfissional: Encodable {
         let pedido: PedidoChamada
         enum CodingKeys: String, CodingKey {
-            case chave, profissional_id, estabelecimento_id, funcao_id, inicio_em, fim_em
+            case chave, profissional_id, estabelecimento_id, vaga_id, funcao_id, inicio_em, fim_em
             case local, regiao_administrativa, ponto, valor_centavos, inclui_refeicao
             case inclui_transporte, exige_material_proprio, responsavel_local, recado, confirmo_recorrencia
             case regiao_id
         }
         func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
-            let t = pedido.trabalho
-            try c.encode(t.chave, forKey: .chave)
+            try c.encode(pedido.chave, forKey: .chave)
             try c.encode(pedido.profissionalID, forKey: .profissional_id)
-            try c.encode(t.estabelecimentoID, forKey: .estabelecimento_id)
-            try c.encode(t.funcaoID, forKey: .funcao_id)
-            try c.encode(ContratoAPI.texto(t.periodo.inicio), forKey: .inicio_em)
-            try c.encode(ContratoAPI.texto(t.periodo.fim), forKey: .fim_em)
-            try c.encode(t.local, forKey: .local)
-            try c.encode(t.regiaoAdministrativa, forKey: .regiao_administrativa)
-            try c.encode(CoordenadaDTO(t.ponto), forKey: .ponto)
-            try c.encode(t.valor.centavos, forKey: .valor_centavos)
-            try c.encode(t.inclusos.refeicao, forKey: .inclui_refeicao)
-            try c.encode(t.inclusos.transporte, forKey: .inclui_transporte)
-            try c.encode(t.inclusos.exigeMaterialProprio, forKey: .exige_material_proprio)
-            try c.encode(t.responsavelLocal, forKey: .responsavel_local)
+            try c.encode(pedido.estabelecimentoID, forKey: .estabelecimento_id)
+            switch pedido.alvo {
+            case let .vagaExistente(vagaID, _, _):
+                try c.encode(vagaID, forKey: .vaga_id)
+            case let .novoTrabalho(t, regiaoID):
+                try c.encode(t.funcaoID, forKey: .funcao_id)
+                try c.encode(ContratoAPI.texto(t.periodo.inicio), forKey: .inicio_em)
+                try c.encode(ContratoAPI.texto(t.periodo.fim), forKey: .fim_em)
+                try c.encode(t.local, forKey: .local)
+                try c.encode(t.regiaoAdministrativa, forKey: .regiao_administrativa)
+                try c.encode(CoordenadaDTO(t.ponto), forKey: .ponto)
+                try c.encode(t.valor.centavos, forKey: .valor_centavos)
+                try c.encode(t.inclusos.refeicao, forKey: .inclui_refeicao)
+                try c.encode(t.inclusos.transporte, forKey: .inclui_transporte)
+                try c.encode(t.inclusos.exigeMaterialProprio, forKey: .exige_material_proprio)
+                try c.encode(t.responsavelLocal, forKey: .responsavel_local)
+                try c.encodeIfPresent(regiaoID, forKey: .regiao_id)
+            }
             try c.encodeIfPresent(pedido.recado, forKey: .recado)
             try c.encode(pedido.confirmoRecorrencia, forKey: .confirmo_recorrencia)
-            try c.encodeIfPresent(pedido.regiaoID, forKey: .regiao_id)
         }
     }
 

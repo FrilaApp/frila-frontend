@@ -204,4 +204,42 @@ struct BuscaDeProfissionaisContratoTests {
         let semRegiao = try json(ContratoAPI.ChamarProfissional(pedido: PedidoChamada(profissionalID: UUID(), trabalho: trabalho)))
         #expect(semRegiao["regiao_id"] == nil)
     }
+
+    @Test("chamar_profissional leva o vaga_id OU os campos do trabalho, nunca os dois (oneOf do contrato)")
+    func vagaIDOuTrabalho() throws {
+        let trabalho = PublicacaoVaga(
+            estabelecimentoID: Self.casaID, funcaoID: Self.garcomID,
+            periodo: try Periodo(inicio: ContratoAPI.instante("2026-11-17T23:00:00Z")!, fim: ContratoAPI.instante("2026-11-18T02:00:00Z")!),
+            local: "SCLS 405", regiaoAdministrativa: "Plano Piloto", ponto: try Coordenada(latitude: -15.82, longitude: -47.92),
+            valor: Dinheiro(centavos: 20_000), posicoes: 1,
+            inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
+            responsavelLocal: "Ana", chave: UUID()
+        )
+        let camposDoTrabalho: Set<String> = ["funcao_id", "inicio_em", "fim_em", "local", "regiao_administrativa", "ponto",
+                                             "valor_centavos", "inclui_refeicao", "inclui_transporte",
+                                             "exige_material_proprio", "responsavel_local"]
+        let profissionalID = UUID()
+        let vagaID = UUID()
+        let chave = UUID()
+        let pelaVaga = try json(ContratoAPI.ChamarProfissional(pedido: PedidoChamada(
+            profissionalID: profissionalID, vagaID: vagaID, estabelecimentoID: Self.casaID, chave: chave,
+            recado: "Pode vir cedo?", confirmoRecorrencia: true)))
+        // O estabelecimento_id é obrigatório nos dois ramos do contrato; a região é a da vaga.
+        #expect(Set(pelaVaga.keys) == ["chave", "profissional_id", "estabelecimento_id", "vaga_id", "recado", "confirmo_recorrencia"])
+        #expect(pelaVaga["vaga_id"] as? String == vagaID.uuidString)
+        #expect(pelaVaga["chave"] as? String == chave.uuidString)
+        #expect(pelaVaga["estabelecimento_id"] as? String == Self.casaID.uuidString)
+        #expect(pelaVaga["confirmo_recorrencia"] as? Bool == true)
+
+        let peloTrabalho = try json(ContratoAPI.ChamarProfissional(pedido: PedidoChamada(
+            profissionalID: profissionalID, trabalho: trabalho, regiaoID: 1)))
+        #expect(peloTrabalho["vaga_id"] == nil)
+        #expect(camposDoTrabalho.isSubset(of: Set(peloTrabalho.keys)))
+        #expect(peloTrabalho["chave"] as? String == trabalho.chave.uuidString)
+
+        // O domínio não deixa montar os dois: pelo vaga_id não há trabalho nem região.
+        let pedido = PedidoChamada(profissionalID: profissionalID, vagaID: vagaID, estabelecimentoID: Self.casaID, chave: chave)
+        #expect(pedido.trabalho == nil && pedido.regiaoID == nil && pedido.vagaID == vagaID && pedido.chave == chave)
+        #expect(pedido.confirmando(true).alvo == pedido.alvo)
+    }
 }

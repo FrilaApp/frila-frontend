@@ -99,7 +99,7 @@ struct ConferenciaVisualLote1e4Tests {
         model.totalConfirmado = true
         await model.enviar()
         let pedido = try #require(await api.pedidosChamadaRecebidos.first)
-        #expect(pedido.trabalho.valor.centavos == 25_075)
+        #expect(pedido.trabalho?.valor.centavos == 25_075)
     }
 
     // MARK: V7: o botão desligado diz o que falta
