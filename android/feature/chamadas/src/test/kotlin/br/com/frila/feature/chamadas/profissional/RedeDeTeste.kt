@@ -88,7 +88,9 @@ internal class RedeDeTeste(private val rotas: MutableMap<String, suspend MockReq
 
     fun doCaminho(sufixo: String) = pedidos.filter { it.caminho.endsWith(sufixo) }
 
-    val servico: ServicoChamadaDireta by lazy {
+    val servico: ServicoChamadaDireta by lazy { ServicoChamadaDireta(cliente) }
+
+    val cliente: ClienteSupabase by lazy {
         val engine = MockEngine { request: HttpRequestData ->
             val corpo = (request.body as? TextContent)?.text
                 ?.let { ClienteSupabase.jsonFrila.parseToJsonElement(it).jsonObject }
@@ -96,6 +98,6 @@ internal class RedeDeTeste(private val rotas: MutableMap<String, suspend MockReq
             val rota = rotas.entries.firstOrNull { request.url.encodedPath.endsWith(it.key) }?.value
             rota?.invoke(this) ?: respond("""{"code":"nao_encontrado","message":"sem rota"}""", HttpStatusCode.NotFound, json)
         }
-        ServicoChamadaDireta(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+        ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine)
     }
 }

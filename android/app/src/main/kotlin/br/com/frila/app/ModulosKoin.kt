@@ -21,6 +21,8 @@ import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
+import br.com.frila.core.rede.ServicoChamadaDireta
+import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoDispositivo
@@ -45,6 +47,14 @@ import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
+import br.com.frila.feature.chamadas.profissional.ChamadaRecebidaViewModel
+import br.com.frila.feature.chamadas.profissional.EditarServicosViewModel
+import br.com.frila.feature.chamadas.profissional.PreferenciasChamadaViewModel
+import br.com.frila.feature.chamadas.profissional.ServicoDeEspecialidades
+import br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel
+import br.com.frila.feature.chamadas.casa.BuscaDeProfissionaisViewModel
+import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
+import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
@@ -140,6 +150,10 @@ val moduloRede = module {
     /** Denúncia, bloqueio e equipe de confiança (RF26/RF18); membros do estabelecimento (RF21). */
     single { ServicoConfianca { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoMembros { get<GestorClienteKtor>().clienteAtual } }
+    /** Chamada direta e busca (contrato 0.2.88): as 11 RPCs; compartilhado pelos dois lados (profissional e casa). */
+    single { ServicoChamadaDireta { get<GestorClienteKtor>().clienteAtual } }
+    /** Especialidades ativas por função, para o profissional marcar nos serviços (RN44). */
+    single { ServicoDeEspecialidades { get<GestorClienteKtor>().clienteAtual } }
 }
 
 val moduloNotificacoes = module {
@@ -270,6 +284,73 @@ val moduloFeatures = module {
     viewModel { (contexto: ContextoDoTurnoContratante) ->
         val turnos = get<ServicoTurnos>()
         AcompanhamentoContratanteViewModel(contexto = contexto, confirmar = turnos::confirmarCheckinManual)
+    }
+    /**
+     * Lado da casa na chamada direta (UC de contratação direta, 0.2.88). As chaves `chamada_direta` e
+     * `busca_profissionais` vêm da configuração do app, lida a cada abertura da folha ou da busca.
+     */
+    viewModel { (id: String) ->
+        PerfilPublicoViewModel(id = id, buscar = get<ServicoChamadaDireta>()::perfilPublico)
+    }
+    viewModel { (profissionalId: String, estabelecimentoId: String, regiaoId: Int?) ->
+        val chamadas = get<ServicoChamadaDireta>()
+        val membros = get<ServicoMembros>()
+        val vagas = get<ServicoVagas>()
+        val gestor = get<GestorClienteKtor>()
+        ChamadaDiretaViewModel(
+            profissionalId = profissionalId,
+            estabelecimentoId = estabelecimentoId,
+            recursoHabilitado = { consultarConfiguracaoDoApp(gestor.clienteAtual).recursos.chamadaDireta },
+            buscarCasa = membros::meuEstabelecimento,
+            buscarFuncoes = vagas::listarFuncoes,
+            chamar = chamadas::chamarProfissional,
+            regiaoId = regiaoId,
+        )
+    }
+    viewModel { (vagaId: String) ->
+        val chamadas = get<ServicoChamadaDireta>()
+        AcompanharChamadasViewModel(
+            vagaId = vagaId,
+            listar = chamadas::minhasChamadas,
+            cancelarChamada = chamadas::cancelarChamada,
+            publicarAPartirDaChamada = chamadas::publicarAPartirDaChamada,
+        )
+    }
+    /** Busca de profissionais: só a lógica; a tela espera o desenho do Fabrício. */
+    viewModel { (estabelecimentoId: String) ->
+        val chamadas = get<ServicoChamadaDireta>()
+        val gestor = get<GestorClienteKtor>()
+        BuscaDeProfissionaisViewModel(
+            estabelecimentoId = estabelecimentoId,
+            recursoHabilitado = { consultarConfiguracaoDoApp(gestor.clienteAtual).recursos.buscaProfissionais },
+            buscarProfissionais = chamadas::buscarProfissionais,
+            chamarProfissional = chamadas::chamarProfissional,
+        )
+    }
+    /** Chamada direta, lado do profissional (contrato 0.2.88): serviços com preço, preferências e chamada recebida. */
+    viewModel {
+        val chamadas = get<ServicoChamadaDireta>()
+        val especialidades = get<ServicoDeEspecialidades>()
+        EditarServicosViewModel(
+            carregarPerfil = chamadas::meuPerfilDetalhado,
+            listarEspecialidades = especialidades::especialidadesDaFuncao,
+            definir = chamadas::definirServicos,
+        )
+    }
+    viewModel {
+        val chamadas = get<ServicoChamadaDireta>()
+        PreferenciasChamadaViewModel(
+            carregarPerfil = chamadas::meuPerfilDetalhado,
+            definirPreferencias = chamadas::definirPreferenciaChamadas,
+        )
+    }
+    viewModel { (chamadaId: String) ->
+        val chamadas = get<ServicoChamadaDireta>()
+        ChamadaRecebidaViewModel(
+            chamadaId = chamadaId,
+            detalhar = chamadas::detalheChamada,
+            responder = chamadas::responderChamada,
+        )
     }
 }
 

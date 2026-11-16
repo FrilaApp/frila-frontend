@@ -273,3 +273,29 @@ class EditarServicosViewModelTest {
         assertEquals(setOf("servicos"), corpo.keys)
     }
 }
+
+class ServicoDeEspecialidadesTest {
+    @Test
+    fun `le a tabela especialidade filtrando pela funcao e so as ativas`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.ok("/rest/v1/especialidade", Fixtures.especialidadesJson())
+        val engineServico = ServicoDeEspecialidades(rede.cliente)
+
+        val lista = engineServico.especialidadesDaFuncao(Fixtures.FUNCAO)
+
+        assertEquals(listOf("Eventos", "Casamentos", "Antiga"), lista.map { it.nome })
+        val pedido = rede.pedidos.single()
+        assertEquals("GET", pedido.metodo)
+        assertEquals("/rest/v1/especialidade", pedido.caminho)
+        assertTrue(pedido.consulta.contains("funcao_id=eq.${Fixtures.FUNCAO}"))
+        assertTrue(pedido.consulta.contains("ativo=eq.true"))
+    }
+
+    @Test
+    fun `erro do servidor chega como ErroDaApi`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.recusa("/rest/v1/especialidade", HttpStatusCode.Unauthorized, Fixtures.erro("nao_autenticado"))
+        val erro = runCatching { ServicoDeEspecialidades(rede.cliente).especialidadesDaFuncao(Fixtures.FUNCAO) }.exceptionOrNull()
+        assertTrue(erro is br.com.frila.core.rede.ErroDaApi)
+    }
+}
