@@ -26,6 +26,9 @@ public enum ResultadoDaChamadaDaBusca: Equatable, Sendable {
     /// J7: o servidor pediu a confirmação da recorrência; reenvie com `confirmoRecorrencia: true`.
     case pedeConfirmacaoDeRecorrencia
     case erro(String)
+    /// Não saiu: o pedido que leva o trabalho terminou incerto (prazo, sem rede, resposta ilegível) e a vaga pode
+    /// já existir. Mandar este agora poderia abrir outra vaga para o mesmo trabalho. Sai no reenvio.
+    case naoEnviada
 }
 
 /// O que a tela de publicar usa para abrir a vaga normal já com o que foi buscado (CD-RN35).
@@ -79,9 +82,12 @@ public final class BuscaDeProfissionaisViewModel {
     private var filtroDaBusca: FiltroBuscaProfissionais?
     private var recursoConfirmado = false
     private var tentativas: [UUID: PedidoChamada] = [:]
-    /// A vaga direta que a 1ª chamada que deu certo criou, com o trabalho dela (sem a chave). As chamadas
-    /// seguintes para o mesmo trabalho entram nela pelo `vaga_id`, em vez de criar outra vaga.
-    private var vagaDoTrabalho: (id: UUID, trabalho: PublicacaoVaga)?
+    /// As vagas diretas desta busca, uma por trabalho (comparado sem a chave): a 1ª chamada que deu certo pelo
+    /// trabalho criou a vaga; as seguintes para o mesmo trabalho entram nela pelo `vaga_id`. Trabalho novo começa
+    /// outra; nova busca zera.
+    private var vagasDosTrabalhos: [(trabalho: PublicacaoVaga, id: UUID)] = []
+    /// Quem terminou a última tentativa sem resposta definitiva: a chamada pode ter sido criada.
+    private var incertos: Set<UUID> = []
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
 
@@ -136,6 +142,8 @@ public final class BuscaDeProfissionaisViewModel {
             selecionados = []
             resultadosDaChamada = [:]
             tentativas = [:]
+            vagasDosTrabalhos = []
+            incertos = []
             resultados = Self.semRepetidos(pagina.itens, jaTem: [])
             proximoCursor = Self.cursorSeguinte(pagina, total: resultados.count)
             estado = resultados.isEmpty ? .vazio : .resultados
@@ -230,37 +238,69 @@ public final class BuscaDeProfissionaisViewModel {
 
     public var podeChamar: Bool { !selecionados.isEmpty && !enviando && estado == .resultados }
 
+    /// Há selecionado com erro ou que nem saiu: `chamar` de novo reenvia só esses, cada um com a chave que já tinha.
+    public var podeReenviar: Bool {
+        podeChamar && selecionados.contains { id in
+            switch resultadosDaChamada[id] {
+            case .erro, .naoEnviada: true
+            default: false
+            }
+        }
+    }
+
     /// Cria a chamada para cada selecionado pela `chamarProfissional`, uma de cada vez. A 1ª que der certo leva o
     /// trabalho (com a região da busca) e o servidor cria a vaga direta; as seguintes levam o `vaga_id` dela, para
-    /// as até 3 chamadas serem do mesmo trabalho (contrato 0.2.55). Se a 1ª falhar (erro ou J7), a próxima vira a 1ª.
-    /// Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave.
+    /// as até 3 chamadas serem do mesmo trabalho (contrato 0.2.55). Se o servidor recusar a 1ª (erro definitivo ou J7),
+    /// a próxima vira a 1ª. Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave.
+    ///
+    /// DINHEIRO: se o pedido que leva o trabalho termina incerto (prazo de 15 s, sem rede, resposta ilegível,
+    /// desconhecido), o servidor pode ter criado a vaga e a resposta se perdido. Promover o próximo abriria outra vaga
+    /// para o mesmo trabalho. A rodada para: os restantes ficam `.naoEnviada`. No reenvio, esse pedido vai primeiro, com
+    /// a mesma chave (o servidor devolve a chamada já criada, com o `vaga_id`), e só depois os outros. A confirmação J7
+    /// também espera esse pedido: ela só vale para quem a recebeu, e quem ficou incerto vai sem ela.
     public func chamar(trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
                        chave: () -> UUID = UUID.init) async {
         guard podeChamar else { return }
         let pendentes = selecionados.filter { resultadosDaChamada[$0] == .pedeConfirmacaoDeRecorrencia }
         // A confirmação J7 só vale depois da recusa correspondente.
         guard !confirmoRecorrencia || !pendentes.isEmpty else { return }
-        let alvos = selecionados.filter { id in
+        // Quem ficou incerto levando o trabalho resolve a vaga antes de qualquer outro, inclusive na confirmação J7:
+        // o confirmado só sai depois, e pelo `vaga_id` se a vaga existir. Se continuar incerto, o confirmado nem sai.
+        let primeiros = selecionados.filter { incertos.contains($0) && tentativas[$0]?.trabalho != nil }
+        let alvos = primeiros + selecionados.filter { id in
             if case .enviada = resultadosDaChamada[id] { return false }
-            return !confirmoRecorrencia || pendentes.contains(id)
+            return !primeiros.contains(id) && (!confirmoRecorrencia || pendentes.contains(id))
         }
         enviando = true
         defer { enviando = false }
-        for id in alvos {
+        for (posicao, id) in alvos.enumerated() {
             let pedido = pedidoDaVez(para: id, trabalho: trabalho, recado: recado, chave: chave,
-                                     confirmando: confirmoRecorrencia)
+                                     confirmando: confirmoRecorrencia && pendentes.contains(id))
             tentativas[id] = pedido
             do {
                 let fonte = fonte
                 let chamada = try await PrazoDaAbertura.esperar(.seconds(15)) { try await fonte.chamarProfissional(pedido) }
                 resultadosDaChamada[id] = .enviada(chamada)
-                if vagaDoTrabalho == nil, let enviado = pedido.trabalho {
-                    vagaDoTrabalho = (chamada.vagaID, enviado.comChave(Self.semChave))
+                incertos.remove(id)
+                if let enviado = pedido.trabalho, vagaReutilizavel(para: enviado) == nil {
+                    vagasDosTrabalhos.append((enviado.comChave(Self.semChave), chamada.vagaID))
                 }
             } catch let recusa as ErroDaApi where recusa.codigo == .recorrenciaNaoConfirmada {
                 resultadosDaChamada[id] = .pedeConfirmacaoDeRecorrencia
+                incertos.remove(id)
             } catch {
                 resultadosDaChamada[id] = .erro(Self.mensagemDaChamada(error))
+                guard Self.resultadoIncerto(error) else {
+                    incertos.remove(id)
+                    continue
+                }
+                incertos.insert(id)
+                guard pedido.trabalho != nil else { continue }
+                // Quem espera a confirmação J7 continua esperando; os demais nem saem.
+                for resto in alvos.dropFirst(posicao + 1) where resultadosDaChamada[resto] != .pedeConfirmacaoDeRecorrencia {
+                    resultadosDaChamada[resto] = .naoEnviada
+                }
+                break
             }
         }
         mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
@@ -290,10 +330,17 @@ public final class BuscaDeProfissionaisViewModel {
         return base.confirmando(confirmando || base.confirmoRecorrencia)
     }
 
-    /// A vaga direta do trabalho, se é o mesmo trabalho (sem contar a chave) que a criou.
+    /// A vaga direta que esta busca já criou para o mesmo trabalho (sem contar a chave), se existe.
     private func vagaReutilizavel(para trabalho: PublicacaoVaga) -> UUID? {
-        guard let vagaDoTrabalho, vagaDoTrabalho.trabalho == trabalho.comChave(Self.semChave) else { return nil }
-        return vagaDoTrabalho.id
+        let semChave = trabalho.comChave(Self.semChave)
+        return vagasDosTrabalhos.first { $0.trabalho == semChave }?.id
+    }
+
+    /// Sem resposta definitiva do servidor (prazo, sem rede, resposta ilegível, desconhecido): a chamada pode ter
+    /// sido criada, e só a mesma chave descobre. Qualquer outra recusa é do servidor e definitiva.
+    private static func resultadoIncerto(_ erro: Error) -> Bool {
+        guard let api = erro as? ErroDaApi else { return true }
+        return [.semRede, .respostaInvalida, .desconhecido].contains(api.codigo)
     }
 
     private static let semChave = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))

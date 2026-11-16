@@ -12,6 +12,12 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     var erroNaPaginaSeguinte: ErroDaApi?
     var erroNaChamada: [UUID: ErroDaApi] = [:]
     var recorrenciaPendente: Set<UUID> = []
+    /// O servidor cria a chamada e a resposta se perde (volta ilegível).
+    var perdeResposta: Set<UUID> = []
+    /// O servidor cria a chamada e demora além do prazo de 15 s do app para responder.
+    var atrasaAlemDoPrazo: Set<UUID> = []
+    /// Idempotência pela chave, antes de tudo (como o backend): a mesma chave devolve a chamada já criada.
+    private var chamadasPorChave: [UUID: Chamada] = [:]
     private(set) var filtrosRecebidos: [FiltroBuscaProfissionais] = []
     private(set) var cursoresRecebidos: [String?] = []
     private(set) var limitesRecebidos: [Int?] = []
@@ -21,12 +27,15 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     init(total: Int) { self.total = total }
 
     func ajustar(buscaLigada: Bool? = nil, erroNaBusca: ErroDaApi? = nil, erroNaPaginaSeguinte: ErroDaApi? = nil,
-                 erroNaChamada: [UUID: ErroDaApi]? = nil, recorrenciaPendente: Set<UUID>? = nil) {
+                 erroNaChamada: [UUID: ErroDaApi]? = nil, recorrenciaPendente: Set<UUID>? = nil,
+                 perdeResposta: Set<UUID>? = nil, atrasaAlemDoPrazo: Set<UUID>? = nil) {
         if let buscaLigada { self.buscaLigada = buscaLigada }
         self.erroNaBusca = erroNaBusca
         self.erroNaPaginaSeguinte = erroNaPaginaSeguinte
         if let erroNaChamada { self.erroNaChamada = erroNaChamada }
         if let recorrenciaPendente { self.recorrenciaPendente = recorrenciaPendente }
+        if let perdeResposta { self.perdeResposta = perdeResposta }
+        if let atrasaAlemDoPrazo { self.atrasaAlemDoPrazo = atrasaAlemDoPrazo }
     }
 
     func configuracaoDoApp() async throws -> ConfiguracaoApp {
@@ -51,14 +60,20 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
 
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
         pedidos.append(pedido)
+        // O erro de agora é antes de chegar ao servidor (nada é criado).
         if let erro = erroNaChamada[pedido.profissionalID] { throw erro }
+        if let existente = chamadasPorChave[pedido.chave] { return existente }
         if recorrenciaPendente.contains(pedido.profissionalID), !pedido.confirmoRecorrencia {
             throw ErroDaApi(codigo: .recorrenciaNaoConfirmada)
         }
         // Pelo trabalho, o servidor cria uma vaga; pelo vaga_id, a chamada entra nela.
-        return Chamada(id: UUID(), vagaID: pedido.vagaID ?? UUID(), profissionalID: pedido.profissionalID,
-                       estabelecimentoID: pedido.estabelecimentoID, recado: pedido.recado,
-                       expiraEm: Date(timeIntervalSince1970: 2_000_000_000), criadaEm: Date(timeIntervalSince1970: 1_900_000_000))
+        let chamada = Chamada(id: UUID(), vagaID: pedido.vagaID ?? UUID(), profissionalID: pedido.profissionalID,
+                              estabelecimentoID: pedido.estabelecimentoID, recado: pedido.recado,
+                              expiraEm: Date(timeIntervalSince1970: 2_000_000_000), criadaEm: Date(timeIntervalSince1970: 1_900_000_000))
+        chamadasPorChave[pedido.chave] = chamada
+        if perdeResposta.contains(pedido.profissionalID) { throw ErroDaApi(codigo: .respostaInvalida) }
+        if atrasaAlemDoPrazo.contains(pedido.profissionalID) { try await Task.sleep(for: .seconds(20)) }
+        return chamada
     }
 
     static func id(_ n: Int) -> UUID { UUID(uuidString: String(format: "A0000000-0000-0000-0000-%012d", n))! }
@@ -387,20 +402,20 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(!vm.mostrarJ7)
     }
 
-    @Test("Se a 1ª falha, a próxima vira a 1ª e leva o trabalho; o reenvio da que falhou entra na vaga, com a mesma chave")
+    @Test("Se o servidor recusa a 1ª, a próxima vira a 1ª e leva o trabalho; o reenvio da recusada entra na vaga, com a mesma chave")
     func primeiraFalha() async throws {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
         ids.forEach { vm.alternarSelecao($0) }
-        await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .semRede)])
+        // Recusa definitiva (o servidor não criou nada): promove o próximo. Sem rede é incerto e para (outro teste).
+        await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .profissionalIndisponivel)])
         await vm.chamar(trabalho: try trabalho())
         var pedidos = await fonte.pedidos
-        #expect(vm.resultadosDaChamada[ids[0]] == .erro(TextosChamadaDireta.erro))
+        #expect(vm.resultadosDaChamada[ids[0]] == .erro(TextosChamadaDireta.indisponivel))
         #expect(pedidos[0].trabalho != nil && pedidos[1].trabalho != nil)
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[1]])).vagaID
         #expect(pedidos[2].vagaID == vagaID && pedidos[2].trabalho == nil)
-        // Sem resposta, a 1ª pode ter sido criada: a mesma chave devolve a chamada, se existir.
         await fonte.ajustar(erroNaChamada: [:])
         await vm.chamar(trabalho: try trabalho())
         pedidos = await fonte.pedidos
@@ -446,6 +461,143 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(pedidos[2] == pedidos[0])
         #expect(pedidos[3].chave == pedidos[1].chave)
         #expect(pedidos[3].vagaID == enviada(vm.resultadosDaChamada[ids[0]])?.vagaID)
+    }
+
+    // MARK: Uma vaga por trabalho (B1) e pedido incerto que leva o trabalho (I1)
+
+    private func vagas(_ vm: BuscaDeProfissionaisViewModel, _ ids: [UUID]) -> Set<UUID> {
+        Set(ids.compactMap { enviada(vm.resultadosDaChamada[$0])?.vagaID })
+    }
+
+    @Test("Dois trabalhos seguidos na mesma busca, 3 selecionados cada: 2 vagas, uma por trabalho")
+    func doisTrabalhosNaMesmaBusca() async throws {
+        let (fonte, vm) = preparar(total: 6)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        ids.prefix(3).forEach { vm.alternarSelecao($0) }
+        await vm.chamar(trabalho: try trabalho())
+        ids.prefix(3).forEach { vm.alternarSelecao($0) } // desmarca
+        ids.suffix(3).forEach { vm.alternarSelecao($0) }
+        await vm.chamar(trabalho: try trabalho(valor: 21_000))
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.count == 6)
+        #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, true, false, false])
+        let primeira = try #require(vagas(vm, Array(ids.prefix(3))).first)
+        let segunda = try #require(vagas(vm, Array(ids.suffix(3))).first)
+        #expect(vagas(vm, ids) == [primeira, segunda])
+        #expect(primeira != segunda)
+        #expect(pedidos[1].vagaID == primeira && pedidos[2].vagaID == primeira)
+        #expect(pedidos[4].vagaID == segunda && pedidos[5].vagaID == segunda)
+    }
+
+    @Test("Nova busca zera a vaga: outro trabalho com 3 selecionados abre 1 vaga, e o mesmo trabalho também abre outra")
+    func novaBuscaZeraAVaga() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        vm.resultados.forEach { vm.alternarSelecao($0.id) }
+        await vm.chamar(trabalho: try trabalho())
+        await vm.buscar()
+        vm.resultados.forEach { vm.alternarSelecao($0.id) }
+        await vm.chamar(trabalho: try trabalho(valor: 21_000))
+        let depoisDoSegundo = vagas(vm, vm.selecionados)
+        await vm.buscar()
+        vm.resultados.forEach { vm.alternarSelecao($0.id) }
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.count == 9)
+        #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, true, false, false, true, false, false])
+        #expect(depoisDoSegundo.count == 1)
+        #expect(vagas(vm, vm.selecionados).count == 1)
+        #expect(Set(pedidos.compactMap(\.vagaID)).count == 3) // 3 trabalhos-busca, 3 vagas; nunca 1 por chamada
+    }
+
+    @Test("A 1ª passa do prazo de 15 s: p-2 e p-3 nem saem; o reenvio repete a chave da 1ª e os outros entram pelo vaga_id",
+          .timeLimit(.minutes(1)))
+    func primeiraIncertaPeloPrazo() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(atrasaAlemDoPrazo: [ids[0]])
+        await vm.chamar(trabalho: try trabalho())
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0]]) // nenhum pedido de p-2/p-3, com ou sem o trabalho
+        #expect(vm.resultadosDaChamada[ids[0]] == .erro(TextosChamadaDireta.erro))
+        #expect(vm.resultadosDaChamada[ids[1]] == .naoEnviada && vm.resultadosDaChamada[ids[2]] == .naoEnviada)
+        #expect(vm.podeReenviar)
+
+        await fonte.ajustar(atrasaAlemDoPrazo: [])
+        await vm.chamar(trabalho: try trabalho())
+        pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        #expect(pedidos[1] == pedidos[0]) // a mesma chave e o mesmo trabalho: o servidor devolve a chamada já criada
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        #expect(pedidos.suffix(2).allSatisfy { $0.vagaID == vagaID && $0.trabalho == nil })
+        #expect(vagas(vm, ids) == [vagaID])
+        #expect(!vm.podeReenviar)
+    }
+
+    @Test("1ª recusada e 2ª incerta levando o trabalho: a rodada para e, no reenvio, a 2ª vai antes de todos")
+    func primeiraRecusadaSegundaIncerta() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .limiteDeChamadas)], perdeResposta: [ids[1]])
+        await vm.chamar(trabalho: try trabalho())
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1]])
+        #expect(pedidos.allSatisfy { $0.trabalho != nil })
+        #expect(vm.resultadosDaChamada[ids[2]] == .naoEnviada)
+
+        await fonte.ajustar(erroNaChamada: [:], perdeResposta: [])
+        await vm.chamar(trabalho: try trabalho())
+        pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1], ids[0], ids[2]])
+        #expect(pedidos[2] == pedidos[1])
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[1]])).vagaID
+        #expect(pedidos[3].chave == pedidos[0].chave && pedidos[3].vagaID == vagaID && pedidos[3].trabalho == nil)
+        #expect(pedidos[4].vagaID == vagaID && pedidos[4].trabalho == nil)
+        #expect(vagas(vm, ids) == [vagaID])
+    }
+
+    @Test("J7 do p-1 com o p-2 incerto levando o trabalho: a confirmação não manda o p-1 com o trabalho; ele espera o p-2 e entra pelo vaga_id")
+    func confirmacaoJ7EsperaOIncerto() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(recorrenciaPendente: [ids[0]], perdeResposta: [ids[1]])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(vm.resultadosDaChamada[ids[0]] == .pedeConfirmacaoDeRecorrencia)
+        #expect(vm.resultadosDaChamada[ids[2]] == .naoEnviada)
+        #expect(vm.mostrarJ7)
+
+        // Confirma o J7 com o p-2 ainda sem resposta: só o p-2 sai (repetido), o p-1 não sai.
+        await fonte.ajustar(erroNaChamada: [ids[1]: ErroDaApi(codigo: .semRede)], perdeResposta: [])
+        await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1]])
+        #expect(pedidos[2] == pedidos[1])
+        #expect(vm.resultadosDaChamada[ids[0]] == .pedeConfirmacaoDeRecorrencia)
+        #expect(vm.mostrarJ7)
+
+        // O p-2 resolve (a mesma chave devolve a chamada já criada) e só então o p-1 confirmado entra pelo vaga_id.
+        await fonte.ajustar(erroNaChamada: [:])
+        await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
+        pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1], ids[1], ids[0]])
+        #expect(pedidos[3] == pedidos[1]) // sem a confirmação J7, que é só do p-1
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[1]])).vagaID
+        #expect(pedidos[4].chave == pedidos[0].chave && pedidos[4].vagaID == vagaID && pedidos[4].trabalho == nil)
+        #expect(pedidos[4].confirmoRecorrencia)
+        #expect(!vm.mostrarJ7)
+
+        await vm.chamar(trabalho: try trabalho())
+        pedidos = await fonte.pedidos
+        #expect(pedidos.last?.profissionalID == ids[2] && pedidos.last?.vagaID == vagaID)
+        #expect(pedidos.filter { $0.trabalho != nil && $0.profissionalID == ids[0] }.count == 1) // só o recusado pelo J7
+        #expect(vagas(vm, ids) == [vagaID])
     }
 
     @Test("Nova busca zera a seleção e o resultado das chamadas")
