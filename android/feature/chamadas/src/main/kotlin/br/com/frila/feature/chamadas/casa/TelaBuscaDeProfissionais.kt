@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -61,6 +63,9 @@ fun TelaBuscaDeProfissionais(
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     modifier: Modifier = Modifier,
     relogio: () -> Instant = Instant::now,
+    /** Abre os Termos de Uso (o link que o app já usa) para quem vai aceitá-los antes de buscar (0.2.90). */
+    aoAbrirTermos: () -> Unit = {},
+    carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregarCatalogos() }
@@ -81,6 +86,9 @@ fun TelaBuscaDeProfissionais(
         aoConfirmarJ7 = { viewModel.confirmarJ7() },
         modifier = modifier,
         relogio = relogio,
+        aoAbrirTermos = aoAbrirTermos,
+        aoAceitarTermos = { viewModel.aceitarTermosEBuscar() },
+        carregarFoto = carregarFoto,
     )
 }
 
@@ -108,6 +116,9 @@ fun ConteudoBuscaDeProfissionais(
     aoConfirmarJ7: () -> Unit,
     modifier: Modifier = Modifier,
     relogio: () -> Instant = Instant::now,
+    aoAbrirTermos: () -> Unit = {},
+    aoAceitarTermos: () -> Unit = {},
+    carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
 ) {
     var folhaAberta by rememberSaveable { mutableStateOf(false) }
     Scaffold(
@@ -147,6 +158,9 @@ fun ConteudoBuscaDeProfissionais(
                 aoAbrirPerfil = aoAbrirPerfil,
                 aoPublicarParaTodos = aoPublicarParaTodos,
                 aoAbrirFolha = { folhaAberta = true },
+                aoAbrirTermos = aoAbrirTermos,
+                aoAceitarTermos = aoAceitarTermos,
+                carregarFoto = carregarFoto,
                 modifier = Modifier.padding(preenchimento),
             )
         }
@@ -168,6 +182,9 @@ private fun ListaDaBusca(
     aoAbrirPerfil: (String) -> Unit,
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     aoAbrirFolha: () -> Unit,
+    aoAbrirTermos: () -> Unit,
+    aoAceitarTermos: () -> Unit,
+    carregarFoto: CarregadorDeFoto,
     modifier: Modifier = Modifier,
 ) {
     var usarHorario by rememberSaveable { mutableStateOf(false) }
@@ -344,6 +361,32 @@ private fun ListaDaBusca(
             EstadoDaBusca.Indisponivel -> item {
                 Text(TextosChamadaCasa.BUSCA_INDISPONIVEL, modifier = Modifier.testTag("busca-indisponivel"))
             }
+            is EstadoDaBusca.TermosPendentes -> item {
+                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício. A busca só volta depois do aceite.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.testTag("busca-termos-pendentes"),
+                ) {
+                    Text(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO)
+                    OutlinedButton(onClick = aoAbrirTermos, modifier = Modifier.testTag("busca-termos-ler")) {
+                        Text(TextosChamadaCasa.BUSCA_TERMOS_LER)
+                    }
+                    situacao.erro?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-termos-erro"))
+                    }
+                    if (situacao.aceitando) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.padding(4.dp))
+                            Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO)
+                        }
+                    }
+                    Button(
+                        onClick = aoAceitarTermos,
+                        enabled = !situacao.aceitando,
+                        modifier = Modifier.fillMaxWidth().testTag("busca-termos-aceitar"),
+                    ) { Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITAR) }
+                }
+            }
             is EstadoDaBusca.Erro -> item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(situacao.mensagem, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-erro"))
@@ -370,6 +413,7 @@ private fun ListaDaBusca(
                         travado = estado.selecaoTravada,
                         aoAlternarSelecao = { aoAlternarSelecao(cartao.id) },
                         aoAbrirPerfil = { aoAbrirPerfil(cartao.id) },
+                        carregarFoto = carregarFoto,
                     )
                 }
                 item {
@@ -405,6 +449,7 @@ private fun CartaoDoProfissional(
     travado: Boolean,
     aoAlternarSelecao: () -> Unit,
     aoAbrirPerfil: () -> Unit,
+    carregarFoto: CarregadorDeFoto,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().testTag("busca-cartao-${cartao.id}"),
@@ -416,6 +461,8 @@ private fun CartaoDoProfissional(
             enabled = !travado,
             modifier = Modifier.testTag("busca-selecionar-${cartao.id}"),
         )
+        FotoDoCartao(id = cartao.id, nome = cartao.nome, fotoUrl = cartao.fotoUrl, carregar = carregarFoto)
+        Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f).clickable(onClick = aoAbrirPerfil).padding(vertical = 8.dp)) {
             Text(cartao.nome, style = MaterialTheme.typography.titleMedium)
             Text("${cartao.servico.funcao.nome}: ${resumoDoServico(cartao.servico).orEmpty()}")

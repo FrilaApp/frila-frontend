@@ -56,7 +56,11 @@ suspend fun consultarConfiguracaoDoApp(
     if (!resposta.status.isSuccess()) {
         throw IllegalStateException("Falha ao consultar configuracao do app: ${resposta.status}")
     }
-    val json = Json.parseToJsonElement(resposta.bodyAsText()).jsonObject
+    return configuracaoDoAppDeJson(Json.parseToJsonElement(resposta.bodyAsText()).jsonObject)
+}
+
+/** Lê o JSON de `configuracao_do_app` (o mesmo formato que o app guarda em [CacheDeConfiguracaoDoApp]). */
+internal fun configuracaoDoAppDeJson(json: JsonObject): ConfiguracaoDoAppDto {
     val recursos = json["recursos"] as? JsonObject
     return ConfiguracaoDoAppDto(
         plataforma = json["plataforma"]?.jsonPrimitive?.contentOrNull ?: "android",
