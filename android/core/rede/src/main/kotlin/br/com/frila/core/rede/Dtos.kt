@@ -1074,7 +1074,7 @@ data class PublicarAPartirDaChamadaDto(
 
 /**
  * Corpo de `POST /rest/v1/rpc/aceitar_termos` (contrato 0.2.90): a versão dos Termos que a tela exibiu, no formato
- * `AAAA-MM-DD`, só uma versão PUBLICADA (hoje `2026-11-13`; o servidor mantém a lista). O instante do aceite é do servidor; o app não manda data.
+ * `AAAA-MM-DD`, só uma versão PUBLICADA (hoje `2026-11-13` e `2026-11-16`; o app manda a da página, `2026-11-16`; o servidor mantém a lista). O instante do aceite é do servidor; o app não manda data.
  */
 @Serializable
 data class AceitarTermosDto(

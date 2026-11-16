@@ -504,7 +504,7 @@ class BuscaDeProfissionaisViewModelTest {
     fun `aceitar chama aceitar_termos com a versao exigida e repete a busca com os mesmos filtros`() = runBlocking {
         val rede = RedeDeTeste().apply {
             buscaQueExigeOAceite()
-            ok("aceitar_termos", """{"termos_versao":"2026-11-13","aceito_em":"2026-11-16T20:00:00Z"}""")
+            ok("aceitar_termos", """{"termos_versao":"2026-11-16","aceito_em":"2026-11-16T20:00:00Z"}""")
         }
         val vm = viewModelCom(rede).comFiltros(regiao = 7, horario = HorarioDaBusca(inicio, fim))
         vm.buscar().join()
@@ -513,7 +513,7 @@ class BuscaDeProfissionaisViewModelTest {
 
         val aceite = rede.doNome("aceitar_termos").single().corpo
         assertEquals(BuscaDeProfissionaisViewModel.TERMOS_VERSAO_EXIGIDA, aceite["termos_versao"]!!.jsonPrimitive.content)
-        assertEquals("2026-11-13", aceite["termos_versao"]!!.jsonPrimitive.content)
+        assertEquals("2026-11-16", aceite["termos_versao"]!!.jsonPrimitive.content)
         val buscas = rede.doNome("buscar_profissionais")
         assertEquals(2, buscas.size)
         assertEquals(buscas[0].corpo, buscas[1].corpo)
@@ -549,7 +549,7 @@ class BuscaDeProfissionaisViewModelTest {
         val vm = viewModelCom(rede).comFiltros()
         vm.buscar().join()
         vm.aceitarTermosEBuscar().join()
-        rede.ok("aceitar_termos", """{"termos_versao":"2026-11-13","aceito_em":"2026-11-16T20:00:00Z"}""")
+        rede.ok("aceitar_termos", """{"termos_versao":"2026-11-16","aceito_em":"2026-11-16T20:00:00Z"}""")
 
         vm.aceitarTermosEBuscar().join()
 
@@ -588,7 +588,7 @@ class BuscaDeProfissionaisViewModelTest {
     fun `se o servidor ainda pede os Termos depois do aceite volta ao estado de aceite sem laco`() = runBlocking {
         val rede = RedeDeTeste().apply {
             recusa("buscar_profissionais", HttpStatusCode.Forbidden, "sem_permissao", "termos_pendentes")
-            ok("aceitar_termos", """{"termos_versao":"2026-11-13","aceito_em":"2026-11-16T20:00:00Z"}""")
+            ok("aceitar_termos", """{"termos_versao":"2026-11-16","aceito_em":"2026-11-16T20:00:00Z"}""")
         }
         val vm = viewModelCom(rede).comFiltros()
         vm.buscar().join()

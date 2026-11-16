@@ -602,10 +602,10 @@ class BuscaDeProfissionaisViewModel(
         const val MAXIMO_DE_RESULTADOS = 200
 
         /**
-         * A versão dos Termos que a tela exibe e o `aceitar_termos` envia. O contrato (0.2.90) só aceita versão PUBLICADA, no
-         * formato `AAAA-MM-DD`, e diz qual é hoje: `2026-11-13` (os Termos 1.1). Quando o servidor publicar outra, o contrato
-         * a indica e esta constante muda com ele; o app não inventa versão.
+         * A versão dos Termos que a tela exibe e o `aceitar_termos` envia. O contrato (0.2.91) só aceita versão PUBLICADA, no
+         * formato `AAAA-MM-DD`: hoje `2026-11-13` (Termos 1.1) e `2026-11-16` (Termos 1.2/Política 1.3). O app manda a da
+         * página, `2026-11-16` (decisão da Bússola, 16/11); a busca aceita quem já tem a 1.1. O app não inventa versão.
          */
-        const val TERMOS_VERSAO_EXIGIDA = "2026-11-13"
+        const val TERMOS_VERSAO_EXIGIDA = "2026-11-16"
     }
 }
