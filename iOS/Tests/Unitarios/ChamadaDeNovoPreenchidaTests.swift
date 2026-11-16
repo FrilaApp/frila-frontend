@@ -34,7 +34,7 @@ struct ChamadaDeNovoPreenchidaTests {
         let base = ApiClienteEmMemoria(cenario: .chamadaDireta, relogio: RelogioFixo(agora: agora))
         let casa = try #require(try await base.meusEstabelecimentos().first)
         let modelo = ChamadaDiretaViewModel(api: ApiSemLeituraDaVagaAnterior(base: base),
-            profissionalID: profissionalID, estabelecimentoID: casa.id, vagaID: vaga?.id, agora: { agora })
+            profissionalID: profissionalID, estabelecimentoID: casa.id, vagaAnterior: vaga, agora: { agora })
         await modelo.carregar()
         #expect(modelo.erro == nil)
         #expect(modelo.recursoHabilitado)

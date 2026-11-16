@@ -5,7 +5,7 @@ struct BotaoChamarDeNovo: View {
     let api: any ApiCliente
     let profissionalID: UUID
     let estabelecimentoID: UUID
-    var vagaID: UUID?
+    var vagaAnterior: VagaResumo?
     @State private var aberto = false
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
@@ -18,7 +18,7 @@ struct BotaoChamarDeNovo: View {
                 .sheet(isPresented: $aberto) {
                     NavigationStack {
                         TelaChamadaDireta(viewModel: ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
-                            estabelecimentoID: estabelecimentoID, vagaID: vagaID), api: api)
+                            estabelecimentoID: estabelecimentoID, vagaAnterior: vagaAnterior), api: api)
                     }
                     .presentationCornerRadius(FrilaRaio.folha)
                 }
