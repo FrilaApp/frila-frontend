@@ -536,6 +536,12 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
+                        aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
+                            { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
+                        } else {
+                            null
+                        },
                         // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
                         // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
                         // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
@@ -659,7 +665,7 @@ fun AppNavegacao(
                 }
             }
 
-            rotasDaChamadaDiretaCasa(navController, guardaBiometrico)
+            rotasDaChamadaDiretaCasa(navController, guardaBiometrico, buscaProfissionaisHabilitada, servicoMembros)
             rotasDaChamadaDiretaProfissional(navController, guardaBiometrico, buscaProfissionaisHabilitada)
 
             composable(Rotas.CADASTRO_ESTABELECIMENTO) {

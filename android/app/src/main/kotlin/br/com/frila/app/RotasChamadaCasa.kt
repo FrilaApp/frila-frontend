@@ -9,10 +9,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel
 import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
+import br.com.frila.feature.chamadas.casa.BuscaDeProfissionaisViewModel
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
+import br.com.frila.feature.chamadas.casa.RascunhoDeVagaDaBusca
+import br.com.frila.feature.chamadas.casa.HorarioDaBusca
+import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.feature.chamadas.casa.TelaAcompanharChamadas
+import br.com.frila.feature.chamadas.casa.TelaBuscaDeProfissionais
 import br.com.frila.feature.chamadas.casa.TelaChamadaDireta
 import br.com.frila.feature.chamadas.casa.TelaPerfilPublico
+import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -27,6 +33,14 @@ internal object RotasChamadaCasa {
     const val CHAMAR = "chamada/chamar/{estabelecimentoId}/{profissionalId}?regiaoId={regiaoId}"
     const val ACOMPANHAR = "chamada/acompanhar/{vagaId}"
 
+    /** Busca de profissionais (tela provisória): só existe no grafo com a chave `busca_profissionais` ligada. */
+    const val BUSCA = "chamada/buscar/{estabelecimentoId}"
+
+    /** "Publicar para todos" da busca vazia: a publicação de vaga já com o serviço e o horário buscados. */
+    const val PUBLICAR_DA_BUSCA = "chamada/publicar-da-busca/{estabelecimentoId}/{funcaoId}?inicio={inicio}&fim={fim}"
+
+    private const val SEM_HORARIO = -1L
+
     private const val SEM_REGIAO = -1
 
     fun perfilPublico(estabelecimentoId: String, profissionalId: String) =
@@ -39,6 +53,25 @@ internal object RotasChamadaCasa {
 
     fun acompanhar(vagaId: String) = "chamada/acompanhar/${Uri.encode(vagaId)}"
 
+    fun buscar(estabelecimentoId: String) = "chamada/buscar/${Uri.encode(estabelecimentoId)}"
+
+    /** O horário vai em segundos desde 1970 (UTC), ou fica de fora quando a busca não filtrou por horário. */
+    fun publicarDaBusca(rascunho: RascunhoDeVagaDaBusca) =
+        "chamada/publicar-da-busca/${Uri.encode(rascunho.estabelecimentoId)}/${Uri.encode(rascunho.funcaoId)}" +
+            (rascunho.horario?.let { "?inicio=${it.inicio.epochSecond}&fim=${it.fim.epochSecond}" } ?: "")
+
+    internal fun horarioDaRota(inicio: Long?, fim: Long?): HorarioDaBusca? {
+        if (inicio == null || fim == null || inicio == SEM_HORARIO || fim == SEM_HORARIO) return null
+        return HorarioDaBusca(Instant.ofEpochSecond(inicio), Instant.ofEpochSecond(fim)).takeIf { it.valido }
+    }
+
+    internal val argumentoDeHorario = listOf("inicio", "fim").map { nome ->
+        navArgument(nome) {
+            type = NavType.LongType
+            defaultValue = SEM_HORARIO
+        }
+    }
+
     internal fun regiaoDaRota(valor: Int?): Int? = valor?.takeIf { it != SEM_REGIAO }
 
     internal val argumentoDeRegiao = navArgument("regiaoId") {
@@ -47,7 +80,14 @@ internal object RotasChamadaCasa {
     }
 }
 
-internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(navController: NavHostController, guardaBiometrico: GuardaBiometrico) {
+internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(
+    navController: NavHostController,
+    guardaBiometrico: GuardaBiometrico,
+    /** Chave `busca_profissionais` (RN46): desligada, as rotas da busca nem existem no grafo. */
+    buscaProfissionaisHabilitada: Boolean = false,
+    servicoMembros: ServicoMembros? = null,
+) {
+    if (buscaProfissionaisHabilitada) rotasDaBuscaDeProfissionais(navController, guardaBiometrico, servicoMembros)
     composable(
         route = RotasChamadaCasa.PERFIL_PUBLICO,
         arguments = listOf(
@@ -98,6 +138,57 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(navController: NavHostCont
             val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
             val viewModel: AcompanharChamadasViewModel = koinViewModel(parameters = { parametersOf(vagaId) })
             TelaAcompanharChamadas(viewModel = viewModel, aoVoltar = { navController.popBackStack() })
+        }
+    }
+}
+
+/** Busca de profissionais e o "Publicar para todos" dela. Tela PROVISÓRIA, atrás da chave `busca_profissionais`. */
+private fun NavGraphBuilder.rotasDaBuscaDeProfissionais(
+    navController: NavHostController,
+    guardaBiometrico: GuardaBiometrico,
+    servicoMembros: ServicoMembros?,
+) {
+    composable(
+        route = RotasChamadaCasa.BUSCA,
+        arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+    ) { entrada ->
+        RotaProtegida(guardaBiometrico) {
+            val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+            val viewModel: BuscaDeProfissionaisViewModel = koinViewModel(parameters = { parametersOf(estabelecimentoId) })
+            TelaBuscaDeProfissionais(
+                viewModel = viewModel,
+                aoVoltar = { navController.popBackStack() },
+                aoAbrirPerfil = { navController.navigate(RotasChamadaCasa.perfilPublico(estabelecimentoId, it)) },
+                aoPublicarParaTodos = { navController.navigate(RotasChamadaCasa.publicarDaBusca(it)) },
+            )
+        }
+    }
+
+    composable(
+        route = RotasChamadaCasa.PUBLICAR_DA_BUSCA,
+        arguments = listOf(
+            navArgument("estabelecimentoId") { type = NavType.StringType },
+            navArgument("funcaoId") { type = NavType.StringType },
+        ) + RotasChamadaCasa.argumentoDeHorario,
+    ) { entrada ->
+        RotaProtegida(guardaBiometrico) {
+            val funcaoId = entrada.arguments?.getString("funcaoId").orEmpty()
+            val horario = RotasChamadaCasa.horarioDaRota(
+                entrada.arguments?.getLong("inicio"),
+                entrada.arguments?.getLong("fim"),
+            )
+            RotaPublicarVaga(
+                estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                servicoMembros = servicoMembros,
+                aoVoltar = { navController.popBackStack() },
+                aoPreparar = { vaga ->
+                    vaga.escolherFuncao(funcaoId)
+                    horario?.let {
+                        vaga.editarInicio(it.inicio)
+                        vaga.editarFim(it.fim)
+                    }
+                },
+            )
         }
     }
 }

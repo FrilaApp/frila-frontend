@@ -54,6 +54,7 @@ import br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel
 import br.com.frila.feature.chamadas.casa.BuscaDeProfissionaisViewModel
 import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
+import br.com.frila.feature.chamadas.casa.ServicoDeRegioes
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
@@ -153,6 +154,8 @@ val moduloRede = module {
     single { ServicoChamadaDireta { get<GestorClienteKtor>().clienteAtual } }
     /** Especialidades ativas por função, para o profissional marcar nos serviços (RN44). */
     single { ServicoDeEspecialidades { get<GestorClienteKtor>().clienteAtual } }
+    /** Regiões Administrativas ativas, para o filtro da busca de profissionais. */
+    single { ServicoDeRegioes { get<GestorClienteKtor>().clienteAtual } }
 }
 
 val moduloNotificacoes = module {
@@ -315,7 +318,7 @@ val moduloFeatures = module {
             publicarAPartirDaChamada = chamadas::publicarAPartirDaChamada,
         )
     }
-    /** Busca de profissionais: só a lógica; a tela espera o desenho do Fabrício. */
+    /** Busca de profissionais (tela PROVISÓRIA até o high-fi do Fabrício), atrás da chave `busca_profissionais`. */
     viewModel { (estabelecimentoId: String) ->
         val chamadas = get<ServicoChamadaDireta>()
         val gestor = get<GestorClienteKtor>()
@@ -324,6 +327,9 @@ val moduloFeatures = module {
             recursoHabilitado = { consultarConfiguracaoDoApp(gestor.clienteAtual).recursos.buscaProfissionais },
             buscarProfissionais = chamadas::buscarProfissionais,
             chamarProfissional = chamadas::chamarProfissional,
+            listarFuncoes = get<ServicoVagas>()::listarFuncoes,
+            listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
+            buscarCasa = get<ServicoMembros>()::meuEstabelecimento,
         )
     }
     /** Chamada direta, lado do profissional (contrato 0.2.88): serviços com preço, preferências e chamada recebida. */
