@@ -45,16 +45,16 @@ public final class ChamadaDiretaViewModel {
     private var ponto: Coordenada?
     private let profissionalID: UUID
     private let estabelecimentoID: UUID
-    private let vagaID: UUID?
+    private let vagaAnterior: VagaResumo?
     private let api: any ApiCliente
     private let agora: @Sendable () -> Date
 
     public init(api: any ApiCliente, profissionalID: UUID, estabelecimentoID: UUID,
-                vagaID: UUID? = nil, agora: @escaping @Sendable () -> Date = Date.init) {
+                vagaAnterior: VagaResumo? = nil, agora: @escaping @Sendable () -> Date = Date.init) {
         self.api = api
         self.profissionalID = profissionalID
         self.estabelecimentoID = estabelecimentoID
-        self.vagaID = vagaID
+        self.vagaAnterior = vagaAnterior
         self.agora = agora
         inicio = agora().addingTimeInterval(24 * 3600)
         fim = agora().addingTimeInterval(28 * 3600)
@@ -63,6 +63,10 @@ public final class ChamadaDiretaViewModel {
     static let antecedenciaMinima: TimeInterval = 2 * 3600
     static let duracaoMinima: TimeInterval = 2 * 3600
     static let duracaoMaxima: TimeInterval = 16 * 3600
+
+    /// Verdadeiro só quando a folha já carregou e veio preenchida com a vaga anterior (pelo turno);
+    /// pela Equipe de confiança, sem vaga, e antes de carregar é falso.
+    public var preenchidoPelaVagaAnterior: Bool { recursoHabilitado && vagaAnterior != nil }
 
     /// O início mais cedo que o seletor oferece: agora + 2 h. Um turno que já começou nem aparece (V10).
     public var inicioMinimo: Date { agora().addingTimeInterval(Self.antecedenciaMinima) }
@@ -125,32 +129,52 @@ public final class ChamadaDiretaViewModel {
         do {
             let api = api
             let estabelecimentoID = estabelecimentoID
-            let vagaID = vagaID
             let dados = try await PrazoDaAbertura.esperar(.seconds(15)) {
                 let configuracao = try await api.configuracaoDoApp()
                 guard configuracao.recursos.chamadaDireta else { throw ErroDaApi(codigo: .recursoDesligado) }
                 let casa = try await api.meuEstabelecimento(id: estabelecimentoID)
                 let funcoes = try await api.funcoes()
-                let vaga: Vaga?
-                // A vaga anterior só pré-preenche a folha. `detalhe_vaga` é leitura de profissional: para a
-                // conta da casa o servidor responde 422, e isso não pode derrubar a chamada.
-                if let vagaID { vaga = try? await api.detalheDaVaga(id: vagaID) } else { vaga = nil }
-                return (casa, funcoes, vaga)
+                return (casa, funcoes)
             }
-            let (casa, catalogo, vaga) = dados
+            let (casa, catalogo) = dados
             funcoes = catalogo
-            funcaoID = vaga?.funcao.id ?? catalogo.first?.id
-            local = vaga?.local ?? casa.endereco
-            regiao = vaga?.regiaoAdministrativa ?? casa.regiaoAdministrativa
-            ponto = vaga?.ponto ?? casa.ponto
-            responsavel = vaga?.responsavelLocal ?? casa.nome
-            valorTexto = vaga.map { Self.textoEmReais($0.valor.centavos) } ?? ""
-            refeicao = vaga?.inclusos.refeicao ?? false
-            transporte = vaga?.inclusos.transporte ?? false
-            materialProprio = vaga?.inclusos.exigeMaterialProprio ?? false
-            if let vaga { fim = inicio.addingTimeInterval(vaga.periodo.fim.timeIntervalSince(vaga.periodo.inicio)) }
+            funcaoID = catalogo.first { funcao in
+                guard let vagaAnterior else { return false }
+                return funcao.nome.trimmingCharacters(in: .whitespacesAndNewlines).compare(
+                    vagaAnterior.funcao.trimmingCharacters(in: .whitespacesAndNewlines),
+                    options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "pt_BR")) == .orderedSame
+            }?.id ?? catalogo.first?.id
+            local = casa.endereco
+            regiao = casa.regiaoAdministrativa
+            ponto = casa.ponto
+            responsavel = casa.nome
+            valorTexto = vagaAnterior.map { Self.textoEmReais($0.valor.centavos) } ?? ""
+            totalConfirmado = false
+            refeicao = false
+            transporte = false
+            materialProprio = false
+            if let vagaAnterior {
+                inicio = proximoInicio(vagaAnterior.periodo.inicio)
+                let duracao = min(max(vagaAnterior.periodo.fim.timeIntervalSince(vagaAnterior.periodo.inicio),
+                                      Self.duracaoMinima), Self.duracaoMaxima)
+                fim = inicio.addingTimeInterval(duracao)
+            }
             recursoHabilitado = true
         } catch { erro = Self.mensagem(error) }
+    }
+
+    private func proximoInicio(_ anterior: Date) -> Date {
+        var calendario = Calendar(identifier: .gregorian)
+        calendario.timeZone = FormatadorFrila.fuso
+        var componentes = calendario.dateComponents([.weekday, .hour, .minute], from: anterior)
+        componentes.second = 0
+        let minimo = inicioMinimo
+        // nextDate é estrito; recuar um segundo permite incluir o limite exato de duas horas.
+        guard let candidato = calendario.nextDate(after: minimo.addingTimeInterval(-1), matching: componentes,
+                                                  matchingPolicy: .nextTime) else { return inicio }
+        if candidato >= minimo { return candidato }
+        // Se o limite tiver fração de segundo, a ocorrência desse minuto já ficou para trás.
+        return calendario.nextDate(after: minimo, matching: componentes, matchingPolicy: .nextTime) ?? inicio
     }
 
     public func enviar(confirmoRecorrencia: Bool = false) async {

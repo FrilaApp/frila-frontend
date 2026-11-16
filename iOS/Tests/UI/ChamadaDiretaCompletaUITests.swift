@@ -212,6 +212,41 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertTrue(chamar.waitForExistence(timeout: 15), "no turno cumprido e verificado, a casa pode chamar de novo")
     }
 
+    /// A folha aberta pelo turno vem preenchida com a vaga anterior e avisa, discretamente, que a casa pode ajustar.
+    private func abrirFolhaDeChamarDeNovoPeloTurno(extras: [String] = [], nomeDaCaptura: String) -> XCUIApplication {
+        let tresDiasAtras = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-3 * 86_400))
+        let app = abrir(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "chamada-direta", "-FRILA_RELOGIO_AGORA", tresDiasAtras,
+                         "-FRILA_AVISO", "confirmacao", "-FRILA_AVISO_ID", turnoDaCasa] + extras)
+        let chamar = app.buttons["chamar-de-novo-\(profissionalDoTurno)"]
+        rolarAte(chamar, em: app)
+        XCTAssertTrue(chamar.waitForExistence(timeout: 15), "no turno cumprido e verificado, a casa pode chamar de novo")
+        chamar.tap()
+
+        let aviso = app.staticTexts["aviso-preenchido-vaga-anterior"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 15), "a folha pelo turno avisa que veio preenchida")
+        XCTAssertEqual(aviso.label, "Preenchido com a última vaga. Confira e ajuste o que quiser.")
+        XCTAssertTrue(aviso.isHittable, "o aviso fica visível no topo, sem cortar")
+        let captura = XCTAttachment(screenshot: app.screenshot())
+        captura.name = nomeDaCaptura
+        captura.lifetime = .keepAlways
+        add(captura)
+        return app
+    }
+
+    func testChamarDeNovoPeloTurnoAvisaQueVeioPreenchido() {
+        let app = abrirFolhaDeChamarDeNovoPeloTurno(nomeDaCaptura: "chamar-de-novo-aviso-padrao")
+        let total = app.switches["confirmar-total-chamada"]
+        for _ in 0..<6 where !total.waitForExistence(timeout: 2) { app.swipeUp() }
+        XCTAssertTrue(total.exists, "o formulário pede confirmar o total")
+        XCTAssertEqual(total.value as? String, "0", "o total vem desmarcado: a casa confirma o valor de novo")
+    }
+
+    func testAvisoDeChamarDeNovoPreenchidoEmAX5() {
+        _ = abrirFolhaDeChamarDeNovoPeloTurno(
+            extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"],
+            nomeDaCaptura: "chamar-de-novo-aviso-ax5")
+    }
+
     // MARK: V4 e B6
 
     func testMeuTurnoDoProfissionalMostraTurnoNaoVerificado() {

@@ -5,7 +5,7 @@ struct BotaoChamarDeNovo: View {
     let api: any ApiCliente
     let profissionalID: UUID
     let estabelecimentoID: UUID
-    var vagaID: UUID?
+    var vagaAnterior: VagaResumo?
     @State private var aberto = false
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
@@ -18,7 +18,7 @@ struct BotaoChamarDeNovo: View {
                 .sheet(isPresented: $aberto) {
                     NavigationStack {
                         TelaChamadaDireta(viewModel: ChamadaDiretaViewModel(api: api, profissionalID: profissionalID,
-                            estabelecimentoID: estabelecimentoID, vagaID: vagaID), api: api)
+                            estabelecimentoID: estabelecimentoID, vagaAnterior: vagaAnterior), api: api)
                     }
                     .presentationCornerRadius(FrilaRaio.folha)
                 }
@@ -92,6 +92,13 @@ public struct TelaChamadaDireta: View {
 
     private var campos: some View {
         Group {
+            if viewModel.preenchidoPelaVagaAnterior {
+                Text(verbatim: TextosChamadaDireta.preenchidoComUltimaVaga)
+                    .font(FrilaTipo.nota)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("aviso-preenchido-vaga-anterior")
+            }
             Picker(selection: $viewModel.funcaoID) {
                 ForEach(viewModel.funcoes) { funcao in
                     Text(verbatim: funcao.nome).tag(Optional(funcao.id))

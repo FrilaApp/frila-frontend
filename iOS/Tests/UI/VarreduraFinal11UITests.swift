@@ -88,6 +88,7 @@ final class VarreduraFinal11UITests: XCTestCase {
         let total = app.switches["confirmar-total-chamada"]
         for _ in 0..<6 where !total.waitForExistence(timeout: 2) { app.swipeUp() }
         XCTAssertTrue(total.exists, "Chamar de novo abre o formulário, que pede confirmar o total a cada chamada")
+        XCTAssertFalse(app.staticTexts["aviso-preenchido-vaga-anterior"].exists, "pela Equipe não há vaga anterior, então não há aviso de preenchido")
         let enviar = app.buttons["enviar-chamada"]
         for _ in 0..<6 where !enviar.exists { app.swipeUp() }
         XCTAssertTrue(enviar.waitForExistence(timeout: 5), "o formulário termina em Enviar chamada")
