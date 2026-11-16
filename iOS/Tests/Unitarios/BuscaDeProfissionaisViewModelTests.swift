@@ -27,8 +27,17 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     private(set) var termosAceitos = true
     var erroNoAceite: ErroDaApi?
     private(set) var aceitesRecebidos: [String] = []
+    /// 0.2.95: a casa já tem o trabalho aberto nesta vaga. O pedido pelo trabalho, ou pelo `vaga_id` de outra vaga,
+    /// recebe `409 trabalho_ja_aberto` com ela em `details`. Nada é criado e a chave não é gasta.
+    private(set) var vagaDoTrabalhoAberto: UUID?
+    /// O mesmo 409 no pedido pelo trabalho, mas sem o `vaga_id` em `details`.
+    private(set) var trabalhoAbertoSemVagaID = false
 
     init(total: Int) { self.total = total }
+
+    func abrirTrabalho(naVaga vagaID: UUID) { vagaDoTrabalhoAberto = vagaID }
+
+    func abrirTrabalhoSemVagaID() { trabalhoAbertoSemVagaID = true }
 
     func ajustar(buscaLigada: Bool? = nil, erroNaBusca: ErroDaApi? = nil, erroNaPaginaSeguinte: ErroDaApi? = nil,
                  erroNaChamada: [UUID: ErroDaApi]? = nil, recorrenciaPendente: Set<UUID>? = nil,
@@ -82,6 +91,11 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
         // O erro de agora é antes de chegar ao servidor (nada é criado).
         if let erro = erroNaChamada[pedido.profissionalID] { throw erro }
         if let existente = chamadasPorChave[pedido.chave] { return existente }
+        // 0.2.95: depois da chave e antes do que é do profissional.
+        if trabalhoAbertoSemVagaID, pedido.trabalho != nil { throw ErroDaApi(codigo: .trabalhoJaAberto) }
+        if let aberta = vagaDoTrabalhoAberto, pedido.vagaID != aberta {
+            throw ErroDaApi(codigo: .trabalhoJaAberto, detalhes: aberta.uuidString.lowercased())
+        }
         if recorrenciaPendente.contains(pedido.profissionalID), !pedido.confirmoRecorrencia {
             throw ErroDaApi(codigo: .recorrenciaNaoConfirmada)
         }
@@ -897,6 +911,101 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.buscar()
         #expect(vm.selecionados.isEmpty)
+    }
+
+    // MARK: Trabalho já aberto (409 trabalho_ja_aberto, contrato 0.2.95)
+
+    @Test("409 trabalho_ja_aberto: quem levou o trabalho vai de novo pelo vaga_id de details, com chave nova, e fica enviada; os outros e a nova busca entram direto nela")
+    func trabalhoJaAbertoSegueNaVaga() async throws {
+        let (fonte, vm) = preparar(total: 4)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 4)
+        ids.prefix(3).forEach { vm.alternarSelecao($0) }
+        let aberta = UUID()
+        await fonte.abrirTrabalho(naVaga: aberta)
+        await vm.chamar(trabalho: try trabalho())
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        try #require(pedidos.count >= 4)
+        #expect(pedidos[0].trabalho != nil && pedidos[0].vagaID == nil)
+        // Depois do 409 ninguém leva o trabalho: todos entram pela vaga aberta, cada um com a sua chave.
+        #expect(pedidos.dropFirst().allSatisfy { $0.vagaID == aberta && $0.trabalho == nil })
+        #expect(pedidos[1].chave != pedidos[0].chave)
+        #expect(Set(pedidos.map(\.chave)).count == 4)
+        #expect(ids.prefix(3).allSatisfy { enviada(vm.resultadosDaChamada[$0])?.vagaID == aberta })
+        #expect(!vm.travadoPeloIncerto && !vm.podeReenviar)
+
+        // A vaga que o 409 apontou ficou como a do trabalho: a nova busca entra direto nela.
+        await vm.buscar()
+        vm.alternarSelecao(ids[3])
+        await vm.chamar(trabalho: try trabalho())
+        pedidos = await fonte.pedidos
+        #expect(pedidos.count == 5)
+        #expect(pedidos.last?.profissionalID == ids[3])
+        #expect(pedidos.last?.vagaID == aberta && pedidos.last?.trabalho == nil)
+        #expect(enviada(vm.resultadosDaChamada[ids[3]])?.vagaID == aberta)
+    }
+
+    @Test("409 trabalho_ja_aberto sem vaga_id em details: erro genérico, nenhum pedido pelo vaga_id e nada trava")
+    func trabalhoJaAbertoSemVagaID() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.abrirTrabalhoSemVagaID()
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        // Recusa definitiva: o 2º vira o 1º e recebe o mesmo 409; ninguém vai pelo vaga_id.
+        #expect(pedidos.map(\.profissionalID) == ids)
+        #expect(pedidos.allSatisfy { $0.trabalho != nil && $0.vagaID == nil })
+        #expect(ids.allSatisfy { vm.resultadosDaChamada[$0] == .erro(TextosChamadaDireta.erro) })
+        #expect(!vm.travadoPeloIncerto)
+        #expect(vm.podeReenviar)
+    }
+
+    @Test("409 trabalho_ja_aberto no pedido pelo vaga_id: a vaga de details passa a ser a do trabalho e o próximo entra direto nela")
+    func trabalhoJaAbertoNoPedidoPelaVaga() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
+        vm.alternarSelecao(ids[0])
+        await vm.chamar(trabalho: try trabalho())
+        let primeira = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        // Outra vaga direta do mesmo trabalho passou a ter a chamada aberta (por exemplo, de outro aparelho).
+        let outra = UUID()
+        await fonte.abrirTrabalho(naVaga: outra)
+        await vm.buscar()
+        vm.alternarSelecao(ids[1])
+        vm.alternarSelecao(ids[2])
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1], ids[2]])
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 1)
+        #expect(pedidos.filter { $0.profissionalID == ids[1] }.map(\.vagaID) == [primeira, outra])
+        #expect(pedidos.last?.vagaID == outra)
+        #expect(enviada(vm.resultadosDaChamada[ids[1]])?.vagaID == outra)
+        #expect(enviada(vm.resultadosDaChamada[ids[2]])?.vagaID == outra)
+    }
+
+    @Test("409 trabalho_ja_aberto também no pedido pelo vaga_id: não insiste, vira erro genérico e o próximo entra na vaga")
+    func trabalhoJaAbertoUmaVezSo() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        let aberta = UUID()
+        await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .trabalhoJaAberto, detalhes: aberta.uuidString)])
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1]])
+        #expect(pedidos.dropFirst().allSatisfy { $0.vagaID == aberta && $0.trabalho == nil })
+        #expect(vm.resultadosDaChamada[ids[0]] == .erro(TextosChamadaDireta.erro))
+        #expect(enviada(vm.resultadosDaChamada[ids[1]])?.vagaID == aberta)
+        #expect(!vm.travadoPeloIncerto)
     }
 
     // MARK: Integração com o dublê do cenário .buscaDeProfissionais (relógio fixo)

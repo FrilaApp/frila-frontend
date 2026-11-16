@@ -96,8 +96,9 @@ public final class BuscaDeProfissionaisViewModel {
     private var recursoConfirmado = false
     private var tentativas: [UUID: PedidoChamada] = [:]
     /// As vagas diretas desta tela, uma por trabalho (comparado sem a chave): a 1ª chamada que deu certo pelo
-    /// trabalho criou a vaga; as seguintes para o mesmo trabalho entram nela pelo `vaga_id`, inclusive depois de
-    /// outra busca. Trabalho novo começa outra. DINHEIRO: nova busca não zera (a vaga é do trabalho, não da busca).
+    /// trabalho criou a vaga (ou o `409 trabalho_ja_aberto` apontou a que já existia, 0.2.95); as seguintes para o
+    /// mesmo trabalho entram nela pelo `vaga_id`, inclusive depois de outra busca. Trabalho novo começa outra.
+    /// DINHEIRO: nova busca não zera (a vaga é do trabalho, não da busca).
     private var vagasDosTrabalhos: [(trabalho: PublicacaoVaga, id: UUID)] = []
     /// Quem terminou a última tentativa sem resposta definitiva: a chamada pode ter sido criada. Nova busca não
     /// apaga nem eles nem a tentativa (a chave) deles: só a mesma chave descobre o que o servidor fez.
@@ -308,7 +309,8 @@ public final class BuscaDeProfissionaisViewModel {
     /// Cria a chamada para cada selecionado pela `chamarProfissional`, uma de cada vez. A 1ª que der certo leva o
     /// trabalho (com a região da busca) e o servidor cria a vaga direta; as seguintes levam o `vaga_id` dela, para
     /// as até 3 chamadas serem do mesmo trabalho (contrato 0.2.55). Se o servidor recusar a 1ª (erro definitivo ou J7),
-    /// a próxima vira a 1ª. Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave.
+    /// a próxima vira a 1ª. Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave. Se a casa
+    /// já tem o trabalho aberto (`409 trabalho_ja_aberto`, 0.2.95), a pessoa vai pelo `vaga_id` dele (`enviar`).
     ///
     /// DINHEIRO: se o pedido que leva o trabalho termina incerto (prazo de 15 s, sem rede, resposta ilegível,
     /// desconhecido), o servidor pode ter criado a vaga e a resposta se perdido. Promover o próximo abriria outra vaga
@@ -335,8 +337,7 @@ public final class BuscaDeProfissionaisViewModel {
                                      confirmando: confirmoRecorrencia && pendentes.contains(id))
             tentativas[id] = pedido
             do {
-                let fonte = fonte
-                let chamada = try await PrazoDaAbertura.esperar(.seconds(15)) { try await fonte.chamarProfissional(pedido) }
+                let chamada = try await enviar(pedido, chave: chave)
                 resultadosDaChamada[id] = .enviada(chamada)
                 incertos.remove(id)
                 if let enviado = pedido.trabalho, vagaReutilizavel(para: enviado) == nil {
@@ -352,7 +353,8 @@ public final class BuscaDeProfissionaisViewModel {
                     continue
                 }
                 incertos.insert(id)
-                guard pedido.trabalho != nil else { continue }
+                // O último pedido que saiu: depois do `409 trabalho_ja_aberto`, é o do `vaga_id`, que não abre vaga.
+                guard tentativas[id]?.trabalho != nil else { continue }
                 // Quem espera a confirmação J7 continua esperando; os demais nem saem.
                 for resto in alvos.dropFirst(posicao + 1) where resultadosDaChamada[resto] != .pedeConfirmacaoDeRecorrencia {
                     resultadosDaChamada[resto] = .naoEnviada
@@ -385,6 +387,41 @@ public final class BuscaDeProfissionaisViewModel {
                                  regiaoID: filtroDaBusca?.regiaoID)
         }
         return base.confirmando(confirmando || base.confirmoRecorrencia)
+    }
+
+    /// Manda o pedido com o prazo de 15 s. 0.2.95: `409 trabalho_ja_aberto` diz que a casa já tem este trabalho aberto
+    /// numa vaga direta, e nada foi criado. O `vaga_id` de `details` passa a ser a vaga do trabalho, e o mesmo
+    /// profissional vai de novo por ele, num pedido novo com chave nova, como a 2ª e a 3ª chamadas. Uma vez só: se o
+    /// pedido pelo `vaga_id` também for recusado, a recusa segue. Sem `vaga_id` em `details`, vira o erro genérico.
+    private func enviar(_ pedido: PedidoChamada, chave: () -> UUID) async throws -> Chamada {
+        do {
+            return try await enviarComPrazo(pedido)
+        } catch let recusa as ErroDaApi {
+            guard let vagaAberta = recusa.vagaDoTrabalhoAberto else { throw recusa }
+            guardarVaga(vagaAberta, doTrabalhoDe: pedido)
+            let pelaVaga = PedidoChamada(profissionalID: pedido.profissionalID, vagaID: vagaAberta,
+                                         estabelecimentoID: pedido.estabelecimentoID, chave: chave(),
+                                         recado: pedido.recado, confirmoRecorrencia: pedido.confirmoRecorrencia)
+            tentativas[pedido.profissionalID] = pelaVaga
+            return try await enviarComPrazo(pelaVaga)
+        }
+    }
+
+    private func enviarComPrazo(_ pedido: PedidoChamada) async throws -> Chamada {
+        let fonte = fonte
+        return try await PrazoDaAbertura.esperar(.seconds(15)) { try await fonte.chamarProfissional(pedido) }
+    }
+
+    /// A vaga que o `409 trabalho_ja_aberto` apontou vira a vaga do trabalho nesta tela: entra no lugar da que a tela
+    /// conhecia (pedido pelo `vaga_id`) ou como a primeira (pedido pelo trabalho). Os próximos entram direto nela.
+    private func guardarVaga(_ vagaID: UUID, doTrabalhoDe pedido: PedidoChamada) {
+        if let enviado = pedido.trabalho {
+            let semChave = enviado.comChave(Self.semChave)
+            vagasDosTrabalhos.removeAll { $0.trabalho == semChave }
+            vagasDosTrabalhos.append((semChave, vagaID))
+        } else if let conhecida = pedido.vagaID, let indice = vagasDosTrabalhos.firstIndex(where: { $0.id == conhecida }) {
+            vagasDosTrabalhos[indice].id = vagaID
+        }
     }
 
     /// A vaga direta que esta tela já criou para o mesmo trabalho (sem contar a chave), em qualquer busca, se existe.
