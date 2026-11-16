@@ -531,6 +531,11 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada) {
+                            { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -647,6 +652,7 @@ fun AppNavegacao(
             }
 
             rotasDaChamadaDiretaCasa(navController, guardaBiometrico)
+            rotasDaChamadaDiretaProfissional(navController, guardaBiometrico)
 
             composable(Rotas.CADASTRO_ESTABELECIMENTO) {
                 RotaProtegida(guardaBiometrico) {
