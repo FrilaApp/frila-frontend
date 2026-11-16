@@ -122,6 +122,16 @@ fun TelaPerfil(
     /** Cadastrar estabelecimento (RF02): nulo esconde o atalho, que só existe para contratante que ainda não tem casa. */
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     /**
+     * Chamada direta, lado do profissional (contrato 0.2.88): nulo esconde o atalho "Preferências de chamadas". O
+     * chamador só informa com `recursos.chamada_direta` ligado (RN46) e para quem é profissional.
+     */
+    aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /**
+     * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
+     * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
+     */
+    aoEncontrarProfissional: (() -> Unit)? = null,
+    /**
      * Mantém os atalhos da casa quando o endpoint de perfil profissional recusa a conta contratante.
      * O erro e a tentativa novamente continuam visíveis; esta flag nunca transforma falha em sucesso.
      */
@@ -290,6 +300,8 @@ fun TelaPerfil(
                 aoPublicarVaga = aoPublicarVaga,
                 aoMinhasVagas = aoMinhasVagas,
                 aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+                aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+                aoEncontrarProfissional = aoEncontrarProfissional,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
                 aoAbrirSelo = aoAbrirSelo,
@@ -349,6 +361,8 @@ private fun ConteudoDoPerfil(
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
+    aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
@@ -405,6 +419,8 @@ private fun ConteudoDoPerfil(
             aoPublicarVaga = aoPublicarVaga,
             aoMinhasVagas = aoMinhasVagas,
             aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+            aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+            aoEncontrarProfissional = aoEncontrarProfissional,
         )
     }
 }
@@ -932,6 +948,8 @@ private fun BlocoDeConta(
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
+    aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    aoEncontrarProfissional: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -1029,6 +1047,26 @@ private fun BlocoDeConta(
                     .fillMaxWidth()
                     .padding(top = FrilaEspacamento.pequeno)
                     .testTag("perfil-cadastrar-estabelecimento"),
+            )
+        }
+        if (aoEncontrarProfissional != null) {
+            BotaoSecundario(
+                texto = "Encontrar profissional",
+                aoClicar = aoEncontrarProfissional,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-encontrar-profissional"),
+            )
+        }
+        if (aoAbrirChamadasDiretas != null) {
+            BotaoSecundario(
+                texto = "Preferências de chamadas",
+                aoClicar = aoAbrirChamadasDiretas,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-chamadas-diretas"),
             )
         }
         BotaoSecundario(

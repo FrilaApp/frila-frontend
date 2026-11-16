@@ -797,6 +797,76 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun atalhoDasChamadasDiretasSoApareceQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var aberta = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoAbrirChamadasDiretas = { aberta++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-chamadas-diretas").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, aberta)
+        }
+    }
+
+    @Test
+    fun atalhoEncontrarProfissionalSoApareceComOCallbackEChamaEle() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var aberta = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoEncontrarProfissional = { aberta++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-encontrar-profissional").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.waitForIdle()
+
+            assertEquals(1, aberta)
+        }
+    }
+
+    @Test
+    fun semCallbackDaBuscaOAtalhoEncontrarProfissionalNaoExiste() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-encontrar-profissional").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun semCallbackDasChamadasDiretasOAtalhoNaoExiste() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-chamadas-diretas").assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun atalhoDePublicarVagaSoApareceQuandoOChamadorInformaOCallback() {
         runBlocking {
             val vm = criarViewModel()
