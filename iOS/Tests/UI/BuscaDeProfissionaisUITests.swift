@@ -43,6 +43,7 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
 
         let selecoes = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'"))
         XCTAssertTrue(selecoes.firstMatch.waitForExistence(timeout: 15), "a busca traz profissionais")
+        XCTAssertGreaterThanOrEqual(selecoes.count, 2, "a busca traz ao menos duas pessoas para selecionar")
         selecoes.element(boundBy: 0).tap()
         selecoes.element(boundBy: 1).tap()
 

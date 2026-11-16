@@ -326,6 +326,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 45)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         await fonte.ajustar(recorrenciaPendente: [ids[1]])
         vm.alternarSelecao(ids[0])
         vm.alternarSelecao(ids[1])
@@ -338,6 +339,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido))
         await vm.carregarMais()
         let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count >= 3)
         #expect(await fonte.cursoresRecebidos == [nil, "20", nil])
         #expect(filtros[2] == filtros[0], "a 1ª página volta com o filtro da busca, não com o que a tela editava")
         #expect(vm.regiaoID == 99, "o filtro em edição continua como estava")
