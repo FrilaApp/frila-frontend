@@ -359,4 +359,4 @@ val moduloFeatures = module {
     }
 }
 
-val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures)
+val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures, moduloDestinoDaConta)
