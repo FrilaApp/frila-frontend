@@ -30,7 +30,7 @@ public struct TelaAceiteDeTermosProvisoria: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
             Text("Para buscar profissionais, aceite os Termos de Uso atualizados.", bundle: bundleApresentacao)
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
@@ -41,6 +41,8 @@ public struct TelaAceiteDeTermosProvisoria: View {
                 Text("Ler os Termos de Uso", bundle: bundleApresentacao)
                     .frame(minHeight: 44, alignment: .leading)
             }
+            // Na linha do Form da busca, só o próprio link abre os Termos (sem estilo, a linha inteira abriria).
+            .buttonStyle(.borderless)
             .accessibilityIdentifier("aceite-termos-link")
 
             if erroNoAceite {
@@ -66,6 +68,5 @@ public struct TelaAceiteDeTermosProvisoria: View {
             .disabled(aceitando)
             .accessibilityIdentifier("aceite-termos-aceitar")
         }
-        .padding()
     }
 }

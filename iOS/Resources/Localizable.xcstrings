@@ -14801,6 +14801,457 @@
           }
         }
       }
+    },
+    "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo."
+          }
+        }
+      }
+    },
+    "A busca de profissionais está indisponível no momento." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A busca de profissionais está indisponível no momento."
+          }
+        }
+      }
+    },
+    "Não foi possível buscar agora. Verifique sua conexão e tente novamente." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível buscar agora. Verifique sua conexão e tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar mais profissionais. Tente novamente." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar mais profissionais. Tente novamente."
+          }
+        }
+      }
+    },
+    "Você pode chamar até 3 profissionais de uma vez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você pode chamar até 3 profissionais de uma vez."
+          }
+        }
+      }
+    },
+    "Sua conta não tem permissão para buscar profissionais." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta não tem permissão para buscar profissionais."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa e não pode buscar profissionais agora." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta está suspensa e não pode buscar profissionais agora."
+          }
+        }
+      }
+    },
+    "Encontrar profissional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontrar profissional"
+          }
+        }
+      }
+    },
+    "Filtros" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtros"
+          }
+        }
+      }
+    },
+    "Serviço" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serviço"
+          }
+        }
+      }
+    },
+    "Escolha um serviço" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha um serviço"
+          }
+        }
+      }
+    },
+    "Região" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Região"
+          }
+        }
+      }
+    },
+    "Região do meu estabelecimento" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Região do meu estabelecimento"
+          }
+        }
+      }
+    },
+    "Buscar por horário" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar por horário"
+          }
+        }
+      }
+    },
+    "Buscando profissionais" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscando profissionais"
+          }
+        }
+      }
+    },
+    "Profissionais" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profissionais"
+          }
+        }
+      }
+    },
+    "Disponível nesse horário" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponível nesse horário"
+          }
+        }
+      }
+    },
+    "Sem avaliações ainda" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem avaliações ainda"
+          }
+        }
+      }
+    },
+    "Nenhum profissional encontrado com esses filtros. Você pode publicar a vaga para todos." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum profissional encontrado com esses filtros. Você pode publicar a vaga para todos."
+          }
+        }
+      }
+    },
+    "Carregar mais" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregar mais"
+          }
+        }
+      }
+    },
+    "Chamar selecionados" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chamar selecionados"
+          }
+        }
+      }
+    },
+    "%lld de 3 selecionados" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld de 3 selecionados"
+          }
+        }
+      }
+    },
+    "Selecionar %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecionar %@"
+          }
+        }
+      }
+    },
+    "Desmarcar %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desmarcar %@"
+          }
+        }
+      }
+    },
+    "Chamar profissionais" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chamar profissionais"
+          }
+        }
+      }
+    },
+    "O mesmo valor total e o mesmo horário vão para cada profissional selecionado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O mesmo valor total e o mesmo horário vão para cada profissional selecionado."
+          }
+        }
+      }
+    },
+    "Enviar chamadas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar chamadas"
+          }
+        }
+      }
+    },
+    "Chamada enviada" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chamada enviada"
+          }
+        }
+      }
+    },
+    "Falta confirmar o aviso da chamada recorrente" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falta confirmar o aviso da chamada recorrente"
+          }
+        }
+      }
+    },
+    "Resultado das chamadas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resultado das chamadas"
+          }
+        }
+      }
+    },
+    "Aceito chamadas diretas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceito chamadas diretas"
+          }
+        }
+      }
+    },
+    "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga."
+          }
+        }
+      }
+    },
+    "Você aparece na busca de profissionais." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você aparece na busca de profissionais."
+          }
+        }
+      }
+    },
+    "Para aparecer na busca falta:" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para aparecer na busca falta:"
+          }
+        }
+      }
+    },
+    "Cadastrar ao menos um serviço com preço." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cadastrar ao menos um serviço com preço."
+          }
+        }
+      }
+    },
+    "Marcar uma região de atendimento ou \"Atendo todo o DF\"." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar uma região de atendimento ou \"Atendo todo o DF\"."
+          }
+        }
+      }
+    },
+    "Terminar a pausa de novas chamadas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminar a pausa de novas chamadas."
+          }
+        }
+      }
+    },
+    "Atualizar o app em um dos seus aparelhos." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizar o app em um dos seus aparelhos."
+          }
+        }
+      }
+    },
+    "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo."
+          }
+        }
+      }
+    },
+    "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

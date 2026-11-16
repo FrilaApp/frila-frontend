@@ -42,10 +42,13 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
         if let atrasaAlemDoPrazo { self.atrasaAlemDoPrazo = atrasaAlemDoPrazo }
     }
 
-    func exigirAceiteDosTermos(erroNoAceite: ErroDaApi? = nil) {
-        termosAceitos = false
+    /// A partir da busca de número `aPartirDaBusca` (1 = a primeira que chegou), o servidor pede os Termos; sem ele, já.
+    func exigirAceiteDosTermos(erroNoAceite: ErroDaApi? = nil, aPartirDaBusca: Int? = nil) {
+        if let aPartirDaBusca { exigirAceiteAPartirDaBusca = aPartirDaBusca } else { termosAceitos = false }
         self.erroNoAceite = erroNoAceite
     }
+
+    private var exigirAceiteAPartirDaBusca: Int?
 
     func liberarAceite() { erroNoAceite = nil }
 
@@ -67,6 +70,10 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
         filtrosRecebidos.append(filtro)
         cursoresRecebidos.append(cursor)
         limitesRecebidos.append(limite)
+        if let n = exigirAceiteAPartirDaBusca, filtrosRecebidos.count >= n {
+            termosAceitos = false
+            exigirAceiteAPartirDaBusca = nil
+        }
         if !termosAceitos { throw ErroDaApi(codigo: .semPermissao, detalhes: "termos_pendentes") }
         if let erroNaBusca { throw erroNaBusca }
         if cursor != nil, let erroNaPaginaSeguinte { throw erroNaPaginaSeguinte }
@@ -109,6 +116,20 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     }
 
     static let funcaoID = UUID(uuidString: "F0000000-0000-0000-0000-000000000001")!
+}
+
+/// Uma fonte que responde, mas depois de muito tempo (o teste injeta um prazo bem menor).
+private struct FonteDaBuscaLenta: FonteDaBuscaDeProfissionais {
+    func configuracaoDoApp() async throws -> ConfiguracaoApp {
+        ConfiguracaoApp(versaoMinima: "1.0", versaoRecomendada: "1.0", mensagem: nil, urlDaLoja: URL(string: "https://example.com")!,
+                        recursos: RecursosDoApp(chamadaDireta: true, buscaProfissionais: true))
+    }
+    func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais {
+        try await Task.sleep(for: .seconds(30))
+        return PaginaBuscaProfissionais(itens: [])
+    }
+    func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada { throw ErroDaApi(codigo: .semRede) }
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos { throw ErroDaApi(codigo: .semRede) }
 }
 
 @Suite("Busca de profissionais: view model")
@@ -330,6 +351,35 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(await fonte.cursoresRecebidos.last == .some(nil))
     }
 
+    @Test("cursor_invalido com termos_pendentes na releitura: a lista sai, vem o aceite e a busca repete o filtro da busca")
+    func termosPendentesNaReleituraDoCursorInvalido() async throws {
+        let (fonte, vm) = preparar(total: 45)
+        vm.regiaoID = 3
+        await vm.buscar()
+        #expect(vm.resultados.count == 20)
+        let primeiro = try #require(vm.resultados.first).id
+        vm.alternarSelecao(primeiro)
+        // A página seguinte volta cursor_invalido e, na releitura da 1ª página (a 3ª busca), o servidor pede os Termos.
+        await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido))
+        await fonte.exigirAceiteDosTermos(aPartirDaBusca: 3)
+        vm.regiaoID = 9
+        await vm.carregarMais()
+        #expect(vm.estado == .termosPendentes)
+        #expect(vm.resultados.isEmpty)
+        #expect(vm.selecionados.isEmpty)
+        #expect(!vm.temMais)
+
+        await vm.aceitarTermosERepetirABusca()
+        let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count == 4)
+        #expect(filtros[3] == filtros[0], "a busca repetida usa o filtro da busca recusada, não o que a tela editava")
+        #expect(await fonte.cursoresRecebidos == [nil, "20", nil, nil])
+        #expect(await fonte.aceitesRecebidos == [VersaoDosTermos.vigente])
+        #expect(vm.regiaoID == 3)
+        #expect(vm.estado == .resultados)
+        #expect(vm.resultados.count == 20)
+    }
+
     @Test("429 vira a mensagem de limite e some o resultado antigo")
     func limiteDeBuscas() async {
         let (fonte, vm) = preparar(total: 5)
@@ -412,6 +462,68 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(await fonte.cursoresRecebidos == [nil, "20", nil])
         #expect(vm.resultados.count == 20)
         #expect(vm.estado == .resultados)
+    }
+
+    // MARK: Ajustes do Lince O (F-035.4)
+
+    @Test("sem_permissao e conta_suspensa têm mensagem própria, não a de conexão")
+    func permissaoESuspensao() async {
+        let casos: [(ErroDaApi, String)] = [
+            (ErroDaApi(codigo: .semPermissao), TextosBuscaDeProfissionais.semPermissao),
+            (ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"), TextosBuscaDeProfissionais.contaSuspensa),
+            (ErroDaApi(codigo: .contaSuspensa), TextosBuscaDeProfissionais.contaSuspensa),
+        ]
+        for (erro, texto) in casos {
+            let (fonte, vm) = preparar(total: 5)
+            await fonte.ajustar(erroNaBusca: erro)
+            await vm.buscar()
+            #expect(vm.estado == .erro(texto))
+            #expect(texto != TextosBuscaDeProfissionais.erro)
+        }
+    }
+
+    @Test("cursor_invalido refaz a 1ª página sem apagar as chamadas enviadas, o J7 pendente nem os filtros em edição")
+    func cursorInvalidoPreservaOEstado() async throws {
+        let (fonte, vm) = preparar(total: 45)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        await fonte.ajustar(recorrenciaPendente: [ids[1]])
+        vm.alternarSelecao(ids[0])
+        vm.alternarSelecao(ids[1])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(vm.resultadosDaChamada.count == 2)
+        #expect(vm.resultadosDaChamada[ids[1]] == .pedeConfirmacaoDeRecorrencia)
+        let pedidosAntes = await fonte.pedidos.count
+        // A pessoa mexe nos filtros depois de buscar; o servidor recusa o cursor.
+        vm.regiaoID = 99
+        await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido))
+        await vm.carregarMais()
+        let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count >= 3)
+        #expect(await fonte.cursoresRecebidos == [nil, "20", nil])
+        #expect(filtros[2] == filtros[0], "a 1ª página volta com o filtro da busca, não com o que a tela editava")
+        #expect(vm.regiaoID == 99, "o filtro em edição continua como estava")
+        #expect(vm.resultadosDaChamada.count == 2)
+        #expect(vm.resultadosDaChamada[ids[1]] == .pedeConfirmacaoDeRecorrencia)
+        #expect(vm.selecionados == [ids[0], ids[1]])
+        #expect(vm.estado == .resultados)
+        #expect(await fonte.pedidos.count == pedidosAntes, "refazer a lista não chama ninguém de novo")
+        #expect(Set(vm.resultados.map(\.id)).count == vm.resultados.count)
+        // O J7 pendente ainda se confirma com a mesma chave.
+        await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
+        #expect(vm.resultadosDaChamada[ids[1]] != .pedeConfirmacaoDeRecorrencia)
+    }
+
+    @Test("Fonte que demora mais que o prazo injetável leva ao estado de erro")
+    func prazoVencido() async {
+        let fonte = FonteDaBuscaLenta()
+        let vm = BuscaDeProfissionaisViewModel(fonte: fonte, estabelecimentoID: casaID, prazo: .milliseconds(50))
+        vm.funcaoID = funcaoID
+        await vm.buscar()
+        #expect(vm.estado == .erro(TextosBuscaDeProfissionais.erro))
+        #expect(vm.resultados.isEmpty)
+        #expect(vm.podeBuscar, "o prazo vencido deixa buscar de novo")
     }
 
     // MARK: Seleção e chamada
@@ -858,6 +970,92 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(pedidos.last?.profissionalID == ids[3] && pedidos.last?.vagaID == vagaID && pedidos.last?.trabalho == nil)
     }
 
+    // MARK: Reenvio do mesmo trabalho, sem folha nova (IMPORTANTE 1 do Lince N no #790)
+
+    @Test("Sem envio anterior, reenviar não faz nada e não há envio registrado")
+    func reenviarSemEnvioNaoFazNada() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
+        #expect(!vm.temEnvioRegistrado)
+        await vm.reenviar()
+        #expect(await fonte.pedidos.isEmpty)
+    }
+
+    @Test("Tentar de novo do incerto repete o trabalho e o recado do 1º envio: 1 vaga, mesmo com outra folha na tela",
+          .timeLimit(.minutes(1)))
+    func reenviarRepeteOTrabalhoDoPrimeiroEnvio() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        let primeiro = try trabalho(valor: 20_000)
+        await vm.chamar(trabalho: primeiro, recado: "Traje preto")
+        #expect(vm.temEnvioRegistrado && vm.travadoPeloIncerto)
+        #expect(vm.trabalhoEnviado == primeiro && vm.recadoEnviado == "Traje preto")
+
+        // Uma folha nova traria outro valor e horário; o reenvio da tela não passa por ela: usa o do 1º envio.
+        await fonte.ajustar(perdeResposta: [])
+        await vm.reenviar()
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        try #require(pedidos.count >= 4)
+        #expect(pedidos[1] == pedidos[0]) // mesma chave, mesmo trabalho: o servidor devolve a chamada já criada
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 2)
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        #expect(pedidos.suffix(2).allSatisfy { $0.vagaID == vagaID && $0.trabalho == nil && $0.recado == "Traje preto" })
+        #expect(vagas(vm, ids) == [vagaID])
+        #expect(!vm.travadoPeloIncerto)
+    }
+
+    @Test("Contraprova: com outro trabalho, quem ainda não saiu abre 2ª vaga; com reenviar, entra na vaga do 1º envio")
+    func reenviarComOutroTrabalhoAbriaSegundaVaga() async throws {
+        // Contraprova: o caminho antigo (folha nova com valor/horário diferentes) abre outra vaga para quem não tentou.
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        await vm.chamar(trabalho: try trabalho(valor: 20_000))
+        await fonte.ajustar(perdeResposta: [])
+        await vm.chamar(trabalho: try trabalho(valor: 25_000))
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.last?.profissionalID == ids[1] && pedidos.last?.trabalho != nil, "outro trabalho: 2ª vaga (o que a tela evita)")
+
+        let (fonte2, vm2) = preparar(total: 2)
+        await vm2.buscar()
+        let ids2 = vm2.resultados.map(\.id)
+        try #require(ids2.count >= 2)
+        ids2.forEach { vm2.alternarSelecao($0) }
+        await fonte2.ajustar(perdeResposta: [ids2[0]])
+        await vm2.chamar(trabalho: try trabalho(valor: 20_000))
+        await fonte2.ajustar(perdeResposta: [])
+        await vm2.reenviar()
+        pedidos = await fonte2.pedidos
+        let vagaID = try #require(enviada(vm2.resultadosDaChamada[ids2[0]])).vagaID
+        #expect(pedidos.last?.profissionalID == ids2[1] && pedidos.last?.vagaID == vagaID && pedidos.last?.trabalho == nil)
+    }
+
+    @Test("J7: reenviar com a confirmação repete o trabalho do 1º envio")
+    func reenviarJ7() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(recorrenciaPendente: [ids[0]])
+        await vm.chamar(trabalho: try trabalho(), recado: "Oi")
+        #expect(vm.mostrarJ7)
+        await vm.reenviar(confirmoRecorrencia: true)
+        let pedidos = await fonte.pedidos
+        let confirmado = try #require(pedidos.last { $0.profissionalID == ids[0] })
+        #expect(confirmado.confirmoRecorrencia && confirmado.recado == "Oi")
+        #expect(enviada(vm.resultadosDaChamada[ids[0]]) != nil)
+    }
+
     @Test("cursor_invalido refaz a busca e guarda o incerto, a chave dele e a vaga do trabalho")
     func cursorInvalidoGuardaIncertoEChave() async throws {
         let (fonte, vm) = preparar(total: 45)
@@ -876,12 +1074,13 @@ struct BuscaDeProfissionaisViewModelTests {
         await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido), perdeResposta: [])
         await vm.carregarMais()
         #expect(await fonte.cursoresRecebidos == [nil, "20", nil]) // refez a 1ª página
-        #expect(vm.selecionados.isEmpty)
+        // O refazer por cursor_invalido não apaga a seleção (F-035.4): quem já estava marcado continua.
+        #expect(vm.selecionados == [ids[0], ids[1]])
 
-        vm.alternarSelecao(ids[1])
         vm.alternarSelecao(ids[2])
         await vm.chamar(trabalho: try trabalho())
         let pedidos = await fonte.pedidos
+        try #require(pedidos.count >= 4)
         #expect(pedidos.count == 4)
         try #require(pedidos.count >= 4)
         #expect(pedidos[2].profissionalID == ids[1] && pedidos[2].chave == chaveIncerta && pedidos[2].vagaID == vagaID)
