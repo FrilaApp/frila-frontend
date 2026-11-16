@@ -353,6 +353,114 @@ struct BuscaDeProfissionaisDubleTests {
         #expect(naoAceita.servicos.isEmpty)
     }
 
+    // MARK: Termos 1.1 (contrato 0.2.90)
+
+    private func apiSemTermos() -> ApiClienteEmMemoria {
+        ApiClienteEmMemoria(cenario: .buscaComTermosPendentes, relogio: RelogioAjustavel(Self.agora))
+    }
+
+    @Test("Sem os Termos 1.1, a busca é 403 sem_permissao com termos_pendentes; depois de aceitar, passa")
+    func buscaExigeOAceite() async throws {
+        let api = apiSemTermos()
+        #expect(try await api.minhaConta().termosVersao == nil)
+        let recusa = await #expect(throws: ErroDaApi.self) { _ = try await api.buscarProfissionais(filtro(), cursor: nil, limite: nil) }
+        #expect(recusa?.codigo == .semPermissao)
+        #expect(recusa?.detalhes == "termos_pendentes")
+        #expect(recusa?.termosPendentes == true)
+
+        let aceite = try await api.aceitarTermos(versao: VersaoDosTermos.vigente)
+        #expect(aceite.termosVersao == "2026-11-13")
+        #expect(aceite.aceitoEm == Self.agora)
+        #expect(try await api.minhaConta().termosVersao == "2026-11-13")
+        #expect(try await api.buscarProfissionais(filtro(), cursor: nil, limite: nil).itens.isEmpty == false)
+    }
+
+    @Test("O cenário com os Termos aceitos não pede o aceite; as outras recusas vêm antes do termos_pendentes")
+    func cenarioComTermosAceitosEOrdemDasRecusas() async throws {
+        #expect(try await api().minhaConta().termosVersao == "2026-11-13")
+        // Chave desligada ganha do termos_pendentes (a ordem do contrato: as três recusas, depois os Termos).
+        let desligada = ApiClienteEmMemoria(cenario: .buscaComTermosPendentes, relogio: RelogioAjustavel(Self.agora), chamadaDiretaDesligada: true)
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await desligada.buscarProfissionais(filtro(), cursor: nil, limite: nil) }
+        #expect(erro?.detalhes == "recurso_desligado")
+    }
+
+    @Test("aceitar_termos: vazia é campo_obrigatorio; fora do formato ou não publicada é campo_invalido; repetir devolve o mesmo aceite")
+    func regrasDoAceite() async throws {
+        let relogio = RelogioAjustavel(Self.agora)
+        let api = ApiClienteEmMemoria(cenario: .buscaComTermosPendentes, relogio: relogio)
+        let vazia = await #expect(throws: ErroDaApi.self) { _ = try await api.aceitarTermos(versao: "  ") }
+        #expect(vazia?.codigo == .campoObrigatorio)
+        for invalida in ["13/11/2026", "2026-11-1", "v1.1", "2026-12-01", "2026-10-01"] {
+            let erro = await #expect(throws: ErroDaApi.self) { _ = try await api.aceitarTermos(versao: invalida) }
+            #expect(erro?.codigo == .campoInvalido, "versão \(invalida)")
+            #expect(erro?.detalhes == "termos_versao")
+        }
+        #expect(try await api.minhaConta().termosVersao == nil)
+
+        let primeiro = try await api.aceitarTermos(versao: "2026-11-13")
+        relogio.avancar(3600)
+        #expect(try await api.aceitarTermos(versao: "2026-11-13") == primeiro)
+        #expect(try await api.minhaConta().termosVersao == "2026-11-13")
+    }
+
+    @Test("aceitar_termos sem conta (antes de criar_conta) é 404 nao_encontrado, como minha_conta")
+    func aceitarSemConta() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso, relogio: RelogioAjustavel(Self.agora))
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await api.aceitarTermos(versao: VersaoDosTermos.vigente) }
+        #expect(erro?.codigo == .naoEncontrado)
+    }
+
+    @Test("termos_pendentes não gasta o limite de 60 buscas por hora")
+    func termosPendentesNaoGastaOLimite() async throws {
+        let api = apiSemTermos()
+        for _ in 1...(ApiClienteEmMemoria.limiteDeBuscasPorHora + 10) {
+            let erro = await #expect(throws: ErroDaApi.self) { _ = try await api.buscarProfissionais(filtro(), cursor: nil, limite: nil) }
+            #expect(erro?.termosPendentes == true)
+        }
+        _ = try await api.aceitarTermos(versao: VersaoDosTermos.vigente)
+        #expect(try await api.buscarProfissionais(filtro(), cursor: nil, limite: nil).itens.count == 20)
+    }
+
+    @Test("termos_pendentes vem antes da validação dos filtros: filtro inválido sem os Termos ainda é termos_pendentes")
+    func termosAntesDosFiltros() async throws {
+        let api = apiSemTermos()
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await api.buscarProfissionais(filtro(funcao: UUID()), cursor: nil, limite: nil) }
+        #expect(erro?.termosPendentes == true)
+    }
+
+    @Test("Pela busca, sem os Termos e sem vínculo, chamar_profissional é termos_pendentes antes de qualquer conferência do profissional; aceito, a chamada sai")
+    func chamarPelaBuscaExigeOAceite() async throws {
+        let api = apiSemTermos()
+        let inicio = Self.agora.addingTimeInterval(24 * 3600)
+        let recusa = await #expect(throws: ErroDaApi.self) { _ = try await api.chamarProfissional(pedido(para: IDs.disponivel, inicio: inicio)) }
+        #expect(recusa?.termosPendentes == true)
+        // Mesmo quem não aceita chamadas e quem está pausado: os Termos vêm antes de qualquer conferência sobre ele.
+        for outro in [IDs.naoAceita, IDs.pausado] {
+            let erro = await #expect(throws: ErroDaApi.self) { _ = try await api.chamarProfissional(pedido(para: outro, inicio: inicio)) }
+            #expect(erro?.termosPendentes == true)
+        }
+        _ = try await api.aceitarTermos(versao: VersaoDosTermos.vigente)
+        #expect(try await api.chamarProfissional(pedido(para: IDs.disponivel, inicio: inicio)).estado == .aberta)
+    }
+
+    @Test("Sem os Termos, a busca não conta como vínculo de leitura no perfil_publico; aceito, abre os campos ricos")
+    func perfilPublicoSemOAceite() async throws {
+        let api = apiSemTermos()
+        #expect(try await api.perfilPublico(id: IDs.disponivel).servicos.isEmpty)
+        _ = try await api.aceitarTermos(versao: VersaoDosTermos.vigente)
+        #expect(try await api.perfilPublico(id: IDs.disponivel).servicos.isEmpty == false)
+    }
+
+    @Test("criar_conta guarda a versão dos Termos que o cadastro exibiu")
+    func cadastroGuardaAVersao() async throws {
+        let api = ApiClienteEmMemoria(cenario: .primeiroAcesso, relogio: RelogioAjustavel(Self.agora))
+        let conta = try await api.criarConta(CadastroConta(
+            nome: "Ana", telefone: "+5561988887777", nascimento: try DataCivil(ano: 1990, mes: 1, dia: 1),
+            perfil: .contratante, versaoTermos: "2026-11-13"))
+        #expect(conta.termosVersao == "2026-11-13")
+        #expect(try await api.minhaConta().termosVersao == "2026-11-13")
+    }
+
     // MARK: "Aceito chamadas diretas"
 
     @Test("Ligar aceita_chamadas exige a versão do texto, e a resposta diz o que falta para aparecer")

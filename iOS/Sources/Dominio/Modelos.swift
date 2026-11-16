@@ -40,8 +40,12 @@ public struct Conta: Codable, Hashable, Identifiable, Sendable {
     public let email: String
     public let nascimento: DataCivil
     public let estado: EstadoConta
+    /// 0.2.90. A última versão dos Termos e da Política que a conta aceitou (`Usuario.termos_versao`). Ausente, o app
+    /// trata como não aceita.
+    public let termosVersao: String?
 
-    public init(id: UUID, perfil: PerfilConta, nome: String, telefone: String, email: String, nascimento: DataCivil, estado: EstadoConta) {
+    public init(id: UUID, perfil: PerfilConta, nome: String, telefone: String, email: String, nascimento: DataCivil,
+                estado: EstadoConta, termosVersao: String? = nil) {
         self.id = id
         self.perfil = perfil
         self.nome = nome
@@ -49,9 +53,41 @@ public struct Conta: Codable, Hashable, Identifiable, Sendable {
         self.email = email
         self.nascimento = nascimento
         self.estado = estado
+        self.termosVersao = termosVersao
     }
 
     public var sessao: SessaoUsuario { SessaoUsuario(usuarioID: id, perfil: perfil) }
+
+    /// A mesma conta com outra versão de termos aceita.
+    public func comTermosVersao(_ versao: String?) -> Conta {
+        Conta(id: id, perfil: perfil, nome: nome, telefone: telefone, email: email, nascimento: nascimento,
+              estado: estado, termosVersao: versao)
+    }
+}
+
+/// As versões dos Termos e da Política (datas `AAAA-MM-DD`, que se comparam como texto, contrato 0.2.90).
+public enum VersaoDosTermos {
+    /// A que as telas de cadastro e de aceite exibem hoje (Termos 1.1 e Política, 13/11/2026).
+    public static let vigente = "2026-11-13"
+    /// A mais antiga com que o servidor deixa buscar profissionais.
+    public static let minimaParaBuscar = "2026-11-13"
+
+    /// `true` se a versão aceita vale para a busca. Sem versão (campo ausente), não aceitou.
+    public static func atendeABusca(_ aceita: String?) -> Bool {
+        guard let aceita else { return false }
+        return aceita >= minimaParaBuscar
+    }
+}
+
+/// O aceite em vigor que `aceitar_termos` devolve (0.2.90).
+public struct AceiteDeTermos: Equatable, Sendable {
+    public let termosVersao: String
+    public let aceitoEm: Date
+
+    public init(termosVersao: String, aceitoEm: Date) {
+        self.termosVersao = termosVersao
+        self.aceitoEm = aceitoEm
+    }
 }
 
 public enum FormatoDeTrabalho: String, Codable, Sendable {

@@ -12,7 +12,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// aberta, que dá para cancelar, e outra com a chamada recusada, que libera "Publicar para
         /// todos" (RN35). Vitrine de Acompanhar chamadas.
         case chamadasEnviadas = "chamadas-enviadas"
-        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente || self == .chamadasEnviadas || self == .buscaDeProfissionais }
+        var deChamada: Bool { self == .chamadaDireta || self == .chamadaRecorrente || self == .chamadasEnviadas || deBusca }
         /// Conta de profissional com a chamada direta ligada (Preferências de chamada, CD-RF10) e uma
         /// chamada aberta da casa de exemplo (`chamadaRecebidaID`, CD-RF08). Abre com
         /// `-FRILA_PUSH chamada_recebida -FRILA_PUSH_CHAMADA_ID <chamadaRecebidaID>`.
@@ -176,6 +176,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// ligada e profissionais simulados na busca (`profissionaisNaBuscaDeExemplo`), entre eles os
         /// que as regras tiram da lista.
         case buscaDeProfissionais = "busca-de-profissionais"
+        /// Como `buscaDeProfissionais`, com a conta que ainda não aceitou os Termos 1.1 (0.2.90): `buscar_profissionais`
+        /// responde `403 sem_permissao` (`termos_pendentes`) até `aceitar_termos`, e a busca passa a funcionar.
+        case buscaComTermosPendentes = "busca-com-termos-pendentes"
+        /// Os cenários com a busca de profissionais ligada.
+        var deBusca: Bool { self == .buscaDeProfissionais || self == .buscaComTermosPendentes }
         #if DEBUG
         /// Painel com um turno encerrado e presença verificada para o ciclo de ponta a ponta (#64).
         case cicloContratanteTurnoConcluido = "ciclo-contratante-turno-concluido"
@@ -270,6 +275,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private let perfilPublicoDeExemplo: PerfilPublico
     private var sessaoAtiva = false
     private var conta: Conta?
+    /// A última versão dos Termos que a conta aceitou (`Usuario.termos_versao`, 0.2.90). Os cenários começam com os
+    /// Termos 1.1 aceitos, menos `buscaComTermosPendentes`.
+    private var termosAceitos: String? = VersaoDosTermos.vigente
+    /// Os aceites que `aceitar_termos` registrou, na ordem em que chegaram, para o teste conferir.
+    public private(set) var aceitesDeTermosRecebidos: [String] = []
     private var perfilProfissional: PerfilProfissional?
     private var servicosDoPerfil: [ServicoNoPerfil]?
     private var apresentacaoProfissional: ApresentacaoDoProfissional?
@@ -398,6 +408,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     ) {
         self.cenario = cenario
         self.relogio = relogio
+        if cenario == .buscaComTermosPendentes { termosAceitos = nil }
         self.sessaoAtiva = sessaoAtivaInicial
         self.erroSimuladoRepublicarPosicoesRestantes = erroSimuladoRepublicarPosicoesRestantes
         self.simularFalhaTransitoriaRepublicar = simularFalhaTransitoriaRepublicar
@@ -418,7 +429,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     chamadaDireta: !chamadaDiretaDesligada && (cenario.deChamada || cenario == .chamadaRecebida),
                     perfilRico: perfilRicoHabilitado,
                     checkinPorCodigo: cenario.checkinPorCodigoLigado,
-                    buscaProfissionais: !chamadaDiretaDesligada && cenario == .buscaDeProfissionais
+                    buscaProfissionais: !chamadaDiretaDesligada && cenario.deBusca
                 )
             )
             midias = Self.midiasIniciais(cenario, agora: relogio.agora)
@@ -942,8 +953,30 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func minhaConta() async throws -> Conta {
         try verificarRede()
         guard let conta else { throw erro("nao_encontrado") }
-        return conta
+        return conta.comTermosVersao(termosAceitos)
     }
+
+    /// As versões dos Termos que o servidor tem publicadas (hoje, só a de 13/11/2026): `aceitar_termos` só vale para elas.
+    private static let versoesDosTermosPublicadas: Set<String> = ["2026-11-13"]
+
+    /// 0.2.90. Registra o aceite com o instante do relógio do dublê. Sem conta: `nao_encontrado`, como `minha_conta`.
+    /// Versão vazia: `campo_obrigatorio`; fora do formato `AAAA-MM-DD`, não publicada ou anterior à já aceita:
+    /// `campo_invalido` (o aceite não volta atrás); a mesma versão devolve o aceite que existe.
+    public func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
+        aceitesDeTermosRecebidos.append(versao)
+        try verificarRede()
+        guard conta != nil else { throw erro("nao_encontrado") }
+        let limpa = versao.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !limpa.isEmpty else { throw erro("campo_obrigatorio", detalhes: "termos_versao") }
+        guard limpa.range(of: #"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"#, options: .regularExpression) != nil,
+              Self.versoesDosTermosPublicadas.contains(limpa) else { throw erro("campo_invalido", detalhes: "termos_versao") }
+        if let atual = termosAceitos, limpa < atual { throw erro("campo_invalido", detalhes: "termos_versao") }
+        if termosAceitos != limpa || instanteDoAceiteDeTermos == nil { instanteDoAceiteDeTermos = relogio.agora }
+        termosAceitos = limpa
+        return AceiteDeTermos(termosVersao: limpa, aceitoEm: instanteDoAceiteDeTermos ?? relogio.agora)
+    }
+
+    private var instanteDoAceiteDeTermos: Date?
 
     /// Demonstração: grava na conta em memória. O argumento de lançamento desliga a capacidade, para os
     /// testes de cópia que não querem a parada Editar.
@@ -960,7 +993,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             nascimento: atual.nascimento, estado: atual.estado
         )
         conta = nova
-        return nova
+        return nova.comTermosVersao(termosAceitos)
     }
 
     public func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
@@ -981,7 +1014,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
             email: "voce@frila.app", nascimento: cadastro.nascimento, estado: .ativa
         )
         conta = nova
-        return nova
+        termosAceitos = cadastro.versaoTermos
+        return nova.comTermosVersao(termosAceitos)
     }
 
     public func criarPerfilProfissional(_ dados: DadosPerfilProfissional) async throws -> PerfilProfissional {
@@ -1415,14 +1449,21 @@ public actor ApiClienteEmMemoria: ApiCliente {
         guard let perfil = perfilDoProfissional(recebido.profissionalID), bloqueios[Alvo(perfil)] == nil else {
             throw erro("nao_encontrado")
         }
+        // 0.2.90: com a busca ligada e sem os Termos 1.1, a busca não conta como caminho. Sem turno cumprido nem equipe
+        // de confiança com o profissional, é `termos_pendentes`, antes de qualquer conferência sobre ele.
+        let vinculoDaCasa = equipesDeConfianca[recebido.estabelecimentoID]?.contains(perfil.id) == true
+            || cumpriuTurnoVerificado(perfil.id, em: recebido.estabelecimentoID)
+        if recursosEfetivos.buscaProfissionais, !vinculoDaCasa, !VersaoDosTermos.atendeABusca(termosAceitos) {
+            throw erro("sem_permissao", detalhes: "termos_pendentes")
+        }
         if let existente = chamadasPorChave[recebido.chave] { return existente }
         // Pelo `vaga_id`, as regras abaixo valem com a função, o horário e a região da vaga direta.
         let (pedido, vagaExistente) = try pedidoComAVagaDireta(recebido)
         guard let t = pedido.trabalho else { throw erro("campo_invalido", detalhes: "vaga_id") }
         let pelaBusca = try entraPelaBusca(perfil.id, pedido: pedido)
-        guard equipesDeConfianca[t.estabelecimentoID]?.contains(perfil.id) == true
-                || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID)
-                || pelaBusca else {
+        let comVinculo = equipesDeConfianca[t.estabelecimentoID]?.contains(perfil.id) == true
+            || cumpriuTurnoVerificado(perfil.id, em: t.estabelecimentoID)
+        guard comVinculo || pelaBusca else {
             throw erro("profissional_indisponivel", detalhes: "nao_aceita_chamadas")
         }
         try conferirRegrasDoProfissionalDaBusca(perfil.id, pedido: pedido)
@@ -3540,7 +3581,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     /// Quem está na busca: o que o teste definiu, ou os de exemplo do cenário.
     private var profissionaisNaBusca: [ProfissionalSimuladoNaBusca] {
         if let profissionaisNaBuscaGuardados { return profissionaisNaBuscaGuardados }
-        let exemplo = cenario == .buscaDeProfissionais ? Self.profissionaisNaBuscaDeExemplo(catalogo: catalogo, agora: relogio.agora) : []
+        let exemplo = cenario.deBusca ? Self.profissionaisNaBuscaDeExemplo(catalogo: catalogo, agora: relogio.agora) : []
         profissionaisNaBuscaGuardados = exemplo
         return exemplo
     }
@@ -3559,6 +3600,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         }
         guard recursosEfetivos.buscaProfissionais else { throw erro("sem_permissao", detalhes: "recurso_desligado") }
         guard let casa = estabelecimentos.first(where: { $0.id == filtro.estabelecimentoID }) else { throw erro("sem_permissao") }
+        // Depois das três recusas acima (0.2.90): sem os Termos 1.1 aceitos, o app pede o aceite e repete a busca.
+        guard VersaoDosTermos.atendeABusca(termosAceitos) else { throw erro("sem_permissao", detalhes: "termos_pendentes") }
         if let limite, !(1...FiltroBuscaProfissionais.limiteDaPagina).contains(limite) { throw erro("campo_invalido", detalhes: "limite") }
         guard catalogo.contains(where: { $0.id == filtro.funcaoID }) else { throw erro("campo_invalido", detalhes: "funcao_id") }
         let regiaoID: Int
@@ -3694,7 +3737,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         let temVinculo = estabelecimentos.contains { casa in
             equipesDeConfianca[casa.id]?.contains(p.id) == true || cumpriuTurnoVerificado(p.id, em: casa.id)
         }
-        let rico = temVinculo || (recursosEfetivos.buscaProfissionais && p.aceitaChamadas)
+        // Desde a 0.2.90 a busca só conta como vínculo de leitura para quem aceitou os Termos 1.1.
+        let rico = temVinculo || (recursosEfetivos.buscaProfissionais && p.aceitaChamadas && VersaoDosTermos.atendeABusca(termosAceitos))
         return PerfilPublico(
             id: p.id, tipo: .profissional, nome: temVinculo ? p.nomeCompleto : Self.nomeComInicial(p.nomeCompleto),
             funcoes: p.servicos.map(\.funcao.nome), reputacao: p.reputacao,
