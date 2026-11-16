@@ -1,5 +1,6 @@
 import Foundation
 import FrilaApresentacao
+@testable import FrilaDados
 import FrilaDominio
 import Testing
 
@@ -376,5 +377,97 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.alternarSelecao(vm.resultados[0].id)
         await vm.buscar()
         #expect(vm.selecionados.isEmpty)
+    }
+
+    // MARK: Integração com o dublê do cenário .buscaDeProfissionais (relógio fixo)
+
+    private struct RelogioFixoDaBusca: Relogio {
+        let agora = Date(timeIntervalSince1970: 1_900_000_000)
+    }
+
+    /// O dublê com a conta de quem contrata, a casa, o serviço do exemplo (o primeiro do catálogo) e a região 1.
+    private func prepararNoDuble() async throws -> (api: ApiClienteEmMemoria, casaID: UUID, funcaoID: UUID, regiao: RegiaoAdministrativa) {
+        let api = ApiClienteEmMemoria(cenario: .buscaDeProfissionais, relogio: RelogioFixoDaBusca())
+        let casaID = try #require(try await api.meusEstabelecimentos().first).id
+        let funcaoID = try #require(try await api.funcoes().first).id
+        let regiao = try #require(try await api.regioesAdministrativas().first { $0.id == 1 })
+        return (api, casaID, funcaoID, regiao)
+    }
+
+    @Test("Dublê: buscar traz os resultados na ordem do servidor e carregarMais vai até o fim, sem repetir")
+    func integracaoOrdemEPaginacao() async throws {
+        let (api, casaID, funcaoID, regiao) = try await prepararNoDuble()
+        let filtro = FiltroBuscaProfissionais(estabelecimentoID: casaID, funcaoID: funcaoID, regiaoID: regiao.id)
+        let primeira = try await api.buscarProfissionais(filtro, cursor: nil, limite: 20)
+        let cursor = try #require(primeira.proximoCursor)
+        let segunda = try await api.buscarProfissionais(filtro, cursor: cursor, limite: 20)
+        let esperados = (primeira.itens + segunda.itens).map(\.id)
+        #expect(primeira.itens.count == 20)
+        #expect(!segunda.itens.isEmpty && !segunda.temMais)
+
+        let vm = BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: casaID)
+        vm.funcaoID = funcaoID
+        vm.regiaoID = regiao.id
+        await vm.buscar()
+        #expect(vm.estado == .resultados)
+        #expect(vm.resultados.count == 20)
+        #expect(vm.temMais)
+        await vm.carregarMais()
+        #expect(!vm.temMais)
+        #expect(vm.resultados.map(\.id) == esperados)
+        #expect(Set(vm.resultados.map(\.id)).count == esperados.count)
+        // Quem o servidor tira da lista (pausado, sem aceite, sem região) não aparece.
+        #expect(!vm.resultados.map(\.id).contains(ApiClienteEmMemoria.IDsDaBusca.pausado))
+        #expect(!vm.resultados.map(\.id).contains(ApiClienteEmMemoria.IDsDaBusca.naoAceita))
+        #expect(!vm.resultados.map(\.id).contains(ApiClienteEmMemoria.IDsDaBusca.semRegiao))
+    }
+
+    @Test("Dublê: selecionar 3 e chamar cria 3 pedidos, cada um com o regiaoID do filtro")
+    func integracaoChamarTres() async throws {
+        let (api, casaID, funcaoID, regiao) = try await prepararNoDuble()
+        let casa = try await api.meuEstabelecimento(id: casaID)
+        let vm = BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: casaID)
+        vm.funcaoID = funcaoID
+        vm.regiaoID = regiao.id
+        await vm.buscar()
+        let escolhidos = Array(vm.resultados.prefix(4).map(\.id))
+        #expect(escolhidos.count == 4)
+        escolhidos.forEach { vm.alternarSelecao($0) }
+        #expect(vm.selecionados == Array(escolhidos.prefix(3))) // o 4º não entrou
+
+        let agora = RelogioFixoDaBusca().agora
+        let trabalho = PublicacaoVaga(
+            estabelecimentoID: casaID, funcaoID: funcaoID,
+            periodo: try Periodo(inicio: agora.addingTimeInterval(24 * 3600), fim: agora.addingTimeInterval(28 * 3600)),
+            local: casa.endereco, regiaoAdministrativa: regiao.nome, ponto: casa.ponto, valor: Dinheiro(centavos: 20_000),
+            posicoes: 1, inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
+            responsavelLocal: casa.nome, chave: UUID())
+        await vm.chamar(trabalho: trabalho)
+
+        let pedidos = await api.pedidosChamadaRecebidos
+        #expect(pedidos.map(\.profissionalID) == vm.selecionados)
+        #expect(pedidos.allSatisfy { $0.regiaoID == regiao.id })
+        #expect(Set(pedidos.map(\.trabalho.chave)).count == 3)
+        for id in vm.selecionados {
+            if case .enviada = vm.resultadosDaChamada[id] {} else { Issue.record("a chamada de \(id) não foi enviada: \(String(describing: vm.resultadosDaChamada[id]))") }
+        }
+    }
+
+    @Test("Dublê: filtro sem ninguém vira vazio e oferece Publicar para todos já preenchido")
+    func integracaoVazio() async throws {
+        let (api, casaID, funcaoID, regiao) = try await prepararNoDuble()
+        // O exemplo só tem gente no primeiro serviço do catálogo: qualquer outro volta vazio.
+        let outraFuncaoID = try #require(try await api.funcoes().first { $0.id != funcaoID }).id
+        let horario = try Periodo(inicio: RelogioFixoDaBusca().agora.addingTimeInterval(48 * 3600),
+                                  fim: RelogioFixoDaBusca().agora.addingTimeInterval(52 * 3600))
+        let vm = BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: casaID)
+        vm.funcaoID = outraFuncaoID
+        vm.regiaoID = regiao.id
+        vm.horario = horario
+        await vm.buscar()
+        #expect(vm.estado == .vazio)
+        #expect(vm.resultados.isEmpty)
+        #expect(vm.rascunhoParaPublicarParaTodos == RascunhoDeVagaDaBusca(
+            estabelecimentoID: casaID, funcaoID: outraFuncaoID, regiaoID: regiao.id, horario: horario))
     }
 }
