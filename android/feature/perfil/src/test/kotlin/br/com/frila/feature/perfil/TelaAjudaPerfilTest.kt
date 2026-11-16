@@ -111,10 +111,10 @@ class TelaAjudaPerfilTest {
         assertEquals("suporte@frilabr.com", emailDestino)
 
         rule.onNodeWithText("Termos de uso").performClick()
-        assertEquals("https://frila.netlify.app/termos", urlTermos)
+        assertEquals("https://frilabr.com/termos", urlTermos)
 
         rule.onNodeWithText("Política de privacidade").performClick()
-        assertEquals("https://frila.netlify.app/privacidade", urlPrivacidade)
+        assertEquals("https://frilabr.com/privacidade", urlPrivacidade)
 
         rule.onNodeWithText("Licenças de código aberto").performClick()
         assertTrue("Callback de licenças deve ser chamado", abriuLicencas)
