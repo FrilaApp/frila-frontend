@@ -78,6 +78,15 @@ internal fun recursoDesligado(erro: ErroDaApi): Boolean =
 internal fun termosPendentes(erro: ErroDaApi): Boolean =
     erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "termos_pendentes"
 
+private val UUID_EM_TEXTO = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+/**
+ * O `vaga_id` do trabalho que a casa já tem aberto, no `409 trabalho_ja_aberto` (0.2.95); `null` em outro erro ou quando
+ * `details` não traz um uuid.
+ */
+internal fun vagaDoTrabalhoAberto(erro: ErroDaApi): String? =
+    erro.detalhes?.takeIf { erro.codigo == CodigoErroAPI.TRABALHO_JA_ABERTO && UUID_EM_TEXTO.matches(it) }
+
 /**
  * A recusa deixa o resultado incerto (a chamada pode ter sido criada)? Sem rede, resposta ilegível ou
  * código desconhecido: reenviar com a mesma chave devolve a mesma chamada. Qualquer outra recusa é do servidor

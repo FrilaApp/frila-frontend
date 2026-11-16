@@ -175,7 +175,8 @@ class BuscaDeProfissionaisViewModel(
 
     /**
      * A vaga direta por TRABALHO (comparado sem profissional nem chave, com a região da busca): vale entre buscas na
-     * mesma tela. Nova busca + mesmo trabalho entra na vaga que já existe pelo `vaga_id`; se o servidor barrar
+     * mesma tela; também a que o `409 trabalho_ja_aberto` apontou (0.2.95). Nova busca + mesmo trabalho entra na vaga
+     * que já existe pelo `vaga_id`; se o servidor barrar
      * (`422 por_vaga`, `409 vaga_encerrada`), o trabalho só começa ciclo novo quando a pessoa o muda.
      */
     private val vagasPorTrabalho = mutableMapOf<ChaveDoTrabalho, String>()
@@ -517,9 +518,17 @@ class BuscaDeProfissionaisViewModel(
                 }
                 val pedido = if (confirmoRecorrencia) original.copy(confirmoRecorrencia = true) else original
                 tentativas[id to chaveDoTrabalho] = pedido
+                // O último pedido que saiu: depois do `409 trabalho_ja_aberto`, é o do `vaga_id`, que não abre vaga.
+                var enviado = pedido
                 var incerto = false
                 val resultado = try {
-                    val chamada = withTimeout(prazoMs) { chamarProfissional(pedido) }
+                    val chamada = try {
+                        withTimeout(prazoMs) { chamarProfissional(pedido) }
+                    } catch (erro: ErroDaApi) {
+                        val pelaVaga = pedidoPelaVagaAberta(erro, pedido, chaveDoTrabalho) ?: throw erro
+                        enviado = pelaVaga
+                        withTimeout(prazoMs) { chamarProfissional(pelaVaga) }
+                    }
                     tentativas.remove(id to chaveDoTrabalho)
                     vagasPorTrabalho.putIfAbsent(chaveDoTrabalho, chamada.vagaId)
                     ResultadoDaChamadaDaBusca.Enviada(chamada)
@@ -545,7 +554,7 @@ class BuscaDeProfissionaisViewModel(
                 // perdido. Promover o próximo criaria outra vaga. Para aqui; o reenvio repete a chave deste, o servidor
                 // devolve a chamada já criada (com o vaga_id) e só então os outros vão pelo vaga_id.
                 // Recusa definitiva do servidor continua promovendo o próximo.
-                if (incerto && pedido.vagaId == null) {
+                if (incerto && enviado.vagaId == null) {
                     val naoEnviados = alvos.drop(posicao + 1).associateWith { ResultadoDaChamadaDaBusca.NaoEnviada }
                     _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + naoEnviados) }
                     break
@@ -558,6 +567,31 @@ class BuscaDeProfissionaisViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * 0.2.95: `409 trabalho_ja_aberto` diz que a casa já tem este trabalho aberto numa vaga direta, e nada foi criado. O
+     * `vaga_id` de `details` passa a ser a vaga do trabalho (os próximos entram direto nela), e volta o pedido novo do mesmo
+     * profissional por ele, com chave nova, como a 2ª e a 3ª chamadas, guardado no lugar do recusado. Uma vez só por envio:
+     * se o pedido pelo `vaga_id` também for recusado, a recusa segue. Sem `vaga_id` em `details` (ou outro erro), `null`.
+     */
+    private fun pedidoPelaVagaAberta(
+        erro: ErroDaApi,
+        recusado: ChamarProfissionalDto,
+        chaveDoTrabalho: ChaveDoTrabalho,
+    ): ChamarProfissionalDto? {
+        val vagaAberta = vagaDoTrabalhoAberto(erro) ?: return null
+        vagasPorTrabalho[chaveDoTrabalho] = vagaAberta
+        val pelaVaga = ChamarProfissionalDto(
+            chave = novaChave(),
+            profissionalId = recusado.profissionalId,
+            estabelecimentoId = recusado.estabelecimentoId,
+            vagaId = vagaAberta,
+            recado = recusado.recado,
+            confirmoRecorrencia = recusado.confirmoRecorrencia,
+        )
+        tentativas[recusado.profissionalId to chaveDoTrabalho] = pelaVaga
+        return pelaVaga
     }
 
     /** "Tentar de novo": repete o último envio (mesmo trabalho e recado) com a chave de cada pedido guardado. */
