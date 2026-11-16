@@ -471,6 +471,91 @@ class BuscaDeProfissionaisViewModelTest {
         assertTrue(reenvio["confirmo_recorrencia"]!!.jsonPrimitive.boolean)
     }
 
+    // --- Catálogos dos filtros ---------------------------------------------------------------------------
+
+    private val garcomDto = br.com.frila.core.rede.FuncaoDto(garcom, "Garçom", "salao")
+    private val regiaoDto = br.com.frila.core.rede.RegiaoAdministrativaDto(1, "I", "Plano Piloto")
+    private val casaDto = br.com.frila.core.rede.MeuEstabelecimentoDto(
+        id = casa, nome = "Bistrô Ipê", tipo = "restaurante", endereco = "SCS Quadra 2", regiaoAdministrativa = "Plano Piloto",
+        ponto = br.com.frila.core.rede.CoordenadaDto(-15.79, -47.88), papel = "administrador",
+    )
+
+    private fun comCatalogos(
+        recurso: suspend () -> Boolean = { true },
+        funcoes: suspend () -> List<br.com.frila.core.rede.FuncaoDto> = { listOf(garcomDto) },
+        regioes: suspend () -> List<br.com.frila.core.rede.RegiaoAdministrativaDto> = { listOf(regiaoDto) },
+        buscarCasa: suspend (String) -> br.com.frila.core.rede.MeuEstabelecimentoDto = { casaDto },
+        prazoMs: Long = 5_000,
+    ) = BuscaDeProfissionaisViewModel(
+        estabelecimentoId = casa,
+        recursoHabilitado = recurso,
+        buscarProfissionais = { error("não deveria buscar") },
+        chamarProfissional = { error("não deveria chamar") },
+        prazoMs = prazoMs,
+        listarFuncoes = funcoes,
+        listarRegioes = regioes,
+        buscarCasa = buscarCasa,
+        escopo = CoroutineScope(Dispatchers.Unconfined),
+    )
+
+    @Test
+    fun `carregarCatalogos traz funcoes, regioes e a casa`() = runBlocking {
+        val vm = comCatalogos()
+
+        vm.carregarCatalogos().join()
+
+        val tela = vm.estado.value
+        assertEquals(listOf(garcomDto), tela.funcoes)
+        assertEquals(listOf(regiaoDto), tela.regioes)
+        assertEquals(casaDto, tela.casa)
+        assertFalse(tela.carregandoCatalogos)
+        assertFalse(tela.falhaDeCatalogos)
+    }
+
+    @Test
+    fun `carregarCatalogos com a chave desligada deixa a busca indisponivel sem pedir catalogos`() = runBlocking {
+        var pediu = false
+        val vm = comCatalogos(recurso = { false }, funcoes = { pediu = true; emptyList() })
+
+        vm.carregarCatalogos().join()
+
+        assertEquals(EstadoDaBusca.Indisponivel, vm.estado.value.estado)
+        assertFalse(pediu)
+        assertFalse(vm.estado.value.carregandoCatalogos)
+    }
+
+    @Test
+    fun `sem as regioes a busca segue so sem o filtro, e falha das funcoes oferece tentar de novo`() = runBlocking {
+        val semRegioes = comCatalogos(regioes = { throw IllegalStateException("sem rede") })
+        semRegioes.carregarCatalogos().join()
+        assertEquals(listOf(garcomDto), semRegioes.estado.value.funcoes)
+        assertTrue(semRegioes.estado.value.regioes.isEmpty())
+        assertFalse(semRegioes.estado.value.falhaDeCatalogos)
+
+        var falhar = true
+        val vm = comCatalogos(funcoes = { if (falhar) throw IllegalStateException("sem rede") else listOf(garcomDto) })
+        vm.carregarCatalogos().join()
+        assertTrue(vm.estado.value.falhaDeCatalogos)
+        assertFalse(vm.estado.value.carregandoCatalogos)
+        falhar = false
+        vm.carregarCatalogos().join()
+        assertFalse(vm.estado.value.falhaDeCatalogos)
+        assertEquals(listOf(garcomDto), vm.estado.value.funcoes)
+    }
+
+    @Test
+    fun `catalogos com recurso_desligado do servidor ficam indisponiveis, e o prazo estourado vira falha`() = runBlocking {
+        val desligado = comCatalogos(
+            funcoes = { throw br.com.frila.core.rede.ErroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "recurso_desligado", "x") },
+        )
+        desligado.carregarCatalogos().join()
+        assertEquals(EstadoDaBusca.Indisponivel, desligado.estado.value.estado)
+
+        val lento = comCatalogos(funcoes = { kotlinx.coroutines.delay(5_000); emptyList() }, prazoMs = 20)
+        lento.carregarCatalogos().join()
+        assertTrue(lento.estado.value.falhaDeCatalogos)
+    }
+
     @Test
     fun `chamar sem selecao, ou sem resultados, nao faz nada`() = runBlocking {
         val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(emptyList())) }

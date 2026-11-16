@@ -8,7 +8,10 @@ import br.com.frila.core.rede.CartaoProfissionalDto
 import br.com.frila.core.rede.ChamadaDto
 import br.com.frila.core.rede.ChamarProfissionalDto
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.FuncaoDto
+import br.com.frila.core.rede.MeuEstabelecimentoDto
 import br.com.frila.core.rede.PaginaDeProfissionaisDto
+import br.com.frila.core.rede.RegiaoAdministrativaDto
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -63,6 +66,12 @@ data class EstadoBusca(
     val funcaoId: String? = null,
     val regiaoId: Int? = null,
     val horario: HorarioDaBusca? = null,
+    /** Catálogos dos filtros e a casa de quem chama (carregados por [BuscaDeProfissionaisViewModel.carregarCatalogos]). */
+    val funcoes: List<FuncaoDto> = emptyList(),
+    val regioes: List<RegiaoAdministrativaDto> = emptyList(),
+    val casa: MeuEstabelecimentoDto? = null,
+    val carregandoCatalogos: Boolean = false,
+    val falhaDeCatalogos: Boolean = false,
     val estado: EstadoDaBusca = EstadoDaBusca.Ocioso,
     /** Na ordem do servidor. O app nunca reordena: reputação não ordena a busca (D2). */
     val resultados: List<CartaoProfissionalDto> = emptyList(),
@@ -93,7 +102,7 @@ data class EstadoBusca(
 /**
  * Busca de profissionais pela casa (CD-B01..B11): filtros (serviço, região, horário), páginas de 20 por cursor
  * opaco até 200 resultados, selo `disponivel_no_horario` vindo do servidor, até 3 selecionados para chamar e
- * "publicar para todos" com a busca vazia. SEM tela: a do Fabrício ainda não chegou (os textos são provisórios).
+ * "publicar para todos" com a busca vazia. A tela é PROVISÓRIA (`TelaBuscaDeProfissionais`); os textos também.
  *
  * [recursoHabilitado] é a chave `busca_profissionais`; [buscarProfissionais] e [chamarProfissional] são as de mesmo nome
  * de `ServicoChamadaDireta`. A chamada de cada selecionado leva a sua chave de idempotência e o `regiao_id`
@@ -106,6 +115,10 @@ class BuscaDeProfissionaisViewModel(
     private val chamarProfissional: suspend (ChamarProfissionalDto) -> ChamadaDto,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     private val prazoMs: Long = ChamadaDiretaViewModel.PRAZO_PADRAO_MS,
+    /** `ServicoVagas.listarFuncoes`, `ServicoDeRegioes.regioesAtivas` e `ServicoMembros.meuEstabelecimento`. */
+    private val listarFuncoes: suspend () -> List<FuncaoDto> = { emptyList() },
+    private val listarRegioes: suspend () -> List<RegiaoAdministrativaDto> = { emptyList() },
+    private val buscarCasa: (suspend (estabelecimentoId: String) -> MeuEstabelecimentoDto)? = null,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -120,6 +133,58 @@ class BuscaDeProfissionaisViewModel(
 
     /** A vaga direta criada pela 1ª chamada desta busca; as seguintes vão pelo `vaga_id` dela. */
     private var vagaDoTrabalho: String? = null
+
+    // --- Catálogos ---------------------------------------------------------------------------------
+
+    /**
+     * Confere a chave `busca_profissionais` e carrega funções, regiões (opcionais: sem elas o filtro some) e a casa.
+     * Chave desligada: o estado vira [EstadoDaBusca.Indisponivel]. Serve também de "tentar novamente".
+     */
+    fun carregarCatalogos(): Job {
+        val tela = _estado.value
+        if (tela.carregandoCatalogos || (tela.funcoes.isNotEmpty() && tela.casa != null)) return escopoDeTrabalho.launch { }
+        _estado.update { it.copy(carregandoCatalogos = true, falhaDeCatalogos = false) }
+        return escopoDeTrabalho.launch {
+            try {
+                val dados = withTimeout(prazoMs) {
+                    if (!recursoHabilitado()) return@withTimeout null
+                    val funcoes = listarFuncoes()
+                    val regioes = try {
+                        listarRegioes()
+                    } catch (erro: CancellationException) {
+                        throw erro
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                    val casa = buscarCasa?.invoke(estabelecimentoId)
+                    Triple(funcoes, regioes, casa)
+                }
+                if (dados == null) {
+                    _estado.update { it.copy(carregandoCatalogos = false, estado = EstadoDaBusca.Indisponivel) }
+                    return@launch
+                }
+                recursoConfirmado = true
+                val (funcoes, regioes, casa) = dados
+                _estado.update {
+                    it.copy(
+                        carregandoCatalogos = false, funcoes = funcoes, regioes = regioes, casa = casa,
+                        funcaoId = it.funcaoId?.takeIf { id -> funcoes.any { f -> f.id == id } },
+                    )
+                }
+            } catch (erro: CancellationException) {
+                if (erro !is TimeoutCancellationException) throw erro
+                _estado.update { it.copy(carregandoCatalogos = false, falhaDeCatalogos = true) }
+            } catch (erro: ErroDaApi) {
+                if (recursoDesligado(erro)) {
+                    _estado.update { it.copy(carregandoCatalogos = false, estado = EstadoDaBusca.Indisponivel) }
+                } else {
+                    _estado.update { it.copy(carregandoCatalogos = false, falhaDeCatalogos = true) }
+                }
+            } catch (_: Exception) {
+                _estado.update { it.copy(carregandoCatalogos = false, falhaDeCatalogos = true) }
+            }
+        }
+    }
 
     // --- Filtros -----------------------------------------------------------------------------------
 
