@@ -11,10 +11,14 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ChamadaDetalheDto
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.EstabelecimentoDaContaDto
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PerfilProfissionalDetalhadoDto
+import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.chamadas.profissional.ChamadaRecebidaViewModel
 import br.com.frila.feature.chamadas.profissional.EditarServicosViewModel
@@ -25,6 +29,7 @@ import br.com.frila.feature.entrada.entrada.EstadoEntrada
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
@@ -66,7 +71,12 @@ class AppNavegacaoChamadaProfissionalTest {
         """{"id":"$id","vaga_id":"v","profissional_id":"p","estabelecimento_id":"c","estado":"aberta","expira_em":"2099-01-01T12:00:00Z","criada_em":"2026-11-16T20:00:00Z","funcao":{"id":"f","nome":"Garçom","categoria":"salao"},"inicio_em":"2099-01-02T22:00:00Z","fim_em":"2099-01-03T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"c","tipo":"estabelecimento","nome":"Bistrô Aurora","reputacao":{"positivas":1,"total":1,"turnos_considerados":1,"turnos_realizados":1}},"regiao_administrativa":"Plano Piloto","inclui_refeicao":false,"inclui_transporte":false,"exige_material_proprio":false}""",
     )
 
-    private fun montar(chamadaDireta: Boolean, inicio: String? = null, busca: Boolean = true) {
+    private fun montar(
+        chamadaDireta: Boolean,
+        inicio: String? = null,
+        busca: Boolean = true,
+        servicoMembros: ServicoMembros? = null,
+    ) {
         val entrada = mockk<EntradaViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoEntrada())
         }
@@ -112,7 +122,7 @@ class AppNavegacaoChamadaProfissionalTest {
                     navController = nav,
                     chamadaDiretaHabilitada = chamadaDireta,
                     buscaProfissionaisHabilitada = busca,
-                    servicoMembros = null,
+                    servicoMembros = servicoMembros,
                 )
             }
         }
@@ -129,6 +139,38 @@ class AppNavegacaoChamadaProfissionalTest {
 
         rule.runOnIdle { assertEquals(RotasChamadaProfissional.PREFERENCIAS, rotaAtual()) }
         rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertExists()
+    }
+
+    @Test
+    fun contratanteComCasaENaChaveLigadaNaoVeOAtalhoDasPreferenciasDeChamada() {
+        val membros = mockk<ServicoMembros> {
+            coEvery { listarMeusEstabelecimentos() } returns
+                listOf(EstabelecimentoDaContaDto(id = "casa-1", nome = "Casa 1", papel = "administrador"))
+        }
+        montar(chamadaDireta = true, inicio = Rotas.PERFIL, servicoMembros = membros)
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("perfil-chamadas-diretas").assertCountEquals(0)
+    }
+
+    @Test
+    fun contratanteSemCasaNaChaveLigadaTambemNaoVeOAtalho() {
+        val membros = mockk<ServicoMembros> {
+            coEvery { listarMeusEstabelecimentos() } returns emptyList()
+        }
+        montar(chamadaDireta = true, inicio = Rotas.PERFIL, servicoMembros = membros)
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("perfil-chamadas-diretas").assertCountEquals(0)
+    }
+
+    @Test
+    fun profissionalQueRecebePerfilIncompativelDaListaDeCasasVeOAtalho() {
+        val membros = mockk<ServicoMembros> {
+            coEvery { listarMeusEstabelecimentos() } throws
+                ErroDaApi(CodigoErroAPI.PERFIL_INCOMPATIVEL, "perfil_incompativel", null, "x")
+        }
+        montar(chamadaDireta = true, inicio = Rotas.PERFIL, servicoMembros = membros)
+        rule.waitForIdle()
+        rule.onNodeWithTag("perfil-chamadas-diretas").performScrollTo().assertExists()
     }
 
     @Test

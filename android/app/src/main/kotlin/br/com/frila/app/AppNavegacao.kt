@@ -536,7 +536,10 @@ fun AppNavegacao(
                         } else {
                             null
                         },
-                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada) {
+                        // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
+                        // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
+                        // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
+                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
                             { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
                         } else {
                             null
