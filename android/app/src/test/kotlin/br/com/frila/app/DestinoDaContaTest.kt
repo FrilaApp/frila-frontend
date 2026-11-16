@@ -161,9 +161,19 @@ class DestinoDaContaTest {
     @Test
     fun `erro do servidor nao usa o destino guardado`() = runTest {
         val guardado = GuardadoFalso(DestinoDaConta.Profissional)
-        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.NAO_AUTENTICADO) }, guardado).avaliar()
+        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.DESCONHECIDO) }, guardado).avaliar()
 
         assertEquals(ResultadoDaAbertura.Falha, resultado)
+        assertEquals(DestinoDaConta.Profissional, guardado.valor)
+    }
+
+    @Test
+    fun `401 na abertura e sessao vencida, nunca usa nem mantem o destino guardado`() = runTest {
+        val guardado = GuardadoFalso(DestinoDaConta.Profissional)
+        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.NAO_AUTENTICADO) }, guardado).avaliar()
+
+        assertEquals(ResultadoDaAbertura.SessaoVencida, resultado)
+        assertNull(guardado.valor)
     }
 
     @Test

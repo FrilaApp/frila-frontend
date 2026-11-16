@@ -272,8 +272,26 @@ fun AppNavegacao(
                         RotaDeAbertura(
                             avaliador = avaliadorDeDestino,
                             aoDecidir = { destino ->
-                                navController.navigate(destino.rota()) {
-                                    popUpTo(Rotas.ABERTURA) { inclusive = true }
+                                if (destino is DestinoDaConta.Contratante) {
+                                    // A casa não tem feed para voltar: o Perfil (Sair, Equipe, Excluir conta) fica
+                                    // como raiz da pilha, e a tela inicial da casa entra por cima dele. "Voltar" da
+                                    // tela inicial leva ao Perfil; "Voltar" no Perfil sai do app (pilha nunca vazia).
+                                    navController.navigate(Rotas.PERFIL) {
+                                        popUpTo(Rotas.ABERTURA) { inclusive = true }
+                                    }
+                                    navController.navigate(destino.rota())
+                                } else {
+                                    navController.navigate(destino.rota()) {
+                                        popUpTo(Rotas.ABERTURA) { inclusive = true }
+                                    }
+                                }
+                            },
+                            aoSessaoVencida = {
+                                // 401: a renovação já falhou; sai da árvore autenticada como o logout faz.
+                                armazenamentoDeSessao.limparSessao()
+                                guardaBiometrico.liberarAposLimparSessao()
+                                navController.navigate(Rotas.ENTRADA) {
+                                    popUpTo(0) { inclusive = true }
                                 }
                             },
                             aoTerminarDeAvaliar = { aoPronto?.invoke() },

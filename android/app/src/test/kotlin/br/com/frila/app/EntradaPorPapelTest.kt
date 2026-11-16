@@ -2,7 +2,8 @@ package br.com.frila.app
 
 import android.app.Application
 import androidx.compose.ui.test.ComposeTimeoutException
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -24,7 +25,14 @@ import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.perfil.EstadoPerfil
+import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.ui.test.performScrollTo
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -63,11 +71,13 @@ import org.robolectric.annotation.Config
 class EntradaPorPapelTest {
 
     @get:Rule
-    val rule = createComposeRule()
+    val rule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var nav: NavHostController
 
-    private enum class Papel { PROFISSIONAL, CONTRATANTE, SEM_CONTA }
+    private enum class Papel { PROFISSIONAL, CONTRATANTE, CONTRATANTE_SEM_CASA, SEM_CONTA, SESSAO_VENCIDA }
+
+    private val sessao = ArmazenamentoDeSessaoEmMemoria()
 
     /** Caminhos pedidos ao "servidor", na ordem. */
     private val chamadas = CopyOnWriteArrayList<String>()
@@ -87,17 +97,19 @@ class EntradaPorPapelTest {
                 """{"access_token":"tok","refresh_token":"ref","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
             caminho.endsWith("/rpc/minha_conta") -> when (papel) {
                 Papel.SEM_CONTA -> erro("nao_encontrado", HttpStatusCode.NotFound)
+                Papel.SESSAO_VENCIDA -> erro("nao_autenticado", HttpStatusCode.Unauthorized)
                 Papel.PROFISSIONAL -> usuario.format("profissional") to HttpStatusCode.OK
-                Papel.CONTRATANTE -> usuario.format("contratante") to HttpStatusCode.OK
+                Papel.CONTRATANTE, Papel.CONTRATANTE_SEM_CASA -> usuario.format("contratante") to HttpStatusCode.OK
             }
             caminho.endsWith("/rpc/situacao_da_conta") -> """{"estado":"ativa"}""" to HttpStatusCode.OK
             caminho.endsWith("/rpc/meu_perfil_profissional") -> when (papel) {
                 Papel.PROFISSIONAL -> perfilProfissional to HttpStatusCode.OK
-                Papel.CONTRATANTE -> erro("perfil_incompativel", HttpStatusCode.UnprocessableEntity)
-                Papel.SEM_CONTA -> erro("nao_encontrado", HttpStatusCode.NotFound)
+                Papel.CONTRATANTE, Papel.CONTRATANTE_SEM_CASA -> erro("perfil_incompativel", HttpStatusCode.UnprocessableEntity)
+                else -> erro("nao_encontrado", HttpStatusCode.NotFound)
             }
             caminho.endsWith("/rpc/meus_estabelecimentos") -> when (papel) {
                 Papel.CONTRATANTE -> casa to HttpStatusCode.OK
+                Papel.CONTRATANTE_SEM_CASA -> "[]" to HttpStatusCode.OK
                 else -> erro("perfil_incompativel", HttpStatusCode.UnprocessableEntity)
             }
             caminho.endsWith("/rpc/vagas_abertas") -> when (papel) {
@@ -118,9 +130,11 @@ class EntradaPorPapelTest {
 
     private fun montar(papel: Papel, comSessaoGuardada: Boolean) {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = servidor(papel))
-        val sessao = ArmazenamentoDeSessaoEmMemoria()
         if (comSessaoGuardada) sessao.salvarSessao(Sessao("tok", "ref", "bearer", 3600))
         val servicoMembros = ServicoMembros(cliente)
+        val perfil = mockk<PerfilViewModel>(relaxed = true) {
+            every { estado } returns MutableStateFlow(EstadoPerfil(status = StatusPerfil.SUCESSO))
+        }
         rule.setContent {
             KoinApplication(application = {
                 modules(
@@ -144,6 +158,13 @@ class EntradaPorPapelTest {
                             CodigoViewModel(email, ServicoAutenticacao(cliente), sessao, CoroutineScope(Dispatchers.Default))
                         }
                         viewModel { CadastroViewModel() }
+                        viewModel { perfil }
+                        viewModel {
+                            br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel(
+                                cadastrar = { error("o teste de navegação não cadastra") },
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
                         viewModel { FeedVagasViewModel(ServicoVagas(cliente), semLocalizacao) }
                         viewModel { (id: String, nome: String?, recente: String?) ->
                             MinhasVagasViewModel(
@@ -258,6 +279,78 @@ class EntradaPorPapelTest {
 
         assertTrue("o feed do profissional deveria ler as vagas (rota: ${rotaAtual()}, chamadas: $chamadas)", leu)
         assertEquals(Rotas.FEED, rotaAtual())
+    }
+
+    // ───────────────── Revisão do #785: a casa nunca fica presa na tela inicial ─────────────────
+
+    /** Rota imediatamente abaixo da atual na pilha (nulo se a atual é a raiz). */
+    private fun rotaAbaixo(): String? {
+        var rota: String? = null
+        rule.runOnIdle { rota = nav.previousBackStackEntry?.destination?.route }
+        return rota
+    }
+
+    private fun voltarDoSistema() {
+        rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun `casa com sessao guardada alcanca o Perfil e o Sair a partir de Minhas vagas`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
+        assertEquals("o Perfil (Sair, Equipe) fica embaixo da tela inicial da casa", Rotas.PERFIL, rotaAbaixo())
+
+        // A seta de Minhas vagas leva ao Perfil, nunca a uma pilha vazia.
+        rule.runOnUiThread { nav.popBackStack() }
+        rule.waitForIdle()
+        assertEquals(Rotas.PERFIL, rotaAtual())
+
+        rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals(Rotas.ENTRADA, rotaAtual())
+    }
+
+    @Test
+    fun `casa com sessao guardada Voltar na raiz sai do app em vez de deixar tela em branco`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        voltarDoSistema() // Minhas vagas -> Perfil
+        assertEquals(Rotas.PERFIL, rotaAtual())
+        assertFalse("ainda há tela para voltar", rule.activity.isFinishing)
+
+        voltarDoSistema() // Perfil é a raiz: sai do app
+        assertTrue("Voltar na raiz deve sair do app", rule.activity.isFinishing)
+        assertEquals("a pilha nunca fica vazia", Rotas.PERFIL, rotaAtual())
+    }
+
+    @Test
+    fun `casa sem estabelecimento abre o cadastro com o Perfil embaixo e Voltar nao esvazia a pilha`() {
+        montar(Papel.CONTRATANTE_SEM_CASA, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.CADASTRO_ESTABELECIMENTO }
+
+        assertEquals(Rotas.CADASTRO_ESTABELECIMENTO, rotaAtual())
+        assertEquals(Rotas.PERFIL, rotaAbaixo())
+
+        voltarDoSistema()
+        assertEquals(Rotas.PERFIL, rotaAtual())
+        rule.onNodeWithText("Sair da conta").performScrollTo().assertExists()
+    }
+
+    // ───────────────── Revisão do #785: sessão vencida na abertura ─────────────────
+
+    @Test
+    fun `401 na abertura limpa a sessao e leva a Entrada em vez de ficar em Tentar novamente`() {
+        montar(Papel.SESSAO_VENCIDA, comSessaoGuardada = true)
+
+        val foiParaEntrada = aguardar(8_000) { rotaAtual() == Rotas.ENTRADA }
+
+        assertTrue("sessão vencida prendeu a pessoa na abertura (rota: ${rotaAtual()})", foiParaEntrada)
+        assertFalse("a sessão vencida deve ser limpa como no logout", sessao.estaAutenticado())
+        rule.onNodeWithText("Bem-vindo ao Frila").assertExists()
     }
 }
 

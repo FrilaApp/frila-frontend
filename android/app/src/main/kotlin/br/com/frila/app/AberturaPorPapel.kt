@@ -35,6 +35,7 @@ internal object TextosAbertura {
 internal fun RotaDeAbertura(
     avaliador: AvaliadorDeDestino,
     aoDecidir: (DestinoDaConta) -> Unit,
+    aoSessaoVencida: () -> Unit = {},
     aoTerminarDeAvaliar: () -> Unit = {},
 ) {
     var tentativa by remember { mutableIntStateOf(0) }
@@ -45,13 +46,17 @@ internal fun RotaDeAbertura(
         // A rede devolve em outra thread; estado do Compose e navegação só na principal.
         withContext(Dispatchers.Main.immediate) {
             aoTerminarDeAvaliar()
-            if (novo is ResultadoDaAbertura.Destino) aoDecidir(novo.destino) else resultado = novo
+            when (novo) {
+                is ResultadoDaAbertura.Destino -> aoDecidir(novo.destino)
+                ResultadoDaAbertura.SessaoVencida -> aoSessaoVencida()
+                else -> resultado = novo
+            }
         }
     }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when (resultado) {
-            null, is ResultadoDaAbertura.Destino -> IndicadorCarregando()
+            null, is ResultadoDaAbertura.Destino, ResultadoDaAbertura.SessaoVencida -> IndicadorCarregando()
             ResultadoDaAbertura.SemConexao -> EstadoErro(
                 titulo = TextosAbertura.TITULO_SEM_CONEXAO,
                 mensagem = TextosAbertura.SEM_CONEXAO,

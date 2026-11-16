@@ -76,6 +76,9 @@ sealed interface ResultadoDaAbertura {
     /** Sem rede (ou prazo vencido) e nada guardado: a tela diz que está sem conexão. */
     data object SemConexao : ResultadoDaAbertura
 
+    /** `401`: a sessão venceu (a renovação já a limpou). Repetir só repete o 401; o caminho é a Entrada. */
+    data object SessaoVencida : ResultadoDaAbertura
+
     /** Erro do servidor ou resposta ilegível. */
     data object Falha : ResultadoDaAbertura
 }
@@ -105,7 +108,14 @@ class AvaliadorDeDestino(
     } catch (erro: CancellationException) {
         throw erro
     } catch (erro: ErroDaApi) {
-        if (erro.codigo == CodigoErroAPI.SEM_REDE) semConexao() else ResultadoDaAbertura.Falha
+        when (erro.codigo) {
+            CodigoErroAPI.SEM_REDE -> semConexao()
+            CodigoErroAPI.NAO_AUTENTICADO -> {
+                guardado.limpar()
+                ResultadoDaAbertura.SessaoVencida
+            }
+            else -> ResultadoDaAbertura.Falha
+        }
     } catch (_: Exception) {
         ResultadoDaAbertura.Falha
     }
