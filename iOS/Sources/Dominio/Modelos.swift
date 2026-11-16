@@ -909,6 +909,8 @@ public struct CancelamentoDoTurno: Codable, Hashable, Sendable {
 
 public struct Turno: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
+    /// Instante da confirmação; ausente em servidores/caches anteriores à 0.2.85.
+    public let confirmadoEm: Date?
     public let posicaoID: UUID
     public let vaga: VagaResumo
     public let contraparte: PerfilPublico
@@ -953,8 +955,10 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
         avaliacao: Avaliacao? = nil,
         avaliacaoInformada: Bool? = nil,
         cancelamento: CancelamentoDoTurno? = nil,
-        avaliacaoLidaEm: Date? = nil
+        avaliacaoLidaEm: Date? = nil,
+        confirmadoEm: Date? = nil
     ) {
+        self.confirmadoEm = confirmadoEm
         self.id = id
         self.posicaoID = posicaoID
         self.vaga = vaga
@@ -976,7 +980,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
 
     // A data da leitura é metadado do cache, não muda a identidade nem o conteúdo do turno.
     public static func == (lhs: Turno, rhs: Turno) -> Bool {
-        lhs.id == rhs.id && lhs.posicaoID == rhs.posicaoID && lhs.vaga == rhs.vaga &&
+        lhs.confirmadoEm == rhs.confirmadoEm && lhs.id == rhs.id && lhs.posicaoID == rhs.posicaoID && lhs.vaga == rhs.vaga &&
         lhs.contraparte == rhs.contraparte && lhs.contatoVisivelAte == rhs.contatoVisivelAte &&
         lhs.aCaminhoEm == rhs.aCaminhoEm && lhs.checkin == rhs.checkin && lhs.checkout == rhs.checkout &&
         lhs.verificacao == rhs.verificacao && lhs.valorAcordado == rhs.valorAcordado &&
@@ -997,7 +1001,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
             estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada,
-            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm
+            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm, confirmadoEm: confirmadoEm
         )
     }
 
@@ -1007,7 +1011,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: podeAvaliar, contato: contato,
             estado: estado, avaliacao: avaliacao, avaliacaoInformada: avaliacaoInformada,
-            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm
+            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm, confirmadoEm: confirmadoEm
         )
     }
 
@@ -1017,7 +1021,7 @@ public struct Turno: Codable, Hashable, Identifiable, Sendable {
             aCaminhoEm: aCaminhoEm, checkin: checkin, checkout: checkout, verificacao: verificacao,
             valorAcordado: valorAcordado, podeAvaliar: false, contato: contato,
             estado: estado, avaliacao: avaliacao, avaliacaoInformada: true,
-            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm
+            cancelamento: cancelamento, avaliacaoLidaEm: avaliacaoLidaEm, confirmadoEm: confirmadoEm
         )
     }
 

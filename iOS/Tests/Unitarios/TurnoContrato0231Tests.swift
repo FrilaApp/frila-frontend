@@ -14,6 +14,20 @@ struct TurnoContrato0231Tests {
         try #require(try FixturesDoContrato.carregar(fixture, como: [ContratoAPI.TurnoDTO].self).first).dominio()
     }
 
+    @Test("confirmado_em atravessa DTO e domínio; ausência/nulo preservam servidor antigo")
+    func instanteDaConfirmacao() throws {
+        var lista = try #require(try JSONSerialization.jsonObject(with: FixturesDoContrato.dados("turnos")) as? [[String: Any]])
+        lista[0]["confirmado_em"] = "2026-10-11T12:00:00Z"
+        let novo = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self,
+            from: JSONSerialization.data(withJSONObject: lista)).first).dominio()
+        #expect(novo.confirmadoEm == agora)
+        lista[0]["confirmado_em"] = NSNull()
+        let nulo = try #require(try ContratoAPI.decodificador().decode([ContratoAPI.TurnoDTO].self,
+            from: JSONSerialization.data(withJSONObject: lista)).first).dominio()
+        #expect(nulo.confirmadoEm == nil)
+        #expect(try turno("turnos").confirmadoEm == nil)
+    }
+
     @Test("Turno cancelado não oferece avaliação nem ações, e não pede o contato, mesmo com presença verificada")
     func canceladoSemAcoes() async throws {
         let contato = try FixturesDoContrato.carregar("contato", como: ContratoAPI.ContatoDTO.self).dominio()

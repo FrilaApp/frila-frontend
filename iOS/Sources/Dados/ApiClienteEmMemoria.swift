@@ -638,7 +638,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                                     id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                                     contatoVisivelAte: t.contatoVisivelAte, checkin: t.checkin, checkout: t.checkout,
                                     verificacao: t.verificacao, valorAcordado: t.valorAcordado, podeAvaliar: false,
-                                    estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento
+                                    estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento, confirmadoEm: t.confirmadoEm
                                 )
                             }
                             turnos = []
@@ -731,7 +731,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     Turno(id: t.id, posicaoID: t.posicaoID, vaga: t.vaga, contraparte: t.contraparte,
                           contatoVisivelAte: t.contatoVisivelAte, checkin: t.checkin, checkout: t.checkout,
                           verificacao: t.verificacao, valorAcordado: t.valorAcordado, podeAvaliar: false,
-                          estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento)
+                          estado: .cancelada, avaliacaoInformada: true, cancelamento: cancelamento, confirmadoEm: t.confirmadoEm)
                 }
                 turnos = []
                 contatos = [:]
@@ -2185,7 +2185,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                     checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
                     valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
                     estado: nil, avaliacao: nil, avaliacaoInformada: nil, cancelamento: nil,
-                    avaliacaoLidaEm: nil
+                    avaliacaoLidaEm: nil, confirmadoEm: t.confirmadoEm
                 )
             }
             return Turno(
@@ -2194,7 +2194,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 checkin: t.checkin, checkout: t.checkout, verificacao: t.verificacao,
                 valorAcordado: t.valorAcordado, podeAvaliar: pode, contato: t.contato,
                 estado: estado, avaliacao: avaliacao, avaliacaoInformada: true, cancelamento: t.cancelamento,
-                avaliacaoLidaEm: Date()
+                avaliacaoLidaEm: Date(), confirmadoEm: t.confirmadoEm
             )
         }
     }
@@ -2210,7 +2210,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     /// Segue `avisar_a_caminho` do backend (`20260930160000_avisar_a_caminho.sql`): o aviso já
     /// gravado volta como está, antes de conferir a janela; a janela vai de 3 h antes até 15 min
-    /// depois do início, com as duas bordas dentro; turno que não é de quem chama é `403 sem_permissao`.
+    /// depois do maior entre início e confirmação, com as duas bordas dentro; turno de outro é `403 sem_permissao`.
     public func avisarACaminho(turnoID: UUID) async throws -> ResultadoACaminho {
         try verificarFalhaGeral()
         guard let indice = turnos.firstIndex(where: { $0.id == turnoID }) else { throw erro("sem_permissao") }
@@ -2218,7 +2218,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if let gravado = turno.aCaminhoEm { return ResultadoACaminho(turnoID: turnoID, aCaminhoEm: gravado) }
         let agora = relogio.agora
         let inicio = turno.vaga.periodo.inicio
-        guard agora >= inicio.addingTimeInterval(-3 * 60 * 60), agora <= inicio.addingTimeInterval(15 * 60) else {
+        guard agora >= inicio.addingTimeInterval(-3 * 60 * 60), agora <= max(inicio, turno.confirmadoEm ?? inicio).addingTimeInterval(15 * 60) else {
             throw erro("a_caminho_fora_da_janela")
         }
         turnos[indice] = turno.com(aCaminhoEm: agora)
@@ -2324,7 +2324,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             podeAvaliar: podeAvaliar,
             contato: t.contato,
             estado: t.estado, avaliacao: t.avaliacao, avaliacaoInformada: t.avaliacaoInformada,
-            cancelamento: t.cancelamento
+            cancelamento: t.cancelamento, confirmadoEm: t.confirmadoEm
         )
     }
 
@@ -3233,7 +3233,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
             checkout: turno.checkout, verificacao: verificacao == .pendente ? .naoVerificado : verificacao,
             valorAcordado: turno.valorAcordado, podeAvaliar: false,
             estado: .cancelada, avaliacao: avaliacoes[turno.id], avaliacaoInformada: true,
-            cancelamento: CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: relogio.agora)
+            cancelamento: CancelamentoDoTurno(causa: causa, falta: falta, canceladaEm: relogio.agora), confirmadoEm: turno.confirmadoEm
         ))
         contatos[turno.id] = nil
         var nova: UUID?

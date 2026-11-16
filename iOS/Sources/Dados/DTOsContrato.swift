@@ -1361,6 +1361,7 @@ enum ContratoAPI {
 
     struct TurnoDTO: Decodable {
         let id: UUID
+        let confirmadoEm: Date?
         let posicaoID: UUID
         let vaga: VagaResumoDTO
         let contraparte: PerfilPublicoDTO
@@ -1382,6 +1383,7 @@ enum ContratoAPI {
 
         enum CodingKeys: String, CodingKey {
             case id, vaga, contraparte, verificacao, estado, avaliacao, cancelamento
+            case confirmadoEm = "confirmado_em"
             case posicaoID = "posicao_id"
             case contatoVisivelAte = "contato_visivel_ate"
             case aCaminhoEm = "a_caminho_em"
@@ -1397,6 +1399,7 @@ enum ContratoAPI {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
+            confirmadoEm = try container.decodeIfPresent(Date.self, forKey: .confirmadoEm)
             id = try container.decode(UUID.self, forKey: .id)
             posicaoID = try container.decode(UUID.self, forKey: .posicaoID)
             vaga = try container.decode(VagaResumoDTO.self, forKey: .vaga)
@@ -1439,7 +1442,7 @@ enum ContratoAPI {
                 estado: estado,
                 avaliacao: avaliacao?.dominio(),
                 avaliacaoInformada: avaliacaoInformada,
-                cancelamento: cancelamento?.dominio(), avaliacaoLidaEm: Date()
+                cancelamento: cancelamento?.dominio(), avaliacaoLidaEm: Date(), confirmadoEm: confirmadoEm
             )
         }
     }
