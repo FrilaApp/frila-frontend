@@ -128,10 +128,11 @@ info:
       (desligado por padrão) e `versao_texto_busca`, a versão do texto que o profissional viu ao
       ligar. É o registro do pedido do titular (LGPD, art. 7º, V, parecer J1), e não consentimento.
       A resposta diz o que ainda falta para aparecer (`pendencias_para_busca`).
-    - **`chamar_profissional`** passa a aceitar também quem está na busca, sem vínculo de trabalho.
-      O caminho do vínculo continua igual.
-    - **`perfil_publico`**: para contratante, o profissional estar na busca passa a contar como
-      vínculo de leitura do perfil rico. A foto, não: ela segue só com o vínculo de leitura da
+    - **`chamar_profissional`** passa a aceitar também quem está na busca, sem vínculo de trabalho,
+      e ganha `regiao_id` opcional, copiado da busca. O caminho do vínculo continua igual.
+    - **`perfil_publico`**: para contratante, o profissional com `aceita_chamadas` ligado passa a
+      contar como vínculo de leitura do perfil rico, com ou sem pausa. Por esse vínculo, o nome vem
+      só com o primeiro nome e a inicial. A foto, não: ela segue só com o vínculo de leitura da
       0.2.54 e não vem no cartão da busca.
     - **`RecursosDoApp.busca_profissionais`**: chave por versão do app, na regra da 0.2.65. Só vem
       `true` com `chamada_direta` também `true`.
@@ -3967,8 +3968,10 @@ paths:
         `403 sem_permissao` (`recurso_desligado`, RN46).
 
         **Filtros (CD-B02, reduzidos aos três do fluxo aprovado pelo Cauê em 16/11/2026):**
-        `funcao_id` (obrigatório), `regiao_id` (padrão: a região administrativa do estabelecimento) e
-        o horário (`inicio_em` e `fim_em`, sempre juntos). Não existe filtro nem ordem por gênero,
+        `funcao_id` (obrigatório), `regiao_id` (padrão: a região do estabelecimento, achada pelo
+        `Estabelecimento.regiao_administrativa` igual ao `RegiaoAdministrativa.nome`; sem casamento,
+        `422 campo_obrigatorio`, `regiao_id`) e o horário (`inicio_em` e `fim_em`, sempre juntos). O app
+        copia o `regiao_id` da busca para `chamar_profissional`. Não existe filtro nem ordem por gênero,
         idade, foto, nome, reputação ou qualquer atributo pessoal (RN39).
 
         **Quem aparece (CD-B03, CD-B06, CD-B10).** Só o profissional que:
@@ -3979,12 +3982,16 @@ paths:
         - tem menos de 5 chamadas abertas (CD-B10);
         - aceita a casa pelas preferências (`aceita_de = so_cnpj` tira a casa de pessoa física) e não
           está em pausa com ela (`par_em_pausa` e `par_bloqueado_temporariamente`, RN33 e RN34);
-        - tem um aparelho na versão mínima de `chamada_direta` (0.2.66).
+        - tem um aparelho na versão mínima de `chamada_direta` (0.2.66);
+        - não tem chamada aberta desta casa (`409 chamada_ja_aberta`, RN34).
 
-        Com horário, saem também quem tem turno confirmado que se sobrepõe a ele e quem a chamada
-        recusaria pelo prazo: o início tem de estar a pelo menos o maior entre 2 h e a antecedência
-        mínima do profissional (RN31). Assim a busca não mostra quem `chamar_profissional` recusaria.
-        Quem fica de fora simplesmente não aparece, e o motivo não é dito.
+        Com horário, sai também quem a chamada recusaria pelo prazo: o início tem de estar a pelo
+        menos o maior entre 2 h e a antecedência mínima do profissional (RN31). Assim a busca não
+        mostra quem `chamar_profissional` recusaria pelas regras do profissional. Os limites da casa
+        (`422 limite_de_chamadas`) não filtram a lista. Turno confirmado no horário não tira ninguém
+        da lista nem muda o selo, para a busca não revelar a agenda de trabalho; quem barra é o aceite
+        (`responder_chamada`, `422 inelegivel`, `turno_sobreposto`). Quem fica de fora simplesmente não
+        aparece, e o motivo não é dito.
 
         **Ordem (CD-B03, RN40):**
         1. com horário, primeiro quem tem na grade semanal (`JanelaDeDisponibilidade`, em
@@ -4029,8 +4036,8 @@ paths:
                   $ref: '#/components/schemas/Uuid'
                 regiao_id:
                   description: |
-                    Id de `GET /regiao_administrativa`. Ausente vale a região do estabelecimento. Fora
-                    do catálogo ou inativo, `422 campo_invalido` (`regiao_id`).
+                    Id de `GET /regiao_administrativa`. Ausente vale a região do estabelecimento (ver a
+                    descrição). Fora do catálogo ou inativo, `422 campo_invalido` (`regiao_id`).
                   type: integer
                   minimum: 1
                 inicio_em:
@@ -4104,10 +4111,13 @@ paths:
         **Pela busca (0.2.88):** com `recursos.busca_profissionais` ligado, pode ser chamado também
         quem está na busca, sem vínculo de trabalho com a casa: `aceita_chamadas` ligado, sem pausa,
         com um serviço com unidade de preço para a função do trabalho e atendendo a região do
-        trabalho (região marcada ou `atende_todo_df`). Basta um dos dois caminhos, e as demais regras
+        trabalho (região marcada ou `atende_todo_df`). A região do trabalho é o `regiao_id`, quando
+        vem (o app copia o da busca); sem ele, a `RegiaoAdministrativa` cujo `nome` é igual a
+        `regiao_administrativa`, e sem casamento a região conta como não atendida. Basta um dos dois caminhos, e as demais regras
         desta operação valem igual para os dois. Quem não cumpre nenhum deles recebe a mesma recusa
         genérica (`422 profissional_indisponivel`, `nao_aceita_chamadas`), sem saber qual faltou. Com
-        `vaga_id`, a função e a região são as da vaga direta.
+        `vaga_id`, a função e a região são as da vaga direta, que guarda o `regiao_id` com que nasceu
+        (a 2ª e a 3ª chamada usam o mesmo id da 1ª).
 
         **Prazo:** o início tem de estar a pelo menos o maior entre 2 h e a antecedência mínima do
         profissional (`422 profissional_indisponivel`, `antecedencia_insuficiente`). O servidor calcula
@@ -4179,6 +4189,15 @@ paths:
                   type: string
                 regiao_administrativa:
                   type: string
+                regiao_id:
+                  description: |
+                    0.2.88. Opcional. Id de `GET /regiao_administrativa` do local do trabalho, que o
+                    app copia da busca. Só o caminho da busca o usa (ver a descrição), e a vaga direta
+                    o guarda para as chamadas seguintes pelo `vaga_id`. O `nome` dessa região tem
+                    de ser igual a `regiao_administrativa`; diferente, fora do catálogo ou inativo,
+                    `422 campo_invalido` (`regiao_id`).
+                  type: integer
+                  minimum: 1
                 ponto:
                   $ref: '#/components/schemas/Coordenada'
                 valor_centavos:
@@ -7536,6 +7555,13 @@ components:
           type: string
           enum: [profissional, estabelecimento]
         nome:
+          description: |
+            0.2.88. Para contratante que não tem com o profissional candidatura numa vaga da casa,
+            turno entre eles nem equipe de confiança, vem sempre como no `CartaoProfissional`:
+            primeiro nome e inicial do sobrenome. Vale em toda leitura que traz `PerfilPublico`
+            (inclusive `ChamadaResumo.outra_parte`), esteja o profissional na busca ou não, e tenha a
+            casa chamado ou não. Assim uma chamada recusada, ou sair da busca, não revela o nome
+            completo. Com candidatura, turno ou equipe, vem como sempre veio.
           type: string
         funcoes:
           type: array
@@ -7550,9 +7576,10 @@ components:
             leitura com o profissional (candidatura numa vaga da casa, turno entre eles ou equipe de
             confiança). Para qualquer outra conta, e para estabelecimento, são omitidos.
 
-            0.2.88. Com `recursos.busca_profissionais` ligado, o profissional que está na busca
-            (`aceita_chamadas` ligado e sem pausa) também conta como vínculo de leitura para
-            qualquer contratante, nestes campos. Não vale para `foto_url` e `foto_id`.
+            0.2.88. Com `recursos.busca_profissionais` ligado, o profissional com `aceita_chamadas`
+            ligado também conta como vínculo de leitura para qualquer contratante, nestes campos. A
+            pausa não muda isso, para o perfil não revelar quando ele pausou. Não vale para
+            `foto_url` e `foto_id`.
           oneOf:
             - type: string
               maxLength: 600
@@ -8544,7 +8571,10 @@ components:
           $ref: '#/components/schemas/Uuid'
         nome:
           type: string
-          description: Nome público da outra parte, o mesmo de `PerfilPublico.nome`.
+          description: |
+            Nome público da outra parte, o mesmo de `PerfilPublico.nome`. Desde a 0.2.88, com o
+            mesmo corte, calculado na leitura: para a casa sem candidatura, turno ou equipe com o
+            profissional, primeiro nome e inicial do sobrenome.
         criado_em:
           $ref: '#/components/schemas/Instante'
     SituacaoDaConta:
