@@ -490,25 +490,56 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(pedidos[4].vagaID == segunda && pedidos[5].vagaID == segunda)
     }
 
-    @Test("Nova busca zera a vaga: outro trabalho com 3 selecionados abre 1 vaga, e o mesmo trabalho também abre outra")
-    func novaBuscaZeraAVaga() async throws {
-        let (fonte, vm) = preparar(total: 3)
+    @Test("Nova busca guarda a vaga: o mesmo trabalho entra pelo vaga_id da vaga que já existe; outro trabalho abre outra")
+    func novaBuscaGuardaAVaga() async throws {
+        let (fonte, vm) = preparar(total: 9)
         await vm.buscar()
-        vm.resultados.forEach { vm.alternarSelecao($0.id) }
+        vm.resultados.prefix(3).forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho())
+        let primeira = try #require(vagas(vm, vm.selecionados).first)
         await vm.buscar()
-        vm.resultados.forEach { vm.alternarSelecao($0.id) }
+        vm.resultados[3...5].forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho(valor: 21_000))
-        let depoisDoSegundo = vagas(vm, vm.selecionados)
+        let segunda = try #require(vagas(vm, vm.selecionados).first)
         await vm.buscar()
-        vm.resultados.forEach { vm.alternarSelecao($0.id) }
+        vm.resultados.suffix(3).forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho())
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 9)
-        #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, true, false, false, true, false, false])
-        #expect(depoisDoSegundo.count == 1)
-        #expect(vagas(vm, vm.selecionados).count == 1)
-        #expect(Set(pedidos.compactMap(\.vagaID)).count == 3) // 3 trabalhos-busca, 3 vagas; nunca 1 por chamada
+        // Só dois pedidos levam o trabalho completo: um por trabalho. A 3ª busca, com o 1º trabalho, entra na vaga dele.
+        #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, true, false, false, false, false, false])
+        #expect(primeira != segunda)
+        #expect(pedidos.suffix(3).allSatisfy { $0.vagaID == primeira && $0.trabalho == nil })
+        #expect(vagas(vm, vm.selecionados) == [primeira])
+    }
+
+    @Test("Nova busca com a vaga do trabalho encerrada: o servidor barra e o mesmo trabalho não abre outra sozinho; outro trabalho abre")
+    func vagaDoTrabalhoEncerradaNaoAbreOutra() async throws {
+        let (fonte, vm) = preparar(total: 6)
+        await vm.buscar()
+        vm.resultados.prefix(3).forEach { vm.alternarSelecao($0.id) }
+        await vm.chamar(trabalho: try trabalho())
+        let primeira = try #require(vagas(vm, vm.selecionados).first)
+        await vm.buscar()
+        let novos = Array(vm.resultados.suffix(3).map(\.id))
+        novos.forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(erroNaChamada: [novos[0]: ErroDaApi(codigo: .vagaEncerrada),
+                                            novos[1]: ErroDaApi(codigo: .limiteDeChamadas, detalhes: "por_vaga"),
+                                            novos[2]: ErroDaApi(codigo: .vagaEncerrada)])
+        await vm.chamar(trabalho: try trabalho())
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.suffix(3).allSatisfy { $0.vagaID == primeira && $0.trabalho == nil })
+        #expect(novos.allSatisfy { if case .erro = vm.resultadosDaChamada[$0] { true } else { false } })
+        #expect(!vm.travadoPeloIncerto) // recusa definitiva não trava
+
+        // A pessoa muda o trabalho: aí começa ciclo novo, numa vaga nova.
+        await fonte.ajustar(erroNaChamada: [:])
+        await vm.buscar()
+        vm.alternarSelecao(vm.resultados[0].id)
+        await vm.chamar(trabalho: try trabalho(valor: 22_000))
+        pedidos = await fonte.pedidos
+        #expect(pedidos.last?.trabalho != nil && pedidos.last?.vagaID == nil)
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 2)
     }
 
     @Test("A 1ª passa do prazo de 15 s: p-2 e p-3 nem saem; o reenvio repete a chave da 1ª e os outros entram pelo vaga_id",
@@ -598,6 +629,108 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(pedidos.last?.profissionalID == ids[2] && pedidos.last?.vagaID == vagaID)
         #expect(pedidos.filter { $0.trabalho != nil && $0.profissionalID == ids[0] }.count == 1) // só o recusado pelo J7
         #expect(vagas(vm, ids) == [vagaID])
+    }
+
+    // MARK: Trava do incerto que levou o trabalho (IMPORTANTES 1 e 2 do Lince G no #780)
+
+    @Test("Incerto que levou o trabalho trava a seleção: não desmarca, não troca, não acrescenta; o Tentar de novo fecha com 1 vaga")
+    func incertoTravaASelecao() async throws {
+        let (fonte, vm) = preparar(total: 4)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        ids.prefix(3).forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(vm.travadoPeloIncerto)
+        // O caminho do Lince: troca o p-1 pelo p-4 (desmarca e marca). Nada muda.
+        #expect(!vm.alternarSelecao(ids[0]))
+        #expect(!vm.alternarSelecao(ids[1]))
+        #expect(!vm.alternarSelecao(ids[3]))
+        #expect(vm.selecionados == Array(ids.prefix(3)))
+
+        await fonte.ajustar(perdeResposta: [])
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        #expect(pedidos[1] == pedidos[0])
+        #expect(pedidos.filter { $0.trabalho != nil }.map(\.chave) == [pedidos[0].chave, pedidos[0].chave])
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        #expect(vagas(vm, Array(ids.prefix(3))) == [vagaID])
+        // Resolvido, a seleção volta a mudar.
+        #expect(!vm.travadoPeloIncerto)
+        #expect(vm.alternarSelecao(ids[0]))
+    }
+
+    @Test("Incerto sozinho na seleção: acrescentar alguém também fica travado")
+    func incertoTravaAcrescentar() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        vm.alternarSelecao(ids[0])
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(!vm.alternarSelecao(ids[1]))
+        #expect(vm.selecionados == [ids[0]])
+    }
+
+    @Test("Incerto que levou o trabalho bloqueia buscar() e a página seguinte; nada sai e nada se apaga")
+    func incertoBloqueiaBuscar() async throws {
+        let (fonte, vm) = preparar(total: 45)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        ids.prefix(3).forEach { vm.alternarSelecao($0) }
+        await fonte.ajustar(perdeResposta: [ids[0]])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(!vm.podeBuscar)
+        await vm.buscar()
+        await vm.carregarMais()
+        #expect(await fonte.cursoresRecebidos == [nil]) // nem busca nova nem página seguinte
+        #expect(vm.selecionados == Array(ids.prefix(3)))
+        #expect(vm.resultadosDaChamada[ids[1]] == .naoEnviada)
+        #expect(vm.podeReenviar)
+
+        await fonte.ajustar(perdeResposta: [])
+        await vm.chamar(trabalho: try trabalho())
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 2 && pedidos[1] == pedidos[0])
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        // Resolvido: a busca volta, e o mesmo trabalho com outra pessoa entra na mesma vaga.
+        #expect(vm.podeBuscar)
+        await vm.buscar()
+        vm.alternarSelecao(ids[3])
+        await vm.chamar(trabalho: try trabalho())
+        pedidos = await fonte.pedidos
+        #expect(pedidos.last?.profissionalID == ids[3] && pedidos.last?.vagaID == vagaID && pedidos.last?.trabalho == nil)
+    }
+
+    @Test("cursor_invalido refaz a busca e guarda o incerto, a chave dele e a vaga do trabalho")
+    func cursorInvalidoGuardaIncertoEChave() async throws {
+        let (fonte, vm) = preparar(total: 45)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        vm.alternarSelecao(ids[0])
+        vm.alternarSelecao(ids[1])
+        // O p-2 vai pelo vaga_id e fica incerto: não trava (a vaga existe), mas a chave dele precisa sobreviver.
+        await fonte.ajustar(perdeResposta: [ids[1]])
+        await vm.chamar(trabalho: try trabalho())
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        let chaveIncerta = try #require(await fonte.pedidos.last).chave
+        #expect(!vm.travadoPeloIncerto)
+
+        await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido), perdeResposta: [])
+        await vm.carregarMais()
+        #expect(await fonte.cursoresRecebidos == [nil, "20", nil]) // refez a 1ª página
+        #expect(vm.selecionados.isEmpty)
+
+        vm.alternarSelecao(ids[1])
+        vm.alternarSelecao(ids[2])
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.count == 4)
+        #expect(pedidos[2].profissionalID == ids[1] && pedidos[2].chave == chaveIncerta && pedidos[2].vagaID == vagaID)
+        #expect(pedidos[3].profissionalID == ids[2] && pedidos[3].vagaID == vagaID && pedidos[3].trabalho == nil)
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 1)
+        #expect(vagas(vm, [ids[1], ids[2]]) == [vagaID])
     }
 
     @Test("Nova busca zera a seleção e o resultado das chamadas")

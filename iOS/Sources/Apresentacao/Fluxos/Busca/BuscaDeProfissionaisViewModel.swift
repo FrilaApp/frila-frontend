@@ -82,11 +82,12 @@ public final class BuscaDeProfissionaisViewModel {
     private var filtroDaBusca: FiltroBuscaProfissionais?
     private var recursoConfirmado = false
     private var tentativas: [UUID: PedidoChamada] = [:]
-    /// As vagas diretas desta busca, uma por trabalho (comparado sem a chave): a 1ª chamada que deu certo pelo
-    /// trabalho criou a vaga; as seguintes para o mesmo trabalho entram nela pelo `vaga_id`. Trabalho novo começa
-    /// outra; nova busca zera.
+    /// As vagas diretas desta tela, uma por trabalho (comparado sem a chave): a 1ª chamada que deu certo pelo
+    /// trabalho criou a vaga; as seguintes para o mesmo trabalho entram nela pelo `vaga_id`, inclusive depois de
+    /// outra busca. Trabalho novo começa outra. DINHEIRO: nova busca não zera (a vaga é do trabalho, não da busca).
     private var vagasDosTrabalhos: [(trabalho: PublicacaoVaga, id: UUID)] = []
-    /// Quem terminou a última tentativa sem resposta definitiva: a chamada pode ter sido criada.
+    /// Quem terminou a última tentativa sem resposta definitiva: a chamada pode ter sido criada. Nova busca não
+    /// apaga nem eles nem a tentativa (a chave) deles: só a mesma chave descobre o que o servidor fez.
     private var incertos: Set<UUID> = []
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
@@ -101,7 +102,14 @@ public final class BuscaDeProfissionaisViewModel {
     }
 
     public var podeBuscar: Bool {
-        funcaoID != nil && estado != .carregando && !carregandoMais && !enviando
+        funcaoID != nil && estado != .carregando && !carregandoMais && !enviando && !travadoPeloIncerto
+    }
+
+    /// DINHEIRO: um pedido que levou o trabalho terminou incerto, e a vaga pode já existir no servidor. Até ele se
+    /// resolver no "Tentar de novo" (`chamar`), a seleção não muda e não há busca nova nem página seguinte: trocar
+    /// a pessoa ou buscar de novo mandaria o trabalho completo com outra chave e abriria uma 2ª vaga.
+    public var travadoPeloIncerto: Bool {
+        incertos.contains { tentativas[$0]?.trabalho != nil }
     }
 
     public var temMais: Bool { proximoCursor != nil && resultados.count < FiltroBuscaProfissionais.maximoDeResultados }
@@ -115,7 +123,8 @@ public final class BuscaDeProfissionaisViewModel {
 
     // MARK: - Busca
 
-    /// A primeira página com os filtros de agora. Zera a seleção e o resultado anterior.
+    /// A primeira página com os filtros de agora. Zera a seleção e o resultado anterior, mas guarda as vagas por
+    /// trabalho e os incertos com as suas chaves. Bloqueada enquanto `travadoPeloIncerto`.
     public func buscar() async {
         guard let funcaoID, podeBuscar else { return }
         let filtro = FiltroBuscaProfissionais(estabelecimentoID: estabelecimentoID, funcaoID: funcaoID,
@@ -141,9 +150,8 @@ public final class BuscaDeProfissionaisViewModel {
             filtroDaBusca = filtro
             selecionados = []
             resultadosDaChamada = [:]
-            tentativas = [:]
-            vagasDosTrabalhos = []
-            incertos = []
+            // Fica só a tentativa de quem está incerto (a chave que resolve o que o servidor fez).
+            tentativas = tentativas.filter { incertos.contains($0.key) }
             resultados = Self.semRepetidos(pagina.itens, jaTem: [])
             proximoCursor = Self.cursorSeguinte(pagina, total: resultados.count)
             estado = resultados.isEmpty ? .vazio : .resultados
@@ -155,7 +163,7 @@ public final class BuscaDeProfissionaisViewModel {
 
     /// A página seguinte, com o mesmo filtro da busca. Para no fim ou em 200 resultados.
     public func carregarMais() async {
-        guard estado == .resultados, !carregandoMais, !enviando, temMais, let filtro = filtroDaBusca,
+        guard estado == .resultados, !carregandoMais, !enviando, !travadoPeloIncerto, temMais, let filtro = filtroDaBusca,
               let cursor = proximoCursor else { return }
         carregandoMais = true
         erroAoCarregarMais = nil
@@ -215,9 +223,11 @@ public final class BuscaDeProfissionaisViewModel {
 
     public func estaSelecionado(_ id: UUID) -> Bool { selecionados.contains(id) }
 
-    /// Marca ou desmarca. O 4º não entra: devolve `false` e liga o aviso.
+    /// Marca ou desmarca. O 4º não entra: devolve `false` e liga o aviso. Com `travadoPeloIncerto`, nada muda
+    /// (devolve `false`): o incerto que levou o trabalho continua marcado e vai primeiro no "Tentar de novo".
     @discardableResult
     public func alternarSelecao(_ id: UUID) -> Bool {
+        guard !travadoPeloIncerto else { return false }
         if let indice = selecionados.firstIndex(of: id) {
             selecionados.remove(at: indice)
             avisoDeLimiteDeSelecao = nil
@@ -330,7 +340,7 @@ public final class BuscaDeProfissionaisViewModel {
         return base.confirmando(confirmando || base.confirmoRecorrencia)
     }
 
-    /// A vaga direta que esta busca já criou para o mesmo trabalho (sem contar a chave), se existe.
+    /// A vaga direta que esta tela já criou para o mesmo trabalho (sem contar a chave), em qualquer busca, se existe.
     private func vagaReutilizavel(para trabalho: PublicacaoVaga) -> UUID? {
         let semChave = trabalho.comChave(Self.semChave)
         return vagasDosTrabalhos.first { $0.trabalho == semChave }?.id
