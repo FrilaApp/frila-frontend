@@ -77,7 +77,11 @@ class CheckinViewModel(
             }
 
             try {
-                val coordenadaAtual = provedorDeLocalizacao.obterCoordenadaAtual()
+                // Leitura com erro acima de 100 m não prova presença: segue como "sem localização"
+                // (check-in manual), igual ao iOS.
+                val coordenadaAtual = provedorDeLocalizacao.lerParaCheckin()
+                    ?.takeIf { it.precisaoMetros <= PRECISAO_MAXIMA_METROS }
+                    ?.coordenada
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
                 registrarCheckin(distanciaMetros, coordenadaAtual)
             } catch (erro: ErroDaApi) {
@@ -167,5 +171,8 @@ class CheckinViewModel(
 
         /** RN06: limite para o backend confirmar o check-in geolocalizado na hora. */
         const val LIMITE_METROS = 200
+
+        /** Raio de erro máximo de uma leitura que vale como prova, igual ao iOS (100 m). */
+        const val PRECISAO_MAXIMA_METROS = 100f
     }
 }

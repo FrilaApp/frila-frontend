@@ -2,6 +2,7 @@ package br.com.frila.feature.turnos
 
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
+import br.com.frila.core.localizacao.LeituraDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
@@ -64,11 +65,13 @@ class CheckinViewModelTest {
     )
 
     /** Cenário padrão: permissão concedida e GPS ativo — testes defensivos stubam explicitamente. */
-    private fun provedorComPermissaoEGps(coordenada: Coordenada?): ProvedorDeLocalizacao {
+    private fun provedorComPermissaoEGps(coordenada: Coordenada?, precisaoMetros: Float = 10f): ProvedorDeLocalizacao {
         val provedor = mockk<ProvedorDeLocalizacao>()
         every { provedor.temPermissaoDeLocalizacao() } returns true
         every { provedor.isGpsAtivado() } returns true
-        coEvery { provedor.obterCoordenadaAtual() } returns coordenada
+        coEvery { provedor.lerParaCheckin() } returns coordenada?.let {
+            LeituraDeLocalizacao(coordenada = it, precisaoMetros = precisaoMetros, simulada = false)
+        }
         return provedor
     }
 
@@ -129,6 +132,49 @@ class CheckinViewModelTest {
         assertNotNull(comprovante)
         assertEquals(TipoVerificacaoCheckin.MANUAL_PENDENTE, comprovante!!.tipoVerificacao)
         assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
+    }
+
+    /** Igual ao iOS (`RegraDePresenca.precisaoHorizontalMaximaMetros`): leitura com erro acima de 100 m não prova presença. */
+    @Test
+    fun `leitura com precisao pior que 100 m nao vira distancia e o checkin segue manual`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima, precisaoMetros = 150f)
+        var corpoRecebido: String? = null
+        val engine = MockEngine { request ->
+            corpoRecebido = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = resultadoJson(tipo = "manual", verificacao = "pendente"),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+        val viewModel = criarViewModel(provedor, servico)
+
+        viewModel.fazerCheckin().join()
+
+        assertTrue(corpoRecebido!!.contains("\"distancia_m\":null"))
+        assertEquals(StatusCheckin.MANUAL_PENDENTE, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `leitura com precisao de exatamente 100 m vale e manda a distancia`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima, precisaoMetros = 100f)
+        var corpoRecebido: String? = null
+        val engine = MockEngine { request ->
+            corpoRecebido = (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = resultadoJson(tipo = "geolocalizado", verificacao = "verificado", distanciaM = "111"),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+        val viewModel = criarViewModel(provedor, servico)
+
+        viewModel.fazerCheckin().join()
+
+        assertTrue(Regex("\"distancia_m\":\\d+").containsMatchIn(corpoRecebido!!))
+        assertEquals(StatusCheckin.VERIFICADO, viewModel.estado.value.status)
     }
 
     @Test
