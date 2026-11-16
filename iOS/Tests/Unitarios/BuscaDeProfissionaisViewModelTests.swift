@@ -140,6 +140,7 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.horario = try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * 3600))
         await vm.buscar()
         let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count >= 2)
         #expect(filtros[0] == FiltroBuscaProfissionais(estabelecimentoID: casaID, funcaoID: funcaoID))
         #expect(filtros[1].regiaoID == 7)
         #expect(filtros[1].horario == vm.horario)
@@ -155,6 +156,7 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(vm.resultados.map(\.id) == (0..<6).map(FonteDaBuscaFalsa.id))
         #expect(vm.resultados.map(\.disponivelNoHorario) == [true, false, true, false, true, false])
         // Reputação não ordena (D2): o 5º tem reputação menor que o 4º e continua depois.
+        try #require(vm.resultados.count >= 5)
         #expect(vm.resultados[4].reputacao.positivas < vm.resultados[3].reputacao.positivas)
     }
 
@@ -242,12 +244,13 @@ struct BuscaDeProfissionaisViewModelTests {
     }
 
     @Test("A paginação mantém o filtro da busca mesmo que a tela mexa nos campos")
-    func paginacaoComOMesmoFiltro() async {
+    func paginacaoComOMesmoFiltro() async throws {
         let (fonte, vm) = preparar(total: 45)
         await vm.buscar()
         vm.regiaoID = 99
         await vm.carregarMais()
         let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count >= 2)
         #expect(filtros[1] == filtros[0])
     }
 
@@ -290,10 +293,11 @@ struct BuscaDeProfissionaisViewModelTests {
     // MARK: Seleção e chamada
 
     @Test("Até 3 selecionados: o 4º não entra e liga o aviso; desmarcar libera a vaga")
-    func limiteDeTres() async {
+    func limiteDeTres() async throws {
         let (_, vm) = preparar(total: 6)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 4)
         #expect(vm.alternarSelecao(ids[0]))
         #expect(vm.alternarSelecao(ids[1]))
         #expect(vm.alternarSelecao(ids[2]))
@@ -321,9 +325,11 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.resultados.prefix(3).forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho(), recado: "Pode vir cedo?")
         let pedidos = await fonte.pedidos
+        try #require(pedidos.count >= 3)
         #expect(pedidos.map(\.profissionalID) == vm.selecionados)
         #expect(Set(pedidos.map(\.chave)).count == 3)
-        let vagaID = try #require(enviada(vm.resultadosDaChamada[vm.selecionados[0]])).vagaID
+        let primeiroSelecionado = try #require(vm.selecionados.first)
+        let vagaID = try #require(enviada(vm.resultadosDaChamada[primeiroSelecionado])).vagaID
         #expect(pedidos[0].trabalho != nil && pedidos[0].vagaID == nil)
         #expect(pedidos.dropFirst().allSatisfy { $0.vagaID == vagaID && $0.trabalho == nil })
         #expect(vm.selecionados.allSatisfy { enviada(vm.resultadosDaChamada[$0])?.vagaID == vagaID })
@@ -337,11 +343,11 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 2)
         vm.regiaoID = 7
         await vm.buscar()
-        vm.alternarSelecao(vm.resultados[0].id)
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.chamar(trabalho: try trabalho())
         vm.regiaoID = nil
         await vm.buscar()
-        vm.alternarSelecao(vm.resultados[0].id)
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.chamar(trabalho: try trabalho(valor: 21_000)) // outro trabalho: outra vaga
         let pedidos = await fonte.pedidos
         #expect(pedidos.map(\.regiaoID) == [7, nil])
@@ -361,6 +367,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         ids.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(erroNaChamada: [ids[1]: ErroDaApi(codigo: .chamadaJaAberta)])
         await vm.chamar(trabalho: try trabalho())
@@ -382,6 +389,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 2)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         ids.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(recorrenciaPendente: [ids[0]])
         await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true) // sem recusa antes: não envia
@@ -393,6 +401,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 3) // só o pendente
+        try #require(pedidos.count >= 3)
         #expect(pedidos[2].profissionalID == ids[0])
         // O 2º virou a 1ª chamada e criou a vaga; a confirmação do 1º entra nela, com a mesma chave.
         #expect(pedidos[1].trabalho != nil)
@@ -407,11 +416,13 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         ids.forEach { vm.alternarSelecao($0) }
         // Recusa definitiva (o servidor não criou nada): promove o próximo. Sem rede é incerto e para (outro teste).
         await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .profissionalIndisponivel)])
         await vm.chamar(trabalho: try trabalho())
         var pedidos = await fonte.pedidos
+        try #require(pedidos.count >= 3)
         #expect(vm.resultadosDaChamada[ids[0]] == .erro(TextosChamadaDireta.indisponivel))
         #expect(pedidos[0].trabalho != nil && pedidos[1].trabalho != nil)
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[1]])).vagaID
@@ -420,6 +431,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         pedidos = await fonte.pedidos
         #expect(pedidos.count == 4)
+        try #require(pedidos.count >= 4)
         #expect(pedidos[3].profissionalID == ids[0])
         #expect(pedidos[3].chave == pedidos[0].chave)
         #expect(pedidos[3].vagaID == vagaID)
@@ -431,6 +443,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 2)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         ids.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(recorrenciaPendente: [ids[1]])
         await vm.chamar(trabalho: try trabalho())
@@ -438,6 +451,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 3)
+        try #require(pedidos.count >= 3)
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
         #expect(pedidos[1].vagaID == vagaID && !pedidos[1].confirmoRecorrencia)
         #expect(pedidos[2] == pedidos[1].confirmando(true))
@@ -449,6 +463,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 2)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         ids.forEach { vm.alternarSelecao($0) }
         let erro = ErroDaApi(codigo: .limiteDeChamadas)
         await fonte.ajustar(erroNaChamada: [ids[0]: erro, ids[1]: erro])
@@ -457,6 +472,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 4)
+        try #require(pedidos.count >= 4)
         #expect(pedidos.prefix(3).allSatisfy { $0.vagaID == nil })
         #expect(pedidos[2] == pedidos[0])
         #expect(pedidos[3].chave == pedidos[1].chave)
@@ -481,6 +497,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho(valor: 21_000))
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 6)
+        try #require(pedidos.count >= 6)
         #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, true, false, false])
         let primeira = try #require(vagas(vm, Array(ids.prefix(3))).first)
         let segunda = try #require(vagas(vm, Array(ids.suffix(3))).first)
@@ -498,6 +515,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         let primeira = try #require(vagas(vm, vm.selecionados).first)
         await vm.buscar()
+        try #require(vm.resultados.count >= 6)
         vm.resultados[3...5].forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho(valor: 21_000))
         let segunda = try #require(vagas(vm, vm.selecionados).first)
@@ -522,6 +540,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let primeira = try #require(vagas(vm, vm.selecionados).first)
         await vm.buscar()
         let novos = Array(vm.resultados.suffix(3).map(\.id))
+        try #require(novos.count >= 3)
         novos.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(erroNaChamada: [novos[0]: ErroDaApi(codigo: .vagaEncerrada),
                                             novos[1]: ErroDaApi(codigo: .limiteDeChamadas, detalhes: "por_vaga"),
@@ -535,7 +554,7 @@ struct BuscaDeProfissionaisViewModelTests {
         // A pessoa muda o trabalho: aí começa ciclo novo, numa vaga nova.
         await fonte.ajustar(erroNaChamada: [:])
         await vm.buscar()
-        vm.alternarSelecao(vm.resultados[0].id)
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.chamar(trabalho: try trabalho(valor: 22_000))
         pedidos = await fonte.pedidos
         #expect(pedidos.last?.trabalho != nil && pedidos.last?.vagaID == nil)
@@ -548,6 +567,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
         ids.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(atrasaAlemDoPrazo: [ids[0]])
         await vm.chamar(trabalho: try trabalho())
@@ -561,6 +581,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         pedidos = await fonte.pedidos
         #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        try #require(pedidos.count >= 2)
         #expect(pedidos[1] == pedidos[0]) // a mesma chave e o mesmo trabalho: o servidor devolve a chamada já criada
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
         #expect(pedidos.suffix(2).allSatisfy { $0.vagaID == vagaID && $0.trabalho == nil })
@@ -573,6 +594,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
         ids.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .limiteDeChamadas)], perdeResposta: [ids[1]])
         await vm.chamar(trabalho: try trabalho())
@@ -585,6 +607,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         pedidos = await fonte.pedidos
         #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1], ids[0], ids[2]])
+        try #require(pedidos.count >= 5)
         #expect(pedidos[2] == pedidos[1])
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[1]])).vagaID
         #expect(pedidos[3].chave == pedidos[0].chave && pedidos[3].vagaID == vagaID && pedidos[3].trabalho == nil)
@@ -597,6 +620,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
         ids.forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(recorrenciaPendente: [ids[0]], perdeResposta: [ids[1]])
         await vm.chamar(trabalho: try trabalho())
@@ -609,6 +633,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
         var pedidos = await fonte.pedidos
         #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1]])
+        try #require(pedidos.count >= 3)
         #expect(pedidos[2] == pedidos[1])
         #expect(vm.resultadosDaChamada[ids[0]] == .pedeConfirmacaoDeRecorrencia)
         #expect(vm.mostrarJ7)
@@ -618,6 +643,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho(), confirmoRecorrencia: true)
         pedidos = await fonte.pedidos
         #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1], ids[1], ids[0]])
+        try #require(pedidos.count >= 5)
         #expect(pedidos[3] == pedidos[1]) // sem a confirmação J7, que é só do p-1
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[1]])).vagaID
         #expect(pedidos[4].chave == pedidos[0].chave && pedidos[4].vagaID == vagaID && pedidos[4].trabalho == nil)
@@ -638,6 +664,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 4)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 4)
         ids.prefix(3).forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(perdeResposta: [ids[0]])
         await vm.chamar(trabalho: try trabalho())
@@ -652,6 +679,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         let pedidos = await fonte.pedidos
         #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        try #require(pedidos.count >= 2)
         #expect(pedidos[1] == pedidos[0])
         #expect(pedidos.filter { $0.trabalho != nil }.map(\.chave) == [pedidos[0].chave, pedidos[0].chave])
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
@@ -666,6 +694,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 3)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
         vm.alternarSelecao(ids[0])
         await fonte.ajustar(perdeResposta: [ids[0]])
         await vm.chamar(trabalho: try trabalho())
@@ -678,6 +707,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 45)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 4)
         ids.prefix(3).forEach { vm.alternarSelecao($0) }
         await fonte.ajustar(perdeResposta: [ids[0]])
         await vm.chamar(trabalho: try trabalho())
@@ -692,6 +722,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await fonte.ajustar(perdeResposta: [])
         await vm.chamar(trabalho: try trabalho())
         var pedidos = await fonte.pedidos
+        try #require(pedidos.count >= 2)
         #expect(pedidos.filter { $0.trabalho != nil }.count == 2 && pedidos[1] == pedidos[0])
         let vagaID = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
         // Resolvido: a busca volta, e o mesmo trabalho com outra pessoa entra na mesma vaga.
@@ -708,6 +739,7 @@ struct BuscaDeProfissionaisViewModelTests {
         let (fonte, vm) = preparar(total: 45)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
         vm.alternarSelecao(ids[0])
         vm.alternarSelecao(ids[1])
         // O p-2 vai pelo vaga_id e fica incerto: não trava (a vaga existe), mas a chave dele precisa sobreviver.
@@ -727,6 +759,7 @@ struct BuscaDeProfissionaisViewModelTests {
         await vm.chamar(trabalho: try trabalho())
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 4)
+        try #require(pedidos.count >= 4)
         #expect(pedidos[2].profissionalID == ids[1] && pedidos[2].chave == chaveIncerta && pedidos[2].vagaID == vagaID)
         #expect(pedidos[3].profissionalID == ids[2] && pedidos[3].vagaID == vagaID && pedidos[3].trabalho == nil)
         #expect(pedidos.filter { $0.trabalho != nil }.count == 1)
@@ -737,7 +770,7 @@ struct BuscaDeProfissionaisViewModelTests {
     func novaBuscaZeraSelecao() async throws {
         let (_, vm) = preparar(total: 3)
         await vm.buscar()
-        vm.alternarSelecao(vm.resultados[0].id)
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.buscar()
         #expect(vm.selecionados.isEmpty)
     }

@@ -294,7 +294,7 @@ struct BuscaDeProfissionaisDubleTests {
     func chamarPeloVagaID() async throws {
         let api = api()
         let outros = try await todas(api, filtro(regiao: 1)).map(\.id).filter { $0 != IDs.disponivel }
-        #expect(outros.count >= 3)
+        try #require(outros.count >= 3)
         let primeira = try await api.chamarProfissional(pedido(para: IDs.disponivel, inicio: Self.agora.addingTimeInterval(72 * 3600)))
         func pelaVaga(_ profissionalID: UUID, chave: UUID = UUID()) -> PedidoChamada {
             PedidoChamada(profissionalID: profissionalID, vagaID: primeira.vagaID, estabelecimentoID: Self.casaID, chave: chave)
