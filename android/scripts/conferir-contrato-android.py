@@ -163,6 +163,7 @@ def main() -> None:
         "TransferirAdministracaoDto": "/rpc/transferir_administracao",
         "EscolherCandidatoDto": "/rpc/escolher_candidato",
         "ConfirmarCheckinManualDto": "/rpc/confirmar_checkin_manual",
+        "RemoverDispositivoDto": "/rpc/remover_dispositivo",
         "DefinirServicosDto": "/rpc/definir_servicos",
         "DefinirPreferenciaChamadasDto": "/rpc/definir_preferencia_chamadas",
         "BuscarProfissionaisDto": "/rpc/buscar_profissionais",
@@ -170,6 +171,7 @@ def main() -> None:
         "ResponderChamadaDto": "/rpc/responder_chamada",
         "CancelarChamadaDto": "/rpc/cancelar_chamada",
         "PublicarAPartirDaChamadaDto": "/rpc/publicar_a_partir_da_chamada",
+        "AceitarTermosDto": "/rpc/aceitar_termos",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
@@ -180,6 +182,7 @@ def main() -> None:
         "AdministracaoTransferidaDto": "/rpc/transferir_administracao",
         "PaginaDeProfissionaisDto": "/rpc/buscar_profissionais",
         "PaginaDeChamadasDto": "/rpc/minhas_chamadas",
+        "AceiteDeTermosDto": "/rpc/aceitar_termos",
     }
 
     # Leituras que o contrato descreve em GET com parâmetros de query, mas que o app envia em POST

@@ -200,7 +200,8 @@ val moduloFeatures = module {
         CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), monitorizador = get())
     }
     viewModel { AvaliacaoViewModel(get()) }
-    viewModel { PerfilViewModel(get(), get(), get(), preferenciasNotificacao = get()) }
+    /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
+    viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get()) }
     viewModel { VerificacaoIdentidadeViewModel(get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
     /**
@@ -209,10 +210,10 @@ val moduloFeatures = module {
      */
     viewModel {
         val servicoPerfil = get<ServicoPerfil>()
-        val armazenamentoDeSessao = get<ArmazenamentoDeSessao>()
+        val coordenadorDeLogout = get<CoordenadorDeLogout>()
         ExclusaoDeContaViewModel(
             excluir = { servicoPerfil.excluirConta() },
-            aoConcluir = { armazenamentoDeSessao.limparSessao() },
+            aoConcluir = { coordenadorDeLogout.limparSessao() },
         )
     }
     viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
@@ -327,6 +328,7 @@ val moduloFeatures = module {
             recursoHabilitado = { consultarConfiguracaoDoApp(gestor.clienteAtual).recursos.buscaProfissionais },
             buscarProfissionais = chamadas::buscarProfissionais,
             chamarProfissional = chamadas::chamarProfissional,
+            aceitarTermos = chamadas::aceitarTermos,
             listarFuncoes = get<ServicoVagas>()::listarFuncoes,
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
             buscarCasa = get<ServicoMembros>()::meuEstabelecimento,
@@ -359,4 +361,4 @@ val moduloFeatures = module {
     }
 }
 
-val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures)
+val todosOsModulos = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacao, moduloFeatures, moduloDestinoDaConta)

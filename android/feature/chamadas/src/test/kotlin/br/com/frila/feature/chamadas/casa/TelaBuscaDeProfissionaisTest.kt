@@ -22,6 +22,8 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.CartaoProfissionalDto
 import br.com.frila.core.rede.ChamadaDto
@@ -57,13 +59,15 @@ class TelaBuscaDeProfissionaisTest {
         regiaoAdministrativa = "Plano Piloto", ponto = CoordenadaDto(-15.79, -47.88), papel = "administrador",
     )
 
-    private fun cartao(id: String, nome: String, disponivel: Boolean? = null) = CartaoProfissionalDto(
+    private fun cartao(id: String, nome: String, disponivel: Boolean? = null, fotoUrl: String? = null) = CartaoProfissionalDto(
         id = id, nome = nome,
         servico = ServicoNoPerfilDto(funcao = garcom, unidade = "diaria", valorCentavos = 15000, horasIncluidas = 8),
         regioes = listOf(RegiaoAdministrativaDto(1, "I", "Plano Piloto")),
         distanciaFaixa = "ate_5_km",
         reputacao = ReputacaoDto(positivas = 7, total = 8, turnosConsiderados = 8, turnosRealizados = 8),
         disponivelNoHorario = disponivel,
+        fotoUrl = fotoUrl,
+        fotoId = fotoUrl?.let { "foto-$id" },
     )
 
     private val resultados = listOf(cartao("p1", "Maria S.", true), cartao("p2", "João P.", false), cartao("p3", "Ana L."), cartao("p4", "Rui T."))
@@ -88,6 +92,9 @@ class TelaBuscaDeProfissionaisTest {
         var confirmouJ7 = 0
         var reenviou = 0
         var horario: HorarioDaBusca? = null
+        val fotosPedidas = mutableListOf<String>()
+        var abriuTermos = 0
+        var aceitou = 0
     }
 
     private val chamadas = Chamadas()
@@ -113,6 +120,12 @@ class TelaBuscaDeProfissionaisTest {
                     aoReenviar = { chamadas.reenviou++ },
                     aoConfirmarJ7 = { chamadas.confirmouJ7++ },
                     relogio = { agora },
+                    aoAbrirTermos = { chamadas.abriuTermos++ },
+                    aoAceitarTermos = { chamadas.aceitou++ },
+                    carregarFoto = { url ->
+                        chamadas.fotosPedidas += url
+                        if (url.contains("excecao")) error("404") else if (url.contains("quebrada")) null else Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888).asImageBitmap()
+                    },
                 )
             }
         }
@@ -136,6 +149,77 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithTag("busca-regiao").performClick()
         rule.onNodeWithText("Plano Piloto").performClick()
         assertEquals(1, chamadas.regiao)
+    }
+
+    @Test
+    fun termosPendentesMostramOAceiteEBloqueiamABusca() {
+        montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes()))
+
+        rule.onNodeWithTag("busca-termos-pendentes").assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO).assertIsDisplayed()
+        rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
+        rule.onAllNodesWithTag("busca-termos-erro").assertCountEquals(0)
+
+        rule.onNodeWithTag("busca-termos-ler").performClick()
+        rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled().performClick()
+        assertEquals(1, chamadas.abriuTermos)
+        assertEquals(1, chamadas.aceitou)
+    }
+
+    @Test
+    fun aceitandoDesligaOBotaoEErroDoAceiteAparece() {
+        montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes(aceitando = true)))
+        rule.onNodeWithTag("busca-termos-aceitar").assertIsNotEnabled()
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO).assertIsDisplayed()
+
+        estado = estado.copy(estado = EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO))
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("busca-termos-erro").assertIsDisplayed()
+        rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled()
+        rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
+    }
+
+    @Test
+    fun cartaoComFotoMostraAFotoECartaoSemFotoMostraAInicialDoNome() {
+        val comFoto = cartao("p1", "Maria S.", fotoUrl = "https://frila.supabase.co/functions/v1/ler-midia?midia_id=x&token=t")
+        val semFoto = cartao("p2", "joão P.")
+        montar(comResultados { it.copy(resultados = listOf(comFoto, semFoto)) })
+        rule.waitForIdle()
+
+        rolarAteTag("busca-foto-p1")
+        rule.onNodeWithTag("busca-foto-p1").assertIsDisplayed()
+        rule.onAllNodesWithTag("busca-inicial-p1").assertCountEquals(0)
+        rolarAteTag("busca-inicial-p2")
+        rule.onNodeWithTag("busca-inicial-p2").assertIsDisplayed()
+        rule.onNodeWithTag("busca-inicial-p2").assert(hasAnyDescendant(hasText("J")))
+        rule.onAllNodesWithTag("busca-foto-p2").assertCountEquals(0)
+        assertEquals(listOf("https://frila.supabase.co/functions/v1/ler-midia?midia_id=x&token=t"), chamadas.fotosPedidas)
+    }
+
+    @Test
+    fun fotoQueNaoCarregaCaiNaInicialSemQuebrarOCartao() {
+        val quebrada = cartao("p1", "Maria S.", fotoUrl = "https://frila.supabase.co/quebrada")
+        montar(comResultados { it.copy(resultados = listOf(quebrada)) })
+        rule.waitForIdle()
+
+        rolarAteTag("busca-inicial-p1")
+        rule.onNodeWithTag("busca-inicial-p1").assert(hasAnyDescendant(hasText("M")))
+        rule.onAllNodesWithTag("busca-foto-p1").assertCountEquals(0)
+        rule.onNodeWithText("Maria S.").assertIsDisplayed()
+    }
+
+    @Test
+    fun fotoQueFalhaComErroMostraAInicialSemMensagemDeErro() {
+        val comErro = cartao("p1", "Maria S.", fotoUrl = "https://frila.supabase.co/excecao")
+        montar(comResultados { it.copy(resultados = listOf(comErro)) })
+        rule.waitForIdle()
+
+        rolarAteTag("busca-inicial-p1")
+        rule.onNodeWithTag("busca-inicial-p1").assert(hasAnyDescendant(hasText("M")))
+        rule.onAllNodesWithTag("busca-foto-p1").assertCountEquals(0)
+        rule.onAllNodesWithText("404", substring = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("busca-erro").assertCountEquals(0)
     }
 
     @Test

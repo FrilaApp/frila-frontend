@@ -148,6 +148,12 @@ data class RegistrarDispositivoDto(
     @SerialName("plataforma") val plataforma: String = "android",
 )
 
+/** Corpo de `POST /rest/v1/rpc/remover_dispositivo`: encerra o vínculo do token com a conta (RN15). */
+@Serializable
+data class RemoverDispositivoDto(
+    @SerialName("token_fcm") val tokenFcm: String,
+)
+
 /**
  * Resposta de `/rpc/registrar_dispositivo` (schema `Dispositivo`, MEDIDO em
  * `iOS/Contrato/openapi.yaml:3200`). `vinculoId` é nulo quando o backend ainda não o devolve
@@ -240,13 +246,23 @@ data class TurnoDto(
     @SerialName("cancelamento") val cancelamento: CancelamentoDoTurnoDto? = null,
 )
 
-/** Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela. */
+/**
+ * Envelope de erro PostgREST/Supabase: só `code` é mapeado para domínio; `message` é log, nunca tela.
+ *
+ * Todos os campos são opcionais: o Auth (GoTrue) responde outro formato (`{"code":429,"error_code":
+ * "over_email_send_rate_limit","msg":"..."}`) e, em 429 de limite, pode vir sem `message`. Corpo
+ * inesperado nunca pode derrubar o app (achado D do QA da busca, F-036.10).
+ */
 @Serializable
 data class ErroPostgrestDto(
-    @SerialName("code") val code: String,
-    @SerialName("message") val message: String,
+    @SerialName("code") val code: String? = null,
+    @SerialName("message") val message: String? = null,
     @SerialName("details") val details: String? = null,
     @SerialName("hint") val hint: String? = null,
+    /** Formato do Auth: nome do erro (ex.: `over_email_send_rate_limit`). */
+    @SerialName("error_code") val errorCode: String? = null,
+    /** Formato do Auth: texto do erro, no lugar de `message`. */
+    @SerialName("msg") val msg: String? = null,
 )
 
 /**
@@ -890,6 +906,10 @@ data class CartaoProfissionalDto(
     @SerialName("distancia_faixa") val distanciaFaixa: String,
     @SerialName("reputacao") val reputacao: ReputacaoDto,
     @SerialName("disponivel_no_horario") val disponivelNoHorario: Boolean? = null,
+    /** Link de 1 h (`ler-midia`, miniatura de 320 px) da foto aprovada, sem cabeçalho; ausente sem foto (0.2.90, CD-B07). */
+    @SerialName("foto_url") val fotoUrl: String? = null,
+    /** Identificador opaco da foto, o que `denunciar.midia_id` recebe (0.2.90). */
+    @SerialName("foto_id") val fotoId: String? = null,
 )
 
 /**
@@ -1066,4 +1086,20 @@ data class PublicarAPartirDaChamadaDto(
     @SerialName("vaga_id") val vagaId: String,
     @SerialName("chave") val chave: String,
     @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("modo") val modo: String? = null,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/aceitar_termos` (contrato 0.2.90): a versão dos Termos que a tela exibiu, no formato
+ * `AAAA-MM-DD`, só uma versão PUBLICADA (hoje `2026-11-13` e `2026-11-16`; o app manda a da página, `2026-11-16`; o servidor mantém a lista). O instante do aceite é do servidor; o app não manda data.
+ */
+@Serializable
+data class AceitarTermosDto(
+    @SerialName("termos_versao") val termosVersao: String,
+)
+
+/** Resposta de `aceitar_termos`: o aceite em vigor (repetir a mesma versão devolve o que já existe). */
+@Serializable
+data class AceiteDeTermosDto(
+    @SerialName("termos_versao") val termosVersao: String,
+    @SerialName("aceito_em") val aceitoEm: String,
 )

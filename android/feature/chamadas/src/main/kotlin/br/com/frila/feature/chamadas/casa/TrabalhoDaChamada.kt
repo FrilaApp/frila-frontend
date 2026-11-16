@@ -72,6 +72,13 @@ internal fun recursoDesligado(erro: ErroDaApi): Boolean =
     erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "recurso_desligado"
 
 /**
+ * `403 sem_permissao` com `details: termos_pendentes` (0.2.90): quem busca não aceitou os Termos 1.1 ou mais novos. O app
+ * mostra o aceite, chama `aceitar_termos` e repete a busca.
+ */
+internal fun termosPendentes(erro: ErroDaApi): Boolean =
+    erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "termos_pendentes"
+
+/**
  * A recusa deixa o resultado incerto (a chamada pode ter sido criada)? Sem rede, resposta ilegível ou
  * código desconhecido: reenviar com a mesma chave devolve a mesma chamada. Qualquer outra recusa é do servidor
  * e definitiva: a próxima tentativa nasce com chave nova.

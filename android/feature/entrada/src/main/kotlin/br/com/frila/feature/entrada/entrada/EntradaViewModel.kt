@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Limite de envio de código do Auth (429, ex.: `over_email_send_rate_limit`). */
+internal const val MENSAGEM_LIMITE_DE_CODIGOS = "Muitos pedidos de código em pouco tempo. Aguarde alguns minutos e tente de novo."
+
 private val PADRAO_EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 
 /**
@@ -76,6 +79,7 @@ class EntradaViewModel(
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
+        "LIMITE_EXCEDIDO" -> MENSAGEM_LIMITE_DE_CODIGOS
         else -> "Não foi possível enviar o código. Tente de novo em instantes."
     }
 }

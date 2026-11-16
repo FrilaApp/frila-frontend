@@ -232,6 +232,8 @@ fun TelaPerfil(
                 aoAbrirEquipe = aoAbrirEquipe.takeIf { manterAtalhosDeContratanteNoErro },
                 aoPublicarVaga = aoPublicarVaga.takeIf { manterAtalhosDeContratanteNoErro },
                 aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
+                // A casa não tem `meu_perfil_profissional`: o perfil cai em erro, mas a busca precisa continuar acessível.
+                aoEncontrarProfissional = aoEncontrarProfissional.takeIf { manterAtalhosDeContratanteNoErro },
             )
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                 fotoLocalPath = estado.fotoLocalPath,
@@ -1219,6 +1221,7 @@ private fun Erro(
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
+    aoEncontrarProfissional: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(paddingValues).padding(FrilaEspacamento.grande),
@@ -1255,6 +1258,13 @@ private fun Erro(
                 texto = "Publicar vaga",
                 aoClicar = aoPublicarVaga,
                 modifier = Modifier.fillMaxWidth().testTag("perfil-publicar-vaga"),
+            )
+        }
+        if (aoEncontrarProfissional != null) {
+            BotaoSecundario(
+                texto = "Encontrar profissional",
+                aoClicar = aoEncontrarProfissional,
+                modifier = Modifier.fillMaxWidth().testTag("perfil-encontrar-profissional"),
             )
         }
     }

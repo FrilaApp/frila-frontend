@@ -15,6 +15,7 @@ import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.RefreshTokensParams
 import io.ktor.client.plugins.auth.providers.bearer
@@ -22,6 +23,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.plugin
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -84,6 +86,15 @@ class ClienteSupabase(
     private val bloqueioSemCredenciais = Any()
     private var _httpSemCredenciais: HttpClient? = null
 
+    /**
+     * #789: o token que o plugin `Auth` guarda em memória (o último de `loadTokens` ou `refreshTokens`).
+     * Antes de cada pedido ele é comparado com a sessão guardada; se divergirem (sessão limpa, outra conta
+     * entrou), o Auth esquece o dele e relê a sessão. Sem isto, a conta que entrava depois de um "Sair" no
+     * mesmo processo mandava o token da anterior.
+     */
+    @Volatile
+    private var tokenEmMemoriaNoAuth: String? = null
+
     override fun close() {
         if (_fechado.compareAndSet(false, true)) {
             http.close()
@@ -118,14 +129,28 @@ class ClienteSupabase(
             },
         )
         if (comCredenciais) {
+            // Instalado antes do Auth: roda antes de ele pôr o `Authorization` do token em memória.
+            install(
+                createClientPlugin("TokenDaSessaoVigente") {
+                    val clienteHttp = client
+                    onRequest { _, _ ->
+                        if (tokenDeAcessoAtual() != tokenEmMemoriaNoAuth) {
+                            clienteHttp.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>().forEach { it.clearToken() }
+                            tokenEmMemoriaNoAuth = null
+                        }
+                    }
+                },
+            )
             install(Auth) {
                 bearer {
                     loadTokens {
-                        armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
-                            ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
+                        (
+                            armazenamentoDeSessao?.obterSessao()?.paraBearerTokens()
+                                ?: provedorDeToken.tokenDeAcesso()?.let { BearerTokens(it, "") }
+                            ).also { tokenEmMemoriaNoAuth = it?.accessToken }
                     }
                     refreshTokens {
-                        renovarTokens(this)
+                        renovarTokens(this).also { tokenEmMemoriaNoAuth = it?.accessToken }
                     }
                 }
             }
@@ -232,12 +257,28 @@ class ClienteSupabase(
         if (resposta.status.isSuccess()) {
             return resposta.body()
         }
-        val envelope = resposta.body<ErroPostgrestDto>()
-        throw ErroDaApi(
-            codigo = mapearCodigo(envelope.code, resposta.status),
-            codigoOriginal = envelope.code,
+        throw erroDaResposta(resposta)
+    }
+
+    /**
+     * Monta o [ErroDaApi] de uma resposta não 2xx. Nunca lança outra coisa: corpo vazio, HTML de proxy,
+     * JSON sem `message` ou com `code` numérico (formato do Auth) viram um [ErroDaApi] decidido pelo status
+     * HTTP, e quem chama (ViewModel) só precisa tratar [ErroDaApi]. [CancellationException] propaga.
+     */
+    suspend fun erroDaResposta(resposta: HttpResponse): ErroDaApi {
+        val envelope = try {
+            resposta.body<ErroPostgrestDto>()
+        } catch (cancelamento: CancellationException) {
+            throw cancelamento
+        } catch (_: Exception) {
+            ErroPostgrestDto()
+        }
+        val codigoCru = envelope.code ?: envelope.errorCode ?: ""
+        return ErroDaApi(
+            codigo = mapearCodigo(codigoCru, resposta.status, envelope.errorCode),
+            codigoOriginal = envelope.errorCode ?: codigoCru,
             detalhes = envelope.details,
-            mensagemCrua = envelope.message,
+            mensagemCrua = envelope.message ?: envelope.msg ?: "",
         )
     }
 
@@ -277,16 +318,22 @@ class ClienteSupabase(
          * domínio e não está no enum: tratado como não-autenticado, igual ao iOS
          * (`iOS/Sources/Dados/DecodificadorErroAPI.swift`).
          */
-        fun mapearCodigo(codeCru: String, status: HttpStatusCode): CodigoErroAPI {
+        fun mapearCodigo(codeCru: String, status: HttpStatusCode, errorCodeDoAuth: String? = null): CodigoErroAPI {
             if (codeCru == "PGRST301" || status == HttpStatusCode.Unauthorized) {
                 return CodigoErroAPI.NAO_AUTENTICADO
             }
-            return try {
+            val doDominio = try {
                 jsonFrila.decodeFromString(CodigoErroAPI.serializer(), "\"$codeCru\"")
             } catch (_: SerializationException) {
                 CodigoErroAPI.DESCONHECIDO
             }
+            if (doDominio != CodigoErroAPI.DESCONHECIDO) return doDominio
+            // O Auth (GoTrue) não usa os códigos do domínio: 429 e `over_*_rate_limit` são o mesmo limite do iOS.
+            val limiteDoAuth = status.value == 429 || errorCodeDoAuth in CODIGOS_DE_LIMITE_DO_AUTH
+            return if (limiteDoAuth) CodigoErroAPI.LIMITE_EXCEDIDO else CodigoErroAPI.DESCONHECIDO
         }
+
+        private val CODIGOS_DE_LIMITE_DO_AUTH = setOf("over_email_send_rate_limit", "over_request_rate_limit")
     }
 }
 
