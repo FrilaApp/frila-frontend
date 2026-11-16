@@ -100,7 +100,12 @@ data class EstadoBusca(
     val podeBuscar: Boolean
         get() = funcaoId != null && horarioValido && estado != EstadoDaBusca.Carregando && !carregandoMais && !enviando &&
             !temEnvioPendente
-    val podeChamar: Boolean get() = selecionados.isNotEmpty() && !enviando && estado == EstadoDaBusca.Resultados
+    /**
+     * Com envio pendente o reenvio e o J7 valem em QUALQUER estado da lista (Erro, Indisponível, 429): o pedido que
+     * levou o trabalho pode ter criado a vaga, e travá-lo por causa da lista deixaria a casa sem como resolver.
+     */
+    val podeChamar: Boolean
+        get() = selecionados.isNotEmpty() && !enviando && (estado == EstadoDaBusca.Resultados || temEnvioPendente)
     fun estaSelecionado(id: String): Boolean = id in selecionados
 
     /** Há resultado incerto ou que nem saiu: o pedido pode ter criado a vaga. Só o reenvio resolve (mesma chave). */
@@ -305,7 +310,9 @@ class BuscaDeProfissionaisViewModel(
         val tela = _estado.value
         val filtro = tela.filtroDaBusca
         val cursor = proximoCursor
-        if (tela.estado != EstadoDaBusca.Resultados || tela.carregandoMais || tela.enviando || !tela.temMais ||
+        // Bloqueado com envio pendente (como no iOS): um 429 ou recurso_desligado aqui trocaria a lista por erro, e o
+        // cursor_invalido refaria a primeira página, no meio de um envio que ainda precisa ser resolvido.
+        if (tela.estado != EstadoDaBusca.Resultados || tela.carregandoMais || tela.enviando || tela.temEnvioPendente || !tela.temMais ||
             filtro == null || cursor == null
         ) {
             return escopoDeTrabalho.launch { }

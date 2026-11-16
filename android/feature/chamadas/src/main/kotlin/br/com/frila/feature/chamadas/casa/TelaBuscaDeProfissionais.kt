@@ -322,6 +322,17 @@ private fun ListaDaBusca(
             }
         }
 
+        if (estado.temEnvioPendente && estado.estado != EstadoDaBusca.Resultados) {
+            // Lista em erro, indisponível ou 429 com envio pendente: o reenvio continua ao alcance (não depende da lista).
+            item {
+                Button(
+                    onClick = aoAbrirFolha,
+                    enabled = estado.podeChamar,
+                    modifier = Modifier.fillMaxWidth().testTag("busca-ver-envio-pendente"),
+                ) { Text(TextosChamadaCasa.BUSCA_VER_ENVIO_PENDENTE) }
+            }
+        }
+
         when (val situacao = estado.estado) {
             EstadoDaBusca.Ocioso -> Unit
             EstadoDaBusca.Carregando -> item {

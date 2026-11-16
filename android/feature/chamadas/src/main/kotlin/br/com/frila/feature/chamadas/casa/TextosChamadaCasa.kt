@@ -171,6 +171,7 @@ object TextosChamadaCasa {
     const val BUSCA_RESULTADO_ENVIADA = "Chamada enviada"
     const val BUSCA_RESULTADO_NAO_ENVIADA = "Não enviada. Tente de novo."
     const val BUSCA_ENVIO_PENDENTE = "Há um envio pendente. Toque em Chamar e depois em Tentar de novo antes de buscar ou trocar a seleção."
+    const val BUSCA_VER_ENVIO_PENDENTE = "Ver envio pendente"
     const val BUSCA_REENVIAR = "Tentar de novo"
     const val BUSCA_CONFIRMAR_DEPOIS = "Antes de confirmar, toque em Tentar de novo para concluir o envio pendente."
     const val BUSCA_RESULTADO_J7 = "Aguardando a sua confirmação do aviso"

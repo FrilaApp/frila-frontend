@@ -819,29 +819,35 @@ class BuscaDeProfissionaisViewModelTest {
         assertTrue(vm.estado.value.podeBuscar)
     }
 
-    @Test
-    fun `cursor_invalido refaz a primeira pagina sem apagar o incerto, a selecao nem a chave`() = runBlocking {
-        val rede = RedeDeTeste()
+    /** Página 1 com cursor; a próxima responde [aoCarregarMais] depois de [demoraMs] (para o carregarMais ficar em voo). */
+    private fun RedeDeTeste.buscaComCarregarMaisLento(demoraMs: Long, aoCarregarMais: suspend io.ktor.client.engine.mock.MockRequestHandleScope.() -> io.ktor.client.request.HttpResponseData) {
         var buscas = 0
-        rede.rota("buscar_profissionais") { pedido ->
+        rota("buscar_profissionais") { pedido ->
             buscas++
             when {
-                pedido.corpo["cursor"] != null ->
-                    respond("""{"code":"cursor_invalido","message":"x"}""", HttpStatusCode.UnprocessableEntity, json)
+                pedido.corpo["cursor"] != null -> { kotlinx.coroutines.delay(demoraMs); aoCarregarMais() }
                 buscas == 1 -> respond(pagina(ids("p", 1, 20), proximo = "velho"), HttpStatusCode.OK, json)
                 // A página nova não traz mais o p-1 (o incerto): ele continua na lista por estar selecionado.
                 else -> respond(pagina(ids("n", 1, 5)), HttpStatusCode.OK, json)
             }
         }
+    }
+
+    @Test
+    fun `carregarMais em voo que da cursor_invalido refaz a pagina sem apagar o incerto, a selecao nem a chave`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.buscaComCarregarMaisLento(200) { respond("""{"code":"cursor_invalido","message":"x"}""", HttpStatusCode.UnprocessableEntity, json) }
         var atrasar = true
         rede.respondeComP1Atrasado { atrasar }
-        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        val vm = viewModelCom(rede, prazoMs = 500).comFiltros()
         vm.buscar().join()
         listOf("p-1", "p-2").forEach(vm::alternarSelecao)
-        vm.chamar(trabalho).join()
-        val chaveDoP1 = rede.doNome("chamar_profissional").single().corpo["chave"]
 
-        vm.carregarMais().join()
+        // O "carregar mais" já saiu quando a pessoa chama: o envio incerto termina depois do refazer do cursor.
+        val mais = vm.carregarMais()
+        vm.chamar(trabalho).join()
+        mais.join()
+        val chaveDoP1 = rede.doNome("chamar_profissional").single().corpo["chave"]
 
         val tela = vm.estado.value
         assertEquals(ids("n", 1, 5) + listOf("p-1", "p-2"), tela.resultados.map { it.id })
@@ -857,6 +863,61 @@ class BuscaDeProfissionaisViewModelTest {
         assertEquals("p-1", reenvio.first()["profissional_id"]!!.jsonPrimitive.content)
         assertEquals(chaveDoP1, reenvio.first()["chave"])
         assertEquals("vaga-p-1", reenvio[1]["vaga_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `com envio pendente o carregarMais nao sai, e 429 de um carregarMais em voo nao impede reenviar nem confirmar o J7`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.buscaComCarregarMaisLento(200) { respond("""{"code":"limite_excedido","message":"x"}""", HttpStatusCode.TooManyRequests, json) }
+        var atrasar = true
+        rede.respondeComP1Atrasado { atrasar }
+        val vm = viewModelCom(rede, prazoMs = 500).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+
+        val mais = vm.carregarMais()
+        vm.chamar(trabalho).join()
+        mais.join()
+
+        // O 429 trocou a lista por erro, mas o envio pendente continua ao alcance.
+        var tela = vm.estado.value
+        assertTrue(tela.estado is EstadoDaBusca.Erro)
+        assertTrue(tela.podeReenviar)
+        assertTrue(tela.podeChamar)
+        val buscasAntes = rede.doNome("buscar_profissionais").size
+        vm.carregarMais().join() // bloqueado: nem tem lista, mas também nada sai com envio pendente
+        assertEquals(buscasAntes, rede.doNome("buscar_profissionais").size)
+
+        atrasar = false
+        vm.reenviar().join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-1", "p-2"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertEquals(pedidos[0]["chave"], pedidos[1]["chave"])
+        assertEquals("vaga-p-1", pedidos[2]["vaga_id"]!!.jsonPrimitive.content)
+        tela = vm.estado.value
+        assertFalse(tela.temEnvioPendente)
+        assertTrue(tela.resultadosDaChamada.values.all { it is ResultadoDaChamadaDaBusca.Enviada })
+        // Resolvido o envio, a lista em erro volta a mandar: sem pendência o chamar não depende mais do estado Resultados.
+        assertFalse(tela.podeChamar)
+    }
+
+    @Test
+    fun `com envio pendente em Resultados o carregarMais fica bloqueado`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.buscaComCarregarMaisLento(0) { respond(pagina(ids("m", 1, 5)), HttpStatusCode.OK, json) }
+        rede.respondeComP1Atrasado { true }
+        val vm = viewModelCom(rede, prazoMs = 100).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+        assertTrue(vm.estado.value.temEnvioPendente)
+        val buscasAntes = rede.doNome("buscar_profissionais").size
+
+        vm.carregarMais().join()
+
+        assertEquals(buscasAntes, rede.doNome("buscar_profissionais").size)
+        assertEquals(20, vm.estado.value.resultados.size)
     }
 
     @Test

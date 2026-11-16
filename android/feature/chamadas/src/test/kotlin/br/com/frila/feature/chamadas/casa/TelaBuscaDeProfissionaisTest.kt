@@ -3,6 +3,7 @@ package br.com.frila.feature.chamadas.casa
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -416,6 +418,33 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithTag("busca-buscar").assertIsEnabled()
         rolarAteTag("busca-selecionar-p3")
         rule.onNodeWithTag("busca-selecionar-p3").assertIsEnabled()
+    }
+
+    @Test
+    fun comEnvioPendenteELimiteDeBuscaAListaEmErroAindaOferecePrecisaVerOEnvioPendente() {
+        montar(
+            EstadoBusca(
+                funcoes = listOf(garcom), funcaoId = "f1", casa = casa,
+                estado = EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_LIMITE_DE_BUSCAS),
+                resultados = resultados, selecionados = listOf("p1"),
+                resultadosDaChamada = mapOf("p1" to ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true)),
+                filtroDaBusca = RascunhoDeVagaDaBusca("c1", garcom.id),
+            ),
+        )
+
+        rolarAteTag("busca-ver-envio-pendente")
+        rule.onNodeWithTag("busca-ver-envio-pendente").assertIsEnabled().performClick()
+
+        // A folha abre mesmo com a lista em erro, e dali sai o "Tentar de novo".
+        rule.onNodeWithTag("folha-reenviar").performScrollTo().performClick()
+        assertEquals(1, chamadas.reenviou)
+    }
+
+    @Test
+    fun semEnvioPendenteAListaEmErroNaoMostraOBotaoDeEnvioPendente() {
+        montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO)))
+        rolarAteTag("busca-erro")
+        rule.onAllNodesWithTag("busca-ver-envio-pendente").assertCountEquals(0)
     }
 
     @Test
