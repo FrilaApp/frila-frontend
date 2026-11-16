@@ -118,7 +118,8 @@ info:
 
     **Versão 0.2.90, de 16/11/2026.** A busca de profissionais exige os Termos 1.1 aceitos (decisão do
     Cauê, pedido 2026-11-16-12, item 2; parecer do Juiz I6 no P-026J). Adição compatível: uma
-    operação nova, um campo opcional em `Usuario` e um `details` novo em `403 sem_permissao`.
+    operação nova, um campo opcional em `Usuario`, dois em `CartaoProfissional` e um `details` novo em
+    `403 sem_permissao`.
     - **Por quê:** quem tem conta de antes de 13/11/2026 e não aceitou os Termos 1.1 no app não está
       preso à regra de uso dos dados do profissional (Termos, seção 10.1), e a busca abre o perfil de
       quem ligou "Aceito chamadas diretas" a qualquer contratante.
@@ -130,6 +131,9 @@ info:
       por quem já tem conta, com o instante carimbado pelo servidor.
     - **`Usuario.termos_versao`** (opcional, em `minha_conta`): a última versão aceita, para o app
       saber se precisa pedir o aceite.
+    - **Foto na busca** (decisão do Cauê, pedido 2026-11-16-13, CD-B07): `CartaoProfissional` ganha
+      `foto_url` e `foto_id` opcionais (foto aprovada, se houver), e o vínculo de leitura pela busca
+      passa a abrir também a foto em `perfil_publico`. A foto nunca filtra nem ordena (RN39).
 
     **Versão 0.2.89, de 16/11/2026.** Só descrição: a regra do nome do profissional fica fechada
     para todo leitor (pedido da Forja, B-027 PR 2, parecer do Lince Opus). Nenhum campo, operação ou
@@ -7681,8 +7685,9 @@ components:
             ligado também conta como vínculo de leitura para qualquer contratante, nestes campos.
             Desde a 0.2.90, só para contratante com os Termos 1.1 ou mais novos aceitos
             (`buscar_profissionais`). A
-            pausa não muda isso, para o perfil não revelar quando ele pausou. Não vale para
-            `foto_url` e `foto_id`.
+            pausa não muda isso, para o perfil não revelar quando ele pausou. Até a 0.2.89 não valia
+            para `foto_url` e `foto_id`; desde a 0.2.90 vale também para eles (decisão do Cauê de
+            mostrar a foto na busca, CD-B07).
           oneOf:
             - type: string
               maxLength: 600
@@ -7725,8 +7730,9 @@ components:
             estabelecimento, para profissional com candidatura, chamada ou turno com a casa. Sem
             vínculo, com `recursos.foto_de_perfil` desligado, sem foto aprovada, ou com o titular
             suspenso (RN13) ou com conta encerrada (RF25), o campo vem **ausente**, e os demais
-            campos do perfil respondem exatamente como antes da 0.2.54. Estar na busca não basta
-            para a foto (0.2.88).
+            campos do perfil respondem exatamente como antes da 0.2.54. Desde a 0.2.90, o vínculo
+            pela busca (`apresentacao`, acima) também abre a foto do profissional, com as mesmas
+            condições.
           type: string
           format: uri
         foto_id:
@@ -7746,8 +7752,9 @@ components:
       description: |
         0.2.88. Um resultado de `buscar_profissionais` (CD-B07): só o que ajuda a decidir quem
         chamar. Nunca telefone, e-mail, sobrenome completo, ponto base, grade ou data de nascimento.
-        A foto não vem no cartão: desde a 0.2.54, a foto aprovada só aparece para quem tem vínculo de
-        leitura, e nunca em busca ou lista. O perfil completo sai por `perfil_publico`.
+        Desde a 0.2.90, o cartão traz a foto aprovada, se houver (`foto_url` e `foto_id`, decisão do
+        Cauê, CD-B07). A foto nunca filtra nem ordena a lista (RN39). O perfil completo sai por
+        `perfil_publico`.
       properties:
         id:
           description: O `id` do `PerfilPublico`, o mesmo de `chamar_profissional.profissional_id`.
@@ -7772,6 +7779,16 @@ components:
         reputacao:
           description: Com denominador e turnos realizados (RN08); não ordena a lista (RN06).
           $ref: '#/components/schemas/Reputacao'
+        foto_url:
+          description: |
+            0.2.90. Link de leitura de 1 h da foto `aprovada` (miniatura de 320 px), pela `ler-midia`,
+            como `PerfilPublico.foto_url`. Vem **ausente** com `recursos.foto_de_perfil` desligado,
+            sem foto aprovada, ou com o titular suspenso (RN13) ou com conta encerrada (RF25).
+          type: string
+          format: uri
+        foto_id:
+          description: 0.2.90. Identificador opaco da foto, com as mesmas condições; é o que o app manda em `denunciar.midia_id`.
+          $ref: '#/components/schemas/Uuid'
         disponivel_no_horario:
           description: |
             O selo "disponível nesse horário": a grade semanal cobre o horário pedido inteiro. Só
