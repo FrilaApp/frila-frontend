@@ -108,12 +108,13 @@ public struct SecaoDePresenca: View {
                     .accessibilityIdentifier("aviso-checkin-antecipado")
             } else if viewModel.podeFazerCheckin {
                 botaoPresencaAtivo(
-                    verbatim: Textos.fazerCheckin,
-                    identificador: "fazer-checkin"
+                    verbatim: viewModel.podeRenovarChegada ? Textos.tentarGPS : Textos.fazerCheckin,
+                    identificador: viewModel.podeRenovarChegada ? "renovar-chegada" : "fazer-checkin"
                 ) {
                     Task { await viewModel.iniciar(.checkin) }
                 }
-            } else if viewModel.podeFazerCheckout {
+            }
+            if viewModel.podeFazerCheckout {
                 botaoPresencaAtivo(
                     verbatim: Textos.fazerCheckout,
                     identificador: "fazer-checkout"

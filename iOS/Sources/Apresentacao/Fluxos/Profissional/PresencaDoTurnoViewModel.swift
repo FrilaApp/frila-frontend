@@ -191,12 +191,22 @@ public final class PresencaDoTurnoViewModel {
         }
     }
 
+    /// A chegada pendente pode renovar a proximidade no servidor, mesmo sem código disponível
+    /// no cache ou depois dos 900 s de frescor. Uma ação ainda na fila não vira outro toque.
+    public var podeRenovarChegada: Bool {
+        guard checkinPorCodigoLigado, verificacao == .pendente,
+              case .registrado = checkin else { return false }
+        return isentoDaJanela || dentroDaJanelaDoCheckin
+    }
+
     public var podeFazerCheckin: Bool {
-        guard checkin == .naoFeito else { return false }
+        (checkin == .naoFeito && dentroDaJanelaDoCheckin) || podeRenovarChegada
+    }
+
+    private var dentroDaJanelaDoCheckin: Bool {
         let agora = relogio.agora
-        let inicio = turno.vaga.periodo.inicio
-        let fim = turno.vaga.periodo.fim
-        return agora >= inicio.addingTimeInterval(-60 * 60) && agora <= fim
+        return agora >= turno.vaga.periodo.inicio.addingTimeInterval(-60 * 60)
+            && agora <= turno.vaga.periodo.fim
     }
 
     /// O check-in abre 60 minutos antes do início previsto do turno. Antes disso o botão fica
