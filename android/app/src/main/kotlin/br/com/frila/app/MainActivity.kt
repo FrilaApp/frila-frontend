@@ -33,6 +33,7 @@ class MainActivity : FragmentActivity() {
                 }
                 var verificando by remember { mutableStateOf(cliente != null) }
                 var versaoMinima by remember { mutableStateOf<String?>(null) }
+                var chamadaDireta by remember { mutableStateOf(false) }
                 var mensagemBloqueio by remember { mutableStateOf(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO) }
 
                 LaunchedEffect(cliente) {
@@ -41,6 +42,7 @@ class MainActivity : FragmentActivity() {
                             withTimeoutOrNull(3000L) {
                                 val configuracao = consultarConfiguracaoDoApp(cliente)
                                 versaoMinima = configuracao.versaoMinima
+                                chamadaDireta = configuracao.recursos.chamadaDireta
                                 configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
                             }
                         } catch (_: Exception) {
@@ -78,6 +80,7 @@ class MainActivity : FragmentActivity() {
                     },
                 ) {
                     AppNavegacao(
+                        chamadaDiretaHabilitada = chamadaDireta,
                         aoPronto = {
                             MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                         },

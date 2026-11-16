@@ -11,6 +11,7 @@ object TextosEquipe {
     const val VAZIO_MENSAGEM = "Inclua um profissional a partir de um turno que ele já cumpriu aqui."
     const val CARREGANDO = "Carregando a equipe…"
     const val REMOVER = "Remover"
+    const val CHAMAR_DE_NOVO = "Chamar de novo"
     const val REMOVENDO = "Removendo…"
     const val CONFIRMAR_REMOCAO = "Remover da equipe?"
     const val CONFIRMAR_REMOVER = "Sim, remover"
@@ -35,6 +36,8 @@ object TextosEquipe {
         "$nome deixa de receber as vagas desta casa além de 15 km. Sem penalidade nem aviso."
 
     fun rotuloRemover(nome: String): String = "$REMOVER $nome"
+
+    fun rotuloChamarDeNovo(nome: String): String = "$CHAMAR_DE_NOVO $nome"
 
     fun reputacao(positivas: Int, total: Int): String =
         if (total <= 0) SEM_AVALIACOES else "$positivas de $total avaliações positivas"

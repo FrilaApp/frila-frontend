@@ -202,6 +202,11 @@ fun AppNavegacao(
      */
     recursoSeloHabilitado: Boolean = false,
     /**
+     * Chave `chamada_direta` (`configuracao_do_app`): desligada, "Chamar de novo" nem aparece na equipe de
+     * confiança. Ligada, a equipe leva à folha de chamar do lado da casa.
+     */
+    chamadaDiretaHabilitada: Boolean = false,
+    /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
      * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
@@ -630,9 +635,18 @@ fun AppNavegacao(
                     TelaEquipeDeConfianca(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        aoChamarDeNovo = if (chamadaDiretaHabilitada) {
+                            { profissional ->
+                                navController.navigate(RotasChamadaCasa.chamar(estabelecimentoId, profissional.id))
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
+
+            rotasDaChamadaDiretaCasa(navController, guardaBiometrico)
 
             composable(Rotas.CADASTRO_ESTABELECIMENTO) {
                 RotaProtegida(guardaBiometrico) {

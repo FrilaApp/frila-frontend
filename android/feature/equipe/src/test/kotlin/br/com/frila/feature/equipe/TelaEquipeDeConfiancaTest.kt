@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.PerfilPublicoDto
@@ -48,9 +49,14 @@ class TelaEquipeDeConfiancaTest {
         var novamente = 0
         val removidos = mutableListOf<String>()
         var voltou = 0
+        val chamadosDeNovo = mutableListOf<String>()
     }
 
-    private fun montar(tela: EstadoTelaEquipe, chamadas: Chamadas = Chamadas()): Chamadas {
+    private fun montar(
+        tela: EstadoTelaEquipe,
+        chamadas: Chamadas = Chamadas(),
+        comChamarDeNovo: Boolean = false,
+    ): Chamadas {
         rule.setContent {
             FrilaTheme {
                 ConteudoEquipeDeConfianca(
@@ -58,6 +64,7 @@ class TelaEquipeDeConfiancaTest {
                     aoTentarNovamente = { chamadas.novamente++ },
                     aoRemover = { chamadas.removidos += it.id },
                     aoVoltar = { chamadas.voltou++ },
+                    aoChamarDeNovo = if (comChamarDeNovo) ({ chamadas.chamadosDeNovo += it.id }) else null,
                 )
             }
         }
@@ -100,6 +107,23 @@ class TelaEquipeDeConfiancaTest {
         rule.onNodeWithContentDescription(TextosEquipe.rotuloRemover("Ana Souza"))
             .assertIsEnabled().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         rule.onNodeWithContentDescription(TextosEquipe.rotuloRemover("Beto Lima")).assertIsEnabled()
+    }
+
+    @Test
+    fun chamarDeNovoSoApareceComAChaveLigadaELevaOProfissionalDaLinha() {
+        montar(comMembros(ana))
+        rule.onNodeWithText(TextosEquipe.CHAMAR_DE_NOVO).assertDoesNotExist()
+    }
+
+    @Test
+    fun chamarDeNovoTemUmBotaoPorLinhaComRotuloDoNomeEAlvoMinimo() {
+        val c = montar(comMembros(ana, beto), comChamarDeNovo = true)
+
+        rule.onNodeWithContentDescription(TextosEquipe.rotuloChamarDeNovo("Beto Lima"))
+            .performScrollTo().assertIsEnabled().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+
+        assertEquals(listOf("b1"), c.chamadosDeNovo)
+        rule.onNodeWithContentDescription(TextosEquipe.rotuloChamarDeNovo("Ana Souza")).assertIsDisplayed()
     }
 
     @Test
