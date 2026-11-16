@@ -15,7 +15,6 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
-import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -40,8 +39,12 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
                         try {
-                            withTimeoutOrNull(3000L) {
-                                val configuracao = consultarConfiguracaoDoApp(cliente)
+                            // 10 s; se estourar ou falhar, vale a última configuração guardada para esta versão do app.
+                            val configuracao = obterConfiguracaoDoApp(
+                                cache = CacheDeConfiguracaoDoAppPreferencias(applicationContext),
+                                versaoApp = BuildConfig.VERSION_NAME,
+                            ) { consultarConfiguracaoDoApp(cliente) }
+                            if (configuracao != null) {
                                 versaoMinima = configuracao.versaoMinima
                                 chamadaDireta = configuracao.recursos.chamadaDireta
                                 buscaProfissionais = configuracao.recursos.buscaProfissionais
