@@ -392,6 +392,12 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
     func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada
     func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas
+    /// Busca de profissionais (0.2.88, `POST /rpc/buscar_profissionais`). `cursor` é o `proximoCursor`
+    /// da página anterior, com o mesmo filtro; `limite` vai de 1 a 20 (`nil` vale 20). Só membro ativo
+    /// da casa: senão `semPermissao` (também `conta_suspensa` e `recurso_desligado` no detalhe).
+    /// Mais de 60 buscas por hora: `limiteExcedido` (429). Cursor de outra busca ou de outro dia:
+    /// `cursorInvalido`, e o app refaz a busca da primeira página. Lista vazia: oferecer "Publicar para todos".
+    func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
@@ -630,6 +636,10 @@ public extension ApiCliente {
     }
 
     func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais {
         throw ErroDaApi(codigo: .respostaInvalida)
     }
 }

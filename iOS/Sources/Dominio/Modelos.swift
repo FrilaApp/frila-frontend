@@ -1656,12 +1656,17 @@ public struct RecursosDoApp: Codable, Equatable, Sendable {
     public let perfilRico: Bool
     /// Check-in por código (contrato 0.2.68). Desligado, o app não manda `sinais` nem oferece o código.
     public let checkinPorCodigo: Bool
+    /// Busca de profissionais e "Aceito chamadas diretas" (contrato 0.2.88). Só vale `true` com
+    /// `chamadaDireta` também `true`. Desligado, o app esconde "Encontrar profissional" e a preferência.
+    public let buscaProfissionais: Bool
 
-    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false, checkinPorCodigo: Bool = false) {
+    public init(fotoDePerfil: Bool = false, chamadaDireta: Bool = false, perfilRico: Bool = false, checkinPorCodigo: Bool = false,
+                buscaProfissionais: Bool = false) {
         self.fotoDePerfil = fotoDePerfil
         self.chamadaDireta = chamadaDireta
         self.perfilRico = perfilRico
         self.checkinPorCodigo = checkinPorCodigo
+        self.buscaProfissionais = buscaProfissionais && chamadaDireta
     }
 
     /// Chave ausente vale `false` (contrato 0.2.54): um valor guardado antes de uma chave nova ainda se lê.
@@ -1671,6 +1676,7 @@ public struct RecursosDoApp: Codable, Equatable, Sendable {
         chamadaDireta = try c.decodeIfPresent(Bool.self, forKey: .chamadaDireta) ?? false
         perfilRico = try c.decodeIfPresent(Bool.self, forKey: .perfilRico) ?? false
         checkinPorCodigo = try c.decodeIfPresent(Bool.self, forKey: .checkinPorCodigo) ?? false
+        buscaProfissionais = (try c.decodeIfPresent(Bool.self, forKey: .buscaProfissionais) ?? false) && chamadaDireta
     }
 
     public static let desligados = RecursosDoApp()
@@ -1830,15 +1836,38 @@ public struct PreferenciaChamadas: Codable, Equatable, Sendable {
     public let pausadoAte: Date?
     public let antecedenciaMinimaH: Int
     public let aceitaDe: QuemPodeChamar
+    /// "Aceito chamadas diretas" (0.2.88): põe o profissional na busca. Ausente vale `false`.
+    public let aceitaChamadas: Bool
+    /// O que ainda impede de aparecer na busca (0.2.88). Vazia quando aparece ou com
+    /// `aceitaChamadas` desligado (o servidor só manda a lista com ele ligado).
+    public let pendenciasParaBusca: [PendenciaParaBusca]
 
     public init(aceitaDeQuemJaTrabalhou: Bool = true,
                 pausadoAte: Date? = nil,
                 antecedenciaMinimaH: Int = 6,
-                aceitaDe: QuemPodeChamar = .todos) {
+                aceitaDe: QuemPodeChamar = .todos,
+                aceitaChamadas: Bool = false,
+                pendenciasParaBusca: [PendenciaParaBusca] = []) {
         self.aceitaDeQuemJaTrabalhou = aceitaDeQuemJaTrabalhou
         self.pausadoAte = pausadoAte
         self.antecedenciaMinimaH = antecedenciaMinimaH
         self.aceitaDe = aceitaDe
+        self.aceitaChamadas = aceitaChamadas
+        self.pendenciasParaBusca = pendenciasParaBusca
+    }
+
+    /// Ligou "Aceito chamadas diretas" e nada falta: aparece na busca.
+    public var apareceNaBusca: Bool { aceitaChamadas && pendenciasParaBusca.isEmpty }
+
+    /// Campos da 0.2.88 ausentes valem desligado: um valor guardado antes deles ainda se lê.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        aceitaDeQuemJaTrabalhou = try c.decode(Bool.self, forKey: .aceitaDeQuemJaTrabalhou)
+        pausadoAte = try c.decodeIfPresent(Date.self, forKey: .pausadoAte)
+        antecedenciaMinimaH = try c.decode(Int.self, forKey: .antecedenciaMinimaH)
+        aceitaDe = try c.decode(QuemPodeChamar.self, forKey: .aceitaDe)
+        aceitaChamadas = try c.decodeIfPresent(Bool.self, forKey: .aceitaChamadas) ?? false
+        pendenciasParaBusca = try c.decodeIfPresent([PendenciaParaBusca].self, forKey: .pendenciasParaBusca) ?? []
     }
 }
 
@@ -1848,16 +1877,108 @@ public struct AlteracaoPreferenciaChamadas: Codable, Equatable, Sendable {
     public let removerPausa: Bool
     public let antecedenciaMinimaH: Int?
     public let aceitaDe: QuemPodeChamar?
+    /// 0.2.88. Ligar exige `versaoTextoBusca`, a versão do texto que o profissional viu.
+    public let aceitaChamadas: Bool?
+    /// 0.2.88. Obrigatória com `aceitaChamadas == true` (1 a 20 caracteres); ignorada nos outros casos.
+    public let versaoTextoBusca: String?
 
     public init(aceitaDeQuemJaTrabalhou: Bool? = nil,
                 pausadoAte: Date? = nil,
                 removerPausa: Bool = false,
                 antecedenciaMinimaH: Int? = nil,
-                aceitaDe: QuemPodeChamar? = nil) {
+                aceitaDe: QuemPodeChamar? = nil,
+                aceitaChamadas: Bool? = nil,
+                versaoTextoBusca: String? = nil) {
         self.aceitaDeQuemJaTrabalhou = aceitaDeQuemJaTrabalhou
         self.pausadoAte = pausadoAte
         self.removerPausa = removerPausa
         self.antecedenciaMinimaH = antecedenciaMinimaH
         self.aceitaDe = aceitaDe
+        self.aceitaChamadas = aceitaChamadas
+        self.versaoTextoBusca = versaoTextoBusca
     }
+}
+
+// MARK: - Busca de profissionais (contrato 0.2.88, CD-B01 a CD-B11)
+
+/// O que ainda impede o profissional de aparecer na busca (`PreferenciaChamadas.pendencias_para_busca`).
+public enum PendenciaParaBusca: String, Codable, CaseIterable, Hashable, Sendable {
+    /// Nenhum serviço com unidade de preço.
+    case semServicoComPreco = "sem_servico_com_preco"
+    /// Nenhuma região marcada nem "atende todo o DF".
+    case semRegiao = "sem_regiao"
+    /// `pausadoAte` em vigor.
+    case pausado
+    /// Nenhum aparelho na versão mínima de `chamada_direta`.
+    case semAparelhoAtualizado = "sem_aparelho_atualizado"
+}
+
+/// Os filtros da busca: serviço obrigatório, região e horário opcionais. Não existe filtro nem
+/// ordem por atributo pessoal (RN39). Com o cursor, o servidor exige os mesmos filtros.
+public struct FiltroBuscaProfissionais: Hashable, Sendable {
+    /// Tamanho máximo da página no contrato.
+    public static let limiteDaPagina = 20
+    /// Teto de resultados por busca (CD-B08).
+    public static let maximoDeResultados = 200
+
+    /// A casa que busca: dá o local da distância e a região padrão.
+    public let estabelecimentoID: UUID
+    /// O serviço buscado (função do catálogo).
+    public let funcaoID: UUID
+    /// `nil` vale a região do estabelecimento.
+    public let regiaoID: Int?
+    /// Início e fim do trabalho, sempre juntos; `nil` busca sem horário.
+    public let horario: Periodo?
+
+    public init(estabelecimentoID: UUID, funcaoID: UUID, regiaoID: Int? = nil, horario: Periodo? = nil) {
+        self.estabelecimentoID = estabelecimentoID
+        self.funcaoID = funcaoID
+        self.regiaoID = regiaoID
+        self.horario = horario
+    }
+}
+
+/// Um resultado da busca (`CartaoProfissional`): só o que ajuda a decidir quem chamar. Sem foto,
+/// sem contato. O perfil completo sai por `perfilPublico(id:)`.
+public struct CartaoProfissional: Hashable, Identifiable, Sendable {
+    /// O mesmo id de `PerfilPublico` e de `PedidoChamada.profissionalID`.
+    public let id: UUID
+    /// Primeiro nome e inicial do sobrenome.
+    public let nome: String
+    /// O serviço da função buscada, com a unidade e o preço.
+    public let servico: ServicoNoPerfil
+    public let regioes: [RegiaoAdministrativa]
+    public let atendeTodoDF: Bool
+    public let distanciaFaixa: FaixaDistancia
+    /// Mostra-se com denominador; não ordena a lista (RN06).
+    public let reputacao: Reputacao
+    /// O selo "disponível nesse horário". `nil` quando a busca não tem horário.
+    public let disponivelNoHorario: Bool?
+
+    public init(id: UUID, nome: String, servico: ServicoNoPerfil, regioes: [RegiaoAdministrativa] = [],
+                atendeTodoDF: Bool = false, distanciaFaixa: FaixaDistancia, reputacao: Reputacao,
+                disponivelNoHorario: Bool? = nil) {
+        self.id = id
+        self.nome = nome
+        self.servico = servico
+        self.regioes = regioes
+        self.atendeTodoDF = atendeTodoDF
+        self.distanciaFaixa = distanciaFaixa
+        self.reputacao = reputacao
+        self.disponivelNoHorario = disponivelNoHorario
+    }
+}
+
+/// Uma página da busca: até 20 itens, por cursor opaco (nunca offset).
+public struct PaginaBuscaProfissionais: Hashable, Sendable {
+    public let itens: [CartaoProfissional]
+    /// `nil` na última página ou ao chegar a 200 resultados.
+    public let proximoCursor: String?
+
+    public init(itens: [CartaoProfissional], proximoCursor: String? = nil) {
+        self.itens = itens
+        self.proximoCursor = proximoCursor
+    }
+
+    public var temMais: Bool { proximoCursor != nil }
 }
