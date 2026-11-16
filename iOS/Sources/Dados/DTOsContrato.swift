@@ -817,6 +817,7 @@ enum ContratoAPI {
             case chave, profissional_id, estabelecimento_id, funcao_id, inicio_em, fim_em
             case local, regiao_administrativa, ponto, valor_centavos, inclui_refeicao
             case inclui_transporte, exige_material_proprio, responsavel_local, recado, confirmo_recorrencia
+            case regiao_id
         }
         func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
@@ -837,6 +838,7 @@ enum ContratoAPI {
             try c.encode(t.responsavelLocal, forKey: .responsavel_local)
             try c.encodeIfPresent(pedido.recado, forKey: .recado)
             try c.encode(pedido.confirmoRecorrencia, forKey: .confirmo_recorrencia)
+            try c.encodeIfPresent(pedido.regiaoID, forKey: .regiao_id)
         }
     }
 

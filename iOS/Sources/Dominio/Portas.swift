@@ -273,11 +273,17 @@ public struct PedidoChamada: Equatable, Sendable {
     public let trabalho: PublicacaoVaga
     public let recado: String?
     public let confirmoRecorrencia: Bool
-    public init(profissionalID: UUID, trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false) {
+    /// 0.2.88. O `regiao_id` da busca (`FiltroBuscaProfissionais.regiaoID`), copiado para a chamada:
+    /// é com ele que o servidor confere a região atendida pelo caminho da busca. O `nome` dessa região
+    /// tem de ser igual a `trabalho.regiaoAdministrativa`. `nil` fora da busca.
+    public let regiaoID: Int?
+    public init(profissionalID: UUID, trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
+                regiaoID: Int? = nil) {
         self.profissionalID = profissionalID
         self.trabalho = trabalho
         self.recado = recado
         self.confirmoRecorrencia = confirmoRecorrencia
+        self.regiaoID = regiaoID
     }
 }
 
