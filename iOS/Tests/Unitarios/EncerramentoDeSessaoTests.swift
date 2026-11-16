@@ -544,9 +544,10 @@ struct ErrosDaEntradaTests {
         _ = try? await cliente.minhaConta()
 
         let autorizacoes = roteiro.autorizacoesDasRPCs
-        try #require(autorizacoes.count == 2)
-        #expect(autorizacoes[1] == "Bearer token-b")
-        #expect(!autorizacoes[1].contains("token-a"))
+        #expect(autorizacoes.count == 2)
+        let deB = try #require(autorizacoes.last)
+        #expect(deB == "Bearer token-b")
+        #expect(!deB.contains("token-a"))
     }
 
     @Test("Depois de Sair, uma chamada antes da próxima entrada não leva o token de quem saiu",

@@ -403,7 +403,6 @@ public struct RegioesAtendidas: Codable, Hashable, Sendable {
     public init(regioes: [Int] = [], atendeTodoDF: Bool = false) {
         self.regioes = regioes
         self.atendeTodoDF = atendeTodoDF
-        self.preferenciaChamadas = preferenciaChamadas
     }
 }
 
@@ -440,6 +439,7 @@ public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Send
         self.idiomas = idiomas
         self.regioes = regioes
         self.atendeTodoDF = atendeTodoDF
+        self.preferenciaChamadas = preferenciaChamadas
     }
 }
 
