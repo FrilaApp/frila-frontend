@@ -145,6 +145,16 @@ class AppNavegacaoChamadaProfissionalTest {
         rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).assertExists()
         rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertDoesNotExist()
         rule.onAllNodesWithTag("chave-aceita-chamadas").assertCountEquals(0)
+        rule.onNodeWithTag("editar-servicos").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun semAChaveDaBuscaOAtalhoDeServicosAindaLevaAosServicos() {
+        montar(chamadaDireta = true, inicio = RotasChamadaProfissional.PREFERENCIAS, busca = false)
+
+        rule.onNodeWithTag("editar-servicos").performScrollTo().performClick()
+
+        rule.runOnIdle { assertEquals(RotasChamadaProfissional.SERVICOS, rotaAtual()) }
     }
 
     @Test

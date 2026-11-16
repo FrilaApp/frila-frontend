@@ -231,14 +231,17 @@ private fun Formulario(
                     pendencias.forEach { Text(text = "• $it", style = MaterialTheme.typography.bodyMedium) }
                 }
             }
-            if (aoEditarServicos != null) {
-                BotaoSecundario(
-                    texto = TextosChamadaProfissional.EDITAR_SERVICOS,
-                    aoClicar = aoEditarServicos,
-                    modifier = Modifier.fillMaxWidth().testTag("editar-servicos"),
-                )
-            }
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+
+    // Serviços com preço são da chamada direta (existem no iOS), não da busca: não dependem da chave `busca_profissionais`.
+    if (aoEditarServicos != null) {
+        BotaoSecundario(
+            texto = TextosChamadaProfissional.EDITAR_SERVICOS,
+            aoClicar = aoEditarServicos,
+            modifier = Modifier.fillMaxWidth().testTag("editar-servicos"),
+        )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 

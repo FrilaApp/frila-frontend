@@ -109,7 +109,7 @@ class TelasDoProfissionalTest {
     }
 
     @Test
-    fun preferenciasComAChaveDaBuscaDesligadaNaoTemOBlocoAceitoChamadasNemPendenciasNemAtalhoDeServicos() {
+    fun preferenciasComAChaveDaBuscaDesligadaNaoTemOBlocoAceitoChamadasNemPendenciasMasTemOAtalhoDeServicos() {
         montarPreferencias(
             preferencias { copy(aceitaChamadas = true, pendencias = listOf("sem_regiao")) },
             busca = false,
@@ -120,7 +120,8 @@ class TelasDoProfissionalTest {
         rule.onNodeWithText(TextosChamadaProfissional.ACEITO_O_QUE_APARECE).assertDoesNotExist()
         rule.onNodeWithTag("chave-aceita-chamadas").assertDoesNotExist()
         rule.onNodeWithTag("pendencias-busca").assertDoesNotExist()
-        rule.onNodeWithTag("editar-servicos").assertDoesNotExist()
+        // Serviços são da chamada direta, não da busca: o atalho existe com a chave da busca desligada.
+        rule.onNodeWithTag("editar-servicos").performScrollTo().assertExists()
         // O resto fica como no iOS de hoje.
         rule.onNodeWithText(TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU).assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).performScrollTo().assertIsDisplayed()
