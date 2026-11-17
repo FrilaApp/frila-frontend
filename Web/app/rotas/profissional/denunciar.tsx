@@ -26,6 +26,8 @@ export async function action({ context, request }: Route.ActionArgs) {
   const api = apiDoUsuario(sessao.acesso);
   const formulario = await request.formData();
   const alvoId = String(formulario.get("alvo") ?? "");
+  // A chave desta submissão volta para a tela: um novo envio (depois de erro) usa a MESMA, e o servidor não duplica.
+  const chave = String(formulario.get("chave") ?? "");
   const bloquear = formulario.get("intencao") === "bloquear" || formulario.get("bloquear") === "sim";
   let protocolo: string | null = null;
   if (formulario.get("intencao") !== "bloquear") {
@@ -35,20 +37,23 @@ export async function action({ context, request }: Route.ActionArgs) {
       turnoId: String(formulario.get("turno") ?? "") || null,
       motivo: (MOTIVOS_DA_DENUNCIA as readonly string[]).includes(motivo) ? (motivo as MotivoDaDenuncia) : "outro",
       relato: String(formulario.get("relato") ?? ""),
-      chave: String(formulario.get("chave") ?? ""),
+      chave,
     });
     if (!denuncia.ok) {
       if (denuncia.motivo === "sem_sessao") throw redirect("/entrar");
-      return { protocolo: null, bloqueada: false, erro: denuncia.motivo };
+      return { protocolo: null, bloqueada: false, erro: denuncia.motivo, chave, bloqueioPendente: false };
     }
     protocolo = denuncia.protocolo;
   }
   if (bloquear) {
     const bloqueio = await bloquearCasa(api, alvoId);
     if (!bloqueio.ok && bloqueio.motivo === "sem_sessao") throw redirect("/entrar");
-    if (!bloqueio.ok) return { protocolo, bloqueada: false, erro: bloqueio.motivo === "sem_sessao" ? ("indisponivel" as const) : bloqueio.motivo };
+    if (!bloqueio.ok) {
+      // A denúncia (se houve) já está salva: a tela mostra o protocolo e só oferece repetir o bloqueio.
+      return { protocolo, bloqueada: false, erro: bloqueio.motivo === "sem_sessao" ? ("indisponivel" as const) : bloqueio.motivo, chave, bloqueioPendente: true };
+    }
   }
-  return { protocolo, bloqueada: bloquear, erro: null };
+  return { protocolo, bloqueada: bloquear, erro: null, chave, bloqueioPendente: false };
 }
 
 const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao disabled:opacity-60";
@@ -57,9 +62,12 @@ const classeDoLink = "inline-flex min-h-11 items-center font-semibold underline 
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 export default function Denunciar({ loaderData, actionData }: Route.ComponentProps) {
-  const { alvo, turno, chave } = loaderData;
+  const { alvo, turno } = loaderData;
+  // Depois de um envio, vale a chave daquele envio (a do loader é nova a cada leitura).
+  const chave = actionData?.chave || loaderData.chave;
   const enviando = useNavigation().state !== "idle";
   const concluiu = actionData && !actionData.erro;
+  const soFaltaBloquear = Boolean(actionData?.erro && actionData.bloqueioPendente);
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 p-6">
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
@@ -76,7 +84,21 @@ export default function Denunciar({ loaderData, actionData }: Route.ComponentPro
         </p>
       </section>
       {actionData?.erro ? <p role="alert">{t.resultado[actionData.erro]}</p> : null}
-      {concluiu ? (
+      {actionData?.protocolo && !concluiu ? (
+        <p role="status" className="font-semibold">
+          {t.denunciaEnviada.replace("{protocolo}", actionData.protocolo)}
+        </p>
+      ) : null}
+      {soFaltaBloquear && alvo ? (
+        <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
+          <input type="hidden" name="alvo" value={alvo} />
+          <input type="hidden" name="chave" value={chave} />
+          <input type="hidden" name="intencao" value="bloquear" />
+          <button type="submit" disabled={enviando} className={classeDoBotaoSecundario}>
+            {enviando ? t.enviando : t.soBloquear}
+          </button>
+        </Form>
+      ) : concluiu ? (
         <div role="status" className="flex flex-col gap-2 font-semibold">
           {actionData.protocolo ? <p>{t.denunciaEnviada.replace("{protocolo}", actionData.protocolo)}</p> : null}
           {actionData.bloqueada ? <p>{t.bloqueada}</p> : null}
