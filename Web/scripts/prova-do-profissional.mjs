@@ -1,4 +1,4 @@
-// Prova de ponta a ponta das telas do profissional (vagas perto e detalhe), contra um Worker ligado ao Supabase de dev,
+// Prova de ponta a ponta das telas do profissional (vagas perto, detalhe, candidatar e retirar), contra um Worker ligado ao Supabase de dev,
 // com as contas de demonstração. Não imprime e-mail, código nem token: só o que aconteceu.
 //
 // Uso (com `npx vite preview --port 4317` rodando, ou contra a prévia):
@@ -66,6 +66,31 @@ const inexistente = await pedir("/app/vagas/00000000-0000-4000-8000-000000000000
 diz("vaga que não existe responde 404", inexistente.status === 404 && (await inexistente.text()).includes("Vaga não encontrada"));
 const torta = await pedir("/app/vagas/nao-e-um-id");
 diz("endereço torto responde 404", torta.status === 404);
+
+// Candidatar e retirar, numa vaga do modo seleção (fica pendente; retirar não tem penalidade).
+// Vaga do modo urgência confirmaria o turno na hora: essa fica para a prova dos turnos.
+const itens = [...htmlDaLista.matchAll(/<li>(.*?)<\/li>/gs)].map((m) => m[1]);
+const selecao = itens.find((item) => item.includes("A casa escolhe entre os candidatos"));
+const idDaSelecao = selecao ? /href="\/app\/vagas\/([0-9a-f-]{36})"/.exec(selecao)?.[1] : null;
+if (idDaSelecao) {
+  const antes = await (await pedir(`/app/vagas/${idDaSelecao}`)).text();
+  const jaTinha = antes.includes("Você se candidatou");
+  if (jaTinha) {
+    await envio(`/app/vagas/${idDaSelecao}`, { intencao: "retirar", candidatura_id: /name="candidatura_id" value="([0-9a-f-]{36})"/.exec(antes)?.[1] ?? "" });
+  }
+  const candidatou = await envio(`/app/vagas/${idDaSelecao}`, { intencao: "candidatar" });
+  const htmlCandidatou = await candidatou.text();
+  diz("candidatar numa vaga do modo seleção: fica pendente", candidatou.status === 200 && htmlCandidatou.includes("Candidatura enviada"));
+  const minhas = await (await pedir("/app/candidaturas")).text();
+  diz("a candidatura aparece em Minhas candidaturas, aguardando a casa", minhas.includes(`href="/app/vagas/${idDaSelecao}"`) && minhas.includes("Aguardando a casa"));
+  const repetida = await envio(`/app/vagas/${idDaSelecao}`, { intencao: "candidatar" });
+  diz("candidatar de novo não duplica (o servidor devolve a mesma)", repetida.status === 200 && (await repetida.text()).includes("Candidatura enviada"));
+  const idDaCandidatura = /name="candidatura_id" value="([0-9a-f-]{36})"/.exec(htmlCandidatou)?.[1] ?? "";
+  const retirou = await envio(`/app/vagas/${idDaSelecao}`, { intencao: "retirar", candidatura_id: idDaCandidatura });
+  diz("retirar a candidatura", retirou.status === 200 && (await retirou.text()).includes("Candidatura retirada"));
+} else {
+  diz("há vaga do modo seleção para provar o candidatar", false, "(nenhuma na lista)");
+}
 
 const saida = await envio("/app/sair", {});
 diz("a profissional sai", saida.status === 302);
