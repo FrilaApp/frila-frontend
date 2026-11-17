@@ -23,6 +23,10 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     private(set) var limitesRecebidos: [Int?] = []
     private(set) var pedidos: [PedidoChamada] = []
     private(set) var consultasDaConfiguracao = 0
+    /// 0.2.90: a conta aceitou os Termos 1.1? Sem aceite, a busca responde `termos_pendentes`.
+    private(set) var termosAceitos = true
+    var erroNoAceite: ErroDaApi?
+    private(set) var aceitesRecebidos: [String] = []
 
     init(total: Int) { self.total = total }
 
@@ -38,6 +42,23 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
         if let atrasaAlemDoPrazo { self.atrasaAlemDoPrazo = atrasaAlemDoPrazo }
     }
 
+    /// A partir da busca de número `aPartirDaBusca` (1 = a primeira que chegou), o servidor pede os Termos; sem ele, já.
+    func exigirAceiteDosTermos(erroNoAceite: ErroDaApi? = nil, aPartirDaBusca: Int? = nil) {
+        if let aPartirDaBusca { exigirAceiteAPartirDaBusca = aPartirDaBusca } else { termosAceitos = false }
+        self.erroNoAceite = erroNoAceite
+    }
+
+    private var exigirAceiteAPartirDaBusca: Int?
+
+    func liberarAceite() { erroNoAceite = nil }
+
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
+        aceitesRecebidos.append(versao)
+        if let erroNoAceite { throw erroNoAceite }
+        termosAceitos = true
+        return AceiteDeTermos(termosVersao: versao, aceitoEm: Date(timeIntervalSince1970: 1_900_000_000))
+    }
+
     func configuracaoDoApp() async throws -> ConfiguracaoApp {
         consultasDaConfiguracao += 1
         return ConfiguracaoApp(versaoMinima: "1.0", versaoRecomendada: "1.0", mensagem: nil,
@@ -49,6 +70,11 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
         filtrosRecebidos.append(filtro)
         cursoresRecebidos.append(cursor)
         limitesRecebidos.append(limite)
+        if let n = exigirAceiteAPartirDaBusca, filtrosRecebidos.count >= n {
+            termosAceitos = false
+            exigirAceiteAPartirDaBusca = nil
+        }
+        if !termosAceitos { throw ErroDaApi(codigo: .semPermissao, detalhes: "termos_pendentes") }
         if let erroNaBusca { throw erroNaBusca }
         if cursor != nil, let erroNaPaginaSeguinte { throw erroNaPaginaSeguinte }
         let inicio = cursor.flatMap(Int.init) ?? 0
@@ -103,6 +129,7 @@ private struct FonteDaBuscaLenta: FonteDaBuscaDeProfissionais {
         return PaginaBuscaProfissionais(itens: [])
     }
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada { throw ErroDaApi(codigo: .semRede) }
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos { throw ErroDaApi(codigo: .semRede) }
 }
 
 @Suite("Busca de profissionais: view model")
@@ -217,6 +244,140 @@ struct BuscaDeProfissionaisViewModelTests {
         await fonte.ajustar(erroNaBusca: ErroDaApi(codigo: .semPermissao, detalhes: "recurso_desligado"))
         await vm.buscar()
         #expect(vm.estado == .indisponivel)
+    }
+
+    // MARK: Termos 1.1 (contrato 0.2.90)
+
+    @Test("termos_pendentes vira o estado de aceite, sem resultado e sem oferecer Publicar para todos")
+    func termosPendentesViraEstadoDeAceite() async {
+        let (fonte, vm) = preparar(total: 5)
+        await fonte.exigirAceiteDosTermos()
+        await vm.buscar()
+        #expect(vm.estado == .termosPendentes)
+        #expect(vm.resultados.isEmpty)
+        #expect(vm.rascunhoParaPublicarParaTodos == nil)
+        #expect(vm.erroNoAceiteDosTermos == false)
+        #expect(await fonte.aceitesRecebidos.isEmpty)
+    }
+
+    @Test("O código solto termos_pendentes também vale")
+    func termosPendentesComCodigoSolto() async {
+        let (fonte, vm) = preparar(total: 5)
+        await fonte.ajustar(erroNaBusca: ErroDaApi(codigo: .termosPendentes))
+        await vm.buscar()
+        #expect(vm.estado == .termosPendentes)
+    }
+
+    @Test("Aceitar chama aceitar_termos com a versão exibida e repete a busca com os mesmos filtros")
+    func aceitarRepeteABusca() async throws {
+        let (fonte, vm) = preparar(total: 5)
+        let horario = try Periodo(inicio: inicio.addingTimeInterval(48 * 3600), fim: inicio.addingTimeInterval(52 * 3600))
+        vm.regiaoID = 3
+        vm.horario = horario
+        await fonte.exigirAceiteDosTermos()
+        await vm.buscar()
+        // A tela de aceite não deixa mexer nos filtros, mas a busca repetida usa os que o servidor recusou.
+        vm.regiaoID = 9
+        vm.horario = nil
+        await vm.aceitarTermosERepetirABusca()
+
+        #expect(await fonte.aceitesRecebidos == [VersaoDosTermos.vigente])
+        let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count == 2)
+        #expect(filtros[1] == filtros[0])
+        #expect(filtros[1].regiaoID == 3)
+        #expect(filtros[1].horario == horario)
+        #expect(vm.estado == .resultados)
+        #expect(vm.resultados.count == 5)
+        #expect(vm.aceitandoTermos == false)
+        #expect(vm.erroNoAceiteDosTermos == false)
+    }
+
+    @Test("Erro no aceite: a busca continua bloqueada, com o aviso, e nenhuma busca nova sai")
+    func erroNoAceiteMantemBloqueado() async throws {
+        let (fonte, vm) = preparar(total: 5)
+        await fonte.exigirAceiteDosTermos(erroNoAceite: ErroDaApi(codigo: .semRede))
+        await vm.buscar()
+        await vm.aceitarTermosERepetirABusca()
+
+        #expect(vm.estado == .termosPendentes)
+        #expect(vm.erroNoAceiteDosTermos)
+        #expect(vm.aceitandoTermos == false)
+        #expect(vm.resultados.isEmpty)
+        #expect(await fonte.filtrosRecebidos.count == 1)
+
+        // Tentar de novo com o servidor de volta: o aviso some e a busca sai.
+        await fonte.liberarAceite()
+        await vm.aceitarTermosERepetirABusca()
+        #expect(await fonte.aceitesRecebidos.count == 2)
+        #expect(vm.estado == .resultados)
+        #expect(vm.erroNoAceiteDosTermos == false)
+        #expect(await fonte.filtrosRecebidos.count == 2)
+    }
+
+    @Test("Recusa do servidor no aceite (campo_invalido) também mantém o bloqueio")
+    func recusaNoAceite() async {
+        let (fonte, vm) = preparar(total: 5)
+        await fonte.exigirAceiteDosTermos(erroNoAceite: ErroDaApi(codigo: .campoInvalido, detalhes: "termos_versao"))
+        await vm.buscar()
+        await vm.aceitarTermosERepetirABusca()
+        #expect(vm.estado == .termosPendentes)
+        #expect(vm.erroNoAceiteDosTermos)
+        #expect(await fonte.filtrosRecebidos.count == 1)
+    }
+
+    @Test("Fora do estado de aceite, aceitar não faz nada")
+    func aceitarForaDoEstadoNaoFazNada() async {
+        let (fonte, vm) = preparar(total: 5)
+        await vm.buscar()
+        await vm.aceitarTermosERepetirABusca()
+        #expect(await fonte.aceitesRecebidos.isEmpty)
+        #expect(await fonte.filtrosRecebidos.count == 1)
+        #expect(vm.estado == .resultados)
+    }
+
+    @Test("termos_pendentes na página seguinte também leva ao aceite, e depois dele a busca recomeça pela primeira página")
+    func termosPendentesNaPaginaSeguinte() async {
+        let (fonte, vm) = preparar(total: 50)
+        await vm.buscar()
+        #expect(vm.estado == .resultados)
+        await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .semPermissao, detalhes: "termos_pendentes"))
+        await vm.carregarMais()
+        #expect(vm.estado == .termosPendentes)
+        #expect(vm.resultados.isEmpty)
+        await fonte.ajustar()
+        await vm.aceitarTermosERepetirABusca()
+        #expect(vm.estado == .resultados)
+        #expect(await fonte.cursoresRecebidos.last == .some(nil))
+    }
+
+    @Test("cursor_invalido com termos_pendentes na releitura: a lista sai, vem o aceite e a busca repete o filtro da busca")
+    func termosPendentesNaReleituraDoCursorInvalido() async throws {
+        let (fonte, vm) = preparar(total: 45)
+        vm.regiaoID = 3
+        await vm.buscar()
+        #expect(vm.resultados.count == 20)
+        let primeiro = try #require(vm.resultados.first).id
+        vm.alternarSelecao(primeiro)
+        // A página seguinte volta cursor_invalido e, na releitura da 1ª página (a 3ª busca), o servidor pede os Termos.
+        await fonte.ajustar(erroNaPaginaSeguinte: ErroDaApi(codigo: .cursorInvalido))
+        await fonte.exigirAceiteDosTermos(aPartirDaBusca: 3)
+        vm.regiaoID = 9
+        await vm.carregarMais()
+        #expect(vm.estado == .termosPendentes)
+        #expect(vm.resultados.isEmpty)
+        #expect(vm.selecionados.isEmpty)
+        #expect(!vm.temMais)
+
+        await vm.aceitarTermosERepetirABusca()
+        let filtros = await fonte.filtrosRecebidos
+        try #require(filtros.count == 4)
+        #expect(filtros[3] == filtros[0], "a busca repetida usa o filtro da busca recusada, não o que a tela editava")
+        #expect(await fonte.cursoresRecebidos == [nil, "20", nil, nil])
+        #expect(await fonte.aceitesRecebidos == [VersaoDosTermos.vigente])
+        #expect(vm.regiaoID == 3)
+        #expect(vm.estado == .resultados)
+        #expect(vm.resultados.count == 20)
     }
 
     @Test("429 vira a mensagem de limite e some o resultado antigo")
@@ -1031,5 +1192,23 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(vm.resultados.isEmpty)
         #expect(vm.rascunhoParaPublicarParaTodos == RascunhoDeVagaDaBusca(
             estabelecimentoID: casaID, funcaoID: outraFuncaoID, regiaoID: regiao.id, horario: horario))
+    }
+
+    @Test("Dublê: conta sem os Termos 1.1 recebe termos_pendentes, aceita e a mesma busca passa")
+    func integracaoTermosPendentes() async throws {
+        let api = ApiClienteEmMemoria(cenario: .buscaComTermosPendentes, relogio: RelogioFixoDaBusca())
+        let conta = try await api.minhaConta()
+        #expect(conta.termosVersao == nil)
+        let casaID = try #require(try await api.meusEstabelecimentos().first).id
+        let funcaoID = try #require(try await api.funcoes().first).id
+        let vm = BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: casaID)
+        vm.funcaoID = funcaoID
+        await vm.buscar()
+        #expect(vm.estado == .termosPendentes)
+
+        await vm.aceitarTermosERepetirABusca()
+        #expect(await api.aceitesDeTermosRecebidos == [VersaoDosTermos.vigente])
+        #expect(vm.estado == .resultados)
+        #expect(try await api.minhaConta().termosVersao == VersaoDosTermos.vigente)
     }
 }

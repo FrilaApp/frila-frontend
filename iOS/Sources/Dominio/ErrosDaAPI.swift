@@ -47,6 +47,9 @@ public enum CodigoErroAPI: String, Codable, CaseIterable, Sendable {
     case profissionalIndisponivel = "profissional_indisponivel"
     case limiteDeChamadas = "limite_de_chamadas"
     case recursoDesligado = "recurso_desligado"
+    /// `403 sem_permissao` com `details: termos_pendentes` (0.2.90): a busca de profissionais exige os Termos 1.1 ou
+    /// mais novos aceitos. O código solto também vale, como em `recurso_desligado`.
+    case termosPendentes = "termos_pendentes"
     /// `422`, check-in por código (0.2.68): um código só, sem dizer se estava errado, vencido, de outro
     /// turno ou se a distância passou de 100 m. Cada recusa conta como tentativa errada.
     case codigoInvalido = "codigo_invalido"
@@ -92,6 +95,12 @@ public extension ErroDaApi {
     /// desligado no servidor. O código solto `recurso_desligado` vale o mesmo.
     var recursoDesligado: Bool {
         codigo == .recursoDesligado || (codigo == .semPermissao && detalhes == CodigoErroAPI.recursoDesligado.rawValue)
+    }
+
+    /// `403 sem_permissao` com `details: termos_pendentes` (0.2.90): o app mostra os Termos, chama `aceitarTermos` e
+    /// repete a busca.
+    var termosPendentes: Bool {
+        codigo == .termosPendentes || (codigo == .semPermissao && detalhes == CodigoErroAPI.termosPendentes.rawValue)
     }
 }
 
