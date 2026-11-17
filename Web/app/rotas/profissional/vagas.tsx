@@ -141,6 +141,11 @@ export default function Vagas({ loaderData }: Route.ComponentProps) {
       ) : (
         <p role="alert">{AVISO_DO_ESTADO[estado]}</p>
       )}
+      {estado === "conta_suspensa" ? (
+        <Link to="/conta/suspensa" className={classeDoLink}>
+          {textos.suspensao.verSituacao}
+        </Link>
+      ) : null}
 
       <Link to="/" className={classeDoLink}>
         {t.voltarAoInicio}

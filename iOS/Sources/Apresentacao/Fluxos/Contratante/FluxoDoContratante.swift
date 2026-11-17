@@ -226,6 +226,10 @@ private struct DestinoDasVagasDoContratante: View {
     @State private var publicacao: PublicacaoDaCasaViewModel
     /// O que a busca vazia leva para a publicação ("Publicar para todos"); `nil` na publicação de sempre.
     @State private var rascunhoDaBusca: RascunhoDeVagaDaBusca?
+    /// A guarda da busca mora aqui, acima de `TelaMinhasVagas`: publicar uma vaga troca a lista pela publicação e tira a
+    /// tela da hierarquia. Com um envio em curso ou incerto, a busca (a trava, o trabalho e as chaves) volta com a lista
+    /// (DINHEIRO: sem ela, a busca recomeçaria limpa e a folha nova abriria uma 2ª vaga).
+    @State private var guardaDaBusca: GuardaDaBuscaDeProfissionais
     @Binding private var publicando: Bool
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
@@ -246,6 +250,10 @@ private struct DestinoDasVagasDoContratante: View {
         _publicando = publicando
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
+        let estabelecimentoID = estabelecimento.id
+        _guardaDaBusca = State(initialValue: GuardaDaBuscaDeProfissionais {
+            BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID)
+        })
     }
 
     var body: some View {
@@ -277,6 +285,7 @@ private struct DestinoDasVagasDoContratante: View {
                         rascunhoDaBusca = rascunho
                         publicando = true
                     },
+                    guardaDaBusca: guardaDaBusca,
                     sair: sair,
                     abrirPerfil: abrirPerfil
                 )

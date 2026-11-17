@@ -59,7 +59,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class, qualifiers = "w411dp-h1600dp")
 class AppNavegacaoMinhasVagasTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private lateinit var nav: NavHostController
@@ -138,6 +141,7 @@ class AppNavegacaoMinhasVagasTest {
                     armazenamentoDeSessao = sessao,
                     monitorDeConectividade = MonitorDeConectividadeFalso(),
                     navController = nav,
+                    biometriaHabilitada = true, // C0-11: a trava desligada é o padrão; aqui se testa o código dormente
                     servicoMembros = servicoMembros,
                 )
             }

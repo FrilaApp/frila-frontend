@@ -1,8 +1,10 @@
 package br.com.frila.core.rede
 
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 
 /** Registro de token de push do aparelho (RF06/RN15/RNF02). */
@@ -19,10 +21,10 @@ class ServicoDispositivo(private val provedorDeCliente: () -> ClienteSupabase) {
      * `vinculo_id` deste token com a conta ativa (RN15): o app deve guardar esse valor junto
      * com a sessão (`Sessao.vinculoId` em `:core:seguranca`).
      */
-    suspend fun registrarDispositivo(tokenFcm: String, plataforma: String = "android"): DispositivoDto {
+    suspend fun registrarDispositivo(tokenFcm: String, plataforma: String = "android", versaoApp: String? = null): DispositivoDto {
         val resposta = cliente.http.post(cliente.urlRpc("registrar_dispositivo")) {
             contentType(ContentType.Application.Json)
-            setBody(RegistrarDispositivoDto(tokenFcm = tokenFcm, plataforma = plataforma))
+            setBody(RegistrarDispositivoDto(tokenFcm = tokenFcm, plataforma = plataforma, versaoApp = versaoApp))
         }
         return cliente.corpoOuErro(resposta)
     }
@@ -31,9 +33,12 @@ class ServicoDispositivo(private val provedorDeCliente: () -> ClienteSupabase) {
      * `POST /rest/v1/rpc/remover_dispositivo`. Chamar no logout, ainda com a sessão válida, para
      * encerrar o vínculo deste token com a conta: o registro seguinte recebe `vinculo_id` novo.
      * A resposta (`removido` verdadeiro ou falso) não muda nada para o app e é descartada.
+     * `tokenDeAcesso`: no Sair a sessão local já foi apagada (a tela navega na hora); o pedido vai com o token de quem
+     * saiu, guardado antes da limpeza.
      */
-    suspend fun removerDispositivo(tokenFcm: String) {
+    suspend fun removerDispositivo(tokenFcm: String, tokenDeAcesso: String? = null) {
         val resposta = cliente.http.post(cliente.urlRpc("remover_dispositivo")) {
+            tokenDeAcesso?.let { header(HttpHeaders.Authorization, "Bearer $it") }
             contentType(ContentType.Application.Json)
             setBody(RemoverDispositivoDto(tokenFcm = tokenFcm))
         }

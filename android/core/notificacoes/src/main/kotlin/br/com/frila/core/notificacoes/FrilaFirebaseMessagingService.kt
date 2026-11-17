@@ -1,19 +1,16 @@
 package br.com.frila.core.notificacoes
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import br.com.frila.core.rede.ErroDaApi
-import br.com.frila.core.rede.ServicoDispositivo
-import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -27,22 +24,14 @@ import org.koin.core.component.inject
  */
 class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent {
 
-    private val servicoDispositivo: ServicoDispositivo by inject()
-    private val armazenamentoDeSessao: ArmazenamentoDeSessao by inject()
+    private val registradorDeDispositivo: RegistradorDeDispositivo by inject()
     private val processadorDePush: ProcessadorDePush by inject()
-
-    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        escopo.launch {
-            try {
-                sincronizarNovoToken(token, servicoDispositivo, armazenamentoDeSessao)
-            } catch (_: ErroDaApi) {
-                // Registro de dispositivo não pode travar o app nem a entrega de outros pushes;
-                // falha aqui só significa tentar de novo na próxima abertura do app.
-            }
-        }
+        // Registro de dispositivo não pode travar nem derrubar o app (erro de rede incluso): o registrador pega tudo,
+        // só registra o motivo, e a próxima abertura com sessão tenta de novo.
+        registradorDeDispositivo.registrarTokenNovoEmSegundoPlano(token)
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -54,6 +43,12 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
     private fun exibir(notificacao: NotificacaoParaExibir) {
         // RF06: canal desativado pelo usuário nas preferências locais — não notifica.
         if (notificacao.silenciada) return
+        // Android 13 ou mais: sem a permissão de aviso, nada a mostrar.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
 
         val builder = NotificationCompat.Builder(this, notificacao.canal)
             .setContentTitle(notificacao.titulo)

@@ -71,6 +71,13 @@ public struct TelaBuscaDeProfissionais: View {
                         .accessibilityIdentifier("busca-catalogo-tentar-de-novo")
                 }
             }
+            if viewModel.enviando {
+                // Envio em curso: a seleção fica parada até a resposta (ou o prazo) chegar.
+                Section {
+                    ProgressView { Text(verbatim: TextosBuscaDeProfissionais.enviando) }
+                        .accessibilityIdentifier("busca-enviando")
+                }
+            }
             if viewModel.travadoPeloIncerto {
                 // Um envio que levou o trabalho ficou incerto: nada de busca nova nem de trocar a seleção até resolver.
                 Section {
@@ -91,8 +98,8 @@ public struct TelaBuscaDeProfissionais: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                // Fechar e arrastar ficam livres mesmo com envio incerto (ninguém fica preso offline): a guarda segura o
-                // ViewModel, e reabrir mostra o pendente com "Tentar de novo", o mesmo trabalho e as mesmas chaves.
+                // Fechar e arrastar ficam livres mesmo com envio em curso ou incerto (ninguém fica preso offline): a guarda
+                // segura o ViewModel, e reabrir mostra o envio ou o pendente com o mesmo trabalho e as mesmas chaves.
                 Button { fechar() } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
                     .accessibilityIdentifier("busca-fechar")
             }
@@ -177,7 +184,7 @@ public struct TelaBuscaDeProfissionais: View {
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.borderless)
-            .disabled(viewModel.travadoPeloIncerto)
+            .disabled(viewModel.travadoPeloIncerto || viewModel.enviando)
             .accessibilityLabel(Text(verbatim: selecionado ? TextosBuscaDeProfissionais.desmarcar(cartao.nome)
                                                              : TextosBuscaDeProfissionais.selecionar(cartao.nome)))
             .accessibilityIdentifier("selecionar-profissional-\(cartao.id)")
@@ -247,8 +254,9 @@ public struct TelaBuscaDeProfissionais: View {
         viewModel.podeChamar && (viewModel.temEnvioRegistrado || casa != nil)
     }
 
-    /// 1º envio: abre a folha. Depois dele (pendente ou feito), reenvia o MESMO trabalho direto, sem folha nova:
-    /// uma folha nova traria outro horário (agora + 24 h) e o servidor abriria uma 2ª vaga para quem ainda não foi chamado.
+    /// 1º envio do serviço buscado: abre a folha. Depois dele (pendente ou feito), reenvia o MESMO trabalho direto, sem
+    /// folha nova: uma folha nova traria outro horário (agora + 24 h) e o servidor abriria uma 2ª vaga para quem ainda não
+    /// foi chamado. Outro serviço é outro trabalho e abre a sua folha.
     private func chamarSelecionados() {
         if viewModel.temEnvioRegistrado {
             Task { await viewModel.reenviar() }
@@ -263,8 +271,9 @@ public struct TelaBuscaDeProfissionais: View {
                                                       responsavel: casa.nome)
     }
 
+    /// O trabalho leva o serviço da busca feita (o da lista), e não o do seletor, que pode ter mudado sem Buscar.
     private func enviarChamadas() async {
-        guard let rascunho = rascunhoDaChamada, let casa, let funcaoID = viewModel.funcaoID,
+        guard let rascunho = rascunhoDaChamada, let casa, let funcaoID = viewModel.funcaoDaBusca,
               let trabalho = rascunho.trabalho(casa: casa, funcaoID: funcaoID) else { return }
         rascunhoDaChamada = nil
         await viewModel.chamar(trabalho: trabalho, recado: rascunho.recadoOuNada)
