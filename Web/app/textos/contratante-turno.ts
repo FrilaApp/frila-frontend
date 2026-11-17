@@ -84,6 +84,7 @@ export const contratanteTurno = {
       antes_do_fim: "A avaliação abre depois do fim do turno.",
       sem_presenca_verificada: "Só turno com presença confirmada pode ser avaliado.",
       ja_registrada: "A casa já respondeu sobre este turno.",
+      conta_suspensa: "Sua conta está suspensa. Por enquanto, não dá para acompanhar turnos.",
       sem_permissao: "Só quem faz parte da casa pode avaliar.",
       indisponivel: "Não deu para enviar agora. Tente de novo em instantes.",
     },
