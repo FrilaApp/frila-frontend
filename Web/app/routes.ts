@@ -56,6 +56,8 @@ export default [
   route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
   route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
   route("casa/profissionais/:profissionalId", "rotas/contratante/profissional.tsx"),
+  route("casa/denunciar", "rotas/contratante/moderacao/denunciar.tsx"),
+  route("casa/bloqueados", "rotas/contratante/moderacao/bloqueados.tsx"),
 
   // Busca de profissionais e chamada direta da casa (3.8)
   route("casa/busca", "rotas/contratante/busca.tsx"),
