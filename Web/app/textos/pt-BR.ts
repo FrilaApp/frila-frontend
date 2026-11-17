@@ -3,18 +3,27 @@
  * todo texto visível sai daqui.
  */
 import { contratante } from "./contratante";
+import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { suporte } from "./suporte";
+import { suspensao } from "./suspensao";
 import { vagaPublica } from "./vaga-publica";
 
 export const textos = {
   marca: "Frila",
+  // Conta suspensa e contestação (os dois lados).
+  suspensao,
+  // Suporte a partir de um turno (os dois lados).
+  suporte,
   // Páginas públicas, textos do marketing (arquivo próprio para entrar como vieram).
   publico,
   // Página pública da vaga (link sem login)
   vagaPublica,
   // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
   profissional,
+  // Dia do turno do lado da casa (arquivo próprio).
+  contratanteTurno,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",

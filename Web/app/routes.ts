@@ -10,6 +10,10 @@ export default [
   // A vaga pelo link, sem login (para compartilhar)
   route("v/:vagaId", "rotas/publico/vaga.tsx"),
 
+  // Conta suspensa, contestação e suporte (os dois lados)
+  route("conta/suspensa", "rotas/conta/suspensa.tsx"),
+  route("suporte/:turnoId", "rotas/suporte.tsx"),
+
   // Páginas públicas (textos do marketing)
   route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),
   route("como-funciona/profissional", "rotas/publico/como-funciona-profissional.tsx"),
@@ -31,4 +35,8 @@ export default [
   // Lado do contratante
   // Contratante (2C, Citrino): painel da casa e publicar vaga. Só se acrescenta neste bloco.
   ...prefix("painel", [index("rotas/contratante/painel.tsx"), route("publicar", "rotas/contratante/publicar-vaga.tsx")]),
+
+  // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
+  route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
+  route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
 ] satisfies RouteConfig;
