@@ -30,7 +30,7 @@
 			"workers_dev": false,
 			"preview_urls": false,
 			// Só estes três caminhos vão ao Worker; o resto do frilabr.com fica como está.
-			// Não use "frilabr.com/app*": pegaria também /apps, /aplicativo etc.
+			// Não use "frilabr.com/app*": pegaria também /apps, /app-store etc.
 			// /app.data é o pedido de dados da página inicial do React Router v8.
 			"routes": [
 				{ "pattern": "frilabr.com/app", "zone_name": "frilabr.com" },
