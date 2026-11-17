@@ -76,6 +76,8 @@ export const contratanteTurno = {
     pergunta: "Chamaria este profissional de novo?",
     sim: "Sim",
     nao: "Não",
+    enviar: "Enviar avaliação",
+    dica: "Escolha Sim ou Não para avaliar.",
     respondeu: "Resposta da casa:",
     resultado: {
       registrada: "Obrigado. Sua resposta foi registrada.",

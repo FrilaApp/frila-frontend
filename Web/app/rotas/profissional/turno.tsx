@@ -7,6 +7,7 @@ import { avaliarACasa } from "../../servidor/profissional/avaliacao";
 import { distanciaDoFormulario, marcarChegada, marcarSaida, validarCodigo } from "../../servidor/profissional/presenca";
 import { avisarACaminho, desistirDoTurno, listarMeusTurnos } from "../../servidor/profissional/turnos";
 import { textos } from "../../textos/pt-BR";
+import { FormularioDaAvaliacao } from "../avaliacao-do-turno";
 import type { Route } from "./+types/turno";
 import { FormularioDePresenca } from "./localizacao";
 
@@ -221,20 +222,11 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
               {t.respondeu} <strong>{turno.respostaDada ? t.sim : t.nao}</strong>
             </p>
           ) : turno.podeAvaliar ? (
-            <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
-              <h2 className="font-semibold">{t.avaliacaoTitulo}</h2>
-              <p id="pergunta-da-avaliacao">{t.pergunta}</p>
-              <input type="hidden" name="intencao" value="avaliar" />
-              <input type="hidden" name="turno_id" value={turno.id} />
-              <div className="flex gap-3" role="group" aria-labelledby="pergunta-da-avaliacao">
-                <button type="submit" name="resposta" value="sim" disabled={enviando} className={classeDoBotao}>
-                  {t.sim}
-                </button>
-                <button type="submit" name="resposta" value="nao" disabled={enviando} className={classeDoBotaoSecundario}>
-                  {t.nao}
-                </button>
-              </div>
-            </Form>
+            <FormularioDaAvaliacao
+              turnoId={turno.id}
+              enviando={enviando}
+              textos={{ titulo: t.avaliacaoTitulo, pergunta: t.pergunta, sim: t.sim, nao: t.nao, enviar: t.enviarAvaliacao, dica: t.dicaDaAvaliacao, enviando: t.enviando }}
+            />
           ) : null}
           {turno.podeAvisar ? (
             <Form method="post">

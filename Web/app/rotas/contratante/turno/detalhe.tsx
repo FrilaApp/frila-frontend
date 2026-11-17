@@ -7,6 +7,7 @@ import { apiDoUsuario } from "../../../servidor/deste-ambiente";
 import { exigirSessao } from "../../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../../servidor/profissional/formato";
 import { textos } from "../../../textos/pt-BR";
+import { FormularioDaAvaliacao } from "../../avaliacao-do-turno";
 import type { Route } from "./+types/detalhe";
 
 const t = textos.contratanteTurno;
@@ -182,20 +183,7 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
               {t.avaliacao.respondeu} <strong>{turno.respostaDada ? t.avaliacao.sim : t.avaliacao.nao}</strong>
             </p>
           ) : turno.podeAvaliar ? (
-            <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
-              <h2 className="font-semibold">{t.avaliacao.titulo}</h2>
-              <p id="pergunta-da-avaliacao">{t.avaliacao.pergunta}</p>
-              <input type="hidden" name="intencao" value="avaliar" />
-              <input type="hidden" name="turno_id" value={turno.id} />
-              <div className="flex gap-3" role="group" aria-labelledby="pergunta-da-avaliacao">
-                <button type="submit" name="resposta" value="sim" disabled={enviando} className={classeDoBotao}>
-                  {t.avaliacao.sim}
-                </button>
-                <button type="submit" name="resposta" value="nao" disabled={enviando} className={classeDoBotaoSecundario}>
-                  {t.avaliacao.nao}
-                </button>
-              </div>
-            </Form>
+            <FormularioDaAvaliacao turnoId={turno.id} enviando={enviando} textos={{ ...t.avaliacao, enviando: t.turno.enviando }} />
           ) : null}
         </>
       ) : null}
