@@ -330,6 +330,10 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func minhasChamadas(estado: EstadoChamada? = nil, cursor: String? = nil, limite: Int? = nil) async throws -> [ChamadaResumo] {
+        try await paginaDeMinhasChamadas(estado: estado, cursor: cursor, limite: limite).itens
+    }
+
+    public func paginaDeMinhasChamadas(estado: EstadoChamada? = nil, cursor: String? = nil, limite: Int? = nil) async throws -> PaginaChamadas {
         struct Params: Encodable {
             let estado: EstadoChamada?
             let cursor: String?
@@ -339,7 +343,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             "minhas_chamadas",
             params: Params(estado: estado, cursor: cursor, limite: limite)
         )
-        return try pagina.itens.map { try $0.dominio() }
+        return PaginaChamadas(itens: try pagina.itens.map { try $0.dominio() }, proximoCursor: pagina.proximoCursor)
     }
 
     public func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {

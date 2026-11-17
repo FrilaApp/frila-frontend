@@ -86,12 +86,11 @@ const saida = await envio("/app/sair", {});
 const linhasDaSaida = saida.headers.getSetCookie();
 const apagados = linhasDaSaida.filter((c) => /frila-(acesso|renovacao)=/.test(c));
 diz("sair responde 302 para /app/entrar e apaga os 2 cookies", saida.status === 302 && saida.headers.get("location")?.endsWith("/app/entrar") === true && apagados.length === 2 && apagados.every((c) => /Max-Age=0/.test(c)));
-diz("sair marca a sessão como encerrada neste navegador", nomeDe("encerradas") !== undefined);
 // Repetir o token de renovação velho à mão é de propósito: é o que alguém com o cookie copiado tentaria.
 const [nomeDaRenovacao, renovacaoVelha] = [...regravadaDepois].find(([n]) => n.endsWith("renovacao"));
 const somenteRenovacaoVelha = await fetch(`${BASE}/app/`, { headers: { Cookie: `${nomeDaRenovacao}=${renovacaoVelha.valor}` } });
-diz("depois de sair, o token de renovação não entra mais (nem sem a marca)", !(await somenteRenovacaoVelha.text()).includes("Você entrou como"));
-// Resposta atrasada: os cookies da sessão renovada voltam ao pote depois do sair.
+diz("depois de sair, o token de renovação não entra mais", !(await somenteRenovacaoVelha.text()).includes("Você entrou como"));
+// Resposta atrasada: os cookies da sessão renovada voltam ao pote depois do sair. O Auth sabe que ela foi encerrada.
 for (const [nome, cookie] of regravadaDepois) pote.set(nome, cookie);
 const aposAtrasada = await pedir("/app/");
 diz("resposta atrasada que regrava a sessão depois do sair não reativa a conta", !(await aposAtrasada.text()).includes("Você entrou como") && aposAtrasada.headers.getSetCookie().some((c) => /frila-acesso=;.*Max-Age=0/.test(c)));
