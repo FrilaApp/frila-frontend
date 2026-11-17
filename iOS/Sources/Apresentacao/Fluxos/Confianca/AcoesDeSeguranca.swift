@@ -15,6 +15,7 @@ struct AcoesDeSeguranca: View {
     init(
         perfil: PerfilPublico,
         turnoID: UUID? = nil,
+        chamadaID: UUID? = nil,
         api: any ApiCliente,
         bloqueios: BloqueiosDaSessao,
         cacheEquipe: CacheEquipeDeConfianca = .compartilhado,
@@ -26,6 +27,7 @@ struct AcoesDeSeguranca: View {
         _model = State(initialValue: SegurancaViewModel(
             perfil: perfil,
             turnoID: turnoID,
+            chamadaID: chamadaID,
             api: api,
             bloqueios: bloqueios,
             cacheEquipe: cacheEquipe,

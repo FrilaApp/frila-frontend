@@ -15,6 +15,8 @@ plugins {
 // compila sem Firebase: o registro do aparelho só não acontece.
 if (file("src/debug/google-services.json").exists() || file("src/release/google-services.json").exists()) {
     apply(plugin = libs.plugins.google.services.get().pluginId)
+    // L1-6: o mesmo critério. A coleta do Crashlytics fica DESLIGADA no manifesto; o plugin só gera o ID do build e envia o mapeamento do R8.
+    apply(plugin = libs.plugins.firebase.crashlytics.plugin.get().pluginId)
 }
 
 // Revisão ANBU (PR #557): o build type release não pode assinar com o keystore de debug
@@ -262,6 +264,7 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
