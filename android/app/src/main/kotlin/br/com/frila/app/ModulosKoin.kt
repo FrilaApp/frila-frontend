@@ -12,9 +12,6 @@ import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosNulo
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosReal
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
@@ -83,7 +80,6 @@ import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MedidorDeDistancia
 import br.com.frila.feature.turnos.MeusTurnosViewModel
-import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
 import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
@@ -174,7 +170,7 @@ val moduloRede = module {
     factory {
         val servico = get<ServicoVagas>()
         val armazenamento = get<ArmazenamentoDeSessao>()
-        get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
+        get<CacheVagasDaSessao>().criar(armazenamento) { servico.listarVagasAbertas() }
     }
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
@@ -211,16 +207,11 @@ val moduloNotificacoes = module {
 }
 
 /**
- * Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22), e geofencing
- * passivo de aproximação de turno (RN06/RNF04, cartão Uu04zAt4).
+ * Leitura de localização sob demanda, só no toque de marcar presença e saída (RF13/RN06/RN22). Nada lê a posição fora
+ * do toque: não há geofence nem leitura ao abrir a lista de vagas.
  */
 val moduloLocalizacao = module {
     single<ProvedorDeLocalizacao> { ProvedorDeLocalizacaoFused(get()) }
-    single<GerenciadorGeofencingTurnos> {
-        getOrNull<Context>()
-            ?.let(::GerenciadorGeofencingTurnosReal)
-            ?: GerenciadorGeofencingTurnosNulo()
-    }
 }
 
 val moduloFeatures = module {
@@ -235,12 +226,11 @@ val moduloFeatures = module {
     viewModel { EntradaViewModel(get()) }
     viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() }) }
     viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
+    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
-    single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
-    viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }
+    viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
-        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), monitorizador = get())
+        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get())
     }
     viewModel { AvaliacaoViewModel(get()) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */

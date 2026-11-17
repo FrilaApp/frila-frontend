@@ -3,7 +3,6 @@ package br.com.frila.feature.vagas.feed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.regra.instanteDoServidor
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.RepositorioVagas
@@ -39,7 +38,6 @@ private val INICIO_NOITE: LocalTime = LocalTime.of(18, 0)
  */
 class FeedVagasViewModel(
     private val servicoVagas: ServicoVagas,
-    private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
     private val repositorioVagas: RepositorioVagas? = null,
@@ -103,7 +101,7 @@ class FeedVagasViewModel(
         return escopoDeTrabalho.launch {
             try {
                 restaurarPreferencias()
-                // Exibe o disco antes de esperar localização ou rede, inclusive na abertura offline.
+                // Exibe o disco antes de esperar a rede, inclusive na abertura offline.
                 repositorioVagas?.obterCache()?.let(::aplicarResultado)
                 aplicarResultado(buscarVagas())
             } catch (erro: CancellationException) {
@@ -114,12 +112,12 @@ class FeedVagasViewModel(
         }
     }
 
-    private suspend fun buscarVagas(): ResultadoVagas {
-        val coordenada = withTimeoutOrNull(3_000) { provedorDeLocalizacao.obterCoordenadaAtual() }
-        // Sem filtro de raio no servidor: ampliar o chip continua sendo uma operação local.
-        return repositorioVagas?.listar(coordenada)
-            ?: ResultadoVagas(servicoVagas.listarVagasAbertas(coordenada), emCache = false)
-    }
+    /**
+     * O feed não lê a posição do aparelho: o servidor ordena pelo ponto base do perfil, como no iOS.
+     * Sem filtro de raio no servidor: ampliar o chip continua sendo uma operação local.
+     */
+    private suspend fun buscarVagas(): ResultadoVagas =
+        repositorioVagas?.listar() ?: ResultadoVagas(servicoVagas.listarVagasAbertas(), emCache = false)
 
     private fun aplicarResultado(resultado: ResultadoVagas) {
         val aplicar = {
