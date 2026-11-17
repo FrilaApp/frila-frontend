@@ -2,6 +2,7 @@ import { Form, redirect, useNavigation } from "react-router";
 
 import { type CampoDoCadastro, criarConta, lerMinhaConta, type Perfil } from "../servidor/conta";
 import { apiDoUsuario } from "../servidor/deste-ambiente";
+import { registrarEvento } from "../servidor/eventos";
 import { exigirSessao } from "../servidor/guarda";
 import { telefoneParaE164 } from "../servidor/telefone";
 import { textos } from "../textos/pt-BR";
@@ -64,6 +65,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
     termos_versao: VERSAO_DOS_TERMOS,
   });
   if (resultado.ok || resultado.motivo === "ja_existe") {
+    if (resultado.ok) registrarEvento(sessao.acesso, "cadastro_concluido");
     throw redirect("/");
   }
   if (resultado.motivo === "sem_sessao") {

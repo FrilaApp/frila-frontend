@@ -10,7 +10,8 @@ const requestHandler = createRequestHandler(
 
 export default {
   async fetch(request, env) {
-    const antes = respostaAntesDoApp(request, { webLigada: env.WEB_LIGADA === "1" });
+    // Em produção, http vai para https antes de tudo (o servidor local de desenvolvimento roda em http).
+    const antes = respostaAntesDoApp(request, { webLigada: env.WEB_LIGADA === "1", exigirHttps: env.AMBIENTE === "producao" });
     return comCabecalhosDeSeguranca(antes ?? (await requestHandler(request)));
   },
 } satisfies ExportedHandler<Env>;

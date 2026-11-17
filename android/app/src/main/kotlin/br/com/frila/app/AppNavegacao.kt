@@ -62,7 +62,11 @@ import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
 import br.com.frila.feature.perfil.EnderecosOficiais
+import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.TelaApresentacaoERegioes
+import br.com.frila.feature.perfil.TelaFotoDePerfilConectada
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
@@ -99,6 +103,8 @@ object Rotas {
     const val MEUS_TURNOS = "meus_turnos"
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
+    const val APRESENTACAO = "perfil_apresentacao"
+    const val FOTO_DE_PERFIL = "perfil_foto"
     const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
@@ -246,6 +252,13 @@ fun AppNavegacao(
      * Desligada (padrão; nada no app a liga), a abertura não pede a digital nem a quem a tinha ligado antes.
      */
     biometriaHabilitada: Boolean = false,
+    /**
+     * Chave `perfil_rico` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Apresentação e regiões". Desligada
+     * (padrão), o perfil fica como era.
+     */
+    perfilRicoHabilitado: Boolean = false,
+    /** Chave `foto_de_perfil` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Foto de perfil". Desligada (padrão), não vê. */
+    fotoDePerfilHabilitada: Boolean = false,
 ) {
     val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino, biometriaHabilitada) {
         rotaInicial(armazenamentoDeSessao, biometriaHabilitada).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
@@ -647,7 +660,32 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
+                        aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.APRESENTACAO) }
+                        } else {
+                            null
+                        },
+                        aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.FOTO_DE_PERFIL) }
+                        } else {
+                            null
+                        },
                     )
+                }
+            }
+
+            composable(Rotas.APRESENTACAO) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: ApresentacaoERegioesViewModel = koinViewModel()
+                    TelaApresentacaoERegioes(viewModel = viewModel, aoVoltar = { navController.popBackStack() })
+                }
+            }
+
+            composable(Rotas.FOTO_DE_PERFIL) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: FotoDePerfilViewModel = koinViewModel()
+                    TelaFotoDePerfilConectada(viewModel = viewModel)
                 }
             }
 

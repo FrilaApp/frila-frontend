@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { data, Link } from "react-router";
 
 import { caminhoDeVolta, lerPerfilDoProfissional } from "../../servidor/contratante/perfil-profissional";
-import { apiDoUsuario } from "../../servidor/deste-ambiente";
+import { apiDoUsuario, fotoDoProfissional } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/profissional";
@@ -22,7 +22,11 @@ export function meta() {
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
   const volta = caminhoDeVolta(new URL(request.url).searchParams.get("volta"));
-  const leitura = await lerPerfilDoProfissional(apiDoUsuario(sessao.acesso), params.profissionalId);
+  // A foto vem por outro caminho (perfil por POST + miniatura no servidor), em paralelo com o perfil.
+  const [leitura, foto] = await Promise.all([
+    lerPerfilDoProfissional(apiDoUsuario(sessao.acesso), params.profissionalId),
+    fotoDoProfissional(sessao.acesso, params.profissionalId),
+  ]);
   if (leitura.estado === "nao_encontrado") return data({ estado: "nao_encontrado" as const, volta, perfil: null }, { status: 404 });
   if (leitura.estado !== "ok") return { estado: "indisponivel" as const, volta, perfil: null };
   const p = leitura.perfil;
@@ -32,6 +36,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     volta,
     perfil: {
       nome: p.nome,
+      foto,
       funcoes: p.funcoes ?? [],
       chamariamDeNovo: r.total > 0 ? preencher(t.chamariamDeNovo, { positivas: r.positivas, total: r.total }) : t.semHistorico,
       turnosRealizados: preencher(t.turnosRealizados, { n: r.turnos_realizados }),
@@ -76,6 +81,9 @@ export default function PerfilDoProfissional({ loaderData }: Route.ComponentProp
         <p role="alert">{t.falhou}</p>
       ) : (
         <>
+          {perfil.foto ? (
+            <img src={perfil.foto} alt={t.fotoDe.replace("{nome}", perfil.nome)} width={96} height={96} className="size-24 rounded-full object-cover" />
+          ) : null}
           <h1 className="font-titulo text-3xl font-bold">{perfil.nome}</h1>
           <dl className="rounded-cartao border border-borda bg-superficie p-4">
             {perfil.funcoes.length > 0 ? <Campo rotulo={t.funcoes}>{perfil.funcoes.join(", ")}</Campo> : null}
