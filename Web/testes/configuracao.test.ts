@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { criarApi } from "~/servidor/api";
-import { lerConfiguracaoDoApp } from "~/servidor/configuracao";
+import { lerConfiguracaoComVariaveis, lerConfiguracaoDoApp, PRAZO_MS } from "~/servidor/configuracao";
 import { VERSAO_DA_WEB } from "~/versao";
 
 const ambiente = { url: "https://exemplo.supabase.co", chavePublicavel: "sb_publishable_teste" };
@@ -54,7 +54,43 @@ describe("leitura de configuracao_do_app", () => {
     expect(await lerConfiguracaoDoApp(semRede.api)).toEqual({ estado: "indisponivel" });
   });
 
+  it("desiste quando o servidor não responde dentro do prazo", async () => {
+    let sinalDoPedido: AbortSignal | undefined;
+    const api = criarApi(ambiente, {
+      // Servidor que nunca responde: só o prazo encerra o pedido.
+      fetch: (entrada, inicio) =>
+        new Promise<Response>((_, rejeitar) => {
+          sinalDoPedido = new Request(entrada, inicio).signal;
+          sinalDoPedido.addEventListener("abort", () => rejeitar(sinalDoPedido?.reason));
+        }),
+    });
+
+    const inicio = Date.now();
+    const leitura = await lerConfiguracaoDoApp(api, { prazoMs: 30 });
+
+    expect(leitura).toEqual({ estado: "indisponivel" });
+    expect(sinalDoPedido?.aborted).toBe(true);
+    expect(Date.now() - inicio).toBeLessThan(1000);
+    expect(PRAZO_MS).toBe(3000);
+  });
+
   it("avisa quando o Worker está sem o endereço do servidor", async () => {
     expect(await lerConfiguracaoDoApp(null)).toEqual({ estado: "nao_configurado" });
+    expect(await lerConfiguracaoComVariaveis({})).toEqual({ estado: "nao_configurado" });
+  });
+
+  it("chave de serviço posta por engano vira estado de falha, sem nenhum pedido ao servidor", async () => {
+    const pedidos = vi.fn<typeof fetch>();
+    const silencio = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const leitura = await lerConfiguracaoComVariaveis(
+      { SUPABASE_URL: "https://exemplo.supabase.co", SUPABASE_CHAVE_PUBLICAVEL: "sb_secret_teste" },
+      { fetch: pedidos },
+    );
+
+    expect(leitura).toEqual({ estado: "chave_recusada" });
+    expect(pedidos).not.toHaveBeenCalled();
+    expect(silencio).toHaveBeenCalledOnce();
+    silencio.mockRestore();
   });
 });
