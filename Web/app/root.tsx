@@ -1,8 +1,11 @@
+import { useEffect } from "react";
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useHref } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import fonteDoTitulo from "./marca/fontes/ProdigySans-Bold.woff2?url";
+import { AvisoDoNavegadorEmbutido } from "./pwa/aviso-do-navegador-embutido";
+import { comecarNoNavegador } from "./pwa/navegador";
 import { middlewareDeSessao } from "./servidor/middleware-de-sessao";
 import { textos } from "./textos/pt-BR";
 
@@ -46,7 +49,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  // Service worker e pedido de instalação (fase 4): só no navegador, uma vez.
+  useEffect(() => comecarNoNavegador(), []);
+  return (
+    <>
+      <AvisoDoNavegadorEmbutido />
+      <Outlet />
+    </>
+  );
 }
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício

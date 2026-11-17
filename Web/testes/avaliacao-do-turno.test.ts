@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Sem DOM no projeto: o useState é simulado (a ordem dos ganchos é fixa) e a árvore devolvida é percorrida.
-const ganchos = vi.hoisted(() => ({ valores: [] as unknown[], i: 0 }));
+const ganchos = vi.hoisted(() => ({ valores: [] as unknown[], i: 0, efeito: false, form: null as unknown }));
 vi.mock("react", async (original) => ({
   ...(await original<typeof import("react")>()),
   useState: (inicial: unknown) => {
@@ -10,7 +10,9 @@ vi.mock("react", async (original) => ({
     if (!(k in ganchos.valores)) ganchos.valores[k] = inicial;
     return [ganchos.valores[k], (valor: unknown) => (ganchos.valores[k] = valor)];
   },
-  useEffect: () => undefined,
+  // Com `efeito`, roda o efeito da hidratação na hora, com o formulário falso em `form`.
+  useEffect: (fn: () => void) => (ganchos.efeito ? fn() : undefined),
+  useRef: () => ({ current: ganchos.form }),
 }));
 vi.mock("react-router", () => ({ Form: "form" }));
 
@@ -37,6 +39,8 @@ function desenhar(enviando = false) {
 
 beforeEach(() => {
   ganchos.valores = [];
+  ganchos.efeito = false;
+  ganchos.form = null;
 });
 
 describe("avaliação depois do turno: escolher, trocar e só então enviar (como o iOS)", () => {
@@ -65,14 +69,26 @@ describe("avaliação depois do turno: escolher, trocar e só então enviar (com
     (desenhar().radios[1]?.props.onChange as () => void)();
     expect(ganchos.valores[ESCOLHA]).toBe("nao");
     const comNao = desenhar();
-    expect(comNao.radios.map((r) => r.props.checked)).toEqual([false, true]);
     expect(comNao.botoes[0]?.props.disabled).toBe(false);
     (comNao.radios[0]?.props.onChange as () => void)();
-    expect(desenhar().radios.map((r) => r.props.checked)).toEqual([true, false]);
+    expect(ganchos.valores[ESCOLHA]).toBe("sim");
   });
 
   it("enquanto envia, o botão desliga", () => {
     ganchos.valores[ESCOLHA] = "sim";
     expect(desenhar(true).botoes[0]?.props).toMatchObject({ disabled: true, children: "Enviando…" });
+  });
+  it("MENOR 3: os rádios não são controlados, então a hidratação não desmarca a escolha feita antes dela", () => {
+    expect(desenhar().radios.every((r) => !("checked" in r.props))).toBe(true);
+  });
+
+  it("MENOR 3: marcado antes da hidratação, o efeito lê o rádio marcado no formulário e liga o botão", () => {
+    ganchos.form = { querySelector: (seletor: string) => (seletor === 'input[name="resposta"]:checked' ? { value: "nao" } : null) };
+    ganchos.efeito = true;
+    desenhar();
+    expect(ganchos.valores[ESCOLHA]).toBe("nao");
+    expect(ganchos.valores[HIDRATADO]).toBe(true);
+    ganchos.efeito = false;
+    expect(desenhar().botoes[0]?.props.disabled).toBe(false);
   });
 });

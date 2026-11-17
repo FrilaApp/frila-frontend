@@ -7,6 +7,11 @@ export default [
   route("cadastro", "rotas/cadastro.tsx"),
   route("aceitar-termos", "rotas/aceitar-termos.ts"),
   route("saude", "rotas/saude.ts"),
+  // Instalar na tela de início e a página que o service worker mostra sem rede (fase 4)
+  route("instalar", "rotas/instalar.tsx"),
+  route("sem-conexao", "rotas/sem-conexao.ts"),
+  route("avisos", "rotas/avisos.tsx"),
+  route("avisos/texto-neutro", "rotas/avisos-texto-neutro.ts"),
   // A vaga pelo link, sem login (para compartilhar)
   route("v/:vagaId", "rotas/publico/vaga.tsx"),
 
@@ -43,15 +48,20 @@ export default [
   ...prefix("painel", [
     index("rotas/contratante/painel.tsx"),
     route("publicar", "rotas/contratante/publicar-vaga.tsx"),
+    route("escala", "rotas/contratante/publicar-escala.tsx"),
     route("vagas/:vagaId", "rotas/contratante/vaga.tsx"),
   ]),
 
   // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
   route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
   route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
+  route("casa/profissionais/:profissionalId", "rotas/contratante/profissional.tsx"),
+  route("casa/denunciar", "rotas/contratante/moderacao/denunciar.tsx"),
+  route("casa/bloqueados", "rotas/contratante/moderacao/bloqueados.tsx"),
 
   // Busca de profissionais e chamada direta da casa (3.8)
   route("casa/busca", "rotas/contratante/busca.tsx"),
+  route("casa/chamadas", "rotas/contratante/chamadas.tsx"),
   // Pessoas da casa e o link de convite (3.16 e 5.7)
   route("casa/membros", "rotas/contratante/membros.tsx"),
   route("convite", "rotas/convite.tsx"),

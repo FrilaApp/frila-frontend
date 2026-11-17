@@ -180,7 +180,12 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
             {candidatos?.map((candidato) => (
               <li key={candidato.candidaturaId} className="flex flex-col gap-2 rounded-cartao border border-borda bg-superficie p-4">
                 <p className="flex flex-wrap items-baseline justify-between gap-2">
-                  <strong className="text-lg">{candidato.nome}</strong>
+                  <Link
+                    to={`/casa/profissionais/${candidato.profissionalId}?volta=${encodeURIComponent(`/painel/vagas/${vaga.id}?casa=${casaId}`)}`}
+                    className="text-lg font-bold underline underline-offset-4"
+                  >
+                    {candidato.nome}
+                  </Link>
                   {candidato.daEquipe ? <span className="text-sm font-semibold">{t.daEquipe}</span> : null}
                 </p>
                 <p>{candidato.chamariamDeNovo ? preencher(t.chamariamDeNovo, candidato.chamariamDeNovo) : t.semHistorico}</p>

@@ -125,7 +125,14 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
         <>
           <dl className="rounded-cartao border border-borda bg-superficie p-4">
             <dt className="font-semibold">{t.turno.profissional}</dt>
-            <dd className="mb-2">{turno.profissional}</dd>
+            <dd className="mb-2">
+              <Link
+                to={`/casa/profissionais/${turno.profissionalId}?volta=${encodeURIComponent(`/casa/turnos/${turno.id}?casa=${casaId ?? ""}`)}`}
+                className="font-semibold underline underline-offset-4"
+              >
+                {turno.profissional}
+              </Link>
+            </dd>
             <dt className="font-semibold">{t.turno.quando}</dt>
             <dd className="mb-2">{turno.periodo}</dd>
             <dt className="font-semibold">{t.turno.valor}</dt>
@@ -205,6 +212,11 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
         // O suporte (#861) lê o turno pela lista da casa: por isso leva o ?casa=.
         <Link to={`/suporte/${turno.id}?casa=${casaId}`} className={classeDoLink}>
           {t.turno.ajuda}
+        </Link>
+      ) : null}
+      {turno && casaId ? (
+        <Link to={`/casa/denunciar?alvo=${turno.profissionalId}&turno=${turno.id}&casa=${casaId}`} className={classeDoLink}>
+          {textos.contratanteModeracao.link}
         </Link>
       ) : null}
       <Link to={casaId ? `/casa/turnos?casa=${casaId}` : "/casa/turnos"} className={classeDoLink}>

@@ -21,6 +21,11 @@ describe("cabeçalhos de segurança", () => {
     expect(csp).not.toContain("*");
   });
 
+  it("a CSP só abre a conexão para os dois endereços do token de push", () => {
+    const conexao = politicaDeConteudo("abc123").split("; ").find((diretiva) => diretiva.startsWith("connect-src"));
+    expect(conexao).toBe("connect-src 'self' https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com");
+  });
+
   it("põe os cabeçalhos fixos em qualquer resposta, sem mudar status nem corpo", async () => {
     const resposta = comCabecalhosDeSeguranca(new Response("corpo", { status: 404 }));
     expect(resposta.status).toBe(404);
