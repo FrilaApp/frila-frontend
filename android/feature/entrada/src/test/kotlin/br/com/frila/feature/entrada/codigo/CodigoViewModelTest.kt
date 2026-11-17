@@ -131,9 +131,12 @@ class CodigoViewModelTest {
     @Test
     fun `reenviarCodigo chama solicitarOtp de novo e limpa o campo`() = runBlocking {
         var chamadas = 0
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
         val (viewModel, _) = viewModelComEngine(
             MockEngine { chamadas++; respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            agora = { relogio },
         )
+        relogio = relogio.plusSeconds(60) // a espera para reenviar já passou
         // 5 dígitos: completar os 6 agora confirma sozinho (como o iOS) e contaria uma chamada a mais.
         viewModel.aoMudarCodigo("12345")
 
@@ -146,6 +149,7 @@ class CodigoViewModelTest {
 
     @Test
     fun `reenviarCodigo com 429 do Auth sem message mostra a mensagem de limite`() = runBlocking {
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
         val (viewModel, _) = viewModelComEngine(
             MockEngine {
                 respond(
@@ -154,13 +158,57 @@ class CodigoViewModelTest {
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
+            agora = { relogio },
         )
+        relogio = relogio.plusSeconds(60) // a espera para reenviar já passou
 
         viewModel.reenviarCodigo()?.join()
 
         assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, viewModel.estado.value.erro)
         assertFalse(viewModel.estado.value.reenviado)
         assertFalse(viewModel.estado.value.carregando)
+        // Reenvio que falhou não recomeça a contagem (no iOS o temporizador só reinicia no sucesso).
+        assertEquals(0L, viewModel.segundosParaReenviar())
+    }
+
+    /** Igual ao iOS: outro código só pode ser pedido 60 s depois do último pedido. */
+    @Test
+    fun `reenviar antes de 60 segundos nao chama a API`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine { chamadas.incrementAndGet(); respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            agora = { relogio },
+        )
+        assertEquals(60L, viewModel.segundosParaReenviar())
+        relogio = relogio.plusSeconds(59)
+
+        viewModel.reenviarCodigo()?.join()
+
+        assertEquals(0, chamadas.get())
+        assertEquals(1L, viewModel.segundosParaReenviar())
+        assertFalse(viewModel.estado.value.reenviado)
+    }
+
+    @Test
+    fun `reenviar depois de 60 segundos chama a API e recomeca a contagem`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine { chamadas.incrementAndGet(); respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            agora = { relogio },
+        )
+        relogio = relogio.plusSeconds(60)
+        assertEquals(0L, viewModel.segundosParaReenviar())
+
+        viewModel.reenviarCodigo()?.join()
+        assertEquals(1, chamadas.get())
+        assertTrue(viewModel.estado.value.reenviado)
+        assertEquals(60L, viewModel.segundosParaReenviar())
+
+        // Logo em seguida, um segundo reenvio fica barrado.
+        viewModel.reenviarCodigo()?.join()
+        assertEquals(1, chamadas.get())
     }
 
     /** Corpo REAL do Auth para código errado ou vencido: 403 `otp_expired`, sem o envelope `{code,message}` do PostgREST. */

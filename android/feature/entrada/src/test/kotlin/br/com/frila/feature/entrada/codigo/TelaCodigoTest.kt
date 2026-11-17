@@ -40,6 +40,8 @@ class TelaCodigoTest {
         email: String = "profissional@exemplo.com",
         respostaJson: String = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
         statusHttp: HttpStatusCode = HttpStatusCode.OK,
+        /** `true`: o teste já começa depois dos 60 s de espera para reenviar. */
+        esperaDeReenvioVencida: Boolean = true,
     ): Pair<CodigoViewModel, ArmazenamentoDeSessaoEmMemoria> {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -49,12 +51,15 @@ class TelaCodigoTest {
             },
         )
         val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        var relogio = java.time.Instant.parse("2026-11-16T12:00:00Z")
         val viewModel = CodigoViewModel(
             email = email,
             servicoAutenticacao = ServicoAutenticacao(cliente),
             armazenamentoDeSessao = armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
+            agora = { relogio },
         )
+        if (esperaDeReenvioVencida) relogio = relogio.plusSeconds(60)
         return viewModel to armazenamento
     }
 
@@ -126,7 +131,7 @@ class TelaCodigoTest {
         rule.waitUntil(5000) { viewModel.estado.value.reenviado }
         rule.waitForIdle()
 
-        rule.onNodeWithText("Código reenviado.").assertIsDisplayed()
+        rule.onNodeWithText("Novo código enviado para seu e-mail.").assertIsDisplayed()
         rule.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
             useUnmergedTree = true,
@@ -152,5 +157,21 @@ class TelaCodigoTest {
 
         assertTrue(viewModel.estado.value.autenticado)
         assertTrue(autenticou)
+    }
+
+    /** Igual ao iOS: nos primeiros 60 s o reenvio mostra a contagem e não aceita toque. */
+    @Test
+    fun reenvioMostraAContagemEFicaDesligadoNosPrimeiros60Segundos() {
+        val (viewModel, _) = criarViewModel(esperaDeReenvioVencida = false)
+        rule.setContent {
+            FrilaTheme {
+                TelaCodigo(viewModel = viewModel, aoAutenticar = {})
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Reenviar código em 1:00")
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
     }
 }

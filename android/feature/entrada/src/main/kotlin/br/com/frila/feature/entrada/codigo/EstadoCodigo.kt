@@ -8,4 +8,6 @@ data class EstadoCodigo(
     val erro: String? = null,
     val autenticado: Boolean = false,
     val reenviado: Boolean = false,
+    /** Quantos reenvios deram certo: a tela recomeça a contagem de 60 s a cada um. */
+    val reenviosFeitos: Int = 0,
 )
