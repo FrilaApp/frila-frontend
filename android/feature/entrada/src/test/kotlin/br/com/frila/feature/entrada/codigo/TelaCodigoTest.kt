@@ -143,8 +143,9 @@ class TelaCodigoTest {
             }
         }
 
+        // Completar os 6 dígitos confirma sozinho (como o iOS): não há toque no botão, que nesse momento
+        // pode estar em "Confirmando…".
         rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
-        rule.onNodeWithText("Confirmar código").performClick()
 
         rule.waitUntil(5000) { viewModel.estado.value.autenticado }
         rule.waitForIdle()

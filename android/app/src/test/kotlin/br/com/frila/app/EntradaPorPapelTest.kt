@@ -208,8 +208,8 @@ class EntradaPorPapelTest {
     /** Entra pela tela de código, como a pessoa faz, e espera o app sair dela. */
     private fun entrarComCodigo(): String? {
         rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
+        // Completar os 6 dígitos confirma sozinho (como o iOS): sem toque em "Confirmar código".
         rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
-        rule.onNodeWithText("Confirmar código").performClick()
         aguardar { rotaAtual() != Rotas.CODIGO && rotaAtual() != Rotas.ABERTURA }
         // Dá tempo de uma decisão que dependa do servidor terminar de rotear.
         aguardar(1_500) { rotaAtual() !in listOf(Rotas.CADASTRO, Rotas.CODIGO, Rotas.ABERTURA) }

@@ -15,8 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
@@ -42,6 +45,10 @@ fun TelaCodigo(
         }
     }
 
+    // O campo já abre com foco e teclado, como no iOS: quem chega aqui só tem de digitar o código.
+    val focoDoCodigo = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focoDoCodigo.requestFocus() }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -64,13 +71,14 @@ fun TelaCodigo(
 
         OutlinedTextField(
             value = estado.codigo,
-            onValueChange = viewModel::aoMudarCodigo,
+            onValueChange = { viewModel.aoMudarCodigo(it) },
             label = { Text("Código de 6 dígitos") },
             singleLine = true,
             isError = estado.erro != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(focoDoCodigo)
                 .semantics {
                     estado.erro?.let { error(it) }
                 },

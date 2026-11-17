@@ -24,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -118,10 +119,12 @@ class TelaEntradaTest {
         }
 
         rule.onNodeWithText("Entrar em modo demonstração").performClick()
+        rule.waitUntil(5000) { avancou }
         rule.waitForIdle()
 
-        assertTrue(viewModel.estado.value.otpSolicitado)
         assertTrue(avancou)
+        // O sinal é consumido depois de navegar: é o que deixa o "voltar" da tela do código funcionar.
+        assertFalse(viewModel.estado.value.otpSolicitado)
     }
 
     @Test
@@ -137,10 +140,36 @@ class TelaEntradaTest {
         rule.onNodeWithText("E-mail").performTextInput("profissional@exemplo.com")
         rule.onNodeWithText("Receber código").performClick()
 
-        rule.waitUntil(5000) { viewModel.estado.value.otpSolicitado }
+        rule.waitUntil(5000) { avancou }
         rule.waitForIdle()
 
-        assertTrue(viewModel.estado.value.otpSolicitado)
         assertTrue(avancou)
+        // O sinal é consumido depois de navegar: é o que deixa o "voltar" da tela do código funcionar.
+        assertFalse(viewModel.estado.value.otpSolicitado)
+    }
+
+    /** Voltar da tela do código: a entrada entra de novo em composição e não pode navegar outra vez sozinha. */
+    @Test
+    fun navegaParaOCodigoUmaVezSoMesmoQuandoATelaVoltaAAparecer() {
+        val viewModel = criarViewModel()
+        var navegacoes = 0
+        val mostrar = androidx.compose.runtime.mutableStateOf(true)
+        rule.setContent {
+            FrilaTheme {
+                if (mostrar.value) TelaEntrada(viewModel = viewModel, aoReceberCodigo = { navegacoes++ })
+            }
+        }
+        viewModel.aoMudarEmail("profissional@exemplo.com")
+        kotlinx.coroutines.runBlocking { viewModel.solicitarCodigo()?.join() }
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(1, navegacoes)
+
+        // Sai de cena (foi para o código) e volta (o usuário tocou em voltar).
+        mostrar.value = false
+        rule.waitForIdle()
+        mostrar.value = true
+        rule.waitForIdle()
+
+        org.junit.Assert.assertEquals(1, navegacoes)
     }
 }

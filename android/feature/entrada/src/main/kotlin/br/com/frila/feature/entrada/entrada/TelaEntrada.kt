@@ -45,6 +45,7 @@ fun TelaEntrada(
     LaunchedEffect(estado.otpSolicitado) {
         if (estado.otpSolicitado) {
             aoReceberCodigo()
+            viewModel.aoNavegarParaCodigo()
         }
     }
 
