@@ -3,6 +3,7 @@ package br.com.frila.feature.vagas.painel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PainelDto
 import br.com.frila.core.rede.VagaNoPainelDto
@@ -222,7 +223,7 @@ class MinhasVagasViewModel(
     }
 }
 
-private fun lerInstante(texto: String): Instant? = runCatching { Instant.parse(texto) }.getOrNull()
+private fun lerInstante(texto: String): Instant? = runCatching { instanteDoServidor(texto) }.getOrNull()
 
 /**
  * Em que seção a vaga fica, no relógio [agora] (`MinhasVagasViewModel.classificar` do iOS). Instante

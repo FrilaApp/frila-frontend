@@ -1,6 +1,7 @@
 package br.com.frila.feature.turnos
 
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.TurnoDto
 import java.time.Duration
 import java.time.Instant
@@ -34,7 +35,7 @@ object MonitorProximidadeTurno {
         if (turno.estado != ESTADO_CONFIRMADA) return false
         if (turno.checkinEm != null) return false
 
-        val inicio = runCatching { Instant.parse(turno.vaga.inicioEm) }.getOrNull() ?: return false
+        val inicio = runCatching { instanteDoServidor(turno.vaga.inicioEm) }.getOrNull() ?: return false
         if (!agora.isBefore(inicio)) return false
 
         val restante = Duration.between(agora, inicio)
