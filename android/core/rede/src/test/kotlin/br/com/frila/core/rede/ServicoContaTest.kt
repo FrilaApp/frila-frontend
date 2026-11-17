@@ -116,7 +116,7 @@ class ServicoContaTest {
             respond(corpoUsuario, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
-            salvarSessao(Sessao(accessToken = "jwt-sintetico-123", refreshToken = "refresh-sintetico", tokenType = "bearer", expiresIn = 3_600L))
+            salvarSessao(Sessao(accessToken = "token-de-teste", refreshToken = "renovacao-de-teste", tokenType = "bearer", expiresIn = 3_600L))
         }
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -127,7 +127,7 @@ class ServicoContaTest {
 
         ServicoConta(cliente).criarConta(dadosDeCadastro)
 
-        assertEquals(listOf("Bearer jwt-sintetico-123"), cabecalhos!!["authorization"])
+        assertEquals(listOf("Bearer token-de-teste"), cabecalhos!!["authorization"])
         assertEquals(listOf("chave-teste"), cabecalhos!!["apikey"])
     }
 
