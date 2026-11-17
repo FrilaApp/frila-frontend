@@ -3,6 +3,7 @@
  * todo texto visível sai daqui.
  */
 import { contratante } from "./contratante";
+import { contratanteEscala } from "./contratante-escala";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
@@ -24,6 +25,8 @@ export const textos = {
   profissional,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
+  // Escala de evento em lote do lado da casa (arquivo próprio).
+  contratanteEscala,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
