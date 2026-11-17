@@ -129,6 +129,18 @@ class ACaminhoTurnoTest {
     }
 
     @Test
+    fun `o horario do aviso vindo com deslocamento de zero horas e lido certo e marca o turno como avisado`() = runBlocking {
+        val vm = viewModelCom(inicio.minusSeconds(1800), aoAvisar = respostaOk("2026-11-01T20:30:00+00:00"))
+        vm.carregar().join()
+
+        vm.avisarACaminho(vm.estado.value.agendados.single())!!.join()
+
+        assertEquals(Instant.parse("2026-11-01T20:30:00Z"), vm.estado.value.agendados.single().aCaminhoEm)
+        assertNull(vm.estado.value.erroACaminho)
+        assertFalse(podeAvisarACaminho(vm.estado.value.agendados.single(), inicio.minusSeconds(1800)))
+    }
+
+    @Test
     fun `depois de avisado, outro toque nao dispara outro pedido`() = runBlocking {
         val pedidos = mutableListOf<Pedido>()
         val vm = viewModelCom(inicio.minusSeconds(1800), pedidos, aoAvisar = respostaOk())

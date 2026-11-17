@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.dominio.modelo.RegraCancelamentoTurno
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
 import java.time.Clock
-import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -225,7 +225,7 @@ class MeusTurnosViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val resultado = servicoTurnos.avisarACaminho(turno.turnoId)
-                val quando = Instant.parse(resultado.aCaminhoEm)
+                val quando = instanteDoServidor(resultado.aCaminhoEm)
                 _estado.update { tela ->
                     tela.copy(
                         avisandoACaminho = null,
