@@ -57,6 +57,8 @@ class BuscaDeProfissionaisViewModelTest {
             buscarProfissionais = rede.chamadas::buscarProfissionais,
             chamarProfissional = rede.chamadas::chamarProfissional,
             aceitarTermos = rede.chamadas::aceitarTermos,
+            minhasChamadas = { estado, cursor -> rede.chamadas.minhasChamadas(estado = estado, cursor = cursor) },
+            detalheChamada = rede.chamadas::detalheChamada,
             novaChave = { "chave-${++contador}" },
             prazoMs = prazoMs,
             escopo = CoroutineScope(Dispatchers.Unconfined),
@@ -620,6 +622,8 @@ class BuscaDeProfissionaisViewModelTest {
         recursoHabilitado = recurso,
         buscarProfissionais = { error("não deveria buscar") },
         chamarProfissional = { error("não deveria chamar") },
+        minhasChamadas = { _, _ -> error("não deveria ler") },
+        detalheChamada = { error("não deveria ler") },
         prazoMs = prazoMs,
         listarFuncoes = funcoes,
         listarRegioes = regioes,
@@ -1168,5 +1172,478 @@ class BuscaDeProfissionaisViewModelTest {
         assertNotNull((resultados["p-3"] as ResultadoDaChamadaDaBusca.Enviada).chamada)
         assertFalse(vm.estado.value.enviando)
         assertFalse(vm.estado.value.mostrarJ7)
+    }
+
+    // --- Trabalho já aberto (409 trabalho_ja_aberto, contrato 0.2.95) ------------------------------------------
+
+    private val vagaAberta = "7c1f0c1e-5b0a-4a53-9d1e-2f6c8f0a4b11"
+
+    /**
+     * A casa já tem o trabalho aberto em [aberta] (0.2.95): o pedido pelo trabalho, ou pelo `vaga_id` de outra vaga, recebe
+     * `409 trabalho_ja_aberto` com [detalhes] em `details` (por padrão, a própria [aberta]); pelo `vaga_id` dela, entra.
+     */
+    private fun RedeDeTeste.comTrabalhoAberto(aberta: String, detalhes: String? = aberta) {
+        rota("chamar_profissional") { pedido ->
+            if (pedido.corpo["vaga_id"]?.jsonPrimitive?.content == aberta) {
+                respond(chamadaJson.replace("\"v1\"", "\"$aberta\""), HttpStatusCode.OK, json)
+            } else {
+                val details = detalhes?.let { "\"$it\"" } ?: "null"
+                respond("""{"code":"trabalho_ja_aberto","message":"trabalho_ja_aberto","details":$details,"hint":null}""", HttpStatusCode.Conflict, json)
+            }
+        }
+        comTermosDaVaga(aberta)
+    }
+
+    /**
+     * 0.2.95: a vaga aberta [vaga] em `minhas_chamadas` (o valor) e no `detalhe_chamada` (os inclusos). Por padrão, os
+     * mesmos termos do `trabalho` dos testes, e o 409 segue direto.
+     */
+    private fun RedeDeTeste.comTermosDaVaga(
+        vaga: String,
+        valorCentavos: Long = trabalho.valorCentavos,
+        refeicao: Boolean = false,
+        transporte: Boolean = false,
+        material: Boolean = false,
+    ) {
+        val base = chamadaAberta(vaga, valorCentavos)
+        ok("minhas_chamadas", """{"itens":[{$base}],"proximo_cursor":null}""")
+        ok(
+            "detalhe_chamada",
+            """{$base,"regiao_administrativa":"Plano Piloto","inclui_refeicao":$refeicao,"inclui_transporte":$transporte,"exige_material_proprio":$material}""",
+        )
+    }
+
+    /** O item `aberta` de `minhas_chamadas` da vaga [vaga] (sem as chaves de fora), que o `detalhe_chamada` completa. */
+    private fun chamadaAberta(vaga: String, valorCentavos: Long) =
+        """"id":"chamada-$vaga","vaga_id":"$vaga","profissional_id":"p-9","estabelecimento_id":"$casa","estado":"aberta",""" +
+            """"expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z","funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},""" +
+            """"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":$valorCentavos,""" +
+            """"outra_parte":{"id":"p-9","tipo":"profissional","nome":"Pessoa 9","reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
+
+    /**
+     * 0.2.95 (head final cc40db7): `minhas_chamadas` em duas páginas. A 1ª traz só a chamada de [naPrimeira] e o cursor
+     * "c2"; a 2ª (pedida com ele) traz só a de [naSegunda], sem cursor. Os termos são os do `trabalho` dos testes.
+     */
+    private fun RedeDeTeste.comChamadasEmDuasPaginas(naPrimeira: String, naSegunda: String) {
+        rota("minhas_chamadas") { pedido ->
+            val segunda = pedido.corpo["cursor"]?.jsonPrimitive?.content == "c2"
+            val vaga = if (segunda) naSegunda else naPrimeira
+            val cursor = if (segunda) "null" else "\"c2\""
+            respond("""{"itens":[{${chamadaAberta(vaga, trabalho.valorCentavos)}}],"proximo_cursor":$cursor}""", HttpStatusCode.OK, json)
+        }
+    }
+
+    private fun trabalhoJaAberto(vaga: String) =
+        """{"code":"trabalho_ja_aberto","message":"trabalho_ja_aberto","details":"$vaga","hint":null}"""
+
+    private fun vagaDoResultado(tela: EstadoBusca, id: String): String? =
+        (tela.resultadosDaChamada[id] as? ResultadoDaChamadaDaBusca.Enviada)?.chamada?.vagaId
+
+    @Test
+    fun `409 trabalho_ja_aberto, quem levou o trabalho vai de novo pelo vaga_id de details com chave nova e fica enviada, e os outros e a nova busca entram direto nela`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 4)))
+            comTrabalhoAberto(vagaAberta)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-1", "p-2", "p-3"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        // Só o primeiro leva o trabalho; depois do 409 todos vão pela vaga aberta, cada um com a sua chave.
+        assertEquals(listOf(true, false, false, false), pedidos.map { "valor_centavos" in it })
+        assertEquals(listOf(null, vagaAberta, vagaAberta, vagaAberta), pedidos.map { it["vaga_id"]?.jsonPrimitive?.content })
+        assertEquals(4, pedidos.map { it["chave"]!!.jsonPrimitive.content }.toSet().size)
+        val tela = vm.estado.value
+        assertEquals(listOf(vagaAberta, vagaAberta, vagaAberta), listOf("p-1", "p-2", "p-3").map { vagaDoResultado(tela, it) })
+        assertFalse(tela.temEnvioPendente)
+
+        // A vaga que o 409 apontou ficou como a do trabalho: a nova busca entra direto nela.
+        vm.buscar().join()
+        vm.alternarSelecao("p-4")
+        vm.chamar(trabalho).join()
+        val depois = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(5, depois.size)
+        assertEquals("p-4", depois.last()["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals(vagaAberta, depois.last()["vaga_id"]?.jsonPrimitive?.content)
+        assertEquals(vagaAberta, vagaDoResultado(vm.estado.value, "p-4"))
+    }
+
+    @Test
+    fun `409 trabalho_ja_aberto sem vaga_id em details vira o erro generico, sem pedido pelo vaga_id e sem travar`() = runBlocking {
+        for (detalhes in listOf(null, "nao-e-uuid")) {
+            val rede = RedeDeTeste().apply {
+                ok("buscar_profissionais", pagina(ids("p", 1, 2)))
+                comTrabalhoAberto(vagaAberta, detalhes = detalhes)
+            }
+            val vm = viewModelCom(rede).comFiltros()
+            vm.buscar().join()
+            listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+
+            vm.chamar(trabalho).join()
+
+            val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+            // Recusa definitiva: o 2º vira o 1º e recebe o mesmo 409; ninguém vai pelo vaga_id.
+            assertEquals(listOf("p-1", "p-2"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content }, "details=$detalhes")
+            assertTrue(pedidos.none { "vaga_id" in it }, "details=$detalhes")
+            val tela = vm.estado.value
+            assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO), tela.resultadosDaChamada["p-1"], "details=$detalhes")
+            assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO), tela.resultadosDaChamada["p-2"], "details=$detalhes")
+            assertFalse(tela.temEnvioPendente, "details=$detalhes")
+        }
+    }
+
+    @Test
+    fun `409 trabalho_ja_aberto no pedido pelo vaga_id troca a vaga do trabalho pela de details, e o proximo entra direto nela`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 3)))
+            respondeComVagaPropria()
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+        vm.chamar(trabalho).join()
+        assertEquals("vaga-1", vagaDoResultado(vm.estado.value, "p-1"))
+        // Outra vaga direta do mesmo trabalho passou a ter a chamada aberta (por exemplo, de outro aparelho).
+        rede.comTrabalhoAberto(vagaAberta)
+        vm.buscar().join()
+        listOf("p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-2", "p-2", "p-3"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertEquals(listOf(null, "vaga-1", vagaAberta, vagaAberta), pedidos.map { it["vaga_id"]?.jsonPrimitive?.content })
+        assertEquals(listOf(vagaAberta, vagaAberta), listOf("p-2", "p-3").map { vagaDoResultado(vm.estado.value, it) })
+    }
+
+    @Test
+    fun `409 trabalho_ja_aberto tambem no pedido pelo vaga_id nao insiste, vira o erro generico e o proximo entra na vaga`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 2)))
+            comTermosDaVaga(vagaAberta) // os mesmos termos do trabalho: segue direto
+        }
+        rede.rota("chamar_profissional") { pedido ->
+            val vaga = pedido.corpo["vaga_id"]?.jsonPrimitive?.content
+            if (pedido.corpo["profissional_id"]!!.jsonPrimitive.content == "p-1" || vaga == null) {
+                respond("""{"code":"trabalho_ja_aberto","message":"x","details":"$vagaAberta","hint":null}""", HttpStatusCode.Conflict, json)
+            } else {
+                respond(chamadaJson.replace("\"v1\"", "\"$vaga\""), HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-1", "p-2"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertEquals(listOf(null, vagaAberta, vagaAberta), pedidos.map { it["vaga_id"]?.jsonPrimitive?.content })
+        val tela = vm.estado.value
+        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO), tela.resultadosDaChamada["p-1"])
+        assertEquals(vagaAberta, vagaDoResultado(tela, "p-2"))
+        assertFalse(tela.temEnvioPendente)
+    }
+
+    // --- Termos da vaga aberta diferentes dos digitados (0.2.95, head 15026bc do #265) ------------------------
+
+    @Test
+    fun `409 com valor ou inclusos diferentes nao sai pelo vaga_id, e quem levou o trabalho e os proximos esperam a confirmacao`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 3)))
+            comTrabalhoAberto(vagaAberta)
+            comTermosDaVaga(vagaAberta, valorCentavos = 25000, refeicao = true)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        // Só o 1º saiu, pelo trabalho, e recebeu o 409; ninguém foi pelo vaga_id.
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        val termos = TermosDaVagaAberta(vagaAberta, 25000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = false)
+        val tela = vm.estado.value
+        assertEquals(termos, tela.termosParaConfirmar)
+        val esperando = ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)
+        assertEquals(listOf(esperando, esperando, esperando), listOf("p-1", "p-2", "p-3").map { tela.resultadosDaChamada[it] })
+        assertFalse(tela.podeChamar)
+        // Chamar de novo sem confirmar também não manda nada.
+        vm.chamar(trabalho).join()
+        assertEquals(1, rede.doNome("chamar_profissional").size)
+    }
+
+    @Test
+    fun `confirmar os termos da vaga aberta manda um pedido so pelo vaga_id, com chave nova, e a pessoa fica enviada`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 1)))
+            comTrabalhoAberto(vagaAberta)
+            comTermosDaVaga(vagaAberta, valorCentavos = 25000)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+        vm.chamar(trabalho).join()
+        val antes = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(1, antes.size)
+
+        vm.confirmarTermosDaVagaAberta().join()
+
+        val depois = rede.doNome("chamar_profissional").map { it.corpo }.drop(antes.size)
+        assertEquals(listOf(vagaAberta), depois.map { it["vaga_id"]?.jsonPrimitive?.content })
+        assertTrue(depois.none { "valor_centavos" in it })
+        assertTrue(depois.none { pedido -> antes.any { it["chave"] == pedido["chave"] } })
+        assertEquals(vagaAberta, vagaDoResultado(vm.estado.value, "p-1"))
+        assertNull(vm.estado.value.termosParaConfirmar)
+    }
+
+    @Test
+    fun `cancelar os termos da vaga aberta nao manda nada, e quem esperava volta a ficar sem resultado`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 2)))
+            comTrabalhoAberto(vagaAberta)
+            comTermosDaVaga(vagaAberta, refeicao = true)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+        val antes = rede.doNome("chamar_profissional").size
+
+        vm.cancelarTermosDaVagaAberta()
+
+        assertEquals(antes, rede.doNome("chamar_profissional").size)
+        val tela = vm.estado.value
+        assertNull(tela.termosParaConfirmar)
+        assertTrue(tela.resultadosDaChamada.isEmpty())
+        assertTrue(tela.podeChamar)
+    }
+
+    @Test
+    fun `409 com a leitura dos termos falhando vira o erro generico, e nada sai pelo vaga_id`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 1)))
+            comTrabalhoAberto(vagaAberta)
+            recusa("minhas_chamadas", HttpStatusCode.InternalServerError, "erro_interno")
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(1, pedidos.size)
+        assertTrue(pedidos.none { "vaga_id" in it })
+        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO), vm.estado.value.resultadosDaChamada["p-1"])
+        assertNull(vm.estado.value.termosParaConfirmar)
+        assertFalse(vm.estado.value.temEnvioPendente)
+    }
+
+    @Test
+    fun `a linha dos termos traz o valor da vaga e os inclusos dela, como no iOS`() {
+        val termos = TermosDaVagaAberta(vagaAberta, 15000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = true)
+        assertEquals("R$ 150,00, Refeição inclusa, sem transporte, Exige material próprio", linhaDosTermos(termos))
+        assertEquals(
+            "Esta chamada vai com os termos da vaga já aberta: R$ 150,00, Refeição inclusa, sem transporte, Exige material próprio",
+            TextosChamadaCasa.buscaTermosDaVagaAberta(linhaDosTermos(termos)),
+        )
+    }
+
+    // --- minhas_chamadas em mais de uma página (0.2.95, head final cc40db7) e os cenários da revisão do #808 ----------
+
+    @Test
+    fun `409 com a chamada da vaga aberta so na 2a pagina de minhas_chamadas segue o cursor, acha, compara e vai pelo vaga_id`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 1)))
+            comTrabalhoAberto(vagaAberta)
+            comChamadasEmDuasPaginas(naPrimeira = "vaga-outra", naSegunda = vagaAberta)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+
+        vm.chamar(trabalho).join()
+
+        val leituras = rede.doNome("minhas_chamadas")
+        assertEquals(2, leituras.size)
+        assertEquals("c2", leituras.last().corpo["cursor"]?.jsonPrimitive?.content)
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf(null, vagaAberta), pedidos.map { it["vaga_id"]?.jsonPrimitive?.content })
+        assertEquals(vagaAberta, vagaDoResultado(vm.estado.value, "p-1"))
+        assertNull(vm.estado.value.termosParaConfirmar)
+    }
+
+    @Test
+    fun `409 sem a chamada da vaga aberta em nenhuma pagina de minhas_chamadas le todas, nao repete pelo vaga_id e vira o erro generico`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 1)))
+            comTrabalhoAberto(vagaAberta)
+            comChamadasEmDuasPaginas(naPrimeira = "vaga-outra-1", naSegunda = "vaga-outra-2")
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+
+        vm.chamar(trabalho).join()
+
+        assertEquals(2, rede.doNome("minhas_chamadas").size)
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(1, pedidos.size)
+        assertTrue(pedidos.none { "vaga_id" in it })
+        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO), vm.estado.value.resultadosDaChamada["p-1"])
+        assertNull(vm.estado.value.termosParaConfirmar)
+        assertFalse(vm.estado.value.temEnvioPendente)
+    }
+
+    @Test
+    fun `confirmar com tres esperando manda um pedido por pessoa, todos pelo vaga_id, com chaves novas e distintas`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 3)))
+            comTrabalhoAberto(vagaAberta)
+            comTermosDaVaga(vagaAberta, valorCentavos = 25000)
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2", "p-3").forEach(vm::alternarSelecao)
+        vm.chamar(trabalho).join()
+        val antes = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(1, antes.size)
+
+        vm.confirmarTermosDaVagaAberta().join()
+
+        val depois = rede.doNome("chamar_profissional").map { it.corpo }.drop(1)
+        assertEquals(listOf("p-1", "p-2", "p-3"), depois.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertTrue(depois.all { it["vaga_id"]?.jsonPrimitive?.content == vagaAberta && "valor_centavos" !in it })
+        val chaves = depois.map { it["chave"]!!.jsonPrimitive.content }
+        assertEquals(3, chaves.toSet().size)
+        assertFalse(antes[0]["chave"]!!.jsonPrimitive.content in chaves)
+        assertEquals(listOf(vagaAberta, vagaAberta, vagaAberta), listOf("p-1", "p-2", "p-3").map { vagaDoResultado(vm.estado.value, it) })
+    }
+
+    @Test
+    fun `409 com os mesmos termos e o pedido pelo vaga_id incerto nao para a rodada, e o reenvio repete a mesma chave`() = runBlocking {
+        val rede = RedeDeTeste().apply {
+            ok("buscar_profissionais", pagina(ids("p", 1, 2)))
+            comTermosDaVaga(vagaAberta)
+        }
+        var perdeu = false
+        rede.rota("chamar_profissional") { pedido ->
+            val vaga = pedido.corpo["vaga_id"]?.jsonPrimitive?.content
+            when {
+                vaga != vagaAberta -> respond(trabalhoJaAberto(vagaAberta), HttpStatusCode.Conflict, json)
+                pedido.corpo["profissional_id"]!!.jsonPrimitive.content == "p-1" && !perdeu -> {
+                    perdeu = true
+                    respond("isto nao e json", HttpStatusCode.OK, json)
+                }
+                else -> respond(chamadaJson.replace("\"v1\"", "\"$vagaAberta\""), HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        listOf("p-1", "p-2").forEach(vm::alternarSelecao)
+
+        vm.chamar(trabalho).join()
+
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(listOf("p-1", "p-1", "p-2"), pedidos.map { it["profissional_id"]!!.jsonPrimitive.content })
+        assertEquals(listOf(null, vagaAberta, vagaAberta), pedidos.map { it["vaga_id"]?.jsonPrimitive?.content })
+        assertFalse(pedidos[0]["chave"] == pedidos[1]["chave"])
+        val tela = vm.estado.value
+        assertEquals(true, (tela.resultadosDaChamada["p-1"] as? ResultadoDaChamadaDaBusca.Erro)?.incerto)
+        assertEquals(vagaAberta, vagaDoResultado(tela, "p-2"))
+        assertTrue(tela.podeReenviar)
+
+        vm.reenviar().join()
+
+        val depois = rede.doNome("chamar_profissional").map { it.corpo }
+        assertEquals(4, depois.size)
+        assertEquals("p-1", depois[3]["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals(vagaAberta, depois[3]["vaga_id"]?.jsonPrimitive?.content)
+        assertEquals(depois[1]["chave"], depois[3]["chave"])
+        assertEquals(vagaAberta, vagaDoResultado(vm.estado.value, "p-1"))
+        assertEquals(1, depois.count { "valor_centavos" in it })
+    }
+
+    /**
+     * Quem espera o J7 (p-1) fica atrás de quem recebe o 409 com termos diferentes (p-2): outro aparelho abriu o mesmo
+     * trabalho entre duas rodadas. Devolve a rede e a busca com os termos pendentes, depois do reenvio.
+     */
+    private suspend fun j7AtrasDosTermosDiferentes(): Pair<RedeDeTeste, BuscaDeProfissionaisViewModel> {
+        val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 2))) }
+        var aberta: String? = null
+        rede.rota("chamar_profissional") { pedido ->
+            val vaga = pedido.corpo["vaga_id"]?.jsonPrimitive?.content
+            val confirmou = pedido.corpo["confirmo_recorrencia"]?.jsonPrimitive?.boolean == true
+            when {
+                aberta != null && vaga != aberta -> respond(trabalhoJaAberto(aberta!!), HttpStatusCode.Conflict, json)
+                pedido.corpo["profissional_id"]!!.jsonPrimitive.content == "p-1" && !confirmou ->
+                    respond("""{"code":"recorrencia_nao_confirmada","message":"x"}""", HttpStatusCode.Conflict, json)
+                else -> respond(chamadaJson.replace("\"v1\"", "\"${vaga ?: "v1"}\""), HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede).comFiltros()
+        vm.buscar().join()
+        vm.alternarSelecao("p-1")
+        vm.chamar(trabalho).join()
+        assertTrue(vm.estado.value.mostrarJ7)
+        // A seleção muda: o p-2 entra antes de quem espera o J7.
+        listOf("p-1", "p-2", "p-1").forEach(vm::alternarSelecao)
+        assertEquals(listOf("p-2", "p-1"), vm.estado.value.selecionados)
+        aberta = vagaAberta
+        rede.comTermosDaVaga(vagaAberta, valorCentavos = 25000, refeicao = true)
+        vm.reenviar().join()
+        return rede to vm
+    }
+
+    @Test
+    fun `J7 atras dos termos diferentes, os termos vem primeiro, o J7 nao manda nada e so volta depois de confirmar os termos`() = runBlocking {
+        val (rede, vm) = j7AtrasDosTermosDiferentes()
+        var tela = vm.estado.value
+        assertNotNull(tela.termosParaConfirmar)
+        assertFalse(tela.mostrarJ7)
+        assertEquals(ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia, tela.resultadosDaChamada["p-1"])
+        val naRodada = rede.doNome("chamar_profissional").size
+
+        // Com os termos pendentes, a confirmação do J7 não manda nada.
+        vm.chamar(trabalho, confirmoRecorrencia = true).join()
+        assertEquals(naRodada, rede.doNome("chamar_profissional").size)
+
+        // Confirmar os termos: os dois saem pela vaga aberta; quem tinha J7 vai sem a confirmação e o servidor pede de novo.
+        vm.confirmarTermosDaVagaAberta().join()
+        val depois = rede.doNome("chamar_profissional").map { it.corpo }.drop(naRodada)
+        assertTrue(depois.all { it["vaga_id"]?.jsonPrimitive?.content == vagaAberta && "valor_centavos" !in it })
+        tela = vm.estado.value
+        assertEquals(vagaAberta, vagaDoResultado(tela, "p-2"))
+        assertEquals(ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia, tela.resultadosDaChamada["p-1"])
+        assertTrue(tela.mostrarJ7)
+        assertNull(tela.termosParaConfirmar)
+
+        // Agora o J7 confirmado sai, pela vaga aberta.
+        vm.chamar(trabalho, confirmoRecorrencia = true).join()
+        val ultimo = rede.doNome("chamar_profissional").last().corpo
+        assertEquals("p-1", ultimo["profissional_id"]!!.jsonPrimitive.content)
+        assertEquals(vagaAberta, ultimo["vaga_id"]?.jsonPrimitive?.content)
+        assertTrue(ultimo["confirmo_recorrencia"]!!.jsonPrimitive.boolean)
+        assertEquals(vagaAberta, vagaDoResultado(vm.estado.value, "p-1"))
+    }
+
+    @Test
+    fun `J7 atras dos termos diferentes, cancelar os termos nao manda nada e religa o J7`() = runBlocking {
+        val (rede, vm) = j7AtrasDosTermosDiferentes()
+        val naRodada = rede.doNome("chamar_profissional").size
+
+        vm.cancelarTermosDaVagaAberta()
+
+        val tela = vm.estado.value
+        assertEquals(naRodada, rede.doNome("chamar_profissional").size)
+        assertNull(tela.termosParaConfirmar)
+        assertTrue(tela.mostrarJ7)
+        assertEquals(ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia, tela.resultadosDaChamada["p-1"])
     }
 }
