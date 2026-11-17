@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
@@ -45,6 +47,10 @@ import java.time.format.DateTimeFormatter
 data class AcoesTurnoDoContratante(
     val aoConfirmarPresenca: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
+    /** L2-2: abrir a pergunta "Reabrir a vaga?", confirmá-la e desistir dela. */
+    val aoPedirReabertura: () -> Unit = {},
+    val aoConfirmarReabertura: () -> Unit = {},
+    val aoDesistirDaReabertura: () -> Unit = {},
     /**
      * C0-9: denunciar o profissional deste turno (id do perfil público, id do turno), como o iOS
      * (`TelaTurnoDoContratante.swift:360`). Nulo esconde o botão.
@@ -68,6 +74,9 @@ fun TelaTurnoDoContratante(
         acoes = AcoesTurnoDoContratante(
             aoConfirmarPresenca = { viewModel.confirmarPresenca() },
             aoVoltar = aoVoltar,
+            aoPedirReabertura = viewModel::pedirReabertura,
+            aoConfirmarReabertura = { viewModel.confirmarReabertura() },
+            aoDesistirDaReabertura = viewModel::desistirDaReabertura,
             aoDenunciarProfissional = aoDenunciarProfissional,
         ),
         modifier = modifier,
@@ -165,6 +174,17 @@ fun ConteudoTurnoDoContratante(
             )
             Chegada(estado, acoes, cartaoDoCodigo)
 
+            estado.avisoDaReabertura?.let { aviso ->
+                Text(
+                    text = aviso.mensagem,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (aviso.erro) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics {
+                        liveRegion = if (aviso.erro) LiveRegionMode.Assertive else LiveRegionMode.Polite
+                    },
+                )
+            }
+
             estado.aviso?.let { aviso ->
                 Text(
                     text = aviso.mensagem,
@@ -176,6 +196,26 @@ fun ConteudoTurnoDoContratante(
                 )
             }
         }
+    }
+
+    if (estado.pedindoReabertura) {
+        AlertDialog(
+            onDismissRequest = acoes.aoDesistirDaReabertura,
+            title = { Text(text = TextosTurnoDoContratante.REABRIR_PERGUNTA, modifier = Modifier.semantics { heading() }) },
+            text = { Text(text = TextosTurnoDoContratante.REABRIR_AVISO.format(contexto.profissional?.nome ?: "o profissional")) },
+            confirmButton = {
+                TextButton(
+                    onClick = acoes.aoConfirmarReabertura,
+                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
+                ) { Text(TextosTurnoDoContratante.REABRIR_CONFIRMAR, color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = acoes.aoDesistirDaReabertura,
+                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
+                ) { Text(TextosTurnoDoContratante.ESPERAR) }
+            },
+        )
     }
 }
 
@@ -196,13 +236,24 @@ private fun Chegada(
                     text = TextosTurnoDoContratante.A_CAMINHO.format(nome, contexto.aCaminhoEm?.let(::hora).orEmpty()),
                     style = MaterialTheme.typography.bodyLarge,
                 )
-            PresencaDoTurno.EM_ATRASO -> Row(
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            ) {
-                Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
-                Text(text = TextosTurnoDoContratante.EM_ATRASO, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+            PresencaDoTurno.EM_ATRASO -> {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                ) {
+                    Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
+                    Text(text = TextosTurnoDoContratante.EM_ATRASO, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
+                }
+                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+                if (estado.podeReabrir || (estado.reaberturaDisponivel && estado.reabrindo)) {
+                    BotaoSecundario(
+                        texto = if (estado.reabrindo) TextosTurnoDoContratante.REABRINDO else TextosTurnoDoContratante.REABRIR_VAGA,
+                        aoClicar = acoes.aoPedirReabertura,
+                        habilitado = estado.podeReabrir,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             PresencaDoTurno.CHECKIN_MANUAL_PENDENTE -> {
                 Text(
