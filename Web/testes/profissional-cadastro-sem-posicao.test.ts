@@ -43,7 +43,7 @@ describe("cadastro do profissional: nenhuma posição do navegador", () => {
     const request = new Request("https://frilabr.com/app/perfil/cadastro", {
       method: "POST",
       headers: { Origin: "https://frilabr.com" },
-      body: new URLSearchParams([["passo", "regioes"], ["ir", "avancar"], ["funcoes", GARCOM], ["ponto_regiao", "1"], ["latitude", "-23.5505"], ["longitude", "-46.6333"], ["ponto_base", "-23.5505,-46.6333"]]),
+      body: new URLSearchParams([["passo", "servicos"], ["ir", "avancar"], ["funcoes", GARCOM], ["ponto_regiao", "1"], ["latitude", "-23.5505"], ["longitude", "-46.6333"], ["ponto_base", "-23.5505,-46.6333"]]),
     });
     await expect(action({ request, context, params: {}, url: new URL(request.url), matches: [] } as never)).rejects.toHaveProperty("status", 302);
     expect(api.POST.mock.calls[0]).toEqual(["/rpc/criar_perfil_profissional", expect.objectContaining({ body: { funcoes: [GARCOM], ponto_base: { latitude: -15.793889, longitude: -47.882778 }, disponibilidades: [] } })]);
