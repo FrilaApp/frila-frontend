@@ -47,6 +47,8 @@ export default [
   route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
   route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
 
+  // Busca de profissionais e chamada direta da casa (3.8)
+  route("casa/busca", "rotas/contratante/busca.tsx"),
   // Pessoas da casa e o link de convite (3.16 e 5.7)
   route("casa/membros", "rotas/contratante/membros.tsx"),
   route("convite", "rotas/convite.tsx"),

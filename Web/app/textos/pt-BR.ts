@@ -4,6 +4,7 @@
  */
 import { contaDados } from "./conta-dados";
 import { contratante } from "./contratante";
+import { contratanteBusca } from "./contratante-busca";
 import { contratanteEquipe } from "./contratante-equipe";
 import { contratanteMembros } from "./contratante-membros";
 import { contratanteTurno } from "./contratante-turno";
@@ -27,6 +28,8 @@ export const textos = {
   profissional,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
+  // Busca de profissionais do lado da casa (arquivo próprio).
+  contratanteBusca,
   // Pessoas da casa e o convite (arquivo próprio).
   contratanteMembros,
   // Minha conta: exportar os dados e excluir a conta (arquivo próprio).
