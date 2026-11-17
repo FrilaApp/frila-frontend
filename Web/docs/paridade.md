@@ -43,7 +43,7 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | 2.5 | Sair | — (apaga os cookies e encerra no Auth) | | 1 |
 | 2.6 | Criar conta escolhendo o papel | `criar_conta`, `minha_conta` | | 1 |
 | 2.7 | Aceite dos termos, e novo aceite quando mudam | `aceitar_termos` | | 1 |
-| 2.8 | Cadastro do profissional em passos | `criar_perfil_profissional`, `definir_servicos`, `definir_regioes_atendidas` | | 2P |
+| 2.8 | Cadastro do profissional em passos | `criar_perfil_profissional`, `definir_servicos`, `definir_regioes_atendidas` | parcial: falta serviços com preço e horários (2.8b) | 2P |
 | 2.9 | Cadastro do estabelecimento | `cadastrar_estabelecimento` | | 2C |
 | 2.10 | Conta suspensa: ver o motivo e contestar | `situacao_da_conta`, `contestar_suspensao` | | 2C/2P |
 | 2.11 | Exportar os próprios dados e excluir a conta | `exportar-meus-dados`, `excluir-conta` | | 5 |
