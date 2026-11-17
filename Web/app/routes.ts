@@ -10,6 +10,9 @@ export default [
   // A vaga pelo link, sem login (para compartilhar)
   route("v/:vagaId", "rotas/publico/vaga.tsx"),
 
+  // Conta suspensa e contestação (os dois lados)
+  route("conta/suspensa", "rotas/conta/suspensa.tsx"),
+
   // Páginas públicas (textos do marketing)
   route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),
   route("como-funciona/profissional", "rotas/publico/como-funciona-profissional.tsx"),

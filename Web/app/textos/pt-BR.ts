@@ -5,10 +5,13 @@
 import { contratante } from "./contratante";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { suspensao } from "./suspensao";
 import { vagaPublica } from "./vaga-publica";
 
 export const textos = {
   marca: "Frila",
+  // Conta suspensa e contestação (os dois lados).
+  suspensao,
   // Páginas públicas, textos do marketing (arquivo próprio para entrar como vieram).
   publico,
   // Página pública da vaga (link sem login)
