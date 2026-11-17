@@ -94,17 +94,22 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
       }
     },
 
-    /** Encerra a sessão no Auth (só esta sessão). Falhar aqui não impede a saída: os cookies são apagados de todo jeito. */
-    async encerrar(acesso: string): Promise<void> {
+    /**
+     * Encerra a sessão no Auth (só esta sessão). `ok` só com a revogação confirmada: 204, ou 401, 403 e 404, que dizem
+     * que a sessão já não existe. Falha do Auth (5xx, rede, prazo) não é saída: a sessão seguiria viva no Auth.
+     */
+    async encerrar(acesso: string): Promise<{ ok: boolean }> {
       try {
         // Rota padrão do Supabase Auth; não está no contrato do Frila porque não tem regra do produto.
-        await buscar(`${ambiente.url}/auth/v1/logout?scope=local`, {
+        const resposta = await buscar(`${ambiente.url}/auth/v1/logout?scope=local`, {
           method: "POST",
           headers: { apikey: ambiente.chavePublicavel, Authorization: `Bearer ${acesso}` },
           signal: prazo(),
         });
+        await resposta.body?.cancel();
+        return { ok: resposta.ok || resposta.status === 401 || resposta.status === 403 || resposta.status === 404 };
       } catch {
-        // Sem rede: a sessão vence sozinha no Auth.
+        return { ok: false };
       }
     },
   };

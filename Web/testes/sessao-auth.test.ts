@@ -51,7 +51,9 @@ beforeEach(() => {
   });
   auth.encerrar.mockReset().mockImplementation(async (acesso: string) => {
     auth.chamadas++;
+    if (auth.fora) return { ok: false };
     auth.encerradas.add(sessaoIdDe(acesso));
+    return { ok: true };
   });
 });
 
@@ -104,6 +106,37 @@ async function sairCom(cookie: string): Promise<Response> {
     throw new Error("esperava o redirect");
   })) as Response;
 }
+
+describe("sair só conclui com a sessão encerrada no Auth", () => {
+  it("Auth de pé: sair encerra a sessão, apaga os cookies e vai para entrar", async () => {
+    const saida = await sairCom(cookiesDaSessao(sessaoDe("A"), true).map((c) => c.split(";")[0]).join("; "));
+    expect(saida.headers.get("Location")).toBe("/entrar");
+    expect(saida.headers.getSetCookie().filter((c) => c.includes("Max-Age=0"))).toHaveLength(2);
+    expect(auth.encerradas.has("A")).toBe(true);
+  });
+
+  it("Auth fora do ar: não diz que saiu, não apaga os cookies e volta com o aviso", async () => {
+    auth.fora = true;
+    const saida = await sairCom(cookiesDaSessao(sessaoDe("A"), true).map((c) => c.split(";")[0]).join("; "));
+    expect(saida.headers.get("Location")).toBe("/?sair=falhou");
+    expect(saida.headers.getSetCookie()).toEqual([]);
+    expect(auth.encerradas.has("A")).toBe(false);
+  });
+
+  it("o logout falha com o Auth de pé na conferência: também não conclui", async () => {
+    auth.encerrar.mockImplementationOnce(async () => ({ ok: false }));
+    const saida = await sairCom(cookiesDaSessao(sessaoDe("A"), true).map((c) => c.split(";")[0]).join("; "));
+    expect(saida.headers.get("Location")).toBe("/?sair=falhou");
+    expect(saida.headers.getSetCookie()).toEqual([]);
+  });
+
+  it("sessão que o Auth já recusou: sair conclui (não há o que encerrar)", async () => {
+    auth.encerradas.add("A");
+    const saida = await sairCom(cookiesDaSessao(sessaoDe("A"), true).map((c) => c.split(";")[0]).join("; "));
+    expect(saida.headers.get("Location")).toBe("/entrar");
+    expect(saida.headers.getSetCookie().filter((c) => c.includes("Max-Age=0")).length).toBeGreaterThanOrEqual(2);
+  });
+});
 
 describe("a sessão é decidida pelo Auth", () => {
   it("sessão encerrada no Auth não vale, mesmo com os cookies regravados por uma resposta atrasada", async () => {
