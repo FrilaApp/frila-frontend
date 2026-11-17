@@ -1,0 +1,7 @@
+# RNF04: as duas últimas versões dos navegadores suportados.
+# Os mesmos três motores rodam no Playwright (playwright.config.ts).
+last 2 Chrome versions
+last 2 Edge versions
+last 2 Firefox versions
+last 2 Safari versions
+last 2 iOS versions
