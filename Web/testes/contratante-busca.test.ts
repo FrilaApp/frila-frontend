@@ -67,6 +67,7 @@ describe("busca da casa: action", () => {
         distancia: "Até 5 km da casa",
         reputacao: "4 de 5 chamariam de novo",
         disponivel: true,
+        chave: expect.stringMatching(/^[0-9a-f-]{36}$/),
       },
     ]);
     expect(retorno.proximoCursor).toBe("c2");
