@@ -94,6 +94,7 @@ class TelaBuscaDeProfissionaisTest {
         var horario: HorarioDaBusca? = null
         val fotosPedidas = mutableListOf<String>()
         var abriuTermos = 0
+        var abriuPolitica = 0
         var aceitou = 0
         var confirmouTermosDaVaga = 0
         var cancelouTermosDaVaga = 0
@@ -123,6 +124,7 @@ class TelaBuscaDeProfissionaisTest {
                     aoConfirmarJ7 = { chamadas.confirmouJ7++ },
                     relogio = { agora },
                     aoAbrirTermos = { chamadas.abriuTermos++ },
+                    aoAbrirPolitica = { chamadas.abriuPolitica++ },
                     aoAceitarTermos = { chamadas.aceitou++ },
                     carregarFoto = { url ->
                         chamadas.fotosPedidas += url
@@ -165,8 +167,14 @@ class TelaBuscaDeProfissionaisTest {
         rule.onAllNodesWithTag("busca-termos-erro").assertCountEquals(0)
 
         rule.onNodeWithTag("busca-termos-ler").performClick()
+        // A versão aceita cobre os Termos 1.2 e a Política 1.3: a Política também está na tela (revisão do #800).
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_POLITICA).assertIsDisplayed()
+        rule.onNodeWithTag("busca-termos-politica").performClick()
+        // Com o link da Política o bloco ganhou uma linha: rola até o Aceitar antes de tocar.
+        rolarAteTag("busca-termos-aceitar")
         rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled().performClick()
         assertEquals(1, chamadas.abriuTermos)
+        assertEquals(1, chamadas.abriuPolitica)
         assertEquals(1, chamadas.aceitou)
     }
 
@@ -174,11 +182,13 @@ class TelaBuscaDeProfissionaisTest {
     fun aceitandoDesligaOBotaoEErroDoAceiteAparece() {
         montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes(aceitando = true)))
         rule.onNodeWithTag("busca-termos-aceitar").assertIsNotEnabled()
+        rolarAteTexto(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO)
         rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO).assertIsDisplayed()
 
         estado = estado.copy(estado = EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO))
         rule.waitForIdle()
 
+        rolarAteTag("busca-termos-erro")
         rule.onNodeWithTag("busca-termos-erro").assertIsDisplayed()
         rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled()
         rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
