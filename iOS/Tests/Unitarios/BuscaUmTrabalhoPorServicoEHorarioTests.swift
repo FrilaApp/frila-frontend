@@ -187,7 +187,8 @@ struct BuscaUmTrabalhoPorServicoEHorarioTests {
 
         let pedido = try #require(await servidor.pedidos.last)
         #expect(pedido.profissionalID == dois)
-        #expect(pedido.vagaID == nil && pedido.trabalho?.periodo == (try periodo(sabado)), "vai o trabalho do sábado")
+        let doHorario = try periodo(sabado)
+        #expect(pedido.vagaID == nil && pedido.trabalho?.periodo == doHorario, "vai o trabalho do sábado")
         let doSabado = try #require(enviada(vm.resultadosDaChamada[dois])).vagaID
         #expect(doSabado != daSexta)
         #expect(await servidor.vagasCriadas().count == 2, "uma vaga por horário")
