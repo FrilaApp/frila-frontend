@@ -392,6 +392,13 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return pagina
     }
 
+    /// 0.2.90. Não é retentada: o servidor já devolve o aceite que existe para a mesma versão, mas não há por que
+    /// repetir o envio de uma ação do usuário sem saber se a primeira chegou.
+    public func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
+        let dto: ContratoAPI.AceiteDeTermosDTO = try await rpc("aceitar_termos", params: ContratoAPI.AceitarTermos(termosVersao: versao))
+        return dto.dominio()
+    }
+
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {
         let resposta: ContratoAPI.VagaPublicadaDTO = try await rpc("publicar_vaga", params: ContratoAPI.NovaVaga(publicacao))
         return resposta.dominio()

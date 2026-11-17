@@ -7,6 +7,8 @@ public protocol FonteDaBuscaDeProfissionais: Sendable {
     func configuracaoDoApp() async throws -> ConfiguracaoApp
     func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada
+    /// 0.2.90: o aceite dos Termos que a busca pede com `termos_pendentes`.
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos
 }
 
 /// Liga a porta `ApiCliente` à fonte da busca.
@@ -18,6 +20,7 @@ public struct FonteDaBuscaPelaApi: FonteDaBuscaDeProfissionais {
         try await api.buscarProfissionais(filtro, cursor: cursor, limite: limite)
     }
     public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada { try await api.chamarProfissional(pedido) }
+    public func aceitarTermos(versao: String) async throws -> AceiteDeTermos { try await api.aceitarTermos(versao: versao) }
 }
 
 /// O que a busca devolveu para um profissional escolhido ao chamar.
@@ -69,6 +72,9 @@ public final class BuscaDeProfissionaisViewModel {
         case vazio
         /// A chave `buscaProfissionais` está desligada (ou o servidor recusou com `recurso_desligado`).
         case indisponivel
+        /// O servidor recusou a busca com `termos_pendentes` (0.2.90): a tela pede o aceite dos Termos e, depois dele,
+        /// `aceitarTermosERepetirABusca()` repete a busca com os mesmos filtros. Sem aceite, a busca continua bloqueada.
+        case termosPendentes
         case erro(String)
     }
 
@@ -90,9 +96,16 @@ public final class BuscaDeProfissionaisViewModel {
     public private(set) var enviando = false
     public private(set) var resultadosDaChamada: [UUID: ResultadoDaChamadaDaBusca] = [:]
     public var mostrarJ7 = false
+    /// `aceitar_termos` em andamento.
+    public private(set) var aceitandoTermos = false
+    /// O aceite falhou: a tela mostra o aviso e o botão Aceitar segue disponível. A busca continua bloqueada.
+    public private(set) var erroNoAceiteDosTermos = false
 
     private var proximoCursor: String?
     private var filtroDaBusca: FiltroBuscaProfissionais?
+    /// Os filtros da busca que o servidor recusou por `termos_pendentes`: a busca repetida depois do aceite usa estes.
+    private var filtroDaBuscaPendenteDeTermos: FiltroBuscaProfissionais?
+    private let versaoDosTermos: String
     private var recursoConfirmado = false
     private var tentativas: [UUID: PedidoChamada] = [:]
     /// As vagas diretas desta tela, uma por trabalho (comparado sem a chave): a 1ª chamada que deu certo pelo
@@ -112,18 +125,23 @@ public final class BuscaDeProfissionaisViewModel {
     /// O prazo de cada `await` de rede; o teste injeta um menor.
     private let prazo: Duration
 
-    public init(fonte: any FonteDaBuscaDeProfissionais, estabelecimentoID: UUID, prazo: Duration = .seconds(15)) {
+    /// `versaoDosTermos`: a versão que a tela de aceite exibe e que `aceitar_termos` recebe.
+    public init(fonte: any FonteDaBuscaDeProfissionais, estabelecimentoID: UUID, prazo: Duration = .seconds(15),
+                versaoDosTermos: String = VersaoDosTermos.vigente) {
         self.fonte = fonte
         self.estabelecimentoID = estabelecimentoID
         self.prazo = prazo
+        self.versaoDosTermos = versaoDosTermos
     }
 
-    public convenience init(api: any ApiCliente, estabelecimentoID: UUID, prazo: Duration = .seconds(15)) {
-        self.init(fonte: FonteDaBuscaPelaApi(api: api), estabelecimentoID: estabelecimentoID, prazo: prazo)
+    public convenience init(api: any ApiCliente, estabelecimentoID: UUID, prazo: Duration = .seconds(15),
+                            versaoDosTermos: String = VersaoDosTermos.vigente) {
+        self.init(fonte: FonteDaBuscaPelaApi(api: api), estabelecimentoID: estabelecimentoID, prazo: prazo,
+                  versaoDosTermos: versaoDosTermos)
     }
 
     public var podeBuscar: Bool {
-        funcaoID != nil && estado != .carregando && !carregandoMais && !enviando && !travadoPeloIncerto
+        funcaoID != nil && estado != .carregando && !carregandoMais && !enviando && !aceitandoTermos && !travadoPeloIncerto
     }
 
     /// DINHEIRO: um pedido que levou o trabalho terminou incerto, e a vaga pode já existir no servidor. Até ele se
@@ -170,6 +188,8 @@ public final class BuscaDeProfissionaisViewModel {
             }
             recursoConfirmado = true
             filtroDaBusca = filtro
+            filtroDaBuscaPendenteDeTermos = nil
+            erroNoAceiteDosTermos = false
             selecionados = []
             resultadosDaChamada = [:]
             // Fica só a tentativa de quem está incerto (a chave que resolve o que o servidor fez).
@@ -180,7 +200,32 @@ public final class BuscaDeProfissionaisViewModel {
         } catch {
             limparResultados()
             estado = Self.estado(para: error)
+            if estado == .termosPendentes { filtroDaBuscaPendenteDeTermos = filtro }
         }
+    }
+
+    /// A pessoa aceitou os Termos na tela provisória: chama `aceitar_termos` com a versão exibida e, com o aceite em
+    /// vigor, repete a busca com os mesmos filtros que o servidor recusou. Se o aceite falha (`prazo`, sem rede,
+    /// recusa), o estado continua `termosPendentes`, com `erroNoAceiteDosTermos`, e nenhuma busca sai. Repetir o aceite
+    /// é seguro: o servidor devolve o que já existe para a mesma versão.
+    public func aceitarTermosERepetirABusca() async {
+        guard estado == .termosPendentes, !aceitandoTermos, let filtro = filtroDaBuscaPendenteDeTermos else { return }
+        aceitandoTermos = true
+        erroNoAceiteDosTermos = false
+        do {
+            let fonte = fonte
+            let versao = versaoDosTermos
+            _ = try await PrazoDaAbertura.esperar(prazo) { try await fonte.aceitarTermos(versao: versao) }
+        } catch {
+            aceitandoTermos = false
+            erroNoAceiteDosTermos = true
+            return
+        }
+        aceitandoTermos = false
+        funcaoID = filtro.funcaoID
+        regiaoID = filtro.regiaoID
+        horario = filtro.horario
+        await buscar()
     }
 
     /// A página seguinte, com o mesmo filtro da busca. Para no fim ou em 200 resultados.
@@ -203,8 +248,8 @@ public final class BuscaDeProfissionaisViewModel {
         } catch let erro as ErroDaApi where erro.codigo == .cursorInvalido {
             // Cursor de outra busca ou de outro dia: refaz a primeira página (contrato 0.2.88).
             await refazerPrimeiraPaginaDaBusca(filtro)
-        } catch let erro as ErroDaApi where erro.codigo == .limiteExcedido || erro.recursoDesligado {
-            estado = Self.estado(para: erro)
+        } catch let erro as ErroDaApi where erro.codigo == .limiteExcedido || erro.recursoDesligado || erro.termosPendentes {
+            recusarSemPagina(erro, filtro: filtro)
         } catch {
             erroAoCarregarMais = TextosBuscaDeProfissionais.erroAoCarregarMais
         }
@@ -227,10 +272,20 @@ public final class BuscaDeProfissionaisViewModel {
             selecionados = selecionados.filter { presentes.contains($0) }
             proximoCursor = Self.cursorSeguinte(pagina, total: resultados.count)
             estado = resultados.isEmpty ? .vazio : .resultados
-        } catch let erro as ErroDaApi where erro.codigo == .limiteExcedido || erro.recursoDesligado {
-            estado = Self.estado(para: erro)
+        } catch let erro as ErroDaApi where erro.codigo == .limiteExcedido || erro.recursoDesligado || erro.termosPendentes {
+            recusarSemPagina(erro, filtro: filtro)
         } catch {
             erroAoCarregarMais = TextosBuscaDeProfissionais.erroAoCarregarMais
+        }
+    }
+
+    /// A página seguinte (ou a releitura do `cursor_invalido`) foi recusada por limite, chave desligada ou
+    /// `termos_pendentes`. Com `termos_pendentes` a lista sai e a busca guarda o filtro para repetir depois do aceite.
+    private func recusarSemPagina(_ erro: ErroDaApi, filtro: FiltroBuscaProfissionais) {
+        estado = Self.estado(para: erro)
+        if estado == .termosPendentes {
+            limparResultados()
+            filtroDaBuscaPendenteDeTermos = filtro
         }
     }
 
@@ -252,6 +307,8 @@ public final class BuscaDeProfissionaisViewModel {
     private static func estado(para erro: Error) -> Estado {
         guard let api = erro as? ErroDaApi else { return .erro(TextosBuscaDeProfissionais.erro) }
         if api.recursoDesligado { return .indisponivel }
+        // Antes do `switch`: `termos_pendentes` chega como `sem_permissao` e não é a mensagem de permissão.
+        if api.termosPendentes { return .termosPendentes }
         switch api.codigo {
         case .limiteExcedido: return .erro(TextosBuscaDeProfissionais.limiteDeBuscas)
         case .contaSuspensa: return .erro(TextosBuscaDeProfissionais.contaSuspensa)

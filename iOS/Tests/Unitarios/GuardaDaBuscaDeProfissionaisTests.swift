@@ -51,6 +51,7 @@ struct GuardaDaBuscaDeProfissionaisTests {
             await registro.guardar(pedido)
             throw ErroDaApi(codigo: .respostaInvalida)
         }
+        func aceitarTermos(versao: String) async throws -> AceiteDeTermos { throw ErroDaApi(codigo: .respostaInvalida) }
     }
 
     private func guarda(_ fonte: any FonteDaBuscaDeProfissionais) -> GuardaDaBuscaDeProfissionais {
