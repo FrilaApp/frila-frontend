@@ -19,7 +19,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   const api = apiDoUsuario(sessao.acesso);
   const leitura = await lerMeuPerfil(api);
   if (leitura.estado === "sem_perfil") {
-    // Quem ainda não tem perfil termina o cadastro no app: o link da loja é o da linha "ios" da configuração.
+    // Quem ainda não tem perfil cria o perfil aqui (/perfil/cadastro) ou no app: o link da loja é o da linha "ios".
     const loja = await lerConfiguracaoDoApp(api, { plataforma: "ios" });
     const link = loja.estado === "ok" ? loja.configuracao.url_da_loja : "";
     return { estado: leitura.estado, perfil: null, linkDaAppStore: /^https:\/\/apps\.apple\.com\//.test(link) ? link : null };
@@ -74,6 +74,11 @@ export default function Perfil({ loaderData, actionData }: Route.ComponentProps)
       {estado !== "ok" || !perfil ? (
         <>
           <p role="alert">{AVISO_DO_ESTADO[estado]}</p>
+          {estado === "sem_perfil" ? (
+            <Link to="/perfil/cadastro" className={`${classeDoBotao} inline-flex items-center justify-center`}>
+              {textos.profissionalCadastro.abrir}
+            </Link>
+          ) : null}
           {linkDaAppStore ? (
             <a href={linkDaAppStore} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
               {textos.publico.rodape.appStore}

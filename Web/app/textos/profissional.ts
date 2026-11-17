@@ -189,7 +189,7 @@ export const profissional = {
     salvar: "Salvar",
     salvando: "Salvando…",
     noApp: "Funções, ponto base e disponibilidade, por enquanto, só no app do Frila.",
-    semPerfil: "O seu perfil de profissional ainda não foi criado. Termine o cadastro no app do Frila.",
+    semPerfil: "O seu perfil de profissional ainda não foi criado. Crie o perfil para continuar.",
     resultado: {
       salvo: "Perfil salvo.",
       campo_recusado: "Esse texto não pode ser publicado. Tire telefone, e-mail, link, @ ou Pix e tente de novo.",
