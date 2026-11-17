@@ -1,5 +1,5 @@
 /**
- * Textos do dia do turno do lado da casa (lista dos turnos, código de chegada, confirmação manual, atraso e falta).
+ * Textos do dia do turno do lado da casa (lista dos turnos, código de chegada, confirmação manual, atraso e falta, avaliação).
  * As frases seguem as do app (TextosDoAcompanhamento e TextosDoCheckinPorCodigoCasa).
  */
 export const contratanteTurno = {
@@ -69,6 +69,21 @@ export const contratanteTurno = {
     sem_permissao: "Só quem faz parte da casa pode fazer isso.",
     sem_sessao: "Sua sessão terminou. Entre de novo para continuar.",
     indisponivel: "Não deu para falar com o servidor. Tente de novo em instantes.",
+  },
+  avaliacao: {
+    titulo: "Como foi?",
+    pergunta: "Chamaria este profissional de novo?",
+    sim: "Sim",
+    nao: "Não",
+    respondeu: "Resposta da casa:",
+    resultado: {
+      registrada: "Obrigado. Sua resposta foi registrada.",
+      antes_do_fim: "A avaliação abre depois do fim do turno.",
+      sem_presenca_verificada: "Só turno com presença confirmada pode ser avaliado.",
+      ja_registrada: "A casa já respondeu sobre este turno.",
+      sem_permissao: "Só quem faz parte da casa pode avaliar.",
+      indisponivel: "Não deu para enviar agora. Tente de novo em instantes.",
+    },
   },
   avisos: {
     perfil_incompativel: "Esta área é de quem contrata. A sua conta é de profissional.",

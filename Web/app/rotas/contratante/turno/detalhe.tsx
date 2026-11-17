@@ -1,5 +1,6 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
+import { avaliarOProfissional } from "../../../servidor/contratante/turno/avaliacao";
 import { confirmarPresenca, gerarCodigo, reabrirPorAtraso } from "../../../servidor/contratante/turno/presenca";
 import { casaDaTela, chegadaDo, listarMinhasCasas, listarTurnosDaCasa } from "../../../servidor/contratante/turno/turnos";
 import { apiDoUsuario } from "../../../servidor/deste-ambiente";
@@ -45,6 +46,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       podeConfirmar: presencaPendente,
       // A tolerância é do servidor (422 antes dela); a tela só não oferece o botão antes da hora.
       podeReabrir: confirmado && turno.checkin_em === null && Date.now() >= Date.parse(turno.vaga.inicio_em) + TOLERANCIA_MS,
+      // Avaliar abre depois do fim, com presença verificada (o servidor diz em pode_avaliar). Ausente não é nulo.
+      podeAvaliar: turno.pode_avaliar,
+      respostaDada: turno.avaliacao ? turno.avaliacao.resposta : null,
     },
   };
 }
@@ -55,6 +59,16 @@ export async function action({ context, request }: Route.ActionArgs) {
   const formulario = await request.formData();
   const intencao = formulario.get("intencao");
   const turnoId = String(formulario.get("turno_id") ?? "");
+  if (intencao === "avaliar") {
+    const resposta = formulario.get("resposta");
+    const resultado =
+      resposta === "sim" || resposta === "nao"
+        ? await avaliarOProfissional(api, turnoId, resposta === "sim")
+        : ({ ok: false, motivo: "indisponivel" } as const);
+    const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
+    if (avaliacao === "sem_sessao") throw redirect("/entrar");
+    return { avaliacao };
+  }
   if (intencao === "codigo") {
     const gerado = await gerarCodigo(api, turnoId);
     if (!gerado.ok && gerado.motivo === "sem_sessao") throw redirect("/entrar");
@@ -85,6 +99,7 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
   const enviando = useNavigation().state !== "idle";
   const codigo = actionData && "codigo" in actionData && actionData.codigo ? { codigo: actionData.codigo, minutos: actionData.minutos ?? 1 } : null;
   const resultado = actionData && "resultado" in actionData ? actionData.resultado : null;
+  const avaliacao = actionData && "avaliacao" in actionData ? actionData.avaliacao : null;
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 p-6">
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
@@ -93,6 +108,11 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
       {resultado ? (
         <p role="status" className="font-semibold">
           {t.resultado[resultado]}
+        </p>
+      ) : null}
+      {avaliacao ? (
+        <p role="status" className="font-semibold">
+          {t.avaliacao.resultado[avaliacao]}
         </p>
       ) : null}
       {turno ? (
@@ -155,6 +175,26 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
               <button type="submit" disabled={enviando} aria-describedby="regra-da-reabertura" className={classeDoBotaoSecundario}>
                 {enviando ? t.turno.enviando : t.atraso.reabrir}
               </button>
+            </Form>
+          ) : null}
+          {turno.respostaDada !== null ? (
+            <p>
+              {t.avaliacao.respondeu} <strong>{turno.respostaDada ? t.avaliacao.sim : t.avaliacao.nao}</strong>
+            </p>
+          ) : turno.podeAvaliar ? (
+            <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
+              <h2 className="font-semibold">{t.avaliacao.titulo}</h2>
+              <p id="pergunta-da-avaliacao">{t.avaliacao.pergunta}</p>
+              <input type="hidden" name="intencao" value="avaliar" />
+              <input type="hidden" name="turno_id" value={turno.id} />
+              <div className="flex gap-3" role="group" aria-labelledby="pergunta-da-avaliacao">
+                <button type="submit" name="resposta" value="sim" disabled={enviando} className={classeDoBotao}>
+                  {t.avaliacao.sim}
+                </button>
+                <button type="submit" name="resposta" value="nao" disabled={enviando} className={classeDoBotaoSecundario}>
+                  {t.avaliacao.nao}
+                </button>
+              </div>
             </Form>
           ) : null}
         </>
