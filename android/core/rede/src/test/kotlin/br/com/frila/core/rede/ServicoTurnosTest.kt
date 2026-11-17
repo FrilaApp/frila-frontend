@@ -84,6 +84,29 @@ class ServicoTurnosTest {
     }
 
     @Test
+    fun `contato_visivel_ate e descontinuado no contrato - ausente ou nulo, o turno decodifica`() = runTest {
+        // Turno.contato_visivel_ate (0.2.49): opcional e nulável; o servidor que parar de entregar o contato omite ou manda null.
+        val semCampo = turnoJson.replace("  \"contato_visivel_ate\": \"2026-11-09T03:00:00Z\",\n", "")
+        val comNulo = turnoJson.replace("\"contato_visivel_ate\": \"2026-11-09T03:00:00Z\"", "\"contato_visivel_ate\": null")
+        assertTrue(!semCampo.contains("contato_visivel_ate"), "o JSON de teste ficou sem o campo")
+        val engine = MockEngine {
+            respond(
+                content = "[$semCampo, $comNulo]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+
+        val turnos = servico.listarMeusTurnos()
+
+        assertEquals(2, turnos.size)
+        assertNull(turnos[0].contatoVisivelAte)
+        assertNull(turnos[1].contatoVisivelAte)
+        assertEquals("confirmada", turnos[1].estado)
+    }
+
+    @Test
     fun `turno cancelado (RN12) continua na lista, nao e filtrado pelo servico`() = runTest {
         val jsonCancelado = """
             {

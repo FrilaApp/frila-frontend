@@ -15263,6 +15263,18 @@
           }
         }
       }
+    },
+    "Esta chamada vai com os termos da vaga já aberta: %@" : {
+      "comment" : "Tela provisória da busca (409 trabalho_ja_aberto). %@ é o valor e os inclusos da vaga já aberta, por exemplo: R$ 150,00, Refeição inclusa, sem transporte.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta chamada vai com os termos da vaga já aberta: %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
