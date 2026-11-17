@@ -94,7 +94,7 @@ function authQue(opcoes: { conferir?: Conferencia; renovar?: Renovacao } = {}) {
 describe("sessão de um pedido", () => {
   it("sem cookies, ninguém entrou, nada é gravado e o Auth não é chamado", async () => {
     const auth = authQue();
-    expect(await resolverSessao(pedido(""), auth, AGORA)).toEqual({ sessao: null, cookies: [] });
+    expect(await resolverSessao(pedido(""), auth, AGORA)).toEqual({ sessao: null, cookies: [], auth: "sem_cookie" });
     expect(auth.conferir).not.toHaveBeenCalled();
     expect(auth.renovar).not.toHaveBeenCalled();
   });
@@ -103,7 +103,7 @@ describe("sessão de um pedido", () => {
     const acesso = acessoQueVenceEm(600);
     const auth = authQue();
     const resultado = await resolverSessao(pedido(`__Host-frila-acesso=${acesso}; __Host-frila-renovacao=r1`), auth, AGORA);
-    expect(resultado).toEqual({ sessao: { acesso, usuarioId: "usuario-1", email: "ana@example.com" }, cookies: [] });
+    expect(resultado).toEqual({ sessao: { acesso, usuarioId: "usuario-1", email: "ana@example.com" }, cookies: [], auth: "ok" });
     expect(auth.conferir).toHaveBeenCalledExactlyOnceWith(acesso);
     expect(auth.renovar).not.toHaveBeenCalled();
   });
@@ -113,6 +113,7 @@ describe("sessão de um pedido", () => {
     expect(await resolverSessao(pedido(`__Host-frila-acesso=${acessoQueVenceEm(600)}`), auth, AGORA)).toEqual({
       sessao: null,
       cookies: cookiesDeSaida(true),
+      auth: "recusou",
     });
   });
 
@@ -141,7 +142,7 @@ describe("sessão de um pedido", () => {
       authQue({ renovar: { ok: false, motivo: "recusada" } }),
       AGORA,
     );
-    expect(resultado).toEqual({ sessao: null, cookies: cookiesDeSaida(true) });
+    expect(resultado).toEqual({ sessao: null, cookies: cookiesDeSaida(true), auth: "recusou" });
   });
 
   it("Auth fora do ar: sem sessão neste pedido e sem apagar nada", async () => {
@@ -151,7 +152,7 @@ describe("sessão de um pedido", () => {
       `__Host-frila-acesso=${acessoQueVenceEm(30)}; __Host-frila-renovacao=r1`,
       `__Host-frila-acesso=${acessoQueVenceEm(-5)}; __Host-frila-renovacao=r1`,
     ]) {
-      expect(await resolverSessao(pedido(cookie), fora, AGORA)).toEqual({ sessao: null, cookies: [] });
+      expect(await resolverSessao(pedido(cookie), fora, AGORA)).toEqual({ sessao: null, cookies: [], auth: "indisponivel" });
     }
   });
 
@@ -159,6 +160,7 @@ describe("sessão de um pedido", () => {
     expect(await resolverSessao(pedido(`__Host-frila-acesso=${acessoQueVenceEm(600)}`), null, AGORA)).toEqual({
       sessao: null,
       cookies: [],
+      auth: "indisponivel",
     });
   });
 
@@ -174,6 +176,7 @@ describe("sessão de um pedido", () => {
     expect(await resolverSessao(pedido(`__Host-frila-acesso=${acessoQueVenceEm(-5)}`), auth, AGORA)).toEqual({
       sessao: null,
       cookies: cookiesDeSaida(true),
+      auth: "recusou",
     });
     expect(auth.conferir).not.toHaveBeenCalled();
   });
@@ -182,6 +185,7 @@ describe("sessão de um pedido", () => {
     expect(await resolverSessao(pedido("__Host-frila-acesso=lixo"), authQue(), AGORA)).toEqual({
       sessao: null,
       cookies: cookiesDeSaida(true),
+      auth: "recusou",
     });
   });
 });

@@ -55,6 +55,7 @@ export const textos = {
     entrou: "Você entrou como",
     semEmail: "sua conta",
     sair: "Sair",
+    sairFalhou: "Não deu para sair agora. Tente de novo.",
     estado: {
       ok: "Conta",
       sem_conta: "Falta completar o cadastro. Essa parte chega em breve na web; por enquanto, faça pelo app.",

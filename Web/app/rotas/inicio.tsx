@@ -8,7 +8,7 @@ import { apiDoUsuario } from "../servidor/deste-ambiente";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/inicio";
 
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   if (env.WEB_LIGADA !== "1") {
     return { webLigada: false as const };
   }
@@ -24,6 +24,8 @@ export async function loader({ context }: Route.LoaderArgs) {
     versaoMinima: leitura.estado === "ok" ? leitura.configuracao.versao_minima : null,
     // Só o que a tela mostra: o token fica no servidor.
     entrou: sessao ? { email: sessao.email, conta } : null,
+    // O sair não se confirmou no Auth: os cookies ficaram, e a pessoa tenta de novo.
+    sairFalhou: new URL(request.url).searchParams.get("sair") === "falhou",
   };
 }
 
@@ -47,6 +49,20 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
       <h1 className="font-titulo text-3xl font-bold">{bloco.titulo}</h1>
       <p className="text-tinta-suave">{bloco.corpo}</p>
 
+      {loaderData.webLigada && loaderData.sairFalhou ? (
+        <div className="flex flex-col gap-3">
+          <p role="alert" className="font-semibold">
+            {textos.conta.sairFalhou}
+          </p>
+          {entrou ? null : (
+            <Form method="post" action="/sair">
+              <button type="submit" className={classeDoBotao}>
+                {textos.conta.sair}
+              </button>
+            </Form>
+          )}
+        </div>
+      ) : null}
       {entrou ? (
         <section className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4">
           <p>
