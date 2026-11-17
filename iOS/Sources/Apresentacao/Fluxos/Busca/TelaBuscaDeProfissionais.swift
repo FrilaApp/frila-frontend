@@ -104,6 +104,12 @@ public struct TelaBuscaDeProfissionais: View {
             Button { Task { await reenviarComJ7() } } label: { Text(verbatim: TextosChamadaDireta.j7Confirmar) }
                 .accessibilityIdentifier("busca-j7-confirmar")
         } message: { Text(verbatim: TextosChamadaDireta.j7Mensagem) }
+        .sheet(isPresented: $viewModel.mostrarTermosDaVagaAberta) {
+            // 0.2.95: a vaga já aberta do trabalho tem outros termos. Só sai com Confirmar; fechar a folha é Cancelar.
+            if let folha = TelaTermosDaVagaAbertaProvisoria(modelo: viewModel) {
+                ScrollView { folha }
+            }
+        }
     }
 
     // MARK: Estados
@@ -126,6 +132,9 @@ public struct TelaBuscaDeProfissionais: View {
             }
         case .indisponivel:
             Section { Text(verbatim: TextosBuscaDeProfissionais.indisponivel).accessibilityIdentifier("busca-indisponivel") }
+        case .termosPendentes:
+            // `termos_pendentes` (0.2.90): aceitar repete a busca com os mesmos filtros; sem aceite, segue bloqueada.
+            Section { TelaAceiteDeTermosProvisoria(modelo: viewModel) }
         case let .erro(mensagem):
             Section {
                 Text(verbatim: mensagem).accessibilityIdentifier("busca-erro")
@@ -177,13 +186,7 @@ public struct TelaBuscaDeProfissionais: View {
                     .navigationTitle(Text(verbatim: cartao.nome))
             } label: {
                 VStack(alignment: .leading) {
-                    Text(verbatim: cartao.nome)
-                    Text(verbatim: TextosDosServicos.resumoDoServico(cartao.servico.servico) ?? cartao.servico.funcao.nome)
-                    Text(verbatim: cartao.distanciaFaixa.rotulo)
-                    if cartao.disponivelNoHorario == true {
-                        Text(verbatim: TextosBuscaDeProfissionais.disponivelNesseHorario)
-                            .accessibilityIdentifier("disponivel-\(cartao.id)")
-                    }
+                    CartaoDaBuscaProvisorio(cartao: cartao)
                     if let resultado = viewModel.resultadosDaChamada[cartao.id] {
                         Text(verbatim: Self.texto(resultado))
                             .accessibilityIdentifier("resultado-chamada-\(cartao.id)")
@@ -206,6 +209,10 @@ public struct TelaBuscaDeProfissionais: View {
         case .pedeConfirmacaoDeRecorrencia: TextosBuscaDeProfissionais.resultadoPedeConfirmacao
         case let .erro(mensagem): mensagem
         case .naoEnviada: TextosBuscaDeProfissionais.resultadoNaoEnviada
+        case let .pedeConfirmacaoDosTermos(termos):
+            // 0.2.95: espera a casa confirmar os termos da vaga já aberta (a folha abaixo).
+            String(localized: "Esta chamada vai com os termos da vaga já aberta: \(TelaTermosDaVagaAbertaProvisoria.linha(termos))",
+                   bundle: bundleApresentacao)
         }
     }
 

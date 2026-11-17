@@ -1,7 +1,8 @@
 import XCTest
 
 /// A busca de profissionais (telas PROVISÓRIAS) no dublê, cenário `busca-de-profissionais`:
-/// Minhas vagas → Encontrar profissional → buscar → selecionar 2 → chamar → "enviada".
+/// Minhas vagas → Encontrar profissional → buscar → selecionar 2 → chamar → "enviada". No cenário
+/// `busca-com-termos-pendentes`, a busca pede o aceite dos Termos e repete depois dele.
 @MainActor
 final class BuscaDeProfissionaisUITests: XCTestCase {
     // Pelo fluxo real do contratante (o atalho -FRILA_ABRIR_MINHAS_VAGAS monta a tela sem o fluxo e sem a entrada da busca).
@@ -121,4 +122,39 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
 
     func testCapturaPadrao() { capturar(ax5: false) }
     func testCapturaAX5() { capturar(ax5: true) }
+
+    // MARK: Termos 1.1 pendentes (contrato 0.2.90), cenário `busca-com-termos-pendentes`
+
+    /// A conta ainda não aceitou os Termos 1.1: a busca pede o aceite e, depois dele, a mesma busca traz gente.
+    private func aceitarOsTermosERepetirABusca(ax5: Bool) {
+        let sufixo = ax5 ? "ax5" : "padrao"
+        let app = abrir(["-FRILA_SCENARIO", "busca-com-termos-pendentes"]
+                        + (ax5 ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : []))
+        abrirABusca(app)
+        buscar(app)
+
+        let aceitar = app.buttons["aceite-termos-aceitar"]
+        XCTAssertTrue(aceitar.waitForExistence(timeout: 15) || procurar(aceitar, em: app), "sem os Termos 1.1, a busca pede o aceite")
+        XCTAssertTrue(app.descendants(matching: .any)["aceite-termos-link"].exists, "o aceite leva aos Termos de Uso")
+        // A versão aceita cobre os Termos 1.2 e a Política 1.3: a Política também está na tela (revisão do #800).
+        XCTAssertTrue(app.descendants(matching: .any)["aceite-politica-link"].exists, "o aceite leva à Política de Privacidade")
+        XCTAssertTrue(app.staticTexts["aceite-termos-titulo"].label.contains("Política de Privacidade"),
+                      "a frase do topo cita os Termos e a Política")
+        let selecoes = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'"))
+        XCTAssertEqual(selecoes.count, 0, "antes do aceite a busca não traz ninguém")
+        // Em AX5 os filtros ocupam a tela: a captura sai depois de rolar até o aceite.
+        XCTAssertTrue(procurar(aceitar, em: app), "o botão Aceitar fica alcançável")
+        salvar(app, "busca-termos-pendentes-\(sufixo)")
+
+        aceitar.tap()
+        let primeira = selecoes.firstMatch
+        XCTAssertTrue(primeira.waitForExistence(timeout: 15) || procurar(primeira, em: app),
+                      "depois do aceite, a mesma busca traz profissionais")
+        XCTAssertFalse(app.buttons["aceite-termos-aceitar"].exists, "com o aceite feito, o pedido some")
+        XCTAssertTrue(procurar(primeira, em: app), "o primeiro cartão fica alcançável")
+        salvar(app, "busca-depois-do-aceite-\(sufixo)")
+    }
+
+    func testTermosPendentesPedeOAceiteEABuscaPassa() { aceitarOsTermosERepetirABusca(ax5: false) }
+    func testTermosPendentesAX5() { aceitarOsTermosERepetirABusca(ax5: true) }
 }

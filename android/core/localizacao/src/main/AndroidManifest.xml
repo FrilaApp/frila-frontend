@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- RN06/RNF04: geofencing passivo precisa monitorar com o app em segundo plano. -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- O alerta de aproximação (GeofenceAlertaReceiver) posta aviso; no Android 13 ou mais a pessoa pode negar. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <receiver

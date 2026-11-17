@@ -1,12 +1,16 @@
 package br.com.frila.feature.turnos
 
+import android.Manifest
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import java.time.Instant
 
 /**
@@ -41,8 +45,16 @@ class NotificadorTurnoAndroid(private val contexto: Context) {
             .addAction(acaoSuporte(especificacao.turnoId))
             .build()
 
-    /** Monta e posta a notificação no sistema, identificada por [idDaNotificacao]. */
+    /**
+     * Monta e posta a notificação no sistema, identificada por [idDaNotificacao]. No Android 13 ou mais, sem a permissão
+     * `POST_NOTIFICATIONS` não posta nada (a pessoa negou o aviso).
+     */
     fun postar(especificacao: EspecificacaoNotificacaoTurno, fimTurno: Instant) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(contexto, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         val notificacao = construir(especificacao, fimTurno)
         NotificationManagerCompat.from(contexto).notify(idDaNotificacao(especificacao.turnoId), notificacao)
     }

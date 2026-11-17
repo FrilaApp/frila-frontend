@@ -1685,6 +1685,17 @@
         }
       }
     },
+    "Aceitar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceitar"
+          }
+        }
+      }
+    },
     "Aceitar chamada": {
       "extractionState": "manual",
       "localizations": {
@@ -6953,6 +6964,17 @@
         }
       }
     },
+    "Ler os Termos de Uso": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ler os Termos de Uso"
+          }
+        }
+      }
+    },
     "Leva material?": {
       "extractionState": "manual",
       "localizations": {
@@ -8589,6 +8611,17 @@
         }
       }
     },
+    "Não foi possível registrar o aceite. Tente de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível registrar o aceite. Tente de novo."
+          }
+        }
+      }
+    },
     "Não foi possível registrar o chamado. Tente novamente.": {
       "extractionState": "stale",
       "localizations": {
@@ -9612,6 +9645,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Painel do contratante para publicação e gestão de turnos."
+          }
+        }
+      }
+    },
+    "Para buscar profissionais, aceite os Termos de Uso atualizados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para buscar profissionais, aceite os Termos de Uso atualizados."
           }
         }
       }
@@ -15205,6 +15249,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas."
+          }
+        }
+      }
+    },
+    "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade."
+          }
+        }
+      }
+    },
+    "Esta chamada vai com os termos da vaga já aberta: %@" : {
+      "comment" : "Tela provisória da busca (409 trabalho_ja_aberto). %@ é o valor e os inclusos da vaga já aberta, por exemplo: R$ 150,00, Refeição inclusa, sem transporte.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta chamada vai com os termos da vaga já aberta: %@"
           }
         }
       }

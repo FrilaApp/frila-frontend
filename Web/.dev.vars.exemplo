@@ -1,0 +1,4 @@
+# Copie para .dev.vars (ignorado pelo git) ou rode scripts/gerar-dev-vars.sh.
+# Só o endereço e a chave PUBLICÁVEL do Supabase de dev. Nunca service_role.
+SUPABASE_URL=
+SUPABASE_CHAVE_PUBLICAVEL=
