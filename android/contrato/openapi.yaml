@@ -119,39 +119,54 @@ info:
 
     **Versão 0.2.95, de 16/11/2026.** Uma casa não abre duas vagas diretas para o mesmo trabalho
     (frila-backend#520, achado da revisão do app na bateria da busca). Adição compatível: um código
-    de erro novo em `chamar_profissional`. Nenhum campo, operação ou resposta de sucesso muda. Os
-    números 0.2.92 a 0.2.94 ficam para os PRs abertos #256 a #258.
+    de erro novo em `chamar_profissional` e uma frase em `publicar_a_partir_da_chamada`. Nenhum campo,
+    operação ou resposta de sucesso muda. Os números 0.2.92 a 0.2.94 foram pulados: os PRs abertos
+    #256 a #258 sobem para 0.2.96 ou mais ao entrar depois desta (a CI recusa versão menor).
     - **O problema:** pela busca, a 1ª chamada sem `vaga_id` cria a vaga direta, e a 2ª e a 3ª usam
       o `vaga_id` dela. O servidor não impedia outra chamada sem `vaga_id` para o mesmo trabalho:
       nascia uma segunda vaga direta, e duas pessoas podiam aceitar o que a casa via como um
       trabalho só. A `chave` só cobre o reenvio da mesma chamada.
     - **A decisão: recusar, e não reaproveitar.** A chamada recebe `409 trabalho_ja_aberto`, com o
-      `vaga_id` do trabalho aberto em `details`, e o app a repete com esse `vaga_id`. Reaproveitar
+      `vaga_id` do trabalho aberto em `details`, e o app a repete com esse `vaga_id`. A 2ª chamada
+      vai sempre com os termos da vaga aberta; se o valor ou os inclusos digitados forem
+      diferentes, o app mostra os da vaga e pede a confirmação da casa antes de repetir. Reaproveitar
       a vaga em silêncio foi descartado por dois motivos:
       1. a chamada sem `vaga_id` traz os próprios termos (valor, local, inclusos). Reaproveitar
          jogaria esses termos fora sem a casa saber, ou mudaria os da vaga com chamada aberta, o
          que a CD-C04 proíbe. Com a recusa, a diferença aparece na tela;
       2. reaproveitar mudaria o que o sucesso quer dizer numa operação que já existe (chamada sem
          `vaga_id` deixaria de criar vaga). A recusa é só um código a mais.
-    - **Mesmo trabalho:** a mesma casa, a mesma função, o mesmo início e o mesmo fim. O valor, o
-      local, a região e os inclusos não entram: são termos do trabalho, e não o que o identifica.
+    - **Mesmo trabalho:** a mesma casa, a mesma função, o mesmo início e o mesmo fim, comparados
+      **até o minuto** (os apps mandam os segundos do relógio). O valor, o local, a região e os
+      inclusos não entram: são termos do trabalho, e não o que o identifica.
     - **Trabalho aberto:** a vaga direta `publicada`, com início no futuro, posição livre e pelo
-      menos uma chamada `aberta`. Sem chamada aberta, ninguém pode aceitar, e a casa pode chamar de
+      menos uma chamada `aberta` e ainda no prazo. Sem chamada aberta, ninguém pode aceitar, e a casa pode chamar de
       novo com outros termos (CD-C04, CD-C10): aí a chamada sem `vaga_id` cria vaga nova, como antes.
     - **Ordem, corrida e `chave`:** a recusa sai logo depois de `409 chamada_ja_aberta`, antes de
       qualquer conferência sobre o profissional, e não revela nada dele. Duas chamadas ao mesmo
-      tempo para o mesmo trabalho: uma cria a vaga, a outra recebe a recusa com o `vaga_id` criado.
+      tempo para o mesmo trabalho, a profissionais diferentes: uma cria a vaga, a outra recebe a
+      recusa com o `vaga_id` criado.
       Reenviar a mesma `chave` continua devolvendo a mesma chamada. O texto completo está em
       `chamar_profissional`.
-    - **App que não conhece o código** (o iOS 1.2.0, no TestFlight, e o Android): mostra o erro
-      genérico da tela da chamada, sem travar. No iOS 1.2.0 o texto é "Não foi possível concluir a
-      chamada. Verifique sua conexão e tente novamente.". Esse app nunca manda `vaga_id`, então só
-      vê a recusa ao chamar outra pessoa para a mesma função e o mesmo horário **enquanto** a
-      primeira chamada está aberta. Respondida, expirada ou cancelada a primeira, a chamada passa.
-      O caminho em sequência (um recusou, chama outro) não muda.
-    - **Fica para outra versão:** `publicar_a_partir_da_chamada` não confere o trabalho aberto, e
-      não há campo para a casa dizer que quer duas pessoas da mesma função no mesmo horário por
-      chamada direta (hoje: um trabalho de cada vez, ou vaga normal com duas posições).
+    - **App que não conhece o código:** o iOS 1.2.0 (TestFlight) mostra o erro genérico da tela da
+      chamada ("Não foi possível concluir a chamada. Verifique sua conexão e tente novamente.") e
+      segue. O Android e as telas da busca do iOS tratam código desconhecido como resultado incerto
+      e travam a folha ou a busca até a pessoa fechar a tela. Por isso os dois apps tratam
+      `trabalho_ja_aberto` como recusa definitiva e repetem com o `vaga_id` no mesmo ciclo, antes de
+      a regra chegar ao ambiente deles, e a versão que for à loja já conhece o código. O iOS 1.2.0
+      nunca manda `vaga_id`, então só vê a recusa ao chamar outra pessoa para a mesma função e o
+      mesmo horário (até o minuto) **enquanto** a primeira chamada está aberta. Respondida, expirada
+      ou cancelada a primeira, a chamada passa. O caminho em sequência (um recusou, chama outro) não
+      muda. Limite que fica: quem não mexe no horário manda "agora + 24 h", que muda a cada
+      abertura da folha; nenhuma regra de igualdade pega isso, e quem segura é o app.
+    - **`publicar_a_partir_da_chamada`:** ao converter uma vaga direta, encerra também as chamadas
+      abertas das outras vagas diretas da casa para o mesmo trabalho (até o minuto), com o mesmo
+      aviso. Assim "Publicar para todos" numa vaga antiga, sem chamada aberta, não deixa uma vaga
+      normal despachada ao lado de uma chamada aberta em outra vaga direta (CD-C15).
+    - **Fica para outra versão:** não há campo para a casa dizer que quer duas pessoas da mesma
+      função no mesmo horário por chamada direta (hoje: um trabalho de cada vez, ou vaga normal com
+      duas posições), e uma chamada direta nova ao lado de uma vaga normal aberta para o mesmo
+      horário não é recusada.
 
     **Versão 0.2.91, de 16/11/2026.** Só descrição: a versão `2026-11-16` (Termos de Uso 1.2 e Política
     de Privacidade 1.3, no ar em frilabr.com desde 16/11/2026 às 17:48) entra na lista de versões
@@ -4289,7 +4304,8 @@ paths:
         trabalho que já tem chamada aberta. O servidor recusa, em vez de reaproveitar a vaga, para
         os termos nunca mudarem sem a casa ver (CD-C04).
         - **Mesmo trabalho:** o mesmo `estabelecimento_id`, o mesmo `funcao_id`, o mesmo `inicio_em`
-          e o mesmo `fim_em`, comparados como instantes. Com `vaga_id` de vaga direta da casa, valem
+          e o mesmo `fim_em`, comparados **truncados ao minuto** (os apps mandam os segundos do
+          relógio; o corte é só no servidor e não muda o que se grava). Com `vaga_id` de vaga direta da casa, valem
           a função e o horário dessa vaga. O valor, o local, o ponto, a região
           (`regiao_administrativa` e `regiao_id`), os inclusos, o responsável e o recado **não**
           entram, por três motivos:
@@ -4299,7 +4315,9 @@ paths:
             passaria por outro trabalho;
           - `regiao_id` é opcional, e só o caminho da busca o manda.
         - **Trabalho aberto:** a vaga da casa com `origem = chamada_direta`, `publicada`, com início
-          no futuro, com a posição livre e com pelo menos uma chamada `aberta`. Vaga preenchida,
+          no futuro, com a posição livre e com pelo menos uma chamada `aberta` e ainda no prazo
+          (`agora < expira_em`, pelo relógio do servidor, mesmo antes de a rotina de expiração
+          arrumar o estado). Vaga preenchida,
           cancelada ou encerrada não conta. Vaga direta sem chamada aberta (todas recusadas,
           expiradas ou canceladas, ou posição reaberta) também não: ninguém pode aceitá-la, e a
           casa pode chamar de novo com outros termos (CD-C04, CD-C10). Nesse caso a chamada sem
@@ -4308,16 +4326,27 @@ paths:
         - **A recusa:** havendo trabalho aberto, a chamada só entra nele. A chamada sem `vaga_id`
           para o mesmo trabalho, ou com o `vaga_id` de outra vaga direta do mesmo trabalho, recebe
           `409 trabalho_ja_aberto`, com o `vaga_id` do trabalho aberto em `details` (o uuid, em
-          texto). Nada é criado e nenhuma cota é gasta.
+          texto). Nada é criado e nenhuma cota é gasta. Com `vaga_id` de vaga direta já preenchida
+          ou encerrada e outra vaga do mesmo trabalho aberta, vale `trabalho_ja_aberto` (ela vem
+          antes de `409 vaga_encerrada`).
         - **O que o app faz:** repete a chamada com esse `vaga_id`, sem os campos do trabalho; pode
-          usar a mesma `chave`, que a recusa não consome. Aí valem os termos da vaga que já existe
-          (`detalhe_vaga`), e não os do corpo recusado: se o que a pessoa preencheu é diferente, o
-          app mostra os termos da vaga antes de repetir. Para mudar os termos, a casa cancela as
+          usar a mesma `chave`, que a recusa não consome. **A 2ª chamada vai sempre com os termos da
+          vaga que já existe** (valor, inclusos, local e quem recebe), e os do corpo recusado são
+          descartados: é o que o profissional vê e aceita. Por isso, quando o valor ou os inclusos
+          que a pessoa digitou forem diferentes dos da vaga, o app **não repete sozinho**: mostra em
+          uma linha "Esta chamada vai com os termos da vaga já aberta: R$ …, …" e só repete com a
+          confirmação da casa. Iguais, pode repetir direto. A casa os lê pelas próprias chamadas, e não por `detalhe_vaga`
+          (que é leitura de profissional): `minhas_chamadas` com `estado=aberta` traz, no item com
+          esse `vaga_id`, a função, o início, o fim e o valor, e `detalhe_chamada` traz os inclusos e
+          a região. O trabalho aberto tem sempre chamada aberta, e a casa tem no máximo 10 abertas
+          (RN34), então ele cabe na primeira página. `details` continua sendo só o `vaga_id` (texto),
+          porque `Erro.details` é `string`. Para mudar os termos, a casa cancela as
           chamadas abertas do trabalho (`cancelar_chamada`) e chama de novo.
         - **Ordem:** a recusa sai depois das recusas de permissão (`401`, `403`), do bloqueio
           (`404`), de `termos_pendentes` e de `409 chamada_ja_aberta`. Sai antes de qualquer
           conferência sobre o profissional (as recusas genéricas, as pausas, o prazo e a agenda) e
-          dos limites da casa. Entre as validações de campo, só a do `regiao_id`
+          dos limites da casa. Entre as validações de campo, além dos três obrigatórios do topo
+          (`chave`, `profissional_id` e `estabelecimento_id`), só a do `regiao_id`
           (`422 campo_invalido`) vem antes dela; as dos outros campos vêm depois. Só é conferida quando a função
           e o horário são conhecidos: `funcao_id`, `inicio_em` e `fim_em` no corpo, ou `vaga_id` de
           vaga direta da casa. Sem isso, seguem as recusas de sempre (`422 campo_obrigatorio`,
@@ -4326,7 +4355,8 @@ paths:
         - **Corrida:** a conferência e a criação da vaga acontecem sob a mesma trava, por casa e
           por trabalho (o servidor pode usar a trava da casa inteira, mais larga, que já serializa
           as chamadas pelos limites da RN34). Duas chamadas sem `vaga_id` ao mesmo tempo para o
-          mesmo trabalho, com chaves diferentes: uma cria a vaga e a chamada; a outra espera e
+          mesmo trabalho, com chaves diferentes e a profissionais diferentes (ao mesmo profissional,
+          a segunda recebe `409 chamada_ja_aberta`, que vem antes): uma cria a vaga e a chamada; a outra espera e
           recebe `409 trabalho_ja_aberto` com o `vaga_id` que a primeira criou. Nunca nascem duas
           vagas, e nenhuma das duas recebe erro de concorrência. Se a primeira for recusada por
           outra regra, não há trabalho aberto, e a segunda segue normalmente.
@@ -4337,10 +4367,13 @@ paths:
           duas pessoas da mesma função no mesmo horário preenche um trabalho de cada vez (com o
           primeiro preenchido, a chamada seguinte sem `vaga_id` cria outra vaga) ou publica uma
           vaga normal com duas posições (`publicar_vaga`).
-        - **App que não conhece o código:** trata como erro desconhecido e mostra o texto genérico
-          da tela, sem travar. O iOS 1.2.0 nunca manda `vaga_id`: nele, a recusa só aparece ao
-          chamar outra pessoa para a mesma função e o mesmo horário enquanto a primeira chamada
-          está aberta, e some quando ela é respondida, expira ou é cancelada.
+        - **App que não conhece o código:** o iOS 1.2.0 mostra o texto genérico da tela e segue. O
+          Android e as telas da busca do iOS tratam código desconhecido como resultado incerto e
+          travam a folha ou a busca: por isso os dois apps tratam `trabalho_ja_aberto` como recusa
+          definitiva e repetem com o `vaga_id`, antes de a regra chegar ao ambiente deles. O iOS
+          1.2.0 nunca manda `vaga_id`: nele, a recusa só aparece ao chamar outra pessoa para a mesma
+          função e o mesmo horário (até o minuto) enquanto a primeira chamada está aberta, e some
+          quando ela é respondida, expira ou é cancelada.
 
         **Recorrência (J7, RN45):** se o estabelecimento é pessoa física (CPF) e esta seria a 3ª
         chamada ao mesmo profissional em 7 dias corridos, sem `confirmo_recorrencia: true` a resposta é
@@ -4666,6 +4699,12 @@ paths:
         `id`, `vaga_origem_id` apontando para a direta), despachada a partir desse momento como
         qualquer vaga, com os mesmos termos. A direta e as chamadas abertas dela vão a `encerrada`,
         com aviso aos chamados. Nunca há duas posições contratáveis para o mesmo trabalho.
+
+        0.2.95. Vão a `encerrada` também, na mesma transação e com o mesmo aviso, as chamadas abertas
+        das **outras** vagas diretas da casa para o mesmo trabalho (mesma função, mesmo início e mesmo
+        fim, até o minuto, como em `chamar_profissional`), e essas vagas vão a `encerrada`. Sem isso,
+        "Publicar para todos" numa vaga direta antiga, sem chamada aberta, deixaria uma vaga normal
+        despachada ao lado de uma chamada aberta noutra vaga direta do mesmo trabalho (CD-C15).
 
         Vale antes do início e, para posição reaberta por atraso, até `fim_em − 1 h`, a mesma janela de
         `reabrir_por_atraso`. Fora disso, ou com a direta já preenchida sem posição reaberta, ou
