@@ -19,9 +19,13 @@ struct TelaEstudioDeVaga: View {
 
     init(
         api: any ApiCliente, fila: any FilaDeAcoes, estabelecimento: Estabelecimento,
+        rascunhoDaBusca: RascunhoDeVagaDaBusca? = nil,
         sair: @escaping () -> Void = {}, aoPublicar: @escaping () -> Void, aoCancelar: (() -> Void)? = nil
     ) {
-        _formulario = State(initialValue: FormularioEstudioDeVaga(vaga: PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento)))
+        let vaga = PublicarVagaViewModel(api: api, fila: fila, estabelecimento: estabelecimento)
+        // "Publicar para todos" da busca vazia: abre com o serviço e o horário buscados; sem rascunho, igual a antes.
+        vaga.preencher(com: rascunhoDaBusca)
+        _formulario = State(initialValue: FormularioEstudioDeVaga(vaga: vaga))
         self.api = api
         self.sair = sair
         self.aoPublicar = aoPublicar

@@ -1,3 +1,4 @@
+// TELA PROVISÓRIA (a seção "Aceito chamadas diretas"): substituir pelo high-fi do Fabrício
 import FrilaDominio
 import SwiftUI
 
@@ -29,6 +30,8 @@ public struct TelaPreferenciasDeChamada: View {
                     .font(FrilaTipo.nota)
                     .foregroundStyle(FrilaCor.textoSecundario)
             }
+
+            if viewModel.buscaHabilitada { aceitoChamadasDiretas }
 
             Section {
                 Toggle(TextosChamadaDireta.pausarChamadas, isOn: $viewModel.pausarChamadas)
@@ -84,5 +87,24 @@ public struct TelaPreferenciasDeChamada: View {
         .navigationTitle(Text(verbatim: TextosChamadaDireta.preferenciasTitulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
+    }
+
+    /// "Aceito chamadas diretas" (0.2.88): põe o profissional na busca. Só com a chave `busca_profissionais` ligada.
+    private var aceitoChamadasDiretas: some View {
+        Section {
+            Toggle(TextosBuscaDeProfissionais.aceitoChamadas, isOn: $viewModel.aceitaChamadas)
+                .accessibilityIdentifier("toggle-aceito-chamadas-diretas")
+            Text(verbatim: TextosBuscaDeProfissionais.aceitoChamadasExplicacao)
+            if viewModel.apareceNaBusca {
+                Text(verbatim: TextosBuscaDeProfissionais.apareceNaBusca)
+                    .accessibilityIdentifier("aparece-na-busca")
+            } else if viewModel.aceitaChamadas, !viewModel.pendenciasParaBusca.isEmpty {
+                Text(verbatim: TextosBuscaDeProfissionais.paraAparecerNaBusca)
+                ForEach(viewModel.pendenciasParaBusca, id: \.self) { pendencia in
+                    Text(verbatim: TextosBuscaDeProfissionais.pendencia(pendencia))
+                }
+                .accessibilityIdentifier("pendencias-para-busca")
+            }
+        }
     }
 }
