@@ -54,7 +54,9 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 }
 
 type Onde = "escolher" | "cancelar" | "repetir" | "restantes";
-type Retorno = { erro: string; onde: Onde; chave?: string; motivo?: string };
+// `campos` é o dia e o horário que a `chave` levou ao servidor: se a casa mudar um deles depois de um "indisponível",
+// a chave antiga já pode ter gravado a vaga com o horário velho, e reenviá-la devolveria aquela cópia.
+type Retorno = { erro: string; onde: Onde; chave?: string; campos?: string; motivo?: string };
 
 export async function action({ request, params, context }: Route.ActionArgs): Promise<Retorno> {
   const sessao = exigirSessao(context);
@@ -81,9 +83,13 @@ export async function action({ request, params, context }: Route.ActionArgs): Pr
     if (!ehUuid(chave)) return { erro: ta.erros.formularioVelho, onde: intencao };
     let resultado;
     if (intencao === "repetir") {
+      const campos = [campo("dia"), campo("inicio"), campo("fim")].join("|");
+      const anteriores = campo("campos_da_chave");
       const horario = horarioEmUtc(campo("dia"), campo("inicio"), campo("fim"));
-      if (!horario) return { erro: ta.erros.dia, onde: "repetir", chave };
-      resultado = await republicarVaga(api, { vaga_id: vaga, ...horario, chave });
+      if (!horario) return { erro: ta.erros.dia, onde: "repetir", chave, campos: anteriores || undefined };
+      const chaveDoEnvio = anteriores && anteriores !== campos ? crypto.randomUUID() : chave;
+      resultado = await republicarVaga(api, { vaga_id: vaga, ...horario, chave: chaveDoEnvio });
+      if (!resultado.ok && resultado.motivo !== "sem_sessao") return { erro: ta.erros[resultado.motivo], onde: "repetir", chave: chaveDoEnvio, campos };
     } else {
       resultado = await republicarRestantes(api, vaga, chave);
     }
@@ -247,6 +253,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
           <input type="hidden" name="intencao" value="repetir" />
           <input type="hidden" name="casa" value={casaId} />
           <input type="hidden" name="chave" value={chaveDe("repetir")} />
+          {actionData?.onde === "repetir" && actionData.campos ? <input type="hidden" name="campos_da_chave" value={actionData.campos} /> : null}
           <label className="flex flex-col gap-2 font-semibold">
             {textos.contratante.publicar.dia}
             <input name="dia" type="date" required className={classeDoCampo} />

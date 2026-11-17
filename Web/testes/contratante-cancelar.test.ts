@@ -59,7 +59,7 @@ describe("vaga da casa: repetir em outro dia", () => {
       api.POST.mockResolvedValue(resposta);
       return enviar({ intencao: "repetir", chave: CHAVE, dia: "2026-12-05", inicio: "18:00", fim: "23:00" });
     };
-    expect(await com(recusa(422, "horario_invalido"))).toEqual({ erro: ta.erros.horario_invalido, onde: "repetir", chave: CHAVE });
+    expect(await com(recusa(422, "horario_invalido"))).toEqual({ erro: ta.erros.horario_invalido, onde: "repetir", chave: CHAVE, campos: "2026-12-05|18:00|23:00" });
     expect((await com(recusa(422, "selecao_sem_antecedencia"))).erro).toBe(ta.erros.selecao_sem_antecedencia);
     expect((await com(recusa(422, "vaga_oculta"))).erro).toBe(ta.erros.vaga_oculta);
     expect((await com(recusa(422, "campo_invalido", "observacoes"))).erro).toBe(ta.erros.texto_recusado);
@@ -67,6 +67,37 @@ describe("vaga da casa: repetir em outro dia", () => {
     expect((await com(recusa(500))).chave).toBe(CHAVE);
     api.POST.mockResolvedValue(recusa(401, "PGRST301"));
     expect(await redirecionamento(enviar({ intencao: "repetir", chave: CHAVE, dia: "2026-12-05", inicio: "18:00", fim: "23:00" }))).toBe("/entrar");
+  });
+});
+
+describe("vaga da casa: a chave acompanha o horário enviado", () => {
+  const horario = { dia: "2026-12-05", inicio: "18:00", fim: "23:00" };
+  const repetir = (dados: Record<string, string>) => enviar({ intencao: "repetir", chave: CHAVE, ...dados });
+
+  it("depois de um indisponível, o mesmo horário reenvia a mesma chave", async () => {
+    api.POST.mockResolvedValue(recusa(500));
+    const primeira = await repetir(horario);
+    expect(primeira).toMatchObject({ onde: "repetir", chave: CHAVE, campos: "2026-12-05|18:00|23:00" });
+    await repetir({ ...horario, campos_da_chave: String((primeira as { campos: string }).campos) });
+    expect(api.POST.mock.calls.map(([, pedido]) => pedido.body.chave)).toEqual([CHAVE, CHAVE]);
+  });
+
+  it("dia, início ou fim diferentes do que a chave levou ganham chave nova (a cópia antiga não volta no lugar)", async () => {
+    api.POST.mockResolvedValue(recusa(500));
+    const campos = "2026-12-05|18:00|23:00";
+    for (const mudanca of [{ dia: "2026-12-06" }, { inicio: "19:00" }, { fim: "22:00" }]) {
+      api.POST.mockClear();
+      const retorno = await repetir({ ...horario, ...mudanca, campos_da_chave: campos });
+      const enviada = api.POST.mock.calls[0][1].body.chave;
+      expect(enviada).not.toBe(CHAVE);
+      expect(retorno).toMatchObject({ onde: "repetir", chave: enviada });
+    }
+  });
+
+  it("a recusa por horário inválido não gasta a chave", async () => {
+    const retorno = await repetir({ ...horario, dia: "", campos_da_chave: "2026-12-05|18:00|23:00" });
+    expect(retorno).toMatchObject({ erro: ta.erros.dia, onde: "repetir", chave: CHAVE });
+    expect(api.POST).not.toHaveBeenCalled();
   });
 });
 
