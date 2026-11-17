@@ -37,7 +37,6 @@ object TextosTurnoDoContratante {
     const val ERRO_REABRIR_SEM_PERMISSAO = "Você não tem permissão para reabrir a vaga deste turno."
     /** TEXTO PROVISÓRIO (o final é do Fabrício): a resposta se perdeu, e o servidor pode ter reaberto a vaga e registrado a falta. */
     const val ERRO_REABRIR_RESULTADO_INCERTO = "Não deu para confirmar se a vaga foi reaberta. Atualize a tela antes de tentar de novo."
-    const val ERRO_REABRIR_GENERICO = "Não foi possível reabrir a vaga. Tente novamente."
 
     const val ERRO_CHECKIN_PENDENTE = "O profissional ainda não fez o check-in. Não há presença para confirmar."
     const val ERRO_NAO_ENCONTRADO = "Não encontramos este turno."

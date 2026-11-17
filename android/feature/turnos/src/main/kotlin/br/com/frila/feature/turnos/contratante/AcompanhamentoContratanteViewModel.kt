@@ -107,7 +107,6 @@ enum class AvisoDaReabertura(val mensagem: String, val erro: Boolean) {
     SEM_PERMISSAO(TextosTurnoDoContratante.ERRO_REABRIR_SEM_PERMISSAO, true),
     SESSAO_EXPIRADA(TextosTurnoDoContratante.ERRO_SESSAO, true),
     RESULTADO_INCERTO(TextosTurnoDoContratante.ERRO_REABRIR_RESULTADO_INCERTO, true),
-    GENERICO(TextosTurnoDoContratante.ERRO_REABRIR_GENERICO, true),
 }
 
 data class EstadoTurnoDoContratante(
@@ -251,7 +250,8 @@ class AcompanhamentoContratanteViewModel(
     /**
      * As recusas do contrato escondem o botão até o painel ser relido. Falha de rede (inclusive timeout depois do envio) e
      * resposta ilegível também: o servidor pode ter reaberto e registrado a falta, que não tem volta, então o resultado é
-     * incerto e nada é reenviado sozinho. Só o 401 (a chamada nem chegou a valer) e o erro genérico deixam tentar de novo.
+     * incerto e nada é reenviado sozinho. O 5xx com envelope (inclusive o 502 do gateway) e o código desconhecido têm o mesmo
+     * tratamento: o servidor pode ter gravado antes de falhar. Só o 401 (a chamada nem chegou a valer) deixa tentar de novo.
      */
     private fun aplicarFalhaDaReabertura(erro: ErroDaApi) {
         val (aviso, recusada) = when (erro.codigo) {
@@ -260,8 +260,8 @@ class AcompanhamentoContratanteViewModel(
                 (if (erro.detalhes == "checkin_registrado") AvisoDaReabertura.CHECKIN_REGISTRADO else AvisoDaReabertura.SITUACAO_MUDOU) to true
             CodigoErroAPI.SEM_PERMISSAO -> AvisoDaReabertura.SEM_PERMISSAO to true
             CodigoErroAPI.NAO_AUTENTICADO -> AvisoDaReabertura.SESSAO_EXPIRADA to false
-            CodigoErroAPI.SEM_REDE, CodigoErroAPI.RESPOSTA_INVALIDA -> AvisoDaReabertura.RESULTADO_INCERTO to true
-            else -> AvisoDaReabertura.GENERICO to false
+            // Rede, resposta ilegível, 5xx e código novo: o servidor pode ter gravado antes da queda ou do 502.
+            else -> AvisoDaReabertura.RESULTADO_INCERTO to true
         }
         _estado.update { it.copy(reabrindo = false, avisoDaReabertura = aviso, reaberturaRecusada = recusada) }
     }

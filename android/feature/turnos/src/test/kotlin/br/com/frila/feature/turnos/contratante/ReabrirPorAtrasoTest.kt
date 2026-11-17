@@ -305,6 +305,18 @@ class ReabrirPorAtrasoTest {
         efeitoNoServidorSemRespostaLegivel { respond("<html>502</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html")) }
 
     @Test
+    fun `502 do gateway com envelope tem o mesmo tratamento do timeout - o servidor pode ter gravado depois`() =
+        efeitoNoServidorSemRespostaLegivel { recusa(HttpStatusCode.BadGateway, "erro_gateway") }
+
+    @Test
+    fun `500 com envelope tem o mesmo tratamento do timeout - o servidor pode ter gravado antes de falhar`() =
+        efeitoNoServidorSemRespostaLegivel { recusa(HttpStatusCode.InternalServerError, "erro_interno") }
+
+    @Test
+    fun `codigo desconhecido do servidor tambem e resultado incerto e esconde o botao`() =
+        recusaComAviso({ recusa(HttpStatusCode.UnprocessableEntity, "codigo_novo") }, AvisoDaReabertura.RESULTADO_INCERTO, recusada = true)
+
+    @Test
     fun `depois de uma recusa o botao volta so quando o painel for relido`() = runBlocking {
         val vm = viewModelCom(Rede { recusa(HttpStatusCode.UnprocessableEntity, "reabertura_antes_da_tolerancia") })
         vm.pedirReabertura()
