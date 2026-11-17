@@ -23,7 +23,17 @@ class AppNavegacaoTest {
         every { armazenamento.estaAutenticado() } returns true
         every { armazenamento.isBiometriaAtivada() } returns true
 
-        assertEquals(Rotas.DESBLOQUEIO, rotaInicial(armazenamento))
+        // C0-11: só com a trava ligada (nada no app a liga).
+        assertEquals(Rotas.DESBLOQUEIO, rotaInicial(armazenamento, biometriaHabilitada = true))
+    }
+
+    @Test
+    fun `C0-11 - biometria guardada nao pede digital ao abrir - a rota inicial e FEED`() {
+        val armazenamento = mockk<ArmazenamentoDeSessao>()
+        every { armazenamento.estaAutenticado() } returns true
+        every { armazenamento.isBiometriaAtivada() } returns true
+
+        assertEquals(Rotas.FEED, rotaInicial(armazenamento))
     }
 
     @Test

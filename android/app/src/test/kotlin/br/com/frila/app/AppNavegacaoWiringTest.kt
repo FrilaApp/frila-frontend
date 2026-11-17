@@ -124,6 +124,7 @@ class AppNavegacaoWiringTest {
                     armazenamentoDeSessao = armazenamento,
                     monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
                     navController = navController,
+                    biometriaHabilitada = true, // C0-11: a trava desligada é o padrão; aqui se testa o código dormente
                 )
             }
         }
@@ -171,6 +172,7 @@ class AppNavegacaoWiringTest {
                     armazenamentoDeSessao = armazenamento,
                     monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
                     navController = navController,
+                    biometriaHabilitada = true, // C0-11: a trava desligada é o padrão; aqui se testa o código dormente
                 )
             }
         }
@@ -260,6 +262,7 @@ class AppNavegacaoWiringTest {
                     armazenamentoDeSessao = armazenamento,
                     monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
                     navController = navController,
+                    biometriaHabilitada = true, // C0-11: a trava desligada é o padrão; aqui se testa o código dormente
                 )
             }
         }

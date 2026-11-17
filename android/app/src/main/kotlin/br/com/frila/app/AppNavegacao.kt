@@ -189,9 +189,9 @@ object DeepLinks {
  * perfil (MEDIDO, Shisui PR #591: antes desta correção nada consumia a flag na inicialização).
  * Sem biometria ativada, vai direto para [Rotas.FEED] — ver `AppNavegacaoTest`.
  */
-fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String = when {
+fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao, biometriaHabilitada: Boolean = false): String = when {
     !armazenamentoDeSessao.estaAutenticado() -> Rotas.ENTRADA
-    armazenamentoDeSessao.isBiometriaAtivada() -> Rotas.DESBLOQUEIO
+    biometriaHabilitada && armazenamentoDeSessao.isBiometriaAtivada() -> Rotas.DESBLOQUEIO
     else -> Rotas.FEED
 }
 
@@ -241,15 +241,20 @@ fun AppNavegacao(
      * navegação volta à entrada, como o iOS (`FrilaApp.swift:519`). Nulo (grafo sem a [SessaoComCacheVagas]) não observa.
      */
     encerramentosDaSessao: StateFlow<Int>? = (getKoin().getOrNull<ArmazenamentoDeSessao>() as? SessaoComCacheVagas)?.encerramentos,
+    /**
+     * C0-11 (decisão de 16/11/2026: o Android fica só com o que o iOS tem): o iOS não tem desbloqueio por biometria.
+     * Desligada (padrão; nada no app a liga), a abertura não pede a digital nem a quem a tinha ligado antes.
+     */
+    biometriaHabilitada: Boolean = false,
 ) {
-    val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino) {
-        rotaInicial(armazenamentoDeSessao).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
+    val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino, biometriaHabilitada) {
+        rotaInicial(armazenamentoDeSessao, biometriaHabilitada).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
     }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
     // frila://meus_turnos, frila://suporte) que chega direto numa rota autenticada sem passar
     // pela decisão de abertura (MEDIDO, Shisui PR #591). Ver GuardaBiometrico.
-    val guardaBiometrico = remember(armazenamentoDeSessao) {
-        GuardaBiometrico(sessaoDesbloqueadaInicial = !armazenamentoDeSessao.isBiometriaAtivada())
+    val guardaBiometrico = remember(armazenamentoDeSessao, biometriaHabilitada) {
+        GuardaBiometrico(sessaoDesbloqueadaInicial = !(biometriaHabilitada && armazenamentoDeSessao.isBiometriaAtivada()))
     }
 
     DisposableEffect(navController, guardaBiometrico) {
