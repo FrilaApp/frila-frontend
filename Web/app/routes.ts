@@ -11,6 +11,7 @@ export default [
   // Lado do profissional
   route("vagas", "rotas/profissional/vagas.tsx"),
   route("vagas/:vagaId", "rotas/profissional/vaga.tsx"),
+  route("candidaturas", "rotas/profissional/candidaturas.tsx"),
 
   // Lado do contratante
 ] satisfies RouteConfig;
