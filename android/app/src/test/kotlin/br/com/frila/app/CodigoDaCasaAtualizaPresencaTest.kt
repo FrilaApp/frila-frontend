@@ -22,6 +22,7 @@ import br.com.frila.feature.turnos.contratante.TextosTurnoDoContratante
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -50,7 +51,7 @@ class CodigoDaCasaAtualizaPresencaTest {
     private lateinit var codigo: CodigoDaCasaViewModel
     private val registro = ResultadoRegistroDto("t1", "manual", "verificado", "2026-11-17T10:00:00Z")
 
-    private fun painel() = PainelDto(
+    private fun painel(verificado: Boolean = this.verificado) = PainelDto(
         estabelecimentoId = "est-1",
         checkinsPendentes = emptyList(),
         vagas = listOf(
@@ -70,6 +71,7 @@ class CodigoDaCasaAtualizaPresencaTest {
 
     private fun montar(
         habilitada: Boolean = true,
+        lerPainel: suspend (Int) -> PainelDto = { painel() },
         confirmar: suspend (String) -> Result<ResultadoRegistroDto> = { error("não confirmar manualmente") },
     ) {
         val modulo = module {
@@ -92,7 +94,7 @@ class CodigoDaCasaAtualizaPresencaTest {
             KoinApplication(application = { modules(modulo) }) {
                 RotaTurnoDoContratante(
                     estabelecimentoId = "est-1", vagaId = "v1", posicaoId = "p1",
-                    buscarPainel = { _, _, _ -> leituras++; Result.success(painel()) },
+                    buscarPainel = { _, _, _ -> leituras++; Result.success(lerPainel(leituras)) },
                     aoVoltar = {}, checkinPorCodigoHabilitado = habilitada,
                 )
             }
@@ -166,4 +168,50 @@ class CodigoDaCasaAtualizaPresencaTest {
         assertEquals(1, leituras)
         assertEquals(1, criacoes)
     }
+
+    @Test
+    fun releituraAtrasadaNaoDesfazAConfirmacaoManual() {
+        val resposta = CompletableDeferred<ResultadoRegistroDto>()
+        val liberarPainelAntigo = CompletableDeferred<Unit>()
+        val liberarNovasLeituras = CompletableDeferred<Unit>()
+        montar(
+            lerPainel = { leitura ->
+                // A segunda leitura captura o painel antes de a confirmação manual gravar.
+                val snapshot = painel(verificado = leitura != 2 && verificado)
+                withTimeout(10_000) {
+                    if (leitura == 2) liberarPainelAntigo.await()
+                    if (leitura >= 3) liberarNovasLeituras.await()
+                }
+                snapshot
+            },
+            confirmar = { Result.success(resposta.await()) },
+        )
+        try {
+            rule.runOnIdle { acompanhamento.confirmarPresenca() }
+            rule.waitForIdle()
+            assertTrue(acompanhamento.estado.value.enviando)
+            rule.runOnIdle {
+                verificado = true
+                runBlocking { codigo.verificarConfirmacao() }
+            }
+            rule.waitUntil(5_000) { leituras == 2 }
+            rule.runOnIdle { resposta.complete(registro) }
+            rule.waitForIdle()
+            assertEquals(PresencaDoTurno.VERIFICADA, acompanhamento.estado.value.presenca)
+            assertEquals(AvisoDaConfirmacao.CONFIRMADA_AGORA, acompanhamento.estado.value.aviso)
+
+            rule.runOnIdle { liberarPainelAntigo.complete(Unit) }
+            rule.waitForIdle()
+            assertEquals("o painel antigo não desfaz a confirmação", PresencaDoTurno.VERIFICADA, acompanhamento.estado.value.presenca)
+            assertEquals(AvisoDaConfirmacao.CONFIRMADA_AGORA, acompanhamento.estado.value.aviso)
+            assertFalse(acompanhamento.estado.value.podeConfirmar)
+            rule.onNodeWithText(TextosTurnoDoContratante.VERIFICADA).assertExists()
+            rule.onNodeWithText(TextosTurnoDoContratante.CONFIRMAR_PRESENCA).assertDoesNotExist()
+            assertEquals(listOf("t1"), confirmados)
+            assertEquals(1, criacoes)
+        } finally {
+            rule.runOnIdle { liberarNovasLeituras.complete(Unit) }
+        }
+    }
+
 }
