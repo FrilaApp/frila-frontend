@@ -199,6 +199,12 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
           ) : null}
         </>
       ) : null}
+      {turno && casaId ? (
+        // O suporte (#861) lê o turno pela lista da casa: por isso leva o ?casa=.
+        <Link to={`/suporte/${turno.id}?casa=${casaId}`} className={classeDoLink}>
+          {t.turno.ajuda}
+        </Link>
+      ) : null}
       <Link to={casaId ? `/casa/turnos?casa=${casaId}` : "/casa/turnos"} className={classeDoLink}>
         {t.turno.voltar}
       </Link>

@@ -19,6 +19,7 @@ export const contratanteTurno = {
     valor: "Valor combinado",
     situacao: "Situação",
     chegada: "Chegada",
+    ajuda: "Ajuda no turno",
     voltar: "Voltar aos turnos da casa",
     enviando: "Enviando…",
   },
