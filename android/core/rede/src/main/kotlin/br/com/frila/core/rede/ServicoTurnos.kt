@@ -42,6 +42,20 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
     }
 
     /**
+     * `POST /rest/v1/rpc/fazer_checkout`. Mesma regra do check-in: só a distância calculada no aparelho
+     * sai (RN22), e `distanciaMetros` nulo quando não há localização. A janela vai de 60 min antes do início
+     * a 60 min depois do fim previsto. Erros esperados: `409 checkin_pendente` (sem check-in),
+     * `422 fora_da_janela`, `422 registro_no_futuro`, `404 nao_encontrado`.
+     */
+    suspend fun fazerCheckout(turnoId: String, distanciaMetros: Int?, registradoEm: String): ResultadoRegistroDto {
+        val resposta = cliente.http.post(cliente.urlRpc("fazer_checkout")) {
+            contentType(ContentType.Application.Json)
+            setBody(RegistroDePresencaDto(turnoId = turnoId, distanciaM = distanciaMetros, registradoEm = registradoEm))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
      * `POST /rest/v1/rpc/confirmar_checkin_manual` (RF13/RF20/RN22/UC07): um toque da casa, e só então o
      * check-in manual conta como presença. Devolve [Result]: qualquer falha (recusa do servidor, sem rede,
      * corpo que não é JSON) vira `Result.failure`, e só o cancelamento da corrotina propaga. Erros

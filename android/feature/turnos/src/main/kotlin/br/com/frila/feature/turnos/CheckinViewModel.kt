@@ -10,6 +10,7 @@ import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,6 +104,43 @@ class CheckinViewModel(
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
         }
+    }
+
+    /**
+     * L1-4: check-out (RF13/RN11/RN22). Lê a localização só no toque e manda só a distância; sem permissão,
+     * sem GPS ou com leitura imprecisa segue com `distancia_m` nulo (o servidor aceita no check-out), sem diálogo:
+     * o profissional nunca fica sem poder encerrar o turno. Um toque com outro em voo, ou depois de feito, não
+     * envia nada. O estado do check-in não muda.
+     */
+    fun fazerCheckout(): Job {
+        var iniciou = false
+        _estado.update {
+            iniciou = it.checkout != StatusCheckout.REGISTRANDO && it.checkout != StatusCheckout.FEITO
+            if (iniciou) it.copy(checkout = StatusCheckout.REGISTRANDO, mensagemErroCheckout = null) else it
+        }
+        if (!iniciou) return escopoDeTrabalho.launch { }
+        val toque = instanteAtual()
+        return escopoDeTrabalho.launch {
+            try {
+                val distanciaMetros = MedidorDeDistancia(provedorDeLocalizacao, coordenadaDaVaga).medir()
+                servicoTurnos.fazerCheckout(turnoId = turnoId, distanciaMetros = distanciaMetros, registradoEm = toque.toString())
+                _estado.update { it.copy(checkout = StatusCheckout.FEITO, mensagemErroCheckout = null) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
+                // Também a resposta que não é JSON: sem isto o botão ficaria preso em "Registrando…" (R2 da A-001).
+                _estado.update { it.copy(checkout = StatusCheckout.ERRO, mensagemErroCheckout = mensagemDeErroDoCheckout(erro)) }
+            }
+        }
+    }
+
+    private fun mensagemDeErroDoCheckout(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo) {
+        CodigoErroAPI.CHECKIN_PENDENTE -> TextosCheckoutECodigo.CHECKOUT_SEM_CHECKIN
+        CodigoErroAPI.FORA_DA_JANELA -> TextosCheckoutECodigo.CHECKOUT_FORA_DA_JANELA
+        CodigoErroAPI.REGISTRO_NO_FUTURO -> TextosCheckoutECodigo.CHECKOUT_HORARIO_ERRADO
+        CodigoErroAPI.NAO_ENCONTRADO -> TextosCheckoutECodigo.CHECKOUT_NAO_ENCONTRADO
+        CodigoErroAPI.SEM_REDE -> TextosCheckoutECodigo.CHECKOUT_SEM_REDE
+        else -> TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO
     }
 
     /** A tela abriu o pedido de permissão do sistema: não abre de novo a cada recomposição. */

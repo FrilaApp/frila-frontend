@@ -21,6 +21,7 @@ class MapeadoresTest {
         checkinDistanciaM: Int? = 50,
         checkinConfirmadoEm: String? = null,
         verificacao: String = "verificado",
+        checkoutEm: String? = null,
     ) = TurnoDto(
         id = id,
         posicaoId = "posicao-1",
@@ -49,10 +50,25 @@ class MapeadoresTest {
         checkinTipo = checkinTipo,
         checkinDistanciaM = checkinDistanciaM,
         checkinConfirmadoEm = checkinConfirmadoEm,
+        checkoutEm = checkoutEm,
         verificacao = verificacao,
         valorAcordadoCentavos = 15000,
         podeAvaliar = false,
     )
+
+    @Test
+    fun `L1-4 - o item leva a hora do check-out, e nulo enquanto nao houve`() {
+        assertNull(criarTurnoDto().paraItem().checkoutEm)
+        assertEquals(
+            java.time.Instant.parse("2026-11-02T03:10:00Z"),
+            criarTurnoDto(checkoutEm = "2026-11-02T03:10:00+00:00").paraItem().checkoutEm,
+        )
+    }
+
+    @Test
+    fun `L1-4 - hora de check-out ilegivel nao derruba o item`() {
+        assertNull(criarTurnoDto(checkoutEm = "ontem").paraItem().checkoutEm)
+    }
 
     @Test
     fun `C0-9 - o item leva o id da casa, alvo de Denunciar no turno`() {
