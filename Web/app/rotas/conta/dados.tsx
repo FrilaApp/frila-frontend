@@ -3,6 +3,7 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 import { excluirConta } from "../../servidor/conta/dados";
 import { funcoesDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
+import { cookieDoAparelho } from "../../servidor/push";
 import { cookiesDeSaida, ehPedidoSeguro } from "../../servidor/sessao";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/dados";
@@ -21,7 +22,7 @@ export function loader({ context, request }: Route.LoaderArgs) {
 
 /**
  * Excluir é definitivo: só com a caixa de ciência marcada. Deu certo (202, ou 401 de conta já excluída): a sessão
- * deixa de valer no servidor, os cookies saem e a pessoa vai para a entrada.
+ * deixa de valer no servidor, os cookies (da sessão e do aparelho do push) saem e a pessoa vai para a entrada.
  */
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
@@ -31,6 +32,8 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (!exclusao.ok && exclusao.motivo !== "sem_sessao") return { falha: exclusao.motivo };
   const cabecalhos = new Headers();
   for (const linha of cookiesDeSaida(ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+  // O cookie do aparelho do push também sai (achado A7 do Juiz): a conta não existe mais.
+  cabecalhos.append("Set-Cookie", cookieDoAparelho(null, ehPedidoSeguro(request)));
   throw redirect("/entrar", { headers: cabecalhos });
 }
 

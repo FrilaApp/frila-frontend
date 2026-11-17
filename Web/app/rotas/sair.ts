@@ -14,10 +14,12 @@ import type { Route } from "./+types/sair";
 export async function action({ request, context }: Route.ActionArgs) {
   const sessao = context.get(contextoDaSessao);
   const respostaDoAuth = context.get(contextoDoAuth);
-  // Push na web (RN15): antes de encerrar, o token deste navegador deixa de ser da conta. Se falhar, o sair segue: o
-  // push da web mostra sempre só o texto neutro (sw.js), então nenhum conteúdo da conta aparece depois do sair.
+  // Push na web (RN15): antes de encerrar, o token deste navegador deixa de ser da conta. Se isso falhar, o Sair falha
+  // como na falha do Auth (achado A4 do Juiz): não diz que saiu com o aparelho ainda registrado para a conta.
   const tokenDoAparelho = lerTokenDoAparelho(request);
-  if (sessao && tokenDoAparelho) await removerAparelho(apiDoUsuario(sessao.acesso), tokenDoAparelho);
+  if (sessao && tokenDoAparelho && !(await removerAparelho(apiDoUsuario(sessao.acesso), tokenDoAparelho))) {
+    throw redirect("/?sair=falhou");
+  }
   const encerrada = sessao
     ? (await authDesteAmbiente()?.encerrar(sessao.acesso))?.ok === true
     : respostaDoAuth === "recusou" || respostaDoAuth === "sem_cookie";
