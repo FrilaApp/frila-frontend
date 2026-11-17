@@ -224,6 +224,12 @@ private struct DestinoDasVagasDoContratante: View {
     private let abrirPerfil: (() -> Void)?
     @State private var model: MinhasVagasViewModel
     @State private var publicacao: PublicacaoDaCasaViewModel
+    /// O que a busca vazia leva para a publicação ("Publicar para todos"); `nil` na publicação de sempre.
+    @State private var rascunhoDaBusca: RascunhoDeVagaDaBusca?
+    /// A guarda da busca mora aqui, acima de `TelaMinhasVagas`: publicar uma vaga troca a lista pela publicação e tira a
+    /// tela da hierarquia. Com um envio em curso ou incerto, a busca (a trava, o trabalho e as chaves) volta com a lista
+    /// (DINHEIRO: sem ela, a busca recomeçaria limpa e a folha nova abriria uma 2ª vaga).
+    @State private var guardaDaBusca: GuardaDaBuscaDeProfissionais
     @Binding private var publicando: Bool
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
@@ -244,19 +250,24 @@ private struct DestinoDasVagasDoContratante: View {
         _publicando = publicando
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
+        let estabelecimentoID = estabelecimento.id
+        _guardaDaBusca = State(initialValue: GuardaDaBuscaDeProfissionais {
+            BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID)
+        })
     }
 
     var body: some View {
         Group {
             if publicando, let fila {
                 DestinoDePublicarVaga(
-                    api: api, fila: fila, modelo: publicacao, sair: sair ?? {},
-                    cancelar: { publicando = false },
+                    api: api, fila: fila, modelo: publicacao, rascunhoDaBusca: rascunhoDaBusca, sair: sair ?? {},
+                    cancelar: { publicando = false; rascunhoDaBusca = nil },
                     aoPublicar: {
                         // A lista volta e é relida, com a vaga nova. A vaga publicada é também o
                         // momento de explicar a notificação a quem contrata (#8).
                         guard publicando else { return }
                         publicando = false
+                        rascunhoDaBusca = nil
                         Task { await permissaoDePush?.oferecerAposPublicar() }
                     }
                 )
@@ -268,7 +279,13 @@ private struct DestinoDasVagasDoContratante: View {
                     api: api,
                     fila: fila,
                     roteador: roteador,
-                    publicarVaga: fila == nil ? nil : { publicando = true },
+                    publicarVaga: fila == nil ? nil : { rascunhoDaBusca = nil; publicando = true },
+                    // Sem o banco local não há fila para publicar: a busca vazia não oferece "Publicar para todos".
+                    publicarParaTodosDaBusca: fila == nil ? nil : { rascunho in
+                        rascunhoDaBusca = rascunho
+                        publicando = true
+                    },
+                    guardaDaBusca: guardaDaBusca,
                     sair: sair,
                     abrirPerfil: abrirPerfil
                 )

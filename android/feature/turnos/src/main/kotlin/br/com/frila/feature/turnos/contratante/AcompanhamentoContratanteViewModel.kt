@@ -3,6 +3,7 @@ package br.com.frila.feature.turnos.contratante
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.PosicaoNoPainelDto
@@ -117,6 +118,11 @@ class AcompanhamentoContratanteViewModel(
     private val _estado = MutableStateFlow(EstadoTurnoDoContratante(contexto))
     val estado: StateFlow<EstadoTurnoDoContratante> = _estado.asStateFlow()
 
+    /** Incorpora o painel relido sem recriar o acompanhamento nem interromper a confirmação em voo. */
+    fun atualizarContexto(contexto: ContextoDoTurnoContratante) {
+        _estado.update { it.copy(contexto = contexto) }
+    }
+
     fun confirmarPresenca(): Job {
         val atual = _estado.value
         if (!atual.podeConfirmar) return escopoDeTrabalho.launch { }
@@ -166,4 +172,4 @@ class AcompanhamentoContratanteViewModel(
     }
 }
 
-private fun lerInstante(texto: String): Instant? = runCatching { Instant.parse(texto) }.getOrNull()
+private fun lerInstante(texto: String): Instant? = runCatching { instanteDoServidor(texto) }.getOrNull()

@@ -126,13 +126,18 @@ fun TelaPerfil(
      * chamador só informa com `recursos.chamada_direta` ligado (RN46) e para quem é profissional.
      */
     aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
+    aoAbrirApresentacao: (() -> Unit)? = null,
+    aoAbrirFotoDePerfil: (() -> Unit)? = null,
+    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    aoAbrirPontoBase: (() -> Unit)? = null,
     /**
      * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
      * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
      */
     aoEncontrarProfissional: (() -> Unit)? = null,
     /**
-     * Mantém os atalhos da casa quando o endpoint de perfil profissional recusa a conta contratante.
+     * Mantém os atalhos da casa quando o perfil cai em erro (sem rede, servidor fora do ar).
      * O erro e a tentativa novamente continuam visíveis; esta flag nunca transforma falha em sucesso.
      */
     manterAtalhosDeContratanteNoErro: Boolean = false,
@@ -145,6 +150,13 @@ fun TelaPerfil(
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
+    /**
+     * C0-11 (decisão de 16/11/2026: o Android fica só com o que o iOS tem). O iOS não tem desbloqueio por
+     * biometria: desligado, o interruptor não aparece. Desligar a entrada, sem apagar o código.
+     */
+    recursoBiometriaHabilitado: Boolean = false,
+    /** C0-11: o iOS não tem "Remunerações acordadas" com extrato em PDF; desligado, o bloco não aparece. */
+    recursoRemuneracoesHabilitado: Boolean = false,
     /**
      * Injetáveis para teste (RN15) — sem sensor físico/emulador não há como simular o hardware
      * real, e o host do `createComposeRule()` não é um `FragmentActivity` (por isso o cast fica
@@ -165,7 +177,10 @@ fun TelaPerfil(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
-    val disponibilidadeBiometrica = remember { verificarDisponibilidadeBiometrica(contexto) }
+    // Com o recurso desligado o hardware nem é consultado: o app não declara a permissão de biometria, e a consulta sem ela lança.
+    val disponibilidadeBiometrica = remember(recursoBiometriaHabilitado) {
+        if (recursoBiometriaHabilitado) verificarDisponibilidadeBiometrica(contexto) else DisponibilidadeBiometrica.INDISPONIVEL
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     var notificacoesDoSistemaAtivadas by remember {
         mutableStateOf(verificarNotificacoesDoSistema(contexto))
@@ -183,6 +198,18 @@ fun TelaPerfil(
         }
     }
     var mensagemErroBiometria by remember { mutableStateOf<String?>(null) }
+    val alternarBiometria: (Boolean) -> Unit = { marcado ->
+        if (!marcado) {
+            mensagemErroBiometria = null
+            viewModel.definirBiometriaAtivada(false)
+        } else {
+            autenticarBiometria(
+                contexto,
+                { mensagemErroBiometria = null; viewModel.definirBiometriaAtivada(true) },
+                { erro -> mensagemErroBiometria = erro },
+            )
+        }
+    }
 
     // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de
     // rede em viewModel.carregar(). MEDIDO (Shisui, PR #590): sem isto o avatar desaparecia ao
@@ -223,7 +250,29 @@ fun TelaPerfil(
             )
         },
     ) { paddingInterno ->
-        when (estado.status) {
+        // A casa não tem perfil profissional: o perfil dela é a conta (`minha_conta`) e os atalhos da casa, como o iOS.
+        if (estado.status == StatusPerfil.SUCESSO && estado.ehContratante) {
+            ConteudoDaCasa(
+                nome = estado.conta?.nome.orEmpty(),
+                paddingValues = paddingInterno,
+                aoDeslogar = {
+                    viewModel.aoDeslogar()
+                    aoDeslogar()
+                },
+                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
+                biometriaAtivada = estado.biometriaAtivada,
+                disponibilidadeBiometrica = disponibilidadeBiometrica,
+                mensagemErroBiometria = mensagemErroBiometria,
+                aoAlternarBiometria = alternarBiometria,
+                mostrarBiometria = recursoBiometriaHabilitado,
+                aoAbrirAjuda = aoAbrirAjuda,
+                aoAbrirEquipe = aoAbrirEquipe,
+                aoPublicarVaga = aoPublicarVaga,
+                aoMinhasVagas = aoMinhasVagas,
+                aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+                aoEncontrarProfissional = aoEncontrarProfissional,
+            )
+        } else when (estado.status) {
             StatusPerfil.CARREGANDO -> Carregando(paddingInterno)
             StatusPerfil.ERRO -> Erro(
                 mensagem = estado.mensagemErro,
@@ -232,8 +281,14 @@ fun TelaPerfil(
                 aoAbrirEquipe = aoAbrirEquipe.takeIf { manterAtalhosDeContratanteNoErro },
                 aoPublicarVaga = aoPublicarVaga.takeIf { manterAtalhosDeContratanteNoErro },
                 aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
-                // A casa não tem `meu_perfil_profissional`: o perfil cai em erro, mas a busca precisa continuar acessível.
+                // Com o perfil em erro (sem rede, por exemplo), a busca da casa continua acessível.
                 aoEncontrarProfissional = aoEncontrarProfissional.takeIf { manterAtalhosDeContratanteNoErro },
+                // Sair e excluir a conta não dependem do perfil ter carregado: mesmos caminhos do perfil carregado.
+                aoDeslogar = {
+                    viewModel.aoDeslogar()
+                    aoDeslogar()
+                },
+                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
             )
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                 fotoLocalPath = estado.fotoLocalPath,
@@ -279,18 +334,9 @@ fun TelaPerfil(
                 biometriaAtivada = estado.biometriaAtivada,
                 disponibilidadeBiometrica = disponibilidadeBiometrica,
                 mensagemErroBiometria = mensagemErroBiometria,
-                aoAlternarBiometria = { marcado ->
-                    if (!marcado) {
-                        mensagemErroBiometria = null
-                        viewModel.definirBiometriaAtivada(false)
-                    } else {
-                        autenticarBiometria(
-                            contexto,
-                            { mensagemErroBiometria = null; viewModel.definirBiometriaAtivada(true) },
-                            { erro -> mensagemErroBiometria = erro },
-                        )
-                    }
-                },
+                aoAlternarBiometria = alternarBiometria,
+                mostrarBiometria = recursoBiometriaHabilitado,
+                mostrarRemuneracoes = recursoRemuneracoesHabilitado,
                 notificacaoUrgenciaAtivada = estado.notificacaoUrgenciaAtivada,
                 notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
                 notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
@@ -303,6 +349,9 @@ fun TelaPerfil(
                 aoMinhasVagas = aoMinhasVagas,
                 aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                 aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+                aoAbrirApresentacao = aoAbrirApresentacao,
+                aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
+                aoAbrirPontoBase = aoAbrirPontoBase,
                 aoEncontrarProfissional = aoEncontrarProfissional,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -352,6 +401,8 @@ private fun ConteudoDoPerfil(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    mostrarBiometria: Boolean = false,
+    mostrarRemuneracoes: Boolean = false,
     notificacaoUrgenciaAtivada: Boolean,
     notificacaoTurnosAtivada: Boolean,
     notificacaoSistemaAtivada: Boolean,
@@ -364,6 +415,11 @@ private fun ConteudoDoPerfil(
     aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
+    aoAbrirApresentacao: (() -> Unit)? = null,
+    aoAbrirFotoDePerfil: (() -> Unit)? = null,
+    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -385,7 +441,8 @@ private fun ConteudoDoPerfil(
         )
         BlocoDeReputacao(reputacao)
         BlocoDeSeloConfianca(verificacaoIdentidade, podeSolicitarSelo, aoAbrirSelo)
-        BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
+        // C0-11: o iOS não tem; só aparece com a trava ligada, que nada no app liga.
+        if (mostrarRemuneracoes) BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
         BlocoDeBioProfissional(
             bio = bio,
             bioEmEdicao = bioEmEdicao,
@@ -416,12 +473,74 @@ private fun ConteudoDoPerfil(
             disponibilidadeBiometrica = disponibilidadeBiometrica,
             mensagemErroBiometria = mensagemErroBiometria,
             aoAlternarBiometria = aoAlternarBiometria,
+            mostrarBiometria = mostrarBiometria,
             aoAbrirAjuda = aoAbrirAjuda,
             aoAbrirEquipe = aoAbrirEquipe,
             aoPublicarVaga = aoPublicarVaga,
             aoMinhasVagas = aoMinhasVagas,
             aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
             aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+            aoAbrirApresentacao = aoAbrirApresentacao,
+            aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
+            aoAbrirPontoBase = aoAbrirPontoBase,
+            aoEncontrarProfissional = aoEncontrarProfissional,
+        )
+    }
+}
+
+/**
+ * Perfil da casa (C0-4b): a conta de contratante não tem perfil profissional (`meu_perfil_profissional` responde
+ * 404). Mostra o nome da conta e o bloco de conta com os atalhos da casa, sem os blocos do profissional; as
+ * preferências de chamada são do profissional e nunca aparecem aqui.
+ */
+// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+@Composable
+private fun ConteudoDaCasa(
+    nome: String,
+    paddingValues: PaddingValues,
+    aoDeslogar: () -> Unit,
+    aoAbrirExclusao: () -> Unit,
+    biometriaAtivada: Boolean,
+    disponibilidadeBiometrica: DisponibilidadeBiometrica,
+    mensagemErroBiometria: String?,
+    aoAlternarBiometria: (Boolean) -> Unit,
+    mostrarBiometria: Boolean,
+    aoAbrirAjuda: () -> Unit,
+    aoAbrirEquipe: (() -> Unit)?,
+    aoPublicarVaga: (() -> Unit)?,
+    aoMinhasVagas: (() -> Unit)?,
+    aoCadastrarEstabelecimento: (() -> Unit)?,
+    aoEncontrarProfissional: (() -> Unit)?,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.medio),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+    ) {
+        Text(
+            text = nome,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
+        BlocoDeConta(
+            aoDeslogar = aoDeslogar,
+            aoAbrirExclusao = aoAbrirExclusao,
+            biometriaAtivada = biometriaAtivada,
+            disponibilidadeBiometrica = disponibilidadeBiometrica,
+            mensagemErroBiometria = mensagemErroBiometria,
+            aoAlternarBiometria = aoAlternarBiometria,
+            mostrarBiometria = mostrarBiometria,
+            aoAbrirAjuda = aoAbrirAjuda,
+            aoAbrirEquipe = aoAbrirEquipe,
+            aoPublicarVaga = aoPublicarVaga,
+            aoMinhasVagas = aoMinhasVagas,
+            aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+            aoAbrirChamadasDiretas = null,
+            aoAbrirApresentacao = null,
+            aoAbrirFotoDePerfil = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
         )
     }
@@ -945,12 +1064,18 @@ private fun BlocoDeConta(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    mostrarBiometria: Boolean = false,
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
+    aoAbrirApresentacao: (() -> Unit)? = null,
+    aoAbrirFotoDePerfil: (() -> Unit)? = null,
+    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
@@ -959,49 +1084,52 @@ private fun BlocoDeConta(
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.semantics { heading() },
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = FrilaEspacamento.pequeno)
-                .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Desbloqueio rápido por biometria",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = biometriaAtivada,
-                onCheckedChange = aoAlternarBiometria,
-                // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
-                // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
-                enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
+        // C0-11: o iOS não tem desbloqueio por biometria; só aparece com a trava ligada, que nada no app liga.
+        if (mostrarBiometria) {
+            Row(
                 modifier = Modifier
-                    .testTag("toggle-biometria")
-                    .semantics {
-                        contentDescription = "Desbloqueio rápido por biometria"
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Desbloqueio rápido por biometria",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = biometriaAtivada,
+                    onCheckedChange = aoAlternarBiometria,
+                    // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
+                    // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
+                    enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
+                    modifier = Modifier
+                        .testTag("toggle-biometria")
+                        .semantics {
+                            contentDescription = "Desbloqueio rápido por biometria"
+                        },
+                )
+            }
+            if (disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
+                Text(
+                    text = textoIndisponibilidadeBiometrica(disponibilidadeBiometrica),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (mensagemErroBiometria != null) {
+                Text(
+                    text = mensagemErroBiometria,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                        error(mensagemErroBiometria)
                     },
-            )
-        }
-        if (disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
-            Text(
-                text = textoIndisponibilidadeBiometrica(disponibilidadeBiometrica),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (mensagemErroBiometria != null) {
-            Text(
-                text = mensagemErroBiometria,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics {
-                    liveRegion = LiveRegionMode.Assertive
-                    error(mensagemErroBiometria)
-                },
-            )
+                )
+            }
         }
         BotaoSecundario(
             texto = "Ajuda",
@@ -1059,6 +1187,36 @@ private fun BlocoDeConta(
                     .fillMaxWidth()
                     .padding(top = FrilaEspacamento.pequeno)
                     .testTag("perfil-encontrar-profissional"),
+            )
+        }
+        if (aoAbrirPontoBase != null) {
+            BotaoSecundario(
+                texto = TextosPontoBase.TITULO,
+                aoClicar = aoAbrirPontoBase,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-ponto-base"),
+            )
+        }
+        if (aoAbrirApresentacao != null) {
+            BotaoSecundario(
+                texto = TextosApresentacaoERegioes.TITULO,
+                aoClicar = aoAbrirApresentacao,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-apresentacao"),
+            )
+        }
+        if (aoAbrirFotoDePerfil != null) {
+            BotaoSecundario(
+                texto = TextosDaFotoDePerfil.TITULO,
+                aoClicar = aoAbrirFotoDePerfil,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-foto"),
             )
         }
         if (aoAbrirChamadasDiretas != null) {
@@ -1222,9 +1380,16 @@ private fun Erro(
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
+    aoDeslogar: () -> Unit = {},
+    aoAbrirExclusao: () -> Unit = {},
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(paddingValues).padding(FrilaEspacamento.grande),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            // Com os atalhos da casa mais sair e excluir, a coluna passa da altura da tela em fonte grande.
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.grande),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
     ) {
@@ -1267,5 +1432,16 @@ private fun Erro(
                 modifier = Modifier.fillMaxWidth().testTag("perfil-encontrar-profissional"),
             )
         }
+        // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
+        BotaoSecundario(
+            texto = "Sair da conta",
+            aoClicar = aoDeslogar,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        BotaoDestrutivo(
+            texto = "Excluir conta",
+            aoClicar = aoAbrirExclusao,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }

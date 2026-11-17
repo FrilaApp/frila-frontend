@@ -470,6 +470,22 @@ class ServicoChamadaDiretaTest {
     }
 
     @Test
+    fun `chamarProfissional com o trabalho ja aberto propaga 409 trabalho_ja_aberto com o vaga_id em details`() = runTest {
+        val servico = servico(
+            Visto(),
+            """{"code":"trabalho_ja_aberto","message":"trabalho_ja_aberto","details":"$vagaId","hint":null}""",
+            HttpStatusCode.Conflict,
+        )
+
+        val erro = erroDe {
+            servico.chamarProfissional(ChamarProfissionalDto(chave = chave, profissionalId = profissional, estabelecimentoId = casa))
+        }
+
+        assertEquals(CodigoErroAPI.TRABALHO_JA_ABERTO, erro.codigo)
+        assertEquals(vagaId, erro.detalhes)
+    }
+
+    @Test
     fun `responderChamada aceitar manda a resposta sem motivo e decodifica o turno e o local liberado`() = runTest {
         val visto = Visto()
         val resultado = servico(

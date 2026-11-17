@@ -53,7 +53,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class AppNavegacaoChamadaProfissionalTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private lateinit var nav: NavHostController

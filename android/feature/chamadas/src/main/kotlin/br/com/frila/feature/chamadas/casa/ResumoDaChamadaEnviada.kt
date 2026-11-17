@@ -14,7 +14,7 @@ import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import java.time.Instant
+import br.com.frila.core.dominio.regra.instanteDoServidor
 
 /**
  * Enviada a chamada, a folha mostra o que foi combinado, até quando o profissional responde e o caminho para
@@ -29,7 +29,7 @@ internal fun ResumoDaChamadaEnviada(
     val chamada = tela.resultado ?: return
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio)) {
         AvisoFrila(tom = TomAviso.INFORMATIVO, mensagem = TextosChamadaCasa.SUCESSO)
-        runCatching { Instant.parse(chamada.expiraEm) }.getOrNull()?.let { expira ->
+        runCatching { instanteDoServidor(chamada.expiraEm) }.getOrNull()?.let { expira ->
             Text(
                 text = TextosChamadaCasa.prazoDeResposta(dataEHora(expira)),
                 style = MaterialTheme.typography.bodyMedium,

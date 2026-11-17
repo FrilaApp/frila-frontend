@@ -15,6 +15,8 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.notificacoes.RegistradorDeDispositivo
+import kotlin.coroutines.cancellation.CancellationException
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -34,7 +36,10 @@ class MainActivity : FragmentActivity() {
                 var versaoMinima by remember { mutableStateOf<String?>(null) }
                 var chamadaDireta by remember { mutableStateOf(false) }
                 var buscaProfissionais by remember { mutableStateOf(false) }
+                var checkinPorCodigo by remember { mutableStateOf(false) }
                 var mensagemBloqueio by remember { mutableStateOf(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO) }
+                var perfilRico by remember { mutableStateOf(false) }
+                var fotoDePerfil by remember { mutableStateOf(false) }
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
@@ -48,7 +53,10 @@ class MainActivity : FragmentActivity() {
                                 versaoMinima = configuracao.versaoMinima
                                 chamadaDireta = configuracao.recursos.chamadaDireta
                                 buscaProfissionais = configuracao.recursos.buscaProfissionais
+                                checkinPorCodigo = configuracao.recursos.checkinPorCodigo
                                 configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
+                                perfilRico = configuracao.recursos.perfilRico
+                                fotoDePerfil = configuracao.recursos.fotoDePerfil
                             }
                         } catch (_: Exception) {
                             // Falha transitória de rede ou offline nunca bloqueia o acesso
@@ -57,6 +65,17 @@ class MainActivity : FragmentActivity() {
                         }
                     } else {
                         verificando = false
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    // C0-10: ao abrir com sessão, registra o aparelho para o push (com versao_app), sem esperar. Sem sessão, o
+                    // registrador não chama; sem token (sem Firebase ou sem rede), nada sai. Falha nunca trava a abertura.
+                    try {
+                        GlobalContext.getOrNull()?.getOrNull<RegistradorDeDispositivo>()?.registrarEmSegundoPlano()
+                    } catch (cancelado: CancellationException) {
+                        throw cancelado
+                    } catch (_: Exception) {
                     }
                 }
 
@@ -85,8 +104,11 @@ class MainActivity : FragmentActivity() {
                     },
                 ) {
                     AppNavegacao(
+                        perfilRicoHabilitado = perfilRico,
+                        fotoDePerfilHabilitada = fotoDePerfil,
                         chamadaDiretaHabilitada = chamadaDireta,
                         buscaProfissionaisHabilitada = buscaProfissionais,
+                        checkinPorCodigoHabilitado = checkinPorCodigo,
                         aoPronto = {
                             MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                         },

@@ -55,7 +55,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class AppNavegacaoBuscaDeProfissionaisTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private lateinit var nav: NavHostController
@@ -95,6 +98,8 @@ class AppNavegacaoBuscaDeProfissionaisTest {
                                 recursoHabilitado = { true },
                                 buscarProfissionais = { error("não deveria buscar") },
                                 chamarProfissional = { error("não deveria chamar") },
+                                minhasChamadas = { _, _ -> error("não deveria ler") },
+                                detalheChamada = { error("não deveria ler") },
                                 listarFuncoes = { listOf(garcom) },
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )

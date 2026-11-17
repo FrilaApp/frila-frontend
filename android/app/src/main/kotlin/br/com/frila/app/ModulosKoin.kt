@@ -1,21 +1,27 @@
 package br.com.frila.app
 
 import android.content.Context
+import android.util.Log
 import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
+import br.com.frila.app.falhas.ColetaDeFalhas
+import br.com.frila.app.falhas.DestinoCrashlytics
+import br.com.frila.app.falhas.DestinoDeFalhas
+import br.com.frila.app.falhas.TelemetriaDeFalhas
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosNulo
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosReal
+import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
+import br.com.frila.core.localizacao.RemovedorDeGeofencesAntigos
+import br.com.frila.core.localizacao.RemovedorDeGeofencesAntigosDoPlayServices
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
+import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
@@ -26,6 +32,8 @@ import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoDispositivo
+import br.com.frila.core.rede.RegistroDeErroDaApi
+import br.com.frila.core.rede.ServicoMidia
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVerificacaoIdentidade
@@ -61,16 +69,26 @@ import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
+import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.OpcaoDePontoBase
+import br.com.frila.feature.perfil.PontoBaseViewModel
+import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
+import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
+import br.com.frila.feature.perfil.FluxoDaFotoDePerfil
+import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.PreparadorDeJpegDoAparelho
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
+import br.com.frila.feature.turnos.MedidorDeDistancia
 import br.com.frila.feature.turnos.MeusTurnosViewModel
-import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
+import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
 import java.time.Instant
 import org.koin.androidx.viewmodel.dsl.viewModel
 import kotlinx.coroutines.CoroutineScope
@@ -80,9 +98,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.onClose
 import org.koin.dsl.module
 
-/** Endpoint real do Supabase do Frila. Em produção isto vem de `BuildConfig`, não de literal. */
-private const val SUPABASE_URL = "https://frila.supabase.co"
-private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
+/** URL e chave publicável do Supabase, do `BuildConfig` (par DEV no debug, PROD no release; ver app/build.gradle.kts). */
+private val configuracaoSupabase = ConfiguracaoSupabase.doBuildConfig()
 
 /** Qualificador do [CoroutineScope] cujos filhos o logout cancela. */
 const val ESCOPO_DA_SESSAO = "escopoDaSessao"
@@ -111,6 +128,11 @@ val moduloSeguranca = module {
             diretorioArquivos = getOrNull<Context>()?.filesDir,
             escopoDeCorrotinas = get(named(ESCOPO_DA_SESSAO)),
             gestorClienteKtor = getOrNull(),
+            // C0-10: o Sair pede remover_dispositivo depois da limpeza local; falha só vira log, sem token nem sessão.
+            servicoDispositivo = getOrNull(),
+            provedorDeTokenFcm = { lerTokenDoFcm() },
+            escopoDaRemocao = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            registrarFalha = { motivo -> Log.w("FrilaPush", motivo) },
         )
     }
 }
@@ -122,14 +144,27 @@ val moduloRede = module {
             ?.let(::MonitorDeConectividadeAndroid)
             ?: MonitorDeConectividadeFalso()
     }
+    /**
+     * L1-7d: telemetria de falhas (Crashlytics). A coleta sai DESLIGADA no manifesto, como o iOS 1.1 (C1, 08/11/2026): com ela desligada nada é
+     * gravado. Só código, rota e duração; nunca identificador de usuário. Sem `Context` (testes) também sai desligada.
+     */
+    single {
+        TelemetriaDeFalhas(
+            coletaLigada = getOrNull<Context>()?.let(ColetaDeFalhas::ligadaNoManifesto) ?: false,
+            destino = getOrNull<DestinoDeFalhas>() ?: DestinoCrashlytics(),
+        )
+    }
     /** Cartão 101: gestor de ciclo de vida do cliente Ktor para recriação limpa após logout. */
     single {
+        // Debug compilado sem o par DEV: o app sobe, mas diz no log por que não alcança o servidor (sem valores).
+        configuracaoSupabase.problema?.let { Log.w("FRILA_CONFIG", "Supabase sem configuração que sirva: $it") }
         GestorClienteKtor {
             ClienteSupabase(
-                baseUrl = SUPABASE_URL,
-                apiKey = SUPABASE_ANON_KEY,
+                baseUrl = configuracaoSupabase.url,
+                apiKey = configuracaoSupabase.chavePublicavel,
                 armazenamentoDeSessao = get(),
                 monitorDeConectividade = get(),
+                registroDeErros = get<TelemetriaDeFalhas>().let { telemetria -> RegistroDeErroDaApi(telemetria::registrarErroDaApi) },
             )
         }
     }
@@ -142,11 +177,13 @@ val moduloRede = module {
     factory {
         val servico = get<ServicoVagas>()
         val armazenamento = get<ArmazenamentoDeSessao>()
-        get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
+        get<CacheVagasDaSessao>().criar(armazenamento) { servico.listarVagasAbertas() }
     }
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
+    /** Foto de perfil (contrato 0.2.54): pedir o envio, PUT na URL assinada, confirmar, remover e listar. */
+    single { ServicoMidia { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoVerificacaoIdentidade { get<GestorClienteKtor>().clienteAtual } }
     single { RepositorioVerificacaoIdentidade(get()) }
     /** Denúncia, bloqueio e equipe de confiança (RF26/RF18); membros do estabelecimento (RF21). */
@@ -167,18 +204,32 @@ val moduloNotificacoes = module {
             ?: GerenciadorPreferenciasNotificacaoEmMemoria()
     }
     single { ProcessadorDePush(get(), get()) }
+    // C0-10: o registro do aparelho numa função só (abrir com sessão, depois de entrar e onNewToken), com versao_app.
+    // Falha do registro (rede, servidor, token) só vira log, com o motivo e sem token nem sessão.
+    single {
+        RegistradorDeDispositivo(
+            get(), get(), versaoApp = BuildConfig.VERSION_NAME, registrarFalha = { motivo -> Log.w("FrilaPush", motivo) },
+        ) { lerTokenDoFcm() }
+    }
 }
 
 /**
- * Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22), e geofencing
- * passivo de aproximação de turno (RN06/RNF04, cartão Uu04zAt4).
+ * Leitura de localização sob demanda, só no toque de marcar presença e saída (RF13/RN06/RN22). Nada lê a posição fora
+ * do toque: não há geofence nem leitura ao abrir a lista de vagas.
  */
 val moduloLocalizacao = module {
     single<ProvedorDeLocalizacao> { ProvedorDeLocalizacaoFused(get()) }
-    single<GerenciadorGeofencingTurnos> {
-        getOrNull<Context>()
-            ?.let(::GerenciadorGeofencingTurnosReal)
-            ?: GerenciadorGeofencingTurnosNulo()
+    /** Só desfaz o que uma versão anterior registrou; sem `Context` (testes) não há Play Services e nada a remover. */
+    single<RemovedorDeGeofencesAntigos> {
+        getOrNull<Context>()?.let { RemovedorDeGeofencesAntigosDoPlayServices(it) } ?: RemovedorDeGeofencesAntigos { }
+    }
+    single {
+        val turnos = get<ServicoTurnos>()
+        LimpezaDeGeofencesAntigos(
+            temSessao = get<ArmazenamentoDeSessao>()::estaAutenticado,
+            idsDosTurnos = { turnos.listarMeusTurnos().map { it.id } },
+            remover = get<RemovedorDeGeofencesAntigos>()::remover,
+        )
     }
 }
 
@@ -191,19 +242,24 @@ val moduloFeatures = module {
             }
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
-    viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
+    viewModel { EntradaViewModel(get(), permitirDominioDeTeste = BuildConfig.DEBUG) }
+    viewModel { (email: String) ->
+        CodigoViewModel(
+            email, get(), get(),
+            aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+        )
+    }
     viewModel { CadastroViewModel(get()) }
-    viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
+    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
-    single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
-    viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }
+    viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
-        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), monitorizador = get())
+        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get())
     }
     viewModel { AvaliacaoViewModel(get()) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
-    viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get()) }
+    viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get(), servicoConta = get()) }
     viewModel { VerificacaoIdentidadeViewModel(get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
     /**
@@ -331,10 +387,73 @@ val moduloFeatures = module {
             buscarProfissionais = chamadas::buscarProfissionais,
             chamarProfissional = chamadas::chamarProfissional,
             aceitarTermos = chamadas::aceitarTermos,
+            // 0.2.95: os termos da vaga do 409 trabalho_ja_aberto, como a casa os lê (seguindo o cursor).
+            minhasChamadas = { estado, cursor -> chamadas.minhasChamadas(estado = estado, cursor = cursor) },
+            detalheChamada = chamadas::detalheChamada,
             listarFuncoes = get<ServicoVagas>()::listarFuncoes,
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
             buscarCasa = get<ServicoMembros>()::meuEstabelecimento,
         )
+    }
+    /**
+     * Apresentação e regiões do profissional (L1-2): `meu_perfil_detalhado`, as regiões ativas e as duas gravações. As quatro operações chegam por
+     * função ao ViewModel; a rota é do `AppNavegacao`.
+     */
+    viewModel {
+        val perfil = get<ServicoPerfil>()
+        val chamadas = get<ServicoChamadaDireta>()
+        ApresentacaoERegioesViewModel(
+            carregarPerfil = chamadas::meuPerfilDetalhado,
+            carregarRegioes = perfil::regioesAdministrativas,
+            salvarApresentacao = perfil::atualizarApresentacaoProfissional,
+            salvarRegioes = perfil::definirRegioesAtendidas,
+        )
+    }
+    /**
+     * Ponto base (tela provisória): a pessoa escolhe uma das regiões administrativas do DF, que já estão no app, e o centro dela vira o ponto
+     * base. Nada lê a posição do aparelho nem consulta serviço de endereço.
+     */
+    viewModel {
+        val perfil = get<ServicoPerfil>()
+        PontoBaseViewModel(
+            opcoes = GeocodificadorDfOffline.REGIOES_ADMINISTRATIVAS.map { OpcaoDePontoBase(it.nome, it.centroide) },
+            carregarPerfil = perfil::obterMeuPerfilProfissional,
+            carregarFuncoes = get<ServicoVagas>()::listarFuncoes,
+            criarPerfil = perfil::criarPerfilProfissional,
+            atualizarPerfil = perfil::atualizarPerfilProfissional,
+        )
+    }
+    /**
+     * Foto de perfil (L1-3): o detector e o preparo do JPEG são do aparelho (sem rede); só o envio fala com o servidor. O `Context` só é pedido
+     * na hora de preparar a foto, para o grafo montar também onde não há `Context` (testes).
+     */
+    single<ConferidorDeRostoDaFoto> { ConferidorDeRostoDoAndroid() }
+    single<PreparadorDaFotoDePerfil> {
+        val escopo = this
+        PreparadorDaFotoDePerfil { referencia -> PreparadorDeJpegDoAparelho(escopo.get<Context>()).preparar(referencia) }
+    }
+    viewModel {
+        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), get<ServicoMidia>())
+        val preparador = get<PreparadorDaFotoDePerfil>()
+        FotoDePerfilViewModel(prepararJpeg = preparador::preparar, enviar = fluxo::enviar)
+    }
+    /**
+     * Código de chegada (L1-4b): o profissional digita o código que a casa mostra. A distância é medida no toque, até o ponto da vaga (só ela sai,
+     * nunca a coordenada); `aoPresencaVerificada` avisa a tela para reler o turno.
+     */
+    viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?, aoPresencaVerificada: (() -> Unit)?) ->
+        val turnos = get<ServicoTurnos>()
+        val localizacao = get<ProvedorDeLocalizacao>()
+        ValidacaoDoCodigoViewModel(
+            turnoId = turnoId,
+            validar = turnos::validarCodigoCheckin,
+            medirDistancia = { MedidorDeDistancia(localizacao, coordenadaDaVaga).medir() },
+            aoPresencaVerificada = aoPresencaVerificada,
+        )
+    }
+    /** Código de chegada, lado da casa (L1-5): `gerar_codigo_checkin`; `aoConfirmar` avisa a tela quando a presença foi verificada. */
+    viewModel { (turnoId: String, aoConfirmar: (() -> Unit)?) ->
+        CodigoDaCasaViewModel(turnoId = turnoId, gerar = get<ServicoTurnos>()::gerarCodigoCheckin, aoConfirmar = aoConfirmar)
     }
     /** Chamada direta, lado do profissional (contrato 0.2.88): serviços com preço, preferências e chamada recebida. */
     viewModel {

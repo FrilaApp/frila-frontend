@@ -26,9 +26,9 @@ class EntradaViewModelTest {
      * compartilhado com `advanceUntilIdle()` nem um `UnconfinedTestDispatcher` isolado bastam
      * para garantir, de forma determinística, que a corrotina terminou antes da asserção.
      */
-    private fun viewModelComEngine(engine: MockEngine): EntradaViewModel {
+    private fun viewModelComEngine(engine: MockEngine, permitirDominioDeTeste: Boolean = false): EntradaViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
-        return EntradaViewModel(ServicoAutenticacao(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return EntradaViewModel(ServicoAutenticacao(cliente), escopo = CoroutineScope(Dispatchers.Default), permitirDominioDeTeste = permitirDominioDeTeste)
     }
 
     @ParameterizedTest
@@ -167,4 +167,73 @@ class EntradaViewModelTest {
         assertEquals("Não foi possível enviar o código. Tente de novo em instantes.", viewModel.estado.value.erro)
         assertFalse(viewModel.estado.value.carregando)
     }
+
+    @Test
+    fun `solicitarCodigo manda o e-mail em minusculas e sem espacos, como o iOS`() = runBlocking {
+        var corpo: String? = null
+        val viewModel = viewModelComEngine(
+            MockEngine { request ->
+                corpo = (request.body as io.ktor.http.content.TextContent).text
+                respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+
+        viewModel.aoMudarEmail("  Profissional@Exemplo.COM ")
+        viewModel.solicitarCodigo()?.join()
+
+        assertTrue(corpo!!.contains("\"profissional@exemplo.com\""))
+        assertEquals("profissional@exemplo.com", viewModel.estado.value.email)
+    }
+
+    /** Sem consumir o sinal, voltar da tela do código recompunha a entrada e reabria o código (preso na tela). */
+    @Test
+    fun `depois de navegar para o codigo o sinal e consumido`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.aoMudarEmail("profissional@exemplo.com")
+        viewModel.solicitarCodigo()?.join()
+        assertTrue(viewModel.estado.value.otpSolicitado)
+
+        viewModel.aoNavegarParaCodigo()
+
+        assertFalse(viewModel.estado.value.otpSolicitado)
+        assertEquals("profissional@exemplo.com", viewModel.estado.value.email)
+    }
+
+    @Test
+    fun `segundo toque com o pedido em voo nao envia de novo`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger(0)
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamadas.incrementAndGet()
+                kotlinx.coroutines.delay(200)
+                respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.aoMudarEmail("profissional@exemplo.com")
+
+        val primeiro = viewModel.solicitarCodigo()
+        val segundo = viewModel.solicitarCodigo()
+        primeiro?.join()
+        segundo?.join()
+
+        assertEquals(1, chamadas.get())
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `dominio de teste so pula OTP com a permissao de debug`(permitirDominioDeTeste: Boolean) = runBlocking {
+        val caminhos = mutableListOf<String>()
+        val vm = viewModelComEngine(MockEngine { request ->
+            caminhos += request.url.encodedPath
+            respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }, permitirDominioDeTeste)
+        vm.aoMudarEmail("  Qualquer@FRILA.TEST  ")
+        assertEquals(permitirDominioDeTeste, vm.estado.value.ehContaDeDemonstracao)
+        vm.solicitarCodigo()?.join()
+        assertTrue(vm.estado.value.otpSolicitado)
+        assertEquals(if (permitirDominioDeTeste) emptyList<String>() else listOf("/auth/v1/otp"), caminhos)
+    }
+
 }

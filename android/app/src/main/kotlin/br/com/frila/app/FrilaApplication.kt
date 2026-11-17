@@ -3,11 +3,19 @@ package br.com.frila.app
 import android.app.Application
 import android.util.Log
 import br.com.frila.app.desempenho.MedidorDeColdStart
+import br.com.frila.app.falhas.ColetaDeFalhas
+import br.com.frila.app.falhas.FalhasDoFirebaseReal
+import br.com.frila.app.falhas.RelatorioDeFalhas
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.seguranca.LeitorDeAmbiente
 import br.com.frila.core.seguranca.VerificadorDeIntegridade
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
 
@@ -18,6 +26,7 @@ class FrilaApplication : Application(), KoinComponent {
     override fun onCreate() {
         super.onCreate()
         MedidorDeColdStart.iniciar()
+        limparRelatoriosDeFalhaPendentes()
 
         startKoin {
             androidContext(this@FrilaApplication)
@@ -26,6 +35,30 @@ class FrilaApplication : Application(), KoinComponent {
 
         GerenciadorDeCanais.criarCanais(this)
         registrarIntegridade()
+        cancelarGeofencesAntigos()
+    }
+
+    /**
+     * O geofence de aproximação saiu do app; o que uma versão anterior deixou registrado é cancelado aqui, em segundo plano
+     * ([LimpezaDeGeofencesAntigos]). Nunca pode ser a causa de uma falha de inicialização do app.
+     */
+    private fun cancelarGeofencesAntigos() {
+        try {
+            val limpeza = get<LimpezaDeGeofencesAntigos>()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch { limpeza.executar() }
+        } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * L1-6: o Crashlytics sai com a coleta desligada (manifesto); o que o SDK deixou guardado no aparelho sai na abertura, como no iOS.
+     * Nunca pode ser a causa de uma falha de inicialização do app.
+     */
+    private fun limparRelatoriosDeFalhaPendentes() {
+        try {
+            RelatorioDeFalhas.iniciarSeConfigurado(ColetaDeFalhas.ligadaNoManifesto(this), FalhasDoFirebaseReal(this))
+        } catch (_: Exception) {
+        }
     }
 
     /**

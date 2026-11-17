@@ -1,0 +1,34 @@
+@import "tailwindcss" source(".");
+@import "./marca/tokens.css";
+
+/*
+ * Cor e fonte vêm da marca (app/marca/tokens.css), com os mesmos nomes de token do app.
+ * Raio e o resto são PROVISÓRIOS da web (telas provisórias até o high-fi do Fabrício):
+ * os nomes são os finais; quando o design system web chegar, troca-se o valor, não o nome.
+ */
+:root {
+  --raio-cartao: 16px;
+  --raio-controle: 12px;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-fundo: var(--cor-fundo);
+  --color-superficie: var(--cor-superficie);
+  --color-tinta: var(--cor-tinta);
+  --color-tinta-suave: var(--cor-tinta-suave);
+  --color-borda: var(--cor-borda);
+  --color-acao: var(--cor-acao);
+  --color-sobre-acao: var(--cor-sobre-acao);
+  --radius-cartao: var(--raio-cartao);
+  --radius-controle: var(--raio-controle);
+  --font-sans: var(--fonte-corpo);
+  --font-titulo: var(--fonte-titulo);
+}
+
+html,
+body {
+  background: var(--cor-fundo);
+  color: var(--cor-tinta);
+  font-family: var(--fonte-corpo);
+}

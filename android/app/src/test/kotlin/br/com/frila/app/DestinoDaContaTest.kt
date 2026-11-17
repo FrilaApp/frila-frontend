@@ -17,6 +17,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Duration.Companion.seconds
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -106,7 +107,7 @@ class DestinoDaContaTest {
     @Test
     fun `destino avaliado e guardado`() = runTest {
         val guardado = GuardadoFalso()
-        val resultado = AvaliadorDeDestino({ DestinoDaConta.Profissional }, guardado).avaliar()
+        val resultado = AvaliadorDeDestino({ DestinoDaConta.Profissional }, guardado, sessaoGuardada = { false }).avaliar()
 
         assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional), resultado)
         assertEquals(DestinoDaConta.Profissional, guardado.valor)
@@ -115,7 +116,7 @@ class DestinoDaContaTest {
     @Test
     fun `cadastro apaga o destino guardado`() = runTest {
         val guardado = GuardadoFalso(DestinoDaConta.Profissional)
-        AvaliadorDeDestino({ DestinoDaConta.Cadastro }, guardado).avaliar()
+        AvaliadorDeDestino({ DestinoDaConta.Cadastro }, guardado, sessaoGuardada = { false }).avaliar()
 
         assertNull(guardado.valor)
     }
@@ -123,7 +124,7 @@ class DestinoDaContaTest {
     @Test
     fun `prazo estourado abre pelo destino guardado`() = runTest {
         val guardado = GuardadoFalso(DestinoDaConta.Contratante(CasaDoContratante("e1", "Bar Teste")))
-        val avaliador = AvaliadorDeDestino({ awaitCancellation() }, guardado, prazo = 8.seconds)
+        val avaliador = AvaliadorDeDestino({ awaitCancellation() }, guardado, sessaoGuardada = { false }, prazo = 8.seconds)
 
         val resultado = async { avaliador.avaliar() }
         advanceTimeBy(7_999)
@@ -140,7 +141,7 @@ class DestinoDaContaTest {
 
     @Test
     fun `prazo estourado sem destino guardado mostra sem conexao`() = runTest {
-        val avaliador = AvaliadorDeDestino({ awaitCancellation() }, GuardadoFalso(), prazo = 8.seconds)
+        val avaliador = AvaliadorDeDestino({ awaitCancellation() }, GuardadoFalso(), sessaoGuardada = { false }, prazo = 8.seconds)
 
         val resultado = async { avaliador.avaliar() }
         advanceTimeBy(8_001)
@@ -152,7 +153,7 @@ class DestinoDaContaTest {
     @Test
     fun `sem rede abre pelo destino guardado e nao o altera`() = runTest {
         val guardado = GuardadoFalso(DestinoDaConta.Profissional)
-        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.SEM_REDE) }, guardado).avaliar()
+        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.SEM_REDE) }, guardado, sessaoGuardada = { false }).avaliar()
 
         assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional), resultado)
         assertEquals(DestinoDaConta.Profissional, guardado.valor)
@@ -161,7 +162,7 @@ class DestinoDaContaTest {
     @Test
     fun `erro do servidor nao usa o destino guardado`() = runTest {
         val guardado = GuardadoFalso(DestinoDaConta.Profissional)
-        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.DESCONHECIDO) }, guardado).avaliar()
+        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.DESCONHECIDO) }, guardado, sessaoGuardada = { false }).avaliar()
 
         assertEquals(ResultadoDaAbertura.Falha, resultado)
         assertEquals(DestinoDaConta.Profissional, guardado.valor)
@@ -170,7 +171,7 @@ class DestinoDaContaTest {
     @Test
     fun `401 na abertura e sessao vencida, nunca usa nem mantem o destino guardado`() = runTest {
         val guardado = GuardadoFalso(DestinoDaConta.Profissional)
-        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.NAO_AUTENTICADO) }, guardado).avaliar()
+        val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.NAO_AUTENTICADO) }, guardado, sessaoGuardada = { false }).avaliar()
 
         assertEquals(ResultadoDaAbertura.SessaoVencida, resultado)
         assertNull(guardado.valor)
@@ -179,7 +180,7 @@ class DestinoDaContaTest {
     @Test
     fun `cancelamento nao vira resultado`() = runTest {
         val gate = CompletableDeferred<Unit>()
-        val trabalho = async { AvaliadorDeDestino({ gate.await(); DestinoDaConta.Profissional }, GuardadoFalso()).avaliar() }
+        val trabalho = async { AvaliadorDeDestino({ gate.await(); DestinoDaConta.Profissional }, GuardadoFalso(), sessaoGuardada = { false }).avaliar() }
         runCurrent()
         trabalho.cancel()
         runCurrent()
@@ -225,5 +226,61 @@ class DestinoDaContaTest {
         guardado.salvar(DestinoDaConta.Profissional)
 
         assertNull(guardado.obter())
+    }
+
+    // ───── MENOR 1 do #818: o parâmetro da sessão é obrigatório ─────
+
+    /**
+     * Com padrão `{ false }`, quem construísse o avaliador sem a sessão voltaria a apagá-la em todo 401, em silêncio.
+     * Obrigatório, esquecer o parâmetro não compila.
+     */
+    @Test
+    fun `sessaoGuardada e obrigatorio no avaliador`() {
+        val parametro = AvaliadorDeDestino::class.primaryConstructor!!.parameters.single { it.name == "sessaoGuardada" }
+
+        assertFalse(parametro.isOptional, "sessaoGuardada não pode ter valor padrão")
+    }
+
+    // ───── C0-2b: 401 com a sessão ainda guardada é falha passageira da renovação, não sessão vencida ─────
+
+    @Test
+    fun `401 com a sessao ainda guardada usa o destino guardado e nao o apaga`() = runTest {
+        val guardado = GuardadoFalso(DestinoDaConta.Profissional)
+        val resultado = AvaliadorDeDestino(
+            { throw erro(CodigoErroAPI.NAO_AUTENTICADO) },
+            guardado,
+            sessaoGuardada = { true },
+        ).avaliar()
+
+        assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional), resultado)
+        assertEquals(DestinoDaConta.Profissional, guardado.valor)
+    }
+
+    @Test
+    fun `401 com a sessao guardada e sem destino guardado diz sem conexao, nao sessao vencida`() = runTest {
+        val resultado = AvaliadorDeDestino(
+            { throw erro(CodigoErroAPI.NAO_AUTENTICADO) },
+            GuardadoFalso(),
+            sessaoGuardada = { true },
+        ).avaliar()
+
+        assertEquals(ResultadoDaAbertura.SemConexao, resultado)
+    }
+
+    @Test
+    fun `avaliador ligado a sessao do aparelho - 401 so vira sessao vencida depois que a sessao some`() = runTest {
+        val sessao = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao(accessToken = "a", refreshToken = "r", tokenType = "bearer", expiresIn = 3_600))
+        }
+        val avaliador = avaliadorDeDestinoDaSessao(
+            sessao = sessao,
+            descobrir = { throw erro(CodigoErroAPI.NAO_AUTENTICADO) },
+            guardado = GuardadoFalso(),
+        )
+
+        assertEquals(ResultadoDaAbertura.SemConexao, avaliador.avaliar())
+
+        sessao.limparSessao()
+        assertEquals(ResultadoDaAbertura.SessaoVencida, avaliador.avaliar())
     }
 }

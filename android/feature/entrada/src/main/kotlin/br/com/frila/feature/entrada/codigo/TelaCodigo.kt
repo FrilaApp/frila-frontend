@@ -15,8 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
@@ -27,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import kotlinx.coroutines.delay
 
 @Composable
 fun TelaCodigo(
@@ -41,6 +47,20 @@ fun TelaCodigo(
             aoAutenticar()
         }
     }
+
+    // Contagem de 60 s para reenviar, como no iOS. O relógio é o do ViewModel; a tela só relê a cada segundo.
+    var segundosParaReenviar by remember { mutableLongStateOf(viewModel.segundosParaReenviar()) }
+    LaunchedEffect(estado.reenviosFeitos) {
+        while (true) {
+            segundosParaReenviar = viewModel.segundosParaReenviar()
+            if (segundosParaReenviar <= 0) break
+            delay(1_000)
+        }
+    }
+
+    // O campo já abre com foco e teclado, como no iOS: quem chega aqui só tem de digitar o código.
+    val focoDoCodigo = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focoDoCodigo.requestFocus() }
 
     Column(
         modifier = modifier
@@ -64,13 +84,14 @@ fun TelaCodigo(
 
         OutlinedTextField(
             value = estado.codigo,
-            onValueChange = viewModel::aoMudarCodigo,
+            onValueChange = { viewModel.aoMudarCodigo(it) },
             label = { Text("Código de 6 dígitos") },
             singleLine = true,
             isError = estado.erro != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             modifier = Modifier
                 .fillMaxWidth()
+                .focusRequester(focoDoCodigo)
                 .semantics {
                     estado.erro?.let { error(it) }
                 },
@@ -78,7 +99,7 @@ fun TelaCodigo(
 
         if (estado.reenviado) {
             Text(
-                text = "Código reenviado.",
+                text = "Novo código enviado para seu e-mail.",
                 color = MaterialTheme.colorScheme.tertiary,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -102,9 +123,13 @@ fun TelaCodigo(
         )
 
         BotaoSecundario(
-            texto = "Reenviar código",
-            aoClicar = viewModel::reenviarCodigo,
-            habilitado = !estado.carregando,
+            texto = if (segundosParaReenviar > 0) {
+                "Reenviar código em %d:%02d".format(segundosParaReenviar / 60, segundosParaReenviar % 60)
+            } else {
+                "Reenviar código"
+            },
+            aoClicar = { viewModel.reenviarCodigo() },
+            habilitado = !estado.carregando && segundosParaReenviar <= 0,
             modifier = Modifier.fillMaxWidth(),
         )
     }

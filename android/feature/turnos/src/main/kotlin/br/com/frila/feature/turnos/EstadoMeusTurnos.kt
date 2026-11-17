@@ -1,6 +1,7 @@
 package br.com.frila.feature.turnos
 
 import br.com.frila.core.dominio.modelo.ComprovanteCheckin
+import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import java.time.Instant
 
@@ -27,6 +28,12 @@ data class ItemTurno(
     val avaliacaoResposta: Boolean? = null,
     /** Comprovante de check-in emitido (RN06/RN22); `null` antes do registro. */
     val comprovante: ComprovanteCheckin? = null,
+    /** O ponto da vaga (`VagaResumo.ponto`): sem ele o check-in não mede a distância e vira manual (C0-7). */
+    val pontoDaVaga: Coordenada? = null,
+    /** C0-9: id do perfil público da casa (`Turno.contraparte`), o alvo de "Denunciar" como no iOS (`TelaMeuTurno.swift:125`). */
+    val contraparteId: String? = null,
+    /** L1-4: quando o check-out foi registrado (`Turno.checkout_em`); `null` enquanto não houve. */
+    val checkoutEm: Instant? = null,
 )
 
 /** Estado do diálogo RN12 enquanto o profissional decide e envia o cancelamento. */

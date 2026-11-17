@@ -1,6 +1,8 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
+import br.com.frila.core.rede.CoordenadaDto
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.TurnoDto
@@ -19,6 +21,7 @@ class MapeadoresTest {
         checkinDistanciaM: Int? = 50,
         checkinConfirmadoEm: String? = null,
         verificacao: String = "verificado",
+        checkoutEm: String? = null,
     ) = TurnoDto(
         id = id,
         posicaoId = "posicao-1",
@@ -47,10 +50,30 @@ class MapeadoresTest {
         checkinTipo = checkinTipo,
         checkinDistanciaM = checkinDistanciaM,
         checkinConfirmadoEm = checkinConfirmadoEm,
+        checkoutEm = checkoutEm,
         verificacao = verificacao,
         valorAcordadoCentavos = 15000,
         podeAvaliar = false,
     )
+
+    @Test
+    fun `L1-4 - o item leva a hora do check-out, e nulo enquanto nao houve`() {
+        assertNull(criarTurnoDto().paraItem().checkoutEm)
+        assertEquals(
+            java.time.Instant.parse("2026-11-02T03:10:00Z"),
+            criarTurnoDto(checkoutEm = "2026-11-02T03:10:00+00:00").paraItem().checkoutEm,
+        )
+    }
+
+    @Test
+    fun `L1-4 - hora de check-out ilegivel nao derruba o item`() {
+        assertNull(criarTurnoDto(checkoutEm = "ontem").paraItem().checkoutEm)
+    }
+
+    @Test
+    fun `C0-9 - o item leva o id da casa, alvo de Denunciar no turno`() {
+        assertEquals("contraparte-1", criarTurnoDto().paraItem().contraparteId)
+    }
 
     @Test
     fun `checkin geolocalizado verificado mapeia para GEOLOCALIZADO`() {
@@ -185,5 +208,37 @@ class MapeadoresTest {
             TipoVerificacaoCheckin.NAO_VERIFICADO,
             mapearTipoVerificacaoCheckin("desconhecido_xyz"),
         )
+    }
+
+    /**
+     * O servidor devolve os instantes com `+00:00` (Postgres). No Android 9 a 11 `Instant.parse` não lê
+     * esse formato e derrubava Meus turnos; a leitura passa por `instanteDoServidor`. No Java 17 dos
+     * testes os dois leem: a prova do defeito é em aparelho API 28 a 30.
+     */
+    @Test
+    fun `turno com datas em mais zero zero do servidor mapeia inicio fim e horario de Brasilia`() {
+        val base = criarTurnoDto()
+        val dto = base.copy(
+            vaga = base.vaga.copy(
+                inicioEm = "2026-11-01T21:00:00+00:00",
+                fimEm = "2026-11-02T03:00:00+00:00",
+            ),
+        )
+
+        val item = dto.paraItem()
+
+        assertEquals(java.time.Instant.parse("2026-11-01T21:00:00Z"), item.inicio)
+        assertEquals(java.time.Instant.parse("2026-11-02T03:00:00Z"), item.fim)
+        assertEquals("01/11 18:00", item.dataHorarioFormatado)
+    }
+
+    /** C0-7: sem o ponto da vaga, o check-in não mede a distância e sempre vira manual. */
+    @Test
+    fun `o ponto da vaga chega ao item do turno para o checkin medir a distancia`() {
+        val semPonto = criarTurnoDto()
+        val comPonto = semPonto.copy(vaga = semPonto.vaga.copy(ponto = CoordenadaDto(latitude = -15.7942, longitude = -47.8822)))
+
+        assertEquals(Coordenada(latitude = -15.7942, longitude = -47.8822), comPonto.paraItem().pontoDaVaga)
+        assertNull(semPonto.paraItem().pontoDaVaga)
     }
 }

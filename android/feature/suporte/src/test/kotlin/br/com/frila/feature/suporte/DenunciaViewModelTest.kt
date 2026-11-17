@@ -307,6 +307,27 @@ class DenunciaViewModelTest {
         assertTrue(vm.estado.value.bloqueado)
     }
 
+    @Test
+    fun `sem chamada, contra o ServicoConfianca real o corpo vai sem chamada_id`() = runBlocking {
+        var corpoDenuncia: kotlinx.serialization.json.JsonObject? = null
+        val vm = viewModelComServicoReal(MockEngine { request ->
+            corpoDenuncia = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+            respond(
+                """{"ocorrencia_id":"6f1c2a4e-1111-2222-3333-444455556666","tipo":"denuncia","criada_em":"2026-11-10T12:00:00Z","prazo_resposta_ate":"2026-11-17"}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        })
+        vm.editarRelato(relatoOk)
+
+        vm.enviarDenuncia().join()
+
+        // Com "chamada_id": null o servidor de hoje responde 404 PGRST202: sem chamada, o campo não vai.
+        assertFalse(corpoDenuncia!!.containsKey("chamada_id"))
+        assertEquals("estabelecimento", corpoDenuncia!!["alvo_tipo"]!!.jsonPrimitive.content)
+        assertEquals("6F1C2A4E", vm.estado.value.protocolo!!.protocoloCurto)
+    }
+
     private fun viewModelComServicoReal(engine: MockEngine) = ServicoConfianca(
         ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine),
     ).let { servico ->

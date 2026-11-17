@@ -121,6 +121,58 @@ class MonitorDeConectividadeAndroidTest {
         escopoDoMonitor.cancel()
     }
 
+    // C0-5: o que barra o pedido de rede é a leitura do sistema na hora, não o valor guardado do fluxo.
+
+    @Test
+    fun `sem ninguem observando, estaConectado acompanha a rede na hora do pedido`() {
+        var capacidades: NetworkCapabilities? = null
+        val monitor = MonitorDeConectividadeAndroid(contexto, escopo, capacidadesDaRedeAtiva = { capacidades })
+        assertEquals(false, monitor.estaConectado)
+
+        // A rede volta com o app em segundo plano: ninguém observa o fluxo, então o status guardado não muda.
+        capacidades = capacidadesCom(internet = true, validated = true)
+
+        assertEquals(StatusConectividade.SEM_CONEXAO, monitor.status.value)
+        assertEquals(true, monitor.estaConectado)
+    }
+
+    @Test
+    fun `rede com internet e sem a validacao do Google nao barra o pedido`() {
+        val monitor = MonitorDeConectividadeAndroid(
+            contexto,
+            escopo,
+            capacidadesDaRedeAtiva = { capacidadesCom(internet = true, validated = false) },
+        )
+
+        assertEquals(true, monitor.estaConectado)
+        // O aviso da tela continua rigoroso (portal de login não conta como conectado).
+        assertEquals(StatusConectividade.SEM_CONEXAO, monitor.status.value)
+    }
+
+    @Test
+    fun `sem rede ativa ou sem internet o pedido e barrado na hora`() {
+        val semRede = MonitorDeConectividadeAndroid(contexto, escopo, capacidadesDaRedeAtiva = { null })
+        val semInternet = MonitorDeConectividadeAndroid(
+            contexto,
+            escopo,
+            capacidadesDaRedeAtiva = { capacidadesCom(internet = false, validated = false) },
+        )
+
+        assertEquals(false, semRede.estaConectado)
+        assertEquals(false, semInternet.estaConectado)
+    }
+
+    @Test
+    fun `falha ao consultar o sistema nao barra o pedido`() {
+        val monitor = MonitorDeConectividadeAndroid(
+            contexto,
+            escopo,
+            capacidadesDaRedeAtiva = { throw SecurityException("sem acesso ao estado da rede") },
+        )
+
+        assertEquals(true, monitor.estaConectado)
+    }
+
     private fun capacidadesCom(internet: Boolean, validated: Boolean): NetworkCapabilities {
         val capacidades = mockk<NetworkCapabilities>()
         every { capacidades.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) } returns internet

@@ -272,4 +272,23 @@ class DetalheVagaViewModelTest {
         assertTrue(viewModelUrgencia.estado.value.ehModoUrgencia)
         assertFalse(viewModelSelecao.estado.value.ehModoUrgencia)
     }
+
+    @Test
+    fun `candidatar com resposta 200 ilegivel sai de enviando com mensagem de erro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = "<html>portal</html>",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+            },
+        )
+
+        viewModel.candidatar().join()
+
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.mensagem != null)
+    }
 }

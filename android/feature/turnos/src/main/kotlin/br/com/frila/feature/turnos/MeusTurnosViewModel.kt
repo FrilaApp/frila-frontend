@@ -32,13 +32,6 @@ class MeusTurnosViewModel(
     private val servicoTurnos: ServicoTurnos,
     private val relogio: Clock = Clock.systemUTC(),
     escopo: CoroutineScope? = null,
-    /**
-     * RN06 (geofencing passivo de aproximação, cartão Uu04zAt4). `null` por padrão: nulo
-     * significa "recurso desligado", nunca "instância divergente" — evita a classe de bug de
-     * Koin que fez o PR #596 cair numa instância diferente de uma dependência registrada à
-     * parte (MEDIDO: `ModulosKoin.kt`, revisão do Shisui).
-     */
-    private val monitorizador: MonitorizadorDeTurnosProximos? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -62,9 +55,19 @@ class MeusTurnosViewModel(
                         paginaHistorico = 1,
                     )
                 }
-                monitorizador?.avaliarTurnos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusMeusTurnos.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica (campo que o servidor omitiu, HTML de portal) não é ErroDaApi:
+                // sem isto a tela ficava em "carregando" e a exceção subia crua.
+                _estado.update {
+                    it.copy(
+                        status = StatusMeusTurnos.ERRO,
+                        mensagemErro = "Não foi possível carregar seus turnos. Tente de novo em instantes.",
+                    )
+                }
             }
         }
     }
@@ -109,7 +112,6 @@ class MeusTurnosViewModel(
                         mensagemErro = null,
                     )
                 }
-                monitorizador?.avaliarTurnos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {
@@ -185,8 +187,6 @@ class MeusTurnosViewModel(
                         },
                     )
                 }
-                // RNF04: turno cancelado não precisa mais do alerta de aproximação.
-                monitorizador?.removerAlerta(cancelado.turnoId)
             } catch (erro: ErroDaApi) {
                 _estado.update { atual ->
                     atual.copy(

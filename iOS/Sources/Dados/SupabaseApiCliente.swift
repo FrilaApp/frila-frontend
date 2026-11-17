@@ -330,6 +330,10 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     }
 
     public func minhasChamadas(estado: EstadoChamada? = nil, cursor: String? = nil, limite: Int? = nil) async throws -> [ChamadaResumo] {
+        try await paginaDeMinhasChamadas(estado: estado, cursor: cursor, limite: limite).itens
+    }
+
+    public func paginaDeMinhasChamadas(estado: EstadoChamada? = nil, cursor: String? = nil, limite: Int? = nil) async throws -> PaginaChamadas {
         struct Params: Encodable {
             let estado: EstadoChamada?
             let cursor: String?
@@ -339,7 +343,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             "minhas_chamadas",
             params: Params(estado: estado, cursor: cursor, limite: limite)
         )
-        return try pagina.itens.map { try $0.dominio() }
+        return PaginaChamadas(itens: try pagina.itens.map { try $0.dominio() }, proximoCursor: pagina.proximoCursor)
     }
 
     public func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
@@ -390,6 +394,13 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         let (pagina, descartados) = dto.dominio()
         Self.registrarDescartados(descartados, rpc: "buscar_profissionais")
         return pagina
+    }
+
+    /// 0.2.90. Não é retentada: o servidor já devolve o aceite que existe para a mesma versão, mas não há por que
+    /// repetir o envio de uma ação do usuário sem saber se a primeira chegou.
+    public func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
+        let dto: ContratoAPI.AceiteDeTermosDTO = try await rpc("aceitar_termos", params: ContratoAPI.AceitarTermos(termosVersao: versao))
+        return dto.dominio()
     }
 
     public func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada {

@@ -1,0 +1,35 @@
+/** Textos de denunciar e bloquear do lado da casa (3.18). As frases seguem as do app (TextosDaSeguranca). */
+export const contratanteModeracao = {
+  link: "Denunciar ou bloquear este profissional",
+  tituloDaAba: "Denunciar ou bloquear · Frila",
+  titulo: "Denunciar ou bloquear o profissional",
+  emergencia: "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)",
+  ligar190: "Ligar 190 — Polícia Militar",
+  ligar180: "Ligar 180 — Central de Atendimento à Mulher",
+  motivo: "Motivo da denúncia",
+  motivos: { assedio: "Assédio", discriminacao: "Discriminação", risco_seguranca: "Risco à segurança", outro: "Outro (fraude, documento falso…)" },
+  relato: "Conte o que aconteceu",
+  ajudaDoRelato: "Pelo menos 10 letras. A Equipe Frila lê e responde por e-mail em até 5 dias úteis.",
+  bloquearJunto: "Bloquear este profissional também",
+  enviar: "Enviar denúncia",
+  soBloquear: "Só bloquear, sem denunciar",
+  sobreBloquear:
+    "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser.",
+  enviando: "Enviando…",
+  // "{protocolo}" é trocado pelo protocolo curto.
+  denunciaEnviada: "Denúncia enviada. Protocolo {protocolo}. A Equipe Frila responde por e-mail em até 5 dias úteis.",
+  bloqueada: "Você bloqueou este profissional.",
+  alvoInvalido: "Não deu para saber qual profissional denunciar. Volte e abra pelo turno.",
+  resultado: {
+    relato_curto: "Conte com pelo menos 10 letras o que aconteceu.",
+    nao_encontrado: "Este profissional não está mais disponível para você.",
+    conta_suspensa: "Sua conta está suspensa. Por enquanto, não dá para fazer isso.",
+    indisponivel: "Não deu para enviar agora. Tente de novo em instantes.",
+  },
+  bloqueados: "Profissionais bloqueados",
+  tituloDosBloqueados: "Profissionais bloqueados · Frila",
+  nenhumBloqueio: "A casa não bloqueou nenhum profissional.",
+  desbloquear: "Desbloquear",
+  desbloqueada: "Profissional desbloqueado.",
+  voltar: "Voltar aos turnos da casa",
+} as const;

@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -31,6 +32,71 @@ class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.post(cliente.urlFunction("excluir-conta")) {
             contentType(ContentType.Application.Json)
             setBody(ConfirmarExclusaoDto(confirmar = true))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/criar_perfil_profissional`.
+     * Declara funções, ponto base e disponibilidade (RF01/RF03/RN05/RN25, UC09).
+     * Erros: `409 perfil_ja_existe`, `401 nao_autenticado`, `403 conta_suspensa`, `422 perfil_incompativel`, `422 campo_invalido`.
+     */
+    suspend fun criarPerfilProfissional(dados: DadosDoPerfilProfissionalDto): PerfilProfissionalDto {
+        val resposta = cliente.http.post(cliente.urlRpc("criar_perfil_profissional")) {
+            contentType(ContentType.Application.Json)
+            setBody(dados)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/atualizar_perfil_profissional`.
+     * Altera funções, ponto base ou disponibilidade (RF03, UC09).
+     * Erros: `401 nao_autenticado`, `403 conta_suspensa`, `404 nao_encontrado`, `422 campo_obrigatorio`, `422 campo_invalido`.
+     */
+    suspend fun atualizarPerfilProfissional(alteracao: AlteracaoDoPerfilProfissionalDto): PerfilProfissionalDto {
+        val resposta = cliente.http.post(cliente.urlRpc("atualizar_perfil_profissional")) {
+            contentType(ContentType.Application.Json)
+            setBody(alteracao)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/atualizar_apresentacao_profissional`.
+     * Altera "Sobre mim", experiência, cursos e idiomas (RN26/RN38/RN39/RN25).
+     * Erros: `401 nao_autenticado`, `403 sem_permissao` (recurso_desligado) ou `conta_suspensa`, `404 nao_encontrado`, `422 campo_obrigatorio`, `422 campo_invalido`, `422 perfil_incompativel`.
+     */
+    suspend fun atualizarApresentacaoProfissional(apresentacao: ApresentacaoDoProfissionalDto): PerfilProfissionalDetalhadoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("atualizar_apresentacao_profissional")) {
+            contentType(ContentType.Application.Json)
+            setBody(apresentacao)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/definir_regioes_atendidas`.
+     * Define as regiões administrativas onde atende (RN26/RN44).
+     * Erros: `401 nao_autenticado`, `403 sem_permissao` (recurso_desligado) ou `conta_suspensa`, `404 nao_encontrado`, `422 campo_invalido`.
+     */
+    suspend fun definirRegioesAtendidas(dados: DefinirRegioesAtendidasDto): PerfilProfissionalDetalhadoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("definir_regioes_atendidas")) {
+            contentType(ContentType.Application.Json)
+            setBody(dados)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `GET /rest/v1/regiao_administrativa`: catálogo fechado das regiões administrativas do DF (0.2.52, RN44), na ordem oficial
+     * (RA I, RA II...). O perfil marca as regiões onde atende por `id`, nunca por texto. Só as ativas.
+     */
+    suspend fun regioesAdministrativas(): List<RegiaoAdministrativaDto> {
+        val resposta = cliente.http.get(cliente.urlCompleta("/rest/v1/regiao_administrativa")) {
+            parameter("select", "id,numero,nome")
+            parameter("ativo", "eq.true")
+            parameter("order", "id.asc")
         }
         return cliente.corpoOuErro(resposta)
     }

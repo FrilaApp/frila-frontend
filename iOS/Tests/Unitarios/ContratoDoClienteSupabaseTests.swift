@@ -477,6 +477,26 @@ struct ContratoDoClienteSupabaseTests {
         #expect(pagina.proximoCursor == "c2")
     }
 
+    @Test("buscar_profissionais lê foto_url e foto_id do cartão quando vêm, e trata como ausentes quando não vêm")
+    func buscarProfissionaisComESemFoto() async throws {
+        let semFoto = Self.cartaoDaBusca
+        let fotoID = "50000000-0000-0000-0000-000000000009"
+        let comFoto = semFoto.replacingOccurrences(
+            of: #""distancia_faixa":"ate_5_km","#,
+            with: #""distancia_faixa":"ate_5_km","foto_url":"https://frila-teste.supabase.co/ler-midia?t=abc","foto_id":"\#(fotoID)","#)
+        try #require(comFoto != semFoto)
+        let filtro = FiltroBuscaProfissionais(estabelecimentoID: UUID(), funcaoID: UUID())
+
+        BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(corpo: Data(semFoto.utf8))])
+        let sem = try #require(try await cliente().buscarProfissionais(filtro, cursor: nil, limite: nil).itens.first)
+        #expect(sem.fotoURL == nil && sem.fotoID == nil)
+
+        BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(corpo: Data(comFoto.utf8))])
+        let com = try #require(try await cliente().buscarProfissionais(filtro, cursor: nil, limite: nil).itens.first)
+        #expect(com.fotoURL?.absoluteString == "https://frila-teste.supabase.co/ler-midia?t=abc")
+        #expect(com.fotoID == UUID(uuidString: fotoID))
+    }
+
     @Test("buscar_profissionais: 429 limite_excedido e 422 cursor_invalido chegam tipados, com ou sem envelope")
     func buscarProfissionaisRecusas() async throws {
         let filtro = FiltroBuscaProfissionais(estabelecimentoID: UUID(), funcaoID: UUID())
@@ -494,6 +514,56 @@ struct ContratoDoClienteSupabaseTests {
         }
     }
 
+    @Test("aceitar_termos vai por POST com só a versão (o instante é do servidor) e lê o aceite em vigor")
+    func aceitarTermos() async throws {
+        let resposta = #"{"termos_versao":"2026-11-13","aceito_em":"2026-11-16T15:00:00Z"}"#
+        BackendDeContrato.preparar(["/rest/v1/rpc/aceitar_termos": .init(corpo: Data(resposta.utf8))])
+        let aceite = try await cliente().aceitarTermos(versao: "2026-11-13")
+
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/aceitar_termos") == ["termos_versao": "2026-11-13"])
+        #expect(aceite.termosVersao == "2026-11-13")
+        #expect(aceite.aceitoEm == ContratoAPI.instante("2026-11-16T15:00:00Z"))
+    }
+
+    @Test("aceitar_termos: 422 campo_invalido e campo_obrigatorio chegam tipados, e não é retentada")
+    func aceitarTermosRecusas() async throws {
+        let casos: [(String, CodigoErroAPI)] = [
+            (#"{"code":"campo_invalido","message":"campo_invalido","details":"termos_versao","hint":null}"#, .campoInvalido),
+            (#"{"code":"campo_obrigatorio","message":"campo_obrigatorio","details":"termos_versao","hint":null}"#, .campoObrigatorio),
+        ]
+        for (corpo, esperado) in casos {
+            BackendDeContrato.preparar(["/rest/v1/rpc/aceitar_termos": .init(status: 422, corpo: Data(corpo.utf8))])
+            let erro = await #expect(throws: ErroDaApi.self) { _ = try await cliente().aceitarTermos(versao: "x") }
+            #expect(erro?.codigo == esperado)
+            #expect(erro?.detalhes == "termos_versao")
+            #expect(BackendDeContrato.requisicoes.filter { $0.rota == "/rest/v1/rpc/aceitar_termos" }.count == 1)
+        }
+    }
+
+    @Test("buscar_profissionais: 403 sem_permissao com termos_pendentes chega tipado")
+    func buscarProfissionaisTermosPendentes() async throws {
+        let corpo = #"{"code":"sem_permissao","message":"sem_permissao","details":"termos_pendentes","hint":null}"#
+        BackendDeContrato.preparar(["/rest/v1/rpc/buscar_profissionais": .init(status: 403, corpo: Data(corpo.utf8))])
+        let erro = await #expect(throws: ErroDaApi.self) {
+            _ = try await cliente().buscarProfissionais(FiltroBuscaProfissionais(estabelecimentoID: UUID(), funcaoID: UUID()), cursor: nil, limite: nil)
+        }
+        #expect(erro?.codigo == .semPermissao)
+        #expect(erro?.termosPendentes == true)
+        #expect(erro?.recursoDesligado == false)
+        #expect(DecodificadorErroAPI.mapear(codigo: "sem_permissao", detalhes: "conta_suspensa").termosPendentes == false)
+        #expect(DecodificadorErroAPI.mapear(codigo: "termos_pendentes", detalhes: nil).termosPendentes)
+    }
+
+    @Test("minha_conta lê termos_versao quando vem e trata como ausente quando não vem")
+    func minhaContaComETermosVersao() async throws {
+        let sem = #"{"id":"10000000-0000-0000-0000-000000000001","perfil":"contratante","nome":"Ana","telefone":"+5561988887777","email":"a@b.com","nascimento":"1990-01-01","estado":"ativa"}"#
+        let com = sem.replacingOccurrences(of: #""estado":"ativa""#, with: #""estado":"ativa","termos_versao":"2026-11-13""#)
+        BackendDeContrato.preparar(["/rest/v1/rpc/minha_conta": .init(corpo: Data(sem.utf8))])
+        #expect(try await cliente().minhaConta().termosVersao == nil)
+        BackendDeContrato.preparar(["/rest/v1/rpc/minha_conta": .init(corpo: Data(com.utf8))])
+        #expect(try await cliente().minhaConta().termosVersao == "2026-11-13")
+    }
+
     @Test("definir_preferencia_chamadas manda aceita_chamadas com a versão do texto e lê as pendências")
     func definirAceitaChamadas() async throws {
         let resposta = #"{"aceita_de_quem_ja_trabalhou":true,"pausado_ate":null,"antecedencia_minima_h":6,"aceita_de":"todos","aceita_chamadas":true,"pendencias_para_busca":["sem_regiao"]}"#
@@ -503,6 +573,18 @@ struct ContratoDoClienteSupabaseTests {
         #expect(try corpoEnviado(para: "/rest/v1/rpc/definir_preferencia_chamadas") == ["aceita_chamadas": true, "versao_texto_busca": "busca-v1"])
         #expect(preferencia.aceitaChamadas)
         #expect(preferencia.pendenciasParaBusca == [.semRegiao])
+    }
+
+    @Test("minhas_chamadas manda o estado e o cursor e devolve o proximo_cursor da página (0.2.95: a busca segue o cursor)")
+    func paginaDeMinhasChamadasTrazOCursor() async throws {
+        BackendDeContrato.preparar(["/rest/v1/rpc/minhas_chamadas": .init(corpo: Data(#"{"itens":[],"proximo_cursor":"c2"}"#.utf8))])
+        let pagina = try await cliente().paginaDeMinhasChamadas(estado: .aberta, cursor: "c1", limite: nil)
+
+        let corpo = try corpoEnviado(para: "/rest/v1/rpc/minhas_chamadas")
+        #expect(corpo["estado"] as? String == "aberta")
+        #expect(corpo["cursor"] as? String == "c1")
+        #expect(pagina.proximoCursor == "c2")
+        #expect(pagina.itens.isEmpty)
     }
 }
 

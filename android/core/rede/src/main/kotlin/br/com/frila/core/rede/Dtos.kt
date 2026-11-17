@@ -157,11 +157,16 @@ data class CriarContaDto(
     @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("sinal_idade") val sinalIdade: String? = null,
 )
 
-/** Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). */
+/**
+ * Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). `versao_app` (0.2.56) é opcional: sem ela o
+ * campo não vai no corpo (nem como null), e o servidor trata o aparelho como antigo para os avisos de chamada.
+ */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class RegistrarDispositivoDto(
     @SerialName("token_fcm") val tokenFcm: String,
     @SerialName("plataforma") val plataforma: String = "android",
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("versao_app") val versaoApp: String? = null,
 )
 
 /** Corpo de `POST /rest/v1/rpc/remover_dispositivo`: encerra o vínculo do token com a conta (RN15). */
@@ -239,6 +244,7 @@ data class CancelarPosicaoDto(
  * Resposta de `/rpc/meus_turnos` (schema `Turno`, MEDIDO em `iOS/Contrato/openapi.yaml:4613` e
  * gerado por `privado.turno_em_json`).
  * RN12: turno cancelado continua na lista, com `estado: cancelada` e objeto `cancelamento`.
+ * `contato_visivel_ate` é descontinuado no contrato (0.2.49): opcional e nulável, e ausente vale o mesmo que nulo.
  */
 @Serializable
 data class TurnoDto(
@@ -246,7 +252,7 @@ data class TurnoDto(
     @SerialName("posicao_id") val posicaoId: String,
     @SerialName("vaga") val vaga: VagaResumoDto,
     @SerialName("contraparte") val contraparte: PerfilPublicoDto,
-    @SerialName("contato_visivel_ate") val contatoVisivelAte: String,
+    @SerialName("contato_visivel_ate") val contatoVisivelAte: String? = null,
     @SerialName("a_caminho_em") val aCaminhoEm: String? = null,
     @SerialName("checkin_em") val checkinEm: String? = null,
     @SerialName("checkin_tipo") val checkinTipo: String? = null,
@@ -465,11 +471,13 @@ data class UploadVerificacaoDto(
 /**
  * Corpo de `POST /rest/v1/rpc/denunciar` (RF26, UC17). `chamada_id` é opcional desde o contrato
  * 0.2.71 (CD-S13): associa a denúncia à chamada direta, que precisa existir e envolver o
- * denunciante e o alvo (`422 campo_invalido`, `details: chamada_id`). Sem chamada, o campo segue
- * como `null`, que o contrato aceita (`oneOf: Uuid | null`). `midia_id` (0.2.54) não é modelado
+ * denunciante e o alvo (`422 campo_invalido`, `details: chamada_id`). Sem chamada, o campo NÃO
+ * vai no corpo (`@EncodeDefault(NEVER)`), como no iOS: o servidor de hoje não conhece o parâmetro
+ * e responde `404 PGRST202` a `"chamada_id": null`. `midia_id` (0.2.54) não é modelado
  * aqui: o contrato não aceita `null` nele e nenhuma tela do Android denuncia foto ainda.
  * `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DenunciarDto(
     @SerialName("alvo_tipo") val alvoTipo: String,
@@ -478,7 +486,7 @@ data class DenunciarDto(
     @SerialName("motivo") val motivo: String,
     @SerialName("relato") val relato: String,
     @SerialName("chave") val chave: String,
-    @SerialName("chamada_id") val chamadaId: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("chamada_id") val chamadaId: String? = null,
 )
 
 /** Corpo de `POST /rest/v1/rpc/sair_da_equipe` (contrato 0.2.72, LGPD art. 18). */
@@ -1118,4 +1126,30 @@ data class AceitarTermosDto(
 data class AceiteDeTermosDto(
     @SerialName("termos_versao") val termosVersao: String,
     @SerialName("aceito_em") val aceitoEm: String,
+)
+
+// ---------------------------------------------------------------------------------------------
+// Lote 2 da paridade com o iOS (L2-0, contrato 0.2.95): turno do profissional e da casa, vagas da
+// casa, vaga do profissional, conta e contestação. As leituras vão em POST com os parâmetros no
+// corpo, como no iOS: o POST não esbarra na transação somente leitura do GET.
+// `contato_do_turno` fica de fora: descontinuada na 0.2.49 (o app não troca contato).
+// ---------------------------------------------------------------------------------------------
+
+/** Corpo de `POST /rest/v1/rpc/avisar_a_caminho`: o turno em que o profissional está confirmado. */
+@Serializable
+data class AvisarACaminhoDto(
+    @SerialName("turno_id") val turnoId: String,
+)
+
+/** Resposta de `avisar_a_caminho` (schema `ResultadoACaminho`): repetir devolve o `a_caminho_em` original. */
+@Serializable
+data class ResultadoACaminhoDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("a_caminho_em") val aCaminhoEm: String,
+)
+
+/** Corpo de `POST /rest/v1/rpc/reabrir_por_atraso`: a posição do profissional que não chegou. */
+@Serializable
+data class ReabrirPorAtrasoDto(
+    @SerialName("posicao_id") val posicaoId: String,
 )

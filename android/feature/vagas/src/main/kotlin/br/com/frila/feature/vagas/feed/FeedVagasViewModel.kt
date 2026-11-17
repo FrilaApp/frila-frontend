@@ -2,7 +2,8 @@ package br.com.frila.feature.vagas.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.RepositorioVagas
@@ -38,7 +39,6 @@ private val INICIO_NOITE: LocalTime = LocalTime.of(18, 0)
  */
 class FeedVagasViewModel(
     private val servicoVagas: ServicoVagas,
-    private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val armazenamentoPreferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
     escopo: CoroutineScope? = null,
     private val repositorioVagas: RepositorioVagas? = null,
@@ -98,27 +98,33 @@ class FeedVagasViewModel(
     }
 
     fun carregar(): Job {
-        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
+        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null, semPontoBase = false) }
         return escopoDeTrabalho.launch {
             try {
                 restaurarPreferencias()
-                // Exibe o disco antes de esperar localização ou rede, inclusive na abertura offline.
+                // Exibe o disco antes de esperar a rede, inclusive na abertura offline.
                 repositorioVagas?.obterCache()?.let(::aplicarResultado)
                 aplicarResultado(buscarVagas())
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
-                _estado.update { it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro)) }
+                _estado.update {
+                    it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro), semPontoBase = faltaPontoBase(erro))
+                }
             }
         }
     }
 
-    private suspend fun buscarVagas(): ResultadoVagas {
-        val coordenada = withTimeoutOrNull(3_000) { provedorDeLocalizacao.obterCoordenadaAtual() }
-        // Sem filtro de raio no servidor: ampliar o chip continua sendo uma operação local.
-        return repositorioVagas?.listar(coordenada)
-            ?: ResultadoVagas(servicoVagas.listarVagasAbertas(coordenada), emCache = false)
-    }
+    /** Como no iOS (`FalhaDoFeed.semPontoDeReferencia`): sem ponto base, o servidor não tem de onde medir. */
+    private fun faltaPontoBase(erro: Exception): Boolean =
+        erro is ErroDaApi && erro.codigo == CodigoErroAPI.CAMPO_OBRIGATORIO && erro.detalhes == "latitude"
+
+    /**
+     * O feed não lê a posição do aparelho: o servidor ordena pelo ponto base do perfil, como no iOS.
+     * Sem filtro de raio no servidor: ampliar o chip continua sendo uma operação local.
+     */
+    private suspend fun buscarVagas(): ResultadoVagas =
+        repositorioVagas?.listar() ?: ResultadoVagas(servicoVagas.listarVagasAbertas(), emCache = false)
 
     private fun aplicarResultado(resultado: ResultadoVagas) {
         val aplicar = {
@@ -128,7 +134,7 @@ class FeedVagasViewModel(
             aplicarFiltros()
             if (resultado.emCache) validadeDoCache = escopoDeTrabalho.launch {
                 while (vagasCarregadas.isNotEmpty()) {
-                    val proximoFim = vagasCarregadas.minOf { Instant.parse(it.fimEm) }
+                    val proximoFim = vagasCarregadas.minOf { instanteDoServidor(it.fimEm) }
                     delay(Duration.between(agora(), proximoFim).toMillis().coerceAtLeast(1))
                     repositorioVagas?.usarSeValido { aplicarFiltros() }
                 }
@@ -322,8 +328,8 @@ private fun comparadorPara(opcao: OpcaoOrdenacaoVagas): Comparator<VagaAbertaDto
  * O valor anunciado é integral sem comissões da plataforma (RN01).
  */
 fun VagaAbertaDto.calcularValorHoraReais(): Double {
-    val inicio = runCatching { Instant.parse(inicioEm) }.getOrNull()
-    val fim = runCatching { Instant.parse(fimEm) }.getOrNull()
+    val inicio = runCatching { instanteDoServidor(inicioEm) }.getOrNull()
+    val fim = runCatching { instanteDoServidor(fimEm) }.getOrNull()
     val duracaoHoras = if (inicio != null && fim != null) {
         val minutos = Duration.between(inicio, fim).toMinutes()
         if (minutos > 0) minutos / 60.0 else 1.0
@@ -337,7 +343,7 @@ fun VagaAbertaDto.calcularValorHoraReais(): Double {
 private fun FiltroPeriodo.aceita(inicioEm: String): Boolean {
     if (this == FiltroPeriodo.QUALQUER) return true
 
-    val horario = Instant.parse(inicioEm).atZone(FUSO_BRASILIA).toLocalTime()
+    val horario = instanteDoServidor(inicioEm).atZone(FUSO_BRASILIA).toLocalTime()
     return when (this) {
         FiltroPeriodo.QUALQUER -> true
         FiltroPeriodo.MANHA -> horario >= INICIO_MANHA && horario < INICIO_TARDE

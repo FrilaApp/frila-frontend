@@ -1,10 +1,22 @@
 // Shell da aplicação: navegação Compose, grafo Koin, Application e Activity únicos.
 // Cartões Trello YRGYz50G e iWYMOk5C.
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.baselineprofile)
+}
+
+// C0-10 (push): o plugin do Google Services só entra com o google-services.json presente (fica fora do git, ver
+// .gitignore). O debug usa o do DEV (src/debug/) e o release o do PROD (src/release/). Sem o arquivo, como na CI, o app
+// compila sem Firebase: o registro do aparelho só não acontece.
+if (file("src/debug/google-services.json").exists() || file("src/release/google-services.json").exists()) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+    // L1-6: o mesmo critério. A coleta do Crashlytics fica DESLIGADA no manifesto; o plugin só gera o ID do build e envia o mapeamento do R8.
+    apply(plugin = libs.plugins.firebase.crashlytics.plugin.get().pluginId)
 }
 
 // Revisão ANBU (PR #557): o build type release não pode assinar com o keystore de debug
@@ -20,6 +32,87 @@ val temKeystoreDeRelease: Boolean = !releaseKeystorePath.isNullOrBlank() &&
     !releaseKeystorePassword.isNullOrBlank() &&
     !releaseKeyAlias.isNullOrBlank() &&
     !releaseKeyPassword.isNullOrBlank()
+
+// Supabase (pedido 16-26): a URL e a chave PUBLICÁVEL vão para o BuildConfig. Debug = par DEV,
+// release = par PROD. Fonte: variável de ambiente ou android/local.properties (ignorado pelo Git).
+// Nenhum valor é impresso: as mensagens citam só o nome da variável. A regra da chave proibida é a
+// mesma de ConfiguracaoSupabase.kt (mude as duas juntas; os testes unitários cobrem a de lá).
+val propriedadesLocais = Properties().apply {
+    val arquivo = rootProject.file("local.properties")
+    if (arquivo.isFile) arquivo.inputStream().use { load(it) }
+}
+
+fun valorDoSupabase(nome: String): String =
+    System.getenv(nome)?.trim()?.takeIf { it.isNotEmpty() } ?: propriedadesLocais.getProperty(nome)?.trim().orEmpty()
+
+fun problemasDoParSupabase(ambiente: String, url: String, chave: String): List<String> {
+    val nomeUrl = "FRILA_SUPABASE_${ambiente}_URL"
+    val nomeChave = "FRILA_SUPABASE_${ambiente}_PUBLISHABLE_KEY"
+    val cargaDoJwt = chave.split('.').takeIf { it.size == 3 }?.let { partes ->
+        runCatching { String(Base64.getUrlDecoder().decode(partes[1].trimEnd('='))) }.getOrNull()
+    }
+    return listOfNotNull(
+        when {
+            url.isEmpty() -> "$nomeUrl ausente"
+            url.startsWith("TODO", ignoreCase = true) -> "$nomeUrl é placeholder (TODO)"
+            !url.startsWith("https://") -> "$nomeUrl não usa https"
+            else -> null
+        },
+        when {
+            chave.isEmpty() -> "$nomeChave ausente"
+            chave.startsWith("TODO", ignoreCase = true) -> "$nomeChave é placeholder (TODO)"
+            chave.startsWith("sb_secret_") -> "$nomeChave é chave secreta (sb_secret_); use a publicável"
+            cargaDoJwt != null && Regex("\"role\"\\s*:\\s*\"service_role\"").containsMatchIn(cargaDoJwt) ->
+                "$nomeChave é um JWT com role service_role; use a publicável"
+            else -> null
+        },
+    )
+}
+
+fun literalJava(valor: String): String = "\"" + valor.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+/** Host que nunca resolve (RFC 2606): o debug sem o par DEV compila e o app avisa no log. */
+val urlSupabaseSemConfiguracao = "https://supabase-nao-configurado.invalid"
+val supabaseDevUrl = valorDoSupabase("FRILA_SUPABASE_DEV_URL")
+val supabaseDevChave = valorDoSupabase("FRILA_SUPABASE_DEV_PUBLISHABLE_KEY")
+val supabaseProdUrl = valorDoSupabase("FRILA_SUPABASE_PROD_URL")
+val supabaseProdChave = valorDoSupabase("FRILA_SUPABASE_PROD_PUBLISHABLE_KEY")
+// Debug: sem o par DEV, compila sem servidor; com o par (mesmo só metade), ele tem de valer. Release:
+// sempre exige o par PROD válido. As checagens rodam só nas tarefas do próprio tipo de build, então
+// testes e builds de debug não dependem do par PROD.
+val parDevAusente = supabaseDevUrl.isEmpty() && supabaseDevChave.isEmpty()
+val problemasDoSupabaseDebug =
+    if (parDevAusente) emptyList() else problemasDoParSupabase("DEV", supabaseDevUrl, supabaseDevChave)
+val problemasDoSupabaseRelease = problemasDoParSupabase("PROD", supabaseProdUrl, supabaseProdChave)
+
+val conferirSupabaseDoDebug = tasks.register("conferirSupabaseDoDebug") {
+    description = "Recusa um par DEV do Supabase incompleto ou com chave proibida (sem imprimir valores)."
+    val problemas = problemasDoSupabaseDebug
+    doLast {
+        if (problemas.isNotEmpty()) {
+            throw GradleException(
+                "Supabase do debug (par DEV): ${problemas.joinToString("; ")}. Corrija a variável de ambiente ou " +
+                    "android/local.properties, ou tire as duas para compilar sem servidor.",
+            )
+        }
+    }
+}
+val conferirSupabaseDoRelease = tasks.register("conferirSupabaseDoRelease") {
+    description = "Falha o release sem o par PROD do Supabase ou com chave proibida (sem imprimir valores)."
+    val problemas = problemasDoSupabaseRelease
+    doLast {
+        if (problemas.isNotEmpty()) {
+            throw GradleException(
+                "Supabase do release (par PROD): ${problemas.joinToString("; ")}. Defina FRILA_SUPABASE_PROD_URL e " +
+                    "FRILA_SUPABASE_PROD_PUBLISHABLE_KEY por variável de ambiente ou em android/local.properties.",
+            )
+        }
+    }
+}
+tasks.matching { it.name == "preDebugBuild" }.configureEach { dependsOn(conferirSupabaseDoDebug) }
+// Inclui os tipos de release do plugin de baseline profile (nonMinifiedRelease, benchmarkRelease).
+tasks.matching { it.name.startsWith("pre") && it.name.endsWith("ReleaseBuild") }
+    .configureEach { dependsOn(conferirSupabaseDoRelease) }
 
 android {
     namespace = "br.com.frila.app"
@@ -72,9 +165,13 @@ android {
             if (temKeystoreDeRelease) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            buildConfigField("String", "SUPABASE_URL", literalJava(supabaseProdUrl))
+            buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalJava(supabaseProdChave))
         }
         debug {
             isMinifyEnabled = false
+            buildConfigField("String", "SUPABASE_URL", literalJava(supabaseDevUrl.ifEmpty { urlSupabaseSemConfiguracao }))
+            buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalJava(supabaseDevChave))
         }
     }
 
@@ -167,6 +264,7 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)

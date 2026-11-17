@@ -73,6 +73,8 @@ lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-com
 
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+# L1-6: aprovado pelo O2 em 17/11 (versão do BoM, fixa). Coleta DESLIGADA por padrão, sem identificador de usuário.
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -95,3 +97,7 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+# C0-10: aprovado pelo O2 em 16/11 (versão exata no PR). Aplicado no :app só quando o google-services.json existe.
+google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+# L1-6: aprovado pelo O2 em 17/11. Aplicado no :app só quando o google-services.json existe, junto do google-services.
+firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version = "3.0.6" }

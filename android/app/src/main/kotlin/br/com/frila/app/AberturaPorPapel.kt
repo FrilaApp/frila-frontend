@@ -84,7 +84,8 @@ internal val moduloDestinoDaConta: Module = module {
         val conta = get<br.com.frila.core.rede.ServicoConta>()
         val perfil = get<br.com.frila.core.rede.ServicoPerfil>()
         val membros = get<br.com.frila.core.rede.ServicoMembros>()
-        AvaliadorDeDestino(
+        avaliadorDeDestinoDaSessao(
+            sessao = get(),
             descobrir = {
                 avaliarDestinoDaConta(
                     buscarConta = conta::minhaConta,
@@ -96,3 +97,11 @@ internal val moduloDestinoDaConta: Module = module {
         )
     }
 }
+
+/** O avaliador da abertura ligado à sessão do aparelho: um `401` só vira "sessão vencida" se a sessão sumiu. */
+internal fun avaliadorDeDestinoDaSessao(
+    sessao: br.com.frila.core.seguranca.ArmazenamentoDeSessao,
+    descobrir: suspend () -> DestinoDaConta,
+    guardado: DestinoGuardado,
+): AvaliadorDeDestino =
+    AvaliadorDeDestino(descobrir = descobrir, guardado = guardado, sessaoGuardada = sessao::estaAutenticado)

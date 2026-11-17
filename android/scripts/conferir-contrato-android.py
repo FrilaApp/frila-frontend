@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Portão de paridade de contrato entre Android e OpenAPI (android/contrato/openapi.yaml).
 
-Compara os DTOs Kotlin em android/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt
-(e outros DTOs em android/) com os schemas da especificação OpenAPI.
+Compara os DTOs Kotlin de todos os arquivos `Dtos*.kt` em android/core/rede/src/main/kotlin/br/com/frila/core/rede/
+(`Dtos.kt`, `DtosCheckin.kt`, `DtosPerfil.kt`...) com os schemas da especificação OpenAPI. Um DTO novo em arquivo próprio
+precisa começar com `Dtos` para entrar no portão; a mesma classe em dois arquivos reprova.
 
 Verificações:
 1. Todos os campos required e properties de cada schema OpenAPI mapeado estão presentes no DTO correspondente.
@@ -114,6 +115,23 @@ def extrair_dtos_kotlin(arquivo: pathlib.Path) -> dict[str, set[str]]:
     return dtos
 
 
+def extrair_dtos_de_todos(pasta: pathlib.Path) -> tuple[dict[str, set[str]], list[str], list[str]]:
+    """Lê todos os `Dtos*.kt` da pasta. Devolve (DTOs, nomes dos arquivos lidos, erros de classe repetida)."""
+    dtos: dict[str, set[str]] = {}
+    origem: dict[str, str] = {}
+    arquivos: list[str] = []
+    erros: list[str] = []
+    for arquivo in sorted(pasta.glob("Dtos*.kt")):
+        arquivos.append(arquivo.name)
+        for nome, props in extrair_dtos_kotlin(arquivo).items():
+            if nome in dtos:
+                erros.append(f"DTO '{nome}' declarado em mais de um arquivo: {origem[nome]} e {arquivo.name}")
+                continue
+            dtos[nome] = props
+            origem[nome] = arquivo.name
+    return dtos, arquivos, erros
+
+
 def main() -> None:
     args = parse_arguments()
 
@@ -130,16 +148,16 @@ def main() -> None:
 
     contrato_path = args.contrato or (repo_root / "android" / "contrato" / "openapi.yaml")
     android_dir = args.android_dir or (repo_root / "android")
-    dtos_file = android_dir / "core" / "rede" / "src" / "main" / "kotlin" / "br" / "com" / "frila" / "core" / "rede" / "Dtos.kt"
+    dtos_dir = android_dir / "core" / "rede" / "src" / "main" / "kotlin" / "br" / "com" / "frila" / "core" / "rede"
 
     if not args.silencioso:
         print(f"==> Carregando contrato OpenAPI de {contrato_path}")
     doc = carregar_contrato(contrato_path)
     schemas = doc.get("components", {}).get("schemas", {})
 
+    dtos, arquivos_lidos, erros_de_leitura = extrair_dtos_de_todos(dtos_dir)
     if not args.silencioso:
-        print(f"==> Extraindo DTOs Kotlin de {dtos_file}")
-    dtos = extrair_dtos_kotlin(dtos_file)
+        print(f"==> Extraindo DTOs Kotlin de {dtos_dir} ({len(arquivos_lidos)} arquivo(s) Dtos*.kt: {', '.join(arquivos_lidos)})")
 
     # DTOs com nomes alternativos em relação aos schemas OpenAPI
     ALIAS_DTO = {
@@ -148,6 +166,10 @@ def main() -> None:
 
     # Request bodies declarados inline em operations RPC de paths
     RPCS_REQUEST_BODY = {
+        "SolicitarUploadMidiaDto": "/rpc/solicitar_upload_midia",
+        "ConfirmarUploadMidiaDto": "/rpc/confirmar_upload_midia",
+        "RemoverMidiaDto": "/rpc/remover_midia",
+        "PedirNovaAnaliseMidiaDto": "/rpc/pedir_nova_analise_midia",
         "AvaliarDto": "/rpc/avaliar",
         "CancelarPosicaoDto": "/rpc/cancelar_posicao",
         "AbrirSuporteDto": "/rpc/abrir_suporte",
@@ -173,10 +195,16 @@ def main() -> None:
         "CancelarChamadaDto": "/rpc/cancelar_chamada",
         "PublicarAPartirDaChamadaDto": "/rpc/publicar_a_partir_da_chamada",
         "AceitarTermosDto": "/rpc/aceitar_termos",
+        "GerarCodigoCheckinDto": "/rpc/gerar_codigo_checkin",
+        "DefinirRegioesAtendidasDto": "/rpc/definir_regioes_atendidas",
+        "ValidarCodigoCheckinDto": "/rpc/validar_codigo_checkin",
+        "AvisarACaminhoDto": "/rpc/avisar_a_caminho",
+        "ReabrirPorAtrasoDto": "/rpc/reabrir_por_atraso",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
     RPCS_RESPONSE_BODY = {
+        "UploadMidiaDto": "/rpc/solicitar_upload_midia",
         "ConviteMembroDto": "/rpc/convidar_membro",
         "MembroAdicionadoDto": "/rpc/aceitar_convite_membro",
         "MembroRemovidoDto": "/rpc/remover_membro",
@@ -218,7 +246,7 @@ def main() -> None:
         "RegistrarDispositivoDto",
     }
 
-    erros: list[str] = []
+    erros: list[str] = list(erros_de_leitura)
     verificados = 0
     paths = doc.get("paths", {})
 

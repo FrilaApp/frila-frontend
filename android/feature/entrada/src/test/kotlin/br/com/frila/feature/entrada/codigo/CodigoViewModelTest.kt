@@ -9,6 +9,8 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -17,6 +19,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 /** Ver nota em `EntradaViewModelTest.viewModelComEngine` sobre por que o teste faz `job.join()`. */
 class CodigoViewModelTest {
@@ -25,6 +29,9 @@ class CodigoViewModelTest {
         engine: MockEngine,
         email: String = "profissional@exemplo.com",
         armazenamento: ArmazenamentoDeSessaoEmMemoria = ArmazenamentoDeSessaoEmMemoria(),
+        agora: () -> Instant = Instant::now,
+        aoEntrar: suspend () -> Unit = {},
+        permitirDominioDeTeste: Boolean = false,
     ): Pair<CodigoViewModel, ArmazenamentoDeSessaoEmMemoria> {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val viewModel = CodigoViewModel(
@@ -32,6 +39,9 @@ class CodigoViewModelTest {
             ServicoAutenticacao(cliente),
             armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
+            agora = agora,
+            aoEntrar = aoEntrar,
+            permitirDominioDeTeste = permitirDominioDeTeste,
         )
         return viewModel to armazenamento
     }
@@ -103,6 +113,54 @@ class CodigoViewModelTest {
         assertTrue(armazenamento.estaAutenticado())
     }
 
+    private fun motorQueEntra() = MockEngine {
+        respond(
+            content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+            status = HttpStatusCode.OK,
+            headers = headersOf(HttpHeaders.ContentType, "application/json"),
+        )
+    }
+
+    @Test
+    fun `depois de entrar com o codigo certo, chama aoEntrar uma vez, ja com a sessao salva (C0-10)`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var sessaoNaHora: String? = null
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val (viewModel, _) = viewModelComEngine(motorQueEntra(), armazenamento = armazenamento, aoEntrar = {
+            chamadas.incrementAndGet()
+            sessaoNaHora = armazenamento.obterSessao()?.accessToken
+        })
+
+        viewModel.aoMudarCodigo("123456")
+        viewModel.confirmarCodigo()?.join()
+
+        assertEquals(1, chamadas.get())
+        assertEquals("tok123", sessaoNaHora, "o registro do aparelho precisa da sessão")
+    }
+
+    @Test
+    fun `com o codigo errado, aoEntrar nao e chamado`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        val (viewModel, _) = viewModelComEngine(motorComCodigoRecusadoPeloAuth(), aoEntrar = { chamadas.incrementAndGet() })
+
+        viewModel.aoMudarCodigo("000000")
+        viewModel.confirmarCodigo()?.join()
+
+        assertEquals(0, chamadas.get())
+    }
+
+    @Test
+    fun `aoEntrar que falha nao desfaz a entrada`() = runBlocking {
+        val (viewModel, armazenamento) = viewModelComEngine(motorQueEntra(), aoEntrar = { error("sem rede para registrar") })
+
+        viewModel.aoMudarCodigo("123456")
+        viewModel.confirmarCodigo()?.join()
+
+        assertTrue(viewModel.estado.value.autenticado)
+        assertTrue(armazenamento.estaAutenticado())
+        assertNull(viewModel.estado.value.erro)
+    }
+
     @Test
     fun `confirmarCodigo com codigo errado nao salva sessao e mostra erro`() = runBlocking {
         val (viewModel, armazenamento) = viewModelComEngine(
@@ -121,16 +179,20 @@ class CodigoViewModelTest {
         assertFalse(viewModel.estado.value.autenticado)
         assertFalse(armazenamento.estaAutenticado())
         assertNull(armazenamento.obterSessao())
-        assertEquals("Código incorreto. Confira os 6 dígitos e tente de novo.", viewModel.estado.value.erro)
+        assertEquals("Código incorreto. Confira os números e tente novamente.", viewModel.estado.value.erro)
     }
 
     @Test
     fun `reenviarCodigo chama solicitarOtp de novo e limpa o campo`() = runBlocking {
         var chamadas = 0
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
         val (viewModel, _) = viewModelComEngine(
             MockEngine { chamadas++; respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            agora = { relogio },
         )
-        viewModel.aoMudarCodigo("123456")
+        relogio = relogio.plusSeconds(60) // a espera para reenviar já passou
+        // 5 dígitos: completar os 6 agora confirma sozinho (como o iOS) e contaria uma chamada a mais.
+        viewModel.aoMudarCodigo("12345")
 
         viewModel.reenviarCodigo()?.join()
 
@@ -141,6 +203,7 @@ class CodigoViewModelTest {
 
     @Test
     fun `reenviarCodigo com 429 do Auth sem message mostra a mensagem de limite`() = runBlocking {
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
         val (viewModel, _) = viewModelComEngine(
             MockEngine {
                 respond(
@@ -149,12 +212,195 @@ class CodigoViewModelTest {
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
+            agora = { relogio },
         )
+        relogio = relogio.plusSeconds(60) // a espera para reenviar já passou
 
         viewModel.reenviarCodigo()?.join()
 
         assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, viewModel.estado.value.erro)
         assertFalse(viewModel.estado.value.reenviado)
         assertFalse(viewModel.estado.value.carregando)
+        // Reenvio que falhou não recomeça a contagem (no iOS o temporizador só reinicia no sucesso).
+        assertEquals(0L, viewModel.segundosParaReenviar())
     }
+
+    /** Igual ao iOS: outro código só pode ser pedido 60 s depois do último pedido. */
+    @Test
+    fun `reenviar antes de 60 segundos nao chama a API`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine { chamadas.incrementAndGet(); respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            agora = { relogio },
+        )
+        assertEquals(60L, viewModel.segundosParaReenviar())
+        relogio = relogio.plusSeconds(59)
+
+        viewModel.reenviarCodigo()?.join()
+
+        assertEquals(0, chamadas.get())
+        assertEquals(1L, viewModel.segundosParaReenviar())
+        assertFalse(viewModel.estado.value.reenviado)
+    }
+
+    @Test
+    fun `reenviar depois de 60 segundos chama a API e recomeca a contagem`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine { chamadas.incrementAndGet(); respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            agora = { relogio },
+        )
+        relogio = relogio.plusSeconds(60)
+        assertEquals(0L, viewModel.segundosParaReenviar())
+
+        viewModel.reenviarCodigo()?.join()
+        assertEquals(1, chamadas.get())
+        assertTrue(viewModel.estado.value.reenviado)
+        assertEquals(60L, viewModel.segundosParaReenviar())
+
+        // Logo em seguida, um segundo reenvio fica barrado.
+        viewModel.reenviarCodigo()?.join()
+        assertEquals(1, chamadas.get())
+    }
+
+    /** Corpo REAL do Auth para código errado ou vencido: 403 `otp_expired`, sem o envelope `{code,message}` do PostgREST. */
+    private fun motorComCodigoRecusadoPeloAuth(chamadas: AtomicInteger = AtomicInteger(0)) = MockEngine {
+        chamadas.incrementAndGet()
+        respond(
+            content = """{"code":403,"error_code":"otp_expired","msg":"Token has expired or is invalid"}""",
+            status = HttpStatusCode.Forbidden,
+            headers = headersOf(HttpHeaders.ContentType, "application/json"),
+        )
+    }
+
+    @Test
+    fun `codigo errado dentro da validade mostra Codigo incorreto, como no iOS`() = runBlocking {
+        val (viewModel, armazenamento) = viewModelComEngine(motorComCodigoRecusadoPeloAuth())
+
+        viewModel.aoMudarCodigo("000000")?.join()
+
+        assertEquals("Código incorreto. Confira os números e tente novamente.", viewModel.estado.value.erro)
+        assertFalse(armazenamento.estaAutenticado())
+    }
+
+    @Test
+    fun `codigo recusado depois de 10 minutos mostra Codigo expirado`() = runBlocking {
+        var agora = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(motorComCodigoRecusadoPeloAuth(), agora = { agora })
+        agora = agora.plusSeconds(600)
+
+        viewModel.aoMudarCodigo("000000")?.join()
+
+        assertEquals("Código expirado. Peça um novo código para continuar.", viewModel.estado.value.erro)
+    }
+
+    @Test
+    fun `completar os 6 digitos confirma sozinho`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        val (viewModel, _) = viewModelComEngine(motorComCodigoRecusadoPeloAuth(chamadas))
+
+        viewModel.aoMudarCodigo("12345")
+        assertEquals(0, chamadas.get())
+        viewModel.aoMudarCodigo("123456")?.join()
+
+        assertEquals(1, chamadas.get())
+    }
+
+    @Test
+    fun `segundo toque em confirmar com a chamada em voo nao envia de novo`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine {
+                chamadas.incrementAndGet()
+                kotlinx.coroutines.delay(200)
+                respond(
+                    content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        val primeiro = viewModel.aoMudarCodigo("123456")
+        val segundo = viewModel.confirmarCodigo()
+        val terceiro = viewModel.confirmarCodigo()
+        primeiro?.join()
+        segundo?.join()
+        terceiro?.join()
+
+        assertEquals(1, chamadas.get())
+        assertTrue(viewModel.estado.value.autenticado)
+    }
+
+    @Test
+    fun `o e-mail vai em minusculas e sem espacos na verificacao`() = runBlocking {
+        var corpo: String? = null
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine { request ->
+                corpo = (request.body as io.ktor.http.content.TextContent).text
+                respond(
+                    content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            email = "  Profissional@Exemplo.COM ",
+        )
+
+        viewModel.aoMudarCodigo("123456")?.join()
+
+        assertEquals("profissional@exemplo.com", viewModel.estado.value.email)
+        assertTrue(corpo!!.contains("\"profissional@exemplo.com\""))
+    }
+
+    @Test
+    fun `resposta 200 ilegivel na verificacao sai de carregando com erro`() = runBlocking {
+        val (viewModel, armazenamento) = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "<html>portal</html>",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+            },
+        )
+
+        viewModel.aoMudarCodigo("123456")?.join()
+
+        assertFalse(viewModel.estado.value.carregando)
+        assertEquals("Não foi possível confirmar o código. Tente de novo em instantes.", viewModel.estado.value.erro)
+        assertFalse(armazenamento.estaAutenticado())
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `dominio de teste so confirma e reenvia como demonstracao em debug`(permitirDominioDeTeste: Boolean) = runBlocking {
+        val caminhos = mutableListOf<String>()
+        var relogio = Instant.parse("2026-11-17T12:00:00Z")
+        val (vm, armazenamento) = viewModelComEngine(
+            engine = MockEngine { request ->
+                caminhos += request.url.encodedPath
+                respond(
+                    """{"access_token":"token-teste","refresh_token":"refresh-teste","token_type":"bearer","expires_in":3600}""",
+                    HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            email = "  Qualquer@FRILA.TEST  ",
+            agora = { relogio },
+            permitirDominioDeTeste = permitirDominioDeTeste,
+        )
+        vm.aoMudarCodigo("123456")?.join()
+        assertTrue(vm.estado.value.autenticado)
+        assertTrue(armazenamento.estaAutenticado())
+        relogio = relogio.plusSeconds(60)
+        vm.reenviarCodigo()?.join()
+        assertTrue(vm.estado.value.reenviado)
+        assertEquals(
+            if (permitirDominioDeTeste) listOf("/functions/v1/entrar-demonstracao") else listOf("/auth/v1/verify", "/auth/v1/otp"),
+            caminhos,
+        )
+    }
+
 }

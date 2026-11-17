@@ -24,6 +24,7 @@ import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -79,6 +80,8 @@ class TelaPerfilTest {
         obterAvatarSalvo: (android.content.Context) -> java.io.File? = { null },
         preferenciasNotificacao: br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao =
             br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria(),
+        /** Corpo de `minha_conta`; nulo deixa o perfil sem o serviço da conta (o profissional de sempre). */
+        respostaContaJson: String? = null,
     ): PerfilViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -110,8 +113,27 @@ class TelaPerfilTest {
             comprimirFoto = comprimirFoto,
             obterAvatarSalvo = obterAvatarSalvo,
             preferenciasNotificacao = preferenciasNotificacao,
+            servicoConta = respostaContaJson?.let { corpo ->
+                ServicoConta(
+                    ClienteSupabase(
+                        baseUrl = "https://frila.supabase.co",
+                        apiKey = "chave-teste",
+                        engine = MockEngine {
+                            respond(
+                                content = corpo,
+                                status = HttpStatusCode.OK,
+                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                            )
+                        },
+                    ),
+                )
+            },
         )
     }
+
+    /** `minha_conta` com dado sintético (mesmo formato de ServicoContaTest). */
+    private fun contaJson(perfil: String) =
+        """{"id":"u1","perfil":"$perfil","nome":"Casa Teste","telefone":"61999990000","email":"c@exemplo.com","nascimento":"1990-01-01","estado":"ativa"}"""
 
     private fun turnoJson(id: String, estado: String, valorAcordadoCentavos: Long) = """
         {
@@ -226,6 +248,118 @@ class TelaPerfilTest {
             rule.onNodeWithText("Tentar novamente")
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        }
+    }
+
+    /**
+     * Conta de casa não tem perfil profissional (404): a tela cai em erro e ficava sem "Sair da conta" e sem
+     * "Excluir conta" (visto no emulador em 16/11). Os dois têm de aparecer e seguir o mesmo caminho do perfil carregado.
+     */
+    @Test
+    fun erroMostraSairEExcluirContaEChamaOsMesmosCaminhos() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+            var saiu = false
+            var abriuExclusao = false
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = { saiu = true },
+                        aoAbrirExclusaoDeConta = { abriuExclusao = true },
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertTrue(saiu)
+            assertTrue(abriuExclusao)
+        }
+    }
+
+    /**
+     * C0-4b (revisão do #817): a conta de casa abre o Perfil sem "Não encontramos seu perfil." e sem o "Tentar
+     * novamente" que sempre falhava. O perfil profissional responde o 404 real; a casa sai de `minha_conta`.
+     */
+    @Test
+    fun contaDeCasaAbrePerfilSemErroNemTentarNovamente() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+                respostaContaJson = contaJson("contratante"),
+            )
+            viewModel.carregar().join()
+            var saiu = false
+            var abriuExclusao = false
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = { saiu = true },
+                        aoAbrirExclusaoDeConta = { abriuExclusao = true },
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        // Antes da lista de casas chegar, o app ainda passa o atalho do profissional: a casa não o vê.
+                        aoAbrirChamadasDiretas = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithText("Tentar novamente").assertCountEquals(0)
+            rule.onAllNodesWithText("Não encontramos seu perfil.").assertCountEquals(0)
+            rule.onNodeWithText("Casa Teste").assertIsDisplayed()
+            rule.onNodeWithText("Equipe de confiança").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText("Minhas vagas").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText("Publicar vaga").performScrollTo().assertIsDisplayed()
+            rule.onAllNodesWithText("Preferências de chamadas").assertCountEquals(0)
+            // Nada do perfil profissional na casa.
+            rule.onAllNodesWithText("Reputação").assertCountEquals(0)
+            rule.onAllNodesWithText("Remunerações acordadas").assertCountEquals(0)
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertTrue(saiu)
+            assertTrue(abriuExclusao)
+        }
+    }
+
+    @Test
+    fun contaDeProfissionalLidaPelaMinhaContaContinuaComoHoje() {
+        runBlocking {
+            val viewModel = criarViewModel(respostaContaJson = contaJson("profissional"))
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Reputação").assertIsDisplayed()
+            rule.onNodeWithText("Remunerações acordadas").performScrollTo().assertIsDisplayed()
+            rule.onAllNodesWithText("Tentar novamente").assertCountEquals(0)
         }
     }
 
@@ -363,7 +497,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -389,7 +523,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -409,7 +543,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -418,6 +552,90 @@ class TelaPerfilTest {
                 .performScrollTo()
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        }
+    }
+
+    /**
+     * C0-11 (decisão de 16/11/2026: o Android fica só com o que o iOS tem). Sem ligar as travas, que nada no app
+     * liga, o perfil da profissional não mostra o interruptor de biometria nem as remunerações com extrato em PDF,
+     * mesmo com histórico de turnos e com biometria disponível no aparelho.
+     */
+    @Test
+    fun c011PerfilDaProfissionalNaoMostraBiometriaNemRemuneracoes() {
+        runBlocking {
+            val turnosJson = "[${turnoJson(id = "a", estado = "cumprida", valorAcordadoCentavos = 16_000L)}]"
+            val viewModel = criarViewModel(respostaTurnosJson = turnosJson)
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().assertIsDisplayed()
+            rule.onAllNodesWithTag("toggle-biometria").assertCountEquals(0)
+            rule.onAllNodesWithText("Desbloqueio rápido por biometria").assertCountEquals(0)
+            rule.onAllNodesWithText("Remunerações acordadas").assertCountEquals(0)
+            rule.onAllNodesWithText("Exportar extrato em PDF").assertCountEquals(0)
+        }
+    }
+
+    /**
+     * O app não declara a permissão de biometria (o recurso está desligado), e consultar o hardware sem ela lança em aparelho
+     * real. Com o recurso desligado, abrir o perfil não pode nem perguntar se há biometria.
+     */
+    @Test
+    fun perfilComABiometriaDesligadaNaoConsultaOHardware() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+            var consultas = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { consultas++; DisponibilidadeBiometrica.DISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().assertIsDisplayed()
+            assertEquals("o perfil consultou o hardware de biometria com o recurso desligado", 0, consultas)
+        }
+    }
+
+    @Test
+    fun c011PerfilDaCasaNaoMostraBiometria() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+                respostaContaJson = contaJson("contratante"),
+            )
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().assertIsDisplayed()
+            rule.onAllNodesWithTag("toggle-biometria").assertCountEquals(0)
         }
     }
 
@@ -526,6 +744,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.SEM_HARDWARE },
                     )
                 }
@@ -552,6 +771,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                         autenticarBiometria = { _, aoSucesso, _ -> sucessoChamado = aoSucesso },
                     )
@@ -584,6 +804,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                         autenticarBiometria = { _, _, aoErro -> aoErro("Autenticação cancelada") },
                     )
@@ -613,6 +834,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                         autenticarBiometria = { _, _, _ -> autenticarFoiChamado = true },
                     )
@@ -646,6 +868,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL },
                     )
                 }
@@ -852,6 +1075,47 @@ class TelaPerfilTest {
             rule.waitForIdle()
 
             rule.onAllNodesWithTag("perfil-equipe").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun atalhosDoPerfilRicoEDaFotoSoAparecemQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var apresentacao = 0
+            var foto = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoAbrirApresentacao = { apresentacao++ }, aoAbrirFotoDePerfil = { foto++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-apresentacao").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.onNodeWithTag("perfil-foto").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+
+            assertEquals(1, apresentacao)
+            assertEquals(1, foto)
+        }
+    }
+
+    @Test
+    fun semOsCallbacksOsAtalhosDoPerfilRicoENaoAparecem() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-apresentacao").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-foto").assertCountEquals(0)
         }
     }
 

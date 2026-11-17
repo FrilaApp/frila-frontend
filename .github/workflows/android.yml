@@ -61,15 +61,99 @@ jobs:
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
 
+      - name: Restaurar cache do Robolectric (android-all)
+        id: cache-robolectric
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-4.15.1-${{ hashFiles('android/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-robolectric-4.15.1-
+
+      - name: Baixar jars do Robolectric se faltarem no cache
+        if: steps.cache-robolectric.outputs.cache-hit != 'true'
+        run: |
+          VERSOES=(
+            "9-robolectric-4913185-2-i7"
+            "10-robolectric-5803371-i7"
+            "11-robolectric-6757853-i7"
+            "12-robolectric-7732740-i7"
+            "12.1-robolectric-8229987-i7"
+            "13-robolectric-9030017-i7"
+            "14-robolectric-10818077-i7"
+            "15-robolectric-12650502-i7"
+          )
+          BASE_URL="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented"
+          M2_DIR="$HOME/.m2/repository/org/robolectric/android-all-instrumented"
+
+          for v in "${VERSOES[@]}"; do
+            DEST_DIR="$M2_DIR/$v"
+            mkdir -p "$DEST_DIR"
+            if [ ! -f "$DEST_DIR/android-all-instrumented-$v.jar" ]; then
+              echo "Baixando android-all-instrumented-$v.jar..."
+              curl -sSfL --retry 5 --retry-all-errors \
+                "$BASE_URL/$v/android-all-instrumented-$v.jar" \
+                -o "$DEST_DIR/android-all-instrumented-$v.jar"
+            fi
+            if [ ! -f "$DEST_DIR/android-all-instrumented-$v.pom" ]; then
+              curl -sSfL --retry 5 --retry-all-errors \
+                "$BASE_URL/$v/android-all-instrumented-$v.pom" \
+                -o "$DEST_DIR/android-all-instrumented-$v.pom"
+            fi
+          done
+
+      # Supabase (pedido 16-26): o par DEV vai para o BuildConfig do debug e o par PROD para o do release
+      # (app/build.gradle.kts). Cada passo recebe só o par que usa; o Gradle nunca imprime os valores.
       - name: Executar testes unitários
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
         run: ./gradlew --no-daemon testDebugUnitTest
 
-      - name: Gerar APK (debug) e AAB (release)
+      - name: Salvar cache do Robolectric (android-all)
+        if: always() && steps.cache-robolectric.outputs.cache-hit != 'true'
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-4.15.1-${{ hashFiles('android/gradle/libs.versions.toml') }}
+
+      # Só PR de fork ou do Dependabot chega sem os segredos: ali o AAB de release é pulado com uma linha no log, e o APK
+      # debug e os testes seguem. Em qualquer outro evento (push na main, tag, PR do próprio repositório, disparo manual)
+      # faltar o par PROD é erro de configuração: a CI falha aqui, com uma linha clara. Com o par, o release roda e a trava
+      # do app/build.gradle.kts (release sem o par PROD ou com chave proibida falha) vale como sempre.
+      - name: Conferir se os segredos do Supabase chegaram
+        id: segredos
+        env:
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          EVENTO: ${{ github.event_name }}
+          PR_DE_FORK: ${{ github.event.pull_request.head.repo.fork }}
+          ATOR: ${{ github.actor }}
+        run: |
+          if [ -n "$FRILA_SUPABASE_PROD_URL" ]; then
+            echo "tem_prod=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENTO" = "pull_request" ] && { [ "$PR_DE_FORK" = "true" ] || [ "$ATOR" = "dependabot[bot]" ]; }; then
+            echo "tem_prod=false" >> "$GITHUB_OUTPUT"
+            echo "PR de fork ou do Dependabot, sem os segredos do Supabase: AAB de release pulado; APK debug e testes seguem."
+          else
+            echo "::error::Faltam os segredos do Supabase PROD neste evento ($EVENTO): configure FRILA_SUPABASE_PROD_URL e FRILA_SUPABASE_PROD_PUBLISHABLE_KEY."
+            exit 1
+          fi
+
+      - name: Gerar APK (debug)
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Gerar AAB (release)
+        if: steps.segredos.outputs.tem_prod == 'true'
         env:
           FRILA_RELEASE_KEYSTORE_BASE64: ${{ secrets.FRILA_RELEASE_KEYSTORE_BASE64 }}
           FRILA_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.FRILA_RELEASE_KEYSTORE_PASSWORD }}
           FRILA_RELEASE_KEY_ALIAS: ${{ secrets.FRILA_RELEASE_KEY_ALIAS }}
           FRILA_RELEASE_KEY_PASSWORD: ${{ secrets.FRILA_RELEASE_KEY_PASSWORD }}
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
         run: |
           if [ -n "$FRILA_RELEASE_KEYSTORE_BASE64" ]; then
             echo "Keystore de release configurado via segredos. Decodificando..."
@@ -79,7 +163,7 @@ jobs:
           else
             echo "Segredos de release ausentes (pendente de configuração por pessoa). Gerando artefato sem assinar."
           fi
-          ./gradlew --no-daemon assembleDebug bundleRelease
+          ./gradlew --no-daemon bundleRelease
           if [ -f "/tmp/release.keystore" ]; then
             rm -f /tmp/release.keystore
           fi
@@ -93,7 +177,10 @@ jobs:
           # A cota de armazenamento de artefatos da organização estourou em 08/11/2026: 2 dias bastam para baixar e testar.
           retention-days: 2
 
+      # O repositório é público e o artefato fica baixável por quem estiver logado: o AAB (par PROD) só é publicado em
+      # tag v*. Nos outros eventos com segredo o AAB é gerado (prova a trava do par PROD), mas não sai da CI.
       - name: Publicar AAB de release
+        if: steps.segredos.outputs.tem_prod == 'true' && startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frila-android-release-aab

@@ -1,0 +1,33 @@
+/** Textos da conta suspensa e da contestação. As frases seguem as do app (TextosContaSuspensa). */
+export const suspensao = {
+  tituloDaAba: "Conta suspensa · Frila",
+  titulo: "Conta suspensa",
+  subtitulo: "Sua conta está temporariamente suspensa.",
+  avisoPrincipal: "O acesso aos serviços do Frila está suspenso.",
+  motivo: "Motivo informado",
+  desde: "Suspensa desde",
+  prazoDaAnalise: "A Equipe Frila responde contestações em até 5 dias úteis.",
+  contestacao: "Contestação",
+  rotuloDoRelato: "Motivos da contestação",
+  dicaDoRelato: "Mínimo de 10 caracteres.",
+  enviar: "Enviar contestação",
+  enviando: "Enviando contestação…",
+  emAnalise: "Em análise",
+  numero: "Número do protocolo",
+  enviadaEm: "Enviado em",
+  prazo: "Previsão de resposta até",
+  mensagemEmAnalise:
+    "Sua contestação foi enviada e está em análise pela Equipe Frila. Você receberá uma notificação e resposta por e-mail dentro do prazo informado.",
+  recurso: "A resposta da Equipe Frila é enviada por e-mail. Para qualquer recurso adicional, escreva para suporte@frilabr.com.",
+  ativa: "Sua conta está ativa.",
+  verSituacao: "Ver a situação da conta",
+  voltar: "Voltar ao início",
+  resultado: {
+    enviada: "Contestação enviada.",
+    ja_contestada: "Já existe uma contestação para esta suspensão.",
+    relato_curto: "O relato deve conter pelo menos 10 caracteres.",
+    sem_suspensao: "Sua conta foi reativada.",
+    indisponivel: "Não foi possível concluir esta ação. Tente novamente.",
+  },
+  indisponivel: "Não deu para carregar a situação da sua conta agora. Tente de novo em instantes.",
+} as const;

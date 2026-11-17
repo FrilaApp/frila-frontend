@@ -42,6 +42,42 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
     }
 
     /**
+     * `POST /rest/v1/rpc/fazer_checkout`. Mesma regra do check-in: só a distância calculada no aparelho
+     * sai (RN22), e `distanciaMetros` nulo quando não há localização. A janela vai de 60 min antes do início
+     * a 60 min depois do fim previsto. Erros esperados: `409 checkin_pendente` (sem check-in),
+     * `422 fora_da_janela`, `422 registro_no_futuro`, `404 nao_encontrado`.
+     */
+    suspend fun fazerCheckout(turnoId: String, distanciaMetros: Int?, registradoEm: String): ResultadoRegistroDto {
+        val resposta = cliente.http.post(cliente.urlRpc("fazer_checkout")) {
+            contentType(ContentType.Application.Json)
+            setBody(RegistroDePresencaDto(turnoId = turnoId, distanciaM = distanciaMetros, registradoEm = registradoEm))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/validar_codigo_checkin` (0.2.68): o profissional digita os 6 dígitos que a casa mostra.
+     * Só a distância sai, nunca a coordenada; `distancia_m` é obrigatório e aceita nulo (nulo recusa
+     * `422 sem_localizacao` no servidor). Devolve [Result] e **nunca repete sozinho**: a tentativa errada fica
+     * gravada no servidor, e repetir contaria outra e anteciparia o bloqueio (0.2.69). Erros esperados:
+     * `422 codigo_invalido`, `409 codigo_bloqueado` (`temporario` ou `encerrado`), `422 fora_do_raio`,
+     * `422 sem_localizacao`, `409 checkin_ja_confirmado`, `409 checkin_pendente`, `422 fora_da_janela`,
+     * `403 sem_permissao` (`recurso_desligado`, `conta_suspensa`), `404 nao_encontrado`.
+     */
+    suspend fun validarCodigoCheckin(turnoId: String, codigo: String, distanciaMetros: Int?): Result<ResultadoRegistroDto> =
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("validar_codigo_checkin")) {
+                contentType(ContentType.Application.Json)
+                setBody(ValidarCodigoCheckinDto(turnoId = turnoId, codigo = codigo, distanciaM = distanciaMetros))
+            }
+            Result.success(cliente.corpoOuErro<ResultadoRegistroDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
+
+    /**
      * `POST /rest/v1/rpc/confirmar_checkin_manual` (RF13/RF20/RN22/UC07): um toque da casa, e só então o
      * check-in manual conta como presença. Devolve [Result]: qualquer falha (recusa do servidor, sem rede,
      * corpo que não é JSON) vira `Result.failure`, e só o cancelamento da corrotina propaga. Erros
@@ -56,6 +92,28 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
                 setBody(ConfirmarCheckinManualDto(turnoId = turnoId))
             }
             Result.success(cliente.corpoOuErro<ResultadoRegistroDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
+
+    /**
+     * `POST /rest/v1/rpc/gerar_codigo_checkin` (0.2.68): a casa gera ou revê o código de chegada do turno.
+     * Dentro da validade devolve o mesmo código; vencido, um novo. Devolve [Result] como
+     * [confirmarCheckinManual]: toda falha vira `Result.failure` e só o cancelamento da corrotina propaga.
+     * Não está entre as leituras que se repetem sozinhas, porque é POST. Erros esperados: `403 sem_permissao`
+     * (quem não é da casa; também `recurso_desligado` e `conta_suspensa` em `details`), `401 nao_autenticado`,
+     * `404 nao_encontrado`, `409 checkin_pendente` (sem check-in, a mais de 50 m ou há mais de 15 min),
+     * `409 checkin_ja_confirmado`, `409 codigo_bloqueado` (`encerrado`), `422 fora_da_janela`.
+     */
+    suspend fun gerarCodigoCheckin(turnoId: String): Result<CodigoDeCheckinDto> =
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("gerar_codigo_checkin")) {
+                contentType(ContentType.Application.Json)
+                setBody(GerarCodigoCheckinDto(turnoId = turnoId))
+            }
+            Result.success(cliente.corpoOuErro<CodigoDeCheckinDto>(resposta))
         } catch (erro: CancellationException) {
             throw erro
         } catch (erro: Exception) {
@@ -102,6 +160,37 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.post(cliente.urlRpc("abrir_suporte")) {
             contentType(ContentType.Application.Json)
             setBody(AbrirSuporteDto(turnoId = turnoId, categoria = categoria, chave = chave))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/avisar_a_caminho` (US14, RF12): o "Estou a caminho" do profissional confirmado no turno.
+     * Não muda presença nem substitui o check-in; a casa vê o sinal no painel. Vale de 3 horas antes do início
+     * até 15 minutos depois. Idempotente: repetir devolve o mesmo `a_caminho_em`. Erros esperados:
+     * `422 a_caminho_fora_da_janela`, `403 sem_permissao` (quem não é o profissional do turno; conta suspensa
+     * vem com `details: conta_suspensa`), `422 campo_obrigatorio` (`details: turno_id`), `401 nao_autenticado`.
+     */
+    suspend fun avisarACaminho(turnoId: String): ResultadoACaminhoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("avisar_a_caminho")) {
+            contentType(ContentType.Application.Json)
+            setBody(AvisarACaminhoDto(turnoId = turnoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/reabrir_por_atraso` (RF13, D06): a casa reabre a posição de quem não chegou, a partir de
+     * 15 minutos do início sem check-in. Marca falta do profissional e abre uma posição nova (`nova_posicao_id`);
+     * `reaberta = false` quando o turno ficou descoberto. Na vaga de chamada direta reabre sem despacho nem aviso
+     * (0.2.55). Não é idempotente e nunca se repete sozinha. Erros esperados: `422 reabertura_antes_da_tolerancia`,
+     * `409 posicao_nao_cancelavel` (`details: checkin_registrado` quando o check-in já foi feito),
+     * `403 sem_permissao` (quem não é da casa), `422 campo_obrigatorio` (`details: posicao_id`), `401 nao_autenticado`.
+     */
+    suspend fun reabrirPorAtraso(posicaoId: String): ResultadoCancelamento {
+        val resposta = cliente.http.post(cliente.urlRpc("reabrir_por_atraso")) {
+            contentType(ContentType.Application.Json)
+            setBody(ReabrirPorAtrasoDto(posicaoId = posicaoId))
         }
         return cliente.corpoOuErro(resposta)
     }

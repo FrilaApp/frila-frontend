@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- RNF01 (cartão 9Q0sJIzW): detecção reativa de conectividade via ConnectivityManager. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+      O app não usa biometria: o recurso está desligado (C0-11) e nada no app o liga. A biblioteca androidx.biometric ainda está no
+      projeto e traria estas duas permissões na mescla do manifesto; saem aqui. Religar a biometria exige tirar estas duas linhas.
+    -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
 
     <application
         android:name=".FrilaApplication"
@@ -15,6 +22,15 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- L1-6 (C1, 08/11/2026): coleta do Crashlytics DESLIGADA, como o iOS 1.1. Ligar é decisão jurídica (trocar para true). -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+        <!-- As sessões do Firebase (do Crashlytics) também ficam desligadas: só mandariam dado de uso ao Google. -->
+        <meta-data
+            android:name="firebase_sessions_enabled"
+            android:value="false" />
 
         <activity
             android:name=".MainActivity"
@@ -50,7 +66,26 @@
                     android:scheme="frila"
                     android:host="suporte" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="frila"
+                    android:host="chamadas" />
+            </intent-filter>
         </activity>
+
+        <!--
+          FCM sem métrica ao Google (decisão do O2, 17/11): a entrega do push não é exportada para o BigQuery, e o token só nasce quando o app o pede
+          (`TokenDoFcm`, depois da sessão), não na primeira abertura. Sem Firebase Analytics no app (nem `firebase-analytics`, nem `play-services-measurement`).
+        -->
+        <meta-data
+            android:name="delivery_metrics_exported_to_big_query_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
 
     </application>
 

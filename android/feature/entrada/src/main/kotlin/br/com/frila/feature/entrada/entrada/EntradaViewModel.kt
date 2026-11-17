@@ -32,6 +32,7 @@ private val PADRAO_EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 class EntradaViewModel(
     private val servicoAutenticacao: ServicoAutenticacao,
     escopo: CoroutineScope? = null,
+    private val permitirDominioDeTeste: Boolean = false,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -44,23 +45,38 @@ class EntradaViewModel(
             it.copy(
                 email = novoEmail,
                 erro = null,
-                ehContaDeDemonstracao = DemonstracaoContas.ehContaDeDemonstracao(novoEmail.trim()),
+                ehContaDeDemonstracao = DemonstracaoContas.ehContaDeDemonstracao(novoEmail, permitirDominioDeTeste),
             )
         }
     }
 
     fun ehEmailValido(email: String): Boolean = PADRAO_EMAIL.matches(email.trim())
 
+    /**
+     * A tela chama depois de navegar para o código. Sem consumir o sinal, voltar da tela do código
+     * recompunha a entrada com `otpSolicitado` ainda verdadeiro e reabria o código: não dava para
+     * trocar o e-mail.
+     */
+    fun aoNavegarParaCodigo() {
+        _estado.update { it.copy(otpSolicitado = false) }
+    }
+
+    /** O pedido em voo: um segundo toque não manda outro código. */
+    private var pedido: Job? = null
+
     fun solicitarCodigo(): Job? {
-        val email = _estado.value.email.trim()
+        pedido?.takeIf { it.isActive }?.let { return it }
+        // Minúsculas e sem espaços, como o iOS: o teclado costuma pôr a primeira letra em maiúscula.
+        val email = _estado.value.email.trim().lowercase()
 
         if (!ehEmailValido(email)) {
             _estado.update { it.copy(erro = "Informe um e-mail válido.") }
             return null
         }
 
+        _estado.update { it.copy(email = email) }
 
-        if (DemonstracaoContas.ehContaDeDemonstracao(email)) {
+        if (DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste)) {
             // Modo demo: não há OTP a solicitar, a tela de código chama entrarDemonstracao direto.
             _estado.update { it.copy(erro = null, otpSolicitado = true) }
             return null
@@ -74,7 +90,7 @@ class EntradaViewModel(
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
             }
-        }
+        }.also { pedido = it }
     }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {

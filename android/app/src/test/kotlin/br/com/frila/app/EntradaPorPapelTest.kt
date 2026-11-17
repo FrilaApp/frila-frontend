@@ -9,8 +9,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import br.com.frila.core.dominio.modelo.Coordenada
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PainelDto
@@ -70,7 +68,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class EntradaPorPapelTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var nav: NavHostController
@@ -122,12 +123,6 @@ class EntradaPorPapelTest {
         respond(corpo, status, headersOf(HttpHeaders.ContentType, "application/json"))
     }
 
-    private val semLocalizacao = object : ProvedorDeLocalizacao {
-        override suspend fun obterCoordenadaAtual(): Coordenada? = null
-        override fun temPermissaoDeLocalizacao() = false
-        override fun isGpsAtivado() = false
-    }
-
     private fun montar(papel: Papel, comSessaoGuardada: Boolean) {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = servidor(papel))
         if (comSessaoGuardada) sessao.salvarSessao(Sessao("tok", "ref", "bearer", 3600))
@@ -151,6 +146,8 @@ class EntradaPorPapelTest {
                                     avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
                                 },
                                 guardado = DestinoGuardadoEmMemoria(),
+                                // Este cliente não renova o token: o 401 do servidor já é a recusa (o caso da sessão vencida).
+                                sessaoGuardada = { false },
                             )
                         }
                         viewModel { EntradaViewModel(ServicoAutenticacao(cliente), CoroutineScope(Dispatchers.Default)) }
@@ -165,7 +162,8 @@ class EntradaPorPapelTest {
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
-                        viewModel { FeedVagasViewModel(ServicoVagas(cliente), semLocalizacao) }
+                        viewModel { FeedVagasViewModel(ServicoVagas(cliente)) }
+                        viewModel { br.com.frila.feature.turnos.MeusTurnosViewModel(br.com.frila.core.rede.ServicoTurnos { cliente }) }
                         viewModel { (id: String, nome: String?, recente: String?) ->
                             MinhasVagasViewModel(
                                 estabelecimentoId = id,
@@ -208,8 +206,8 @@ class EntradaPorPapelTest {
     /** Entra pela tela de código, como a pessoa faz, e espera o app sair dela. */
     private fun entrarComCodigo(): String? {
         rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
+        // Completar os 6 dígitos confirma sozinho (como o iOS): sem toque em "Confirmar código".
         rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
-        rule.onNodeWithText("Confirmar código").performClick()
         aguardar { rotaAtual() != Rotas.CODIGO && rotaAtual() != Rotas.ABERTURA }
         // Dá tempo de uma decisão que dependa do servidor terminar de rotear.
         aguardar(1_500) { rotaAtual() !in listOf(Rotas.CADASTRO, Rotas.CODIGO, Rotas.ABERTURA) }
@@ -279,6 +277,17 @@ class EntradaPorPapelTest {
 
         assertTrue("o feed do profissional deveria ler as vagas (rota: ${rotaAtual()}, chamadas: $chamadas)", leu)
         assertEquals(Rotas.FEED, rotaAtual())
+    }
+
+    @Test
+    fun `C0-9 - do feed da profissional chega-se a Meus turnos`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED && chamadas.any { it.endsWith("/rpc/vagas_abertas") } }
+
+        rule.onNodeWithText("Meus turnos").performClick()
+
+        assertTrue("o botão do feed não levou a Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
+        assertEquals("Meus turnos abre por cima do feed", Rotas.FEED, rotaAbaixo())
     }
 
     // ───────────────── Revisão do #785: a casa nunca fica presa na tela inicial ─────────────────

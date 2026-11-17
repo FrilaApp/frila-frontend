@@ -1,0 +1,67 @@
+/**
+ * Worker da web do Frila. Plano grátis da Cloudflare.
+ * O ambiente padrão é o de dev (Supabase dev). Produção: CLOUDFLARE_ENV=producao no build.
+ * Endereço e chave publicável do Supabase NÃO ficam aqui: vêm de `.dev.vars` (local)
+ * e das variáveis do Worker (painel ou `wrangler secret put`).
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "frila-web-dev",
+	"compatibility_date": "2026-11-16",
+	"main": "./workers/app.ts",
+	"workers_dev": true,
+	"preview_urls": true,
+	"vars": {
+		"AMBIENTE": "dev",
+		// "1" mostra a web; qualquer outro valor mostra só a página "em breve".
+		"WEB_LIGADA": "1",
+		// "1" deixa a página pública da vaga entrar no índice dos buscadores. Fica "0" até a Política ganhar as
+		// frases da seção 4, item 1, e da seção 2 (buscadores).
+		"VAGA_PUBLICA_NO_INDICE": "0",
+		// Conta de demonstração do dev (a mesma do app, para teste de ponta a ponta). Não existe em produção.
+		"EMAILS_DE_DEMONSTRACAO": "revisao-profissional@frila.app"
+	},
+	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
+	"secrets": {
+		"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+	},
+	// Logs do Worker: só o que o código escreve (console.error, sem cabeçalho nem token). Os logs de invocação ficam
+	// DESLIGADOS: eles guardam os cabeçalhos do pedido (Cookie com a sessão, Authorization) por dias na Cloudflare.
+	// Vale nos 2 ambientes (testes/observabilidade.test.ts confere).
+	"observability": {
+		"enabled": true,
+		"logs": { "enabled": true, "invocation_logs": false }
+	},
+	"upload_source_maps": true,
+	"env": {
+		"producao": {
+			"name": "frila-web",
+			"workers_dev": false,
+			"preview_urls": false,
+			// Só estes três caminhos vão ao Worker; o resto do frilabr.com fica como está.
+			// Não use "frilabr.com/app*": pegaria também /apps, /app-store etc.
+			// /app.data é o pedido de dados da página inicial do React Router v8.
+			// A Cloudflare não aceita parâmetro no padrão da rota (erro 10022) e compara a rota exata com o endereço
+			// inteiro: /app?utm_source=... NÃO chega a este Worker (cai no site). Links com parâmetro: use /app/?... .
+			"routes": [
+				{ "pattern": "frilabr.com/app", "zone_name": "frilabr.com" },
+				{ "pattern": "frilabr.com/app/*", "zone_name": "frilabr.com" },
+				{ "pattern": "frilabr.com/app.data", "zone_name": "frilabr.com" }
+			],
+			"secrets": {
+				"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+			},
+			// Igual ao topo, escrito aqui para não depender de herança: sem logs de invocação em produção.
+			"observability": {
+				"enabled": true,
+				"logs": { "enabled": true, "invocation_logs": false }
+			},
+			"vars": {
+				"AMBIENTE": "producao",
+				// Ligada no Prod em 17/11/2026 (pedido 2026-11-17-02). Para desligar: "0" (mostra a página "em breve").
+				"WEB_LIGADA": "1",
+				"VAGA_PUBLICA_NO_INDICE": "0"
+			}
+		}
+	}
+}

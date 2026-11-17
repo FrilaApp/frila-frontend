@@ -94,7 +94,10 @@ class TelaBuscaDeProfissionaisTest {
         var horario: HorarioDaBusca? = null
         val fotosPedidas = mutableListOf<String>()
         var abriuTermos = 0
+        var abriuPolitica = 0
         var aceitou = 0
+        var confirmouTermosDaVaga = 0
+        var cancelouTermosDaVaga = 0
     }
 
     private val chamadas = Chamadas()
@@ -121,11 +124,14 @@ class TelaBuscaDeProfissionaisTest {
                     aoConfirmarJ7 = { chamadas.confirmouJ7++ },
                     relogio = { agora },
                     aoAbrirTermos = { chamadas.abriuTermos++ },
+                    aoAbrirPolitica = { chamadas.abriuPolitica++ },
                     aoAceitarTermos = { chamadas.aceitou++ },
                     carregarFoto = { url ->
                         chamadas.fotosPedidas += url
                         if (url.contains("excecao")) error("404") else if (url.contains("quebrada")) null else Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888).asImageBitmap()
                     },
+                    aoConfirmarTermosDaVaga = { chamadas.confirmouTermosDaVaga++ },
+                    aoCancelarTermosDaVaga = { chamadas.cancelouTermosDaVaga++ },
                 )
             }
         }
@@ -156,13 +162,20 @@ class TelaBuscaDeProfissionaisTest {
         montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes()))
 
         rule.onNodeWithTag("busca-termos-pendentes").assertIsDisplayed()
-        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO).assertIsDisplayed()
+        // A frase do topo cita os dois textos que o aceite cobre (decisão jurídica; a mesma do iOS).
+        rule.onNodeWithText("Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade.").assertIsDisplayed()
         rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
         rule.onAllNodesWithTag("busca-termos-erro").assertCountEquals(0)
 
         rule.onNodeWithTag("busca-termos-ler").performClick()
+        // A versão aceita cobre os Termos 1.2 e a Política 1.3: a Política também está na tela (revisão do #800).
+        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_POLITICA).assertIsDisplayed()
+        rule.onNodeWithTag("busca-termos-politica").performClick()
+        // Com o link da Política o bloco ganhou uma linha: rola até o Aceitar antes de tocar.
+        rolarAteTag("busca-termos-aceitar")
         rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled().performClick()
         assertEquals(1, chamadas.abriuTermos)
+        assertEquals(1, chamadas.abriuPolitica)
         assertEquals(1, chamadas.aceitou)
     }
 
@@ -170,11 +183,13 @@ class TelaBuscaDeProfissionaisTest {
     fun aceitandoDesligaOBotaoEErroDoAceiteAparece() {
         montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes(aceitando = true)))
         rule.onNodeWithTag("busca-termos-aceitar").assertIsNotEnabled()
+        rolarAteTexto(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO)
         rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO).assertIsDisplayed()
 
         estado = estado.copy(estado = EstadoDaBusca.TermosPendentes(erro = TextosChamadaCasa.BUSCA_TERMOS_ERRO))
         rule.waitForIdle()
 
+        rolarAteTag("busca-termos-erro")
         rule.onNodeWithTag("busca-termos-erro").assertIsDisplayed()
         rule.onNodeWithTag("busca-termos-aceitar").assertIsEnabled()
         rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
@@ -421,6 +436,62 @@ class TelaBuscaDeProfissionaisTest {
         rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").assertExists()
         assertTrue(chamadas.confirmouJ7 == 1)
+    }
+
+    @Test
+    fun folhaComTermosDaVagaAbertaConfirmaCancelaEFecharValeCancelar() {
+        abrirFolha(comResultados(selecionados = listOf("p1", "p2")))
+        val termos = TermosDaVagaAberta("v-aberta", 15000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = true)
+        val esperando = ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)
+        estado = comResultados(selecionados = listOf("p1", "p2")) {
+            it.copy(resultadosDaChamada = mapOf("p1" to esperando, "p2" to esperando), termosParaConfirmar = termos)
+        }
+
+        rule.onNodeWithTag("folha-termos-da-vaga").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().performClick()
+        assertEquals(1, chamadas.confirmouTermosDaVaga)
+        rule.onNodeWithTag("folha-termos-cancelar").performScrollTo().performClick()
+        assertEquals(1, chamadas.cancelouTermosDaVaga)
+
+        // Fechar com os termos por confirmar vale Cancelar: com eles pendentes o "Chamar" fica desligado e não reabre a folha.
+        rule.onNodeWithTag("folha-fechar").performScrollTo().performClick()
+        assertEquals(2, chamadas.cancelouTermosDaVaga)
+        assertEquals(1, chamadas.confirmouTermosDaVaga)
+    }
+
+    @Test
+    fun comTermosDaVagaAbertaPorConfirmarEAFolhaFechadaOChamarReabreAFolhaComConfirmarECancelar() {
+        // O 409 com termos diferentes chegou depois de a casa fechar a folha durante o envio.
+        val termos = TermosDaVagaAberta("v-aberta", 15000, incluiRefeicao = false, incluiTransporte = false, exigeMaterialProprio = false)
+        montar(comResultados(selecionados = listOf("p1")) {
+            it.copy(resultadosDaChamada = mapOf("p1" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)), termosParaConfirmar = termos)
+        })
+
+        rolarAteTag("busca-chamar")
+        rule.onNodeWithTag("busca-chamar").assertIsEnabled().performClick()
+        rule.onNodeWithTag("folha-termos-da-vaga").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().performClick()
+        assertEquals(1, chamadas.confirmouTermosDaVaga)
+    }
+
+    @Test
+    fun folhaComJ7ETermosDaVagaAbertaDesligaOConfirmarDoJ7() {
+        abrirFolha(comResultados(selecionados = listOf("p1", "p2")))
+        val termos = TermosDaVagaAberta("v-aberta", 25000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = false)
+        estado = comResultados(selecionados = listOf("p1", "p2")) {
+            it.copy(
+                resultadosDaChamada = mapOf(
+                    "p1" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia,
+                    "p2" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos),
+                ),
+                mostrarJ7 = true,
+                termosParaConfirmar = termos,
+            )
+        }
+
+        // Os termos vêm primeiro: o Confirmar do J7 não mandaria nada enquanto eles esperam.
+        rule.onNodeWithTag("folha-confirmar-j7").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().assertIsEnabled()
     }
 
     @Test

@@ -11,6 +11,18 @@ import br.com.frila.core.dominio.modelo.Coordenada
 interface ProvedorDeLocalizacao {
 
     /**
+     * Uma leitura para o check-in, com a precisão e a origem. Termina sozinha: devolve `null` sem
+     * lançar quando não há permissão ou quando a posição não chega dentro do prazo
+     * ([TEMPO_LIMITE_DA_LEITURA_MS], o mesmo do iOS). Quem decide se a precisão serve é o chamador.
+     *
+     * A implementação padrão existe para dublês: usa [obterCoordenadaAtual] sem precisão conhecida
+     * (infinita), e uma leitura assim não vale como prova de presença. Quem quer provar presença
+     * sobrescreve e informa a precisão.
+     */
+    suspend fun lerParaCheckin(): LeituraDeLocalizacao? =
+        obterCoordenadaAtual()?.let { LeituraDeLocalizacao(coordenada = it, precisaoMetros = Float.POSITIVE_INFINITY, simulada = false) }
+
+    /**
      * Lê a coordenada atual. Retorna `null` sem lançar exceção quando não há permissão, o GPS
      * está desativado ou a localização não pôde ser obtida a tempo — o check-in continua
      * possível nesses casos, só que no modo `manual` (RN06).
@@ -27,3 +39,18 @@ interface ProvedorDeLocalizacao {
      */
     fun isGpsAtivado(): Boolean
 }
+
+/**
+ * Leitura de posição do toque do check-in. A coordenada só serve para medir a distância até a vaga
+ * e nunca sai do aparelho (RN22).
+ */
+data class LeituraDeLocalizacao(
+    val coordenada: Coordenada,
+    /** Raio de erro da leitura, em metros. Sem precisão informada pelo sistema, vem infinito. */
+    val precisaoMetros: Float,
+    /** A posição veio de app de localização falsa. */
+    val simulada: Boolean,
+)
+
+/** Prazo de uma leitura para o check-in: 10 s, igual a `RegraDePresenca.tempoLimiteDaLeitura` do iOS. */
+const val TEMPO_LIMITE_DA_LEITURA_MS = 10_000L

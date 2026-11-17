@@ -7,10 +7,14 @@ import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.perfil.CompressorDeFotoPerfil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Resultado estruturado da execução da limpeza segura de logout (Cartão 101 / LGPD).
@@ -44,6 +48,10 @@ class CoordenadorDeLogout(
     /** Token FCM atual do aparelho; `null` (ou sem provedor) pula a chamada remota, como no iOS. */
     private val provedorDeTokenFcm: (suspend () -> String?)? = null,
     private val tempoMaximoRemocaoMs: Long = TEMPO_MAXIMO_REMOCAO_PADRAO_MS,
+    /** C0-10: onde roda o `remover_dispositivo` do Sair, depois da limpeza local. Sem escopo, o Sair só limpa o aparelho. */
+    private val escopoDaRemocao: CoroutineScope? = null,
+    /** Só o motivo, nunca o token nem a sessão (o app manda ao Log). */
+    private val registrarFalha: (String) -> Unit = {},
 ) : ArmazenamentoDeSessao by armazenamentoDeSessao {
 
     /** Construtor para uso em ambiente Android real a partir de [Context]. */
@@ -55,6 +63,8 @@ class CoordenadorDeLogout(
         servicoDispositivo: ServicoDispositivo? = null,
         provedorDeTokenFcm: (suspend () -> String?)? = null,
         tempoMaximoRemocaoMs: Long = TEMPO_MAXIMO_REMOCAO_PADRAO_MS,
+        escopoDaRemocao: CoroutineScope? = null,
+        registrarFalha: (String) -> Unit = {},
     ) : this(
         armazenamentoDeSessao = armazenamentoDeSessao,
         diretorioCache = contexto.cacheDir,
@@ -64,14 +74,41 @@ class CoordenadorDeLogout(
         servicoDispositivo = servicoDispositivo,
         provedorDeTokenFcm = provedorDeTokenFcm,
         tempoMaximoRemocaoMs = tempoMaximoRemocaoMs,
+        escopoDaRemocao = escopoDaRemocao,
+        registrarFalha = registrarFalha,
     )
 
     /**
      * Intercepta a limpeza de sessão delegada para garantir a execução coordenada
-     * de todos os expurgos seguros locais (RN15 / LGPD).
+     * de todos os expurgos seguros locais (RN15 / LGPD). É por aqui que passa o Sair do Perfil (e "outra conta" e
+     * conta suspensa): limpa o aparelho na hora, porque a tela navega logo depois, e então pede `remover_dispositivo`
+     * em segundo plano com o token de acesso de quem saiu, guardado antes (C0-10).
      */
     override fun limparSessao() {
+        val tokenDeAcesso = armazenamentoDeSessao.obterSessao()?.accessToken
         deslogar()
+        if (tokenDeAcesso != null) removerDispositivoEmSegundoPlano(tokenDeAcesso)
+    }
+
+    /** Só uma tentativa, com prazo: falha (rede, API, token do FCM) vira [registrarFalha] e nunca lança. */
+    private fun removerDispositivoEmSegundoPlano(tokenDeAcesso: String) {
+        val escopo = escopoDaRemocao ?: return
+        val servico = servicoDispositivo ?: return
+        val provedor = provedorDeTokenFcm ?: return
+        escopo.launch {
+            try {
+                withTimeout(tempoMaximoRemocaoMs) {
+                    val tokenFcm = provedor()
+                    if (!tokenFcm.isNullOrBlank()) servico.removerDispositivo(tokenFcm, tokenDeAcesso)
+                }
+            } catch (_: TimeoutCancellationException) {
+                registrarFalha("remover_dispositivo passou do prazo de ${tempoMaximoRemocaoMs / 1000} s")
+            } catch (cancelado: CancellationException) {
+                throw cancelado
+            } catch (erro: Exception) {
+                registrarFalha("remover_dispositivo falhou: ${erro::class.simpleName}")
+            }
+        }
     }
 
     /**

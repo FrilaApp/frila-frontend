@@ -28,6 +28,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.request
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.ContentType
@@ -56,6 +57,14 @@ fun interface ProvedorDeToken {
 }
 
 /**
+ * Onde um erro de resposta da API é avisado para a telemetria de falhas (L1-7d). Só o código do erro, a rota e a duração: nunca a URL inteira,
+ * o corpo, o token, e-mail, nome ou telefone. Quem implementa decide se grava (o Crashlytics sai com a coleta desligada).
+ */
+fun interface RegistroDeErroDaApi {
+    fun registrar(codigo: String, rpc: String, duracaoNs: Long)
+}
+
+/**
  * Cliente HTTP para o backend Supabase do Frila. Timeouts e headers iguais ao iOS
  * (15s por requisição, 60s para o conjunto); mapeia o envelope de erro PostgREST (`code`)
  * para [CodigoErroAPI] do `:core:dominio`.
@@ -69,6 +78,8 @@ class ClienteSupabase(
     private val monitorDeConectividade: MonitorDeConectividade? = null,
     private val engine: HttpClientEngine? = null,
     private val json: Json = jsonFrila,
+    /** L1-7d: avisado a cada resposta de erro da API (ver [RegistroDeErroDaApi]); nulo (padrão) não avisa ninguém. */
+    private val registroDeErros: RegistroDeErroDaApi? = null,
 ) : Closeable {
     private val _fechado = AtomicBoolean(false)
     val estaFechado: Boolean get() = _fechado.get()
@@ -220,7 +231,9 @@ class ClienteSupabase(
                 setBody(RenovarTokenDto(refreshToken = sessaoAtual.refreshToken))
             }
             if (!resposta.status.isSuccess()) {
-                armazenamento.limparSessao()
+                // Só o Auth recusando o token encerra a sessão. 5xx, 429 e afins são falha
+                // passageira: a sessão fica e a próxima chamada tenta renovar de novo.
+                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO) armazenamento.limparSessao()
                 return null
             }
 
@@ -231,7 +244,7 @@ class ClienteSupabase(
         } catch (erro: CancellationException) {
             throw erro
         } catch (_: Exception) {
-            armazenamento.limparSessao()
+            // Rede caída, tempo esgotado ou resposta ilegível: falha passageira, a sessão fica.
             null
         }
     }
@@ -274,15 +287,37 @@ class ClienteSupabase(
             ErroPostgrestDto()
         }
         val codigoCru = envelope.code ?: envelope.errorCode ?: ""
-        return ErroDaApi(
+        val erro = ErroDaApi(
             codigo = mapearCodigo(codigoCru, resposta.status, envelope.errorCode),
             codigoOriginal = envelope.errorCode ?: codigoCru,
             detalhes = envelope.details,
             mensagemCrua = envelope.message ?: envelope.msg ?: "",
         )
+        avisarTelemetria(erro, resposta)
+        return erro
+    }
+
+    /**
+     * Avisa o [RegistroDeErroDaApi] (L1-7d) com só o código, o nome da rota e a duração: nunca a URL, a query, o corpo nem o token. Código e rota
+     * fora do formato `[a-z0-9_-]` não passam (viram `desconhecido` e `outro`), para um texto livre do servidor nunca chegar à telemetria. Quem
+     * recebe o aviso não pode derrubar a chamada: qualquer falha dele é engolida.
+     */
+    private fun avisarTelemetria(erro: ErroDaApi, resposta: HttpResponse) {
+        val registro = registroDeErros ?: return
+        try {
+            val codigo = erro.codigoOriginal.takeIf { FORMATO_SEGURO_DO_CODIGO.matches(it) } ?: "desconhecido"
+            val rota = resposta.request.url.encodedPath.substringAfterLast('/').takeIf { FORMATO_SEGURO_DA_ROTA.matches(it) } ?: "outro"
+            val milissegundos = (resposta.responseTime.timestamp - resposta.requestTime.timestamp).coerceAtLeast(0)
+            registro.registrar(codigo, rota, milissegundos * 1_000_000)
+        } catch (_: Exception) {
+            // Telemetria nunca derruba a chamada.
+        }
     }
 
     companion object {
+        private val FORMATO_SEGURO_DO_CODIGO = Regex("^[a-z0-9_]{1,64}$")
+        private val FORMATO_SEGURO_DA_ROTA = Regex("^[a-z0-9_-]{1,64}$")
+
         const val TIMEOUT_CONEXAO_MS = 10_000L
         const val TIMEOUT_REQUISICAO_MS = 15_000L
         const val TIMEOUT_SOCKET_MS = 30_000L
@@ -295,6 +330,13 @@ class ClienteSupabase(
             HttpStatusCode.BadGateway.value,
             HttpStatusCode.ServiceUnavailable.value,
             HttpStatusCode.GatewayTimeout.value,
+        )
+
+        /** Respostas do Auth que dizem "este token não vale mais": só elas apagam a sessão. */
+        val STATUS_DE_TOKEN_RECUSADO = setOf(
+            HttpStatusCode.BadRequest.value,
+            HttpStatusCode.Unauthorized.value,
+            HttpStatusCode.Forbidden.value,
         )
 
         private const val CAMINHO_RENOVACAO = "/auth/v1/token?grant_type=refresh_token"

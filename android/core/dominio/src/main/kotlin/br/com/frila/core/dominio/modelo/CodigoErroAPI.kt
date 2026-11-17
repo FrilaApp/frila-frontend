@@ -59,6 +59,9 @@ enum class CodigoErroAPI {
     @SerialName("recorrencia_nao_confirmada") RECORRENCIA_NAO_CONFIRMADA,
     @SerialName("profissional_indisponivel") PROFISSIONAL_INDISPONIVEL,
     @SerialName("limite_de_chamadas") LIMITE_DE_CHAMADAS,
+    // 409 de `chamar_profissional` (0.2.95): a casa já tem vaga direta com chamada aberta para o mesmo trabalho (mesma
+    // função, mesmo início e mesmo fim); `details` traz o `vaga_id` dela, um uuid em texto.
+    @SerialName("trabalho_ja_aberto") TRABALHO_JA_ABERTO,
     @SerialName("cursor_invalido") CURSOR_INVALIDO,
     @SerialName("funcao_nao_marcada") FUNCAO_NAO_MARCADA,
     @SerialName("sem_rede") SEM_REDE,

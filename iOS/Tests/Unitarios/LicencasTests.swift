@@ -12,7 +12,13 @@ struct LicencasTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    private static let fontesEmbutidas = ["jost": "Jost", "prodigy-sans": "ProdigySans-Bold"]
+    /// id no Licencas.json → (binário em Resources/Fonts, licença ao lado). A Bricolage Grotesque tem 4 pesos:
+    /// a revisão é a do -Regular, e os 4 vêm do mesmo pacote e da mesma licença.
+    private static let fontesEmbutidas: [String: (fonte: String, licenca: String)] = [
+        "bricolage-grotesque": ("BricolageGrotesque-Regular", "BricolageGrotesque-OFL"),
+        "jost": ("Jost", "Jost-OFL"),
+        "prodigy-sans": ("ProdigySans-Bold", "ProdigySans-Bold-OFL"),
+    ]
     private static let comoCorrigir = "Resolva os pacotes e rode Scripts/gerar-licencas.py."
 
     private struct PacotesResolvidos: Decodable {
@@ -55,15 +61,25 @@ struct LicencasTests {
     @Test("Fontes embutidas mantêm licença e revisão do binário distribuído")
     func fontesEmbutidasTemLicenca() throws {
         let licencas = try Licencas.carregar()
-        for (id, arquivo) in Self.fontesEmbutidas {
-            let licenca = try #require(licencas.first { $0.id == id })
-            let url = try #require(bundleApresentacao.url(forResource: arquivo, withExtension: "ttf"))
+        for (id, arquivos) in Self.fontesEmbutidas {
+            let licenca = try #require(licencas.first { $0.id == id }, "\(id) fora do Licencas.json. \(Self.comoCorrigir)")
+            let url = try #require(bundleApresentacao.url(forResource: arquivos.fonte, withExtension: "ttf"))
             let hash = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
             #expect(licenca.revisao == "sha256:" + hash)
             #expect(licenca.tipo == "OFL-1.1")
-            let texto = try String(contentsOf: Self.raiz.appending(path: "Resources/Fonts/\(arquivo)-OFL.txt"), encoding: .utf8)
+            let texto = try String(contentsOf: Self.raiz.appending(path: "Resources/Fonts/\(arquivos.licenca).txt"), encoding: .utf8)
             #expect(licenca.texto == texto.trimmingCharacters(in: .whitespacesAndNewlines))
         }
+    }
+
+    /// A Prodigy Sans deriva da Work Sans (mesmo autor): a OFL pede que o aviso original vá junto (F-041).
+    @Test("A Prodigy Sans leva o aviso da Work Sans")
+    func prodigySansLevaOAvisoDaWorkSans() throws {
+        let prodigy = try #require(try Licencas.carregar().first { $0.id == "prodigy-sans" })
+        let workSans = try String(contentsOf: Self.raiz.appending(path: "Resources/Fonts/ProdigySans-Bold-WorkSans-OFL.txt"),
+                                  encoding: .utf8)
+        #expect(prodigy.aviso == workSans.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(prodigy.aviso?.contains("Work Sans") == true)
     }
 
     @Test("Toda licença traz nome, versão, tipo, URL e texto")

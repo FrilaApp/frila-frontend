@@ -62,7 +62,13 @@ import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
 import br.com.frila.feature.perfil.EnderecosOficiais
+import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.PontoBaseViewModel
+import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.TelaApresentacaoERegioes
+import br.com.frila.feature.perfil.TelaPontoBase
+import br.com.frila.feature.perfil.TelaFotoDePerfilConectada
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
@@ -79,6 +85,9 @@ import br.com.frila.feature.turnos.TelaMeusTurnos
 import br.com.frila.feature.turnos.TelaOcorrencia
 import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.getKoin
 import org.koin.compose.koinInject
@@ -96,6 +105,9 @@ object Rotas {
     const val MEUS_TURNOS = "meus_turnos"
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
+    const val APRESENTACAO = "perfil_apresentacao"
+    const val PONTO_BASE = "perfil_ponto_base"
+    const val FOTO_DE_PERFIL = "perfil_foto"
     const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
@@ -186,9 +198,9 @@ object DeepLinks {
  * perfil (MEDIDO, Shisui PR #591: antes desta correção nada consumia a flag na inicialização).
  * Sem biometria ativada, vai direto para [Rotas.FEED] — ver `AppNavegacaoTest`.
  */
-fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao): String = when {
+fun rotaInicial(armazenamentoDeSessao: ArmazenamentoDeSessao, biometriaHabilitada: Boolean = false): String = when {
     !armazenamentoDeSessao.estaAutenticado() -> Rotas.ENTRADA
-    armazenamentoDeSessao.isBiometriaAtivada() -> Rotas.DESBLOQUEIO
+    biometriaHabilitada && armazenamentoDeSessao.isBiometriaAtivada() -> Rotas.DESBLOQUEIO
     else -> Rotas.FEED
 }
 
@@ -221,6 +233,11 @@ fun AppNavegacao(
      */
     buscaProfissionaisHabilitada: Boolean = false,
     /**
+     * Chave `checkin_por_codigo` (`configuracao_do_app`, a do servidor): ligada, o profissional digita o código que a casa mostra e a casa vê o
+     * código do turno. Desligada (padrão), a tela de turnos fica como antes.
+     */
+    checkinPorCodigoHabilitado: Boolean = false,
+    /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
      * todos. Conta de profissional recebe `422 perfil_incompativel` e também não vê nenhum.
@@ -233,20 +250,66 @@ fun AppNavegacao(
      * sem o serviço) mantém o caminho antigo: cadastro depois do código e feed na abertura.
      */
     avaliadorDeDestino: AvaliadorDeDestino? = getKoin().getOrNull(),
+    /**
+     * C0-8: conta as sessões apagadas (token recusado, Sair, exclusão). Sem sessão, tela de dentro só falha, e a
+     * navegação volta à entrada, como o iOS (`FrilaApp.swift:519`). Nulo (grafo sem a [SessaoComCacheVagas]) não observa.
+     */
+    encerramentosDaSessao: StateFlow<Int>? = (getKoin().getOrNull<ArmazenamentoDeSessao>() as? SessaoComCacheVagas)?.encerramentos,
+    /**
+     * C0-11 (decisão de 16/11/2026: o Android fica só com o que o iOS tem): o iOS não tem desbloqueio por biometria.
+     * Desligada (padrão; nada no app a liga), a abertura não pede a digital nem a quem a tinha ligado antes.
+     */
+    biometriaHabilitada: Boolean = false,
+    /**
+     * Chave `perfil_rico` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Apresentação e regiões". Desligada
+     * (padrão), o perfil fica como era.
+     */
+    perfilRicoHabilitado: Boolean = false,
+    /** Chave `foto_de_perfil` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Foto de perfil". Desligada (padrão), não vê. */
+    fotoDePerfilHabilitada: Boolean = false,
 ) {
-    val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino) {
-        rotaInicial(armazenamentoDeSessao).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
+    val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino, biometriaHabilitada) {
+        rotaInicial(armazenamentoDeSessao, biometriaHabilitada).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
     }
     // RN15: gate em memória independente de rotaInicial — pega deep link (frila://vagas/...,
     // frila://meus_turnos, frila://suporte) que chega direto numa rota autenticada sem passar
     // pela decisão de abertura (MEDIDO, Shisui PR #591). Ver GuardaBiometrico.
-    val guardaBiometrico = remember(armazenamentoDeSessao) {
-        GuardaBiometrico(sessaoDesbloqueadaInicial = !armazenamentoDeSessao.isBiometriaAtivada())
+    val guardaBiometrico = remember(armazenamentoDeSessao, biometriaHabilitada) {
+        GuardaBiometrico(sessaoDesbloqueadaInicial = !(biometriaHabilitada && armazenamentoDeSessao.isBiometriaAtivada()))
     }
 
     DisposableEffect(navController, guardaBiometrico) {
         val listener = instalarGuardaBiometrico(navController, guardaBiometrico)
         onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
+
+    // C0-8: toda saída da sessão (Sair, exclusão, 401 na abertura, outra conta, sessão que caiu) termina aqui, numa
+    // navegação só: quem chega com a pilha já reduzida à entrada não navega de novo.
+    fun irParaEntrada() {
+        guardaBiometrico.liberarAposLimparSessao()
+        if (navController.currentDestination?.route == Rotas.ENTRADA && navController.previousBackStackEntry == null) return
+        navController.navigate(Rotas.ENTRADA) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
+    // C0-9: a profissional denuncia a casa pelo turno dela, como o iOS (`TelaMeuTurno.swift:125`).
+    val denunciarCasa: (String, String) -> Unit = { casaId, turnoId ->
+        navController.navigate(Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, casaId, turnoId = turnoId))
+    }
+
+    // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de
+    // rede apaga fora da thread principal quando o Auth recusa o token, e a navegação só anda na principal.
+    // Sem sessão, tela de dentro só falha.
+    LaunchedEffect(encerramentosDaSessao, navController, guardaBiometrico) {
+        encerramentosDaSessao?.collect {
+            withContext(Dispatchers.Main.immediate) {
+                val rota = navController.currentDestination?.route
+                if (rota != null && rota !in GuardaBiometrico.ROTAS_SEM_GATE && !armazenamentoDeSessao.estaAutenticado()) {
+                    irParaEntrada()
+                }
+            }
+        }
     }
 
     // RNF04 (bloqueante do Shisui, PR #604): collectAsState() não é lifecycle-aware — a
@@ -306,10 +369,7 @@ fun AppNavegacao(
                             aoSessaoVencida = {
                                 // 401: a renovação já falhou; sai da árvore autenticada como o logout faz.
                                 armazenamentoDeSessao.limparSessao()
-                                guardaBiometrico.liberarAposLimparSessao()
-                                navController.navigate(Rotas.ENTRADA) {
-                                    popUpTo(0) { inclusive = true }
-                                }
+                                irParaEntrada()
                             },
                             aoTerminarDeAvaliar = { aoPronto?.invoke() },
                         )
@@ -343,6 +403,8 @@ fun AppNavegacao(
                         viewModel = viewModel,
                         aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
                         aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
+                        aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
+                        aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
                     )
                 }
             }
@@ -436,13 +498,20 @@ fun AppNavegacao(
                             val turnoEncontrado = estado.agendados.any { it.turnoId == turnoId } ||
                                 estado.historicoCompleto.any { it.turnoId == turnoId }
                             if (turnoEncontrado) {
-                                TelaMeusTurnos(
-                                    viewModel = viewModel,
-                                    criarCheckinViewModel = { id ->
-                                        koinViewModel(parameters = { parametersOf(id, null) })
-                                    },
-                                    aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
-                                )
+                                ComConfirmacaoPorCodigo(
+                                    habilitada = checkinPorCodigoHabilitado,
+                                    aoPresencaVerificada = { viewModel.carregar() },
+                                ) {
+                                    TelaMeusTurnos(
+                                        viewModel = viewModel,
+                                        criarCheckinViewModel = { turno ->
+                                            // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
+                                            koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
+                                        },
+                                        aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                                        aoDenunciarEstabelecimento = denunciarCasa,
+                                    )
+                                }
                             } else {
                                 TelaTurnoNaoEncontrado(
                                     aoVoltar = { navController.popBackStack() },
@@ -466,13 +535,20 @@ fun AppNavegacao(
                         }
                         StatusMeusTurnos.ERRO -> {
                             // Não transforma erro de conexão em "não encontrado" (DestinosDoAviso.swift:208)
-                            TelaMeusTurnos(
-                                viewModel = viewModel,
-                                criarCheckinViewModel = { id ->
-                                    koinViewModel(parameters = { parametersOf(id, null) })
-                                },
-                                aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
-                            )
+                            ComConfirmacaoPorCodigo(
+                                habilitada = checkinPorCodigoHabilitado,
+                                aoPresencaVerificada = { viewModel.carregar() },
+                            ) {
+                                TelaMeusTurnos(
+                                    viewModel = viewModel,
+                                    criarCheckinViewModel = { turno ->
+                                        // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
+                                        koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
+                                    },
+                                    aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                                    aoDenunciarEstabelecimento = denunciarCasa,
+                                )
+                            }
                         }
                     }
                 }
@@ -485,17 +561,21 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
-                    TelaMeusTurnos(
-                        viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId ->
-                            // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
-                            // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
-                            // ora o check-in sempre degrada para o caminho "sem localização" (manual
-                            // pendente, RN06), até o backend expor a coordenada aqui.
-                            koinViewModel(parameters = { parametersOf(turnoId, null) })
-                        },
-                        aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
-                    )
+                    ComConfirmacaoPorCodigo(
+                        habilitada = checkinPorCodigoHabilitado,
+                        aoPresencaVerificada = { viewModel.carregar() },
+                    ) {
+                        TelaMeusTurnos(
+                            viewModel = viewModel,
+                            criarCheckinViewModel = { turno ->
+                                // C0-7: um check-in por turno (key; antes todos os cartões dividiam um só), com o ponto
+                                // da vaga (`VagaResumo.ponto`), para medir a distância até ela (RN06).
+                                koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
+                            },
+                            aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
+                            aoDenunciarEstabelecimento = denunciarCasa,
+                        )
+                    }
                 }
             }
 
@@ -526,6 +606,17 @@ fun AppNavegacao(
             }
 
             composable(Rotas.DESBLOQUEIO) {
+                if (!biometriaHabilitada) {
+                    // C0-11 (P2 do Lince no #854): com a trava desligada não há desbloqueio, mas o Android ainda restaura
+                    // uma pilha salva nesta rota (processo morto, rotação). Não desenha a tela, que pediria a digital
+                    // sozinha, e segue para o destino normal da conta.
+                    LaunchedEffect(Unit) {
+                        navController.navigate(destinoInicial) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                    return@composable
+                }
                 LaunchedEffect(Unit) {
                     aoPronto?.invoke()
                 }
@@ -538,12 +629,7 @@ fun AppNavegacao(
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    aoEntrarComOutraConta = {
-                        guardaBiometrico.liberarAposLimparSessao()
-                        navController.navigate(Rotas.ENTRADA) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
+                    aoEntrarComOutraConta = { irParaEntrada() },
                     armazenamentoDeSessao = armazenamentoDeSessao,
                 )
             }
@@ -567,12 +653,7 @@ fun AppNavegacao(
                         verificacaoIdentidade = estadoSelo?.verificacao,
                         podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
                         aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
-                        aoDeslogar = {
-                            guardaBiometrico.liberarAposLimparSessao()
-                            navController.navigate(Rotas.ENTRADA) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        },
+                        aoDeslogar = { irParaEntrada() },
                         aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
                         aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
                         aoAbrirEquipe = primeiraCasa?.let { casa ->
@@ -603,7 +684,50 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
+                        aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.APRESENTACAO) }
+                        } else {
+                            null
+                        },
+                        aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.FOTO_DE_PERFIL) }
+                        } else {
+                            null
+                        },
+                        // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
+                        aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.PONTO_BASE) }
+                        } else {
+                            null
+                        },
                     )
+                }
+            }
+
+            // Ao salvar, volta para quem abriu: a lista de vagas recarrega sozinha ao reaparecer.
+            composable(Rotas.PONTO_BASE) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: PontoBaseViewModel = koinViewModel()
+                    TelaPontoBase(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoSalvo = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(Rotas.APRESENTACAO) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: ApresentacaoERegioesViewModel = koinViewModel()
+                    TelaApresentacaoERegioes(viewModel = viewModel, aoVoltar = { navController.popBackStack() })
+                }
+            }
+
+            composable(Rotas.FOTO_DE_PERFIL) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: FotoDePerfilViewModel = koinViewModel()
+                    TelaFotoDePerfilConectada(viewModel = viewModel)
                 }
             }
 
@@ -613,12 +737,7 @@ fun AppNavegacao(
                     val estado by viewModel.estado.collectAsStateWithLifecycle()
                     // Sessão já limpa por `aoConcluir`; sai da árvore autenticada como o logout faz.
                     LaunchedEffect(estado.resultado) {
-                        if (estado.resultado != null) {
-                            guardaBiometrico.liberarAposLimparSessao()
-                            navController.navigate(Rotas.ENTRADA) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
+                        if (estado.resultado != null) irParaEntrada()
                     }
                     TelaExclusaoDeConta(
                         viewModel = viewModel,
@@ -647,10 +766,7 @@ fun AppNavegacao(
                     },
                     aoSair = {
                         armazenamentoDeSessao.limparSessao()
-                        guardaBiometrico.liberarAposLimparSessao()
-                        navController.navigate(Rotas.ENTRADA) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        irParaEntrada()
                     },
                     motivo = entrada.arguments?.getString("motivo"),
                     desde = entrada.arguments?.getString("desde"),
@@ -795,6 +911,11 @@ fun AppNavegacao(
                         posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
                         buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
                         aoVoltar = { navController.popBackStack() },
+                        checkinPorCodigoHabilitado = checkinPorCodigoHabilitado,
+                        // C0-9: a casa denuncia a profissional pelo turno, como o iOS (`TelaTurnoDoContratante.swift:360`).
+                        aoDenunciarProfissional = { profissionalId, turnoId ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
+                        },
                     )
                 }
             }

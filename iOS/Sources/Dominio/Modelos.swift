@@ -40,8 +40,12 @@ public struct Conta: Codable, Hashable, Identifiable, Sendable {
     public let email: String
     public let nascimento: DataCivil
     public let estado: EstadoConta
+    /// 0.2.90. A última versão dos Termos e da Política que a conta aceitou (`Usuario.termos_versao`). Ausente, o app
+    /// trata como não aceita.
+    public let termosVersao: String?
 
-    public init(id: UUID, perfil: PerfilConta, nome: String, telefone: String, email: String, nascimento: DataCivil, estado: EstadoConta) {
+    public init(id: UUID, perfil: PerfilConta, nome: String, telefone: String, email: String, nascimento: DataCivil,
+                estado: EstadoConta, termosVersao: String? = nil) {
         self.id = id
         self.perfil = perfil
         self.nome = nome
@@ -49,9 +53,43 @@ public struct Conta: Codable, Hashable, Identifiable, Sendable {
         self.email = email
         self.nascimento = nascimento
         self.estado = estado
+        self.termosVersao = termosVersao
     }
 
     public var sessao: SessaoUsuario { SessaoUsuario(usuarioID: id, perfil: perfil) }
+
+    /// A mesma conta com outra versão de termos aceita.
+    public func comTermosVersao(_ versao: String?) -> Conta {
+        Conta(id: id, perfil: perfil, nome: nome, telefone: telefone, email: email, nascimento: nascimento,
+              estado: estado, termosVersao: versao)
+    }
+}
+
+/// As versões dos Termos e da Política (datas `AAAA-MM-DD`, que se comparam como texto, contrato 0.2.90).
+public enum VersaoDosTermos {
+    /// A que a tela de aceite da busca exibe e manda em `aceitar_termos` (Termos 1.2 e Política 1.3, 16/11/2026, contrato
+    /// 0.2.91). O cadastro tem a sua própria constante, que se acerta à parte.
+    public static let vigente = "2026-11-16"
+    /// A mais antiga com que o servidor deixa buscar profissionais (Termos 1.1): quem já aceitou `2026-11-13` ou uma
+    /// mais nova não precisa aceitar de novo.
+    public static let minimaParaBuscar = "2026-11-13"
+
+    /// `true` se a versão aceita vale para a busca. Sem versão (campo ausente), não aceitou.
+    public static func atendeABusca(_ aceita: String?) -> Bool {
+        guard let aceita else { return false }
+        return aceita >= minimaParaBuscar
+    }
+}
+
+/// O aceite em vigor que `aceitar_termos` devolve (0.2.90).
+public struct AceiteDeTermos: Equatable, Sendable {
+    public let termosVersao: String
+    public let aceitoEm: Date
+
+    public init(termosVersao: String, aceitoEm: Date) {
+        self.termosVersao = termosVersao
+        self.aceitoEm = aceitoEm
+    }
 }
 
 public enum FormatoDeTrabalho: String, Codable, Sendable {
@@ -416,6 +454,9 @@ public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Send
     public let idiomas: [Idioma]
     public let regioes: [RegiaoAdministrativa]
     public let atendeTodoDF: Bool
+    /// As preferências de chamada salvas no servidor (0.2.56; `aceita_chamadas` e as pendências
+    /// desde a 0.2.88). Nulo quando o servidor não as mandou: valem os padrões.
+    public let preferenciaChamadas: PreferenciaChamadas?
 
     public init(
         perfil: PerfilProfissional,
@@ -425,7 +466,8 @@ public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Send
         cursos: [String] = [],
         idiomas: [Idioma] = [],
         regioes: [RegiaoAdministrativa] = [],
-        atendeTodoDF: Bool = false
+        atendeTodoDF: Bool = false,
+        preferenciaChamadas: PreferenciaChamadas? = nil
     ) {
         self.perfil = perfil
         self.apresentacao = apresentacao
@@ -435,6 +477,7 @@ public struct PerfilProfissionalDetalhado: Codable, Hashable, Identifiable, Send
         self.idiomas = idiomas
         self.regioes = regioes
         self.atendeTodoDF = atendeTodoDF
+        self.preferenciaChamadas = preferenciaChamadas
     }
 }
 
@@ -1759,6 +1802,18 @@ public struct ChamadaResumo: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
+/// Uma página de `minhas_chamadas`; `proximoCursor` é `nil` na última. 0.2.95: a busca segue o cursor até achar a
+/// chamada aberta da vaga do `409 trabalho_ja_aberto`.
+public struct PaginaChamadas: Equatable, Sendable {
+    public let itens: [ChamadaResumo]
+    public let proximoCursor: String?
+
+    public init(itens: [ChamadaResumo], proximoCursor: String? = nil) {
+        self.itens = itens
+        self.proximoCursor = proximoCursor
+    }
+}
+
 public struct ChamadaDetalhe: Codable, Equatable, Sendable, Identifiable {
     public let id: UUID
     public let vagaID: UUID
@@ -1831,7 +1886,7 @@ public enum QuemPodeChamar: String, Codable, CaseIterable, Sendable {
     case soCnpj = "so_cnpj"
 }
 
-public struct PreferenciaChamadas: Codable, Equatable, Sendable {
+public struct PreferenciaChamadas: Codable, Hashable, Sendable {
     public let aceitaDeQuemJaTrabalhou: Bool
     public let pausadoAte: Date?
     public let antecedenciaMinimaH: Int
@@ -1954,10 +2009,16 @@ public struct CartaoProfissional: Hashable, Identifiable, Sendable {
     public let reputacao: Reputacao
     /// O selo "disponível nesse horário". `nil` quando a busca não tem horário.
     public let disponivelNoHorario: Bool?
+    /// 0.2.90 (CD-B07). Link de leitura de 1 h da foto aprovada, como em `PerfilPublico.fotoURL`. Ausente com a chave
+    /// `foto_de_perfil` desligada, sem foto aprovada, ou com o titular suspenso ou com a conta encerrada. Nunca filtra
+    /// nem ordena a lista (RN39). Se a foto não carregar (404 ou qualquer erro), a tela mostra a inicial.
+    public let fotoURL: URL?
+    /// 0.2.90. Identificador opaco da foto (o que `denunciar.midia_id` recebe), com as mesmas condições.
+    public let fotoID: UUID?
 
     public init(id: UUID, nome: String, servico: ServicoNoPerfil, regioes: [RegiaoAdministrativa] = [],
                 atendeTodoDF: Bool = false, distanciaFaixa: FaixaDistancia, reputacao: Reputacao,
-                disponivelNoHorario: Bool? = nil) {
+                disponivelNoHorario: Bool? = nil, fotoURL: URL? = nil, fotoID: UUID? = nil) {
         self.id = id
         self.nome = nome
         self.servico = servico
@@ -1966,6 +2027,8 @@ public struct CartaoProfissional: Hashable, Identifiable, Sendable {
         self.distanciaFaixa = distanciaFaixa
         self.reputacao = reputacao
         self.disponivelNoHorario = disponivelNoHorario
+        self.fotoURL = fotoURL
+        self.fotoID = fotoID
     }
 }
 

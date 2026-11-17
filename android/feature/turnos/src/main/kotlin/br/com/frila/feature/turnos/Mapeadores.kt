@@ -1,9 +1,11 @@
 package br.com.frila.feature.turnos
 
 import br.com.frila.core.dominio.modelo.ComprovanteCheckin
+import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.TurnoDto
 import java.time.Instant
 import java.time.ZoneId
@@ -46,7 +48,7 @@ fun mapearTipoVerificacaoCheckin(
 
 fun TurnoDto.paraItem(): ItemTurno {
     val comprovanteMapeado: ComprovanteCheckin? = checkinEm?.let { feitoEm ->
-        val instanteCheckin = runCatching { Instant.parse(feitoEm) }.getOrDefault(Instant.now())
+        val instanteCheckin = runCatching { instanteDoServidor(feitoEm) }.getOrDefault(Instant.now())
         val tipoVerificacao = mapearTipoVerificacaoCheckin(
             verificacao = verificacao,
             checkinTipo = checkinTipo,
@@ -62,15 +64,18 @@ fun TurnoDto.paraItem(): ItemTurno {
     return ItemTurno(
         turnoId = id,
         posicaoId = posicaoId,
-        inicio = Instant.parse(vaga.inicioEm),
-        fim = runCatching { Instant.parse(vaga.fimEm) }.getOrNull(),
+        inicio = instanteDoServidor(vaga.inicioEm),
+        fim = runCatching { instanteDoServidor(vaga.fimEm) }.getOrNull(),
         funcaoNome = vaga.funcao,
         estabelecimentoNome = contraparte.nome,
-        dataHorarioFormatado = FORMATO_DATA_HORARIO.withZone(FUSO_BRASILIA).format(Instant.parse(vaga.inicioEm)),
+        dataHorarioFormatado = FORMATO_DATA_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.inicioEm)),
         valorFormatado = Dinheiro(valorAcordadoCentavos).formatado(),
         estado = estado ?: "confirmada",
         podeAvaliar = podeAvaliar,
         avaliacaoResposta = avaliacao?.resposta,
         comprovante = comprovanteMapeado,
+        pontoDaVaga = vaga.ponto?.let { Coordenada(latitude = it.latitude, longitude = it.longitude) },
+        contraparteId = contraparte.id,
+        checkoutEm = checkoutEm?.let { runCatching { instanteDoServidor(it) }.getOrNull() },
     )
 }

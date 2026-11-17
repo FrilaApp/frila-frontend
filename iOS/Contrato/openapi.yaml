@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.89
+  version: 0.2.95
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -84,11 +84,13 @@ info:
     | 422 | `campo_obrigatorio` | Falta campo exigido; `details` diz qual (na vaga, RN02) |
     | 422 | `cursor_invalido` | Cursor de outra lista, vencido ou adulterado (0.2.56) |
     | 409 | `chamada_ja_aberta` | O par estabelecimento e profissional já tem chamada aberta (0.2.55, RN34) |
+    | 409 | `trabalho_ja_aberto` | `chamar_profissional`: a casa já tem vaga direta com chamada aberta para o mesmo trabalho (mesma função, mesmo início e mesmo fim). `details` traz o `vaga_id` dela, e o app repete a chamada com esse `vaga_id` (0.2.95) |
     | 409 | `chamada_indisponivel` | Responder ou cancelar chamada que não está aberta; `details`: `aceita`, `recusada`, `expirada`, `cancelada` ou `encerrada` (0.2.55) |
     | 409 | `recorrencia_nao_confirmada` | 3ª chamada da mesma casa pessoa física ao mesmo profissional em 7 dias sem `confirmo_recorrencia: true` (0.2.55, RN45) |
     | 422 | `profissional_indisponivel` | A chamada fura preferência ou limite do profissional; `details`: `nao_aceita_chamadas`, `antecedencia_insuficiente`, `agenda_cheia`, `pausado`, `par_em_pausa` ou `par_bloqueado_temporariamente` (0.2.55, RN30, RN33, RN34; os três últimos listados na 0.2.67). `pausa_por_recusas` foi listado na 0.2.55, mas o servidor não o devolve |
     | 422 | `limite_de_chamadas` | Limite do estabelecimento; `details`: `por_vaga`, `abertas`, `por_dia` ou `conta_nova` (0.2.55, RN34) |
     | 403 | `sem_permissao` + `recurso_desligado` | O recurso está desligado no servidor (`ConfiguracaoDoApp.recursos`, 0.2.54, RN46) |
+    | 403 | `sem_permissao` + `termos_pendentes` | A busca de profissionais (e o caminho da busca em `chamar_profissional`) exige os Termos 1.1 ou mais novos aceitos; o app pede o aceite em `aceitar_termos` (0.2.90) |
     | 409 | `midia_indisponivel` | `pedir_nova_analise_midia` em mídia que não está `recusada` nem `nao_publicada`; `details: estado_invalido` ou `expurgada` (0.2.54) |
     | 422 | `midia_invalida` | Mídia recusada na entrada; `details`: `formato`, `tamanho`, `metadados` (tipo pelo cabeçalho ou EXIF presente), `limite_atingido` ou `tipo_indisponivel` (0.2.54) |
     | 422 | `funcao_nao_marcada` | `definir_servicos` com função que o profissional não marcou no perfil (0.2.53, RN27) |
@@ -114,6 +116,85 @@ info:
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.95, de 16/11/2026.** Uma casa não abre duas vagas diretas para o mesmo trabalho
+    (frila-backend#520, achado da revisão do app na bateria da busca). Adição compatível: um código
+    de erro novo em `chamar_profissional` e uma frase em `publicar_a_partir_da_chamada`. Nenhum campo,
+    operação ou resposta de sucesso muda. Os números 0.2.92 a 0.2.94 foram pulados: os PRs abertos
+    #256 a #258 sobem para 0.2.96 ou mais ao entrar depois desta (a CI recusa versão menor).
+    - **O problema:** pela busca, a 1ª chamada sem `vaga_id` cria a vaga direta, e a 2ª e a 3ª usam
+      o `vaga_id` dela. O servidor não impedia outra chamada sem `vaga_id` para o mesmo trabalho:
+      nascia uma segunda vaga direta, e duas pessoas podiam aceitar o que a casa via como um
+      trabalho só. A `chave` só cobre o reenvio da mesma chamada.
+    - **A decisão: recusar, e não reaproveitar.** A chamada recebe `409 trabalho_ja_aberto`, com o
+      `vaga_id` do trabalho aberto em `details`, e o app a repete com esse `vaga_id`. A 2ª chamada
+      vai sempre com os termos da vaga aberta; se o valor ou os inclusos digitados forem
+      diferentes, o app mostra os da vaga e pede a confirmação da casa antes de repetir. Reaproveitar
+      a vaga em silêncio foi descartado por dois motivos:
+      1. a chamada sem `vaga_id` traz os próprios termos (valor, local, inclusos). Reaproveitar
+         jogaria esses termos fora sem a casa saber, ou mudaria os da vaga com chamada aberta, o
+         que a CD-C04 proíbe. Com a recusa, a diferença aparece na tela;
+      2. reaproveitar mudaria o que o sucesso quer dizer numa operação que já existe (chamada sem
+         `vaga_id` deixaria de criar vaga). A recusa é só um código a mais.
+    - **Mesmo trabalho:** a mesma casa, a mesma função, o mesmo início e o mesmo fim, comparados
+      **até o minuto** (os apps mandam os segundos do relógio). O valor, o local, a região e os
+      inclusos não entram: são termos do trabalho, e não o que o identifica.
+    - **Trabalho aberto:** a vaga direta `publicada`, com início no futuro, posição livre e pelo
+      menos uma chamada `aberta` e ainda no prazo. Sem chamada aberta, ninguém pode aceitar, e a casa pode chamar de
+      novo com outros termos (CD-C04, CD-C10): aí a chamada sem `vaga_id` cria vaga nova, como antes.
+    - **Ordem, corrida e `chave`:** a recusa sai logo depois de `409 chamada_ja_aberta`, antes de
+      qualquer conferência sobre o profissional, e não revela nada dele. Duas chamadas ao mesmo
+      tempo para o mesmo trabalho, a profissionais diferentes: uma cria a vaga, a outra recebe a
+      recusa com o `vaga_id` criado.
+      Reenviar a mesma `chave` continua devolvendo a mesma chamada. O texto completo está em
+      `chamar_profissional`.
+    - **App que não conhece o código:** o iOS 1.2.0 (TestFlight) mostra o erro genérico da tela da
+      chamada ("Não foi possível concluir a chamada. Verifique sua conexão e tente novamente.") e
+      segue. O Android e as telas da busca do iOS tratam código desconhecido como resultado incerto
+      e travam a folha ou a busca até a pessoa fechar a tela. Por isso os dois apps têm de tratar
+      `trabalho_ja_aberto` como recusa definitiva e repetir com o `vaga_id` no mesmo ciclo, antes de
+      a regra chegar ao ambiente deles, e a versão que for à loja tem de conhecer o código. O iOS 1.2.0
+      nunca manda `vaga_id`, então só vê a recusa ao chamar outra pessoa para a mesma função e o
+      mesmo horário (até o minuto) **enquanto** a primeira chamada está aberta. Respondida, expirada
+      ou cancelada a primeira, a chamada passa. O caminho em sequência (um recusou, chama outro) não
+      muda. Limite que fica: quem não mexe no horário manda "agora + 24 h", que muda a cada
+      abertura da folha; nenhuma regra de igualdade pega isso, e quem segura é o app.
+    - **`publicar_a_partir_da_chamada`:** ao converter uma vaga direta, encerra também as outras
+      vagas diretas da casa para o mesmo trabalho (até o minuto) que ainda estão `publicada`, com ou
+      sem chamada aberta, e as chamadas abertas delas, com o mesmo aviso. A vaga `preenchida` não é
+      tocada (é a outra pessoa do mesmo horário, já confirmada). Assim "Publicar para todos" numa vaga antiga, sem chamada aberta, não deixa uma vaga
+      normal despachada ao lado de uma chamada aberta em outra vaga direta (CD-C15).
+    - **Fica para outra versão:** não há campo para a casa dizer que quer duas pessoas da mesma
+      função no mesmo horário por chamada direta (hoje: um trabalho de cada vez, ou vaga normal com
+      duas posições), e uma chamada direta nova ao lado de uma vaga normal aberta para o mesmo
+      horário não é recusada.
+
+    **Versão 0.2.91, de 16/11/2026.** Só descrição: a versão `2026-11-16` (Termos de Uso 1.2 e Política
+    de Privacidade 1.3, no ar em frilabr.com desde 16/11/2026 às 17:48) entra na lista de versões
+    publicadas. Nenhum campo, operação ou código muda.
+    - **O que o app manda:** a versão que a tela mostra, hoje `2026-11-16`, tanto em `aceitar_termos`
+      quanto em `criar_conta.termos_versao`. Assim o aceite aponta para o texto que está na página.
+    - **O que a busca exige não muda:** `2026-11-13` (Termos 1.1) ou mais nova. A 1.2 não muda o que
+      foi aceito, e quem já aceitou a `2026-11-13` não precisa aceitar de novo.
+
+    **Versão 0.2.90, de 16/11/2026.** A busca de profissionais exige os Termos 1.1 aceitos (decisão do
+    Cauê, pedido 2026-11-16-12, item 2; parecer do Juiz I6 no P-026J). Adição compatível: uma
+    operação nova, um campo opcional em `Usuario`, dois em `CartaoProfissional` e um `details` novo em
+    `403 sem_permissao`.
+    - **Por quê:** quem tem conta de antes de 13/11/2026 e não aceitou os Termos 1.1 no app não está
+      preso à regra de uso dos dados do profissional (Termos, seção 10.1), e a busca abre o perfil de
+      quem ligou "Aceito chamadas diretas" a qualquer contratante.
+    - **`buscar_profissionais`** responde `403 sem_permissao` (`termos_pendentes`) ao contratante cuja
+      última versão aceita é anterior a `2026-11-13`. O app pede o aceite e repete a busca.
+    - **Pela busca**, sem o aceite: `chamar_profissional` responde a mesma recusa quando o vínculo de
+      trabalho falta, e `perfil_publico` não conta a busca como vínculo de leitura.
+    - **`POST /rpc/aceitar_termos`** (nova): registra o aceite de uma versão dos Termos e da Política
+      por quem já tem conta, com o instante carimbado pelo servidor.
+    - **`Usuario.termos_versao`** (opcional, em `minha_conta`): a última versão aceita, para o app
+      saber se precisa pedir o aceite.
+    - **Foto na busca** (decisão do Cauê, pedido 2026-11-16-13, CD-B07): `CartaoProfissional` ganha
+      `foto_url` e `foto_id` opcionais (foto aprovada, se houver), e o vínculo de leitura pela busca
+      passa a abrir também a foto em `perfil_publico`. A foto nunca filtra nem ordena (RN39).
 
     **Versão 0.2.89, de 16/11/2026.** Só descrição: a regra do nome do profissional fica fechada
     para todo leitor (pedido da Forja, B-027 PR 2, parecer do Lince Opus). Nenhum campo, operação ou
@@ -2083,8 +2164,10 @@ paths:
                     Guardar só um booleano não responde o que a pessoa aceitou, que é o que a
                     LGPD e a diretriz da App Store perguntam. **Não há campo de data**: o
                     instante é carimbado pelo servidor, porque data de aceite enviada pelo
-                    cliente é forjável e não vale como registro de consentimento.
-                  example: '2026-09-22'
+                    cliente é forjável e não vale como registro de consentimento. Desde a
+                    0.2.91, o app manda a versão publicada que a tela mostra, hoje `2026-11-16`
+                    (Termos 1.2 e Política 1.3), a mesma de `aceitar_termos`.
+                  example: '2026-11-16'
                 sinal_idade:
                   type: string
                   enum: [dezoito_ou_mais, recusou, indisponivel]
@@ -2135,6 +2218,61 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         '404':
           $ref: '#/components/responses/NaoEncontrado'
+
+  /rpc/aceitar_termos:
+    post:
+      tags: [Cadastro e perfil]
+      operationId: aceitarTermos
+      summary: Aceitar uma versão nova dos Termos e da Política
+      description: |
+        0.2.90. Para quem já tem conta aceitar uma versão dos Termos de Uso e da Política de
+        Privacidade que a tela exibiu, como em `criar_conta.termos_versao`. O servidor carimba o
+        instante (data enviada pelo cliente não vale como registro) e guarda cada aceite, com a
+        versão e o instante; o mais novo é o que vale e volta em `Usuario.termos_versao`. Repetir a
+        mesma versão não cria outro registro e devolve o aceite que já existe. Só vale uma versão
+        **publicada**: o servidor mantém a lista (hoje, `2026-11-13` e `2026-11-16`, 0.2.91). O app
+        manda a versão que a tela mostra, hoje `2026-11-16`. Versão vazia,
+        `422 campo_obrigatorio` (`termos_versao`). Versão fora do formato `AAAA-MM-DD`, fora da lista
+        de publicadas ou anterior à que a conta já aceitou é `422 campo_invalido` (`termos_versao`):
+        o aceite não volta atrás. Sessão sem conta (antes de `criar_conta`) é `404 nao_encontrado`,
+        como em `minha_conta`.
+
+        O primeiro uso é a busca de profissionais (0.2.90): o contratante que recebe
+        `403 sem_permissao` (`termos_pendentes`) vê os Termos, aceita por aqui e repete a busca.
+        Os registros de aceite seguem a retenção do aceite do cadastro.
+      x-requisitos: [RF01, RF25]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [termos_versao]
+              properties:
+                termos_versao:
+                  type: string
+                  pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                  description: Versão publicada que a tela exibiu, no formato `AAAA-MM-DD`.
+                  example: '2026-11-16'
+      responses:
+        '200':
+          description: Aceite em vigor.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [termos_versao, aceito_em]
+                properties:
+                  termos_versao:
+                    type: string
+                  aceito_em:
+                    $ref: '#/components/schemas/Instante'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
 
   /rpc/criar_perfil_profissional:
     post:
@@ -3978,6 +4116,14 @@ paths:
         `403 sem_permissao` (`conta_suspensa`, RN13). Com `recursos.busca_profissionais` desligado:
         `403 sem_permissao` (`recurso_desligado`, RN46).
 
+        **Termos 1.1 aceitos (0.2.90):** quem busca tem de ter aceito a versão `2026-11-13` ou mais
+        nova dos Termos (`Usuario.termos_versao`; as versões são datas `AAAA-MM-DD` e se comparam
+        como data, ou como texto em `collate "C"` depois de conferir o formato; valor gravado fora do
+        formato conta como não aceito). Sem isso, `403 sem_permissao` (`termos_pendentes`), depois
+        das três recusas acima e antes da validação dos filtros (`422`); essa recusa não gasta o
+        limite de buscas (`429`). O app mostra os Termos, chama `aceitar_termos` e repete a busca. O motivo é a seção
+        10.1 dos Termos (uso dos dados do profissional), que só vale para quem a aceitou.
+
         **Filtros (CD-B02, reduzidos aos três do fluxo aprovado pelo Cauê em 16/11/2026):**
         `funcao_id` (obrigatório), `regiao_id` (padrão: a região do estabelecimento, achada pelo
         `Estabelecimento.regiao_administrativa` igual ao `RegiaoAdministrativa.nome`; sem casamento,
@@ -4092,7 +4238,8 @@ paths:
         '403':
           description: |
             `sem_permissao`: `recurso_desligado` quando `recursos.busca_profissionais` está
-            desligado; `conta_suspensa`; ou quem busca não é membro do estabelecimento.
+            desligado; `conta_suspensa`; quem busca não é membro do estabelecimento; ou
+            `termos_pendentes` (0.2.90), quando quem busca não aceitou os Termos 1.1 ou mais novos.
           content:
             application/json:
               schema:
@@ -4130,6 +4277,14 @@ paths:
         `vaga_id`, a função e a região são as da vaga direta, que guarda o `regiao_id` com que nasceu
         (a 2ª e a 3ª chamada usam o mesmo id da 1ª).
 
+        **Termos (0.2.90):** com `recursos.busca_profissionais` ligado e quem chama sem os Termos 1.1
+        ou mais novos aceitos (como em `buscar_profissionais`), a busca não conta como caminho. Sem
+        turno cumprido com presença verificada nem equipe de confiança com o profissional (os fatos
+        que a casa já conhece, e não a preferência dele), a resposta é `403 sem_permissao`
+        (`termos_pendentes`), depois das recusas de permissão e do bloqueio (`404`) e antes de
+        qualquer conferência sobre o profissional. Com turno ou equipe, vale só o caminho do vínculo,
+        com as recusas de sempre. Com a busca desligada, `termos_pendentes` nunca sai.
+
         **Prazo:** o início tem de estar a pelo menos o maior entre 2 h e a antecedência mínima do
         profissional (`422 profissional_indisponivel`, `antecedencia_insuficiente`). O servidor calcula
         `expira_em` = menor entre envio + 12 h e início − 1 h; entre 22 h e 7 h (America/Sao_Paulo), o
@@ -4145,6 +4300,81 @@ paths:
         no profissional (`agenda_cheia`); por estabelecimento, somando os membros, 3 por trabalho, 10
         abertas e 20 por dia civil, ou 3 abertas e 5 em 7 dias sem turno cumprido
         (`422 limite_de_chamadas`). Cancelar não devolve cota de envio.
+
+        **Um trabalho, uma vaga direta (0.2.95).** A casa não abre uma segunda vaga direta para um
+        trabalho que já tem chamada aberta. O servidor recusa, em vez de reaproveitar a vaga, para
+        os termos nunca mudarem sem a casa ver (CD-C04).
+        - **Mesmo trabalho:** o mesmo `estabelecimento_id`, o mesmo `funcao_id`, o mesmo `inicio_em`
+          e o mesmo `fim_em`, comparados **truncados ao minuto** (os apps mandam os segundos do
+          relógio; o corte é só no servidor e não muda o que se grava). Com `vaga_id` de vaga direta da casa, valem
+          a função e o horário dessa vaga. O valor, o local, o ponto, a região
+          (`regiao_administrativa` e `regiao_id`), os inclusos, o responsável e o recado **não**
+          entram, por três motivos:
+          - são os termos do trabalho, e não o que o identifica. Se o valor entrasse, bastaria mudar
+            o valor para abrir a segunda vaga, e duas pessoas aceitariam o mesmo trabalho;
+          - `local` é texto livre e `ponto` é coordenada: uma letra ou um metro de diferença
+            passaria por outro trabalho;
+          - `regiao_id` é opcional, e só o caminho da busca o manda.
+        - **Trabalho aberto:** a vaga da casa com `origem = chamada_direta`, `publicada`, com início
+          no futuro, com a posição livre e com pelo menos uma chamada `aberta` e ainda no prazo
+          (`agora < expira_em`, pelo relógio do servidor, mesmo antes de a rotina de expiração
+          arrumar o estado). Vaga preenchida,
+          cancelada ou encerrada não conta. Vaga direta sem chamada aberta (todas recusadas,
+          expiradas ou canceladas, ou posição reaberta) também não: ninguém pode aceitá-la, e a
+          casa pode chamar de novo com outros termos (CD-C04, CD-C10). Nesse caso a chamada sem
+          `vaga_id` cria vaga nova, como antes. Se houver mais de um trabalho aberto igual (vagas
+          criadas antes desta versão), vale o da vaga criada primeiro.
+        - **A recusa:** havendo trabalho aberto, a chamada só entra nele. A chamada sem `vaga_id`
+          para o mesmo trabalho, ou com o `vaga_id` de outra vaga direta do mesmo trabalho, recebe
+          `409 trabalho_ja_aberto`, com o `vaga_id` do trabalho aberto em `details` (o uuid, em
+          texto). Nada é criado e nenhuma cota é gasta. Com `vaga_id` de vaga direta já preenchida
+          ou encerrada e outra vaga do mesmo trabalho aberta, vale `trabalho_ja_aberto` (ela vem
+          antes de `409 vaga_encerrada`).
+        - **O que o app faz:** repete a chamada com esse `vaga_id`, sem os campos do trabalho; pode
+          usar a mesma `chave`, que a recusa não consome. **A 2ª chamada vai sempre com os termos da
+          vaga que já existe** (valor, inclusos, local e quem recebe), e os do corpo recusado são
+          descartados: é o que o profissional vê e aceita. Por isso, quando o valor ou os inclusos
+          que a pessoa digitou forem diferentes dos da vaga, o app **não repete sozinho**: mostra os
+          termos da vaga (por exemplo, "Esta chamada vai com os termos da vaga já aberta: R$ …, …";
+          o texto da tela é do design) e só repete com a confirmação da casa. Iguais, pode repetir direto. A casa os lê pelas próprias chamadas, e não por `detalhe_vaga`
+          (que é leitura de profissional): `minhas_chamadas` com `estado=aberta` traz, no item com
+          esse `vaga_id`, a função, o início, o fim e o valor, e `detalhe_chamada` traz os inclusos e
+          a região. Em geral o item está na primeira página; o app segue o cursor e, se não achar o
+          item, **não repete sozinho**. `details` continua sendo só o `vaga_id` (texto),
+          porque `Erro.details` é `string`. Para mudar os termos, a casa cancela as
+          chamadas abertas do trabalho (`cancelar_chamada`) e chama de novo.
+        - **Ordem:** a recusa sai depois das recusas de permissão (`401`, `403`), do bloqueio
+          (`404`), de `termos_pendentes` e de `409 chamada_ja_aberta`. Sai antes de qualquer
+          conferência sobre o profissional (as recusas genéricas, as pausas, o prazo e a agenda) e
+          dos limites da casa. Entre as validações de campo, além dos três obrigatórios do topo
+          (`chave`, `profissional_id` e `estabelecimento_id`), só a do `regiao_id`
+          (`422 campo_invalido`) vem antes dela; as dos outros campos vêm depois. Só é conferida quando a função
+          e o horário são conhecidos: `funcao_id`, `inicio_em` e `fim_em` no corpo, ou `vaga_id` de
+          vaga direta da casa. Sem isso, seguem as recusas de sempre (`422 campo_obrigatorio`,
+          `404`). Ela depende só das vagas e das chamadas da própria casa: é a mesma para qualquer
+          profissional que passe pelo bloqueio, e não revela nada dele.
+        - **Corrida:** a conferência e a criação da vaga acontecem sob a mesma trava, por casa e
+          por trabalho (o servidor pode usar a trava da casa inteira, mais larga, que já serializa
+          as chamadas pelos limites da RN34). Duas chamadas sem `vaga_id` ao mesmo tempo para o
+          mesmo trabalho, com chaves diferentes e a profissionais diferentes (ao mesmo profissional,
+          a segunda recebe `409 chamada_ja_aberta`, que vem antes): uma cria a vaga e a chamada; a outra espera e
+          recebe `409 trabalho_ja_aberto` com o `vaga_id` que a primeira criou. Nunca nascem duas
+          vagas, e nenhuma das duas recebe erro de concorrência. Se a primeira for recusada por
+          outra regra, não há trabalho aberto, e a segunda segue normalmente.
+        - **`chave`:** é conferida antes. Reenviar a chamada que criou o trabalho devolve a mesma
+          chamada, e nunca `trabalho_ja_aberto`. Vale também para dois envios simultâneos da mesma
+          `chave`: um cria, e o outro devolve a mesma chamada.
+        - **Duas pessoas no mesmo horário:** a vaga direta tem uma posição. A casa que precisa de
+          duas pessoas da mesma função no mesmo horário preenche um trabalho de cada vez (com o
+          primeiro preenchido, a chamada seguinte sem `vaga_id` cria outra vaga) ou publica uma
+          vaga normal com duas posições (`publicar_vaga`).
+        - **App que não conhece o código:** o iOS 1.2.0 mostra o texto genérico da tela e segue. O
+          Android e as telas da busca do iOS tratam código desconhecido como resultado incerto e
+          travam a folha ou a busca: por isso os dois apps têm de tratar `trabalho_ja_aberto` como
+          recusa definitiva e repetir com o `vaga_id`, antes de a regra chegar ao ambiente deles. O iOS
+          1.2.0 nunca manda `vaga_id`: nele, a recusa só aparece ao chamar outra pessoa para a mesma
+          função e o mesmo horário (até o minuto) enquanto a primeira chamada está aberta, e some
+          quando ela é respondida, expira ou é cancelada.
 
         **Recorrência (J7, RN45):** se o estabelecimento é pessoa física (CPF) e esta seria a 3ª
         chamada ao mesmo profissional em 7 dias corridos, sem `confirmo_recorrencia: true` a resposta é
@@ -4188,7 +4418,10 @@ paths:
                     Para chamar mais alguém para um trabalho já criado. Exclui os campos abaixo. Tem
                     de ser vaga do mesmo `estabelecimento_id`, com `origem = chamada_direta`, uma
                     posição e ainda aberta; vaga de outra casa é `404`, e vaga normal, preenchida ou
-                    encerrada é `409 vaga_encerrada`.
+                    encerrada é `409 vaga_encerrada`. Se outra vaga direta da casa, para o mesmo
+                    trabalho, tem chamada aberta, é `409 trabalho_ja_aberto` com o `vaga_id` dela
+                    em `details` (0.2.95). Sem `vaga_id`, a mesma recusa vale quando o trabalho do
+                    corpo já está aberto.
                   $ref: '#/components/schemas/Uuid'
                 funcao_id:
                   $ref: '#/components/schemas/Uuid'
@@ -4243,7 +4476,9 @@ paths:
         '403':
           description: |
             `sem_permissao`: `recurso_desligado` quando `recursos.chamada_direta` está desligado;
-            `conta_suspensa`; ou quem chama não é membro do estabelecimento.
+            `conta_suspensa`; quem chama não é membro do estabelecimento; ou `termos_pendentes`
+            (0.2.90), com `busca_profissionais` ligado, sem vínculo de trabalho e sem os Termos 1.1
+            aceitos.
           content:
             application/json:
               schema:
@@ -4465,6 +4700,14 @@ paths:
         `id`, `vaga_origem_id` apontando para a direta), despachada a partir desse momento como
         qualquer vaga, com os mesmos termos. A direta e as chamadas abertas dela vão a `encerrada`,
         com aviso aos chamados. Nunca há duas posições contratáveis para o mesmo trabalho.
+
+        0.2.95. Na mesma transação, e sob a mesma trava de `chamar_profissional`, as **outras** vagas
+        diretas da casa para o mesmo trabalho (mesma função, mesmo início e mesmo fim, até o minuto,
+        como em `chamar_profissional`) **que ainda estão `publicada`**, com ou sem chamada aberta, vão a
+        `encerrada`, e as chamadas abertas delas também, com o mesmo aviso. Vaga `preenchida` não é
+        tocada: é a outra pessoa do mesmo horário, já confirmada. Sem isso, "Publicar para todos" numa
+        vaga direta antiga, sem chamada aberta, deixaria uma vaga normal despachada ao lado de uma
+        chamada aberta noutra vaga direta do mesmo trabalho (CD-C15).
 
         Vale antes do início e, para posição reaberta por atraso, até `fim_em − 1 h`, a mesma janela de
         `reabrir_por_atraso`. Fora disso, ou com a direta já preenchida sem posição reaberta, ou
@@ -6108,6 +6351,12 @@ paths:
         ou esgotado, foto removida, vínculo perdido. Toda resposta vem com
         `Cache-Control: private, no-store`.
 
+        **Vínculo pela busca (0.2.90):** conta também o vínculo pela busca
+        (`PerfilPublico.apresentacao`). Ele vale com `recursos.busca_profissionais` ligado, o
+        profissional com `aceita_chamadas` ligado e quem lê com os Termos 1.1 ou mais novos aceitos,
+        tudo reconferido a cada `GET`. Desligada a opção ou a chave, o link deixa de abrir
+        (`404 nao_encontrado`).
+
         O token é portador: quem o tiver vê a miniatura até vencer, como acontecia com a URL
         assinada. Ele vai na query, e os registros de requisição do provedor podem guardá-lo.
       security: []
@@ -6406,6 +6655,13 @@ components:
                 code: codigo_bloqueado
                 message: codigo_bloqueado
                 details: temporario
+                hint: null
+            trabalho_ja_aberto:
+              summary: A casa já tem vaga direta com chamada aberta para o mesmo trabalho (0.2.95)
+              value:
+                code: trabalho_ja_aberto
+                message: trabalho_ja_aberto
+                details: 7c1f0c1e-5b0a-4a53-9d1e-2f6c8f0a4b11
                 hint: null
             verificacao_indisponivel:
               value:
@@ -6771,7 +7027,9 @@ components:
           description: Texto para log. Nunca exibir na tela.
         details:
           type: [string, 'null']
-          description: 'Motivo complementar estável, quando houver (por exemplo, `turno_sobreposto`).'
+          description: |
+            Motivo complementar estável, quando houver (por exemplo, `turno_sobreposto`). Em
+            `409 trabalho_ja_aberto` (0.2.95), é o `vaga_id` do trabalho aberto: um uuid em texto.
         hint:
           type: [string, 'null']
 
@@ -6819,6 +7077,12 @@ components:
           format: date
         estado:
           $ref: '#/components/schemas/EstadoConta'
+        termos_versao:
+          description: |
+            0.2.90. A última versão dos Termos e da Política que a conta aceitou (no cadastro ou em
+            `aceitar_termos`). Opcional nesta versão; ausente, o app trata como não aceita e, se
+            precisar, pede o aceite.
+          type: string
     JanelaDeDisponibilidade:
       type: object
       required: [dia_semana, hora_inicio, hora_fim]
@@ -7592,9 +7856,12 @@ components:
             confiança). Para qualquer outra conta, e para estabelecimento, são omitidos.
 
             0.2.88. Com `recursos.busca_profissionais` ligado, o profissional com `aceita_chamadas`
-            ligado também conta como vínculo de leitura para qualquer contratante, nestes campos. A
-            pausa não muda isso, para o perfil não revelar quando ele pausou. Não vale para
-            `foto_url` e `foto_id`.
+            ligado também conta como vínculo de leitura para qualquer contratante, nestes campos.
+            Desde a 0.2.90, só para contratante com os Termos 1.1 ou mais novos aceitos
+            (`buscar_profissionais`). A
+            pausa não muda isso, para o perfil não revelar quando ele pausou. Até a 0.2.89 não valia
+            para `foto_url` e `foto_id`; desde a 0.2.90 vale também para eles (decisão do Cauê de
+            mostrar a foto na busca, CD-B07).
           oneOf:
             - type: string
               maxLength: 600
@@ -7637,8 +7904,9 @@ components:
             estabelecimento, para profissional com candidatura, chamada ou turno com a casa. Sem
             vínculo, com `recursos.foto_de_perfil` desligado, sem foto aprovada, ou com o titular
             suspenso (RN13) ou com conta encerrada (RF25), o campo vem **ausente**, e os demais
-            campos do perfil respondem exatamente como antes da 0.2.54. Estar na busca não basta
-            para a foto (0.2.88).
+            campos do perfil respondem exatamente como antes da 0.2.54. Desde a 0.2.90, o vínculo
+            pela busca (`apresentacao`, acima) também abre a foto do profissional, com as mesmas
+            condições.
           type: string
           format: uri
         foto_id:
@@ -7658,8 +7926,9 @@ components:
       description: |
         0.2.88. Um resultado de `buscar_profissionais` (CD-B07): só o que ajuda a decidir quem
         chamar. Nunca telefone, e-mail, sobrenome completo, ponto base, grade ou data de nascimento.
-        A foto não vem no cartão: desde a 0.2.54, a foto aprovada só aparece para quem tem vínculo de
-        leitura, e nunca em busca ou lista. O perfil completo sai por `perfil_publico`.
+        Desde a 0.2.90, o cartão traz a foto aprovada, se houver (`foto_url` e `foto_id`, decisão do
+        Cauê, CD-B07). A foto nunca filtra nem ordena a lista (RN39). O perfil completo sai por
+        `perfil_publico`.
       properties:
         id:
           description: O `id` do `PerfilPublico`, o mesmo de `chamar_profissional.profissional_id`.
@@ -7684,6 +7953,16 @@ components:
         reputacao:
           description: Com denominador e turnos realizados (RN08); não ordena a lista (RN06).
           $ref: '#/components/schemas/Reputacao'
+        foto_url:
+          description: |
+            0.2.90. Link de leitura de 1 h da foto `aprovada` (miniatura de 320 px), pela `ler-midia`,
+            como `PerfilPublico.foto_url`. Vem **ausente** com `recursos.foto_de_perfil` desligado,
+            sem foto aprovada, ou com o titular suspenso (RN13) ou com conta encerrada (RF25).
+          type: string
+          format: uri
+        foto_id:
+          description: 0.2.90. Identificador opaco da foto, com as mesmas condições; é o que o app manda em `denunciar.midia_id`.
+          $ref: '#/components/schemas/Uuid'
         disponivel_no_horario:
           description: |
             O selo "disponível nesse horário": a grade semanal cobre o horário pedido inteiro. Só
