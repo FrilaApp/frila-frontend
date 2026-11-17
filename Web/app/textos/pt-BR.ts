@@ -2,7 +2,9 @@
  * Catálogo único de textos da web. Tela nenhuma escreve texto direto no JSX:
  * todo texto visível sai daqui.
  */
+import { contaDados } from "./conta-dados";
 import { contratante } from "./contratante";
+import { contratanteEquipe } from "./contratante-equipe";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
@@ -24,6 +26,10 @@ export const textos = {
   profissional,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
+  // Minha conta: exportar os dados e excluir a conta (arquivo próprio).
+  contaDados,
+  // Equipe de confiança do lado da casa (arquivo próprio).
+  contratanteEquipe,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
