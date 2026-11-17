@@ -95,3 +95,5 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+# C0-10: aprovado pelo O2 em 16/11 (versão exata no PR). Aplicado no :app só quando o google-services.json existe.
+google-services = { id = "com.google.gms.google-services", version = "4.4.2" }

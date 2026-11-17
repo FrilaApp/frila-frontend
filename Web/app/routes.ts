@@ -1,4 +1,4 @@
-import { type RouteConfig, index, route } from "@react-router/dev/routes";
+import { type RouteConfig, index, prefix, route } from "@react-router/dev/routes";
 
 export default [
   index("rotas/inicio.tsx"),
@@ -29,4 +29,6 @@ export default [
   route("preferencias", "rotas/profissional/preferencias.tsx"),
 
   // Lado do contratante
+  // Contratante (2C, Citrino): painel da casa e publicar vaga. Só se acrescenta neste bloco.
+  ...prefix("painel", [index("rotas/contratante/painel.tsx"), route("publicar", "rotas/contratante/publicar-vaga.tsx")]),
 ] satisfies RouteConfig;

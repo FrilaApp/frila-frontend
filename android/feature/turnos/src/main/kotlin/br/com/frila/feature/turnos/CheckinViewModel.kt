@@ -25,15 +25,16 @@ import kotlin.math.roundToInt
  * (nunca em segundo plano) e só a distância calculada no aparelho é enviada ao backend — a
  * coordenada em si nunca sai do app (RN22, minimização LGPD).
  *
- * RN06: a até 200 m, o backend confirma check-in `geolocalizado`/`verificado` na hora. Sem
- * localização (sem permissão, GPS impreciso, sem sinal) ou acima de 200 m, vira `manual`, com a
- * presença `pendente` até o contratante confirmar — nunca é tratado como erro: o profissional
- * sempre consegue registrar o toque.
+ * RN06, com a chave `checkin_por_codigo` desligada: a até 200 m, o backend confirma o check-in
+ * `geolocalizado`/`verificado` na hora. Com a chave ligada (global, contrato 0.2.78), o toque nunca
+ * verifica sozinho pelo GPS: fica `manual`, com a presença `pendente`, e a confirmação vem pelo
+ * código (`fazer_checkin` no `iOS/Contrato/openapi.yaml`). Sem localização (sem permissão, GPS
+ * impreciso, sem sinal) ou acima de 200 m, também vira `manual` pendente até o contratante
+ * confirmar. Nunca é tratado como erro: o profissional sempre consegue registrar o toque.
  *
- * `coordenadaDaVaga` nula (contrato de `/rpc/meus_turnos` hoje não traz a coordenada da vaga,
- * só `local`/`regiao_administrativa` em texto — MEDIDO em `iOS/Contrato/openapi.yaml`, schema
- * `VagaResumo`, linha 4455) degrada para o mesmo caminho de "sem localização": `distancia_m`
- * nulo, check-in manual pendente.
+ * `coordenadaDaVaga` é o ponto da vaga (`VagaResumo.ponto`, que `/rpc/meus_turnos` traz para o
+ * turno confirmado), repassado pela navegação desde o C0-7. Se vier nulo, o check-in segue o
+ * caminho "sem localização": `distancia_m` nulo, check-in manual pendente.
  *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel` sobre por que
  * testes injetam um escopo próprio em vez de depender de `viewModelScope`/`Dispatchers.Main`.
