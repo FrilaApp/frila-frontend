@@ -3,7 +3,8 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 import { escolherCandidato, lerCandidatos, candidatosParaATela } from "../../servidor/contratante/candidatos";
 import { escolherCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
 import { detalheDaVaga, lerPainel } from "../../servidor/contratante/painel";
-import { ehUuid } from "../../servidor/contratante/publicar-vaga";
+import { ehUuid, horarioEmUtc } from "../../servidor/contratante/publicar-vaga";
+import { cancelarVaga, republicarRestantes, republicarVaga } from "../../servidor/contratante/vagas";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
@@ -12,6 +13,7 @@ import { preencher } from "./comum";
 
 const t = textos.contratante.vaga;
 const tp = textos.contratante.painel;
+const ta = textos.contratante.acoes;
 
 export function meta() {
   return [{ title: t.tituloDaAba }, { name: "robots", content: "noindex" }];
@@ -45,20 +47,58 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     candidatos: candidatos?.estado === "ok" ? candidatosParaATela(candidatos.candidatos) : null,
     candidatosIndisponiveis: comCandidatos && candidatos?.estado !== "ok",
     escolhido: endereco.searchParams.get("escolhido") === "1",
+    cancelada: endereco.searchParams.get("cancelada") === "1",
+    // Uma chave por formulário de republicação: o reenvio devolve a mesma vaga nova.
+    chaves: { repetir: crypto.randomUUID(), restantes: crypto.randomUUID() },
   } as const;
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
-  const sessao = exigirSessao(context);
-  const formulario = await request.formData();
-  const candidatura = String(formulario.get("candidatura_id") ?? "");
-  const casaId = String(formulario.get("casa") ?? "");
-  if (!ehUuid(candidatura) || !ehUuid(casaId)) return { erro: t.erros.formularioVelho };
+type Onde = "escolher" | "cancelar" | "repetir" | "restantes";
+type Retorno = { erro: string; onde: Onde; chave?: string; motivo?: string };
 
-  const resultado = await escolherCandidato(apiDoUsuario(sessao.acesso), candidatura);
-  if (resultado.ok) throw redirect(`/painel/vagas/${params.vagaId}?casa=${casaId}&escolhido=1`);
-  if (resultado.motivo === "sem_sessao") throw redirect("/entrar");
-  return { erro: t.erros[resultado.motivo] };
+export async function action({ request, params, context }: Route.ActionArgs): Promise<Retorno> {
+  const sessao = exigirSessao(context);
+  const api = apiDoUsuario(sessao.acesso);
+  const formulario = await request.formData();
+  const campo = (nome: string) => String(formulario.get(nome) ?? "").trim();
+  const casaId = campo("casa");
+  const intencao = campo("intencao") as Onde;
+  const chave = campo("chave");
+  const vaga = params.vagaId;
+  const aqui = `/painel/vagas/${vaga}?casa=${casaId}`;
+  if (!ehUuid(casaId) || !ehUuid(vaga)) return { erro: ta.erros.formularioVelho, onde: intencao };
+
+  if (intencao === "cancelar") {
+    const motivo = campo("motivo");
+    if (motivo.length < 3) return { erro: ta.erros.motivo_curto, onde: "cancelar", motivo };
+    const cancelamento = await cancelarVaga(api, vaga, motivo);
+    if (cancelamento.ok) throw redirect(`${aqui}&cancelada=1`);
+    if (cancelamento.motivo === "sem_sessao") throw redirect("/entrar");
+    return { erro: ta.erros[cancelamento.motivo], onde: "cancelar", motivo };
+  }
+
+  if (intencao === "repetir" || intencao === "restantes") {
+    if (!ehUuid(chave)) return { erro: ta.erros.formularioVelho, onde: intencao };
+    let resultado;
+    if (intencao === "repetir") {
+      const horario = horarioEmUtc(campo("dia"), campo("inicio"), campo("fim"));
+      if (!horario) return { erro: ta.erros.dia, onde: "repetir", chave };
+      resultado = await republicarVaga(api, { vaga_id: vaga, ...horario, chave });
+    } else {
+      resultado = await republicarRestantes(api, vaga, chave);
+    }
+    if (resultado.ok) throw redirect(`/painel?casa=${casaId}&publicada=1`);
+    if (resultado.motivo === "sem_sessao") throw redirect("/entrar");
+    // A mesma chave volta para o formulário: o reenvio depois de uma queda não publica duas cópias.
+    return { erro: ta.erros[resultado.motivo], onde: intencao, chave };
+  }
+
+  const candidatura = campo("candidatura_id");
+  if (!ehUuid(candidatura)) return { erro: t.erros.formularioVelho, onde: "escolher" };
+  const escolha = await escolherCandidato(api, candidatura);
+  if (escolha.ok) throw redirect(`${aqui}&escolhido=1`);
+  if (escolha.motivo === "sem_sessao") throw redirect("/entrar");
+  return { erro: t.erros[escolha.motivo], onde: "escolher" };
 }
 
 const MENSAGEM = { sem_permissao: tp.semPermissao, indisponivel: tp.indisponivel, nao_encontrada: t.naoEncontrada } as const;
@@ -97,7 +137,8 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
       </header>
 
       {loaderData.escolhido ? <p role="status" className="font-semibold">{t.escolhido}</p> : null}
-      {actionData?.erro ? <p role="alert" className="font-semibold">{actionData.erro}</p> : null}
+      {loaderData.cancelada ? <p role="status" className="font-semibold">{ta.cancelada}</p> : null}
+      {actionData?.onde === "escolher" ? <p role="alert" className="font-semibold">{actionData.erro}</p> : null}
 
       <section className="flex flex-col gap-3" aria-labelledby="titulo-lugares">
         <h2 id="titulo-lugares" className="font-titulo text-xl font-bold">
@@ -142,6 +183,7 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
                 </p>
                 <p className="text-sm text-tinta-suave">{preencher(t.chegouEm, { quando: candidato.chegouEm })}</p>
                 <Form method="post">
+                  <input type="hidden" name="intencao" value="escolher" />
                   <input type="hidden" name="casa" value={casaId} />
                   <input type="hidden" name="candidatura_id" value={candidato.candidaturaId} />
                   <button type="submit" disabled={enviando} className="min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60">
@@ -153,6 +195,100 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
           </ol>
         </section>
       ) : null}
+      <Acoes loaderData={loaderData} actionData={actionData} enviando={enviando} />
     </main>
+  );
+}
+
+const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
+const classeDoBotaoLaranja = "min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60";
+const classeDoBotaoDeBorda = "min-h-12 w-full rounded-controle border-2 border-tinta px-4 text-lg font-bold disabled:opacity-60";
+
+type Dados = Extract<Route.ComponentProps["loaderData"], { estado: "ok" }>;
+
+function Erro({ actionData, onde }: { actionData: Retorno | undefined; onde: Onde }) {
+  return actionData?.onde === onde ? (
+    <p role="alert" className="font-semibold">
+      {actionData.erro}
+    </p>
+  ) : null;
+}
+
+function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; actionData: Retorno | undefined; enviando: boolean }) {
+  const { vaga, casaId, chaves } = loaderData;
+  const chaveDe = (onde: "repetir" | "restantes") => (actionData?.onde === onde && actionData.chave) || chaves[onde];
+  const podeCancelar = vaga.estado === "publicada" || vaga.estado === "preenchida";
+  return (
+    <>
+      {vaga.republicavelEmUrgencia > 0 ? (
+        <section className="flex flex-col gap-3" aria-labelledby="titulo-restantes">
+          <h2 id="titulo-restantes" className="font-titulo text-xl font-bold">
+            {ta.restantesTitulo}
+          </h2>
+          <p className="text-tinta-suave">{ta.restantesAjuda}</p>
+          <Form method="post">
+            <input type="hidden" name="intencao" value="restantes" />
+            <input type="hidden" name="casa" value={casaId} />
+            <input type="hidden" name="chave" value={chaveDe("restantes")} />
+            <button type="submit" disabled={enviando} className={classeDoBotaoLaranja}>
+              {preencher(ta.restantes, { n: vaga.republicavelEmUrgencia })}
+            </button>
+          </Form>
+          <Erro actionData={actionData} onde="restantes" />
+        </section>
+      ) : null}
+
+      <section className="flex flex-col gap-3" aria-labelledby="titulo-repetir">
+        <h2 id="titulo-repetir" className="font-titulo text-xl font-bold">
+          {ta.repetirTitulo}
+        </h2>
+        <p className="text-tinta-suave">{ta.repetirAjuda}</p>
+        <Form method="post" className="flex flex-col gap-3">
+          <input type="hidden" name="intencao" value="repetir" />
+          <input type="hidden" name="casa" value={casaId} />
+          <input type="hidden" name="chave" value={chaveDe("repetir")} />
+          <label className="flex flex-col gap-2 font-semibold">
+            {textos.contratante.publicar.dia}
+            <input name="dia" type="date" required className={classeDoCampo} />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-2 font-semibold">
+              {textos.contratante.publicar.inicio}
+              <input name="inicio" type="time" required className={classeDoCampo} />
+            </label>
+            <label className="flex flex-col gap-2 font-semibold">
+              {textos.contratante.publicar.fim}
+              <input name="fim" type="time" required className={classeDoCampo} />
+            </label>
+          </div>
+          <p className="text-sm text-tinta-suave">{textos.contratante.publicar.ajudaDoHorario}</p>
+          <button type="submit" disabled={enviando} className={classeDoBotaoDeBorda}>
+            {enviando ? ta.repetindo : ta.repetir}
+          </button>
+        </Form>
+        <Erro actionData={actionData} onde="repetir" />
+      </section>
+
+      {podeCancelar ? (
+        <section className="flex flex-col gap-3" aria-labelledby="titulo-cancelar">
+          <h2 id="titulo-cancelar" className="font-titulo text-xl font-bold">
+            {ta.cancelarTitulo}
+          </h2>
+          <p className="text-tinta-suave">{ta.cancelarAjuda}</p>
+          <Form method="post" className="flex flex-col gap-3">
+            <input type="hidden" name="intencao" value="cancelar" />
+            <input type="hidden" name="casa" value={casaId} />
+            <label className="flex flex-col gap-2 font-semibold">
+              {ta.motivo}
+              <input name="motivo" type="text" required minLength={3} defaultValue={actionData?.motivo ?? ""} className={classeDoCampo} />
+            </label>
+            <button type="submit" disabled={enviando} className={classeDoBotaoDeBorda}>
+              {enviando ? ta.cancelando : ta.cancelar}
+            </button>
+          </Form>
+          <Erro actionData={actionData} onde="cancelar" />
+        </section>
+      ) : null}
+    </>
   );
 }
