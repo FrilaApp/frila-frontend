@@ -1,18 +1,26 @@
 package br.com.frila.feature.turnos
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ResultadoRegistroDto
 import br.com.frila.core.rede.ServicoTurnos
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -31,7 +39,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * L1-4 (TELA PROVISÓRIA): o check-out na lista de Meus turnos. O turno vai de 21:00 de 01/11 às
+ * L1-4 (TELA PROVISÓRIA): o check-out e o campo do código na lista de Meus turnos. O turno vai de 21:00 de 01/11 às
  * 03:00 de 02/11 (UTC); o check-out vale até 04:00 de 02/11.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -93,6 +101,7 @@ class TelaCheckoutECodigoTest {
         rede: Rede = Rede(),
         statusDoCheckout: HttpStatusCode = HttpStatusCode.OK,
         corpoDoCheckout: String = registroJson,
+        validacao: ValidacaoDoCodigoViewModel? = null,
     ): Rede {
         val meusTurnos = MeusTurnosViewModel(
             servicoTurnos = ServicoTurnos(
@@ -104,24 +113,27 @@ class TelaCheckoutECodigoTest {
             escopo = CoroutineScope(Dispatchers.Default),
         )
         runBlocking { meusTurnos.carregar().join() }
+        val criador: (@Composable (turno: ItemTurno) -> ValidacaoDoCodigoViewModel)? = validacao?.let { vm -> { _ -> vm } }
         compose.setContent {
             FrilaTheme {
-                TelaMeusTurnos(
-                    viewModel = meusTurnos,
-                    criarCheckinViewModel = { item ->
-                        remember(item.turnoId) {
-                            CheckinViewModel(
-                                turnoId = item.turnoId,
-                                coordenadaDaVaga = null,
-                                servicoTurnos = ServicoTurnos(cliente(rede, statusDoCheckout, corpoDoCheckout)),
-                                provedorDeLocalizacao = semLocalizacao,
-                                instanteAtual = { agora },
-                                escopo = CoroutineScope(Dispatchers.Default),
-                            )
-                        }
-                    },
-                    relogio = { agora },
-                )
+                CompositionLocalProvider(LocalCriarValidacaoDoCodigo provides criador) {
+                    TelaMeusTurnos(
+                        viewModel = meusTurnos,
+                        criarCheckinViewModel = { item ->
+                            remember(item.turnoId) {
+                                CheckinViewModel(
+                                    turnoId = item.turnoId,
+                                    coordenadaDaVaga = null,
+                                    servicoTurnos = ServicoTurnos(cliente(rede, statusDoCheckout, corpoDoCheckout)),
+                                    provedorDeLocalizacao = semLocalizacao,
+                                    instanteAtual = { agora },
+                                    escopo = CoroutineScope(Dispatchers.Default),
+                                )
+                            }
+                        },
+                        relogio = { agora },
+                    )
+                }
             }
         }
         return rede
@@ -185,5 +197,73 @@ class TelaCheckoutECodigoTest {
         compose.waitUntil(5_000) { contar(TextosCheckoutECodigo.CHECKOUT_FORA_DA_JANELA) > 0 }
         compose.onNodeWithText(TextosCheckoutECodigo.BOTAO_CHECKOUT_TENTAR_DE_NOVO).performScrollTo()
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).assertIsDisplayed()
+    }
+
+    // ---- Código ----
+
+    private class Envios {
+        val codigos = mutableListOf<String>()
+        val distancias = mutableListOf<Int?>()
+    }
+
+    private fun validacao(envios: Envios) = ValidacaoDoCodigoViewModel(
+        turnoId = "t1",
+        validar = { _, codigo, distancia ->
+            envios.codigos += codigo
+            envios.distancias += distancia
+            Result.success(ResultadoRegistroDto("t1", "codigo", "verificado", "2026-11-01T21:10:00Z", 20))
+        },
+        medirDistancia = { 20 },
+        escopo = CoroutineScope(Dispatchers.Default),
+    )
+
+    private val manualPendente = turnoJson(checkinTipo = "manual", verificacao = "pendente")
+
+    @Test
+    fun `com check-in manual pendente e a confirmacao por codigo ligada, o profissional digita e envia`() {
+        val envios = Envios()
+        montar(manualPendente, noMeioDoTurno, validacao = validacao(envios))
+
+        compose.onNodeWithTag("campo-do-codigo").performScrollTo().performTextInput("049215")
+        compose.onNodeWithText(TextosCheckoutECodigo.BOTAO_CONFIRMAR_CODIGO).performScrollTo()
+            .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).assertIsEnabled().performClick()
+
+        compose.waitUntil(5_000) { envios.codigos.isNotEmpty() }
+        assertEquals(listOf("049215"), envios.codigos)
+        assertEquals(listOf<Int?>(20), envios.distancias)
+        compose.waitUntil(5_000) { contar(TextosCheckoutECodigo.CODIGO_VERIFICADO) > 0 }
+    }
+
+    @Test
+    fun `o campo so aceita digitos e no maximo seis`() {
+        montar(manualPendente, noMeioDoTurno, validacao = validacao(Envios()))
+
+        compose.onNodeWithTag("campo-do-codigo").performScrollTo().performTextInput("12a3 45678")
+
+        compose.onNodeWithText("123456").assertIsDisplayed()
+    }
+
+    @Test
+    fun `o botao de confirmar o codigo so liga com seis digitos`() {
+        montar(manualPendente, noMeioDoTurno, validacao = validacao(Envios()))
+
+        compose.onNodeWithTag("campo-do-codigo").performScrollTo().performTextInput("12345")
+
+        compose.onNodeWithText(TextosCheckoutECodigo.BOTAO_CONFIRMAR_CODIGO).performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `sem a confirmacao por codigo ligada a tela e a de antes, sem campo`() {
+        montar(manualPendente, noMeioDoTurno, validacao = null)
+
+        assertEquals(0, contar(TextosCheckoutECodigo.BOTAO_CONFIRMAR_CODIGO))
+        assertEquals(0, compose.onAllNodesWithTag("campo-do-codigo").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `com a presenca ja verificada nao ha campo de codigo`() {
+        montar(turnoJson(), noMeioDoTurno, validacao = validacao(Envios()))
+
+        assertEquals(0, contar(TextosCheckoutECodigo.BOTAO_CONFIRMAR_CODIGO))
     }
 }

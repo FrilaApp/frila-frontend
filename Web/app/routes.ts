@@ -12,6 +12,9 @@ export default [
 
   // Conta suspensa, contestação e suporte (os dois lados)
   route("conta/suspensa", "rotas/conta/suspensa.tsx"),
+  // Minha conta: exportar os dados e excluir a conta (2.11)
+  route("conta", "rotas/conta/dados.tsx"),
+  route("conta/meus-dados", "rotas/conta/meus-dados.ts"),
   route("suporte/:turnoId", "rotas/suporte.tsx"),
 
   // Páginas públicas (textos do marketing)
@@ -44,4 +47,7 @@ export default [
   // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
   route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
   route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
+
+  // Equipe de confiança da casa (3.9)
+  route("casa/equipe", "rotas/contratante/equipe.tsx"),
 ] satisfies RouteConfig;
