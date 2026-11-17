@@ -16,6 +16,10 @@
 		// "1" mostra a web; qualquer outro valor mostra só a página "em breve".
 		"WEB_LIGADA": "1"
 	},
+	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
+	"secrets": {
+		"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+	},
 	"observability": {
 		"enabled": true
 	},
@@ -24,6 +28,9 @@
 		"producao": {
 			"name": "frila-web",
 			"preview_urls": false,
+			"secrets": {
+				"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+			},
 			"vars": {
 				"AMBIENTE": "producao",
 				"WEB_LIGADA": "0"
