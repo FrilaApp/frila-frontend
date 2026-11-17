@@ -15252,6 +15252,17 @@
           }
         }
       }
+    },
+    "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

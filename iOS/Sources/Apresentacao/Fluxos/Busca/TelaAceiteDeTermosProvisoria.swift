@@ -12,13 +12,16 @@ public struct TelaAceiteDeTermosProvisoria: View {
     private let aceitando: Bool
     private let erroNoAceite: Bool
     private let termosDeUso: URL
+    private let politicaDePrivacidade: URL
     private let aceitar: () -> Void
 
     public init(aceitando: Bool, erroNoAceite: Bool, termosDeUso: URL = EnderecosOficiais.padrao.termosDeUso,
+                politicaDePrivacidade: URL = EnderecosOficiais.padrao.politicaDePrivacidade,
                 aceitar: @escaping () -> Void) {
         self.aceitando = aceitando
         self.erroNoAceite = erroNoAceite
         self.termosDeUso = termosDeUso
+        self.politicaDePrivacidade = politicaDePrivacidade
         self.aceitar = aceitar
     }
 
@@ -31,7 +34,7 @@ public struct TelaAceiteDeTermosProvisoria: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Text("Para buscar profissionais, aceite os Termos de Uso atualizados.", bundle: bundleApresentacao)
+            Text("Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade.", bundle: bundleApresentacao)
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
@@ -44,6 +47,14 @@ public struct TelaAceiteDeTermosProvisoria: View {
             // Na linha do Form da busca, só o próprio link abre os Termos (sem estilo, a linha inteira abriria).
             .buttonStyle(.borderless)
             .accessibilityIdentifier("aceite-termos-link")
+
+            // O aceite grava a versão 2026-11-16, que cobre os Termos 1.2 E a Política 1.3: a pessoa vê os dois.
+            Link(destination: politicaDePrivacidade) {
+                Text("Política de privacidade", bundle: bundleApresentacao)
+                    .frame(minHeight: 44, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityIdentifier("aceite-politica-link")
 
             if erroNoAceite {
                 Text("Não foi possível registrar o aceite. Tente de novo.", bundle: bundleApresentacao)
