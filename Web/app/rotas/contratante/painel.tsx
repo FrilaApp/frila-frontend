@@ -56,6 +56,11 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
       <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-6 p-6">
         <h1 className="font-titulo text-3xl font-bold">{t.titulo}</h1>
         <p role="status">{MENSAGEM[loaderData.estado]}</p>
+        {loaderData.estado === "sem_casa" ? (
+          <Link to="/casa/cadastro" className={classeDoBotao}>
+            {textos.contratanteCadastro.abrir}
+          </Link>
+        ) : null}
         <Link to="/" className="min-h-11 font-semibold underline underline-offset-4">
           {t.voltarAoInicio}
         </Link>
