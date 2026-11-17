@@ -3,6 +3,9 @@
  * O ambiente padrão é o de dev (Supabase dev). Produção: CLOUDFLARE_ENV=producao no build.
  * Endereço e chave publicável do Supabase NÃO ficam aqui: vêm de `.dev.vars` (local)
  * e das variáveis do Worker (painel ou `wrangler secret put`).
+ * EMAILS_DE_DEMONSTRACAO (e-mails de demonstração, separados por vírgula) também NÃO fica aqui: o repositório é público.
+ * É segredo OPCIONAL do Worker (`.dev.vars` no local, `wrangler secret put` no ambiente): sem ele a lista é vazia e
+ * ninguém entra como demonstração. Por isso não entra em `secrets.required` (o Prod não o tem).
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
@@ -17,9 +20,7 @@
 		"WEB_LIGADA": "1",
 		// "1" deixa a página pública da vaga entrar no índice dos buscadores. Fica "0" até a Política ganhar as
 		// frases da seção 4, item 1, e da seção 2 (buscadores).
-		"VAGA_PUBLICA_NO_INDICE": "0",
-		// Conta de demonstração do dev (a mesma do app, para teste de ponta a ponta). Não existe em produção.
-		"EMAILS_DE_DEMONSTRACAO": "revisao-profissional@frila.app"
+		"VAGA_PUBLICA_NO_INDICE": "0"
 	},
 	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
 	"secrets": {
