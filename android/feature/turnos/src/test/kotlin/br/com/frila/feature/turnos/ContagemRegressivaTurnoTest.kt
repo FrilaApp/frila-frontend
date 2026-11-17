@@ -52,7 +52,7 @@ class ContagemRegressivaTurnoTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { criarCheckinVM(it) },
+                    criarCheckinViewModel = { criarCheckinVM(it.turnoId) },
                     relogio = { relogioFixo },
                 )
             }
@@ -80,7 +80,7 @@ class ContagemRegressivaTurnoTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { criarCheckinVM(it) },
+                    criarCheckinViewModel = { criarCheckinVM(it.turnoId) },
                     relogio = { relogioFixo },
                 )
             }
