@@ -146,6 +146,13 @@ fun TelaPerfil(
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
     /**
+     * C0-11 (decisão de 16/11/2026: o Android fica só com o que o iOS tem). O iOS não tem desbloqueio por
+     * biometria: desligado, o interruptor não aparece. Desligar a entrada, sem apagar o código.
+     */
+    recursoBiometriaHabilitado: Boolean = false,
+    /** C0-11: o iOS não tem "Remunerações acordadas" com extrato em PDF; desligado, o bloco não aparece. */
+    recursoRemuneracoesHabilitado: Boolean = false,
+    /**
      * Injetáveis para teste (RN15) — sem sensor físico/emulador não há como simular o hardware
      * real, e o host do `createComposeRule()` não é um `FragmentActivity` (por isso o cast fica
      * dentro do valor padrão, não em [TelaPerfil], e o teste nunca precisa de uma Activity real).
@@ -249,6 +256,7 @@ fun TelaPerfil(
                 disponibilidadeBiometrica = disponibilidadeBiometrica,
                 mensagemErroBiometria = mensagemErroBiometria,
                 aoAlternarBiometria = alternarBiometria,
+                mostrarBiometria = recursoBiometriaHabilitado,
                 aoAbrirAjuda = aoAbrirAjuda,
                 aoAbrirEquipe = aoAbrirEquipe,
                 aoPublicarVaga = aoPublicarVaga,
@@ -319,6 +327,8 @@ fun TelaPerfil(
                 disponibilidadeBiometrica = disponibilidadeBiometrica,
                 mensagemErroBiometria = mensagemErroBiometria,
                 aoAlternarBiometria = alternarBiometria,
+                mostrarBiometria = recursoBiometriaHabilitado,
+                mostrarRemuneracoes = recursoRemuneracoesHabilitado,
                 notificacaoUrgenciaAtivada = estado.notificacaoUrgenciaAtivada,
                 notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
                 notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
@@ -380,6 +390,8 @@ private fun ConteudoDoPerfil(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    mostrarBiometria: Boolean = false,
+    mostrarRemuneracoes: Boolean = false,
     notificacaoUrgenciaAtivada: Boolean,
     notificacaoTurnosAtivada: Boolean,
     notificacaoSistemaAtivada: Boolean,
@@ -413,7 +425,8 @@ private fun ConteudoDoPerfil(
         )
         BlocoDeReputacao(reputacao)
         BlocoDeSeloConfianca(verificacaoIdentidade, podeSolicitarSelo, aoAbrirSelo)
-        BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
+        // C0-11: o iOS não tem; só aparece com a trava ligada, que nada no app liga.
+        if (mostrarRemuneracoes) BlocoDeRemuneracoes(resumoFinanceiro, aoExportarExtrato)
         BlocoDeBioProfissional(
             bio = bio,
             bioEmEdicao = bioEmEdicao,
@@ -444,6 +457,7 @@ private fun ConteudoDoPerfil(
             disponibilidadeBiometrica = disponibilidadeBiometrica,
             mensagemErroBiometria = mensagemErroBiometria,
             aoAlternarBiometria = aoAlternarBiometria,
+            mostrarBiometria = mostrarBiometria,
             aoAbrirAjuda = aoAbrirAjuda,
             aoAbrirEquipe = aoAbrirEquipe,
             aoPublicarVaga = aoPublicarVaga,
@@ -471,6 +485,7 @@ private fun ConteudoDaCasa(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    mostrarBiometria: Boolean,
     aoAbrirAjuda: () -> Unit,
     aoAbrirEquipe: (() -> Unit)?,
     aoPublicarVaga: (() -> Unit)?,
@@ -498,6 +513,7 @@ private fun ConteudoDaCasa(
             disponibilidadeBiometrica = disponibilidadeBiometrica,
             mensagemErroBiometria = mensagemErroBiometria,
             aoAlternarBiometria = aoAlternarBiometria,
+            mostrarBiometria = mostrarBiometria,
             aoAbrirAjuda = aoAbrirAjuda,
             aoAbrirEquipe = aoAbrirEquipe,
             aoPublicarVaga = aoPublicarVaga,
@@ -1027,6 +1043,7 @@ private fun BlocoDeConta(
     disponibilidadeBiometrica: DisponibilidadeBiometrica,
     mensagemErroBiometria: String?,
     aoAlternarBiometria: (Boolean) -> Unit,
+    mostrarBiometria: Boolean = false,
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
@@ -1041,49 +1058,52 @@ private fun BlocoDeConta(
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.semantics { heading() },
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = FrilaEspacamento.pequeno)
-                .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Desbloqueio rápido por biometria",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = biometriaAtivada,
-                onCheckedChange = aoAlternarBiometria,
-                // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
-                // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
-                enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
+        // C0-11: o iOS não tem desbloqueio por biometria; só aparece com a trava ligada, que nada no app liga.
+        if (mostrarBiometria) {
+            Row(
                 modifier = Modifier
-                    .testTag("toggle-biometria")
-                    .semantics {
-                        contentDescription = "Desbloqueio rápido por biometria"
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Desbloqueio rápido por biometria",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = biometriaAtivada,
+                    onCheckedChange = aoAlternarBiometria,
+                    // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
+                    // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
+                    enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
+                    modifier = Modifier
+                        .testTag("toggle-biometria")
+                        .semantics {
+                            contentDescription = "Desbloqueio rápido por biometria"
+                        },
+                )
+            }
+            if (disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
+                Text(
+                    text = textoIndisponibilidadeBiometrica(disponibilidadeBiometrica),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (mensagemErroBiometria != null) {
+                Text(
+                    text = mensagemErroBiometria,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                        error(mensagemErroBiometria)
                     },
-            )
-        }
-        if (disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
-            Text(
-                text = textoIndisponibilidadeBiometrica(disponibilidadeBiometrica),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (mensagemErroBiometria != null) {
-            Text(
-                text = mensagemErroBiometria,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics {
-                    liveRegion = LiveRegionMode.Assertive
-                    error(mensagemErroBiometria)
-                },
-            )
+                )
+            }
         }
         BotaoSecundario(
             texto = "Ajuda",

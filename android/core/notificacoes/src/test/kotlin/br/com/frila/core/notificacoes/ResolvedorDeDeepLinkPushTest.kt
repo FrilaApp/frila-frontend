@@ -34,15 +34,25 @@ class ResolvedorDeDeepLinkPushTest {
         assertNull(ResolvedorDeDeepLinkPush.resolver(notificacao))
     }
 
+    /** C0-10: o link que o manifesto e a rota `RotasChamadaProfissional.DEEP_LINK_RECEBIDA` aceitam. */
+    @Test
+    fun `push de chamada emite deep link para a chamada recebida`() {
+        val notificacao = notificacao(canal = GerenciadorDeCanais.CANAL_SISTEMA, chamadaId = "chamada-9")
+
+        assertEquals("frila://chamadas/chamada-9", ResolvedorDeDeepLinkPush.resolver(notificacao))
+    }
+
     private fun notificacao(
         canal: String,
         vagaId: String? = null,
         neutralizada: Boolean = false,
+        chamadaId: String? = null,
     ) = NotificacaoParaExibir(
         canal = canal,
         titulo = "Frila",
         corpo = "Nova notificação",
         vagaId = vagaId,
         neutralizada = neutralizada,
+        chamadaId = chamadaId,
     )
 }

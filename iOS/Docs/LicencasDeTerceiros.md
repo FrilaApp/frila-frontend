@@ -22,7 +22,7 @@ O objetivo é fornecer rastreabilidade jurídica completa para cumprimento das e
 | Categoria | Quantidade de Itens | Origem / Mecanismo | Status de Conformidade |
 |---|:---:|---|---|
 | Pacotes Swift (SPM) | 20 | `iOS/Package.resolved` | 100% catalogados e atribuídos na UI |
-| Fontes tipográficas de terceiros | 1 família (4 arquivos) | `iOS/Resources/Fonts` (Bricolage Grotesque, SIL OFL 1.1) | Conforme (licença junto dos arquivos; atualizado em 24/10/2026) |
+| Fontes tipográficas de terceiros | 3 famílias (6 arquivos de fonte) | `iOS/Resources/Fonts` (Bricolage Grotesque, Jost e Prodigy Sans, todas SIL OFL 1.1) | Conforme (licenças junto dos arquivos e na tela de licenças; a Prodigy Sans leva o aviso da Work Sans; atualizado em 17/11/2026) |
 | Conjuntos de ícones de terceiros | 0 | N/A (SF Symbols nativos da Apple) | Conforme (Apple Developer Agreement) |
 | Código copiado / snippets externos | 0 | N/A (apenas SPM rastreado) | Conforme (zero inclusão manual) |
 | Imagens/ativos de terceiros no binário | 0 | N/A (`AppIcon` e `AccentColor` próprios) | Conforme (titularidade exclusiva FrilaApp) |
@@ -89,7 +89,11 @@ Todas as dependências externas são resolvidas estritamente pelo Swift Package 
 
 ### 4.1 Fontes Tipográficas
 - **Auditoria (24/10/2026):** Varredura em todo o repositório `frila-frontend` por arquivos de fonte (`.ttf`, `.otf`, `.ttc`, `.woff`, `.woff2`) e por registro em código (`CTFontManagerRegisterFontsForURL`).
-- **Resultado:** **Uma família externa incorporada: Bricolage Grotesque** (Regular, Medium, Bold e ExtraBold), em `iOS/Resources/Fonts/BricolageGrotesque-*.ttf`, registrada no processo por `FontesFrila` (`DesignSystem/DesignTokens.swift`), sem `UIAppFonts` no `Info.plist`. Veio do design system do Fabrício (FrilaLowPhase) e é a voz dos títulos, das perguntas do Estúdio de Criação e dos papéis `display`/`placard` do Hi-Fi (`Docs/DesignSystem.md`).
+- **Atualização (17/11/2026, F-041):** são **três famílias**, todas SIL OFL 1.1 e todas na tela de licenças do app (`Resources/Licencas.json`, gerado por `Scripts/gerar-licencas.py`):
+  - **Bricolage Grotesque** 1.001 (Atelier Triay, [ateliertriay/bricolage](https://github.com/ateliertriay/bricolage)): descrita abaixo.
+  - **Jost** 3.710 (`Jost.ttf`, licença em `Jost-OFL.txt`).
+  - **Prodigy Sans** 1.001 (Wei Huang, `ProdigySans-Bold.ttf`, licença em `ProdigySans-Bold-OFL.txt`). Deriva da **Work Sans**, do mesmo autor: o aviso original da Work Sans vai junto em `ProdigySans-Bold-WorkSans-OFL.txt` e aparece na tela de licenças como "Avisos do pacote" da Prodigy Sans.
+- **Resultado (24/10/2026):** **Uma família externa incorporada: Bricolage Grotesque** (Regular, Medium, Bold e ExtraBold), em `iOS/Resources/Fonts/BricolageGrotesque-*.ttf`, registrada no processo por `FontesFrila` (`DesignSystem/DesignTokens.swift`), sem `UIAppFonts` no `Info.plist`. Veio do design system do Fabrício (FrilaLowPhase) e é a voz dos títulos, das perguntas do Estúdio de Criação e dos papéis `display`/`placard` do Hi-Fi (`Docs/DesignSystem.md`).
 - **Licença:** SIL Open Font License 1.1 (OFL), texto integral em `iOS/Resources/Fonts/BricolageGrotesque-OFL.txt`, distribuído junto dos arquivos. A OFL permite embutir a fonte no app e distribuí-la com ele; a fonte não pode ser vendida sozinha e, se for redistribuída à parte, a licença segue junto. Nome reservado: não renomeamos a família (os arquivos têm o nome original).
 - **Demais textos:** o restante do app usa o sistema tipográfico nativo da Apple (San Francisco e New York) por estilos semânticos do SwiftUI, coberto pelo contrato de desenvolvimento do iOS.
 

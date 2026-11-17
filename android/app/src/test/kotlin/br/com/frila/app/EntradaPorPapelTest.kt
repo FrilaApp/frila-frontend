@@ -70,7 +70,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class EntradaPorPapelTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var nav: NavHostController
@@ -151,6 +154,8 @@ class EntradaPorPapelTest {
                                     avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
                                 },
                                 guardado = DestinoGuardadoEmMemoria(),
+                                // Este cliente não renova o token: o 401 do servidor já é a recusa (o caso da sessão vencida).
+                                sessaoGuardada = { false },
                             )
                         }
                         viewModel { EntradaViewModel(ServicoAutenticacao(cliente), CoroutineScope(Dispatchers.Default)) }
