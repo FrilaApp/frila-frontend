@@ -5,7 +5,7 @@ import { contextoDaSessao } from "../../contexto";
 import { ambienteDoSupabase } from "../../servidor/ambiente";
 import { criarApi } from "../../servidor/api";
 import { formatarPeriodo, formatarValor } from "../../servidor/profissional/formato";
-import { lerVagaPublica, podeIndexar, vagaEncerrada } from "../../servidor/vaga-publica";
+import { dadosEstruturados, lerVagaPublica, podeIndexar, vagaEncerrada, vagaRemovida } from "../../servidor/vaga-publica";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/vaga";
 
@@ -22,36 +22,54 @@ export async function loader({ context, params }: Route.LoaderArgs) {
   if (leitura.estado === "nao_encontrada") return data({ estado: "nao_encontrada" as const, vaga: null, entrou }, { status: 404 });
   if (leitura.estado !== "ok") return { estado: "indisponivel" as const, vaga: null, entrou };
   const v = leitura.vaga;
+  // Cancelada, encerrada ou já começada: 410, para o buscador tirar o link (e quem chega vê que não está mais disponível).
+  if (vagaRemovida(v)) return data({ estado: "removida" as const, vaga: null, entrou }, { status: 410 });
   const inclusos: Array<string | null> = [
     v.inclusos.inclui_refeicao ? t.refeicao : null,
     v.inclusos.inclui_transporte ? t.transporte : null,
     v.inclusos.exige_material_proprio ? t.materialProprio : null,
   ];
+  const periodo = formatarPeriodo(v.inicio_em, v.fim_em);
+  const valor = formatarValor(v.valor_centavos);
+  const indexar = podeIndexar(v, (env as { VAGA_PUBLICA_NO_INDICE?: string }).VAGA_PUBLICA_NO_INDICE);
+  const descricao = t.descricaoCompleta.replace("{funcao}", v.funcao.nome).replace("{periodo}", periodo).replace("{valor}", valor);
   return {
     estado: "ok" as const,
     entrou,
+    // Só com o portão aberto E a vaga aberta (podeIndexar): com o portão fechado, nada de dados estruturados.
+    dados: indexar ? dadosEstruturados(v, descricao) : null,
     vaga: {
       id: v.id,
       funcao: v.funcao.nome,
-      valor: formatarValor(v.valor_centavos),
-      periodo: formatarPeriodo(v.inicio_em, v.fim_em),
+      valor,
+      periodo,
       regiao: v.regiao_administrativa,
       // Sem nome quando o contrato manda nulo (CPF, ou vaga que não está aberta).
       casa: v.estabelecimento_nome,
       inclusos: inclusos.filter((item): item is string => item !== null),
       encerrada: vagaEncerrada(v),
-      indexar: podeIndexar(v, (env as { VAGA_PUBLICA_NO_INDICE?: string }).VAGA_PUBLICA_NO_INDICE),
+      indexar,
     },
   };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
   const vaga = loaderData?.vaga;
-  if (!vaga) return [{ title: t.tituloDaAbaSemVaga }, { name: "robots", content: "noindex" }];
+  if (!vaga) {
+    const titulo = loaderData?.estado === "removida" ? t.tituloDaAbaRemovida : t.tituloDaAbaSemVaga;
+    return [{ title: titulo }, { name: "robots", content: "noindex" }];
+  }
+  const titulo = t.tituloDaAba.replace("{funcao}", vaga.funcao).replace("{valor}", vaga.valor);
+  const descricao = t.descricao.replace("{funcao}", vaga.funcao);
   return [
-    { title: t.tituloDaAba.replace("{funcao}", vaga.funcao).replace("{valor}", vaga.valor) },
-    { name: "description", content: t.descricao.replace("{funcao}", vaga.funcao) },
+    { title: titulo },
+    { name: "description", content: descricao },
     { name: "robots", content: vaga.indexar ? "index, follow" : "noindex" },
+    // Cartão de compartilhamento (a imagem e o nome do site vêm da raiz).
+    { property: "og:title", content: titulo },
+    { property: "og:description", content: descricao },
+    { property: "og:type", content: "website" },
+    ...(loaderData && "dados" in loaderData && loaderData.dados ? [{ "script:ld+json": loaderData.dados }] : []),
   ];
 }
 
@@ -64,7 +82,15 @@ export default function VagaPeloLink({ loaderData }: Route.ComponentProps) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 p-6">
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
-      {estado === "nao_encontrada" ? (
+      {estado === "removida" ? (
+        <>
+          <h1 className="font-titulo text-3xl font-bold">{t.removidaTitulo}</h1>
+          <p>{t.removidaCorpo}</p>
+          <Link to="/vagas" className={classeDoLink}>
+            {t.verOutras}
+          </Link>
+        </>
+      ) : estado === "nao_encontrada" ? (
         <>
           <h1 className="font-titulo text-3xl font-bold">{t.naoEncontradaTitulo}</h1>
           <p>{t.naoEncontradaCorpo}</p>
