@@ -15,6 +15,9 @@ export default [
   // Minha conta: exportar os dados e excluir a conta (2.11)
   route("conta", "rotas/conta/dados.tsx"),
   route("conta/meus-dados", "rotas/conta/meus-dados.ts"),
+  // Relatório dos turnos para baixar (3.17)
+  route("conta/relatorio", "rotas/conta/relatorio.tsx"),
+  route("conta/relatorio/arquivo", "rotas/conta/relatorio-arquivo.ts"),
   route("suporte/:turnoId", "rotas/suporte.tsx"),
 
   // Páginas públicas (textos do marketing)
@@ -46,6 +49,12 @@ export default [
   // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
   route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
   route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
+
+  // Busca de profissionais e chamada direta da casa (3.8)
+  route("casa/busca", "rotas/contratante/busca.tsx"),
+  // Pessoas da casa e o link de convite (3.16 e 5.7)
+  route("casa/membros", "rotas/contratante/membros.tsx"),
+  route("convite", "rotas/convite.tsx"),
 
   // Equipe de confiança da casa (3.9)
   route("casa/equipe", "rotas/contratante/equipe.tsx"),
