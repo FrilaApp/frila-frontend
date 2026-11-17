@@ -70,6 +70,33 @@ describe("vaga da casa: repetir em outro dia", () => {
   });
 });
 
+describe("vaga da casa: campo_invalido na cópia diz qual dado foi recusado", () => {
+  const motivoDe = async (details: string | null) => {
+    api.POST.mockResolvedValue(recusa(422, "campo_invalido", details));
+    return (await enviar({ intencao: "repetir", chave: CHAVE, dia: "2026-12-05", inicio: "18:00", fim: "23:00" })).erro;
+  };
+
+  it("texto, valor, lugares, função e endereço da casa têm cada um o seu aviso", async () => {
+    for (const texto of ["observacoes", "traje", "responsavel_local"]) expect(await motivoDe(texto)).toBe(ta.erros.texto_recusado);
+    expect(await motivoDe("valor_centavos")).toBe(ta.erros.valor_recusado);
+    expect(await motivoDe("posicoes")).toBe(ta.erros.posicoes_recusadas);
+    expect(await motivoDe("funcao_id")).toBe(ta.erros.funcao_recusada);
+    for (const casa of ["ponto", "local", "regiao_administrativa"]) expect(await motivoDe(casa)).toBe(ta.erros.cadastro_da_casa);
+    expect(await motivoDe("inicio_em")).toBe(ta.erros.horario_invalido);
+  });
+
+  it("campo que a tela não conhece cai num aviso geral, sem culpar o texto", async () => {
+    expect(await motivoDe("modo")).toBe(ta.erros.dado_recusado);
+    expect(await motivoDe(null)).toBe(ta.erros.dado_recusado);
+    expect(ta.erros.dado_recusado).not.toBe(ta.erros.texto_recusado);
+  });
+
+  it("os quatro avisos novos são todos diferentes", () => {
+    const avisos = [ta.erros.valor_recusado, ta.erros.posicoes_recusadas, ta.erros.funcao_recusada, ta.erros.cadastro_da_casa];
+    expect(new Set(avisos).size).toBe(4);
+  });
+});
+
 describe("vaga da casa: a chave acompanha o horário enviado", () => {
   const horario = { dia: "2026-12-05", inicio: "18:00", fim: "23:00" };
   const repetir = (dados: Record<string, string>) => enviar({ intencao: "repetir", chave: CHAVE, ...dados });
