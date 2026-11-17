@@ -81,6 +81,15 @@ export function vagasParaATela(painel: Painel): VagaNaTela[] {
     }));
 }
 
+const ORDEM_DAS_SITUACOES = ["publicada", "preenchida", "encerrada", "cancelada"] as const;
+
+/** A lista por situação: abertas primeiro, depois completas, encerradas e canceladas; grupo vazio não aparece. */
+export function porSituacao(vagas: VagaNaTela[]): Array<{ situacao: VagaNaTela["estado"]; vagas: VagaNaTela[] }> {
+  return ORDEM_DAS_SITUACOES.map((situacao) => ({ situacao, vagas: vagas.filter((vaga) => vaga.estado === situacao) })).filter(
+    (grupo) => grupo.vagas.length > 0,
+  );
+}
+
 export type PosicaoNaTela = {
   id: string;
   estado: VagaNoPainel["posicoes"][number]["estado"];

@@ -1,7 +1,7 @@
 import { Link, redirect } from "react-router";
 
 import { escolherCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
-import { lerPainel, vagasParaATela } from "../../servidor/contratante/painel";
+import { lerPainel, porSituacao, vagasParaATela } from "../../servidor/contratante/painel";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
@@ -33,7 +33,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     estado: "ok",
     casa: { id: casa.id, nome: casa.nome },
     outrasCasas: leitura.casas.filter((outra) => outra.id !== casa.id).map(({ id, nome }) => ({ id, nome })),
-    vagas: vagasParaATela(painel.painel),
+    grupos: porSituacao(vagasParaATela(painel.painel)),
     checkinsPendentes: painel.painel.checkins_pendentes.length,
     publicada: endereco.searchParams.get("publicada") === "1",
   } as const;
@@ -63,7 +63,7 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
     );
   }
 
-  const { casa, outrasCasas, vagas, checkinsPendentes, publicada } = loaderData;
+  const { casa, outrasCasas, grupos, checkinsPendentes, publicada } = loaderData;
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-2">
@@ -79,29 +79,33 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
         {t.publicar}
       </Link>
 
-      {vagas.length === 0 ? (
-        <p>{t.vazio}</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {vagas.map((vaga) => (
-            <li key={vaga.id} className="flex flex-col gap-1 rounded-cartao border border-borda bg-superficie p-4">
-              <p className="flex flex-wrap items-baseline justify-between gap-2">
-                <Link to={`/painel/vagas/${vaga.id}?casa=${casa.id}`} className="text-lg font-bold underline underline-offset-4 first-letter:uppercase">
-                  {vaga.funcao}
-                </Link>
-                <span className="text-sm font-semibold">{t.estado[vaga.estado]}</span>
-              </p>
-              <p>
-                {vaga.dia} · {vaga.horario} · {vaga.valor}
-              </p>
-              <p className="text-tinta-suave">{preencher(t.posicoes, { ocupadas: vaga.ocupadas, total: vaga.posicoes })}</p>
-              {vaga.candidatosPendentes > 0 ? <p>{preencher(t.candidatos, { n: vaga.candidatosPendentes })}</p> : null}
-              {vaga.alertaVagaVazia ? <p className="font-semibold">{t.alertaVagaVazia}</p> : null}
-              {vaga.oculta ? <p className="font-semibold">{t.oculta}</p> : null}
-            </li>
-          ))}
-        </ul>
-      )}
+      {grupos.length === 0 ? <p>{t.vazio}</p> : null}
+      {grupos.map((grupo) => (
+        <section key={grupo.situacao} className="flex flex-col gap-3" aria-labelledby={`situacao-${grupo.situacao}`}>
+          <h2 id={`situacao-${grupo.situacao}`} className="font-titulo text-xl font-bold">
+            {t.situacao[grupo.situacao]} ({grupo.vagas.length})
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {grupo.vagas.map((vaga) => (
+              <li key={vaga.id} className="flex flex-col gap-1 rounded-cartao border border-borda bg-superficie p-4">
+                <p className="flex flex-wrap items-baseline justify-between gap-2">
+                  <Link to={`/painel/vagas/${vaga.id}?casa=${casa.id}`} className="text-lg font-bold underline underline-offset-4 first-letter:uppercase">
+                    {vaga.funcao}
+                  </Link>
+                  <span className="text-sm font-semibold">{t.estado[vaga.estado]}</span>
+                </p>
+                <p>
+                  {vaga.dia} · {vaga.horario} · {vaga.valor}
+                </p>
+                <p className="text-tinta-suave">{preencher(t.posicoes, { ocupadas: vaga.ocupadas, total: vaga.posicoes })}</p>
+                {vaga.candidatosPendentes > 0 ? <p>{preencher(t.candidatos, { n: vaga.candidatosPendentes })}</p> : null}
+                {vaga.alertaVagaVazia ? <p className="font-semibold">{t.alertaVagaVazia}</p> : null}
+                {vaga.oculta ? <p className="font-semibold">{t.oculta}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
 
       {outrasCasas.length > 0 ? (
         <nav aria-label={t.trocarDeCasa} className="flex flex-col gap-2">

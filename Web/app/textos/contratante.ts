@@ -13,6 +13,12 @@ export const contratante = {
     candidatos: "Candidatos esperando: {n}",
     alertaVagaVazia: "Começa em breve e ainda tem lugar vazio",
     oculta: "Oculta pela Equipe Frila",
+    situacao: {
+      publicada: "Abertas",
+      preenchida: "Completas",
+      encerrada: "Encerradas",
+      cancelada: "Canceladas",
+    },
     estado: {
       publicada: "Aberta",
       preenchida: "Completa",
