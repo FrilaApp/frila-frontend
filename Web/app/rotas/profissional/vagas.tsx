@@ -147,6 +147,10 @@ export default function Vagas({ loaderData }: Route.ComponentProps) {
         </Link>
       ) : null}
 
+      <Link to="/conta" className={classeDoLink}>
+        {textos.contaDados.abrir}
+      </Link>
+
       <Link to="/" className={classeDoLink}>
         {t.voltarAoInicio}
       </Link>
