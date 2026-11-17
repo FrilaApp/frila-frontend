@@ -1,7 +1,8 @@
-import { lerConfiguracaoDesteAmbiente } from "../../servidor/abertura";
+import { lerConfiguracaoDesteAmbiente, lerLinkDaAppStore } from "../../servidor/abertura";
 import { condicoesPublicas } from "../../servidor/publico";
 
 /** Loader comum das páginas públicas: só as condições de exibição, nada da sessão. */
 export async function carregarCondicoes() {
-  return condicoesPublicas(await lerConfiguracaoDesteAmbiente());
+  const [web, linkDaAppStore] = await Promise.all([lerConfiguracaoDesteAmbiente(), lerLinkDaAppStore()]);
+  return condicoesPublicas(web, linkDaAppStore);
 }

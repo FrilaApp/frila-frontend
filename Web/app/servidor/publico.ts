@@ -11,7 +11,7 @@ export type CondicoesPublicas = {
   equipe: false;
   /** Exclusão de conta pela web (paridade 2.11): ainda não existe. */
   exclusaoNaWeb: false;
-  /** O link da App Store vem da configuração; sem ele, o botão não aparece (nada de link inventado). */
+  /** O `url_da_loja` da linha "ios" da configuração; sem ela, o botão não aparece (nada fixo no código). */
   linkDaAppStore: string | null;
 };
 

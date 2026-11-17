@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { Form, Link } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { lerConfiguracaoDesteAmbiente } from "../servidor/abertura";
+import { lerConfiguracaoDesteAmbiente, lerLinkDaAppStore } from "../servidor/abertura";
 import { lerMinhaConta } from "../servidor/conta";
 import { apiDoUsuario } from "../servidor/deste-ambiente";
 import { condicoesPublicas } from "../servidor/publico";
@@ -16,9 +16,11 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     return { webLigada: false as const };
   }
   const sessao = context.get(contextoDaSessao);
-  const [leitura, conta] = await Promise.all([
+  const [leitura, conta, linkDaAppStore] = await Promise.all([
     lerConfiguracaoDesteAmbiente(),
     sessao ? lerMinhaConta(apiDoUsuario(sessao.acesso)) : null,
+    // Só quem não entrou vê a página pública com o botão da loja.
+    sessao ? null : lerLinkDaAppStore(),
   ]);
   return {
     webLigada: true as const,
@@ -28,7 +30,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     // Só o que a tela mostra: o token fica no servidor.
     entrou: sessao ? { email: sessao.email, conta } : null,
     // Para a página de quem não entrou: o que o marketing deixa mostrar com os recursos ligados.
-    condicoes: condicoesPublicas(leitura),
+    condicoes: condicoesPublicas(leitura, linkDaAppStore),
     // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
     termosPendentes: conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS,
     termosVersao: VERSAO_DOS_TERMOS,
