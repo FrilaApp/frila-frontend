@@ -68,6 +68,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
+    // `JsonElement` aparece no DTO de apresentação (null limpa o campo); mesma biblioteca do catálogo que `feature/chamadas` usa.
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
