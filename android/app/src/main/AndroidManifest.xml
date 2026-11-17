@@ -16,6 +16,15 @@
         android:fullBackupContent="@xml/backup_rules"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
+        <!-- L1-6 (C1, 08/11/2026): coleta do Crashlytics DESLIGADA, como o iOS 1.1. Ligar é decisão jurídica (trocar para true). -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+        <!-- As sessões do Firebase (do Crashlytics) também ficam desligadas: só mandariam dado de uso ao Google. -->
+        <meta-data
+            android:name="firebase_sessions_enabled"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:configChanges="uiMode"
