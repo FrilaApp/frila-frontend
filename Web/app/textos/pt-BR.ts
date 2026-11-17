@@ -4,6 +4,7 @@
  */
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { suporte } from "./suporte";
 import { suspensao } from "./suspensao";
 
 export const textos = {
@@ -14,6 +15,8 @@ export const textos = {
   profissional,
   // Conta suspensa e contestação (os dois lados).
   suspensao,
+  // Suporte a partir de um turno (os dois lados).
+  suporte,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
