@@ -2,6 +2,7 @@ import { RouterContextProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { contextoDaSessao } from "../app/contexto";
+import { action as agirNoTurno, loader as carregarTurno } from "../app/rotas/contratante/turno/detalhe";
 import { loader as carregarLista } from "../app/rotas/contratante/turno/lista";
 
 const CASA_A = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -61,6 +62,8 @@ beforeEach(() => {
 describe("turnos da casa (lista)", () => {
   it("sem sessão, manda entrar sem consultar o servidor", async () => {
     await expect(carregarLista(argumentos("/casa/turnos", null, false))).rejects.toHaveProperty("status", 302);
+    await expect(carregarTurno(argumentos(`/casa/turnos/${TURNO_ID}`, null, false))).rejects.toHaveProperty("status", 302);
+    await expect(agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "codigo", turno_id: TURNO_ID }, false))).rejects.toHaveProperty("status", 302);
     expect(api.GET).not.toHaveBeenCalled();
     expect(api.POST).not.toHaveBeenCalled();
   });
@@ -82,5 +85,54 @@ describe("turnos da casa (lista)", () => {
     expect(dados.outrasCasas.map((casa) => casa.id)).toEqual([CASA_A]);
     expect(dados.turnos).toEqual([expect.objectContaining({ profissional: "Pessoa Sintética", chegada: "aguardando" })]);
     expect(JSON.stringify(dados)).not.toContain("token-sintetico");
+  });
+});
+
+describe("tela do turno da casa", () => {
+  const carregar = async () =>
+    (await carregarTurno(argumentos(`/casa/turnos/${TURNO_ID}?casa=${CASA_A}`))) as {
+      turno: { podeVerCodigo: boolean; podeConfirmar: boolean; podeReabrir: boolean } | null;
+      init?: ResponseInit | null;
+    };
+
+  it("turno de outra casa responde 404", async () => {
+    servidor({ [CASA_B]: [turno()] });
+    expect((await carregar()).init?.status).toBe(404);
+  });
+
+  it("chegada registrada com a presença em aberto: código e confirmação manual", async () => {
+    servidor({ [CASA_A]: [turno({ checkin_em: minutosAtras(2), checkin_tipo: "manual" })] });
+    expect((await carregar()).turno).toMatchObject({ podeVerCodigo: true, podeConfirmar: true, podeReabrir: false });
+  });
+
+  it("reabrir só aparece depois de 15 minutos do início sem check-in", async () => {
+    servidor({ [CASA_A]: [turno()] });
+    expect((await carregar()).turno).toMatchObject({ podeVerCodigo: false, podeConfirmar: false, podeReabrir: true });
+    servidor({ [CASA_A]: [turno({ vaga: { ...turno().vaga, inicio_em: minutosAtras(5) } })] });
+    expect((await carregar()).turno?.podeReabrir).toBe(false);
+  });
+
+  it("o código vem só no corpo da resposta, com a validade do servidor em minutos", async () => {
+    api.POST.mockResolvedValueOnce(resposta(200, { turno_id: TURNO_ID, codigo: "482913", expira_em: "x", segundos_restantes: 241 }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "codigo", turno_id: TURNO_ID }))).toEqual({ codigo: "482913", minutos: 5 });
+    expect(api.POST.mock.calls[0]?.[0]).toBe("/rpc/gerar_codigo_checkin");
+    api.POST.mockResolvedValueOnce(resposta(409, { code: "codigo_bloqueado", details: "encerrado" }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "codigo", turno_id: TURNO_ID }))).toEqual({ resultado: "codigo_encerrado" });
+  });
+
+  it("confirmar a presença e reabrir por atraso pela action", async () => {
+    api.POST.mockResolvedValueOnce(resposta(200, { turno_id: TURNO_ID }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "confirmar", turno_id: TURNO_ID }))).toEqual({ resultado: "confirmada" });
+    expect(api.POST.mock.calls[0]?.[0]).toBe("/rpc/confirmar_checkin_manual");
+    api.POST.mockResolvedValueOnce(resposta(200, { posicao_id: POSICAO_ID, falta: true, reaberta: true, nova_posicao_id: null }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "reabrir", posicao_id: POSICAO_ID }))).toEqual({ resultado: "reaberta" });
+    expect(api.POST.mock.calls[1]?.[1]).toMatchObject({ body: { posicao_id: POSICAO_ID } });
+    api.POST.mockResolvedValueOnce(resposta(422, { code: "reabertura_antes_da_tolerancia" }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "reabrir", posicao_id: POSICAO_ID }))).toEqual({ resultado: "antes_da_tolerancia" });
+  });
+
+  it("sessão vencida no servidor manda entrar de novo", async () => {
+    api.POST.mockResolvedValueOnce(resposta(401, { code: "nao_autenticado" }));
+    await expect(agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "confirmar", turno_id: TURNO_ID }))).rejects.toHaveProperty("status", 302);
   });
 });

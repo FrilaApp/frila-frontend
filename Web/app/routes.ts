@@ -30,4 +30,5 @@ export default [
 
   // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
   route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
+  route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
 ] satisfies RouteConfig;
