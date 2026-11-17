@@ -61,7 +61,12 @@ jobs:
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
 
+      # Supabase (pedido 16-26): o par DEV vai para o BuildConfig do debug e o par PROD para o do release
+      # (app/build.gradle.kts). Cada passo recebe só o par que usa; o Gradle nunca imprime os valores.
       - name: Executar testes unitários
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
         run: ./gradlew --no-daemon testDebugUnitTest
 
       - name: Gerar APK (debug) e AAB (release)
@@ -70,6 +75,10 @@ jobs:
           FRILA_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.FRILA_RELEASE_KEYSTORE_PASSWORD }}
           FRILA_RELEASE_KEY_ALIAS: ${{ secrets.FRILA_RELEASE_KEY_ALIAS }}
           FRILA_RELEASE_KEY_PASSWORD: ${{ secrets.FRILA_RELEASE_KEY_PASSWORD }}
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
         run: |
           if [ -n "$FRILA_RELEASE_KEYSTORE_BASE64" ]; then
             echo "Keystore de release configurado via segredos. Decodificando..."
