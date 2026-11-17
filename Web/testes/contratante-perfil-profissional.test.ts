@@ -56,8 +56,8 @@ describe("perfil do profissional (servidor)", () => {
   });
 });
 
-const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
-vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api }));
+const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn(), foto: vi.fn() }));
+vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api, fotoDoProfissional: api.foto }));
 const argumentos = (busca = "", logado = true) => {
   const context = new RouterContextProvider();
   context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com" } : null);
@@ -66,7 +66,10 @@ const argumentos = (busca = "", logado = true) => {
 };
 const ok = (corpo: unknown) => ({ data: corpo, response: new Response(null, { status: 200 }) });
 
-beforeEach(() => api.GET.mockReset());
+beforeEach(() => {
+  api.GET.mockReset();
+  api.foto.mockReset().mockResolvedValue(null);
+});
 
 describe("tela do perfil do profissional, do lado da casa", () => {
   it("sem sessão, manda entrar sem consultar o servidor", async () => {
@@ -105,5 +108,13 @@ describe("tela do perfil do profissional, do lado da casa", () => {
     for (const ruim of ["//evil.example", "https://evil.example", "/\\evil", "javascript:alert(1)"]) {
       expect(await volta(`?volta=${encodeURIComponent(ruim)}`)(), ruim).toBe("/painel");
     }
+  });
+  it("a foto embutida (data:) entra no perfil; sem foto, sem imagem; no perfil indisponível, nada", async () => {
+    api.GET.mockResolvedValue(ok(perfil()));
+    api.foto.mockResolvedValue("data:image/jpeg;base64,AAAA");
+    expect(((await carregarPerfil(argumentos())) as { perfil: { foto: string | null } }).perfil.foto).toBe("data:image/jpeg;base64,AAAA");
+    expect(api.foto).toHaveBeenCalledWith("token-sintetico", PRO);
+    api.GET.mockResolvedValue({ error: { code: "nao_encontrado" }, response: new Response(null, { status: 404 }) });
+    expect(JSON.stringify(await carregarPerfil(argumentos()))).not.toContain("data:image");
   });
 });
