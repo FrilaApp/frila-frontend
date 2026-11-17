@@ -69,6 +69,9 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
             <p>
               <Link to="/vagas" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
                 {textos.conta.verVagas}
+              </Link>{" "}
+              <Link to="/turnos" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
+                {textos.profissional.turnos.titulo}
               </Link>
             </p>
           ) : null}
