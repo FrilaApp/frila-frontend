@@ -8,6 +8,7 @@ import br.com.frila.core.dominio.modelo.RegraCancelamentoTurno
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
 import java.time.Clock
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -211,6 +212,37 @@ class MeusTurnosViewModel(
         }
     }
 
+    /**
+     * L2-1 (US14, RF12): "Estou a caminho" — `avisar_a_caminho`, idempotente no servidor. Só dentro da janela e sem aviso
+     * nem check-in ([podeAvisarACaminho]); um envio por vez. Devolve `null` quando não envia. A recusa vira texto do Frila
+     * em [EstadoMeusTurnos.erroACaminho], e nenhuma falha deixa o botão em "avisando".
+     */
+    fun avisarACaminho(turno: ItemTurno): Job? {
+        val atual = _estado.value
+        if (atual.avisandoACaminho != null || !podeAvisarACaminho(turno, relogio.instant())) return null
+        _estado.update { it.copy(avisandoACaminho = turno.turnoId, erroACaminho = null) }
+
+        return escopoDeTrabalho.launch {
+            try {
+                val resultado = servicoTurnos.avisarACaminho(turno.turnoId)
+                val quando = Instant.parse(resultado.aCaminhoEm)
+                _estado.update { tela ->
+                    tela.copy(
+                        avisandoACaminho = null,
+                        agendados = tela.agendados.map { if (it.turnoId == turno.turnoId) it.copy(aCaminhoEm = quando) else it },
+                    )
+                }
+            } catch (erro: ErroDaApi) {
+                _estado.update { it.copy(avisandoACaminho = null, erroACaminho = ErroDoACaminho(turno.turnoId, mensagemDeErroACaminho(erro))) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica (HTML de portal, campo omitido) não é ErroDaApi: nunca o corpo cru (RN15).
+                _estado.update { it.copy(avisandoACaminho = null, erroACaminho = ErroDoACaminho(turno.turnoId, TextosACaminho.ERRO_GENERICO)) }
+            }
+        }
+    }
+
     fun consumirFeedback() {
         _estado.update { it.copy(mensagemFeedback = null) }
     }
@@ -218,6 +250,15 @@ class MeusTurnosViewModel(
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível carregar seus turnos. Tente de novo em instantes."
+    }
+
+    /** `avisar_a_caminho`: `422 a_caminho_fora_da_janela`, `403` (conta suspensa vem em `details`) e sem rede têm texto próprio. */
+    private fun mensagemDeErroACaminho(erro: ErroDaApi): String = when {
+        erro.codigo == CodigoErroAPI.A_CAMINHO_FORA_DA_JANELA -> TextosACaminho.ERRO_FORA_DA_JANELA
+        erro.codigo == CodigoErroAPI.SEM_REDE -> TextosACaminho.ERRO_SEM_REDE
+        erro.codigo == CodigoErroAPI.CONTA_SUSPENSA ||
+            (erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "conta_suspensa") -> TextosACaminho.ERRO_CONTA_SUSPENSA
+        else -> TextosACaminho.ERRO_GENERICO
     }
 
     private fun mensagemDeErroCancelamento(erro: ErroDaApi): String = when (erro.codigo) {

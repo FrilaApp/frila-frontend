@@ -34,7 +34,12 @@ data class ItemTurno(
     val contraparteId: String? = null,
     /** L1-4: quando o check-out foi registrado (`Turno.checkout_em`); `null` enquanto não houve. */
     val checkoutEm: Instant? = null,
+    /** L2-1 (US14): quando o profissional avisou "Estou a caminho" (`Turno.a_caminho_em`); `null` enquanto não avisou. */
+    val aCaminhoEm: Instant? = null,
 )
+
+/** A recusa do "Estou a caminho" de um turno (L2-1). */
+data class ErroDoACaminho(val turnoId: String, val mensagem: String)
 
 /** Estado do diálogo RN12 enquanto o profissional decide e envia o cancelamento. */
 data class EstadoCancelamentoTurno(
@@ -76,6 +81,10 @@ data class EstadoMeusTurnos(
     val mensagemErro: String? = null,
     val cancelamento: EstadoCancelamentoTurno? = null,
     val mensagemFeedback: String? = null,
+    /** L2-1: o `turnoId` cujo "Estou a caminho" está em voo (um envio por vez); `null` sem envio. */
+    val avisandoACaminho: String? = null,
+    /** L2-1: a recusa do último "Estou a caminho", já em texto do Frila, com o turno a que se refere. */
+    val erroACaminho: ErroDoACaminho? = null,
 ) {
     /** Fatia do histórico já liberada para a UI (RF16: paginação progressiva de 10 em 10). */
     val historicoPaginado: List<ItemTurno>
