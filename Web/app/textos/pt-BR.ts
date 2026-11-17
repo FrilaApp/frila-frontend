@@ -4,6 +4,7 @@
  */
 import { contaDados } from "./conta-dados";
 import { contratante } from "./contratante";
+import { contratanteEscala } from "./contratante-escala";
 import { contratanteBusca } from "./contratante-busca";
 import { contratanteChamadas } from "./contratante-chamadas";
 import { contratanteEquipe } from "./contratante-equipe";
@@ -11,6 +12,7 @@ import { contratanteMembros } from "./contratante-membros";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { pwa } from "./pwa";
 import { relatorioTurnos } from "./relatorio-turnos";
 import { suporte } from "./suporte";
 import { suspensao } from "./suspensao";
@@ -30,6 +32,8 @@ export const textos = {
   profissional,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
+  // Escala de evento em lote do lado da casa (arquivo próprio).
+  contratanteEscala,
   // Busca de profissionais do lado da casa (arquivo próprio).
   contratanteBusca,
   // Chamadas enviadas pela casa (arquivo próprio).
@@ -42,6 +46,8 @@ export const textos = {
   relatorioTurnos,
   // Equipe de confiança do lado da casa (arquivo próprio).
   contratanteEquipe,
+  // Instalar na tela de início, navegador embutido e página sem conexão (arquivo próprio).
+  pwa,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",

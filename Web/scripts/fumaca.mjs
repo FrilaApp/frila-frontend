@@ -101,6 +101,26 @@ try {
   for (const caminho of ["/app/favicon.svg", "/app/apple-touch-icon-180.png", "/app/og-1200x630.png", ...new Set(icones.map((icone) => icone.src))]) {
     confere(`ativo de marca ${caminho}`, (await fetch(`${BASE}${caminho}`)).status === 200);
   }
+  const sw = await fetch(`${BASE}/app/sw.js`);
+  confere(
+    "o service worker responde em JavaScript e é conferido a cada visita",
+    sw.status === 200 && (sw.headers.get("content-type") ?? "").includes("javascript") && sw.headers.get("cache-control") === "no-cache",
+    `${sw.status} ${sw.headers.get("content-type")} ${sw.headers.get("cache-control")}`,
+  );
+  const semConexao = await fetch(`${BASE}/app/sem-conexao`);
+  const htmlSemConexao = await semConexao.text();
+  confere(
+    "a página sem conexão se basta (sem script, CSP fechada)",
+    semConexao.status === 200 && !htmlSemConexao.includes("<script") && (semConexao.headers.get("content-security-policy") ?? "").startsWith("default-src 'none'"),
+    String(semConexao.status),
+  );
+  const neutro = await fetch(`${BASE}/app/avisos/texto-neutro`);
+  const corpoNeutro = neutro.ok ? await neutro.json() : {};
+  confere("o texto neutro do push responde (o SW guarda ao instalar)", typeof corpoNeutro.titulo === "string" && typeof corpoNeutro.corpo === "string", String(neutro.status));
+  const semConferencia = await fetch(`${BASE}/app/avisos/vinculo`, { method: "POST", headers: { Origin: BASE } });
+  confere("não existe conferência de push no servidor", semConferencia.status === 404 || semConferencia.status === 405, String(semConferencia.status));
+  const instalar = await fetch(`${BASE}/app/instalar`);
+  confere("GET /app/instalar responde 200 e não vai para buscador", instalar.status === 200 && (await instalar.text()).includes('content="noindex"'));
   const fonte = /href="(\/app\/assets\/ProdigySans-Bold-[^"]+\.woff2)"/.exec(html)?.[1];
   confere("a fonte do título é pré-carregada e responde", Boolean(fonte) && (await fetch(`${BASE}${fonte}`)).status === 200, String(fonte));
   confere("a página aponta a imagem de compartilhamento em frilabr.com/app", html.includes('content="https://frilabr.com/app/og-1200x630.png"'));

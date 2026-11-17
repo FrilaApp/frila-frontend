@@ -3,3 +3,7 @@
 /app/assets/*
   Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
+# O service worker é conferido a cada visita, para a versão nova valer logo.
+/app/sw.js
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff

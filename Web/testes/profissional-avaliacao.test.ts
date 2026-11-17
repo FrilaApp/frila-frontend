@@ -36,6 +36,8 @@ describe("avaliar a casa (servidor)", () => {
       [recusa(422, "avaliacao_indisponivel", "sem_presenca_verificada"), "sem_presenca_verificada"],
       [recusa(409, "avaliacao_ja_registrada"), "ja_registrada"],
       [recusa(403, "sem_permissao"), "sem_permissao"],
+      // MENOR 1 do Lince no #859: a conta suspensa tem o seu texto, como no resto.
+      [recusa(403, "sem_permissao", "conta_suspensa"), "conta_suspensa"],
       [recusa(500, "x"), "indisponivel"],
     ];
     for (const [resposta, motivo] of casos) {
