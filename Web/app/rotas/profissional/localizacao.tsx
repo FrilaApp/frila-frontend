@@ -20,29 +20,37 @@ export function distanciaEmMetros(a: Ponto, b: Ponto): number {
   return Math.round(2 * raio * Math.asin(Math.sqrt(h)));
 }
 
-/** Lê a posição uma vez, com prazo. Qualquer falha devolve nulo (o servidor trata como "sem localização"). */
+/**
+ * Lê a posição uma vez. Prazo total de 10 s (o do navegador e o nosso são o mesmo): o que vier primeiro responde,
+ * uma vez só. Qualquer falha devolve nulo (o servidor trata como "sem localização").
+ */
 function lerDistanciaAte(destino: Ponto): Promise<number | null> {
   return new Promise((resolver) => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
       resolver(null);
       return;
     }
-    const desistir = setTimeout(() => resolver(null), PRAZO_DA_LOCALIZACAO_MS + 1000);
+    let respondeu = false;
+    const responder = (metros: number | null) => {
+      if (respondeu) return;
+      respondeu = true;
+      clearTimeout(desistir);
+      resolver(metros);
+    };
+    const desistir = setTimeout(() => responder(null), PRAZO_DA_LOCALIZACAO_MS);
     navigator.geolocation.getCurrentPosition(
-      (posicao) => {
-        clearTimeout(desistir);
-        resolver(distanciaEmMetros({ latitude: posicao.coords.latitude, longitude: posicao.coords.longitude }, destino));
-      },
-      () => {
-        clearTimeout(desistir);
-        resolver(null);
-      },
+      (posicao) => responder(distanciaEmMetros({ latitude: posicao.coords.latitude, longitude: posicao.coords.longitude }, destino)),
+      () => responder(null),
       { enableHighAccuracy: true, timeout: PRAZO_DA_LOCALIZACAO_MS, maximumAge: 0 },
     );
   });
 }
 
-/** Formulário de presença: no envio, mede a distância e preenche o campo `distancia_m`. */
+/**
+ * Formulário de presença: no envio, mede a distância e preenche `distancia_m`. Um envio por vez: enquanto lê ou envia,
+ * os botões ficam inertes e outro toque é ignorado (o envio nativo é sempre barrado). A distância é sempre a da
+ * leitura deste toque: o campo é zerado antes de ler, então nada de metros de uma leitura anterior.
+ */
 export function FormularioDePresenca({
   destino,
   textoLendo,
@@ -51,26 +59,31 @@ export function FormularioDePresenca({
 }: ComponentProps<typeof Form> & { destino: Ponto | null; textoLendo: string }) {
   const enviar = useSubmit();
   const campo = useRef<HTMLInputElement>(null);
-  const [lendo, setLendo] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
   return (
     <Form
       method="post"
       {...props}
       onSubmit={(evento) => {
-        if (!destino || lendo) return;
+        if (!destino) return;
         evento.preventDefault();
+        if (ocupado) return;
         const formulario = evento.currentTarget;
-        setLendo(true);
-        void lerDistanciaAte(destino).then((metros) => {
-          if (campo.current) campo.current.value = metros === null ? "" : String(metros);
-          setLendo(false);
-          void enviar(formulario);
-        });
+        if (campo.current) campo.current.value = "";
+        setOcupado(true);
+        void lerDistanciaAte(destino)
+          .then(async (metros) => {
+            if (campo.current) campo.current.value = metros === null ? "" : String(metros);
+            await enviar(formulario);
+          })
+          .finally(() => setOcupado(false));
       }}
     >
       <input ref={campo} type="hidden" name="distancia_m" defaultValue="" />
-      {lendo ? <p role="status">{textoLendo}</p> : null}
-      {children}
+      {ocupado ? <p role="status">{textoLendo}</p> : null}
+      <div inert={ocupado} className="contents">
+        {children}
+      </div>
     </Form>
   );
 }
