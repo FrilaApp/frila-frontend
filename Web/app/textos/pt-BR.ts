@@ -69,18 +69,7 @@ export const textos = {
   },
   inicio: {
     titulo: "Olá",
-    corpo: "A fundação da web do Frila está no ar.",
     tituloDaAba: "Frila",
-    ambiente: "Ambiente",
-    configuracao: "Configuração do app no servidor",
-    estadoDaConfiguracao: {
-      ok: "lida",
-      sem_configuracao: "ainda não existe para a web",
-      indisponivel: "servidor indisponível",
-      nao_configurado: "endereço do servidor não configurado neste ambiente",
-      chave_recusada: "a chave configurada neste ambiente foi recusada",
-    },
-    versaoMinima: "Versão mínima",
   },
   entrar: {
     tituloDaAba: "Entrar no Frila",
@@ -121,6 +110,7 @@ export const textos = {
     entrar: "Entrar",
     completarCadastro: "Completar cadastro",
     verVagas: "Ver vagas",
+    verPainel: "Painel da casa",
     termosMudaram: "Os Termos de Uso e a Política de Privacidade mudaram. Leia e aceite para continuar usando o Frila.",
     aceitarTermos: "Li e aceito",
     aceiteFalhou: "Não deu para registrar o aceite agora. Tente de novo em instantes.",
