@@ -55,9 +55,20 @@ class RegistradorDeDispositivo(
      * Tem prazo; falha de rede, do servidor ou do token vira só [registrarFalha] e nunca lança: o registro não trava
      * nem derruba a abertura nem a entrada, e tenta de novo na próxima abertura.
      */
-    fun registrarEmSegundoPlano(): Job = escopo.launch {
+    fun registrarEmSegundoPlano(): Job = emSegundoPlano { registrar() }
+
+    /**
+     * O token novo do FCM (`onNewToken`), com a mesma proteção de [registrarEmSegundoPlano]: o FCM chama logo depois
+     * de instalar, com ou sem rede, e um erro aqui derrubava o app. Sem sessão não chama (o servidor recusaria com 401);
+     * a próxima abertura com sessão registra o token.
+     */
+    fun registrarTokenNovoEmSegundoPlano(token: String): Job = emSegundoPlano {
+        if (armazenamentoDeSessao.obterSessao() != null) registrarComToken(token)
+    }
+
+    private fun emSegundoPlano(registro: suspend () -> Unit): Job = escopo.launch {
         try {
-            withTimeout(prazo) { registrar() }
+            withTimeout(prazo) { registro() }
         } catch (_: TimeoutCancellationException) {
             registrarFalha("registro do aparelho passou do prazo de ${prazo.inWholeSeconds} s")
         } catch (cancelado: CancellationException) {

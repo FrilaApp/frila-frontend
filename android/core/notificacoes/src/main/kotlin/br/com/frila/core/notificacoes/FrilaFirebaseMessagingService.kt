@@ -9,13 +9,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import br.com.frila.core.rede.ErroDaApi
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -32,18 +27,11 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
     private val registradorDeDispositivo: RegistradorDeDispositivo by inject()
     private val processadorDePush: ProcessadorDePush by inject()
 
-    private val escopo = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        escopo.launch {
-            try {
-                registradorDeDispositivo.registrarComToken(token)
-            } catch (_: ErroDaApi) {
-                // Registro de dispositivo não pode travar o app nem a entrega de outros pushes;
-                // falha aqui só significa tentar de novo na próxima abertura do app.
-            }
-        }
+        // Registro de dispositivo não pode travar nem derrubar o app (erro de rede incluso): o registrador pega tudo,
+        // só registra o motivo, e a próxima abertura com sessão tenta de novo.
+        registradorDeDispositivo.registrarTokenNovoEmSegundoPlano(token)
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
