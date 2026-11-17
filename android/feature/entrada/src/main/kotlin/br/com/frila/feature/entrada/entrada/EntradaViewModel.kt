@@ -51,14 +51,29 @@ class EntradaViewModel(
 
     fun ehEmailValido(email: String): Boolean = PADRAO_EMAIL.matches(email.trim())
 
+    /**
+     * A tela chama depois de navegar para o código. Sem consumir o sinal, voltar da tela do código
+     * recompunha a entrada com `otpSolicitado` ainda verdadeiro e reabria o código: não dava para
+     * trocar o e-mail.
+     */
+    fun aoNavegarParaCodigo() {
+        _estado.update { it.copy(otpSolicitado = false) }
+    }
+
+    /** O pedido em voo: um segundo toque não manda outro código. */
+    private var pedido: Job? = null
+
     fun solicitarCodigo(): Job? {
-        val email = _estado.value.email.trim()
+        pedido?.takeIf { it.isActive }?.let { return it }
+        // Minúsculas e sem espaços, como o iOS: o teclado costuma pôr a primeira letra em maiúscula.
+        val email = _estado.value.email.trim().lowercase()
 
         if (!ehEmailValido(email)) {
             _estado.update { it.copy(erro = "Informe um e-mail válido.") }
             return null
         }
 
+        _estado.update { it.copy(email = email) }
 
         if (DemonstracaoContas.ehContaDeDemonstracao(email)) {
             // Modo demo: não há OTP a solicitar, a tela de código chama entrarDemonstracao direto.
@@ -74,7 +89,7 @@ class EntradaViewModel(
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
             }
-        }
+        }.also { pedido = it }
     }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo.name) {
