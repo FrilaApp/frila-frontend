@@ -1,5 +1,6 @@
 package br.com.frila.app.desempenho
 
+import br.com.frila.app.RegistraActivityDeTeste
 import android.app.Activity
 import android.os.SystemClock
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -45,7 +46,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MedidorDeColdStartTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val compose = createComposeRule()
 
     @Before
