@@ -69,6 +69,9 @@ export default function Chamadas({ loaderData }: Route.ComponentProps) {
           {t.mais}
         </Link>
       ) : null}
+      <Link to="/preferencias" className={classeDoLink}>
+        {textos.profissional.preferencias.link}
+      </Link>
       <Link to="/" className={classeDoLink}>
         {tv.voltarAoInicio}
       </Link>

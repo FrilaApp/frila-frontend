@@ -19,6 +19,7 @@ export default [
   route("chamadas/:chamadaId", "rotas/profissional/chamada.tsx"),
   route("denunciar", "rotas/profissional/denunciar.tsx"),
   route("bloqueados", "rotas/profissional/bloqueados.tsx"),
+  route("preferencias", "rotas/profissional/preferencias.tsx"),
 
   // Lado do contratante
 ] satisfies RouteConfig;

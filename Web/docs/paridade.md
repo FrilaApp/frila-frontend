@@ -91,7 +91,7 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | 4.11b | Perfil: funções, ponto base e disponibilidade | `atualizar_perfil_profissional` | **fora da v1 da web, só no app** (decisão do O2, 17/11/2026): na web, o ponto base viria de um endereço digitado e geocodificado. Isso mandaria o endereço (às vezes a casa da pessoa) a um terceiro novo, o que pede mudar a Política e escolher o fornecedor | D |
 | 4.12 | Foto de perfil e mídias | `solicitar_upload_midia`, `confirmar_upload_midia`, `minhas_midias`, `remover_midia`, `pedir_nova_analise_midia` | Storage aceitar a origem da web | 2P |
 | 4.13 | Verificação de identidade | `minha_identidade_status`, `solicitar_upload_verificacao`, `confirmar_envio_verificacao` | selo desligado até o consentimento ficar no servidor | 5 |
-| 4.14 | Sair da equipe de um contratante | `sair_da_equipe` | | 2P |
+| 4.14 | Sair da equipe de um contratante | `sair_da_equipe` | **fora da v1 da web** (decisão do O2, 17/11/2026): o iOS também não tem; entra depois nos dois apps, junto | D |
 | 4.15 | Denunciar e bloquear | `denunciar`, `bloquear`, `listar_bloqueios`, `desbloquear` | | 2P |
 | 4.16 | Avisar atraso com um toque | — | decisão de produto e contrato | D |
 | 4.17 | Confirmar presença dias antes do turno | — | decisão de produto e contrato | D |
