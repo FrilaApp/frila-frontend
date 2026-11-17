@@ -229,6 +229,46 @@ class TelaPerfilTest {
         }
     }
 
+    /**
+     * Conta de casa não tem perfil profissional (404): a tela cai em erro e ficava sem "Sair da conta" e sem
+     * "Excluir conta" (visto no emulador em 16/11). Os dois têm de aparecer e seguir o mesmo caminho do perfil carregado.
+     */
+    @Test
+    fun erroMostraSairEExcluirContaEChamaOsMesmosCaminhos() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+            var saiu = false
+            var abriuExclusao = false
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = { saiu = true },
+                        aoAbrirExclusaoDeConta = { abriuExclusao = true },
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
+            rule.waitForIdle()
+
+            assertTrue(saiu)
+            assertTrue(abriuExclusao)
+        }
+    }
+
     @Test
     fun erroMantemAtalhosDeContratanteQuandoPermitido() {
         runBlocking {

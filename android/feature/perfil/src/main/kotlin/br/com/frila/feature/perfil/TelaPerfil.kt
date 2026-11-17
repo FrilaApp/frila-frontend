@@ -234,6 +234,12 @@ fun TelaPerfil(
                 aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
                 // A casa não tem `meu_perfil_profissional`: o perfil cai em erro, mas a busca precisa continuar acessível.
                 aoEncontrarProfissional = aoEncontrarProfissional.takeIf { manterAtalhosDeContratanteNoErro },
+                // Sair e excluir a conta não dependem do perfil ter carregado: mesmos caminhos do perfil carregado.
+                aoDeslogar = {
+                    viewModel.aoDeslogar()
+                    aoDeslogar()
+                },
+                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
             )
             StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                 fotoLocalPath = estado.fotoLocalPath,
@@ -1222,9 +1228,16 @@ private fun Erro(
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
+    aoDeslogar: () -> Unit = {},
+    aoAbrirExclusao: () -> Unit = {},
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(paddingValues).padding(FrilaEspacamento.grande),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            // Com os atalhos da casa mais sair e excluir, a coluna passa da altura da tela em fonte grande.
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.grande),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
     ) {
@@ -1267,5 +1280,16 @@ private fun Erro(
                 modifier = Modifier.fillMaxWidth().testTag("perfil-encontrar-profissional"),
             )
         }
+        // Conta de casa cai sempre aqui (não tem perfil profissional): sem estes dois, não saía nem excluía a conta.
+        BotaoSecundario(
+            texto = "Sair da conta",
+            aoClicar = aoDeslogar,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        BotaoDestrutivo(
+            texto = "Excluir conta",
+            aoClicar = aoAbrirExclusao,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
