@@ -2,7 +2,19 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, 
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import fonteDoTitulo from "./marca/fontes/ProdigySans-Bold.woff2?url";
 import { textos } from "./textos/pt-BR";
+
+// Ativos de marca (app/marca/LEIAME.md). Os arquivos ficam em public/app e são servidos em /app.
+const IMAGEM_DE_COMPARTILHAMENTO = "https://frilabr.com/app/og-1200x630.png";
+
+export const links: Route.LinksFunction = () => [
+  { rel: "icon", href: "/app/favicon.svg", type: "image/svg+xml" },
+  { rel: "icon", href: "/app/favicon-32.png", sizes: "32x32", type: "image/png" },
+  { rel: "apple-touch-icon", href: "/app/apple-touch-icon-180.png" },
+  { rel: "manifest", href: "/app/site.webmanifest" },
+  { rel: "preload", href: fonteDoTitulo, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +23,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#F46700" />
+        <meta property="og:site_name" content={textos.marca} />
+        <meta property="og:image" content={IMAGEM_DE_COMPARTILHAMENTO} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={textos.imagemDeCompartilhamento} />
+        <meta name="twitter:card" content="summary_large_image" />
         <Meta />
         <Links />
       </head>
@@ -39,9 +57,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 p-6">
       <title>{titulo}</title>
       <h1 className="font-titulo text-3xl font-bold">{titulo}</h1>
-      <p className="text-texto-secundario">{corpo}</p>
+      <p className="text-tinta-suave">{corpo}</p>
       <p>
-        <a href={inicio} className="font-semibold text-acao underline underline-offset-4">
+        <a href={inicio} className="font-semibold underline underline-offset-4">
           {textos.erro.voltarAoInicio}
         </a>
       </p>
