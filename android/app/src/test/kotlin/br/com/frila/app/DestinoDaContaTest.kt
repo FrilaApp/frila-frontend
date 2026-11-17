@@ -226,4 +226,47 @@ class DestinoDaContaTest {
 
         assertNull(guardado.obter())
     }
+
+    // ───── C0-2b: 401 com a sessão ainda guardada é falha passageira da renovação, não sessão vencida ─────
+
+    @Test
+    fun `401 com a sessao ainda guardada usa o destino guardado e nao o apaga`() = runTest {
+        val guardado = GuardadoFalso(DestinoDaConta.Profissional)
+        val resultado = AvaliadorDeDestino(
+            { throw erro(CodigoErroAPI.NAO_AUTENTICADO) },
+            guardado,
+            sessaoGuardada = { true },
+        ).avaliar()
+
+        assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional), resultado)
+        assertEquals(DestinoDaConta.Profissional, guardado.valor)
+    }
+
+    @Test
+    fun `401 com a sessao guardada e sem destino guardado diz sem conexao, nao sessao vencida`() = runTest {
+        val resultado = AvaliadorDeDestino(
+            { throw erro(CodigoErroAPI.NAO_AUTENTICADO) },
+            GuardadoFalso(),
+            sessaoGuardada = { true },
+        ).avaliar()
+
+        assertEquals(ResultadoDaAbertura.SemConexao, resultado)
+    }
+
+    @Test
+    fun `avaliador ligado a sessao do aparelho - 401 so vira sessao vencida depois que a sessao some`() = runTest {
+        val sessao = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao(accessToken = "a", refreshToken = "r", tokenType = "bearer", expiresIn = 3_600))
+        }
+        val avaliador = avaliadorDeDestinoDaSessao(
+            sessao = sessao,
+            descobrir = { throw erro(CodigoErroAPI.NAO_AUTENTICADO) },
+            guardado = GuardadoFalso(),
+        )
+
+        assertEquals(ResultadoDaAbertura.SemConexao, avaliador.avaliar())
+
+        sessao.limparSessao()
+        assertEquals(ResultadoDaAbertura.SessaoVencida, avaliador.avaliar())
+    }
 }

@@ -76,7 +76,11 @@ sealed interface ResultadoDaAbertura {
     /** Sem rede (ou prazo vencido) e nada guardado: a tela diz que está sem conexão. */
     data object SemConexao : ResultadoDaAbertura
 
-    /** `401`: a sessão venceu (a renovação já a limpou). Repetir só repete o 401; o caminho é a Entrada. */
+    /**
+     * `401` com a sessão já apagada: o Auth recusou o token e a renovação a limpou. Repetir só repete o 401;
+     * o caminho é a Entrada. Um `401` com a sessão ainda guardada NÃO é isto: é falha passageira da renovação
+     * (rede, 5xx) e a abertura trata como sem conexão.
+     */
     data object SessaoVencida : ResultadoDaAbertura
 
     /** Erro do servidor ou resposta ilegível. */
@@ -98,6 +102,11 @@ class AvaliadorDeDestino(
     private val descobrir: suspend () -> DestinoDaConta,
     private val guardado: DestinoGuardado,
     private val prazo: Duration = PRAZO_PADRAO,
+    /**
+     * Diz se ainda há sessão guardada no aparelho. A renovação do token só apaga a sessão quando o Auth a
+     * recusa; se ela continua guardada depois de um `401`, a renovação falhou por motivo passageiro.
+     */
+    private val sessaoGuardada: () -> Boolean = { false },
 ) {
     suspend fun avaliar(): ResultadoDaAbertura = try {
         val destino = withTimeout(prazo) { descobrir() }
@@ -110,10 +119,14 @@ class AvaliadorDeDestino(
     } catch (erro: ErroDaApi) {
         when (erro.codigo) {
             CodigoErroAPI.SEM_REDE -> semConexao()
-            CodigoErroAPI.NAO_AUTENTICADO -> {
-                guardado.limpar()
-                ResultadoDaAbertura.SessaoVencida
-            }
+            CodigoErroAPI.NAO_AUTENTICADO ->
+                if (sessaoGuardada()) {
+                    // A sessão não foi recusada: a renovação falhou por rede ou servidor. Não é hora de deslogar.
+                    semConexao()
+                } else {
+                    guardado.limpar()
+                    ResultadoDaAbertura.SessaoVencida
+                }
             else -> ResultadoDaAbertura.Falha
         }
     } catch (_: Exception) {
