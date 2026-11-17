@@ -56,6 +56,8 @@ const desligadas = htmlDasChamadas.includes("ainda não estão ligadas na web");
 diz("Chamadas abre (a lista, ou o aviso de recurso desligado)", chamadas.status === 200 && (htmlDasChamadas.includes("Casas que chamaram você") || desligadas), desligadas ? "(chamada_direta desligada no dev)" : "");
 const chamadaAlheia = await pedir("/app/chamadas/00000000-0000-4000-8000-000000000000");
 diz("chamada que não é da pessoa não abre", chamadaAlheia.status === 404 || desligadas, `(${chamadaAlheia.status})`);
+const bloqueados = await pedir("/app/bloqueados");
+diz("Casas bloqueadas abre", bloqueados.status === 200 && (await bloqueados.text()).includes("Casas bloqueadas"));
 const turnoAlheio = await pedir("/app/turnos/00000000-0000-4000-8000-000000000000");
 diz("turno que não é da pessoa responde 404", turnoAlheio.status === 404);
 
@@ -73,6 +75,14 @@ if (ids.length > 0) {
   const htmlDaVaga = await vaga.text();
   diz("o detalhe da primeira vaga abre", vaga.status === 200 && htmlDaVaga.includes("Quem recebe no local"));
   diz("o token não aparece no detalhe", !htmlDaVaga.includes(acesso.slice(0, 40)));
+  // Denunciar e bloquear: só abre as telas. Nada é enviado (uma denúncia abriria ocorrência real; bloquear a casa
+  // de demonstração esconderia as vagas dela).
+  const linkDaDenuncia = /href="(\/app\/denunciar\?alvo=[0-9a-f-]{36})"/.exec(htmlDaVaga)?.[1];
+  diz("o detalhe da vaga leva a denunciar ou bloquear a casa", Boolean(linkDaDenuncia));
+  if (linkDaDenuncia) {
+    const denuncia = await (await pedir(linkDaDenuncia.replace(/^\/app/, "/app"))).text();
+    diz("a tela de denúncia abre com os atalhos 190 e 180 e a chave", denuncia.includes('href="tel:190"') && denuncia.includes('href="tel:180"') && /name="chave" value="[0-9a-f-]{36}"/.test(denuncia));
+  }
 }
 const inexistente = await pedir("/app/vagas/00000000-0000-4000-8000-000000000000");
 diz("vaga que não existe responde 404", inexistente.status === 404 && (await inexistente.text()).includes("Vaga não encontrada"));

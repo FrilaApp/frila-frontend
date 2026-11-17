@@ -30,6 +30,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       id: c.id,
       funcao: c.funcao.nome,
       casa: c.outra_parte.nome,
+      casaId: c.outra_parte.id,
       periodo: formatarPeriodo(c.inicio_em, c.fim_em),
       valor: formatarValor(c.valor_centavos),
       regiao: c.regiao_administrativa,
@@ -151,6 +152,11 @@ export default function DetalheDaChamada({ loaderData, actionData }: Route.Compo
           ) : null}
         </>
       )}
+      {chamada ? (
+        <Link to={`/denunciar?alvo=${chamada.casaId}`} className={classeDoLink}>
+          {textos.profissional.moderacao.link}
+        </Link>
+      ) : null}
       <Link to="/chamadas" className={classeDoLink}>
         {t.voltar}
       </Link>

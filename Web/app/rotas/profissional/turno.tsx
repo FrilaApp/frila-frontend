@@ -33,6 +33,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       posicaoId: turno.posicao_id,
       funcao: turno.vaga.funcao,
       casa: turno.contraparte.nome,
+      casaId: turno.contraparte.id,
       periodo: formatarPeriodo(turno.vaga.inicio_em, turno.vaga.fim_em),
       local: `${turno.vaga.local} · ${turno.vaga.regiao_administrativa}`,
       valor: formatarValor(turno.valor_acordado_centavos),
@@ -270,6 +271,11 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
           ) : null}
         </>
       )}
+      {turno ? (
+        <Link to={`/denunciar?alvo=${turno.casaId}&turno=${turno.id}`} className={classeDoLink}>
+          {textos.profissional.moderacao.link}
+        </Link>
+      ) : null}
       <Link to="/turnos" className={classeDoLink}>
         {t.voltar}
       </Link>
