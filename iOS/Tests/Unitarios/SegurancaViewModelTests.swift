@@ -70,9 +70,26 @@ struct SegurancaViewModelTests {
         #expect(api.denuncias.count == 1)
     }
 
+    @Test("A denúncia feita na tela da chamada leva o chamada_id; a de outra tela segue sem ele (0.2.71, A-001)")
+    func denunciaDaTelaDaChamada() async throws {
+        let api = ApiDeSeguranca()
+        let chamadaID = UUID()
+        let daChamada = SegurancaViewModel(perfil: try await perfil(api), chamadaID: chamadaID, api: api, bloqueios: BloqueiosDaSessao())
+        daChamada.relato = "Relato com informação suficiente."
+        await daChamada.denunciar()
+        let deOutraTela = SegurancaViewModel(perfil: try await perfil(api), api: api, bloqueios: BloqueiosDaSessao())
+        deOutraTela.relato = "Relato com informação suficiente."
+        await deOutraTela.denunciar()
+
+        #expect(api.denuncias.map(\.chamadaID) == [chamadaID, nil])
+        #expect(daChamada.protocolo != nil && deOutraTela.protocolo != nil)
+    }
+
     @Test("422 e sem rede preservam formulário e não anunciam sucesso", arguments: [
         (ErroDaApi(codigo: .campoInvalido, detalhes: "relato"), TextosDaSeguranca.relatoMinimo),
         (ErroDaApi(codigo: .campoInvalido, detalhes: "alvo_id"), TextosDaSeguranca.dadosInvalidos),
+        // 0.2.71: chamada que não envolve as duas partes (A-001).
+        (ErroDaApi(codigo: .campoInvalido, detalhes: "chamada_id"), TextosDaSeguranca.dadosInvalidos),
         (ErroDaApi(codigo: .semRede), TextosDaSeguranca.semRede)
     ])
     func falhas(_ caso: (falha: ErroDaApi, mensagemEsperada: String)) async throws {
