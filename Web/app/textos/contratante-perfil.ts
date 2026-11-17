@@ -29,4 +29,6 @@ export const contratantePerfil = {
   falhou: "Não deu para carregar o perfil agora. Tente de novo em instantes.",
   voltar: "Voltar",
   verPerfil: "Ver perfil",
+  // "{nome}" é trocado pelo nome que o servidor mandou.
+  fotoDe: "Foto de {nome}",
 } as const;

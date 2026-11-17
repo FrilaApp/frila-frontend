@@ -4,6 +4,7 @@ import { ambienteDoSupabase } from "./ambiente";
 import { criarApi } from "./api";
 import { criarAuth } from "./auth";
 import { criarFuncoesDoUsuario } from "./conta/dados";
+import { fotoDoPerfil } from "./contratante/foto-do-perfil";
 
 /** Cliente do Auth com as variáveis deste Worker. `null` quando o ambiente está sem o endereço do Supabase. */
 export function authDesteAmbiente() {
@@ -21,6 +22,12 @@ export function apiDoUsuario(acesso: string) {
 export function funcoesDoUsuario(acesso: string) {
   const ambiente = ambienteDoSupabase(env);
   return ambiente ? criarFuncoesDoUsuario(ambiente, acesso) : null;
+}
+
+/** A miniatura do perfil do profissional, como `data:` (o Worker busca; o token do link não vai ao navegador). */
+export async function fotoDoProfissional(acesso: string, profissionalId: string): Promise<string | null> {
+  const ambiente = ambienteDoSupabase(env);
+  return ambiente ? fotoDoPerfil(ambiente, acesso, profissionalId) : null;
 }
 
 /** E-mails da conta de demonstração aceitos neste ambiente (só o de dev declara; em produção a lista é vazia). */
