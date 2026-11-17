@@ -6,11 +6,13 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.AceiteDeTermosDto
 import br.com.frila.core.rede.BuscarProfissionaisDto
 import br.com.frila.core.rede.CartaoProfissionalDto
+import br.com.frila.core.rede.ChamadaDetalheDto
 import br.com.frila.core.rede.ChamadaDto
 import br.com.frila.core.rede.ChamarProfissionalDto
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.MeuEstabelecimentoDto
+import br.com.frila.core.rede.PaginaDeChamadasDto
 import br.com.frila.core.rede.PaginaDeProfissionaisDto
 import br.com.frila.core.rede.RegiaoAdministrativaDto
 import java.time.Instant
@@ -73,7 +75,36 @@ sealed interface ResultadoDaChamadaDaBusca {
 
     /** O pedido que leva o trabalho terminou incerto: este nem saiu, para não criar outra vaga. Tente de novo. */
     data object NaoEnviada : ResultadoDaChamadaDaBusca
+
+    /**
+     * 0.2.95: a casa já tem o trabalho aberto numa vaga com valor ou inclusos diferentes dos digitados. Não sai até
+     * `confirmarTermosDaVagaAberta`; aí vai pelo `vaga_id` dela, com os termos dela.
+     */
+    data class PedeConfirmacaoDosTermos(val termos: TermosDaVagaAberta) : ResultadoDaChamadaDaBusca
 }
+
+/**
+ * Os termos da vaga direta que o `409 trabalho_ja_aberto` apontou (0.2.95): o valor vem do item `aberta` de
+ * `minhas_chamadas` e os inclusos do `detalhe_chamada` dele. A chamada que entra nessa vaga vai com estes termos.
+ */
+data class TermosDaVagaAberta(
+    val vagaId: String,
+    val valorCentavos: Long,
+    val incluiRefeicao: Boolean,
+    val incluiTransporte: Boolean,
+    val exigeMaterialProprio: Boolean,
+)
+
+/** A vaga aberta tem termos diferentes: o que a confirmação da casa precisa para mandar quem ficou esperando. */
+private data class ConfirmacaoDosTermos(
+    val termos: TermosDaVagaAberta,
+    val chaveDoTrabalho: ChaveDoTrabalho,
+    val trabalho: TrabalhoDaChamada,
+    val recado: String?,
+)
+
+/** Lançada no envio quando os termos da vaga aberta não batem com os digitados (0.2.95). */
+private class TermosDiferentesDaVagaAberta(val termos: TermosDaVagaAberta) : Exception()
 
 data class EstadoBusca(
     // Filtros: o serviço é obrigatório; região e horário são opcionais.
@@ -101,6 +132,8 @@ data class EstadoBusca(
     val mostrarJ7: Boolean = false,
     /** Os filtros da última busca que deu certo; o "publicar para todos" e o "carregar mais" partem deles. */
     internal val filtroDaBusca: RascunhoDeVagaDaBusca? = null,
+    /** 0.2.95: os termos da vaga já aberta que a casa precisa confirmar; enquanto houver, nada do trabalho sai. */
+    val termosParaConfirmar: TermosDaVagaAberta? = null,
 ) {
     val horarioValido: Boolean get() = horario?.valido ?: true
     /** Bloqueada com envio pendente: uma nova busca esconderia quem pode já ter chamada criada (dinheiro). */
@@ -112,7 +145,8 @@ data class EstadoBusca(
      * levou o trabalho pode ter criado a vaga, e travá-lo por causa da lista deixaria a casa sem como resolver.
      */
     val podeChamar: Boolean
-        get() = selecionados.isNotEmpty() && !enviando && (estado == EstadoDaBusca.Resultados || temEnvioPendente)
+        get() = selecionados.isNotEmpty() && !enviando && termosParaConfirmar == null &&
+            (estado == EstadoDaBusca.Resultados || temEnvioPendente)
     fun estaSelecionado(id: String): Boolean = id in selecionados
 
     /** Há resultado incerto ou que nem saiu: o pedido pode ter criado a vaga. Só o reenvio resolve (mesma chave). */
@@ -148,6 +182,12 @@ class BuscaDeProfissionaisViewModel(
     private val chamarProfissional: suspend (ChamarProfissionalDto) -> ChamadaDto,
     /** `ServicoChamadaDireta.aceitarTermos` (0.2.90). Sem ela, o aceite não sai e a busca fica bloqueada. */
     private val aceitarTermos: (suspend (termosVersao: String) -> AceiteDeTermosDto)? = null,
+    /**
+     * `ServicoChamadaDireta.minhasChamadas` e `detalheChamada` (0.2.95): os termos da vaga do `409 trabalho_ja_aberto`.
+     * Sem elas, a leitura falha e o 409 vira o erro genérico, sem repetir.
+     */
+    private val minhasChamadas: (suspend (estado: String) -> PaginaDeChamadasDto)? = null,
+    private val detalheChamada: (suspend (chamadaId: String) -> ChamadaDetalheDto)? = null,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     private val prazoMs: Long = ChamadaDiretaViewModel.PRAZO_PADRAO_MS,
     /** `ServicoVagas.listarFuncoes`, `ServicoDeRegioes.regioesAtivas` e `ServicoMembros.meuEstabelecimento`. */
@@ -183,6 +223,9 @@ class BuscaDeProfissionaisViewModel(
 
     /** O último trabalho e recado enviados: o reenvio e o J7 usam estes, mesmo com a folha fechada e reaberta. */
     private var ultimoEnvio: Pair<TrabalhoDaChamada, String?>? = null
+
+    /** 0.2.95: a vaga aberta do trabalho tem termos diferentes dos digitados. Nada do trabalho sai até a casa confirmar. */
+    private var confirmacaoDosTermos: ConfirmacaoDosTermos? = null
 
     // --- Catálogos ---------------------------------------------------------------------------------
 
@@ -273,6 +316,7 @@ class BuscaDeProfissionaisViewModel(
                 return
             }
             recursoConfirmado = true
+            if (!preservarEnvio) confirmacaoDosTermos = null
             val itens = semRepetidos(pagina.itens, jaTem = emptySet())
             proximoCursor = cursorSeguinte(pagina, total = itens.size)
             _estado.update {
@@ -293,6 +337,7 @@ class BuscaDeProfissionaisViewModel(
                         resultadosDaChamada = emptyMap(),
                         mostrarJ7 = false,
                         filtroDaBusca = filtro,
+                        termosParaConfirmar = null,
                     )
                 }
             }
@@ -412,10 +457,11 @@ class BuscaDeProfissionaisViewModel(
 
     private fun limparResultados(novo: EstadoDaBusca) {
         proximoCursor = null
+        confirmacaoDosTermos = null
         _estado.update {
             it.copy(
                 estado = novo, resultados = emptyList(), temMais = false, selecionados = emptyList(),
-                carregandoMais = false, resultadosDaChamada = emptyMap(), mostrarJ7 = false,
+                carregandoMais = false, resultadosDaChamada = emptyMap(), mostrarJ7 = false, termosParaConfirmar = null,
             )
         }
     }
@@ -521,11 +567,17 @@ class BuscaDeProfissionaisViewModel(
                 // O último pedido que saiu: depois do `409 trabalho_ja_aberto`, é o do `vaga_id`, que não abre vaga.
                 var enviado = pedido
                 var incerto = false
+                var pedeTermos: TermosDaVagaAberta? = null
                 val resultado = try {
                     val chamada = try {
                         withTimeout(prazoMs) { chamarProfissional(pedido) }
                     } catch (erro: ErroDaApi) {
-                        val pelaVaga = pedidoPelaVagaAberta(erro, pedido, chaveDoTrabalho) ?: throw erro
+                        val vagaAberta = vagaDoTrabalhoAberto(erro) ?: throw erro
+                        // 0.2.95: a chamada só entra na vaga aberta, com os termos dela. A leitura que falha segue a
+                        // recusa (erro genérico, sem repetir); termos diferentes esperam a confirmação da casa.
+                        val termos = lerTermos(vagaAberta) ?: throw erro
+                        if (!termos.batemCom(trabalho)) throw TermosDiferentesDaVagaAberta(termos)
+                        val pelaVaga = pedidoPelaVagaAberta(vagaAberta, pedido, chaveDoTrabalho)
                         enviado = pelaVaga
                         withTimeout(prazoMs) { chamarProfissional(pelaVaga) }
                     }
@@ -545,11 +597,27 @@ class BuscaDeProfissionaisViewModel(
                             ResultadoDaChamadaDaBusca.Erro(mensagemDaChamada(erro), incerto = incerto)
                         }
                     }
+                } catch (diferentes: TermosDiferentesDaVagaAberta) {
+                    // O 409 não gastou a chave nem criou nada: a confirmação manda este com chave nova, pelo vaga_id.
+                    pedeTermos = diferentes.termos
+                    tentativas.remove(id to chaveDoTrabalho)
+                    ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(diferentes.termos)
                 } catch (_: Exception) {
                     incerto = true
                     ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true)
                 }
                 _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + (id to resultado)) }
+                val termos = pedeTermos
+                if (termos != null) {
+                    // Ninguém do trabalho sai antes de a casa confirmar: os próximos também esperam (quem espera a
+                    // confirmação J7 continua esperando).
+                    confirmacaoDosTermos = ConfirmacaoDosTermos(termos, chaveDoTrabalho, trabalho, recado)
+                    val esperando = alvos.drop(posicao + 1)
+                        .filter { _estado.value.resultadosDaChamada[it] != ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia }
+                        .associateWith { ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos) }
+                    _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + esperando, termosParaConfirmar = termos) }
+                    break
+                }
                 // O pedido que leva o trabalho (ainda sem vaga) ficou incerto: a vaga pode ter sido criada e a resposta se
                 // perdido. Promover o próximo criaria outra vaga. Para aqui; o reenvio repete a chave deste, o servidor
                 // devolve a chamada já criada (com o vaga_id) e só então os outros vão pelo vaga_id.
@@ -570,17 +638,16 @@ class BuscaDeProfissionaisViewModel(
     }
 
     /**
-     * 0.2.95: `409 trabalho_ja_aberto` diz que a casa já tem este trabalho aberto numa vaga direta, e nada foi criado. O
-     * `vaga_id` de `details` passa a ser a vaga do trabalho (os próximos entram direto nela), e volta o pedido novo do mesmo
-     * profissional por ele, com chave nova, como a 2ª e a 3ª chamadas, guardado no lugar do recusado. Uma vez só por envio:
-     * se o pedido pelo `vaga_id` também for recusado, a recusa segue. Sem `vaga_id` em `details` (ou outro erro), `null`.
+     * 0.2.95: `409 trabalho_ja_aberto` diz que a casa já tem este trabalho aberto numa vaga direta, e nada foi criado. Com os
+     * termos dela iguais aos digitados, [vagaAberta] passa a ser a vaga do trabalho (os próximos entram direto nela), e volta
+     * o pedido novo do mesmo profissional por ela, com chave nova, como a 2ª e a 3ª chamadas, guardado no lugar do recusado.
+     * Uma vez só por envio: se o pedido pelo `vaga_id` também for recusado, a recusa segue.
      */
     private fun pedidoPelaVagaAberta(
-        erro: ErroDaApi,
+        vagaAberta: String,
         recusado: ChamarProfissionalDto,
         chaveDoTrabalho: ChaveDoTrabalho,
-    ): ChamarProfissionalDto? {
-        val vagaAberta = vagaDoTrabalhoAberto(erro) ?: return null
+    ): ChamarProfissionalDto {
         vagasPorTrabalho[chaveDoTrabalho] = vagaAberta
         val pelaVaga = ChamarProfissionalDto(
             chave = novaChave(),
@@ -593,6 +660,61 @@ class BuscaDeProfissionaisViewModel(
         tentativas[recusado.profissionalId to chaveDoTrabalho] = pelaVaga
         return pelaVaga
     }
+
+    /**
+     * Os termos da vaga aberta como a casa os lê (0.2.95, e não por `detalhe_vaga`): o valor no item `aberta` de
+     * `minhas_chamadas` com esse `vaga_id` (o trabalho aberto sempre tem um, e a casa tem no máximo 10 abertas, RN34) e os
+     * inclusos no `detalhe_chamada` dele. O mesmo prazo das outras chamadas; sem as leituras, sem o item, com erro ou com o
+     * prazo estourado, `null`.
+     */
+    private suspend fun lerTermos(vagaId: String): TermosDaVagaAberta? {
+        val lerChamadas = minhasChamadas ?: return null
+        val lerDetalhe = detalheChamada ?: return null
+        return try {
+            withTimeout(prazoMs) {
+                val chamada = lerChamadas("aberta").itens.firstOrNull { it.vagaId == vagaId } ?: return@withTimeout null
+                val detalhe = lerDetalhe(chamada.id)
+                TermosDaVagaAberta(vagaId, chamada.valorCentavos, detalhe.incluiRefeicao, detalhe.incluiTransporte,
+                                   detalhe.exigeMaterialProprio)
+            }
+        } catch (erro: CancellationException) {
+            if (erro !is TimeoutCancellationException) throw erro
+            null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * A casa confirmou os termos da vaga aberta (0.2.95): ela vira a vaga do trabalho, e quem esperava sai por ela, cada um
+     * num pedido novo com chave nova, com os termos dela.
+     */
+    fun confirmarTermosDaVagaAberta(): Job {
+        val pendente = confirmacaoDosTermos
+        if (pendente == null || _estado.value.enviando) return escopoDeTrabalho.launch { }
+        confirmacaoDosTermos = null
+        vagasPorTrabalho[pendente.chaveDoTrabalho] = pendente.termos.vagaId
+        soltarQuemEsperava(pendente.termos)
+        return chamar(pendente.trabalho, pendente.recado)
+    }
+
+    /** A casa não quis os termos da vaga aberta: nada sai, e quem esperava volta a ficar sem resultado. */
+    fun cancelarTermosDaVagaAberta() {
+        val pendente = confirmacaoDosTermos ?: return
+        confirmacaoDosTermos = null
+        soltarQuemEsperava(pendente.termos)
+    }
+
+    private fun soltarQuemEsperava(termos: TermosDaVagaAberta) {
+        val esperando = ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)
+        _estado.update { tela ->
+            tela.copy(termosParaConfirmar = null, resultadosDaChamada = tela.resultadosDaChamada.filterValues { it != esperando })
+        }
+    }
+
+    private fun TermosDaVagaAberta.batemCom(trabalho: TrabalhoDaChamada) =
+        valorCentavos == trabalho.valorCentavos && incluiRefeicao == trabalho.incluiRefeicao &&
+            incluiTransporte == trabalho.incluiTransporte && exigeMaterialProprio == trabalho.exigeMaterialProprio
 
     /** "Tentar de novo": repete o último envio (mesmo trabalho e recado) com a chave de cada pedido guardado. */
     fun reenviar(): Job = ultimoEnvio?.let { chamar(it.first, it.second) } ?: escopoDeTrabalho.launch { }

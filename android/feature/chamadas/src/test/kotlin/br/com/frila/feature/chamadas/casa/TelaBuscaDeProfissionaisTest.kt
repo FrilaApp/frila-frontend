@@ -95,6 +95,8 @@ class TelaBuscaDeProfissionaisTest {
         val fotosPedidas = mutableListOf<String>()
         var abriuTermos = 0
         var aceitou = 0
+        var confirmouTermosDaVaga = 0
+        var cancelouTermosDaVaga = 0
     }
 
     private val chamadas = Chamadas()
@@ -126,6 +128,8 @@ class TelaBuscaDeProfissionaisTest {
                         chamadas.fotosPedidas += url
                         if (url.contains("excecao")) error("404") else if (url.contains("quebrada")) null else Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888).asImageBitmap()
                     },
+                    aoConfirmarTermosDaVaga = { chamadas.confirmouTermosDaVaga++ },
+                    aoCancelarTermosDaVaga = { chamadas.cancelouTermosDaVaga++ },
                 )
             }
         }
@@ -421,6 +425,27 @@ class TelaBuscaDeProfissionaisTest {
         rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").assertExists()
         assertTrue(chamadas.confirmouJ7 == 1)
+    }
+
+    @Test
+    fun folhaComTermosDaVagaAbertaConfirmaCancelaEFecharValeCancelar() {
+        abrirFolha(comResultados(selecionados = listOf("p1", "p2")))
+        val termos = TermosDaVagaAberta("v-aberta", 15000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = true)
+        val esperando = ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)
+        estado = comResultados(selecionados = listOf("p1", "p2")) {
+            it.copy(resultadosDaChamada = mapOf("p1" to esperando, "p2" to esperando), termosParaConfirmar = termos)
+        }
+
+        rule.onNodeWithTag("folha-termos-da-vaga").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().performClick()
+        assertEquals(1, chamadas.confirmouTermosDaVaga)
+        rule.onNodeWithTag("folha-termos-cancelar").performScrollTo().performClick()
+        assertEquals(1, chamadas.cancelouTermosDaVaga)
+
+        // Fechar com os termos por confirmar vale Cancelar: com eles pendentes o "Chamar" fica desligado e não reabre a folha.
+        rule.onNodeWithTag("folha-fechar").performScrollTo().performClick()
+        assertEquals(2, chamadas.cancelouTermosDaVaga)
+        assertEquals(1, chamadas.confirmouTermosDaVaga)
     }
 
     @Test
