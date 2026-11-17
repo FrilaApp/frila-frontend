@@ -98,6 +98,26 @@ if (idDaSelecao) {
   diz("há vaga do modo seleção para provar o candidatar", false, "(nenhuma na lista)");
 }
 
+// Perfil: lê e salva de volta os MESMOS textos (exercita a escrita sem mudar a conta de demonstração).
+const desfazer = (texto) => texto.replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+const telaDoPerfil = await pedir("/app/perfil");
+const htmlDoPerfil = await telaDoPerfil.text();
+diz("Meu perfil abre com as funções", telaDoPerfil.status === 200 && htmlDoPerfil.includes("Funções"));
+diz("o perfil não manda ponto base ao navegador", !/latitude|longitude|ponto_base/.test(htmlDoPerfil));
+const textoDe = (nome) => {
+  const achado = new RegExp(`<textarea[^>]*name="${nome}"[^>]*>([\\s\\S]*?)</textarea>`).exec(htmlDoPerfil);
+  return achado ? desfazer(achado[1]) : null;
+};
+const atuais = { apresentacao: textoDe("apresentacao"), onde_trabalhei: textoDe("onde_trabalhei") };
+// Trava: sem ler os dois textos, não salva (mandar vazio apagaria o perfil da conta de demonstração).
+if (atuais.apresentacao !== null && atuais.onde_trabalhei !== null) {
+  const salvou = await envio("/app/perfil", atuais);
+  const htmlSalvo = await salvou.text();
+  diz("salvar o perfil (com os mesmos textos)", salvou.status === 200 && htmlSalvo.includes("Perfil salvo."), htmlSalvo.includes("não está disponível") ? "(perfil rico desligado no dev)" : "");
+} else {
+  diz("ler os textos do perfil antes de salvar", false, "(não salvou nada)");
+}
+
 const saida = await envio("/app/sair", {});
 diz("a profissional sai", saida.status === 302);
 
