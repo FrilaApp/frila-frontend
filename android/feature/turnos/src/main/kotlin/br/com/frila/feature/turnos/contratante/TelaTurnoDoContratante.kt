@@ -83,6 +83,7 @@ fun ConteudoTurnoDoContratante(
     estado: EstadoTurnoDoContratante,
     acoes: AcoesTurnoDoContratante,
     modifier: Modifier = Modifier,
+    cartaoDoCodigo: (@Composable () -> Unit)? = null,
 ) {
     val contexto = estado.contexto
     Scaffold(
