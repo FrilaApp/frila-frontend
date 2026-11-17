@@ -25,11 +25,12 @@ export async function loader({ context, params }: Route.LoaderArgs) {
     return { estado: leitura.estado, vaga: null };
   }
   const vaga = leitura.vaga;
-  const inclusos = [
+  const itens: Array<string | null> = [
     vaga.inclusos.inclui_refeicao ? t.refeicao : null,
     vaga.inclusos.inclui_transporte ? t.transporte : null,
     vaga.inclusos.exige_material_proprio ? t.materialProprio : null,
-  ].filter((item): item is string => item !== null);
+  ];
+  const inclusos = itens.filter((item): item is string => item !== null);
   return {
     estado: "ok" as const,
     vaga: {
@@ -40,7 +41,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       valor: formatarValor(vaga.valor_centavos),
       local: vaga.local,
       regiao: vaga.regiao_administrativa,
-      distancia: vaga.distancia_km === null ? null : formatarDistancia(vaga.distancia_km),
+      distancia: vaga.distancia_km === null || vaga.distancia_km === undefined ? null : formatarDistancia(vaga.distancia_km),
       responsavel: vaga.responsavel_local,
       traje: vaga.traje ?? null,
       observacoes: vaga.observacoes ?? null,

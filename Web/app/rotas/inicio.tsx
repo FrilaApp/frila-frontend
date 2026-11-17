@@ -65,6 +65,13 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
           ) : entrou.conta ? (
             <p>{textos.conta.estado[entrou.conta.estado]}</p>
           ) : null}
+          {entrou.conta?.estado === "ok" && entrou.conta.perfil === "profissional" ? (
+            <p>
+              <Link to="/vagas" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
+                {textos.conta.verVagas}
+              </Link>
+            </p>
+          ) : null}
           {entrou.conta?.estado === "sem_conta" ? (
             <p>
               <Link to="/cadastro" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
