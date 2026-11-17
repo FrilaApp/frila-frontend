@@ -7,6 +7,8 @@ export default [
   route("cadastro", "rotas/cadastro.tsx"),
   route("aceitar-termos", "rotas/aceitar-termos.ts"),
   route("saude", "rotas/saude.ts"),
+  // A vaga pelo link, sem login (para compartilhar)
+  route("v/:vagaId", "rotas/publico/vaga.tsx"),
 
   // Páginas públicas (textos do marketing)
   route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),

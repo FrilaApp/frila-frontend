@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.97
+  version: 0.2.102
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -116,6 +116,47 @@ info:
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.102, de 17/11/2026.** Só descrição: `versao_texto_busca` passa a ter as versões
+    escritas. **`busca-1`** é o texto que a tela mostra ao ligar a opção: o título "Aceito chamadas
+    diretas" e a explicação "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma
+    vaga." (iOS, `TextosBuscaDeProfissionais.swift:64-65`). O iOS, o Android e a web mostram essas duas
+    frases, palavra por palavra, e mandam `busca-1`. Qualquer mudança de palavra vira `busca-2`, e assim
+    por diante, e o app manda a versão do texto que mostrou. A frase do CD-P11 ("Quero aparecer na busca
+    e receber chamadas de contratantes") era a proposta de 16/11 e não é o texto registrado. Nenhum
+    campo, operação ou código muda.
+
+    **Versão 0.2.101, de 17/11/2026.** `VagaPublica` ganha `estabelecimento_nome`: a página pública da
+    vaga mostra o nome do estabelecimento (decisão do Cauê no painel, 17/11/2026: função, valor, data e
+    horário, região e o nome da casa; endereço exato e contato só para quem foi aceito). Campo novo
+    na resposta; nenhum outro muda.
+    - **Só de casa com CNPJ.** Quando a casa se cadastrou com CPF (pessoa física), o nome que ela deu
+      ao local pode ser o nome de alguém ("Casa da Maria"), e ele não vai à internet aberta: vem
+      `null`. Decisão do jurídico do time (17/11/2026), dentro da ordem do Cauê; base: necessidade
+      (LGPD, art. 6º, III) e o cuidado do art. 9º, I e V, para dado de pessoa física publicado.
+    - **O nome é o que a casa cadastrou** (`Estabelecimento.nome`), o mesmo que o profissional já vê
+      no app. Não é a razão social nem o documento, que nunca saem.
+    - **Só enquanto a vaga está aberta.** Com a vaga encerrada, preenchida, cancelada ou já começada, o
+      nome vem `null`. O MEI tem CNPJ, mas o nome pode ser o dele; quando a conta é excluída, as
+      vagas são canceladas e o nome deixa de sair (LGPD, art. 16).
+
+    **Versão 0.2.100, de 16/11/2026.** Operação nova `GET /rpc/vaga_publica` e esquema `VagaPublica`
+    (web do Frila, pedido do Cauê 2026-11-16-31, item B5 do mapa de paridade
+    `frila-frontend/Web/docs/paridade.md`): o link de uma vaga abre sem login, só com os campos
+    publicáveis. Nenhuma operação que já existe muda. Os PRs abertos #256, #257 e #258 sobem, ao
+    entrar, para a próxima versão livre acima da `main` (a CI não aceita descer). A lista pública de
+    vagas (paridade 5.3) não entra: é outra operação e outra decisão.
+    - **O que aparece:** a função, a região administrativa (só o nome do catálogo), o início e o
+      fim, o valor, a data da publicação, o que está incluso, o modo, as posições abertas e o estado. Basta para a pessoa decidir se entra no app
+      para se candidatar.
+    - **O que não aparece:** o estabelecimento (nome, foto e reputação), o endereço, o ponto, quem
+      recebe, o traje e as observações. O nome da casa pode ser o de uma pessoa física, e os textos
+      livres podem trazer nome ou contato. Tudo isso continua só para quem entra (`detalhe_vaga`).
+    - **Quais vagas:** só a vaga normal, visível no app. Vaga direta, vaga ocultada pela moderação e
+      vaga de conta de demonstração respondem `404 nao_encontrado`, como a vaga inexistente.
+    - **Sem chave de ligar:** a operação só lê. Quem decide mostrar o link é a web (`frilabr.com/app`,
+      com a chave da web). Antes de o link ir ao ar, a Política ganha a linha da página pública da
+      vaga (seção 4).
 
     **Versão 0.2.97, de 17/11/2026.** Só metadado: `info.contact` passa a ser a titular do Frila,
     FRILA TECNOLOGIA INOVA SIMPLES (I.S.), com o e-mail `contato@frilabr.com`, no lugar de
@@ -2060,7 +2101,7 @@ paths:
       summary: Versão mínima do app e aviso de atualização obrigatória
       description: |
         Chamada na abertura, **antes de haver sessão**: um app abaixo da versão mínima precisa
-        conseguir descobrir isso mesmo sem conseguir entrar. Por isso é a única operação de
+        conseguir descobrir isso mesmo sem conseguir entrar. Por isso é uma das operações de
         `rest/v1` que dispensa o token do usuário — a chave publicável basta.
 
         `versao_minima` é por plataforma e é comparada pelo app contra a própria versão de build.
@@ -3958,6 +3999,68 @@ paths:
         '422':
           $ref: '#/components/responses/RegraRecusou'
 
+  /rpc/vaga_publica:
+    get:
+      tags: [Vagas]
+      operationId: vagaPublica
+      summary: Vaga pelo link, sem login (só campos publicáveis)
+      description: |
+        0.2.100. A página pública de uma vaga (web, `frilabr.com/app`): quem recebe o link vê o essencial
+        e entra no app para se candidatar. **Dispensa o token do usuário:** a chave publicável basta, como
+        em `configuracao_do_app`. Com sessão, responde o mesmo, sem nada a mais. A web chama sem
+        `Authorization`; um token vencido recebe `401` antes da função. Para o detalhe completo
+        (casa, endereço, quem recebe), a pessoa entra e lê por `detalhe_vaga`.
+
+        **Só os campos de `VagaPublica`.** Do estabelecimento, sai só o nome que ele cadastrou, e só
+        quando a casa tem CNPJ e a vaga está aberta (0.2.101); com CPF, ou com a vaga encerrada,
+        preenchida, cancelada ou já começada, `estabelecimento_nome` vem `null`. Nunca saem a foto,
+        a reputação ou o documento da casa, o `local`, o `ponto`, o `responsavel_local`, o `traje`, as
+        `observacoes`, quem publicou, nem dado de candidato ou de profissional confirmado. A região sai só pelo nome do
+        catálogo; sem casamento, vem `null`.
+
+        **`404 nao_encontrado`, indistinguível de vaga inexistente,** para:
+        - vaga direta (`origem = chamada_direta`, RN28);
+        - vaga ocultada pela moderação da Equipe Frila (diretriz 1.2);
+        - vaga de estabelecimento de conta de demonstração;
+        - `vaga_id` malformado. No servidor, o parâmetro é `text` (`vaga_publica(vaga_id text)`), para
+          que o que não for uuid caia no mesmo `404`, e não no `400 22P02` do PostgREST.
+        Fora disso, responde `200` com o `estado` real, também para a vaga preenchida, encerrada,
+        cancelada ou já passada: o link antigo diz que a vaga não está mais aberta, em vez de parecer
+        quebrado. `posicoes_abertas` segue a regra de `detalhe_vaga`. A web trata como encerrada a vaga
+        com `estado` diferente de `publicada`, ou com `posicoes_abertas = 0`, ou já começada: sem dados
+        estruturados de emprego e fora do índice. Com `estabelecimento_nome` nulo, quem anuncia nos dados
+        estruturados é o Frila (decisão da web).
+
+        **Bloqueio (RF26):** sem sessão, o bloqueio não se aplica, porque não há quem bloquear. A
+        conta bloqueada que entra continua sem ver a vaga em `detalhe_vaga`; aqui ela vê só o que
+        qualquer pessoa vê pelo link. Decisão do jurídico do time (16/11/2026): o que sai é o mesmo
+        que um link repassado mostraria a qualquer pessoa.
+
+        **Limite:** hoje não há limite próprio para leitura sem sessão no `rest/v1`; o
+        `limite_de_escrita` conta só escrita de conta autenticada. A leitura é uma busca pela chave, e
+        o `vaga_id` é um uuid aleatório, que não se adivinha. A operação não lista vagas. Se aparecer
+        raspagem, o limite entra na frente da web, sem mudar este contrato.
+      security:
+        - chaveDoProjeto: []
+        - chaveDoProjeto: []
+          tokenDoUsuario: []
+      x-requisitos: [RF04, RN02, RN28]
+      parameters:
+        - name: vaga_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Vaga, só com os campos publicáveis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VagaPublica'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+
   # ───────────────────────────────────────────── Candidatura e confirmação
 
   /rpc/candidatar:
@@ -4885,8 +4988,9 @@ paths:
 
         **"Aceito chamadas diretas" (0.2.88, CD-P10 a CD-P12, RN40):** `aceita_chamadas: true` põe o
         profissional na busca e o deixa receber chamadas de qualquer contratante; o padrão é `false`.
-        Ligar exige `versao_texto_busca`, a versão do texto da tela ("Quero aparecer na busca e receber
-        chamadas de contratantes", CD-P11); sem ela, `422 campo_obrigatorio` (`versao_texto_busca`). O
+        Ligar exige `versao_texto_busca`, a versão do texto da tela (0.2.102: `busca-1` é "Aceito
+        chamadas diretas" mais "Quem contrata pode te achar na busca e te chamar direto, sem publicar
+        uma vaga."; a lista das versões está em `produto/modulos/contratacao-direta-e-busca-de-perfil.md`); sem ela, `422 campo_obrigatorio` (`versao_texto_busca`). O
         servidor guarda a versão e o instante de cada vez que liga, como registro do pedido do titular
         (LGPD, art. 7º, V, parecer J1); não é consentimento. O registro fica enquanto a conta existir,
         é apagado na exclusão (RF25) e sai na exportação (`MeusDados.registros_aceita_chamadas`). Desligar ou pausar tira da busca na hora.
@@ -4925,7 +5029,7 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 20
-                  example: busca-v1
+                  example: busca-1
       responses:
         '200':
           description: Preferências em vigor.
@@ -8269,6 +8373,52 @@ components:
           description: Uma por item de `NovaEscala.vagas`, na mesma ordem.
           items:
             $ref: '#/components/schemas/VagaPublicada'
+    VagaPublica:
+      type: object
+      description: |
+        0.2.100. O que `vaga_publica` mostra a qualquer pessoa. Sem endereço, sem ponto e sem texto
+        livre (ver a operação). Desde a 0.2.101, com o nome do estabelecimento de casa com CNPJ.
+      required: [id, funcao, estabelecimento_nome, regiao_administrativa, inicio_em, fim_em, valor_centavos, publicado_em, inclusos, modo, posicoes_abertas, estado]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        funcao:
+          $ref: '#/components/schemas/Funcao'
+        estabelecimento_nome:
+          type: [string, 'null']
+          description: |
+            0.2.101. O nome que o estabelecimento cadastrou (`Estabelecimento.nome`), só quando a casa
+            tem CNPJ. Casa com CPF (pessoa física): `null`, porque o nome pode ser o de uma pessoa.
+            `null` também quando a vaga não está aberta (`estado` diferente de `publicada`, ou já
+            começada): a página da vaga encerrada não precisa da casa (LGPD, art. 6º, III, e art. 16).
+            O servidor decide pelo documento: só `length(documento) = 14` (CNPJ) mostra o nome; o resto
+            vem `null` (falha fechada).
+          example: Bar do Zé
+        regiao_administrativa:
+          type: [string, 'null']
+          description: |
+            O `nome` do catálogo `GET /regiao_administrativa` (região ativa) igual a
+            `Vaga.regiao_administrativa`, como na região padrão de `buscar_profissionais`. Sem
+            casamento, `null`: o texto que a casa digitou nunca sai aqui.
+          example: Plano Piloto
+        inicio_em:
+          $ref: '#/components/schemas/Instante'
+        fim_em:
+          $ref: '#/components/schemas/Instante'
+        valor_centavos:
+          $ref: '#/components/schemas/Centavos'
+        publicado_em:
+          $ref: '#/components/schemas/Instante'
+        inclusos:
+          $ref: '#/components/schemas/Inclusos'
+        modo:
+          $ref: '#/components/schemas/ModoPreenchimento'
+        posicoes_abertas:
+          type: integer
+          minimum: 0
+          description: Como em `Vaga.posicoes_abertas`.
+        estado:
+          $ref: '#/components/schemas/EstadoVaga'
     Inclusos:
       type: object
       required: [inclui_refeicao, inclui_transporte, exige_material_proprio]
