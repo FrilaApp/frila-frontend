@@ -141,11 +141,16 @@ data class ResultadoCandidaturaDto(
     @SerialName("contato") val contato: ContatoDto? = null,
 )
 
-/** Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). */
+/**
+ * Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). `versao_app` (0.2.56) é opcional: sem ela o
+ * campo não vai no corpo (nem como null), e o servidor trata o aparelho como antigo para os avisos de chamada.
+ */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class RegistrarDispositivoDto(
     @SerialName("token_fcm") val tokenFcm: String,
     @SerialName("plataforma") val plataforma: String = "android",
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("versao_app") val versaoApp: String? = null,
 )
 
 /** Corpo de `POST /rest/v1/rpc/remover_dispositivo`: encerra o vínculo do token com a conta (RN15). */
