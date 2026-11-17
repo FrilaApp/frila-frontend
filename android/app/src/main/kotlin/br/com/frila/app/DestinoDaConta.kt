@@ -101,12 +101,13 @@ interface DestinoGuardado {
 class AvaliadorDeDestino(
     private val descobrir: suspend () -> DestinoDaConta,
     private val guardado: DestinoGuardado,
-    private val prazo: Duration = PRAZO_PADRAO,
     /**
      * Diz se ainda há sessão guardada no aparelho. A renovação do token só apaga a sessão quando o Auth a
      * recusa; se ela continua guardada depois de um `401`, a renovação falhou por motivo passageiro.
+     * Obrigatório (MENOR 1 do #818): com um padrão, esquecê-lo voltaria a apagar a sessão em todo 401, em silêncio.
      */
-    private val sessaoGuardada: () -> Boolean = { false },
+    private val sessaoGuardada: () -> Boolean,
+    private val prazo: Duration = PRAZO_PADRAO,
 ) {
     suspend fun avaliar(): ResultadoDaAbertura = try {
         val destino = withTimeout(prazo) { descobrir() }

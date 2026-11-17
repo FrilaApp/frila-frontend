@@ -15,6 +15,9 @@
 		"AMBIENTE": "dev",
 		// "1" mostra a web; qualquer outro valor mostra só a página "em breve".
 		"WEB_LIGADA": "1",
+		// "1" deixa a página pública da vaga entrar no índice dos buscadores. Fica "0" até a Política ganhar as
+		// frases da seção 4, item 1, e da seção 2 (buscadores).
+		"VAGA_PUBLICA_NO_INDICE": "0",
 		// Conta de demonstração do dev (a mesma do app, para teste de ponta a ponta). Não existe em produção.
 		"EMAILS_DE_DEMONSTRACAO": "revisao-profissional@frila.app"
 	},
@@ -44,7 +47,8 @@
 			},
 			"vars": {
 				"AMBIENTE": "producao",
-				"WEB_LIGADA": "0"
+				"WEB_LIGADA": "0",
+				"VAGA_PUBLICA_NO_INDICE": "0"
 			}
 		}
 	}

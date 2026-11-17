@@ -10,6 +10,13 @@ plugins {
     alias(libs.plugins.baselineprofile)
 }
 
+// C0-10 (push): o plugin do Google Services só entra com o google-services.json presente (fica fora do git, ver
+// .gitignore). O debug usa o do DEV (src/debug/) e o release o do PROD (src/release/). Sem o arquivo, como na CI, o app
+// compila sem Firebase: o registro do aparelho só não acontece.
+if (file("src/debug/google-services.json").exists() || file("src/release/google-services.json").exists()) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+}
+
 // Revisão ANBU (PR #557): o build type release não pode assinar com o keystore de debug
 // ('CN=Android Debug'), nem a oficial da loja. O keystore de release só existe fora do
 // repositório (CI/máquina de release); sem essas variáveis, o release fica sem signingConfig
