@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TurnoDto
@@ -42,6 +43,11 @@ class PerfilViewModel(
     private val comprimirFoto: (Context, Uri) -> File = CompressorDeFotoPerfil::comprimir,
     private val obterAvatarSalvo: (Context) -> File? = CompressorDeFotoPerfil::avatarExistente,
     private val preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
+    /**
+     * `minha_conta` (como o iOS): a conta de casa não tem `meu_perfil_profissional` (responde 404) e abre o perfil
+     * da casa. Nulo só nos testes que não falam da conta: o perfil carregado é sempre o profissional.
+     */
+    private val servicoConta: ServicoConta? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -53,11 +59,24 @@ class PerfilViewModel(
         _estado.update { it.copy(status = StatusPerfil.CARREGANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
+                // Como o iOS: a conta diz quem é. A casa não tem perfil profissional e o perfil dela é a conta.
+                val conta = servicoConta?.minhaConta()
+                if (conta?.perfil == EstadoPerfil.PERFIL_CONTRATANTE) {
+                    _estado.update {
+                        it.copy(
+                            status = StatusPerfil.SUCESSO,
+                            conta = conta,
+                            biometriaAtivada = armazenamentoDeSessao.isBiometriaAtivada(),
+                        )
+                    }
+                    return@launch
+                }
                 val perfil = servicoPerfil.obterMeuPerfilProfissional()
                 val (resumoFinanceiro, turnosExtrato) = carregarDadosFinanceiros()
                 _estado.update {
                     it.copy(
                         status = StatusPerfil.SUCESSO,
+                        conta = conta,
                         perfil = perfil,
                         resumoFinanceiro = resumoFinanceiro,
                         turnosExtrato = turnosExtrato,

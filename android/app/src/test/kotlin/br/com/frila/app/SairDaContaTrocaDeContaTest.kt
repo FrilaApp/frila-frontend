@@ -68,7 +68,7 @@ class SairDaContaTrocaDeContaTest : KoinTest {
     private fun iniciar() {
         startKoin {
             allowOverride(true)
-            modules(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoFalso, moduloFeatures, moduloMotorFalso)
+            modules(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoFalso, moduloFeatures, moduloMotorFalso, moduloDestinoDaConta)
         }
     }
 

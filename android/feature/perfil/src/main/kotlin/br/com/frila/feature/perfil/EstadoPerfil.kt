@@ -4,6 +4,7 @@ import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.rede.ExclusaoDeContaDto
 import br.com.frila.core.rede.PerfilProfissionalDto
 import br.com.frila.core.rede.TurnoDto
+import br.com.frila.core.rede.UsuarioDto
 
 /** Status da tela de perfil. */
 enum class StatusPerfil { CARREGANDO, SUCESSO, ERRO }
@@ -52,6 +53,8 @@ data class ResumoFinanceiroPerfil(
 /** Estado da tela de perfil do profissional (RF02/RF03/RF16/RF25). */
 data class EstadoPerfil(
     val status: StatusPerfil = StatusPerfil.CARREGANDO,
+    /** `minha_conta`: diz quem é a conta. A casa não tem perfil profissional e o perfil dela é a conta. */
+    val conta: UsuarioDto? = null,
     val perfil: PerfilProfissionalDto? = null,
     val mensagemErro: String? = null,
     val resumoFinanceiro: ResumoFinanceiroPerfil? = null,
@@ -79,8 +82,15 @@ data class EstadoPerfil(
     val caracteresRestantesBio: Int
         get() = LIMITE_MAXIMO_BIO - bioEmEdicao.length
 
+    /** Conta de casa (contratante): o perfil mostra a conta e os atalhos da casa, nunca o perfil profissional. */
+    val ehContratante: Boolean
+        get() = conta?.perfil == PERFIL_CONTRATANTE
+
     companion object {
         const val LIMITE_MAXIMO_BIO = 280
+
+        /** Valor de `perfil` em `minha_conta` para a conta de casa (o mesmo que `DestinoDaConta` lê). */
+        const val PERFIL_CONTRATANTE = "contratante"
 
         val ESPECIALIDADES_PADRAO: List<String> = listOf(
             "Coquetelaria clássica",
