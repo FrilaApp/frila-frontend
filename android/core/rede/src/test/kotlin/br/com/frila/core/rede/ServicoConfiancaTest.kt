@@ -8,11 +8,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -56,7 +56,7 @@ class ServicoConfiancaTest {
     }
 
     @Test
-    fun `denunciar sem chamada_id manda null, que o contrato aceita`() = runTest {
+    fun `denunciar sem chamada_id nao manda o campo no corpo, como o iOS`() = runTest {
         var corpo: JsonObject? = null
         val engine = MockEngine { request ->
             corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
@@ -66,7 +66,9 @@ class ServicoConfiancaTest {
 
         servico.denunciar(denuncia(chamadaId = null))
 
-        assertEquals(JsonNull, corpo!!["chamada_id"])
+        // Com "chamada_id": null o servidor de hoje responde 404 PGRST202 (não conhece o parâmetro).
+        assertFalse(corpo!!.containsKey("chamada_id"))
+        assertEquals("estabelecimento", corpo!!["alvo_tipo"]!!.jsonPrimitive.content)
     }
 
     @Test

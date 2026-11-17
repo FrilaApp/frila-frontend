@@ -449,11 +449,13 @@ data class UploadVerificacaoDto(
 /**
  * Corpo de `POST /rest/v1/rpc/denunciar` (RF26, UC17). `chamada_id` é opcional desde o contrato
  * 0.2.71 (CD-S13): associa a denúncia à chamada direta, que precisa existir e envolver o
- * denunciante e o alvo (`422 campo_invalido`, `details: chamada_id`). Sem chamada, o campo segue
- * como `null`, que o contrato aceita (`oneOf: Uuid | null`). `midia_id` (0.2.54) não é modelado
+ * denunciante e o alvo (`422 campo_invalido`, `details: chamada_id`). Sem chamada, o campo NÃO
+ * vai no corpo (`@EncodeDefault(NEVER)`), como no iOS: o servidor de hoje não conhece o parâmetro
+ * e responde `404 PGRST202` a `"chamada_id": null`. `midia_id` (0.2.54) não é modelado
  * aqui: o contrato não aceita `null` nele e nenhuma tela do Android denuncia foto ainda.
  * `alvo_id` é o `id` do `PerfilPublico`, nunca o id de conta (RN10).
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class DenunciarDto(
     @SerialName("alvo_tipo") val alvoTipo: String,
@@ -462,7 +464,7 @@ data class DenunciarDto(
     @SerialName("motivo") val motivo: String,
     @SerialName("relato") val relato: String,
     @SerialName("chave") val chave: String,
-    @SerialName("chamada_id") val chamadaId: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("chamada_id") val chamadaId: String? = null,
 )
 
 /** Corpo de `POST /rest/v1/rpc/sair_da_equipe` (contrato 0.2.72, LGPD art. 18). */
