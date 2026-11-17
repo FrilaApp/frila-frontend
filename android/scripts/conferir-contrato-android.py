@@ -194,6 +194,7 @@ def main() -> None:
         "CancelarChamadaDto": "/rpc/cancelar_chamada",
         "PublicarAPartirDaChamadaDto": "/rpc/publicar_a_partir_da_chamada",
         "AceitarTermosDto": "/rpc/aceitar_termos",
+        "GerarCodigoCheckinDto": "/rpc/gerar_codigo_checkin",
         "DefinirRegioesAtendidasDto": "/rpc/definir_regioes_atendidas",
         "ValidarCodigoCheckinDto": "/rpc/validar_codigo_checkin",
     }
