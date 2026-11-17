@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private const val MENSAGEM_ERRO_CARREGAR = "Não foi possível carregar seu perfil. Tente de novo em instantes."
+
 /**
  * Perfil do profissional e reputação agregada (RF03/RF16/RN07/RN08/RN15, UC09).
  *
@@ -65,8 +67,13 @@ class PerfilViewModel(
                         notificacaoSistemaAtivada = preferenciasNotificacao.estaAtivado(GerenciadorDeCanais.CANAL_SISTEMA),
                     )
                 }
+            } catch (erro: CancellationException) {
+                throw erro
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusPerfil.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (_: Exception) {
+                // Resposta 200 ilegível (HTML de portal, campo omitido) não é ErroDaApi: sem isto a tela ficava em "carregando".
+                _estado.update { it.copy(status = StatusPerfil.ERRO, mensagemErro = MENSAGEM_ERRO_CARREGAR) }
             }
         }
     }
@@ -272,7 +279,7 @@ class PerfilViewModel(
         CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre de novo."
         CodigoErroAPI.NAO_ENCONTRADO -> "Não encontramos seu perfil."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
-        else -> "Não foi possível carregar seu perfil. Tente de novo em instantes."
+        else -> MENSAGEM_ERRO_CARREGAR
     }
 
     private fun mensagemDeErroExclusao(erro: ErroDaApi): String = when (erro.codigo) {

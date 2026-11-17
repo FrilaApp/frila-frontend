@@ -98,6 +98,22 @@ class PerfilViewModelTest {
         )
     }
 
+    /**
+     * C0-12 no perfil: resposta 200 que não decodifica (HTML de portal) não é ErroDaApi. Só com o catch de
+     * ErroDaApi a exceção escapava, a tela ficava em "carregando" e, no app, a corrotina derrubava o processo.
+     */
+    @Test
+    fun `resposta 200 ilegivel sai de CARREGANDO para ERRO com mensagem`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = "<html>portal</html>", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "text/html")) },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+        assertNotNull(viewModel.estado.value.mensagemErro)
+    }
+
     @Test
     fun `carregar com sucesso resulta em status SUCESSO com o perfil`() = runBlocking {
         val viewModel = viewModelComEngine(
