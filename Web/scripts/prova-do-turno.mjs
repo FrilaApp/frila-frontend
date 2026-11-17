@@ -17,9 +17,10 @@ const codigoDeEntrada = readFileSync(arquivoDoCodigo, "utf8").trim();
 const emailDaCasa = /e-mail:\s*`?([^\s`]+@[^\s`]+)`?/.exec(readFileSync(arquivoDaCasa, "utf8"))?.[1];
 const origem = new URL(BASE).origin;
 const diz = (nome, ok, extra = "") => console.log(`${ok ? "ok  " : "ERRO"} ${nome} ${extra}`);
-// Sem a vaga certa, a prova nem começa: ela só toca o turno da vaga dada.
-if (turnoDaVaga([], VAGA_ID).recusa === "vaga_invalida") {
-  console.log("ERRO o id da vaga é obrigatório e precisa ser um uuid; a prova não age em nenhum turno");
+// Sem a vaga certa (ou com um id fixo de demonstração, de000000-…), a prova nem começa: ela só toca o turno da vaga dada.
+const antes = turnoDaVaga([], VAGA_ID).recusa;
+if (antes === "vaga_invalida" || antes === "dado_fixo_de_demonstracao") {
+  console.log(`ERRO recusado (${antes}): o id da vaga é obrigatório, precisa ser um uuid e não pode ser de dado fixo de demonstração; a prova não age em nenhum turno`);
   process.exit(1);
 }
 

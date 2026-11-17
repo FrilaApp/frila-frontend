@@ -32,3 +32,25 @@ describe("a prova do turno escolhe o turno pela vaga dada", () => {
     expect(turnoDaVaga({ code: "nao_autenticado" }, VAGA)).toEqual({ recusa: "sem_lista" });
   });
 });
+
+describe("dados fixos de demonstração (cenário da revisão da Apple, ids de000000-…): a prova nunca age neles", () => {
+  const FIXA = "de000000-0000-4000-8000-000000000001";
+  it("recusa a vaga fixa antes de olhar a lista", () => {
+    expect(turnoDaVaga([turno("x", FIXA)], FIXA)).toEqual({ recusa: "dado_fixo_de_demonstracao" });
+    expect(turnoDaVaga([], "DE000000-0000-4000-8000-000000000001")).toEqual({ recusa: "dado_fixo_de_demonstracao" });
+  });
+  it("recusa quando o turno ou a posição da vaga dada é fixo", () => {
+    expect(turnoDaVaga([turno("de000000-0000-4000-8000-0000000000aa", VAGA)], VAGA)).toEqual({ recusa: "dado_fixo_de_demonstracao" });
+    expect(turnoDaVaga([{ ...turno("bbbb0000-0000-4000-8000-000000000000", VAGA), posicao_id: "de000000-0000-4000-8000-0000000000bb" }], VAGA)).toEqual({
+      recusa: "dado_fixo_de_demonstracao",
+    });
+  });
+  it("caso f14eb6f5: o turno do cenário da Apple vem antes na lista e nunca é escolhido", () => {
+    const daApple = { id: "f14eb6f5-0000-4000-8000-000000000000", estado: "confirmada", posicao_id: "de000000-0000-4000-8000-0000000000cc", vaga: { id: "de000000-0000-4000-8000-0000000000dd" } };
+    const daProva = turno("001b6684-0000-4000-8000-000000000000", VAGA, "cumprida");
+    expect(turnoDaVaga([daApple, daProva], "de000000-0000-4000-8000-0000000000dd")).toEqual({ recusa: "dado_fixo_de_demonstracao" });
+    expect(turnoDaVaga([daApple, daProva], VAGA)).toEqual({ turnoId: "001b6684-0000-4000-8000-000000000000" });
+    // Mesmo que a vaga dada não pareça fixa, um turno de posição fixa nela é recusado.
+    expect(turnoDaVaga([{ ...daApple, vaga: { id: VAGA } }], VAGA)).toEqual({ recusa: "dado_fixo_de_demonstracao" });
+  });
+});
