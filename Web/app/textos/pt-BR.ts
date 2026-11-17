@@ -8,12 +8,12 @@ import { suspensao } from "./suspensao";
 
 export const textos = {
   marca: "Frila",
+  // Conta suspensa e contestação (os dois lados).
+  suspensao,
   // Páginas públicas, textos do marketing (arquivo próprio para entrar como vieram).
   publico,
   // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
   profissional,
-  // Conta suspensa e contestação (os dois lados).
-  suspensao,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
