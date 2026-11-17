@@ -223,6 +223,7 @@ data class CancelarPosicaoDto(
  * Resposta de `/rpc/meus_turnos` (schema `Turno`, MEDIDO em `iOS/Contrato/openapi.yaml:4613` e
  * gerado por `privado.turno_em_json`).
  * RN12: turno cancelado continua na lista, com `estado: cancelada` e objeto `cancelamento`.
+ * `contato_visivel_ate` é descontinuado no contrato (0.2.49): opcional e nulável, e ausente vale o mesmo que nulo.
  */
 @Serializable
 data class TurnoDto(
@@ -230,7 +231,7 @@ data class TurnoDto(
     @SerialName("posicao_id") val posicaoId: String,
     @SerialName("vaga") val vaga: VagaResumoDto,
     @SerialName("contraparte") val contraparte: PerfilPublicoDto,
-    @SerialName("contato_visivel_ate") val contatoVisivelAte: String,
+    @SerialName("contato_visivel_ate") val contatoVisivelAte: String? = null,
     @SerialName("a_caminho_em") val aCaminhoEm: String? = null,
     @SerialName("checkin_em") val checkinEm: String? = null,
     @SerialName("checkin_tipo") val checkinTipo: String? = null,

@@ -113,7 +113,7 @@ export const profissional = {
     enviando: "Enviando…",
     desistirTitulo: "Desistir do turno",
     regraDaDesistencia:
-      "Desistir com menos de 24 horas do início conta como falta. Com mais de 24 horas, não conta. A vaga volta a ser oferecida.",
+      "Desistir com menos de 24 horas do início conta como falta. Com mais de 24 horas, não conta.",
     motivo: "Por que você vai desistir?",
     ajudaDoMotivo: "A casa recebe o aviso de que você desistiu.",
     desistir: "Desistir deste turno",

@@ -83,7 +83,7 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
           ) : null}
           {entrou.conta?.estado === "ok" && entrou.conta.perfil === "profissional" ? (
             <p>
-              <Link to="/vagas" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
+              <Link to="/vagas" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao">
                 {textos.conta.verVagas}
               </Link>{" "}
               <Link to="/turnos" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
@@ -93,7 +93,7 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
           ) : null}
           {entrou.conta?.estado === "sem_conta" ? (
             <p>
-              <Link to="/cadastro" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
+              <Link to="/cadastro" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao">
                 {textos.conta.completarCadastro}
               </Link>
             </p>
@@ -126,7 +126,7 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
         </section>
       ) : loaderData.webLigada ? (
         <p>
-          <Link to="/entrar" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
+          <Link to="/entrar" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao">
             {textos.conta.entrar}
           </Link>
         </p>
