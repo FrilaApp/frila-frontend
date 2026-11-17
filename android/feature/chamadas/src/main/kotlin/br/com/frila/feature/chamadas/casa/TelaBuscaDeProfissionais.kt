@@ -174,6 +174,7 @@ fun ConteudoBuscaDeProfissionais(
                 aoAbrirPerfil = aoAbrirPerfil,
                 aoPublicarParaTodos = aoPublicarParaTodos,
                 aoAbrirFolha = { folhaAberta = true },
+                aoReenviar = aoReenviar,
                 aoAbrirTermos = aoAbrirTermos,
                 aoAbrirPolitica = aoAbrirPolitica,
                 aoAceitarTermos = aoAceitarTermos,
@@ -199,6 +200,7 @@ private fun ListaDaBusca(
     aoAbrirPerfil: (String) -> Unit,
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     aoAbrirFolha: () -> Unit,
+    aoReenviar: () -> Unit,
     aoAbrirTermos: () -> Unit,
     aoAbrirPolitica: () -> Unit,
     aoAceitarTermos: () -> Unit,
@@ -453,8 +455,9 @@ private fun ListaDaBusca(
                         Text(TextosChamadaCasa.buscaSelecionados(estado.selecionados.size))
                         // 0.2.95: com termos da vaga aberta por confirmar (o 409 chegou com a folha já fechada), o botão
                         // reabre a folha, que é onde estão o Confirmar e o Cancelar.
+                        // Busca que já teve envio (serviço e horário): "Chamar" repete o trabalho guardado, sem folha nova nem 2ª vaga.
                         Button(
-                            onClick = aoAbrirFolha,
+                            onClick = if (estado.trabalhoEnviadoDaBusca != null && estado.termosParaConfirmar == null) aoReenviar else aoAbrirFolha,
                             enabled = estado.podeChamar || estado.termosParaConfirmar != null,
                             modifier = Modifier.fillMaxWidth().testTag("busca-chamar"),
                         ) { Text(TextosChamadaCasa.buscaChamar(estado.selecionados.size)) }
