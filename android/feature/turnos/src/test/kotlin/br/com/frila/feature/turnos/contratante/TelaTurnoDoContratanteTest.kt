@@ -184,6 +184,38 @@ class TelaTurnoDoContratanteTest {
     }
 
     @Test
+    fun `C0-9 - Denunciar leva o id do profissional e o do turno, com rotulo e alvo de toque como o iOS`() {
+        val denuncias = mutableListOf<Pair<String, String>>()
+        rule.setContent {
+            FrilaTheme {
+                ConteudoTurnoDoContratante(
+                    estado = estado(),
+                    acoes = AcoesTurnoDoContratante(aoDenunciarProfissional = { profissional, turno -> denuncias += profissional to turno }),
+                )
+            }
+        }
+
+        rule.onNodeWithContentDescription("Denunciar Ana").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+
+        assertEquals(listOf("p1" to "t1"), denuncias)
+    }
+
+    @Test
+    fun `C0-9 - posicao sem profissional confirmado nao tem quem denunciar`() {
+        rule.setContent {
+            FrilaTheme {
+                ConteudoTurnoDoContratante(
+                    estado = estado(profissional = null),
+                    acoes = AcoesTurnoDoContratante(aoDenunciarProfissional = { _, _ -> error("não há quem denunciar") }),
+                )
+            }
+        }
+
+        rule.onNodeWithText(TextosTurnoDoContratante.SEM_PROFISSIONAL).assertIsDisplayed()
+        assertEquals(0, contar(TextosTurnoDoContratante.DENUNCIAR))
+    }
+
+    @Test
     fun `a tela ligada ao ViewModel confirma a presenca pelo servico e passa a mostrar o selo`() {
         val chamados = mutableListOf<String>()
         val vm = AcompanhamentoContratanteViewModel(
