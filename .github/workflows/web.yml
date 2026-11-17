@@ -54,6 +54,19 @@ jobs:
       - name: Testes (Vitest)
         run: npm test
 
+      # A conferência contra o backend exige o segredo FRILA_BACKEND_TOKEN (leitura em
+      # FrilaApp/frila-backend, privado). Sem ele, só a parte local roda, com aviso na PR.
+      - name: Gate de deriva do contrato
+        env:
+          FRILA_BACKEND_TOKEN: ${{ secrets.FRILA_BACKEND_TOKEN }}
+        run: |
+          if [[ -n "$FRILA_BACKEND_TOKEN" ]]; then
+            scripts/contrato-confere.sh
+          else
+            echo "::warning title=Contrato não conferido contra o backend::FRILA_BACKEND_TOKEN ausente: só integridade e tipos foram conferidos."
+            scripts/contrato-confere.sh --local
+          fi
+
       - name: Build sem aviso
         run: scripts/build-sem-aviso.sh
 
