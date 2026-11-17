@@ -140,6 +140,11 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
           <Link to="/conta" className="inline-flex min-h-12 items-center text-lg font-bold underline underline-offset-4">
             {textos.contaDados.abrir}
           </Link>
+          <p>
+            <Link to="/instalar" className="inline-flex min-h-12 items-center font-semibold underline underline-offset-4">
+              {textos.pwa.instalar.link}
+            </Link>
+          </p>
           <Form method="post" action="/sair">
             <button type="submit" className={classeDoBotao}>
               {textos.conta.sair}

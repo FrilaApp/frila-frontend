@@ -10,6 +10,7 @@ import { contratanteMembros } from "./contratante-membros";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { pwa } from "./pwa";
 import { relatorioTurnos } from "./relatorio-turnos";
 import { suporte } from "./suporte";
 import { suspensao } from "./suspensao";
@@ -39,6 +40,8 @@ export const textos = {
   relatorioTurnos,
   // Equipe de confiança do lado da casa (arquivo próprio).
   contratanteEquipe,
+  // Instalar na tela de início, navegador embutido e página sem conexão (arquivo próprio).
+  pwa,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
