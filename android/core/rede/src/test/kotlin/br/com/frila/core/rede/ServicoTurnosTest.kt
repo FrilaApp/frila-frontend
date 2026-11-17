@@ -734,4 +734,71 @@ class ServicoTurnosTest {
             assertEquals(esperado, (erro as ErroDaApi).codigo, codigo)
         }
     }
+
+    @Test
+    fun `validarCodigoCheckin faz POST com turno_id, codigo e distancia_m e decodifica o registro por codigo`() = runTest {
+        val chamada = Chamada()
+        val servico = servicoQueGrava(HttpStatusCode.OK, registroJson, chamada)
+
+        val resultado = servico.validarCodigoCheckin("t1", "049215", distanciaMetros = 30).getOrThrow()
+
+        assertEquals(HttpMethod.Post, chamada.metodo)
+        assertEquals("/rest/v1/rpc/validar_codigo_checkin", chamada.caminho)
+        assertEquals(setOf("turno_id", "codigo", "distancia_m"), chamada.corpo!!.keys)
+        assertEquals("049215", chamada.corpo!!["codigo"]!!.jsonPrimitive.content)
+        assertEquals("30", chamada.corpo!!["distancia_m"]!!.jsonPrimitive.content)
+        assertEquals("codigo", resultado.tipo)
+        assertEquals("verificado", resultado.verificacao)
+    }
+
+    @Test
+    fun `validarCodigoCheckin sem localizacao manda distancia_m nulo, o campo e obrigatorio`() = runTest {
+        val chamada = Chamada()
+        val servico = servicoQueGrava(HttpStatusCode.OK, registroJson, chamada)
+
+        servico.validarCodigoCheckin("t1", "049215", distanciaMetros = null)
+
+        assertTrue(chamada.corpo!!["distancia_m"] is kotlinx.serialization.json.JsonNull)
+    }
+
+    @Test
+    fun `validarCodigoCheckin devolve falha com o codigo cru de cada recusa, sem lancar`() = runTest {
+        val casos = listOf(
+            Triple(HttpStatusCode.UnprocessableEntity, "codigo_invalido", null),
+            Triple(HttpStatusCode.Conflict, "codigo_bloqueado", "temporario"),
+            Triple(HttpStatusCode.Conflict, "codigo_bloqueado", "encerrado"),
+            Triple(HttpStatusCode.UnprocessableEntity, "fora_do_raio", null),
+            Triple(HttpStatusCode.UnprocessableEntity, "sem_localizacao", null),
+            Triple(HttpStatusCode.Conflict, "checkin_ja_confirmado", null),
+        )
+        for ((status, codigo, detalhes) in casos) {
+            val extra = detalhes?.let { ""","details":"$it"""" } ?: ""
+            val servico = servicoQueResponde(status, """{"code":"$codigo","message":"x"$extra}""")
+
+            val resultado = servico.validarCodigoCheckin("t1", "049215", 30)
+
+            val erro = resultado.exceptionOrNull() as ErroDaApi
+            assertEquals(codigo, erro.codigoOriginal)
+            assertEquals(detalhes, erro.detalhes)
+        }
+    }
+
+    @Test
+    fun `validarCodigoCheckin nunca repete sozinho, nem em falha do servidor`() = runTest {
+        val chamada = Chamada()
+        val servico = servicoQueGrava(HttpStatusCode.ServiceUnavailable, """{"code":"x","message":"fora do ar"}""", chamada)
+
+        val resultado = servico.validarCodigoCheckin("t1", "049215", 30)
+
+        assertTrue(resultado.isFailure)
+        assertEquals(1, chamada.vezes)
+    }
+
+    @Test
+    fun `validarCodigoCheckin devolve falha quando o corpo nao e JSON, sem lancar`() = runTest {
+        val resultado = servicoQueResponde(HttpStatusCode.OK, "<html>gateway</html>").validarCodigoCheckin("t1", "049215", 30)
+
+        assertTrue(resultado.isFailure)
+        assertTrue(resultado.exceptionOrNull() !is ErroDaApi)
+    }
 }

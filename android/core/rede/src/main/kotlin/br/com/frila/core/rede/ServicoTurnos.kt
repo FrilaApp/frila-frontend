@@ -56,6 +56,28 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
     }
 
     /**
+     * `POST /rest/v1/rpc/validar_codigo_checkin` (0.2.68): o profissional digita os 6 dígitos que a casa mostra.
+     * Só a distância sai, nunca a coordenada; `distancia_m` é obrigatório e aceita nulo (nulo recusa
+     * `422 sem_localizacao` no servidor). Devolve [Result] e **nunca repete sozinho**: a tentativa errada fica
+     * gravada no servidor, e repetir contaria outra e anteciparia o bloqueio (0.2.69). Erros esperados:
+     * `422 codigo_invalido`, `409 codigo_bloqueado` (`temporario` ou `encerrado`), `422 fora_do_raio`,
+     * `422 sem_localizacao`, `409 checkin_ja_confirmado`, `409 checkin_pendente`, `422 fora_da_janela`,
+     * `403 sem_permissao` (`recurso_desligado`, `conta_suspensa`), `404 nao_encontrado`.
+     */
+    suspend fun validarCodigoCheckin(turnoId: String, codigo: String, distanciaMetros: Int?): Result<ResultadoRegistroDto> =
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("validar_codigo_checkin")) {
+                contentType(ContentType.Application.Json)
+                setBody(ValidarCodigoCheckinDto(turnoId = turnoId, codigo = codigo, distanciaM = distanciaMetros))
+            }
+            Result.success(cliente.corpoOuErro<ResultadoRegistroDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
+
+    /**
      * `POST /rest/v1/rpc/confirmar_checkin_manual` (RF13/RF20/RN22/UC07): um toque da casa, e só então o
      * check-in manual conta como presença. Devolve [Result]: qualquer falha (recusa do servidor, sem rede,
      * corpo que não é JSON) vira `Result.failure`, e só o cancelamento da corrotina propaga. Erros
