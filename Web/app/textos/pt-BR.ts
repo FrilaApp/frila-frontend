@@ -14,6 +14,7 @@ import { contratantePerfil } from "./contratante-perfil";
 import { contratanteModeracao } from "./contratante-moderacao";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
+import { profissionalCadastro } from "./profissional-cadastro";
 import { publico } from "./publico";
 import { pwa } from "./pwa";
 import { relatorioTurnos } from "./relatorio-turnos";
@@ -33,6 +34,8 @@ export const textos = {
   vagaPublica,
   // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
   profissional,
+  // Cadastro do profissional em passos (arquivo próprio).
+  profissionalCadastro,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
   // Perfil do profissional visto pela casa (arquivo próprio).

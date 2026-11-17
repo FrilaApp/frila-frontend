@@ -22,12 +22,24 @@ private actor ServidorDaBusca: FonteDaBuscaDeProfissionais {
     private var erroDaPagina: ErroDaApi?
     private(set) var paginasSeguintesPedidas = 0
     private let comMaisPaginas: Bool
+    /// F-040: recusa de vez (`422 campo_invalido`, nada criado) o pedido com este recado e o dessas pessoas.
+    private let recadoRecusado: String?
+    private let recusar: Set<UUID>
+    /// F-040: o pedido dessas pessoas termina incerto SEM criar nada (uma vez por pessoa).
+    private var semRede: Set<UUID>
+    /// F-040: o pedido dessas pessoas pede a confirmação da recorrência (J7) até vir com ela.
+    private let pedeRecorrencia: Set<UUID>
 
-    init(segura: Bool = false, perdeAoAbrir: Bool = true, perder: Set<UUID> = [], comMaisPaginas: Bool = false) {
+    init(segura: Bool = false, perdeAoAbrir: Bool = true, perder: Set<UUID> = [], comMaisPaginas: Bool = false,
+         recadoRecusado: String? = nil, recusar: Set<UUID> = [], semRede: Set<UUID> = [], pedeRecorrencia: Set<UUID> = []) {
         self.segura = segura
         self.perdeAoAbrir = perdeAoAbrir
         self.perder = perder
         self.comMaisPaginas = comMaisPaginas
+        self.recadoRecusado = recadoRecusado
+        self.recusar = recusar
+        self.semRede = semRede
+        self.pedeRecorrencia = pedeRecorrencia
     }
 
     func vagasCriadas() -> Set<UUID> { Set(abertas.map(\.vagaID)) }
@@ -66,11 +78,19 @@ private actor ServidorDaBusca: FonteDaBuscaDeProfissionais {
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
         pedidos.append(pedido)
         if let existente = porChave[pedido.chave] { return existente }
+        if semRede.remove(pedido.profissionalID) != nil { throw ErroDaApi(codigo: .semRede) }
+        if let trabalho = pedido.trabalho,
+           let aberta = abertas.first(where: { $0.funcaoID == trabalho.funcaoID && $0.periodo == trabalho.periodo }) {
+            throw ErroDaApi(codigo: .trabalhoJaAberto, detalhes: aberta.vagaID.uuidString.lowercased())
+        }
+        if recusar.contains(pedido.profissionalID) || (recadoRecusado != nil && pedido.recado == recadoRecusado) {
+            throw ErroDaApi(codigo: .campoInvalido, detalhes: "recado")
+        }
+        if pedeRecorrencia.contains(pedido.profissionalID) && !pedido.confirmoRecorrencia {
+            throw ErroDaApi(codigo: .recorrenciaNaoConfirmada)
+        }
         let vagaID: UUID
         if let trabalho = pedido.trabalho {
-            if let aberta = abertas.first(where: { $0.funcaoID == trabalho.funcaoID && $0.periodo == trabalho.periodo }) {
-                throw ErroDaApi(codigo: .trabalhoJaAberto, detalhes: aberta.vagaID.uuidString.lowercased())
-            }
             vagaID = UUID()
             abertas.append((trabalho.funcaoID, trabalho.periodo, vagaID))
         } else if let pelaVaga = pedido.vagaID {
@@ -146,11 +166,12 @@ struct BuscaUmTrabalhoPorServicoEHorarioTests {
 
     private func periodo(_ inicio: Date) throws -> Periodo { try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * 3600)) }
 
-    private func trabalho(_ funcaoID: UUID = DadosDaBusca.garcom, inicio: Date) throws -> PublicacaoVaga {
+    private func trabalho(_ funcaoID: UUID = DadosDaBusca.garcom, inicio: Date,
+                          valor: Int = DadosDaBusca.valor) throws -> PublicacaoVaga {
         PublicacaoVaga(
             estabelecimentoID: casaID, funcaoID: funcaoID, periodo: try periodo(inicio),
             local: "Rua Teste", regiaoAdministrativa: "Asa Sul", ponto: try Coordenada(latitude: -15.8, longitude: -47.9),
-            valor: Dinheiro(centavos: DadosDaBusca.valor), posicoes: 1,
+            valor: Dinheiro(centavos: valor), posicoes: 1,
             inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
             responsavelLocal: "Casa", chave: UUID())
     }
@@ -372,5 +393,137 @@ struct BuscaUmTrabalhoPorServicoEHorarioTests {
         await vm.chamar(trabalho: try trabalho(DadosDaBusca.bartender, inicio: sexta))
         #expect(await servidor.pedidos.isEmpty)
         #expect(!vm.temEnvioRegistrado && vm.resultadosDaChamada.isEmpty)
+    }
+
+    // MARK: - F-040: recusa definitiva no 1º envio, sem vaga, libera a busca (paridade com o ajuste do #906)
+
+    private func recusadaDeVez(_ resultado: ResultadoDaChamadaDaBusca?) -> Bool {
+        if case .erro = resultado { return true }
+        return false
+    }
+
+    @Test("1º envio recusado de vez para TODOS (422 no recado), sem vaga: a busca fica livre e a correção sai com o trabalho e o recado novos")
+    func recusaDefinitivaNoPrimeiroEnvioLiberaABusca() async throws {
+        let servidor = ServidorDaBusca(recadoRecusado: "Recado recusado")
+        let vm = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        let um = DadosDaBusca.id(1), dois = DadosDaBusca.id(2)
+        try await buscar(vm, em: sexta)
+        vm.alternarSelecao(um)
+        vm.alternarSelecao(dois)
+        await vm.chamar(trabalho: try trabalho(inicio: sexta), recado: "Recado recusado")
+        #expect(recusadaDeVez(vm.resultadosDaChamada[um]) && recusadaDeVez(vm.resultadosDaChamada[dois]))
+        #expect(await servidor.vagasCriadas().isEmpty)
+        #expect(!vm.temEnvioRegistrado && vm.trabalhoEnviado == nil && vm.recadoEnviado == nil, "sem vaga: a tela abre a folha")
+        let antes = await servidor.pedidos.count
+
+        let corrigido = try trabalho(inicio: sexta, valor: 25_000)
+        await vm.chamar(trabalho: corrigido, recado: "Recado corrigido")
+        let rodada = Array(await servidor.pedidos.dropFirst(antes))
+        let primeiro = try #require(rodada.first)
+        #expect(primeiro.profissionalID == um && primeiro.recado == "Recado corrigido")
+        #expect(primeiro.trabalho?.valor == Dinheiro(centavos: 25_000), "sai o trabalho da folha corrigida, não o recusado")
+        #expect(rodada.allSatisfy { $0.recado == "Recado corrigido" })
+        #expect(enviada(vm.resultadosDaChamada[um]) != nil && enviada(vm.resultadosDaChamada[dois]) != nil)
+        #expect(vm.trabalhoEnviado == corrigido && vm.recadoEnviado == "Recado corrigido")
+        #expect(await servidor.vagasCriadas().count == 1)
+    }
+
+    @Test("DINHEIRO: 1 só selecionado e ele termina INCERTO: o trabalho e o recado guardados ficam")
+    func umSoSelecionadoIncertoGuarda() async throws {
+        let um = DadosDaBusca.id(1)
+        let servidor = ServidorDaBusca(semRede: [um])
+        let vm = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(vm, em: sexta)
+        vm.alternarSelecao(um)
+        let doGarcom = try trabalho(inicio: sexta)
+        await vm.chamar(trabalho: doGarcom, recado: "Recado")
+        #expect(recusadaDeVez(vm.resultadosDaChamada[um]) && vm.travadoPeloIncerto)
+        #expect(vm.temEnvioRegistrado && vm.trabalhoEnviado == doGarcom && vm.recadoEnviado == "Recado")
+    }
+
+    @Test("DINHEIRO: 1 enviada e 1 recusada de vez: o guardado fica")
+    func umaEnviadaEUmaRecusadaGuarda() async throws {
+        let um = DadosDaBusca.id(1), dois = DadosDaBusca.id(2)
+        let servidor = ServidorDaBusca(recusar: [um])
+        let vm = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(vm, em: sexta)
+        vm.alternarSelecao(um)
+        vm.alternarSelecao(dois)
+        let doGarcom = try trabalho(inicio: sexta)
+        await vm.chamar(trabalho: doGarcom)
+        #expect(recusadaDeVez(vm.resultadosDaChamada[um]) && enviada(vm.resultadosDaChamada[dois]) != nil)
+        #expect(vm.temEnvioRegistrado && vm.trabalhoEnviado == doGarcom)
+    }
+
+    @Test("DINHEIRO: 1 pede a confirmação J7 e o outro é recusado de vez: o guardado fica")
+    func j7Guarda() async throws {
+        let um = DadosDaBusca.id(1), dois = DadosDaBusca.id(2)
+        let servidor = ServidorDaBusca(recusar: [dois], pedeRecorrencia: [um])
+        let vm = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(vm, em: sexta)
+        vm.alternarSelecao(um)
+        vm.alternarSelecao(dois)
+        let doGarcom = try trabalho(inicio: sexta)
+        await vm.chamar(trabalho: doGarcom, recado: "Recado")
+        #expect(vm.resultadosDaChamada[um] == .pedeConfirmacaoDeRecorrencia && recusadaDeVez(vm.resultadosDaChamada[dois]))
+        #expect(vm.mostrarJ7)
+        #expect(vm.temEnvioRegistrado && vm.trabalhoEnviado == doGarcom && vm.recadoEnviado == "Recado")
+    }
+
+    @Test("DINHEIRO: 409 com termos DIFERENTES (a casa ainda vai decidir): o guardado fica")
+    func termosDiferentesGuarda() async throws {
+        let servidor = ServidorDaBusca()
+        let primeira = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(primeira, em: sexta)
+        primeira.alternarSelecao(DadosDaBusca.id(1))
+        await primeira.chamar(trabalho: try trabalho(inicio: sexta))
+
+        let nova = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(nova, em: sexta)
+        let dois = DadosDaBusca.id(2)
+        nova.alternarSelecao(dois)
+        let outroValor = try trabalho(inicio: sexta, valor: 25_000)
+        await nova.chamar(trabalho: outroValor)
+        #expect(nova.termosParaConfirmar != nil)
+        if case .pedeConfirmacaoDosTermos = nova.resultadosDaChamada[dois] {} else { Issue.record("espera os termos") }
+        #expect(nova.temEnvioRegistrado && nova.trabalhoEnviado == outroValor)
+    }
+
+    @Test("DINHEIRO: 409 com termos IGUAIS e depois recusa de vez pelo vaga_id: a vaga existe, o guardado fica")
+    func termosIguaisERecusaPelaVagaGuarda() async throws {
+        let servidor = ServidorDaBusca(recadoRecusado: "Recado recusado")
+        let primeira = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(primeira, em: sexta)
+        primeira.alternarSelecao(DadosDaBusca.id(1))
+        await primeira.chamar(trabalho: try trabalho(inicio: sexta))
+        let vaga = try #require(enviada(primeira.resultadosDaChamada[DadosDaBusca.id(1)])).vagaID
+
+        let nova = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(nova, em: sexta)
+        let dois = DadosDaBusca.id(2)
+        nova.alternarSelecao(dois)
+        let doGarcom = try trabalho(inicio: sexta)
+        await nova.chamar(trabalho: doGarcom, recado: "Recado recusado")
+        let ultimo = try #require(await servidor.pedidos.last)
+        #expect(ultimo.vagaID == vaga && ultimo.trabalho == nil, "a recusa veio no pedido pelo vaga_id")
+        #expect(recusadaDeVez(nova.resultadosDaChamada[dois]) && !nova.travadoPeloIncerto)
+        #expect(nova.temEnvioRegistrado && nova.trabalhoEnviado == doGarcom && nova.recadoEnviado == "Recado recusado")
+    }
+
+    @Test("DINHEIRO: o reenvio (que não guardou) recusado de vez nunca apaga o guardado")
+    func reenvioRecusadoNaoApaga() async throws {
+        let um = DadosDaBusca.id(1)
+        let servidor = ServidorDaBusca(recusar: [um], semRede: [um])
+        let vm = BuscaDeProfissionaisViewModel(fonte: servidor, estabelecimentoID: casaID)
+        try await buscar(vm, em: sexta)
+        vm.alternarSelecao(um)
+        let doGarcom = try trabalho(inicio: sexta)
+        await vm.chamar(trabalho: doGarcom, recado: "Recado")
+        #expect(vm.travadoPeloIncerto && vm.temEnvioRegistrado)
+
+        await vm.reenviar()
+        #expect(recusadaDeVez(vm.resultadosDaChamada[um]) && !vm.travadoPeloIncerto, "agora a recusa é definitiva")
+        #expect(await servidor.vagasCriadas().isEmpty)
+        #expect(vm.temEnvioRegistrado && vm.trabalhoEnviado == doGarcom && vm.recadoEnviado == "Recado")
     }
 }

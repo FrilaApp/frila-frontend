@@ -1,12 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Só para a leitura no toque de marcar presença e saída. Sem leitura em segundo plano e sem geofence. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- O alerta de aproximação (GeofenceAlertaReceiver) posta aviso; no Android 13 ou mais a pessoa pode negar. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <application>
-        <receiver
-            android:name=".GeofenceAlertaReceiver"
-            android:exported="false" />
-    </application>
 </manifest>

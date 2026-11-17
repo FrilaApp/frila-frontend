@@ -197,6 +197,8 @@ def main() -> None:
         "GerarCodigoCheckinDto": "/rpc/gerar_codigo_checkin",
         "DefinirRegioesAtendidasDto": "/rpc/definir_regioes_atendidas",
         "ValidarCodigoCheckinDto": "/rpc/validar_codigo_checkin",
+        "AvisarACaminhoDto": "/rpc/avisar_a_caminho",
+        "ReabrirPorAtrasoDto": "/rpc/reabrir_por_atraso",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths

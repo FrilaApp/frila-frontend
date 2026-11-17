@@ -63,9 +63,11 @@ import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
 import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaApresentacaoERegioes
+import br.com.frila.feature.perfil.TelaPontoBase
 import br.com.frila.feature.perfil.TelaFotoDePerfilConectada
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
@@ -104,6 +106,7 @@ object Rotas {
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
     const val APRESENTACAO = "perfil_apresentacao"
+    const val PONTO_BASE = "perfil_ponto_base"
     const val FOTO_DE_PERFIL = "perfil_foto"
     const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
@@ -401,6 +404,7 @@ fun AppNavegacao(
                         aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
                         aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
                         aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
+                        aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
                     )
                 }
             }
@@ -691,6 +695,24 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
+                        aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.PONTO_BASE) }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+
+            // Ao salvar, volta para quem abriu: a lista de vagas recarrega sozinha ao reaparecer.
+            composable(Rotas.PONTO_BASE) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: PontoBaseViewModel = koinViewModel()
+                    TelaPontoBase(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoSalvo = { navController.popBackStack() },
                     )
                 }
             }
