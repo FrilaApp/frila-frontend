@@ -99,6 +99,28 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
         }
 
     /**
+     * `POST /rest/v1/rpc/gerar_codigo_checkin` (0.2.68): a casa gera ou revê o código de chegada do turno.
+     * Dentro da validade devolve o mesmo código; vencido, um novo. Devolve [Result] como
+     * [confirmarCheckinManual]: toda falha vira `Result.failure` e só o cancelamento da corrotina propaga.
+     * Não está entre as leituras que se repetem sozinhas, porque é POST. Erros esperados: `403 sem_permissao`
+     * (quem não é da casa; também `recurso_desligado` e `conta_suspensa` em `details`), `401 nao_autenticado`,
+     * `404 nao_encontrado`, `409 checkin_pendente` (sem check-in, a mais de 50 m ou há mais de 15 min),
+     * `409 checkin_ja_confirmado`, `409 codigo_bloqueado` (`encerrado`), `422 fora_da_janela`.
+     */
+    suspend fun gerarCodigoCheckin(turnoId: String): Result<CodigoDeCheckinDto> =
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("gerar_codigo_checkin")) {
+                contentType(ContentType.Application.Json)
+                setBody(GerarCodigoCheckinDto(turnoId = turnoId))
+            }
+            Result.success(cliente.corpoOuErro<CodigoDeCheckinDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
+
+    /**
      * `POST /rest/v1/rpc/avaliar`. Avaliação binária ("Você trabalharia nesse local de novo?",
      * RN07) — nunca nota de 1 a 5. Reenviar a mesma resposta devolve a avaliação já gravada;
      * resposta diferente é conflito. Erros esperados: `422 avaliacao_indisponivel`
