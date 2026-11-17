@@ -29,7 +29,9 @@ export async function action({ context, request }: Route.ActionArgs) {
   // A chave desta submissão volta para a tela: um novo envio (depois de erro) usa a MESMA, e o servidor não duplica.
   const chave = String(formulario.get("chave") ?? "");
   const bloquear = formulario.get("intencao") === "bloquear" || formulario.get("bloquear") === "sim";
-  let protocolo: string | null = null;
+  // Repetir só o bloqueio: o protocolo já confirmado volta do formulário e continua na tela, mesmo se falhar de novo.
+  const protocoloAnterior = String(formulario.get("protocolo") ?? "");
+  let protocolo: string | null = /^[0-9A-F]{8}$/.test(protocoloAnterior) ? protocoloAnterior : null;
   if (formulario.get("intencao") !== "bloquear") {
     const motivo = String(formulario.get("motivo") ?? "");
     const denuncia = await denunciarCasa(api, {
@@ -93,6 +95,7 @@ export default function Denunciar({ loaderData, actionData }: Route.ComponentPro
         <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
           <input type="hidden" name="alvo" value={alvo} />
           <input type="hidden" name="chave" value={chave} />
+          <input type="hidden" name="protocolo" value={actionData?.protocolo ?? ""} />
           <input type="hidden" name="intencao" value="bloquear" />
           <button type="submit" disabled={enviando} className={classeDoBotaoSecundario}>
             {enviando ? t.enviando : t.soBloquear}

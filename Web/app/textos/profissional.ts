@@ -268,4 +268,28 @@ export const profissional = {
     desbloqueada: "Casa desbloqueada.",
     voltar: "Voltar ao início",
   },
+  preferencias: {
+    tituloDaAba: "Preferências de chamadas · Frila",
+    titulo: "Preferências de chamadas",
+    link: "Preferências de chamadas",
+    // Texto 'busca-1' (decisão da Bússola, 17/11/2026): o mesmo do iOS, palavra por palavra. Mudou? Vira 'busca-2'.
+    aceitoChamadas: "Aceito chamadas diretas",
+    aceitoChamadasExplicacao: "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga.",
+    // Os rótulos abaixo são os do iOS (TextosChamadaDireta.swift).
+    deQuemJaTrabalhou: "Receber de quem já trabalhou comigo",
+    deQuemJaTrabalhouSubtitulo: "Permite que contratantes onde você já realizou turnos te chamem diretamente.",
+    antecedencia: "Antecedência mínima",
+    horas: { 2: "2 horas antes", 6: "6 horas antes (padrão)", 24: "24 horas antes", 48: "48 horas antes" },
+    pausar: "Pausar novas chamadas",
+    pausarAte: "Pausar até",
+    avisoChamadasExistentes: "Alterações nas preferências não afetam chamadas que você já recebeu; elas continuam disponíveis até o prazo limite.",
+    salvar: "Salvar preferências",
+    salvando: "Salvando…",
+    salvas: "Preferências atualizadas com sucesso.",
+    resultado: {
+      pausa_no_passado: "Escolha um dia de hoje em diante para a pausa.",
+      recurso_desligado: "As chamadas diretas ainda não estão ligadas na web.",
+      indisponivel: "Não deu para salvar agora. Tente de novo em instantes.",
+    },
+  },
 } as const;

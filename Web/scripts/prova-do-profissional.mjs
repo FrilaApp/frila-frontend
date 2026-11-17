@@ -56,6 +56,24 @@ const desligadas = htmlDasChamadas.includes("ainda não estão ligadas na web");
 diz("Chamadas abre (a lista, ou o aviso de recurso desligado)", chamadas.status === 200 && (htmlDasChamadas.includes("Casas que chamaram você") || desligadas), desligadas ? "(chamada_direta desligada no dev)" : "");
 const chamadaAlheia = await pedir("/app/chamadas/00000000-0000-4000-8000-000000000000");
 diz("chamada que não é da pessoa não abre", chamadaAlheia.status === 404 || desligadas, `(${chamadaAlheia.status})`);
+// Preferências: salva de volta os MESMOS valores (a chave de chamadas não muda, então nenhum registro novo).
+const telaDasPreferencias = await pedir("/app/preferencias");
+const htmlDasPreferencias = await telaDasPreferencias.text();
+diz("Preferências de chamadas abre com o texto busca-1", telaDasPreferencias.status === 200 && htmlDasPreferencias.includes("Aceito chamadas diretas") && htmlDasPreferencias.includes("Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga."));
+const marcada = (nome) => new RegExp(`<input[^>]*name="${nome}"[^>]*checked`).test(htmlDasPreferencias);
+const antecedencia = /<option value="(\d+)" selected/.exec(htmlDasPreferencias)?.[1];
+const pausa = /name="pausado_ate"[^>]*value="([\d-]*)"/.exec(htmlDasPreferencias)?.[1] ?? "";
+const antes = /name="aceita_chamadas_antes" value="(sim|nao)"/.exec(htmlDasPreferencias)?.[1];
+if (antecedencia && antes) {
+  const campos = { aceita_chamadas_antes: antes, antecedencia, pausado_ate: pausa };
+  if (marcada("aceita_chamadas")) campos.aceita_chamadas = "sim";
+  if (marcada("de_quem_ja_trabalhou")) campos.de_quem_ja_trabalhou = "sim";
+  if (marcada("pausar")) campos.pausar = "sim";
+  const salvas = await (await envio("/app/preferencias", campos)).text();
+  diz("salvar as preferências (com os mesmos valores)", salvas.includes("Preferências atualizadas com sucesso."));
+} else {
+  diz("ler as preferências antes de salvar", false, "(não salvou nada)");
+}
 const bloqueados = await pedir("/app/bloqueados");
 diz("Casas bloqueadas abre", bloqueados.status === 200 && (await bloqueados.text()).includes("Casas bloqueadas"));
 const turnoAlheio = await pedir("/app/turnos/00000000-0000-4000-8000-000000000000");
