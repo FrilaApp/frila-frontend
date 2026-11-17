@@ -314,7 +314,9 @@ public struct TelaMinhasVagas: View {
     /// A chave `busca_profissionais` do servidor (desligada no Prod).
     @State private var buscaHabilitada = false
     @State private var mostrandoBusca = false
-    /// Segura o view model da busca enquanto um envio estiver incerto (a folha é recriada a cada abertura).
+    /// Segura o view model da busca enquanto um envio estiver em curso ou incerto (a folha é recriada a cada abertura).
+    /// Vem do `FluxoDoContratante`, acima desta tela: publicar uma vaga tira esta tela da hierarquia, e a trava tem de
+    /// voltar com ela (DINHEIRO). Sem ela (entradas de teste), a tela cria a sua.
     @State private var guardaDaBusca: GuardaDaBuscaDeProfissionais
 
     /// O roteador vem de fora quando um aviso do push precisa abrir a vaga ou o turno (#8).
@@ -326,6 +328,7 @@ public struct TelaMinhasVagas: View {
         roteador: RoteadorDoContratante? = nil,
         publicarVaga: (() -> Void)? = nil,
         publicarParaTodosDaBusca: ((RascunhoDeVagaDaBusca) -> Void)? = nil,
+        guardaDaBusca: GuardaDaBuscaDeProfissionais? = nil,
         sair: (() -> Void)? = nil,
         abrirPerfil: (() -> Void)? = nil
     ) {
@@ -335,7 +338,7 @@ public struct TelaMinhasVagas: View {
         ))
         _roteador = State(initialValue: roteador ?? RoteadorDoContratante())
         let estabelecimentoID = viewModel.estabelecimentoID
-        _guardaDaBusca = State(initialValue: GuardaDaBuscaDeProfissionais {
+        _guardaDaBusca = State(initialValue: guardaDaBusca ?? GuardaDaBuscaDeProfissionais {
             BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID)
         })
         self.api = api
@@ -355,6 +358,9 @@ public struct TelaMinhasVagas: View {
                         TelaBuscaDeProfissionais(viewModel: buscaViewModel, api: api,
                                                  estabelecimentoID: viewModel.estabelecimentoID) { rascunho in
                             mostrandoBusca = false
+                            // A publicação tira esta tela da hierarquia e o onDismiss pode não vir: a guarda (que vive
+                            // acima dela) solta aqui a busca resolvida; com envio em curso ou incerto, ela fica.
+                            guardaDaBusca.aoFechar()
                             publicarParaTodosDaBusca(rascunho)
                         }
                     }
