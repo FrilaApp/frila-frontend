@@ -195,4 +195,32 @@ class ProcessadorDePushTest {
         assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("selecao_lembrete"))
         assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, canalPara("tipo_desconhecido_qualquer"))
     }
+
+    /** C0-10: como o iOS (RoteadorDePush), os avisos da chamada ao profissional levam o `chamada_id` até o link. */
+    @Test
+    fun `aviso de chamada ao profissional leva o chamada_id`() {
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
+
+        for (tipo in listOf("chamada_recebida", "chamada_lembrete", "chamada_cancelada", "chamada_expirada", "chamada_encerrada")) {
+            val resultado = processador.processar(
+                mapOf("vinculo_id" to "vinculo-abc", "tipo" to tipo, "chamada_id" to "chamada-9", "titulo" to "Chamada", "corpo" to "Bistrô"),
+            )
+            assertEquals("chamada-9", resultado.chamadaId, tipo)
+        }
+    }
+
+    @Test
+    fun `aviso de chamada da casa e push neutralizado nao levam o chamada_id`() {
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
+
+        val daCasa = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to "chamada_aceita", "chamada_id" to "chamada-9"))
+        val deOutraConta = processador.processar(
+            mapOf("vinculo_id" to "vinculo-de-outra-conta", "tipo" to "chamada_recebida", "chamada_id" to "chamada-9"),
+        )
+
+        assertNull(daCasa.chamadaId)
+        assertNull(deOutraConta.chamadaId)
+        assertTrue(deOutraConta.neutralizada)
+    }
+
 }
