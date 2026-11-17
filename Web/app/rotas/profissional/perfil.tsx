@@ -46,7 +46,7 @@ export async function action({ context, request }: Route.ActionArgs) {
 }
 
 const classeDoCampo = "w-full rounded-controle border border-borda bg-superficie p-3 text-lg";
-const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-6 text-lg font-bold text-tinta disabled:opacity-60";
+const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao disabled:opacity-60";
 const AVISO_DO_ESTADO = {
   sem_perfil: t.semPerfil,
   perfil_incompativel: tv.perfilIncompativel,
