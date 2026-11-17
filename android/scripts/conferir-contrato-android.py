@@ -233,9 +233,11 @@ def main() -> None:
         "MinhasCandidaturasParametrosDto": ("/rpc/minhas_candidaturas", "get"),
     }
 
-    # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
+    # Objetos declarados inline dentro de um schema: DTO -> (schema pai, propriedade). Vale para o item de uma
+    # lista (`items`) e para o objeto que aceita nulo (`oneOf` de objeto e `type: null`).
     ITENS_ANINHADOS = {
         "ParteUploadDto": ("UploadVerificacao", "partes"),
+        "SuspensaoDaContaDto": ("SituacaoDaConta", "suspensao"),
     }
 
     # Request body de Edge Function
@@ -275,11 +277,9 @@ def main() -> None:
 
         if dto_name in ITENS_ANINHADOS:
             pai, propriedade = ITENS_ANINHADOS[dto_name]
-            item = (
-                schemas.get(pai, {})
-                .get("properties", {})
-                .get(propriedade, {})
-                .get("items", {})
+            declarado = schemas.get(pai, {}).get("properties", {}).get(propriedade, {})
+            item = declarado.get("items") or next(
+                (opcao for opcao in declarado.get("oneOf", []) if opcao.get("properties")), {}
             )
             item_props = set(item.get("properties", {}).keys())
             if not item_props:

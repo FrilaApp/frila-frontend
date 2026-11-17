@@ -154,6 +154,21 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
 "
 esperar_reprovacao "ConfirmarCheckinManualDto com campo trocado" "não mapeia campos obrigatórios (required) de '/rpc/confirmar_checkin_manual': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
 
+# Restaura e testa o objeto inline que aceita nulo (`SituacaoDaConta.suspensao`, oneOf de objeto e null): campo trocado em
+# SuspensaoDaContaDto reprova pelos dois lados (falta o obrigatório do contrato e sobra o inventado).
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+python3 -c "
+with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
+    c = f.read()
+alvo = 'data class SuspensaoDaContaDto(\n    @SerialName(\"motivo\") val motivo: String,\n'
+assert c.count(alvo) == 1
+c = c.replace(alvo, 'data class SuspensaoDaContaDto(\n    @SerialName(\"razao\") val razao: String,\n')
+with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+esperar_reprovacao "SuspensaoDaContaDto sem motivo obrigatório" "não mapeia campos obrigatórios (required) de 'SituacaoDaConta.suspensao': ['motivo']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+esperar_reprovacao "SuspensaoDaContaDto com campo inventado razao" "possui campos inventados ausentes em 'SituacaoDaConta.suspensao': ['razao']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
 # 3b. O portão lê todos os `Dtos*.kt` de core/rede, não só o `Dtos.kt` (DtosCheckin.kt, DtosValidarCodigo.kt e DtosPerfil.kt
 # ficaram de fora e nada acusava). Os casos abaixo usam um segundo arquivo, `DtosExtra.kt`.
 DIR_REDE="$TMPDIR_TESTE/android/core/rede/src/main/kotlin/br/com/frila/core/rede"
