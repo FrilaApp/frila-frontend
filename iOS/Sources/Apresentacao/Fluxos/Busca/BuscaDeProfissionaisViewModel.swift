@@ -166,11 +166,11 @@ public final class BuscaDeProfissionaisViewModel {
     private var incertos: Set<UUID> = []
     /// 0.2.95: a vaga aberta do trabalho tem termos diferentes dos digitados. Nada do trabalho sai até a casa confirmar.
     private var confirmacaoDosTermos: ConfirmacaoDosTermos?
-    /// O trabalho e o recado do 1º envio. DINHEIRO: depois dele, todo reenvio (Tentar de novo, Chamar selecionados
-    /// de novo, J7) repete ESTE trabalho, sem folha nova: um trabalho diferente (horário que muda a cada abertura,
-    /// outro valor) faria quem ainda não foi chamado abrir uma 2ª vaga.
-    public private(set) var trabalhoEnviado: PublicacaoVaga?
-    public private(set) var recadoEnviado: String?
+    /// O trabalho e o recado do 1º envio de cada serviço buscado (`filtroDaBusca.funcaoID`). DINHEIRO: depois dele, todo
+    /// reenvio desse serviço (Tentar de novo, Chamar selecionados de novo, J7) repete ESTE trabalho, sem folha nova: um
+    /// trabalho diferente (horário que muda a cada abertura, outro valor) faria quem ainda não foi chamado abrir uma 2ª
+    /// vaga. Outro serviço é outro trabalho: abre a folha e guarda o seu.
+    private var enviadosPorServico: [UUID: (trabalho: PublicacaoVaga, recado: String?)] = [:]
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
     /// O prazo de cada `await` de rede; o teste injeta um menor.
@@ -376,11 +376,12 @@ public final class BuscaDeProfissionaisViewModel {
 
     public func estaSelecionado(_ id: UUID) -> Bool { selecionados.contains(id) }
 
-    /// Marca ou desmarca. O 4º não entra: devolve `false` e liga o aviso. Com `travadoPeloIncerto`, nada muda
-    /// (devolve `false`): o incerto que levou o trabalho continua marcado e vai primeiro no "Tentar de novo".
+    /// Marca ou desmarca. O 4º não entra: devolve `false` e liga o aviso. Com `travadoPeloIncerto` ou `enviando`, nada
+    /// muda (devolve `false`): quem está incerto ou com o pedido em voo continua marcado e vai primeiro no "Tentar de
+    /// novo". DINHEIRO: desmarcado, ele sairia da rodada e a outra pessoa levaria o trabalho completo (2ª vaga).
     @discardableResult
     public func alternarSelecao(_ id: UUID) -> Bool {
-        guard !travadoPeloIncerto else { return false }
+        guard !travadoPeloIncerto, !enviando else { return false }
         if let indice = selecionados.firstIndex(of: id) {
             selecionados.remove(at: indice)
             avisoDeLimiteDeSelecao = nil
@@ -407,7 +408,15 @@ public final class BuscaDeProfissionaisViewModel {
     /// 0.2.95: os termos da vaga já aberta que a tela provisória mostra para a casa confirmar; `nil` sem pendência.
     public var termosParaConfirmar: TermosDaVagaAberta? { confirmacaoDosTermos?.termos }
 
-    /// Já houve um envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma folha nova.
+    /// O serviço da busca feita (o da lista na tela), e não o do seletor (`funcaoID`), que pode mudar sem Buscar. A folha
+    /// monta o trabalho com este.
+    public var funcaoDaBusca: UUID? { filtroDaBusca?.funcaoID }
+
+    /// O trabalho e o recado do 1º envio do serviço da busca feita; `nil` se esse serviço ainda não teve envio.
+    public var trabalhoEnviado: PublicacaoVaga? { funcaoDaBusca.flatMap { enviadosPorServico[$0]?.trabalho } }
+    public var recadoEnviado: String? { funcaoDaBusca.flatMap { enviadosPorServico[$0]?.recado } }
+
+    /// O serviço da busca feita já teve envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma folha nova.
     public var temEnvioRegistrado: Bool { trabalhoEnviado != nil }
 
     /// Há selecionado com erro ou que nem saiu: `chamar` de novo reenvia só esses, cada um com a chave que já tinha.
@@ -433,7 +442,7 @@ public final class BuscaDeProfissionaisViewModel {
     /// também espera esse pedido: ela só vale para quem a recebeu, e quem ficou incerto vai sem ela.
     public func chamar(trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
                        chave: () -> UUID = UUID.init) async {
-        guard podeChamar else { return }
+        guard podeChamar, let servico = funcaoDaBusca else { return }
         let pendentes = selecionados.filter { resultadosDaChamada[$0] == .pedeConfirmacaoDeRecorrencia }
         // A confirmação J7 só vale depois da recusa correspondente.
         guard !confirmoRecorrencia || !pendentes.isEmpty else { return }
@@ -444,9 +453,8 @@ public final class BuscaDeProfissionaisViewModel {
             if case .enviada = resultadosDaChamada[id] { return false }
             return !primeiros.contains(id) && (!confirmoRecorrencia || pendentes.contains(id))
         }
-        if trabalhoEnviado == nil {
-            trabalhoEnviado = trabalho
-            recadoEnviado = recado
+        if enviadosPorServico[servico] == nil {
+            enviadosPorServico[servico] = (trabalho, recado)
         }
         enviando = true
         defer { enviando = false }
@@ -496,8 +504,8 @@ public final class BuscaDeProfissionaisViewModel {
         mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
     }
 
-    /// Reenvia com o trabalho e o recado do 1º envio (nunca um novo). Sem envio anterior não faz nada: o 1º envio
-    /// passa pela folha de chamada e por `chamar(trabalho:)`.
+    /// Reenvia com o trabalho e o recado do 1º envio do serviço da busca feita (nunca um novo). Sem envio desse serviço
+    /// não faz nada: o 1º envio de cada serviço passa pela folha de chamada e por `chamar(trabalho:)`.
     public func reenviar(confirmoRecorrencia: Bool = false, chave: () -> UUID = UUID.init) async {
         guard let trabalho = trabalhoEnviado else { return }
         await chamar(trabalho: trabalho, recado: recadoEnviado, confirmoRecorrencia: confirmoRecorrencia, chave: chave)

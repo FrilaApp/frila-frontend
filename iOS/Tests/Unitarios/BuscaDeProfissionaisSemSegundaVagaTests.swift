@@ -244,4 +244,20 @@ struct BuscaDeProfissionaisSemSegundaVagaTests {
         #expect(doOutroGarcom.vagaID == chamadaDoGarcom.vagaID && doOutroGarcom.recado == "Recado do garçom")
         #expect(await servidor.vagasCriadas().count == 2, "uma vaga por serviço, nenhuma 2ª para o mesmo trabalho")
     }
+
+    @Test("A folha usa o serviço da busca feita: trocar o seletor sem Buscar não muda o serviço nem o envio registrado")
+    func folhaUsaOServicoDaBuscaFeita() async throws {
+        let servidor = Servidor(segura: false)
+        let vm = BuscaDeProfissionaisViewModel(fonte: Fonte(servidor: servidor), estabelecimentoID: casaID)
+        #expect(vm.funcaoDaBusca == nil, "sem busca feita não há serviço para a folha")
+        vm.funcaoID = Dados.garcom
+        await vm.buscar()
+        vm.alternarSelecao(try #require(vm.resultados.first).id)
+        await vm.chamar(trabalho: try trabalho(funcaoID: Dados.garcom, inicio: inicio))
+
+        // O seletor muda para bartender, sem Buscar: a lista ainda é a do garçom, e é dele o serviço da folha e do reenvio.
+        vm.funcaoID = Dados.bartender
+        #expect(vm.funcaoDaBusca == Dados.garcom)
+        #expect(vm.temEnvioRegistrado && vm.trabalhoEnviado?.funcaoID == Dados.garcom)
+    }
 }
