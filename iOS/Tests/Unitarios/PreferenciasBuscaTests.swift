@@ -22,7 +22,8 @@ struct PreferenciasBuscaTests {
 
     @Test("Sem mexer no Aceito chamadas diretas, salvar outra preferência não manda o campo (nem com a chave desligada)")
     func naoMandaSemMexer() async {
-        let vm = PreferenciasChamadaViewModel(api: ApiClienteEmMemoria(cenario: .chamadaDireta)) // busca desligada
+        let vm = PreferenciasChamadaViewModel(api: ApiQueLeOPerfil(cenario: .chamadaDireta)) // busca desligada
+        await vm.carregar()
         vm.antecedenciaMinimaH = 12
         await vm.salvar()
         #expect(vm.sucesso)
@@ -34,7 +35,8 @@ struct PreferenciasBuscaTests {
     @Test("Ligar manda aceita_chamadas com a versão do texto; a resposta traz as pendências")
     func ligarComVersaoDoTexto() async {
         // O dublê recusa ligar sem a versão (campo_obrigatorio): salvar com sucesso prova que ela foi.
-        let vm = PreferenciasChamadaViewModel(api: ApiClienteEmMemoria(cenario: .buscaDeProfissionais))
+        let vm = PreferenciasChamadaViewModel(api: ApiQueLeOPerfil(cenario: .buscaDeProfissionais))
+        await vm.carregar()
         vm.aceitaChamadas = true
         await vm.salvar()
         #expect(vm.sucesso)
@@ -45,7 +47,8 @@ struct PreferenciasBuscaTests {
 
     @Test("Desligar zera as pendências e tira da busca")
     func desligar() async {
-        let vm = PreferenciasChamadaViewModel(api: ApiClienteEmMemoria(cenario: .buscaDeProfissionais))
+        let vm = PreferenciasChamadaViewModel(api: ApiQueLeOPerfil(cenario: .buscaDeProfissionais))
+        await vm.carregar()
         vm.aceitaChamadas = true
         await vm.salvar()
         vm.aceitaChamadas = false
@@ -58,7 +61,8 @@ struct PreferenciasBuscaTests {
 
     @Test("Com a chave da busca desligada, ligar volta como recurso desligado")
     func chaveDesligada() async {
-        let vm = PreferenciasChamadaViewModel(api: ApiClienteEmMemoria(cenario: .chamadaDireta))
+        let vm = PreferenciasChamadaViewModel(api: ApiQueLeOPerfil(cenario: .chamadaDireta))
+        await vm.carregar()
         vm.aceitaChamadas = true
         await vm.salvar()
         #expect(!vm.sucesso)
@@ -130,6 +134,55 @@ struct PreferenciasBuscaTests {
         #expect(!vm.carregando)
         #expect(!vm.aceitaChamadas)
     }
+
+    // Revisão do #792 (Lince F, IMPORTANTE 1): sem a leitura, a tela mostra os padrões; gravar por cima
+    // tiraria a pausa e voltaria a 6 h e a "todos" no servidor.
+    @Test("Leitura falhou: salvar não grava os padrões por cima do servidor")
+    func leituraFalhouNaoGrava() async {
+        let api = ApiComPreferenciasSalvas(.falha(ErroDaApi(codigo: .semRede)))
+        let vm = PreferenciasChamadaViewModel(api: api)
+
+        await vm.carregar()
+        await vm.salvar()
+
+        #expect(api.ultimaAlteracao == nil)
+        #expect(!vm.sucesso)
+        #expect(!vm.podeSalvar)
+    }
+
+    @Test("Antes da leitura o Salvar fica desligado; com a leitura certa, liga")
+    func salvarSoDepoisDaLeitura() async {
+        let vm = PreferenciasChamadaViewModel(api: ApiComPreferenciasSalvas(.semPreferencias))
+        #expect(!vm.podeSalvar)
+
+        await vm.carregar()
+
+        #expect(vm.podeSalvar)
+    }
+
+    @Test("Tentar de novo depois da falha: a leitura dá certo, mostra o que o servidor tem e o Salvar volta")
+    func tentarDeNovoReligaOSalvar() async {
+        let pausa = Date(timeIntervalSince1970: 1_800_000_000)
+        let api = ApiComPreferenciasSalvas(.falhaUmaVez(ErroDaApi(codigo: .semRede), PreferenciaChamadas(
+            aceitaDeQuemJaTrabalhou: true, pausadoAte: pausa, antecedenciaMinimaH: 24, aceitaDe: .soCnpj
+        )))
+        let vm = PreferenciasChamadaViewModel(api: api)
+
+        await vm.carregar()
+        #expect(vm.erro == TextosChamadaDireta.erro)
+        #expect(!vm.podeSalvar)
+
+        await vm.carregar()
+
+        #expect(vm.erro == nil)
+        #expect(vm.podeSalvar)
+        #expect(vm.pausarChamadas)
+        #expect(vm.antecedenciaMinimaH == 24)
+        #expect(vm.aceitaDe == .soCnpj)
+        await vm.salvar()
+        #expect(api.ultimaAlteracao?.antecedenciaMinimaH == 24)
+        #expect(api.ultimaAlteracao?.pausadoAte == pausa)
+    }
 }
 
 /// O servidor visto pela tela de preferências: devolve o perfil com as preferências salvas (ou um erro)
@@ -139,11 +192,14 @@ private final class ApiComPreferenciasSalvas: ApiClienteEncaminhador, @unchecked
         case salvas(PreferenciaChamadas)
         case semPreferencias
         case falha(ErroDaApi)
+        /// Falha na 1ª leitura e devolve as preferências nas seguintes ("Tentar de novo").
+        case falhaUmaVez(ErroDaApi, PreferenciaChamadas)
     }
 
     private let servidor: Servidor
     private let trava = NSLock()
     private var _ultimaAlteracao: AlteracaoPreferenciaChamadas?
+    private var leituras = 0
 
     init(_ servidor: Servidor) {
         self.servidor = servidor
@@ -159,6 +215,10 @@ private final class ApiComPreferenciasSalvas: ApiClienteEncaminhador, @unchecked
         case let .salvas(preferencias): return PerfilProfissionalDetalhado(perfil: perfil, preferenciaChamadas: preferencias)
         case .semPreferencias: return PerfilProfissionalDetalhado(perfil: perfil)
         case let .falha(erro): throw erro
+        case let .falhaUmaVez(erro, preferencias):
+            let primeira = trava.withLock { leituras += 1; return leituras == 1 }
+            if primeira { throw erro }
+            return PerfilProfissionalDetalhado(perfil: perfil, preferenciaChamadas: preferencias)
         }
     }
 
@@ -169,5 +229,17 @@ private final class ApiComPreferenciasSalvas: ApiClienteEncaminhador, @unchecked
             antecedenciaMinimaH: preferencias.antecedenciaMinimaH ?? 6,
             aceitaChamadas: true
         )
+    }
+}
+
+/// Um cenário do dublê em memória cuja leitura das preferências dá certo (sem preferências salvas): os cenários
+/// de chamada são de contratante e não têm perfil profissional. O resto, inclusive salvar, vai ao cenário.
+final class ApiQueLeOPerfil: ApiClienteEncaminhador, @unchecked Sendable {
+    convenience init(cenario: ApiClienteEmMemoria.Cenario) {
+        self.init(base: ApiClienteEmMemoria(cenario: cenario))
+    }
+
+    override func meuPerfilDetalhado() async throws -> PerfilProfissionalDetalhado {
+        PerfilProfissionalDetalhado(perfil: try await ApiClienteEmMemoria().meuPerfilProfissional())
     }
 }

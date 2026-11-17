@@ -19,6 +19,9 @@ public final class PreferenciasChamadaViewModel {
     public private(set) var buscaHabilitada = false
 
     public private(set) var carregando = false
+    /// A leitura das preferências deu certo ao menos uma vez. Sem ela a tela mostra os padrões, e salvar gravaria
+    /// esses padrões por cima do que o servidor tem (tiraria a pausa, voltaria a 6 h e a "todos").
+    public private(set) var leituraFeita = false
     public private(set) var salvando = false
     public private(set) var erro: String?
     public private(set) var sucesso: Bool = false
@@ -37,6 +40,9 @@ public final class PreferenciasChamadaViewModel {
         self.agora = agora
         self.pausadoAte = agora().addingTimeInterval(24 * 3600)
     }
+
+    /// O Salvar só liga depois de uma leitura que deu certo (o erro da leitura oferece "Tentar de novo").
+    public var podeSalvar: Bool { leituraFeita && !carregando && !salvando }
 
     /// Ligou "Aceito chamadas diretas" e nada falta: aparece na busca.
     public var apareceNaBusca: Bool { aceitaChamadas && pendenciasParaBusca.isEmpty }
@@ -68,6 +74,7 @@ public final class PreferenciasChamadaViewModel {
                 try await api.meuPerfilDetalhado()
             }
             if let salvas = perfil.preferenciaChamadas { aplicar(salvas) }
+            leituraFeita = true
             sucesso = false
         } catch {
             erro = TextosChamadaDireta.erro
@@ -92,7 +99,7 @@ public final class PreferenciasChamadaViewModel {
     }
 
     public func salvar() async {
-        guard !salvando else { return }
+        guard podeSalvar else { return }
         salvando = true
         erro = nil
         sucesso = false
