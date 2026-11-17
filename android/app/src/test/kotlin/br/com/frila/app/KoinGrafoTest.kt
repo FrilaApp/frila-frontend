@@ -15,6 +15,7 @@ import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoConfianca
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.ServicoPerfil
@@ -73,7 +74,8 @@ private val moduloLocalizacaoFalso = module {
 
 class KoinGrafoTest : KoinTest {
 
-    private val modulosDeTeste = listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoFalso, moduloFeatures)
+    private val modulosDeTeste =
+        listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoFalso, moduloFeatures, moduloDestinoDaConta)
 
     private val vagaDeTeste = VagaAbertaDto(
         id = "vaga-1",
@@ -218,6 +220,15 @@ class KoinGrafoTest : KoinTest {
 
         assertSame(doGrafo, monitorizadorDeMeusTurnos)
         assertSame(doGrafo, monitorizadorDeCheckin)
+    }
+
+    @Test
+    fun `PerfilViewModel recebe o ServicoConta do grafo`() {
+        // C0-4b: sem ele o perfil cai no padrão nulo do construtor e a conta de casa volta a "Não encontramos
+        // seu perfil." (a mesma classe de bug do #596: um padrão do construtor no lugar da instância do grafo).
+        startKoin { modules(modulosDeTeste) }
+
+        assertSame(get<ServicoConta>(), propriedadePrivada(get<PerfilViewModel>(), "servicoConta"))
     }
 
     private fun propriedadePrivada(instancia: Any, nome: String): Any? =

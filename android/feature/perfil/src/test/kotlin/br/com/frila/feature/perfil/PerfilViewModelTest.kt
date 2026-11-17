@@ -4,6 +4,7 @@ import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -86,6 +88,7 @@ class PerfilViewModelTest {
         armazenamento: ArmazenamentoDeSessao = mockk(relaxed = true),
         engineTurnos: MockEngine = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
         preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
+        engineConta: MockEngine? = null,
     ): PerfilViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val clienteTurnos = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engineTurnos)
@@ -95,7 +98,63 @@ class PerfilViewModelTest {
             armazenamentoDeSessao = armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
             preferenciasNotificacao = preferenciasNotificacao,
+            servicoConta = engineConta?.let {
+                ServicoConta(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = it))
+            },
         )
+    }
+
+    /** `minha_conta` com dado sintético (mesmo formato de ServicoContaTest). */
+    private fun contaJson(perfil: String) =
+        """{"id":"u1","perfil":"$perfil","nome":"Casa Teste","telefone":"61999990000","email":"c@exemplo.com","nascimento":"1990-01-01","estado":"ativa"}"""
+
+    private fun engineDaConta(perfil: String) = MockEngine {
+        respond(content = contaJson(perfil), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+    }
+
+    /**
+     * C0-4b (revisão do #817): a conta de casa não tem perfil profissional e `meu_perfil_profissional` responde 404.
+     * O perfil dela sai de `minha_conta`, como o iOS, sem passar pelo erro nem pedir o perfil profissional.
+     */
+    @Test
+    fun `conta de casa vai para SUCESSO pela minha_conta sem pedir o perfil profissional`() = runBlocking {
+        val pedidosAoPerfilProfissional = java.util.concurrent.atomic.AtomicInteger(0)
+        val viewModel = viewModelComEngine(
+            engine = MockEngine {
+                pedidosAoPerfilProfissional.incrementAndGet()
+                respond(
+                    content = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                    status = HttpStatusCode.NotFound,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            engineConta = engineDaConta("contratante"),
+        )
+
+        viewModel.carregar().join()
+
+        val estado = viewModel.estado.value
+        assertEquals(StatusPerfil.SUCESSO, estado.status)
+        assertTrue(estado.ehContratante)
+        assertEquals("Casa Teste", estado.conta?.nome)
+        assertNull(estado.mensagemErro)
+        assertNull(estado.perfil)
+        assertEquals(0, pedidosAoPerfilProfissional.get())
+    }
+
+    @Test
+    fun `conta de profissional lida pela minha_conta continua carregando o perfil profissional`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            engine = MockEngine { respond(content = perfilJson, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+            engineConta = engineDaConta("profissional"),
+        )
+
+        viewModel.carregar().join()
+
+        val estado = viewModel.estado.value
+        assertEquals(StatusPerfil.SUCESSO, estado.status)
+        assertFalse(estado.ehContratante)
+        assertEquals(7, estado.perfil?.reputacao?.positivas)
     }
 
     /**
