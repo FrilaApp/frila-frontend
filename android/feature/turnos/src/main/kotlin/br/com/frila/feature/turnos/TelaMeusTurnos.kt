@@ -332,6 +332,7 @@ private fun SecaoTurnoConfirmado(
                 criarCheckinViewModel = criarCheckinViewModel,
                 aoExibirComprovante = aoExibirComprovante,
             )
+            SecaoDeCheckout(turno = turno, criarCheckinViewModel = criarCheckinViewModel, agora = relogio())
             BotaoSecundario(
                 texto = "Cancelar turno",
                 aoClicar = { aoCancelar(turno) },
@@ -339,7 +340,8 @@ private fun SecaoTurnoConfirmado(
             )
         }
         is EstadoContagemRegressiva.TurnoFinalizado -> {
-            // Turno finalizado não exibe check-in nem cancelamento
+            // Turno finalizado não exibe check-in nem cancelamento. L1-4: o check-out ainda vale até 60 min depois do fim.
+            SecaoDeCheckout(turno = turno, criarCheckinViewModel = criarCheckinViewModel, agora = relogio())
         }
     }
 }
@@ -632,6 +634,8 @@ private fun SecaoDeCheckin(
                         aoClicar = { aoExibirComprovante(comprovante) },
                     )
                 }
+                // L1-4: com a confirmação por código ligada (fiação no L1-7), o profissional digita o código da casa.
+                CampoDoCodigo(turno)
             }
             estado.status == StatusCheckin.OCIOSO && comprovante?.tipoVerificacao == TipoVerificacaoCheckin.NAO_VERIFICADO -> {
                 Text(
