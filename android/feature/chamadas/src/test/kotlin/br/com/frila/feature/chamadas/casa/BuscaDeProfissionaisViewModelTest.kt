@@ -919,9 +919,12 @@ class BuscaDeProfissionaisViewModelTest {
         assertFalse(vm.alternarSelecao("p-3"), "trocar por outro")
         assertEquals(listOf("p-1", "p-2"), vm.estado.value.selecionados)
 
-        // Outro trabalho também fica de fora: abriria outra vaga para quem pode já ter chamada.
+        // Outro trabalho também fica de fora: abriria outra vaga para quem pode já ter chamada. Pela regra do #905 (um trabalho por serviço e
+        // horário) o que sai é o REENVIO do trabalho guardado, com a mesma chave, e nunca o outro valor.
         vm.chamar(trabalho.copy(valorCentavos = 25000)).join()
-        assertEquals(1, rede.doNome("chamar_profissional").size)
+        val pedidos = rede.doNome("chamar_profissional").map { it.corpo }
+        assertTrue(pedidos.none { it["valor_centavos"]?.jsonPrimitive?.content == "25000" }, "o outro valor nunca sai")
+        assertEquals(pedidos[0]["chave"], pedidos[1]["chave"])
     }
 
     @Test
@@ -967,7 +970,7 @@ class BuscaDeProfissionaisViewModelTest {
     }
 
     @Test
-    fun `carregarMais em voo que da cursor_invalido refaz a pagina sem apagar o incerto, a selecao nem a chave`() = runBlocking {
+    fun `carregarMais em voo que da cursor_invalido refaz a pagina sem apagar a selecao, e o Chamar espera a pagina`() = runBlocking {
         val rede = RedeDeTeste()
         rede.buscaComCarregarMaisLento(200) { respond("""{"code":"cursor_invalido","message":"x"}""", HttpStatusCode.UnprocessableEntity, json) }
         var atrasar = true
@@ -976,30 +979,22 @@ class BuscaDeProfissionaisViewModelTest {
         vm.buscar().join()
         listOf("p-1", "p-2").forEach(vm::alternarSelecao)
 
-        // O "carregar mais" já saiu quando a pessoa chama: o envio incerto termina depois do refazer do cursor.
+        // MENOR 4 do #807 (decisão do O2): com a página seguinte em voo o Chamar espera. Antes, o pedido saía durante o "carregar mais" e o
+        // `cursor_invalido` refazia a lista e a seleção por cima dele. Agora o refazer do cursor não encontra pedido nenhum em voo.
         val mais = vm.carregarMais()
         vm.chamar(trabalho).join()
         mais.join()
-        val chaveDoP1 = rede.doNome("chamar_profissional").single().corpo["chave"]
+        assertTrue(rede.doNome("chamar_profissional").isEmpty(), "nada sai com a página em voo")
 
         val tela = vm.estado.value
         assertEquals(ids("n", 1, 5) + listOf("p-1", "p-2"), tela.resultados.map { it.id })
         assertEquals(listOf("p-1", "p-2"), tela.selecionados)
-        assertEquals(ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true), tela.resultadosDaChamada["p-1"])
-        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, tela.resultadosDaChamada["p-2"])
         assertEquals(EstadoDaBusca.Resultados, tela.estado)
-        assertTrue(tela.podeReenviar)
-
-        atrasar = false
-        vm.reenviar().join()
-        val reenvio = rede.doNome("chamar_profissional").drop(1).map { it.corpo }
-        assertEquals("p-1", reenvio.first()["profissional_id"]!!.jsonPrimitive.content)
-        assertEquals(chaveDoP1, reenvio.first()["chave"])
-        assertEquals("vaga-p-1", reenvio[1]["vaga_id"]!!.jsonPrimitive.content)
+        assertTrue(tela.podeChamar, "refeita a página, o Chamar volta")
     }
 
     @Test
-    fun `com envio pendente o carregarMais nao sai, e 429 de um carregarMais em voo nao impede reenviar nem confirmar o J7`() = runBlocking {
+    fun `com envio pendente o carregarMais nao sai, e o reenvio segue possivel`() = runBlocking {
         val rede = RedeDeTeste()
         rede.buscaComCarregarMaisLento(200) { respond("""{"code":"limite_excedido","message":"x"}""", HttpStatusCode.TooManyRequests, json) }
         var atrasar = true
@@ -1008,17 +1003,17 @@ class BuscaDeProfissionaisViewModelTest {
         vm.buscar().join()
         listOf("p-1", "p-2").forEach(vm::alternarSelecao)
 
-        val mais = vm.carregarMais()
+        // MENOR 4 do #807: com a página em voo o Chamar espera, então o pedido sai antes do "carregar mais" (que, com envio incerto, nem sai).
         vm.chamar(trabalho).join()
+        val mais = vm.carregarMais()
         mais.join()
 
-        // O 429 trocou a lista por erro, mas o envio pendente continua ao alcance.
+        // O envio pendente continua ao alcance, e o "carregar mais" não saiu por causa dele.
         var tela = vm.estado.value
-        assertTrue(tela.estado is EstadoDaBusca.Erro)
         assertTrue(tela.podeReenviar)
         assertTrue(tela.podeChamar)
         val buscasAntes = rede.doNome("buscar_profissionais").size
-        vm.carregarMais().join() // bloqueado: nem tem lista, mas também nada sai com envio pendente
+        vm.carregarMais().join() // bloqueado: nada sai com envio pendente
         assertEquals(buscasAntes, rede.doNome("buscar_profissionais").size)
 
         atrasar = false
@@ -1031,8 +1026,6 @@ class BuscaDeProfissionaisViewModelTest {
         tela = vm.estado.value
         assertFalse(tela.temEnvioPendente)
         assertTrue(tela.resultadosDaChamada.values.all { it is ResultadoDaChamadaDaBusca.Enviada })
-        // Resolvido o envio, a lista em erro volta a mandar: sem pendência o chamar não depende mais do estado Resultados.
-        assertFalse(tela.podeChamar)
     }
 
     @Test
@@ -1054,7 +1047,7 @@ class BuscaDeProfissionaisViewModelTest {
     }
 
     @Test
-    fun `nova busca com o mesmo trabalho entra na vaga que ja existe pelo vaga_id, e outro trabalho abre ciclo novo`() = runBlocking {
+    fun `nova busca com o mesmo trabalho entra na vaga que ja existe pelo vaga_id, e outro trabalho na mesma busca nao abre 2a vaga`() = runBlocking {
         val rede = RedeDeTeste().apply { ok("buscar_profissionais", pagina(ids("p", 1, 5))) }
         rede.respondeComP1Atrasado { false }
         val vm = viewModelCom(rede).comFiltros(regiao = 7)
@@ -1072,14 +1065,14 @@ class BuscaDeProfissionaisViewModelTest {
         assertEquals("vaga-p-1", pedidos.last()["vaga_id"]!!.jsonPrimitive.content)
         assertFalse("valor_centavos" in pedidos.last())
 
-        // O trabalho mudou (outro valor): ciclo novo, o trabalho completo e a vaga nova.
+        // O trabalho mudou (outro valor) na MESMA busca (serviço e horário): pela regra do #905 vale o trabalho guardado, nunca uma 2ª vaga.
         vm.buscar().join()
         vm.alternarSelecao("p-3")
         vm.chamar(trabalho.copy(valorCentavos = 25000)).join()
         pedidos = rede.doNome("chamar_profissional").map { it.corpo }
         assertEquals("p-3", pedidos.last()["profissional_id"]!!.jsonPrimitive.content)
-        assertFalse("vaga_id" in pedidos.last())
-        assertEquals("25000", pedidos.last()["valor_centavos"]!!.jsonPrimitive.content)
+        assertEquals("vaga-p-1", pedidos.last()["vaga_id"]!!.jsonPrimitive.content)
+        assertFalse("valor_centavos" in pedidos.last())
         // A região da busca também faz parte do trabalho: outra região não entra na vaga da primeira.
         vm.definirRegiao(8)
         vm.buscar().join()

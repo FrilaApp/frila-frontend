@@ -103,6 +103,9 @@ private data class ConfirmacaoDosTermos(
     val recado: String?,
 )
 
+/** O serviço e o horário de uma busca feita: cada par é um trabalho (decisão do O2, paridade com o #905 do iOS). */
+private data class BuscaFeita(val funcaoId: String, val horario: HorarioDaBusca?)
+
 /** Lançada no envio quando os termos da vaga aberta não batem com os digitados (0.2.95). */
 private class TermosDiferentesDaVagaAberta(val termos: TermosDaVagaAberta) : Exception()
 
@@ -134,6 +137,11 @@ data class EstadoBusca(
     internal val filtroDaBusca: RascunhoDeVagaDaBusca? = null,
     /** 0.2.95: os termos da vaga já aberta que a casa precisa confirmar; enquanto houver, nada do trabalho sai. */
     val termosParaConfirmar: TermosDaVagaAberta? = null,
+    /**
+     * O trabalho do 1º envio da busca feita (serviço e horário), se ela já teve envio. Com ele, "Chamar" não abre folha nova: reenvia este
+     * trabalho (decisão do O2, paridade com o #905 do iOS). Nulo: a busca ainda não teve envio.
+     */
+    val trabalhoEnviadoDaBusca: TrabalhoDaChamada? = null,
 ) {
     val horarioValido: Boolean get() = horario?.valido ?: true
     /** Bloqueada com envio pendente: uma nova busca esconderia quem pode já ter chamada criada (dinheiro). */
@@ -146,7 +154,7 @@ data class EstadoBusca(
      */
     val podeChamar: Boolean
         get() = selecionados.isNotEmpty() && !enviando && termosParaConfirmar == null &&
-            (estado == EstadoDaBusca.Resultados || temEnvioPendente)
+            !carregandoMais && (estado == EstadoDaBusca.Resultados || temEnvioPendente)
     fun estaSelecionado(id: String): Boolean = id in selecionados
 
     /** Há resultado incerto ou que nem saiu: o pedido pode ter criado a vaga. Só o reenvio resolve (mesma chave). */
@@ -220,6 +228,17 @@ class BuscaDeProfissionaisViewModel(
      * (`422 por_vaga`, `409 vaga_encerrada`), o trabalho só começa ciclo novo quando a pessoa o muda.
      */
     private val vagasPorTrabalho = mutableMapOf<ChaveDoTrabalho, String>()
+
+    /**
+     * O trabalho e o recado do 1º envio de cada busca feita (serviço e horário). DINHEIRO: depois dele, todo reenvio dessa busca (Chamar de novo,
+     * Tentar de novo, J7, quem foi selecionado depois) repete ESTE trabalho, sem folha nova: um trabalho diferente faria quem ainda não foi chamado
+     * abrir uma 2ª vaga. Outro serviço ou outro horário é outro trabalho: abre a folha e guarda o seu. Numa busca nova (fechar e abrir) o servidor
+     * recusa a 2ª vaga com `409 trabalho_ja_aberto` e a pessoa entra na que já existe.
+     */
+    private val enviadosPorBusca = mutableMapOf<BuscaFeita, Pair<TrabalhoDaChamada, String?>>()
+
+    private fun trabalhoGuardadoDe(filtro: RascunhoDeVagaDaBusca?): TrabalhoDaChamada? =
+        filtro?.let { enviadosPorBusca[BuscaFeita(it.funcaoId, it.horario)]?.first }
 
     /** O último trabalho e recado enviados: o reenvio e o J7 usam estes, mesmo com a folha fechada e reaberta. */
     private var ultimoEnvio: Pair<TrabalhoDaChamada, String?>? = null
@@ -326,6 +345,7 @@ class BuscaDeProfissionaisViewModel(
                     it.copy(
                         estado = EstadoDaBusca.Resultados, resultados = itens + mantidos, temMais = proximoCursor != null,
                         carregandoMais = false, erroAoCarregarMais = null, filtroDaBusca = filtro,
+                        trabalhoEnviadoDaBusca = trabalhoGuardadoDe(filtro),
                     )
                 } else {
                     it.copy(
@@ -338,6 +358,7 @@ class BuscaDeProfissionaisViewModel(
                         mostrarJ7 = false,
                         filtroDaBusca = filtro,
                         termosParaConfirmar = null,
+                        trabalhoEnviadoDaBusca = trabalhoGuardadoDe(filtro),
                     )
                 }
             }
@@ -521,6 +542,17 @@ class BuscaDeProfissionaisViewModel(
      * servidor continua promovendo o próximo.
      */
     fun chamar(trabalho: TrabalhoDaChamada, recado: String? = null, confirmoRecorrencia: Boolean = false): Job {
+        val filtro = _estado.value.filtroDaBusca
+        val busca = filtro?.let { BuscaFeita(it.funcaoId, it.horario) }
+        val guardado = busca?.let { enviadosPorBusca[it] }
+        // O 1º envio de uma busca só sai com um trabalho do serviço dela (a folha monta assim): outro serviço não abre vaga por esta lista.
+        if (busca != null && guardado == null && trabalho.funcaoId != busca.funcaoId) return escopoDeTrabalho.launch { }
+        // DINHEIRO: com envio da busca, saem o trabalho e o recado guardados, venha o que vier da folha.
+        val (trabalhoDaVez, recadoDaVez) = guardado ?: (trabalho to recado)
+        return enviarParaOsSelecionados(trabalhoDaVez, recadoDaVez, confirmoRecorrencia, busca)
+    }
+
+    private fun enviarParaOsSelecionados(trabalho: TrabalhoDaChamada, recado: String?, confirmoRecorrencia: Boolean, busca: BuscaFeita?): Job {
         val tela = _estado.value
         val regiaoId = tela.filtroDaBusca?.regiaoId
         val chaveDoTrabalho = ChaveDoTrabalho(trabalho, regiaoId)
@@ -533,6 +565,11 @@ class BuscaDeProfissionaisViewModel(
             return escopoDeTrabalho.launch { }
         }
         ultimoEnvio = trabalho to recado
+        val gravouOEnvioDaBusca = busca != null && busca !in enviadosPorBusca
+        if (gravouOEnvioDaBusca && busca != null) {
+            enviadosPorBusca[busca] = trabalho to recado
+            _estado.update { it.copy(trabalhoEnviadoDaBusca = trabalho) }
+        }
         val alvos = tela.selecionados.filter { id ->
             when {
                 tela.resultadosDaChamada[id] is ResultadoDaChamadaDaBusca.Enviada -> false
@@ -627,6 +664,16 @@ class BuscaDeProfissionaisViewModel(
                     _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + naoEnviados) }
                     break
                 }
+            }
+            // Só a rodada que guardou a busca pode liberá-la: todas as recusas foram definitivas e não há vaga.
+            // Enviada, incerto, quem não saiu e confirmações pendentes mantêm o trabalho e o recado originais.
+            val soRecusasDefinitivas = alvos.all { id ->
+                val resultado = _estado.value.resultadosDaChamada[id]
+                resultado is ResultadoDaChamadaDaBusca.Erro && !resultado.incerto
+            }
+            if (gravouOEnvioDaBusca && soRecusasDefinitivas && chaveDoTrabalho !in vagasPorTrabalho) {
+                enviadosPorBusca.remove(busca)
+                _estado.update { it.copy(trabalhoEnviadoDaBusca = null) }
             }
             // Com termos da vaga aberta pendentes, eles vêm primeiro: o J7 não manda nada antes de a casa responder
             // (podeChamar), e volta ao confirmar ou cancelar.
