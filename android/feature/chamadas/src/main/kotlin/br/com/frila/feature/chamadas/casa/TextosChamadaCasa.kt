@@ -177,7 +177,8 @@ object TextosChamadaCasa {
     const val BUSCA_RESULTADO_J7 = "Aguardando a sua confirmação do aviso"
 
     // Aceite dos Termos 1.1 antes da busca (0.2.90). PROVISÓRIOS: texto jurídico e do Fabrício substituem estes.
-    const val BUSCA_TERMOS_EXPLICACAO = "Para buscar profissionais, aceite os Termos de Uso atualizados."
+    // A frase do topo cita os dois textos que a versão aceita cobre (Termos de Uso e Política de Privacidade), como no iOS.
+    const val BUSCA_TERMOS_EXPLICACAO = "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade."
     const val BUSCA_TERMOS_LER = "Ler os Termos de Uso"
     const val BUSCA_TERMOS_POLITICA = "Política de privacidade"
     const val BUSCA_TERMOS_ACEITAR = "Aceitar"
