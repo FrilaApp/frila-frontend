@@ -238,9 +238,10 @@ export const profissional = {
     link: "Denunciar ou bloquear esta casa",
     tituloDaAba: "Denunciar ou bloquear · Frila",
     titulo: "Denunciar ou bloquear a casa",
-    emergencia: "Em risco agora? Ligue para a polícia (190) ou para a Central de Atendimento à Mulher (180).",
-    ligar190: "Ligar 190",
-    ligar180: "Ligar 180",
+    // Os mesmos textos do app (iOS, TextosDaSeguranca.swift).
+    emergencia: "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)",
+    ligar190: "Ligar 190 — Polícia Militar",
+    ligar180: "Ligar 180 — Central de Atendimento à Mulher",
     motivo: "O que aconteceu?",
     motivos: { assedio: "Assédio", discriminacao: "Discriminação", risco_seguranca: "Risco à segurança", outro: "Outro (fraude, documento falso…)" },
     relato: "Conte o que aconteceu",
