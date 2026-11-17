@@ -10,6 +10,7 @@ import br.com.frila.core.rede.ServicoMidia
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
 import br.com.frila.feature.perfil.EtapaDaFoto
 import br.com.frila.feature.perfil.FotoDePerfilViewModel
@@ -23,8 +24,10 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -66,6 +69,13 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
                 )
                 request.url.encodedPath.endsWith("/confirmar_upload_midia") -> respond(
                     """{"id":"$idDaMidia","tipo":"foto_perfil","estado":"em_analise","pode_pedir_nova_analise":false}""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+                request.url.encodedPath.endsWith("/meu_perfil_profissional") ||
+                    request.url.encodedPath.endsWith("/atualizar_perfil_profissional") -> respond(
+                    """{"id":"p1","usuario_id":"u1","funcoes":[],"ponto_base":null,"disponibilidades":[],""" +
+                        """"reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}""",
                     HttpStatusCode.OK,
                     json,
                 )
@@ -131,6 +141,25 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
         val caminhos = pedidos.map { it.second }
         assertTrue("/rest/v1/rpc/meu_perfil_detalhado" in caminhos, caminhos.toString())
         assertTrue("/rest/v1/regiao_administrativa" in caminhos, caminhos.toString())
+    }
+
+    @Test
+    fun `o ponto base le o perfil e grava so o centro da regiao escolhida, sem tocar o provedor de localizacao`() = runBlocking {
+        iniciar()
+        val provedor = get<ProvedorDeLocalizacao>()
+        val vm = get<PontoBaseViewModel>()
+        vm.carregar().join()
+        assertEquals(35, vm.estado.value.opcoes.size)
+        vm.escolher(vm.estado.value.opcoes.first { it.nome == "Taguatinga" })
+        vm.salvar().join()
+
+        assertTrue(vm.estado.value.salvo, vm.estado.value.toString())
+        assertEquals(
+            listOf("/rest/v1/rpc/meu_perfil_profissional", "/rest/v1/rpc/atualizar_perfil_profissional"),
+            pedidos.map { it.second },
+        )
+        assertEquals("""{"ponto_base":{"latitude":-15.833333,"longitude":-48.056944}}""", pedidos.last().third)
+        verify { provedor wasNot Called }
     }
 
     @Test

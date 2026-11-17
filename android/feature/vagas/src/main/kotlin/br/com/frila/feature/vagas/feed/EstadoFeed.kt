@@ -83,6 +83,8 @@ data class EstadoFeed(
     val opcaoOrdenacao: OpcaoOrdenacaoVagas = OpcaoOrdenacaoVagas.MENOR_DISTANCIA,
     val exibindoFiltrosAvancados: Boolean = false,
     val mensagemErro: String? = null,
+    /** O servidor recusou a lista por falta de ponto de referência: o perfil não tem ponto base (`422 campo_obrigatorio`, `details: latitude`). */
+    val semPontoBase: Boolean = false,
     val atualizando: Boolean = false,
     val emCache: Boolean = false,
 )
