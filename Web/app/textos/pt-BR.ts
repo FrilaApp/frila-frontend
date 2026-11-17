@@ -2,8 +2,12 @@
  * Catálogo único de textos da web. Tela nenhuma escreve texto direto no JSX:
  * todo texto visível sai daqui.
  */
+import { profissional } from "./profissional";
+
 export const textos = {
   marca: "Frila",
+  // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
+  profissional,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",

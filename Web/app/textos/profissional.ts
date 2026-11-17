@@ -1,0 +1,53 @@
+/**
+ * Textos do lado do profissional (vagas, candidaturas, turnos). Ligados ao catálogo em `textos.profissional`.
+ * Textos de interface provisórios, até o high-fi do Fabrício.
+ */
+export const profissional = {
+  // "{inicio}" e "{fim}" são trocados pelos horários.
+  periodo: "{inicio} às {fim}",
+  vagas: {
+    tituloDaAba: "Vagas perto de você · Frila",
+    titulo: "Vagas perto de você",
+    corpo: "Da mais perto para a mais longe do seu ponto base.",
+    filtros: "Filtrar",
+    data: "Dia",
+    distancia: "Até",
+    qualquerDistancia: "Qualquer distância",
+    distanciaEmKm: "{km} km",
+    aplicar: "Aplicar",
+    limpar: "Limpar filtros",
+    vazia: "Nenhuma vaga aberta com esses filtros agora.",
+    mais: "Ver mais vagas",
+    voltarAoComeco: "Voltar às primeiras",
+    distanciaDaVaga: "a {distancia}",
+    posicoes: "{n} lugar(es)",
+    urgencia: "Entra quem aceitar primeiro",
+    selecao: "A casa escolhe entre os candidatos",
+    semPontoBase: "Para ver as vagas por distância, cadastre o seu ponto base no app do Frila.",
+    perfilIncompativel: "Esta área é de quem trabalha nos turnos. A sua conta é de contratante.",
+    contaSuspensa: "A sua conta está suspensa. Fale com o suporte para saber mais.",
+    indisponivel: "Não deu para carregar as vagas agora. Tente de novo em instantes.",
+    voltarAoInicio: "Voltar ao início",
+  },
+  vaga: {
+    tituloDaAba: "Vaga · Frila",
+    voltar: "Voltar às vagas",
+    quando: "Quando",
+    onde: "Onde",
+    valor: "Valor",
+    casa: "Casa",
+    responsavel: "Quem recebe no local",
+    traje: "Traje",
+    observacoes: "Observações",
+    inclusos: "Inclui",
+    refeicao: "Refeição",
+    transporte: "Transporte",
+    materialProprio: "Leve material próprio",
+    nadaIncluso: "Nada além do valor",
+    modo: "Como entra",
+    fechada: "Esta vaga não recebe mais candidaturas.",
+    oculta: "Esta vaga foi tirada da lista pela Equipe Frila.",
+    naoEncontradaTitulo: "Vaga não encontrada",
+    naoEncontradaCorpo: "Ela pode ter sido cancelada ou não está mais disponível para você.",
+  },
+} as const;
