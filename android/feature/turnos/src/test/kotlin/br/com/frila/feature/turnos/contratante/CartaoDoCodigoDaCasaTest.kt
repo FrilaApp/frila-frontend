@@ -66,20 +66,25 @@ class CartaoDoCodigoDaCasaTest {
         rule.onNodeWithText(TextosCodigoDaCasa.CARREGANDO).assertIsDisplayed()
     }
 
-    @Test
-    fun `estados informativos dizem o que fazer, sem botao`() {
-        val casos = mapOf(
-            EstadoDoCodigoDaCasa.SemCodigoParaEsteCheckin to TextosCodigoDaCasa.SEM_CODIGO_PARA_ESTE_CHECKIN,
-            EstadoDoCodigoDaCasa.ForaDaJanela to TextosCodigoDaCasa.FORA_DA_JANELA,
-            EstadoDoCodigoDaCasa.Encerrado to TextosCodigoDaCasa.ENCERRADO,
-        )
-        for ((estado, texto) in casos) {
-            montarCartao(EstadoCartaoDoCodigo(estado))
+    /** Um `setContent` por teste: o Compose não aceita dois na mesma regra. */
+    private fun verInformativo(estado: EstadoDoCodigoDaCasa, texto: String) {
+        montarCartao(EstadoCartaoDoCodigo(estado))
 
-            rule.onNodeWithText(texto).assertIsDisplayed()
-            assertEquals(texto, 0, contar(TextosCodigoDaCasa.TENTAR_DE_NOVO))
-        }
+        rule.onNodeWithText(texto).assertIsDisplayed()
+        assertEquals(0, contar(TextosCodigoDaCasa.TENTAR_DE_NOVO))
     }
+
+    @Test
+    fun `sem codigo para este check-in diz para confirmar pelo botao, sem tentar de novo`() =
+        verInformativo(EstadoDoCodigoDaCasa.SemCodigoParaEsteCheckin, TextosCodigoDaCasa.SEM_CODIGO_PARA_ESTE_CHECKIN)
+
+    @Test
+    fun `fora da janela diz isso, sem tentar de novo`() =
+        verInformativo(EstadoDoCodigoDaCasa.ForaDaJanela, TextosCodigoDaCasa.FORA_DA_JANELA)
+
+    @Test
+    fun `encerrado manda para a confirmacao manual, sem tentar de novo`() =
+        verInformativo(EstadoDoCodigoDaCasa.Encerrado, TextosCodigoDaCasa.ENCERRADO)
 
     @Test
     fun `falha mostra o erro e o botao tentar de novo com alvo minimo, que chama o callback`() {
@@ -95,12 +100,17 @@ class CartaoDoCodigoDaCasaTest {
     }
 
     @Test
-    fun `indisponivel e ja verificado nao mostram cartao nenhum`() {
-        for (estado in listOf(EstadoDoCodigoDaCasa.Indisponivel, EstadoDoCodigoDaCasa.JaVerificado)) {
-            montarCartao(EstadoCartaoDoCodigo(estado))
+    fun `indisponivel nao mostra cartao nenhum`() {
+        montarCartao(EstadoCartaoDoCodigo(EstadoDoCodigoDaCasa.Indisponivel))
 
-            assertEquals(estado.toString(), 0, contar(TextosCodigoDaCasa.TITULO))
-        }
+        assertEquals(0, contar(TextosCodigoDaCasa.TITULO))
+    }
+
+    @Test
+    fun `ja verificado nao mostra cartao nenhum`() {
+        montarCartao(EstadoCartaoDoCodigo(EstadoDoCodigoDaCasa.JaVerificado))
+
+        assertEquals(0, contar(TextosCodigoDaCasa.TITULO))
     }
 
     // ---- Encaixe na tela do turno ----
@@ -136,17 +146,24 @@ class CartaoDoCodigoDaCasaTest {
     }
 
     @Test
-    fun `fora do check-in pendente o cartao nao aparece`() {
-        val outros = listOf(
-            turno(null, null, null),
-            turno("verificado", "codigo", Instant.parse("2026-11-12T21:02:00Z")),
-            turno("nao_verificado", "manual", Instant.parse("2026-11-12T21:02:00Z")),
-        )
-        for (estado in outros) {
-            montarTurno(estado)
+    fun `aguardando o profissional o cartao nao aparece`() {
+        montarTurno(turno(null, null, null))
 
-            assertEquals(estado.contexto.verificacao.toString(), 0, contar("CARTAO-DO-CODIGO"))
-        }
+        assertEquals(0, contar("CARTAO-DO-CODIGO"))
+    }
+
+    @Test
+    fun `com a presenca verificada o cartao nao aparece`() {
+        montarTurno(turno("verificado", "codigo", Instant.parse("2026-11-12T21:02:00Z")))
+
+        assertEquals(0, contar("CARTAO-DO-CODIGO"))
+    }
+
+    @Test
+    fun `com a presenca nao verificada o cartao nao aparece`() {
+        montarTurno(turno("nao_verificado", "manual", Instant.parse("2026-11-12T21:02:00Z")))
+
+        assertEquals(0, contar("CARTAO-DO-CODIGO"))
     }
 
     @Test

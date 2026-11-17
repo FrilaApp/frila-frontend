@@ -59,6 +59,8 @@ fun TelaTurnoDoContratante(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
+    /** L1-5: nulo (chave `checkin_por_codigo` desligada, ou ainda sem fiação) esconde o código de chegada. */
+    codigoDaCasa: CodigoDaCasaViewModel? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
@@ -69,6 +71,7 @@ fun TelaTurnoDoContratante(
             aoDenunciarProfissional = aoDenunciarProfissional,
         ),
         modifier = modifier,
+        cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
     )
 }
 
@@ -160,7 +163,7 @@ fun ConteudoTurnoDoContratante(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() },
             )
-            Chegada(estado, acoes)
+            Chegada(estado, acoes, cartaoDoCodigo)
 
             estado.aviso?.let { aviso ->
                 Text(
@@ -177,7 +180,11 @@ fun ConteudoTurnoDoContratante(
 }
 
 @Composable
-private fun Chegada(estado: EstadoTurnoDoContratante, acoes: AcoesTurnoDoContratante) {
+private fun Chegada(
+    estado: EstadoTurnoDoContratante,
+    acoes: AcoesTurnoDoContratante,
+    cartaoDoCodigo: (@Composable () -> Unit)?,
+) {
     val contexto = estado.contexto
     val nome = contexto.profissional?.nome ?: ""
     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
@@ -204,6 +211,8 @@ private fun Chegada(estado: EstadoTurnoDoContratante, acoes: AcoesTurnoDoContrat
                         ?: TextosTurnoDoContratante.CHECKIN_PENDENTE.format(nome),
                     style = MaterialTheme.typography.bodyLarge,
                 )
+                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+                cartaoDoCodigo?.invoke()
                 BotaoPrimario(
                     texto = if (estado.enviando) TextosTurnoDoContratante.CONFIRMANDO else TextosTurnoDoContratante.CONFIRMAR_PRESENCA,
                     aoClicar = acoes.aoConfirmarPresenca,

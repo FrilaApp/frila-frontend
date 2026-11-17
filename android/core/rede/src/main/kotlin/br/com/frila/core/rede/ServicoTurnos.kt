@@ -72,7 +72,17 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
      * `409 checkin_ja_confirmado`, `409 codigo_bloqueado` (`encerrado`), `422 fora_da_janela`.
      */
     suspend fun gerarCodigoCheckin(turnoId: String): Result<CodigoDeCheckinDto> =
-        TODO("L1-5: ainda sem implementação (teste vermelho)")
+        try {
+            val resposta = cliente.http.post(cliente.urlRpc("gerar_codigo_checkin")) {
+                contentType(ContentType.Application.Json)
+                setBody(GerarCodigoCheckinDto(turnoId = turnoId))
+            }
+            Result.success(cliente.corpoOuErro<CodigoDeCheckinDto>(resposta))
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (erro: Exception) {
+            Result.failure(erro)
+        }
 
     /**
      * `POST /rest/v1/rpc/avaliar`. Avaliação binária ("Você trabalharia nesse local de novo?",
