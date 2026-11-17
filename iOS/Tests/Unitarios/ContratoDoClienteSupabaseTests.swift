@@ -574,6 +574,18 @@ struct ContratoDoClienteSupabaseTests {
         #expect(preferencia.aceitaChamadas)
         #expect(preferencia.pendenciasParaBusca == [.semRegiao])
     }
+
+    @Test("minhas_chamadas manda o estado e o cursor e devolve o proximo_cursor da página (0.2.95: a busca segue o cursor)")
+    func paginaDeMinhasChamadasTrazOCursor() async throws {
+        BackendDeContrato.preparar(["/rest/v1/rpc/minhas_chamadas": .init(corpo: Data(#"{"itens":[],"proximo_cursor":"c2"}"#.utf8))])
+        let pagina = try await cliente().paginaDeMinhasChamadas(estado: .aberta, cursor: "c1", limite: nil)
+
+        let corpo = try corpoEnviado(para: "/rest/v1/rpc/minhas_chamadas")
+        #expect(corpo["estado"] as? String == "aberta")
+        #expect(corpo["cursor"] as? String == "c1")
+        #expect(pagina.proximoCursor == "c2")
+        #expect(pagina.itens.isEmpty)
+    }
 }
 
 // MARK: - Rede ruim e valor novo do contrato (robustez antes do TestFlight)
