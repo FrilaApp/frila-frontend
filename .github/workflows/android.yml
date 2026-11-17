@@ -28,7 +28,8 @@ jobs:
   testes-e-build:
     name: "Compilação e testes unitários do Android"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # O job foi a ~14 min com o passo novo de release e o cache do Robolectric frio: 15 min não dá folga.
+    timeout-minutes: 25
     defaults:
       run:
         shell: bash
