@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { Form, Link } from "react-router";
+import { Form, Link, redirect } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
 import { lerConfiguracaoDesteAmbiente, lerLinkDaAppStore } from "../servidor/abertura";
@@ -22,22 +22,28 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     // Só quem não entrou vê a página pública com o botão da loja.
     sessao ? null : lerLinkDaAppStore(),
   ]);
+  const url = new URL(request.url);
+  // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
+  const termosPendentes = conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS;
+  const sairFalhou = url.searchParams.get("sair") === "falhou";
+  // Com a conta pronta, cada lado começa no seu início: a casa no painel (que oferece cadastrar a casa, se faltar), a
+  // profissional nas vagas. Fica aqui só o que o início resolve: aceitar os termos, criar a conta, servidor fora, sair que
+  // falhou. Ambiente e versão não aparecem a ninguém (só no /app/saude).
+  if (conta?.estado === "ok" && !termosPendentes && !sairFalhou) {
+    throw redirect(conta.perfil === "contratante" ? "/painel" : "/vagas");
+  }
   return {
     webLigada: true as const,
-    ambiente: env.AMBIENTE,
-    configuracao: leitura.estado,
-    versaoMinima: leitura.estado === "ok" ? leitura.configuracao.versao_minima : null,
     // Só o que a tela mostra: o token fica no servidor.
     entrou: sessao ? { email: sessao.email, conta } : null,
     // Para a página de quem não entrou: o que o marketing deixa mostrar com os recursos ligados.
     condicoes: condicoesPublicas(leitura, linkDaAppStore),
-    // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
-    termosPendentes: conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS,
+    termosPendentes,
     termosVersao: VERSAO_DOS_TERMOS,
-    aceiteFalhou: new URL(request.url).searchParams.get("termos") === "falhou",
-    termosMudaramNaTela: new URL(request.url).searchParams.get("termos") === "mudou",
+    aceiteFalhou: url.searchParams.get("termos") === "falhou",
+    termosMudaramNaTela: url.searchParams.get("termos") === "mudou",
     // O sair não se confirmou no Auth: os cookies ficaram, e a pessoa tenta de novo.
-    sairFalhou: new URL(request.url).searchParams.get("sair") === "falhou",
+    sairFalhou,
   };
 }
 
@@ -66,7 +72,8 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 p-6">
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
       <h1 className="font-titulo text-3xl font-bold">{bloco.titulo}</h1>
-      <p className="text-tinta-suave">{bloco.corpo}</p>
+      {/* O corpo é só da página "em breve": com a web ligada, quem fica no início vê só o que falta resolver. */}
+      {loaderData.webLigada ? null : <p className="text-tinta-suave">{textos.emBreve.corpo}</p>}
 
       {loaderData.webLigada && loaderData.sairFalhou ? (
         <div className="flex flex-col gap-3">
@@ -160,21 +167,6 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
             {textos.conta.entrar}
           </Link>
         </p>
-      ) : null}
-
-      {loaderData.webLigada ? (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-tinta-suave">
-          <dt>{textos.inicio.ambiente}</dt>
-          <dd>{loaderData.ambiente}</dd>
-          <dt>{textos.inicio.configuracao}</dt>
-          <dd>{textos.inicio.estadoDaConfiguracao[loaderData.configuracao]}</dd>
-          {loaderData.versaoMinima ? (
-            <>
-              <dt>{textos.inicio.versaoMinima}</dt>
-              <dd>{loaderData.versaoMinima}</dd>
-            </>
-          ) : null}
-        </dl>
       ) : null}
     </main>
   );
