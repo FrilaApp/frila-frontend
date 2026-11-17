@@ -12,32 +12,32 @@ class EstimativaDoRostoTest {
     }
 
     @Test
-    fun `distancia invalida vira caixa vazia e nunca libera a foto`() {
+    fun `distancia invalida vira caixa vazia e nunca libera a foto (so avisa)`() {
         listOf(0f, -5f, Float.NaN, Float.POSITIVE_INFINITY).forEach { invalida ->
             assertEquals(RostoDetectado(0, 0), EstimativaDoRosto.caixaPelosOlhos(invalida), "distância $invalida")
         }
         assertEquals(
-            ResultadoDaVerificacaoLocal.Bloqueada(MotivoDeBloqueioLocal.ROSTO_NAO_ENCONTRADO),
+            ResultadoDaVerificacaoLocal.AvisoSemRosto,
             RegraDoRostoNaFoto.decidir(listOf(EstimativaDoRosto.caixaPelosOlhos(Float.NaN)), 1000, 1000),
         )
     }
 
     @Test
-    fun `olhos afastados o bastante liberam e olhos muito juntos bloqueiam na foto de 1000 por 1000`() {
+    fun `olhos afastados o bastante liberam e olhos muito juntos so avisam na foto de 1000 por 1000`() {
         // 100 px entre os olhos: caixa de 250x300 = 7,5% da foto; 10 px: 25x30 = 0,075%.
         assertEquals(ResultadoDaVerificacaoLocal.Liberada, RegraDoRostoNaFoto.decidir(listOf(EstimativaDoRosto.caixaPelosOlhos(100f)), 1000, 1000))
         assertEquals(
-            ResultadoDaVerificacaoLocal.Bloqueada(MotivoDeBloqueioLocal.ROSTO_NAO_ENCONTRADO),
+            ResultadoDaVerificacaoLocal.AvisoSemRosto,
             RegraDoRostoNaFoto.decidir(listOf(EstimativaDoRosto.caixaPelosOlhos(10f)), 1000, 1000),
         )
     }
 
     @Test
     fun `o limite de 1 por cento da foto e exato`() {
-        // Na foto 1000x1000 (1.000.000 px²), 1% = 10.000 px²: com 40 px entre os olhos a caixa é 100x120 = 12.000 (libera); com 35 px, 88x105 = 9.240 (bloqueia).
+        // Na foto 1000x1000 (1.000.000 px²), 1% = 10.000 px²: com 40 px entre os olhos a caixa é 100x120 = 12.000 (libera); com 35 px, 88x105 = 9.240 (so avisa).
         assertEquals(ResultadoDaVerificacaoLocal.Liberada, RegraDoRostoNaFoto.decidir(listOf(EstimativaDoRosto.caixaPelosOlhos(40f)), 1000, 1000))
         assertEquals(
-            ResultadoDaVerificacaoLocal.Bloqueada(MotivoDeBloqueioLocal.ROSTO_NAO_ENCONTRADO),
+            ResultadoDaVerificacaoLocal.AvisoSemRosto,
             RegraDoRostoNaFoto.decidir(listOf(EstimativaDoRosto.caixaPelosOlhos(35f)), 1000, 1000),
         )
     }
