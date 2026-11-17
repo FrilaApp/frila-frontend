@@ -12,7 +12,8 @@
     "typecheck": "npm run tipos && tsc -b",
     "lint": "eslint .",
     "teste": "vitest run",
-    "conferir": "npm run lint && npm run typecheck && npm run teste && npm run build",
+    "orcamento": "node scripts/orcamento-do-pacote.mjs",
+    "conferir": "npm run lint && npm run typecheck && npm run teste && npm run build && npm run orcamento",
     "postinstall": "wrangler types"
   },
   "dependencies": {

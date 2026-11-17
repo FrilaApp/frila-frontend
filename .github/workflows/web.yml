@@ -1,0 +1,64 @@
+name: Web
+
+on:
+  pull_request:
+    paths:
+      - "Web/**"
+      - ".github/workflows/web.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Web/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.event.pull_request.number || format('manual-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  conferir:
+    name: "Lint, tipos, testes, build e orçamento da web"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: Web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configurar Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: Web/package-lock.json
+
+      - name: Instalar dependências (versões exatas do lockfile)
+        run: npm ci
+
+      - name: Auditar dependências
+        run: npm audit --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Testes unitários
+        run: npm run teste
+
+      - name: Build
+        run: npm run build
+
+      - name: Orçamento do pacote
+        run: npm run orcamento

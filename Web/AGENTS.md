@@ -7,7 +7,7 @@ Vale o `AGENTS.md` da raiz; aqui fica só o que é da web. O que construir e em 
 ```bash
 npm ci                 # instala (versões exatas, pelo lockfile)
 npm run dev            # servidor local em http://localhost:5173/app/
-npm run conferir       # lint + tipos + testes + build: o gate local
+npm run conferir       # lint + tipos + testes + build + orçamento do pacote: o gate local (a CI roda o mesmo)
 ```
 
 ## Regras que o agente erra sem ler
