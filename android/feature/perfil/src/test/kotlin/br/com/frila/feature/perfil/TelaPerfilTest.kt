@@ -352,7 +352,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -497,7 +497,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -523,7 +523,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -543,7 +543,7 @@ class TelaPerfilTest {
 
             rule.setContent {
                 FrilaTheme {
-                    TelaPerfil(viewModel = viewModel, aoDeslogar = {})
+                    TelaPerfil(viewModel = viewModel, aoDeslogar = {}, recursoRemuneracoesHabilitado = true)
                 }
             }
             rule.waitForIdle()
@@ -552,6 +552,63 @@ class TelaPerfilTest {
                 .performScrollTo()
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        }
+    }
+
+    /**
+     * C0-11 (decisão de 16/11/2026: o Android fica só com o que o iOS tem). Sem ligar as travas, que nada no app
+     * liga, o perfil da profissional não mostra o interruptor de biometria nem as remunerações com extrato em PDF,
+     * mesmo com histórico de turnos e com biometria disponível no aparelho.
+     */
+    @Test
+    fun c011PerfilDaProfissionalNaoMostraBiometriaNemRemuneracoes() {
+        runBlocking {
+            val turnosJson = "[${turnoJson(id = "a", estado = "cumprida", valorAcordadoCentavos = 16_000L)}]"
+            val viewModel = criarViewModel(respostaTurnosJson = turnosJson)
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().assertIsDisplayed()
+            rule.onAllNodesWithTag("toggle-biometria").assertCountEquals(0)
+            rule.onAllNodesWithText("Desbloqueio rápido por biometria").assertCountEquals(0)
+            rule.onAllNodesWithText("Remunerações acordadas").assertCountEquals(0)
+            rule.onAllNodesWithText("Exportar extrato em PDF").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun c011PerfilDaCasaNaoMostraBiometria() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+                respostaContaJson = contaJson("contratante"),
+            )
+            viewModel.carregar().join()
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().assertIsDisplayed()
+            rule.onAllNodesWithTag("toggle-biometria").assertCountEquals(0)
         }
     }
 
@@ -660,6 +717,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.SEM_HARDWARE },
                     )
                 }
@@ -686,6 +744,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                         autenticarBiometria = { _, aoSucesso, _ -> sucessoChamado = aoSucesso },
                     )
@@ -718,6 +777,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                         autenticarBiometria = { _, _, aoErro -> aoErro("Autenticação cancelada") },
                     )
@@ -747,6 +807,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.DISPONIVEL },
                         autenticarBiometria = { _, _, _ -> autenticarFoiChamado = true },
                     )
@@ -780,6 +841,7 @@ class TelaPerfilTest {
                     TelaPerfil(
                         viewModel = viewModel,
                         aoDeslogar = {},
+                        recursoBiometriaHabilitado = true,
                         verificarDisponibilidadeBiometrica = { DisponibilidadeBiometrica.HARDWARE_INDISPONIVEL },
                     )
                 }
