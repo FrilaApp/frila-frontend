@@ -3,7 +3,8 @@
 /*
  * Tokens PROVISÓRIOS da web (telas provisórias até o high-fi do Fabrício).
  * Os nomes são os finais; quando o design system web chegar, troca-se o valor, não o nome.
- * Valores espelham os tokens do iOS (iOS/Docs/DesignSystem.md).
+ * Fundo, superfície, texto e ação espelham os tokens do iOS (iOS/Docs/DesignSystem.md).
+ * A borda é um cinza neutro provisório, só da web.
  */
 :root {
   --cor-fundo: #ffffff;

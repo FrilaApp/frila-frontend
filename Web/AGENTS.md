@@ -21,6 +21,7 @@ scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com 
 - **Supabase só pelo servidor**, com `criarApi` (`app/servidor/api.ts`), tipado pelo contrato. O navegador nunca chama
   o Supabase direto. Toda chamada tem prazo e um estado para a falha (veja `app/servidor/configuracao.ts`).
 - **Tudo debaixo de `/app`** (`basename` no `react-router.config.ts`). Link interno é relativo à base: `<Link to="/">`.
+  Na tela de erro, use `<a href>` (a navegação sem recarregar não existe com a chave desligada).
 - **Variáveis do Worker:** `import { env } from "cloudflare:workers"`, só em código de servidor (loader, action, `app/servidor/`).
 - **Sessão só no servidor:** cookie `HttpOnly` gravado pelo Worker. Token nunca vai para o JavaScript da página, nem
   `localStorage`. Não use `@supabase/ssr`. Nunca `service_role`.
