@@ -8,6 +8,7 @@ import { contratanteEquipe } from "./contratante-equipe";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { relatorioTurnos } from "./relatorio-turnos";
 import { suporte } from "./suporte";
 import { suspensao } from "./suspensao";
 import { vagaPublica } from "./vaga-publica";
@@ -28,6 +29,8 @@ export const textos = {
   contratanteTurno,
   // Minha conta: exportar os dados e excluir a conta (arquivo próprio).
   contaDados,
+  // Relatório dos turnos para baixar (arquivo próprio).
+  relatorioTurnos,
   // Equipe de confiança do lado da casa (arquivo próprio).
   contratanteEquipe,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
