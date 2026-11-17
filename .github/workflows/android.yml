@@ -129,8 +129,10 @@ jobs:
           # A cota de armazenamento de artefatos da organização estourou em 08/11/2026: 2 dias bastam para baixar e testar.
           retention-days: 2
 
+      # O repositório é público e o artefato fica baixável por quem estiver logado: o AAB (par PROD) só é publicado em
+      # tag v*. Nos outros eventos com segredo o AAB é gerado (prova a trava do par PROD), mas não sai da CI.
       - name: Publicar AAB de release
-        if: steps.segredos.outputs.tem_prod == 'true'
+        if: steps.segredos.outputs.tem_prod == 'true' && startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frila-android-release-aab
