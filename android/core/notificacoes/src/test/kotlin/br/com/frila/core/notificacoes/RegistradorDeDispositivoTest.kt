@@ -9,6 +9,8 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -90,5 +92,44 @@ class RegistradorDeDispositivoTest {
         assertEquals(1, servidor.corpos.size)
         assertTrue(servidor.corpos.first().contains("\"versao_app\":\"1.2.0\""))
         assertEquals("vinculo-novo", armazenamento.obterSessao()?.vinculoId)
+    }
+    @Test
+    fun `em segundo plano, a falha do servidor vira log sem dado pessoal e nada lanca`() = runTest {
+        val falhas = mutableListOf<String>()
+        val servico = ServicoDispositivo(
+            ClienteSupabase(
+                baseUrl = "https://frila.supabase.co",
+                apiKey = "chave-teste",
+                engine = MockEngine { respond(content = "erro", status = HttpStatusCode.InternalServerError) },
+            ),
+        )
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply { salvarSessao(sessao) }
+        val registrador = RegistradorDeDispositivo(
+            servico, armazenamento, versaoApp = "1.2.0", escopo = backgroundScope, registrarFalha = { falhas += it },
+        ) { "token-fcm-de-teste-com-mais-de-20-chars" }
+
+        registrador.registrarEmSegundoPlano().join()
+
+        assertEquals(1, falhas.size)
+        assertTrue(falhas.none { it.contains("token-fcm") || it.contains("access") }, "o log não leva token nem sessão")
+    }
+
+    @Test
+    fun `em segundo plano, token que nao chega no prazo vira log e o registro desiste`() = runTest {
+        val falhas = mutableListOf<String>()
+        val servidor = Servidor()
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply { salvarSessao(sessao) }
+        val registrador = RegistradorDeDispositivo(
+            servidor.servico, armazenamento, versaoApp = "1.2.0", escopo = backgroundScope, prazo = 15.seconds,
+            registrarFalha = { falhas += it },
+        ) {
+            delay(60_000)
+            "token-fcm-de-teste-com-mais-de-20-chars"
+        }
+
+        registrador.registrarEmSegundoPlano().join()
+
+        assertEquals(1, falhas.size)
+        assertTrue(servidor.corpos.isEmpty())
     }
 }
