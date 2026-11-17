@@ -30,6 +30,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     termosVersao: VERSAO_DOS_TERMOS,
     aceiteFalhou: new URL(request.url).searchParams.get("termos") === "falhou",
     termosMudaramNaTela: new URL(request.url).searchParams.get("termos") === "mudou",
+    // O sair não se confirmou no Auth: os cookies ficaram, e a pessoa tenta de novo.
+    sairFalhou: new URL(request.url).searchParams.get("sair") === "falhou",
   };
 }
 
@@ -53,6 +55,20 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
       <h1 className="font-titulo text-3xl font-bold">{bloco.titulo}</h1>
       <p className="text-tinta-suave">{bloco.corpo}</p>
 
+      {loaderData.webLigada && loaderData.sairFalhou ? (
+        <div className="flex flex-col gap-3">
+          <p role="alert" className="font-semibold">
+            {textos.conta.sairFalhou}
+          </p>
+          {entrou ? null : (
+            <Form method="post" action="/sair">
+              <button type="submit" className={classeDoBotao}>
+                {textos.conta.sair}
+              </button>
+            </Form>
+          )}
+        </div>
+      ) : null}
       {entrou ? (
         <section className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4">
           <p>
