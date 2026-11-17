@@ -212,6 +212,11 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
           {t.turno.ajuda}
         </Link>
       ) : null}
+      {turno && casaId ? (
+        <Link to={`/casa/denunciar?alvo=${turno.profissionalId}&turno=${turno.id}&casa=${casaId}`} className={classeDoLink}>
+          {textos.contratanteModeracao.link}
+        </Link>
+      ) : null}
       <Link to={casaId ? `/casa/turnos?casa=${casaId}` : "/casa/turnos"} className={classeDoLink}>
         {t.turno.voltar}
       </Link>
