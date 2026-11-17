@@ -764,7 +764,7 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(enviada(vm.resultadosDaChamada[ids[1]])?.vagaID == vagaID)
     }
 
-    @Test("Todos falham: nenhum leva vaga_id; no reenvio, o 1º leva o trabalho com a mesma chave e o 2º entra na vaga dele")
+    @Test("Todos falham: nenhum leva vaga_id; no reenvio, chave nova, mesmo trabalho: o 1º leva o trabalho e o 2º entra na vaga dele")
     func todosFalham() async throws {
         let (fonte, vm) = preparar(total: 2)
         await vm.buscar()
@@ -780,8 +780,8 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(pedidos.count == 4)
         try #require(pedidos.count >= 4)
         #expect(pedidos.prefix(3).allSatisfy { $0.vagaID == nil })
-        #expect(pedidos[2] == pedidos[0])
-        #expect(pedidos[3].chave == pedidos[1].chave)
+        #expect(pedidos[2].chave != pedidos[0].chave && pedidos[2].trabalho?.periodo == pedidos[0].trabalho?.periodo && pedidos[2].trabalho?.valor == pedidos[0].trabalho?.valor, "422 limite_de_chamadas é recusa definitiva pelo contrato (não incerto): nada criado, a busca solta e o mesmo trabalho sai com chave nova (F-040)")
+        #expect(pedidos[3].chave != pedidos[1].chave)
         #expect(pedidos[3].vagaID == enviada(vm.resultadosDaChamada[ids[0]])?.vagaID)
     }
 
