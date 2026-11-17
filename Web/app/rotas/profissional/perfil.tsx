@@ -1,5 +1,6 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
+import { lerConfiguracaoDoApp } from "../../servidor/configuracao";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { LIMITE_DA_APRESENTACAO, LIMITE_DE_ONDE_TRABALHEI, lerMeuPerfil, salvarApresentacao } from "../../servidor/profissional/perfil";
@@ -15,12 +16,20 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await lerMeuPerfil(apiDoUsuario(sessao.acesso));
-  if (leitura.estado !== "ok") return { estado: leitura.estado, perfil: null };
+  const api = apiDoUsuario(sessao.acesso);
+  const leitura = await lerMeuPerfil(api);
+  if (leitura.estado === "sem_perfil") {
+    // Quem ainda não tem perfil termina o cadastro no app: o link da loja é o da linha "ios" da configuração.
+    const loja = await lerConfiguracaoDoApp(api, { plataforma: "ios" });
+    const link = loja.estado === "ok" ? loja.configuracao.url_da_loja : "";
+    return { estado: leitura.estado, perfil: null, linkDaAppStore: /^https:\/\/apps\.apple\.com\//.test(link) ? link : null };
+  }
+  if (leitura.estado !== "ok") return { estado: leitura.estado, perfil: null, linkDaAppStore: null };
   const { perfil } = leitura;
   // Só o que a tela mostra: nada de ponto base nem de disponibilidade no navegador.
   return {
     estado: "ok" as const,
+    linkDaAppStore: null,
     perfil: {
       funcoes: perfil.funcoes.map((funcao) => funcao.nome),
       regioes: perfil.atende_todo_df ? null : perfil.regioes.map((regiao) => regiao.nome),
@@ -56,14 +65,21 @@ const AVISO_DO_ESTADO = {
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 export default function Perfil({ loaderData, actionData }: Route.ComponentProps) {
-  const { estado, perfil } = loaderData;
+  const { estado, perfil, linkDaAppStore } = loaderData;
   const salvando = useNavigation().state !== "idle";
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 p-6">
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
       <h1 className="font-titulo text-3xl font-bold">{t.titulo}</h1>
       {estado !== "ok" || !perfil ? (
-        <p role="alert">{AVISO_DO_ESTADO[estado]}</p>
+        <>
+          <p role="alert">{AVISO_DO_ESTADO[estado]}</p>
+          {linkDaAppStore ? (
+            <a href={linkDaAppStore} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+              {textos.publico.rodape.appStore}
+            </a>
+          ) : null}
+        </>
       ) : (
         <>
           <dl className="rounded-cartao border border-borda bg-superficie p-4">
