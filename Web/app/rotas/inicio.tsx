@@ -6,9 +6,10 @@ import { lerConfiguracaoDesteAmbiente } from "../servidor/abertura";
 import { lerMinhaConta } from "../servidor/conta";
 import { apiDoUsuario } from "../servidor/deste-ambiente";
 import { textos } from "../textos/pt-BR";
+import { VERSAO_DOS_TERMOS } from "../versao";
 import type { Route } from "./+types/inicio";
 
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   if (env.WEB_LIGADA !== "1") {
     return { webLigada: false as const };
   }
@@ -24,6 +25,9 @@ export async function loader({ context }: Route.LoaderArgs) {
     versaoMinima: leitura.estado === "ok" ? leitura.configuracao.versao_minima : null,
     // Só o que a tela mostra: o token fica no servidor.
     entrou: sessao ? { email: sessao.email, conta } : null,
+    // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
+    termosPendentes: conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS,
+    aceiteFalhou: new URL(request.url).searchParams.get("termos") === "falhou",
   };
 }
 
@@ -58,6 +62,31 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
             </p>
           ) : entrou.conta ? (
             <p>{textos.conta.estado[entrou.conta.estado]}</p>
+          ) : null}
+          {entrou.conta?.estado === "sem_conta" ? (
+            <p>
+              <Link to="/cadastro" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-lg font-bold text-tinta">
+                {textos.conta.completarCadastro}
+              </Link>
+            </p>
+          ) : null}
+          {loaderData.webLigada && loaderData.termosPendentes ? (
+            <Form method="post" action="/aceitar-termos" className="flex flex-col gap-3 border-t border-borda pt-3">
+              <p>{textos.conta.termosMudaram}</p>
+              <p className="text-sm text-tinta-suave">
+                <a href="https://frilabr.com/termos" target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                  {textos.entrar.linkDosTermos}
+                </a>{" "}
+                ·{" "}
+                <a href="https://frilabr.com/privacidade" target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                  {textos.entrar.linkDaPrivacidade}
+                </a>
+              </p>
+              {loaderData.aceiteFalhou ? <p role="alert">{textos.conta.aceiteFalhou}</p> : null}
+              <button type="submit" className={classeDoBotao}>
+                {textos.conta.aceitarTermos}
+              </button>
+            </Form>
           ) : null}
           <Form method="post" action="/sair">
             <button type="submit" className={classeDoBotao}>

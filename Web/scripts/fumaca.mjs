@@ -80,6 +80,10 @@ try {
     sair.status === 302 && apagados.length === 2 && apagados.every((linha) => linha.includes("HttpOnly") && linha.includes("Max-Age=0")),
     `${sair.status} ${apagados.length}`,
   );
+  const cadastroSemSessao = await fetch(`${BASE}/app/cadastro`, { redirect: "manual" });
+  confere("cadastro sem sessão manda entrar", cadastroSemSessao.status === 302 && (cadastroSemSessao.headers.get("location") ?? "").endsWith("/app/entrar"));
+  const aceiteSemSessao = await fetch(`${BASE}/app/aceitar-termos`, { method: "POST", redirect: "manual", headers: { Origin: BASE } });
+  confere("aceite dos termos sem sessão manda entrar", aceiteSemSessao.status === 302 && (aceiteSemSessao.headers.get("location") ?? "").endsWith("/app/entrar"));
   const semCookie = await fetch(`${BASE}/app/`);
   confere("sem sessão, a página não grava cookie nenhum", semCookie.headers.getSetCookie().length === 0);
 
