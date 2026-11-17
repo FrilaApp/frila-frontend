@@ -55,6 +55,11 @@ class MapeadoresTest {
     )
 
     @Test
+    fun `C0-9 - o item leva o id da casa, alvo de Denunciar no turno`() {
+        assertEquals("contraparte-1", criarTurnoDto().paraItem().contraparteId)
+    }
+
+    @Test
     fun `checkin geolocalizado verificado mapeia para GEOLOCALIZADO`() {
         val dto = criarTurnoDto(
             checkinTipo = "geolocalizado",

@@ -37,6 +37,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -88,6 +89,8 @@ fun TelaMeusTurnos(
     modifier: Modifier = Modifier,
     aoAbrirAvaliacao: (turnoId: String) -> Unit = {},
     relogio: () -> Instant = { Instant.now() },
+    /** C0-9: denunciar a casa do turno (id do perfil público, id do turno), como o iOS. Nulo esconde o botão. */
+    aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -171,6 +174,7 @@ fun TelaMeusTurnos(
                     abaHistorico = estado.abaSelecionada == AbaDeTurnos.HISTORICO,
                     carregandoMaisHistorico = estado.carregandoMaisHistorico,
                     aoCarregarMaisHistorico = { viewModel.carregarMaisHistorico() },
+                    aoDenunciarEstabelecimento = aoDenunciarEstabelecimento,
                 )
             }
         }
@@ -206,6 +210,7 @@ private fun ListaDeTurnos(
     abaHistorico: Boolean = false,
     carregandoMaisHistorico: Boolean = false,
     aoCarregarMaisHistorico: () -> Unit = {},
+    aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
 ) {
     if (itens.isEmpty()) {
         Vazio()
@@ -262,6 +267,18 @@ private fun ListaDeTurnos(
                     )
                 }
                 SecaoDeAvaliacao(turno = turno, aoAbrirAvaliacao = aoAbrirAvaliacao)
+                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+                val casaId = turno.contraparteId
+                if (aoDenunciarEstabelecimento != null && casaId != null) {
+                    TextButton(
+                        onClick = { aoDenunciarEstabelecimento(casaId, turno.turnoId) },
+                        modifier = Modifier
+                            .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo)
+                            .semantics { contentDescription = "Denunciar ${turno.estabelecimentoNome}" },
+                    ) {
+                        Text("Denunciar")
+                    }
+                }
             }
         }
         if (abaHistorico && carregandoMaisHistorico) {
