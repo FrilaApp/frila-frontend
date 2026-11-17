@@ -78,11 +78,39 @@ enum ContratoAPI {
         let email: String
         let nascimento: String
         let estado: EstadoConta
+        /// 0.2.90. Opcional: ausente, o app trata como não aceita.
+        let termosVersao: String?
 
         func dominio() throws -> Conta {
             guard let data = try? DataCivil(nascimento) else { throw ErroDeConversao(campo: "nascimento") }
-            return Conta(id: id, perfil: perfil, nome: nome, telefone: telefone, email: email, nascimento: data, estado: estado)
+            return Conta(id: id, perfil: perfil, nome: nome, telefone: telefone, email: email, nascimento: data,
+                         estado: estado, termosVersao: termosVersao)
         }
+
+        enum CodingKeys: String, CodingKey {
+            case id, perfil, nome, telefone, email, nascimento, estado
+            case termosVersao = "termos_versao"
+        }
+    }
+
+    /// Corpo de `aceitar_termos` (0.2.90). O instante do aceite é do servidor: o cliente só manda a versão.
+    struct AceitarTermos: Encodable {
+        let termosVersao: String
+
+        enum CodingKeys: String, CodingKey { case termosVersao = "termos_versao" }
+    }
+
+    /// Resposta 200 de `aceitar_termos`.
+    struct AceiteDeTermosDTO: Decodable {
+        let termosVersao: String
+        let aceitoEm: Date
+
+        enum CodingKeys: String, CodingKey {
+            case termosVersao = "termos_versao"
+            case aceitoEm = "aceito_em"
+        }
+
+        func dominio() -> AceiteDeTermos { AceiteDeTermos(termosVersao: termosVersao, aceitoEm: aceitoEm) }
     }
 
     struct CriarConta: Encodable {
@@ -2362,19 +2390,24 @@ extension ContratoAPI {
         let distanciaFaixa: FaixaDistancia
         let reputacao: ReputacaoDTO
         let disponivelNoHorario: Bool?
+        /// 0.2.90 (CD-B07): como em `PerfilPublicoDTO`, só vêm com a foto aprovada e o recurso ligado.
+        let fotoURL: URL?
+        let fotoID: UUID?
 
         enum CodingKeys: String, CodingKey {
             case id, nome, servico, regioes, reputacao
             case atendeTodoDF = "atende_todo_df"
             case distanciaFaixa = "distancia_faixa"
             case disponivelNoHorario = "disponivel_no_horario"
+            case fotoURL = "foto_url"
+            case fotoID = "foto_id"
         }
 
         func dominio() -> CartaoProfissional {
             CartaoProfissional(
                 id: id, nome: nome, servico: servico.dominio(), regioes: regioes.map { $0.dominio() },
                 atendeTodoDF: atendeTodoDF, distanciaFaixa: distanciaFaixa, reputacao: reputacao.dominio(),
-                disponivelNoHorario: disponivelNoHorario
+                disponivelNoHorario: disponivelNoHorario, fotoURL: fotoURL, fotoID: fotoID
             )
         }
     }

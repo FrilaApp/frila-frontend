@@ -126,6 +126,9 @@ public struct TelaBuscaDeProfissionais: View {
             }
         case .indisponivel:
             Section { Text(verbatim: TextosBuscaDeProfissionais.indisponivel).accessibilityIdentifier("busca-indisponivel") }
+        case .termosPendentes:
+            // `termos_pendentes` (0.2.90): aceitar repete a busca com os mesmos filtros; sem aceite, segue bloqueada.
+            Section { TelaAceiteDeTermosProvisoria(modelo: viewModel) }
         case let .erro(mensagem):
             Section {
                 Text(verbatim: mensagem).accessibilityIdentifier("busca-erro")
@@ -177,13 +180,7 @@ public struct TelaBuscaDeProfissionais: View {
                     .navigationTitle(Text(verbatim: cartao.nome))
             } label: {
                 VStack(alignment: .leading) {
-                    Text(verbatim: cartao.nome)
-                    Text(verbatim: TextosDosServicos.resumoDoServico(cartao.servico.servico) ?? cartao.servico.funcao.nome)
-                    Text(verbatim: cartao.distanciaFaixa.rotulo)
-                    if cartao.disponivelNoHorario == true {
-                        Text(verbatim: TextosBuscaDeProfissionais.disponivelNesseHorario)
-                            .accessibilityIdentifier("disponivel-\(cartao.id)")
-                    }
+                    CartaoDaBuscaProvisorio(cartao: cartao)
                     if let resultado = viewModel.resultadosDaChamada[cartao.id] {
                         Text(verbatim: Self.texto(resultado))
                             .accessibilityIdentifier("resultado-chamada-\(cartao.id)")
