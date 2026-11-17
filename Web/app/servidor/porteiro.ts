@@ -3,6 +3,8 @@
  *
  * - Pedido que muda dado (POST e afins) só passa se veio de uma página do próprio endereço (cabeçalho `Origin`).
  *   Com o cookie `SameSite=Lax`, é a defesa contra pedido forjado por outro site (CSRF).
+ * - Em produção, pedido por http vai para https (301), antes de tudo: sem isso a página e os cookies sairiam sem
+ *   criptografia (achado A1 do Juiz).
  * - A web mora em /app. Pedido fora de /app vai para /app/.
  * - Com a chave desligada, só existem a página inicial (ela mostra "em breve"), a
  *   rota de saúde, a página "sem conexão" e o texto neutro do push: qualquer outro caminho volta para o início, e nenhum loader das outras rotas roda.
@@ -15,8 +17,12 @@ const DADOS_DO_INICIO = new Set([`${BASE}.data`, `${BASE}/_.data`]);
 const SEMPRE_ABERTOS = new Set([BASE, `${BASE}/`, `${BASE}/saude`, `${BASE}/sem-conexao`, `${BASE}/avisos/texto-neutro`, ...DADOS_DO_INICIO]);
 const METODOS_QUE_SO_LEEM = new Set(["GET", "HEAD", "OPTIONS"]);
 
-export function respostaAntesDoApp(request: Request, opcoes: { webLigada: boolean }): Response | null {
+export function respostaAntesDoApp(request: Request, opcoes: { webLigada: boolean; exigirHttps?: boolean }): Response | null {
   const url = new URL(request.url);
+  if (opcoes.exigirHttps && url.protocol === "http:") {
+    url.protocol = "https:";
+    return new Response(null, { status: 301, headers: { Location: url.toString(), "Cache-Control": "no-store" } });
+  }
   const caminho = url.pathname;
   const dentroDaBase = caminho === BASE || caminho.startsWith(`${BASE}/`) || DADOS_DO_INICIO.has(caminho);
 

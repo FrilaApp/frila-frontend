@@ -1052,6 +1052,47 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun atalhosDoPerfilRicoEDaFotoSoAparecemQuandoOChamadorInformaOCallback() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            var apresentacao = 0
+            var foto = 0
+
+            rule.setContent {
+                FrilaTheme { TelaPerfil(viewModel = vm, aoAbrirApresentacao = { apresentacao++ }, aoAbrirFotoDePerfil = { foto++ }) }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("perfil-apresentacao").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+            rule.onNodeWithTag("perfil-foto").performScrollTo()
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+                .performClick()
+
+            assertEquals(1, apresentacao)
+            assertEquals(1, foto)
+        }
+    }
+
+    @Test
+    fun semOsCallbacksOsAtalhosDoPerfilRicoENaoAparecem() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = vm) } }
+            rule.waitForIdle()
+
+            rule.onAllNodesWithTag("perfil-apresentacao").assertCountEquals(0)
+            rule.onAllNodesWithTag("perfil-foto").assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun atalhoDasChamadasDiretasSoApareceQuandoOChamadorInformaOCallback() {
         runBlocking {
             val vm = criarViewModel()

@@ -1,6 +1,7 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
+import { registrarEvento } from "../../servidor/eventos";
 import { exigirSessao } from "../../servidor/guarda";
 import { candidatar, listarMinhasCandidaturas, retirarCandidatura } from "../../servidor/profissional/candidaturas";
 import { formatarDistancia, formatarPeriodo, formatarValor } from "../../servidor/profissional/formato";
@@ -27,6 +28,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
     return { estado: leitura.estado, vaga: null, candidatura: null };
   }
   const vaga = leitura.vaga;
+  registrarEvento(sessao.acesso, "vaga_detalhe_aberto", { vaga_id: vaga.id });
   const itens: Array<string | null> = [
     vaga.inclusos.inclui_refeicao ? t.refeicao : null,
     vaga.inclusos.inclui_transporte ? t.transporte : null,
@@ -73,11 +75,13 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   if (formulario.get("intencao") === "retirar") {
     const retirada = await retirarCandidatura(api, String(formulario.get("candidatura_id") ?? ""));
     const motivo = retirada.ok ? ("retirada" as const) : retirada.motivo;
+    if (retirada.ok) registrarEvento(sessao.acesso, "candidatura_retirada", { vaga_id: params.vagaId });
     if (motivo === "sem_sessao") throw redirect("/entrar");
     return { resultado: motivo };
   }
   const candidatura = await candidatar(api, params.vagaId);
   const resultado = candidatura.ok ? candidatura.estado : candidatura.motivo;
+  if (candidatura.ok) registrarEvento(sessao.acesso, "candidatura_enviada", { vaga_id: params.vagaId });
   if (resultado === "sem_sessao") throw redirect("/entrar");
   return { resultado };
 }
