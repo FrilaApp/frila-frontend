@@ -2,8 +2,12 @@
  * Catálogo único de textos da web. Tela nenhuma escreve texto direto no JSX:
  * todo texto visível sai daqui.
  */
+import { publico } from "./publico";
+
 export const textos = {
   marca: "Frila",
+  // Páginas públicas, textos do marketing (arquivo próprio para entrar como vieram).
+  publico,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
