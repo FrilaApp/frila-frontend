@@ -163,4 +163,35 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
         }
         return cliente.corpoOuErro(resposta)
     }
+
+    /**
+     * `POST /rest/v1/rpc/avisar_a_caminho` (US14, RF12): o "Estou a caminho" do profissional confirmado no turno.
+     * Não muda presença nem substitui o check-in; a casa vê o sinal no painel. Vale de 3 horas antes do início
+     * até 15 minutos depois. Idempotente: repetir devolve o mesmo `a_caminho_em`. Erros esperados:
+     * `422 a_caminho_fora_da_janela`, `403 sem_permissao` (quem não é o profissional do turno; conta suspensa
+     * vem com `details: conta_suspensa`), `422 campo_obrigatorio` (`details: turno_id`), `401 nao_autenticado`.
+     */
+    suspend fun avisarACaminho(turnoId: String): ResultadoACaminhoDto {
+        val resposta = cliente.http.post(cliente.urlRpc("avisar_a_caminho")) {
+            contentType(ContentType.Application.Json)
+            setBody(AvisarACaminhoDto(turnoId = turnoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/reabrir_por_atraso` (RF13, D06): a casa reabre a posição de quem não chegou, a partir de
+     * 15 minutos do início sem check-in. Marca falta do profissional e abre uma posição nova (`nova_posicao_id`);
+     * `reaberta = false` quando o turno ficou descoberto. Na vaga de chamada direta reabre sem despacho nem aviso
+     * (0.2.55). Não é idempotente e nunca se repete sozinha. Erros esperados: `422 reabertura_antes_da_tolerancia`,
+     * `409 posicao_nao_cancelavel` (`details: checkin_registrado` quando o check-in já foi feito),
+     * `403 sem_permissao` (quem não é da casa), `422 campo_obrigatorio` (`details: posicao_id`), `401 nao_autenticado`.
+     */
+    suspend fun reabrirPorAtraso(posicaoId: String): ResultadoCancelamento {
+        val resposta = cliente.http.post(cliente.urlRpc("reabrir_por_atraso")) {
+            contentType(ContentType.Application.Json)
+            setBody(ReabrirPorAtrasoDto(posicaoId = posicaoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
 }
