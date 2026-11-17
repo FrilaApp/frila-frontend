@@ -46,6 +46,27 @@ class ServicoDispositivoTest {
     }
 
     @Test
+    fun `registrarDispositivo manda versao_app quando conhecida e omite o campo quando nao (0_2_56)`() = runTest {
+        val corpos = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            corpos += (request.body as io.ktor.http.content.TextContent).text
+            respond(
+                content = """{"plataforma":"android","atualizado_em":"2026-10-22T10:00:00Z","vinculo_id":"vinculo-abc"}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoDispositivo(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+
+        servico.registrarDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars", versaoApp = "1.2.0")
+        servico.registrarDispositivo(tokenFcm = "token-fcm-de-teste-com-mais-de-20-chars")
+
+        assertEquals(2, corpos.size)
+        assertTrue(corpos[0].contains("\"versao_app\":\"1.2.0\""), "com a versão, ela vai no corpo")
+        assertTrue(!corpos[1].contains("versao_app"), "sem a versão, o campo não vai (nem como null)")
+    }
+
+    @Test
     fun `registrarDispositivo com servidor anterior a 0_2_30 decodifica vinculo_id nulo`() = runTest {
         val engine = MockEngine {
             respond(
