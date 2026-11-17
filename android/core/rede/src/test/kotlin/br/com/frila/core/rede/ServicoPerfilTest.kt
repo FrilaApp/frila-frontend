@@ -637,8 +637,8 @@ class ServicoPerfilTest {
                       "idiomas": [],
                       "servicos": [],
                       "regioes": [
-                        {"id": 1, "nome": "Plano Piloto", "sigla": "PP", "ativo": true},
-                        {"id": 3, "nome": "Taguatinga", "sigla": "TAG", "ativo": true}
+                        {"id": 1, "numero": "I", "nome": "Plano Piloto", "ativo": true},
+                        {"id": 3, "numero": "III", "nome": "Taguatinga", "ativo": true}
                       ],
                       "atende_todo_df": false
                     }

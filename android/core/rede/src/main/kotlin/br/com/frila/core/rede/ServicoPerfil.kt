@@ -41,7 +41,11 @@ class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
      * Erros: `409 perfil_ja_existe`, `401 nao_autenticado`, `403 conta_suspensa`, `422 perfil_incompativel`, `422 campo_invalido`.
      */
     suspend fun criarPerfilProfissional(dados: DadosDoPerfilProfissionalDto): PerfilProfissionalDto {
-        TODO("L1-0a: criar_perfil_profissional")
+        val resposta = cliente.http.post(cliente.urlRpc("criar_perfil_profissional")) {
+            contentType(ContentType.Application.Json)
+            setBody(dados)
+        }
+        return cliente.corpoOuErro(resposta)
     }
 
     /**
@@ -50,7 +54,11 @@ class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
      * Erros: `401 nao_autenticado`, `403 conta_suspensa`, `404 nao_encontrado`, `422 campo_obrigatorio`, `422 campo_invalido`.
      */
     suspend fun atualizarPerfilProfissional(alteracao: AlteracaoDoPerfilProfissionalDto): PerfilProfissionalDto {
-        TODO("L1-0a: atualizar_perfil_profissional")
+        val resposta = cliente.http.post(cliente.urlRpc("atualizar_perfil_profissional")) {
+            contentType(ContentType.Application.Json)
+            setBody(alteracao)
+        }
+        return cliente.corpoOuErro(resposta)
     }
 
     /**
@@ -59,7 +67,11 @@ class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
      * Erros: `401 nao_autenticado`, `403 sem_permissao` (recurso_desligado) ou `conta_suspensa`, `404 nao_encontrado`, `422 campo_obrigatorio`, `422 campo_invalido`, `422 perfil_incompativel`.
      */
     suspend fun atualizarApresentacaoProfissional(apresentacao: ApresentacaoDoProfissionalDto): PerfilProfissionalDetalhadoDto {
-        TODO("L1-0a: atualizar_apresentacao_profissional")
+        val resposta = cliente.http.post(cliente.urlRpc("atualizar_apresentacao_profissional")) {
+            contentType(ContentType.Application.Json)
+            setBody(apresentacao)
+        }
+        return cliente.corpoOuErro(resposta)
     }
 
     /**
@@ -68,6 +80,10 @@ class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
      * Erros: `401 nao_autenticado`, `403 sem_permissao` (recurso_desligado) ou `conta_suspensa`, `404 nao_encontrado`, `422 campo_invalido`.
      */
     suspend fun definirRegioesAtendidas(dados: DefinirRegioesAtendidasDto): PerfilProfissionalDetalhadoDto {
-        TODO("L1-0a: definir_regioes_atendidas")
+        val resposta = cliente.http.post(cliente.urlRpc("definir_regioes_atendidas")) {
+            contentType(ContentType.Application.Json)
+            setBody(dados)
+        }
+        return cliente.corpoOuErro(resposta)
     }
 }
