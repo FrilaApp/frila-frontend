@@ -114,13 +114,11 @@ try {
     semConexao.status === 200 && !htmlSemConexao.includes("<script") && (semConexao.headers.get("content-security-policy") ?? "").startsWith("default-src 'none'"),
     String(semConexao.status),
   );
-  const conferencia = await fetch(`${BASE}/app/avisos/vinculo`, { method: "POST", headers: { Origin: BASE, "Content-Type": "application/json" }, body: JSON.stringify({ vinculo_id: "v-qualquer" }) });
-  const corpoDaConferencia = conferencia.ok ? await conferencia.json() : {};
-  confere(
-    "sem sessão, o push nunca mostra conteúdo (o SW pergunta e ouve não)",
-    corpoDaConferencia.mostrar === false && typeof corpoDaConferencia.neutro?.corpo === "string" && conferencia.headers.get("cache-control") === "no-store",
-    String(conferencia.status),
-  );
+  const neutro = await fetch(`${BASE}/app/avisos/texto-neutro`);
+  const corpoNeutro = neutro.ok ? await neutro.json() : {};
+  confere("o texto neutro do push responde (o SW guarda ao instalar)", typeof corpoNeutro.titulo === "string" && typeof corpoNeutro.corpo === "string", String(neutro.status));
+  const semConferencia = await fetch(`${BASE}/app/avisos/vinculo`, { method: "POST", headers: { Origin: BASE } });
+  confere("não existe conferência de push no servidor", semConferencia.status === 404 || semConferencia.status === 405, String(semConferencia.status));
   const instalar = await fetch(`${BASE}/app/instalar`);
   confere("GET /app/instalar responde 200 e não vai para buscador", instalar.status === 200 && (await instalar.text()).includes('content="noindex"'));
   const fonte = /href="(\/app\/assets\/ProdigySans-Bold-[^"]+\.woff2)"/.exec(html)?.[1];

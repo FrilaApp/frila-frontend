@@ -11,7 +11,7 @@ export default [
   route("instalar", "rotas/instalar.tsx"),
   route("sem-conexao", "rotas/sem-conexao.ts"),
   route("avisos", "rotas/avisos.tsx"),
-  route("avisos/vinculo", "rotas/avisos-vinculo.ts"),
+  route("avisos/texto-neutro", "rotas/avisos-texto-neutro.ts"),
   // A vaga pelo link, sem login (para compartilhar)
   route("v/:vagaId", "rotas/publico/vaga.tsx"),
 

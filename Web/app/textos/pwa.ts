@@ -38,9 +38,10 @@ export const pwa = {
     instalarPrimeiro: "Instalar na tela de início",
     negado: "Os avisos do Frila estão bloqueados neste navegador. Para ligar, libere as notificações do Frila nos ajustes do navegador ou do aparelho e volte aqui.",
     falhou: "Não deu para ligar os avisos agora. Tente de novo em instantes.",
-    // O que aparece quando o aviso é de outra conta, ou de quem já saiu deste aparelho (RN15): nada do conteúdo.
-    neutroTitulo: "Frila",
-    neutroCorpo: "Você tem um aviso no Frila.",
+    // Todo push da web v1 mostra só este texto (decisão do O2, 17/11): o conteúdo aparece ao abrir o Frila com a sessão.
+    // TEXTO PROVISÓRIO: o mesmo neutro do iOS (VinculoDoPush.swift); o final é do Fabrício.
+    neutroTitulo: "Nova notificação do Frila",
+    neutroCorpo: "Abra o aplicativo para conferir.",
   },
   semConexao: {
     tituloDaAba: "Sem conexão · Frila",

@@ -78,6 +78,12 @@ function serviceWorker(opcoes: {
           pedidosDaRede.push(pedido.url);
           cache.set(new URL(pedido.url).pathname, await opcoes.rede(pedido));
         },
+        addAll: async (pedidos: Request[]) => {
+          for (const pedido of pedidos) {
+            pedidosDaRede.push(pedido.url);
+            cache.set(new URL(pedido.url).pathname, await opcoes.rede(pedido));
+          }
+        },
         put: async (caminho: string, resposta: Response) => void cache.set(caminho, resposta),
         match: async (caminho: string) => cache.get(caminho)?.clone(),
       };
@@ -128,11 +134,11 @@ const navegar = (caminho: string) => ({ url: `https://frilabr.com${caminho}`, mo
 describe("service worker", () => {
   const paginaDaRede = async () => new Response("página com sessão");
 
-  it("ao instalar, guarda só a página sem conexão", async () => {
+  it("ao instalar, guarda só a página sem conexão e o texto neutro do push", async () => {
     const sw = serviceWorker({ rede: async () => new Response("sem conexão") });
     await sw.disparar("install");
-    expect([...sw.guardados.keys()]).toEqual(["frila-casca-v1"]);
-    expect([...(sw.guardados.get("frila-casca-v1")?.keys() ?? [])]).toEqual(["/app/sem-conexao"]);
+    expect([...sw.guardados.keys()]).toEqual(["frila-casca-v2"]);
+    expect([...(sw.guardados.get("frila-casca-v2")?.keys() ?? [])]).toEqual(["/app/sem-conexao", "/app/avisos/texto-neutro"]);
   });
 
   it("com rede, a navegação vem da rede e nada se guarda", async () => {
@@ -140,7 +146,7 @@ describe("service worker", () => {
     await sw.disparar("install");
     const resposta = await sw.disparar("fetch", { request: navegar("/app/turnos"), preloadResponse: Promise.resolve(undefined) });
     expect(await resposta?.text()).toBe("página com sessão");
-    expect([...(sw.guardados.get("frila-casca-v1")?.keys() ?? [])]).toEqual(["/app/sem-conexao"]);
+    expect([...(sw.guardados.get("frila-casca-v2")?.keys() ?? [])]).toEqual(["/app/sem-conexao", "/app/avisos/texto-neutro"]);
   });
 
   it("sem rede, a navegação mostra a página guardada", async () => {
@@ -159,53 +165,85 @@ describe("service worker", () => {
   });
 
   it("ao ativar, apaga só os caches antigos do Frila, nunca os do site", async () => {
-    const sw = serviceWorker({ rede: paginaDaRede, caches: ["frila-casca-v0", "cache-do-site", "frila-casca-v1"] });
+    const sw = serviceWorker({ rede: paginaDaRede, caches: ["frila-casca-v1", "cache-do-site", "frila-aviso-v1", "frila-casca-v2"] });
     await sw.disparar("activate");
-    expect([...sw.guardados.keys()].sort()).toEqual(["cache-do-site", "frila-casca-v1"]);
+    expect([...sw.guardados.keys()].sort()).toEqual(["cache-do-site", "frila-casca-v2"]);
   });
 });
 
-// Se o push mostra o conteúdo (sessão viva, outra conta, depois do sair), está em testes/revisao-lince-886.test.ts.
+// Push (decisão do O2, 17/11): sempre o texto neutro; o conteúdo do aviso nunca aparece. Casos de conta e de sair estão
+// em testes/revisao-lince-886.test.ts.
 describe("service worker: push", () => {
-  const aviso = { data: { json: () => ({ notification: { title: "Turno amanhã", body: "Bar do Zé, 19h" }, data: { vinculo_id: "v-1" } }) } };
+  const ID = "0f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f";
+  const aviso = (dados: Record<string, string>) => ({
+    data: { json: () => ({ notification: { title: "PRIVADO", body: "DADO-DO-AVISO" }, data: dados }) },
+  });
+  const instalado = async (abertas: Array<{ url: string; focus: () => Promise<void>; navigate?: (u: string) => Promise<void> }> = []) => {
+    const sw = serviceWorker({ rede: async () => Response.json({ titulo: "Nova notificação do Frila", corpo: "Abra o aplicativo para conferir." }), janelas: abertas });
+    await sw.disparar("install");
+    sw.pedidosDaRede.length = 0;
+    return sw;
+  };
 
-  it("pergunta ao Worker a cada push, com o vínculo do aviso, e nada além disso", async () => {
-    const pedidos: Array<{ url: string; corpo: string }> = [];
-    const sw = serviceWorker({
-      rede: async (pedido) => {
-        pedidos.push({ url: pedido.url, corpo: await pedido.text() });
-        return Response.json({ mostrar: true, neutro: { titulo: "Frila", corpo: "neutro" } });
-      },
-    });
-    await sw.disparar("push", aviso);
-    expect(pedidos).toEqual([{ url: "https://frilabr.com/app/avisos/vinculo", corpo: JSON.stringify({ vinculo_id: "v-1" }) }]);
-    expect(sw.notificacoes).toEqual([{ titulo: "Turno amanhã", corpo: "Bar do Zé, 19h" }]);
+  it("o sw.js nunca lê o título nem o corpo do push", () => {
+    expect(codigoDoServiceWorker).not.toMatch(/\.(title|body)\b/);
+    expect(codigoDoServiceWorker).not.toMatch(/notification\s*\?\?|carga\.notification/);
   });
 
-  it("sem rede, aparece o texto neutro guardado da última conferência", async () => {
-    let online = true;
-    const sw = serviceWorker({
-      rede: async () => (online ? Response.json({ mostrar: false, neutro: { titulo: "Frila", corpo: "Você tem um aviso." } }) : Promise.reject(new TypeError("offline"))),
-    });
-    await sw.disparar("push", aviso);
-    online = false;
-    await sw.disparar("push", aviso);
-    expect(sw.notificacoes).toEqual([
-      { titulo: "Frila", corpo: "Você tem um aviso." },
-      { titulo: "Frila", corpo: "Você tem um aviso." },
-    ]);
+  it("todo push mostra o texto neutro guardado na instalação, sem ir à rede", async () => {
+    const sw = await instalado();
+    await sw.disparar("push", aviso({ tipo: "vaga", vaga_id: ID }));
+    expect(sw.notificacoes).toEqual([{ titulo: "Nova notificação do Frila", corpo: "Abra o aplicativo para conferir." }]);
+    expect(sw.pedidosDaRede).toEqual([]);
   });
 
-  it("tocar no aviso abre o Frila, ou volta para a janela já aberta", async () => {
-    const fechar = { close: () => undefined };
+  it("sem o texto guardado, só o nome do Frila", async () => {
     const sw = serviceWorker({ rede: async () => new Response("") });
-    await sw.disparar("notificationclick", { notification: fechar });
-    expect(sw.abertas).toEqual(["/app/"]);
+    await sw.disparar("push", aviso({}));
+    expect(sw.notificacoes).toEqual([{ titulo: "Frila", corpo: "" }]);
+  });
+});
 
+describe("service worker: o toque no aviso", () => {
+  const ID = "0f8e7d6c-5b4a-4c3d-8e2f-1a0b9c8d7e6f";
+  const tocar = async (dados: Record<string, string>) => {
+    const abertas: string[] = [];
+    const ouvintes = new Map<string, (evento: unknown) => void>();
+    let mostrada: { data?: { destino?: string } } = {};
+    const self = {
+      addEventListener: (tipo: string, ouvinte: (evento: unknown) => void) => ouvintes.set(tipo, ouvinte),
+      clients: { matchAll: async () => [], openWindow: async (u: string) => void abertas.push(u) },
+      registration: { showNotification: async (_t: string, opcoes: { data?: { destino?: string } }) => void (mostrada = opcoes) },
+    };
+    const cachesFalsos = { match: async () => undefined, open: async () => ({}), keys: async () => [] };
+    new Function("self", "caches", "fetch", "Request", "Response", codigoDoServiceWorker)(self, cachesFalsos, fetch, Request, Response);
+    const esperas: Promise<unknown>[] = [];
+    const evento = (extra: object) => ({ ...extra, waitUntil: (p: Promise<unknown>) => esperas.push(p) });
+    ouvintes.get("push")?.(evento({ data: { json: () => ({ data: dados }) } }));
+    await Promise.all(esperas.splice(0));
+    ouvintes.get("notificationclick")?.(evento({ notification: { close: () => undefined, data: mostrada.data } }));
+    await Promise.all(esperas);
+    return abertas[0];
+  };
+
+  it("abre a página do aviso (que exige sessão), só com id no formato certo", async () => {
+    expect(await tocar({ tipo: "chamada_direta", chamada_id: ID })).toBe(`/app/chamadas/${ID}`);
+    expect(await tocar({ tipo: "vaga", vaga_id: ID })).toBe(`/app/vagas/${ID}`);
+    expect(await tocar({ tipo: "lembrete_3h", turno_id: ID })).toBe(`/app/turnos/${ID}`);
+    expect(await tocar({ tipo: "vaga", vaga_id: "../../sair" })).toBe("/app/");
+    expect(await tocar({ tipo: "suspensao" })).toBe("/app/");
+  });
+
+  it("com o Frila já aberto, leva a janela até a página do aviso", async () => {
+    let foi = "";
     let focou = false;
-    const comJanela = serviceWorker({ rede: async () => new Response(""), janelas: [{ url: "https://frilabr.com/app/turnos", focus: async () => void (focou = true) }] });
-    await comJanela.disparar("notificationclick", { notification: fechar });
+    const sw = serviceWorker({
+      rede: async () => new Response(""),
+      janelas: [{ url: "https://frilabr.com/app/turnos", focus: async () => void (focou = true), navigate: async (u: string) => void (foi = u) } as never],
+    });
+    await sw.disparar("notificationclick", { notification: { close: () => undefined, data: { destino: `/app/vagas/${ID}` } } });
     expect(focou).toBe(true);
-    expect(comJanela.abertas).toEqual([]);
+    expect(foi).toBe(`/app/vagas/${ID}`);
+    expect(sw.abertas).toEqual([]);
   });
 });
