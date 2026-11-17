@@ -31,6 +31,8 @@ public enum TextosBuscaDeProfissionais {
     public static let termino = String(localized: "Término", bundle: bundleApresentacao)
     public static let buscar = String(localized: "Buscar", bundle: bundleApresentacao)
     public static let buscando = String(localized: "Buscando profissionais", bundle: bundleApresentacao)
+    /// A mesma chave do catálogo que a presença usa (sem entrada nova).
+    public static let enviando = String(localized: "Enviando…", bundle: bundleApresentacao)
     public static let profissionais = String(localized: "Profissionais", bundle: bundleApresentacao)
     public static let disponivelNesseHorario = String(localized: "Disponível nesse horário", bundle: bundleApresentacao)
     public static let semAvaliacoes = String(localized: "Sem avaliações ainda", bundle: bundleApresentacao)

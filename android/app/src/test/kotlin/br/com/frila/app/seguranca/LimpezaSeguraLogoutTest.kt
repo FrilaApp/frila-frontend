@@ -232,12 +232,14 @@ class LimpezaSeguraLogoutTest {
     private class RegistroDeChamadas {
         val rotas = mutableListOf<String>()
         val sessaoPresenteNaChamada = mutableListOf<Boolean>()
+        val autorizacoes = mutableListOf<String?>()
     }
 
     private fun coordenadorComRemocao(
         registro: RegistroDeChamadas,
         provedorDeToken: (suspend () -> String?)? = { tokenFcm },
         tempoMaximoRemocaoMs: Long = 5_000L,
+        falhas: MutableList<String> = mutableListOf(),
         resposta: suspend io.ktor.client.engine.mock.MockRequestHandleScope.() -> io.ktor.client.request.HttpResponseData = {
             respond(
                 content = """{"removido":true}""",
@@ -252,6 +254,7 @@ class LimpezaSeguraLogoutTest {
             engine = MockEngine { request ->
                 registro.rotas += request.url.encodedPath
                 registro.sessaoPresenteNaChamada += (armazenamento.obterSessao() != null)
+                registro.autorizacoes += request.headers[HttpHeaders.Authorization]
                 resposta()
             },
         )
@@ -262,6 +265,8 @@ class LimpezaSeguraLogoutTest {
             servicoDispositivo = ServicoDispositivo(cliente),
             provedorDeTokenFcm = provedorDeToken,
             tempoMaximoRemocaoMs = tempoMaximoRemocaoMs,
+            escopoDaRemocao = escopo,
+            registrarFalha = { falhas += it },
         )
     }
 
@@ -386,4 +391,48 @@ class LimpezaSeguraLogoutTest {
         assertEquals(1, registro.rotas.size)
         assertNull("sessão local precisa ser limpa mesmo com o chamador cancelado", armazenamento.obterSessao())
     }
+
+    // --- C0-10 (P2 do Lince no #855): o Sair da tela passa por limparSessao(), que só limpava o aparelho ---
+
+    private fun esperar(condicao: () -> Boolean) {
+        val limite = System.currentTimeMillis() + 5_000
+        while (!condicao() && System.currentTimeMillis() < limite) Thread.sleep(20)
+    }
+
+    @Test
+    fun `Sair pela limparSessao limpa na hora e remove o aparelho com o token de acesso de quem saiu`() {
+        armazenamento.salvarSessao(sessaoTeste)
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro).limparSessao()
+
+        assertNull("a limpeza local não espera o servidor", armazenamento.obterSessao())
+        esperar { registro.rotas.isNotEmpty() }
+        assertEquals(listOf("/rest/v1/rpc/remover_dispositivo"), registro.rotas)
+        assertEquals(listOf("Bearer jwt-acesso-12345"), registro.autorizacoes)
+    }
+
+    @Test
+    fun `no Sair, falha de remover_dispositivo so vira log sem token e a sessao ja esta limpa`() {
+        armazenamento.salvarSessao(sessaoTeste)
+        val falhas = java.util.Collections.synchronizedList(mutableListOf<String>())
+
+        coordenadorComRemocao(RegistroDeChamadas(), falhas = falhas) { throw UnknownHostException("sem rede") }.limparSessao()
+
+        assertNull(armazenamento.obterSessao())
+        esperar { falhas.isNotEmpty() }
+        assertEquals(1, falhas.size)
+        assertTrue(falhas.none { it.contains(tokenFcm) || it.contains("jwt-") })
+    }
+
+    @Test
+    fun `sem sessao, limparSessao nao chama remover_dispositivo`() {
+        val registro = RegistroDeChamadas()
+
+        coordenadorComRemocao(registro).limparSessao()
+        Thread.sleep(300)
+
+        assertTrue(registro.rotas.isEmpty())
+    }
+
 }

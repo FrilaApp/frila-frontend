@@ -30,7 +30,10 @@ private const val ROTA_PROTEGIDA = "protegida_de_teste"
 @Config(sdk = [35], application = Application::class)
 class GuardaBiometricoNavegacaoTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private fun montarGrafoDeTeste(guarda: GuardaBiometrico, destinoInicial: String): NavHostController {

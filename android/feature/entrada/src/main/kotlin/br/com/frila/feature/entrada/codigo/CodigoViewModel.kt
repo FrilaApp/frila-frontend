@@ -43,6 +43,8 @@ class CodigoViewModel(
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
     escopo: CoroutineScope? = null,
     private val agora: () -> Instant = Instant::now,
+    /** Depois da entrada (sessão já salva): no app, registra o aparelho para o push (C0-10). */
+    private val aoEntrar: suspend () -> Unit = {},
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -95,6 +97,13 @@ class CodigoViewModel(
                 }
                 armazenamentoDeSessao.salvarSessao(sessaoDto.paraSessao())
                 _estado.update { it.copy(carregando = false, autenticado = true) }
+                // O registro do aparelho não segura nem desfaz a entrada: falhou, tenta de novo na próxima abertura.
+                try {
+                    aoEntrar()
+                } catch (cancelado: CancellationException) {
+                    throw cancelado
+                } catch (_: Exception) {
+                }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(carregando = false, erro = mensagemDaVerificacao(erro)) }
             } catch (erro: CancellationException) {
