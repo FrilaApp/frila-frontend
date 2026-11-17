@@ -30,6 +30,8 @@ data class ItemTurno(
     val comprovante: ComprovanteCheckin? = null,
     /** O ponto da vaga (`VagaResumo.ponto`): sem ele o check-in não mede a distância e vira manual (C0-7). */
     val pontoDaVaga: Coordenada? = null,
+    /** C0-9: id do perfil público da casa (`Turno.contraparte`), o alvo de "Denunciar" como no iOS (`TelaMeuTurno.swift:125`). */
+    val contraparteId: String? = null,
 )
 
 /** Estado do diálogo RN12 enquanto o profissional decide e envia o cancelamento. */

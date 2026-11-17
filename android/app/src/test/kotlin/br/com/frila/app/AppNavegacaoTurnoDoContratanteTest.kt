@@ -10,6 +10,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.TipoDeAlvo
+import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PainelDto
@@ -88,6 +90,9 @@ class AppNavegacaoTurnoDoContratanteTest {
         ),
     )
 
+    /** Parâmetros de cada `DenunciaViewModel` criado pela rota: tipo do alvo, id do alvo, turno e chamada. */
+    private val denuncias = mutableListOf<List<String?>>()
+
     private val pedidos = mutableListOf<String>()
     private val janelas = mutableListOf<Pair<java.time.Instant, java.time.Instant>>()
 
@@ -115,6 +120,18 @@ class AppNavegacaoTurnoDoContratanteTest {
                                     confirmados += id
                                     Result.success(ResultadoRegistroDto(id, "manual", "verificado", "2026-11-12T21:05:00Z"))
                                 },
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
+                        viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
+                            denuncias += listOf(alvoTipo.chave, alvoId, turnoId, chamadaId)
+                            DenunciaViewModel(
+                                alvoTipo = alvoTipo,
+                                alvoId = alvoId,
+                                denunciar = { error("o teste de navegação não envia a denúncia") },
+                                bloquear = { _, _ -> error("o teste de navegação não bloqueia") },
+                                turnoId = turnoId,
+                                chamadaId = chamadaId,
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
@@ -168,6 +185,21 @@ class AppNavegacaoTurnoDoContratanteTest {
             assertEquals("manual", contexto.checkinTipo)
         }
         rule.onNodeWithText("Garçom").assertExists()
+    }
+
+    @Test
+    fun `C0-9 - do turno da casa chega-se a denuncia da profissional, com o turno`() {
+        montar(servicoCom { Result.success(painel()) }, Rotas.turnoDoContratante("est-1", "v1", "p1"))
+        esperar(TextosTurnoDoContratante.CONFIRMAR_PRESENCA)
+
+        rule.onNodeWithContentDescription("Denunciar Ana").performScrollTo().performClick()
+        rule.waitUntil(5_000) { denuncias.isNotEmpty() }
+
+        rule.runOnIdle {
+            assertEquals(Rotas.DENUNCIA, rotaAtual())
+            // Alvo é o perfil público da profissional (`PerfilPublicoDto.id`), como o iOS.
+            assertEquals(listOf(listOf("profissional", "pr1", "t1", null)), denuncias)
+        }
     }
 
     @Test

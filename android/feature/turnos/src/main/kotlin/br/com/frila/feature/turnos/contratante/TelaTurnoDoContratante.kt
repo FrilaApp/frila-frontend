@@ -21,12 +21,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -43,6 +45,11 @@ import java.time.format.DateTimeFormatter
 data class AcoesTurnoDoContratante(
     val aoConfirmarPresenca: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
+    /**
+     * C0-9: denunciar o profissional deste turno (id do perfil público, id do turno), como o iOS
+     * (`TelaTurnoDoContratante.swift:360`). Nulo esconde o botão.
+     */
+    val aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
 )
 
 /** Liga o [AcompanhamentoContratanteViewModel] ao [ConteudoTurnoDoContratante]. */
@@ -51,11 +58,16 @@ fun TelaTurnoDoContratante(
     viewModel: AcompanhamentoContratanteViewModel,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
         estado = estado,
-        acoes = AcoesTurnoDoContratante(aoConfirmarPresenca = { viewModel.confirmarPresenca() }, aoVoltar = aoVoltar),
+        acoes = AcoesTurnoDoContratante(
+            aoConfirmarPresenca = { viewModel.confirmarPresenca() },
+            aoVoltar = aoVoltar,
+            aoDenunciarProfissional = aoDenunciarProfissional,
+        ),
         modifier = modifier,
     )
 }
@@ -126,6 +138,17 @@ fun ConteudoTurnoDoContratante(
                         Text(text = profissional.nome, style = MaterialTheme.typography.titleMedium)
                         profissional.funcoes?.takeIf { it.isNotEmpty() }?.let {
                             Text(text = TextosTurnoDoContratante.FUNCOES.format(it.joinToString(", ")), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+                        acoes.aoDenunciarProfissional?.let { denunciar ->
+                            TextButton(
+                                onClick = { denunciar(profissional.id, contexto.turnoId) },
+                                modifier = Modifier
+                                    .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo)
+                                    .semantics { contentDescription = TextosTurnoDoContratante.DENUNCIAR_ROTULO.format(profissional.nome) },
+                            ) {
+                                Text(TextosTurnoDoContratante.DENUNCIAR)
+                            }
                         }
                     }
                 }

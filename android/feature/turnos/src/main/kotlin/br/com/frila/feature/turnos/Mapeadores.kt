@@ -75,5 +75,6 @@ fun TurnoDto.paraItem(): ItemTurno {
         avaliacaoResposta = avaliacao?.resposta,
         comprovante = comprovanteMapeado,
         pontoDaVaga = vaga.ponto?.let { Coordenada(latitude = it.latitude, longitude = it.longitude) },
+        contraparteId = contraparte.id,
     )
 }
