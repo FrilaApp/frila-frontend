@@ -8,7 +8,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type ResultadoDaAvaliacao =
   | { ok: true }
-  | { ok: false; motivo: "antes_do_fim" | "sem_presenca_verificada" | "ja_registrada" | "sem_permissao" | "sem_sessao" | "indisponivel" };
+  | { ok: false; motivo: "antes_do_fim" | "sem_presenca_verificada" | "ja_registrada" | "conta_suspensa" | "sem_permissao" | "sem_sessao" | "indisponivel" };
 
 /** Reenviar a mesma resposta devolve a gravada; resposta diferente é 409 (já registrada). */
 export async function avaliarACasa(api: Api | null, turnoId: string, resposta: boolean): Promise<ResultadoDaAvaliacao> {
@@ -21,7 +21,7 @@ export async function avaliarACasa(api: Api | null, turnoId: string, resposta: b
     });
     if (data) return { ok: true };
     if (response.status === 401) return { ok: false, motivo: "sem_sessao" };
-    if (response.status === 403) return { ok: false, motivo: "sem_permissao" };
+    if (response.status === 403) return { ok: false, motivo: error?.details === "conta_suspensa" ? "conta_suspensa" : "sem_permissao" };
     if (response.status === 409) return { ok: false, motivo: "ja_registrada" };
     if (response.status === 422 && (error?.details === "antes_do_fim" || error?.details === "sem_presenca_verificada")) {
       return { ok: false, motivo: error.details };

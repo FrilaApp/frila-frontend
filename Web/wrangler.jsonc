@@ -25,8 +25,12 @@
 	"secrets": {
 		"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
 	},
+	// Logs do Worker: só o que o código escreve (console.error, sem cabeçalho nem token). Os logs de invocação ficam
+	// DESLIGADOS: eles guardam os cabeçalhos do pedido (Cookie com a sessão, Authorization) por dias na Cloudflare.
+	// Vale nos 2 ambientes (testes/observabilidade.test.ts confere).
 	"observability": {
-		"enabled": true
+		"enabled": true,
+		"logs": { "enabled": true, "invocation_logs": false }
 	},
 	"upload_source_maps": true,
 	"env": {
@@ -44,6 +48,11 @@
 			],
 			"secrets": {
 				"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+			},
+			// Igual ao topo, escrito aqui para não depender de herança: sem logs de invocação em produção.
+			"observability": {
+				"enabled": true,
+				"logs": { "enabled": true, "invocation_logs": false }
 			},
 			"vars": {
 				"AMBIENTE": "producao",
