@@ -267,6 +267,11 @@ fun AppNavegacao(
         }
     }
 
+    // C0-9: a profissional denuncia a casa pelo turno dela, como o iOS (`TelaMeuTurno.swift:125`).
+    val denunciarCasa: (String, String) -> Unit = { casaId, turnoId ->
+        navController.navigate(Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, casaId, turnoId = turnoId))
+    }
+
     // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de
     // rede apaga fora da thread principal quando o Auth recusa o token, e a navegação só anda na principal.
     // Sem sessão, tela de dentro só falha.
@@ -372,6 +377,7 @@ fun AppNavegacao(
                         viewModel = viewModel,
                         aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
                         aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
+                        aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
                     )
                 }
             }
@@ -472,6 +478,7 @@ fun AppNavegacao(
                                         koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                                    aoDenunciarEstabelecimento = denunciarCasa,
                                 )
                             } else {
                                 TelaTurnoNaoEncontrado(
@@ -503,6 +510,7 @@ fun AppNavegacao(
                                     koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
                                 },
                                 aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                                aoDenunciarEstabelecimento = denunciarCasa,
                             )
                         }
                     }
@@ -524,6 +532,7 @@ fun AppNavegacao(
                             koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
                         },
                         aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
+                        aoDenunciarEstabelecimento = denunciarCasa,
                     )
                 }
             }
@@ -806,6 +815,10 @@ fun AppNavegacao(
                         posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
                         buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
                         aoVoltar = { navController.popBackStack() },
+                        // C0-9: a casa denuncia a profissional pelo turno, como o iOS (`TelaTurnoDoContratante.swift:360`).
+                        aoDenunciarProfissional = { profissionalId, turnoId ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
+                        },
                     )
                 }
             }

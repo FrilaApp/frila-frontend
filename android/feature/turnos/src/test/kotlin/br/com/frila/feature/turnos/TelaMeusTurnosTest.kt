@@ -12,6 +12,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import br.com.frila.core.designsystem.tema.FrilaTheme
@@ -126,6 +129,29 @@ class TelaMeusTurnosTest {
           "cancelamento": null
         }
     """.trimIndent()
+
+    @Test
+    fun `C0-9 - Denunciar no turno leva o id da casa e o do turno, como o iOS`() {
+        runBlocking {
+            val viewModel = criarViewModel("[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]")
+            viewModel.carregar().join()
+            val denuncias = mutableListOf<Pair<String, String>>()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
+                        aoDenunciarEstabelecimento = { casa, turno -> denuncias += casa to turno },
+                    )
+                }
+            }
+
+            compose.onNodeWithContentDescription("Denunciar Bar do Zé").performScrollTo()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+            assertEquals(listOf("e1" to "t1"), denuncias)
+        }
+    }
 
     @Test
     fun `tela inicial exibe titulo e abas Agendados e Historico`() {
