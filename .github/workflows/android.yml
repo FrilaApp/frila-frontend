@@ -69,19 +69,26 @@ jobs:
           FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
         run: ./gradlew --no-daemon testDebugUnitTest
 
-      # Em PR sem segredo (fork, Dependabot) o par PROD não chega: o AAB de release é pulado com uma linha no log, e o
-      # APK debug e os testes seguem. Onde há segredo (push na main, PR do próprio repositório) o release roda, e a trava
-      # do app/build.gradle.kts (release sem o par PROD falha) vale como sempre: só a CI escolhe se roda.
+      # Só PR de fork ou do Dependabot chega sem os segredos: ali o AAB de release é pulado com uma linha no log, e o APK
+      # debug e os testes seguem. Em qualquer outro evento (push na main, tag, PR do próprio repositório, disparo manual)
+      # faltar o par PROD é erro de configuração: a CI falha aqui, com uma linha clara. Com o par, o release roda e a trava
+      # do app/build.gradle.kts (release sem o par PROD ou com chave proibida falha) vale como sempre.
       - name: Conferir se os segredos do Supabase chegaram
         id: segredos
         env:
           FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+          EVENTO: ${{ github.event_name }}
+          PR_DE_FORK: ${{ github.event.pull_request.head.repo.fork }}
+          ATOR: ${{ github.actor }}
         run: |
           if [ -n "$FRILA_SUPABASE_PROD_URL" ]; then
             echo "tem_prod=true" >> "$GITHUB_OUTPUT"
-          else
+          elif [ "$EVENTO" = "pull_request" ] && { [ "$PR_DE_FORK" = "true" ] || [ "$ATOR" = "dependabot[bot]" ]; }; then
             echo "tem_prod=false" >> "$GITHUB_OUTPUT"
-            echo "Sem os segredos do Supabase neste evento (PR de fork ou do Dependabot): AAB de release pulado; APK debug e testes seguem."
+            echo "PR de fork ou do Dependabot, sem os segredos do Supabase: AAB de release pulado; APK debug e testes seguem."
+          else
+            echo "::error::Faltam os segredos do Supabase PROD neste evento ($EVENTO): configure FRILA_SUPABASE_PROD_URL e FRILA_SUPABASE_PROD_PUBLISHABLE_KEY."
+            exit 1
           fi
 
       - name: Gerar APK (debug)
