@@ -3,8 +3,8 @@
  * messaging, sem Analytics) não entra em nenhuma outra tela. O token sai daqui para o Firebase (endereços liberados na
  * CSP) e para o Worker do Frila; nada vai para o armazenamento da página.
  */
-import { getApps, initializeApp } from "firebase/app";
-import { deleteToken, getMessaging, getToken } from "firebase/messaging";
+import { getApps, initializeApp } from "@firebase/app";
+import { deleteToken, getMessaging, getToken } from "@firebase/messaging";
 
 import type { ConfigDoPush } from "../servidor/push";
 
