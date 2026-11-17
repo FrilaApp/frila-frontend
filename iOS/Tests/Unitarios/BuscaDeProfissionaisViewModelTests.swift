@@ -818,6 +818,7 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.resultados[3...5].forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho(valor: 21_000, funcaoID: outroServico))
         let segunda = try #require(vagas(vm, vm.selecionados).first)
+        #expect(vagas(vm, vm.selecionados) == [segunda], "os 3 do outro serviço entram numa vaga só")
         vm.funcaoID = funcaoID
         await vm.buscar()
         vm.resultados.suffix(3).forEach { vm.alternarSelecao($0.id) }
@@ -1084,7 +1085,8 @@ struct BuscaDeProfissionaisViewModelTests {
 
     @Test("Outro trabalho na mão depois do 1º envio: sai o guardado, e quem não saiu entra na vaga do 1º envio, como no reenviar")
     func reenviarComOutroTrabalhoAbriaSegundaVaga() async throws {
-        // Contraprova: o caminho antigo (folha nova com valor/horário diferentes) abre outra vaga para quem não tentou.
+        // Era a contraprova: outro trabalho (folha nova com valor/horário diferentes) abria outra vaga para quem não
+        // tentou. Desde o MENOR 1, o view model manda o guardado e quem não tentou entra na vaga do 1º envio.
         let (fonte, vm) = preparar(total: 2)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
