@@ -57,6 +57,8 @@ export async function action({ context, params, request }: Route.ActionArgs) {
       : ({ ok: false, motivo: "indisponivel" } as const);
   const chave = resultado.ok ? (resultado.aceita ? ("aceita" as const) : ("recusada" as const)) : resultado.motivo;
   if (chave === "sem_sessao") throw redirect("/entrar");
+  // Chamada alheia ou inexistente: 404, como a leitura, para ninguém distinguir "existe e não é sua" de "não existe".
+  if (chave === "nao_encontrada") return data({ resultado: chave }, { status: 404 });
   return { resultado: chave };
 }
 
