@@ -151,6 +151,8 @@ class EntradaPorPapelTest {
                                     avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
                                 },
                                 guardado = DestinoGuardadoEmMemoria(),
+                                // Este cliente não renova o token: o 401 do servidor já é a recusa (o caso da sessão vencida).
+                                sessaoGuardada = { false },
                             )
                         }
                         viewModel { EntradaViewModel(ServicoAutenticacao(cliente), CoroutineScope(Dispatchers.Default)) }
