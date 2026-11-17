@@ -10,8 +10,8 @@ export const pwa = {
     instalou: "Pronto: o Frila está na sua tela de início.",
     tituloDoIphone: "No iPhone, pelo Safari",
     passosDoIphone: {
-      compartilhar: "Toque no botão Compartilhar (o quadrado com a seta para cima).",
-      adicionar: "Role a lista e toque em Adicionar à Tela de Início.",
+      compartilhar: "Toque em ⋯, ao lado do endereço, e em Compartilhar. Se o seu Safari mostra o botão Compartilhar (o quadrado com a seta para cima), toque direto nele.",
+      adicionar: "Toque em Adicionar à Tela de Início. Se não aparecer, toque antes em Ver Mais.",
       confirmar: "Toque em Adicionar. O Frila aparece junto dos seus apps.",
     },
     outroNavegador: "No menu do navegador, toque em Instalar app ou em Adicionar à tela inicial.",
