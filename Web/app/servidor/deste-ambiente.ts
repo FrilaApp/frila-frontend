@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 
-import { ambienteDoSupabase } from "./ambiente";
+import { ambienteDoSupabase, listaDeEmailsDeDemonstracao } from "./ambiente";
 import { criarApi } from "./api";
 import { criarAuth } from "./auth";
 import { criarFuncoesDoUsuario } from "./conta/dados";
@@ -30,8 +30,7 @@ export async function fotoDoProfissional(acesso: string, profissionalId: string)
   return ambiente ? fotoDoPerfil(ambiente, acesso, profissionalId) : null;
 }
 
-/** E-mails da conta de demonstração aceitos neste ambiente (só o de dev declara; em produção a lista é vazia). */
+/** E-mails da conta de demonstração aceitos neste ambiente: vêm do segredo opcional EMAILS_DE_DEMONSTRACAO (sem ele, lista vazia). */
 export function emailsDeDemonstracao(): Set<string> {
-  const bruto = (env as { EMAILS_DE_DEMONSTRACAO?: string }).EMAILS_DE_DEMONSTRACAO ?? "";
-  return new Set(bruto.split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
+  return listaDeEmailsDeDemonstracao((env as { EMAILS_DE_DEMONSTRACAO?: string }).EMAILS_DE_DEMONSTRACAO);
 }

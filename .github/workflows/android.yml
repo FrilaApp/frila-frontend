@@ -28,7 +28,8 @@ jobs:
   testes-e-build:
     name: "Compilação e testes unitários do Android"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # O job foi a ~14 min com o passo novo de release e o cache do Robolectric frio: 15 min não dá folga.
+    timeout-minutes: 25
     defaults:
       run:
         shell: bash
@@ -61,6 +62,47 @@ jobs:
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
 
+      - name: Restaurar cache do Robolectric (android-all)
+        id: cache-robolectric
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-4.15.1-${{ hashFiles('android/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-robolectric-4.15.1-
+
+      - name: Baixar jars do Robolectric se faltarem no cache
+        if: steps.cache-robolectric.outputs.cache-hit != 'true'
+        run: |
+          VERSOES=(
+            "9-robolectric-4913185-2-i7"
+            "10-robolectric-5803371-i7"
+            "11-robolectric-6757853-i7"
+            "12-robolectric-7732740-i7"
+            "12.1-robolectric-8229987-i7"
+            "13-robolectric-9030017-i7"
+            "14-robolectric-10818077-i7"
+            "15-robolectric-12650502-i7"
+          )
+          BASE_URL="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented"
+          M2_DIR="$HOME/.m2/repository/org/robolectric/android-all-instrumented"
+
+          for v in "${VERSOES[@]}"; do
+            DEST_DIR="$M2_DIR/$v"
+            mkdir -p "$DEST_DIR"
+            if [ ! -f "$DEST_DIR/android-all-instrumented-$v.jar" ]; then
+              echo "Baixando android-all-instrumented-$v.jar..."
+              curl -sSfL --retry 5 --retry-all-errors \
+                "$BASE_URL/$v/android-all-instrumented-$v.jar" \
+                -o "$DEST_DIR/android-all-instrumented-$v.jar"
+            fi
+            if [ ! -f "$DEST_DIR/android-all-instrumented-$v.pom" ]; then
+              curl -sSfL --retry 5 --retry-all-errors \
+                "$BASE_URL/$v/android-all-instrumented-$v.pom" \
+                -o "$DEST_DIR/android-all-instrumented-$v.pom"
+            fi
+          done
+
       # Supabase (pedido 16-26): o par DEV vai para o BuildConfig do debug e o par PROD para o do release
       # (app/build.gradle.kts). Cada passo recebe só o par que usa; o Gradle nunca imprime os valores.
       - name: Executar testes unitários
@@ -68,6 +110,23 @@ jobs:
           FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
           FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
         run: ./gradlew --no-daemon testDebugUnitTest
+
+      # Testes do módulo :app com BuildConfig.DEBUG = false (o do #909 quebrava só no release e ninguém viu). O release exige
+      # um par PROD do Supabase (trava em app/build.gradle.kts), então usamos um par SINTÉTICO fixo: host fictício (RFC 2606)
+      # e uma chave de mentira que passa na trava. Nunca os segredos do Prod: este passo não depende de segredo e roda
+      # também em PR de fork e do Dependabot. Outros módulos no release ficam de fora.
+      - name: Executar testes unitários do app (release)
+        env:
+          FRILA_SUPABASE_PROD_URL: https://sintetico.supabase.invalid
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: sb_publishable_sintetica_so_para_teste_de_ci
+        run: ./gradlew --no-daemon :app:testReleaseUnitTest
+
+      - name: Salvar cache do Robolectric (android-all)
+        if: always() && steps.cache-robolectric.outputs.cache-hit != 'true'
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-4.15.1-${{ hashFiles('android/gradle/libs.versions.toml') }}
 
       # Só PR de fork ou do Dependabot chega sem os segredos: ali o AAB de release é pulado com uma linha no log, e o APK
       # debug e os testes seguem. Em qualquer outro evento (push na main, tag, PR do próprio repositório, disparo manual)

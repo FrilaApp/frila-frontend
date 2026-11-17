@@ -118,6 +118,17 @@ class AcompanhamentoContratanteViewModel(
     private val _estado = MutableStateFlow(EstadoTurnoDoContratante(contexto))
     val estado: StateFlow<EstadoTurnoDoContratante> = _estado.asStateFlow()
 
+    /** Incorpora o painel relido sem recriar o acompanhamento nem interromper a confirmação em voo. */
+    fun atualizarContexto(contexto: ContextoDoTurnoContratante) {
+        _estado.update { atual ->
+            // Uma releitura iniciada antes da confirmação pode chegar depois dela.
+            if (atual.contexto.turnoId == contexto.turnoId &&
+                atual.presenca == PresencaDoTurno.VERIFICADA &&
+                presencaDe(contexto) != PresencaDoTurno.VERIFICADA
+            ) atual else atual.copy(contexto = contexto)
+        }
+    }
+
     fun confirmarPresenca(): Job {
         val atual = _estado.value
         if (!atual.podeConfirmar) return escopoDeTrabalho.launch { }

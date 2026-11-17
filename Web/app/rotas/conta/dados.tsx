@@ -93,6 +93,13 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
         </Form>
       </section>
 
+      {/* O mesmo Sair do início: se falhar, o /sair leva a /?sair=falhou, que mostra o aviso e oferece tentar de novo. */}
+      <Form method="post" action="/sair">
+        <button type="submit" className={classeDoSecundario}>
+          {textos.conta.sair}
+        </button>
+      </Form>
+
       <Link to="/" className={classeDoLink}>
         {t.voltar}
       </Link>

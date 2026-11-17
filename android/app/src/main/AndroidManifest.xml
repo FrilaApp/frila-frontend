@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- RNF01 (cartão 9Q0sJIzW): detecção reativa de conectividade via ConnectivityManager. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+      O app não usa biometria: o recurso está desligado (C0-11) e nada no app o liga. A biblioteca androidx.biometric ainda está no
+      projeto e traria estas duas permissões na mescla do manifesto; saem aqui. Religar a biometria exige tirar estas duas linhas.
+    -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
 
     <application
         android:name=".FrilaApplication"

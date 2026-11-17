@@ -1,6 +1,5 @@
 package br.com.frila.app
 
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
@@ -42,7 +41,6 @@ import org.koin.test.get
 
 private val moduloLocalizacaoDoGrafoDeCandidatos = module {
     single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
-    single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
 }
 
 /**
