@@ -220,7 +220,9 @@ class ClienteSupabase(
                 setBody(RenovarTokenDto(refreshToken = sessaoAtual.refreshToken))
             }
             if (!resposta.status.isSuccess()) {
-                armazenamento.limparSessao()
+                // Só o Auth recusando o token encerra a sessão. 5xx, 429 e afins são falha
+                // passageira: a sessão fica e a próxima chamada tenta renovar de novo.
+                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO) armazenamento.limparSessao()
                 return null
             }
 
@@ -231,7 +233,7 @@ class ClienteSupabase(
         } catch (erro: CancellationException) {
             throw erro
         } catch (_: Exception) {
-            armazenamento.limparSessao()
+            // Rede caída, tempo esgotado ou resposta ilegível: falha passageira, a sessão fica.
             null
         }
     }
@@ -295,6 +297,13 @@ class ClienteSupabase(
             HttpStatusCode.BadGateway.value,
             HttpStatusCode.ServiceUnavailable.value,
             HttpStatusCode.GatewayTimeout.value,
+        )
+
+        /** Respostas do Auth que dizem "este token não vale mais": só elas apagam a sessão. */
+        val STATUS_DE_TOKEN_RECUSADO = setOf(
+            HttpStatusCode.BadRequest.value,
+            HttpStatusCode.Unauthorized.value,
+            HttpStatusCode.Forbidden.value,
         )
 
         private const val CAMINHO_RENOVACAO = "/auth/v1/token?grant_type=refresh_token"
