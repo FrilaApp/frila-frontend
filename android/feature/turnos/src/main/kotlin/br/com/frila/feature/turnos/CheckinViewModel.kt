@@ -97,7 +97,7 @@ class CheckinViewModel(
                 // Sem leitura no prazo (sem sinal): segue como "sem localização", check-in manual (RN06).
                 val coordenadaAtual = leitura?.coordenada
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
-                registrarCheckin(distanciaMetros, coordenadaAtual)
+                registrarCheckin(distanciaMetros)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
@@ -169,7 +169,7 @@ class CheckinViewModel(
         }
         return escopoDeTrabalho.launch {
             try {
-                registrarCheckin(distanciaMetros = null, coordenadaAtual = null)
+                registrarCheckin(distanciaMetros = null)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
@@ -181,7 +181,7 @@ class CheckinViewModel(
         _estado.update { it.copy(dialogoDefensivo = null, status = StatusCheckin.OCIOSO) }
     }
 
-    private suspend fun registrarCheckin(distanciaMetros: Int?, coordenadaAtual: Coordenada?) {
+    private suspend fun registrarCheckin(distanciaMetros: Int?) {
         val agora = instanteAtual()
 
         val resultado = servicoTurnos.fazerCheckin(
@@ -199,7 +199,6 @@ class CheckinViewModel(
             turnoId = turnoId,
             registradoEm = agora,
             tipoVerificacao = tipoVerificacao,
-            coordenada = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) coordenadaAtual else null,
         )
 
         val status = when (tipoVerificacao) {

@@ -85,7 +85,6 @@ class CheckinViewModelTest {
         assertNotNull(comprovante)
         assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante!!.tipoVerificacao)
         assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
-        assertNotNull(comprovante.coordenadasAproximadas)
     }
 
     /** A posição do toque só serve para medir a distância: não fica no comprovante nem sai no texto que a pessoa compartilha. */
