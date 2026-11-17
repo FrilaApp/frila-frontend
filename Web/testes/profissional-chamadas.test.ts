@@ -112,6 +112,15 @@ describe("tela da chamada", () => {
     expect(JSON.stringify(dados)).not.toContain("token-sintetico");
   });
 
+  it("chamada alheia ou inexistente: o envio responde 404, como a leitura (ninguém distingue as duas)", async () => {
+    api.POST.mockResolvedValue({ error: { code: "nao_encontrado" }, response: new Response(null, { status: 404 }) });
+    for (const resposta of ["aceitar", "recusar"]) {
+      const volta = (await responder(argumentos({ resposta }))) as { init: ResponseInit | null; data: { resultado: string } };
+      expect(volta.init?.status, resposta).toBe(404);
+      expect(volta.data.resultado).toBe("nao_encontrada");
+    }
+  });
+
   it("recusar manda a categoria só se for uma das do contrato", async () => {
     api.POST.mockResolvedValue({ data: { chamada: { estado: "recusada" } }, response: new Response() });
     expect(await responder(argumentos({ resposta: "recusar", motivo_recusa: "inventado" }))).toEqual({ resultado: "recusada" });
