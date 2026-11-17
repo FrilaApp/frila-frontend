@@ -155,5 +155,18 @@ export const profissional = {
       sem_permissao: "Só quem está confirmado no turno pode fazer isso.",
       indisponivel: "Não deu para enviar agora. Tente de novo em instantes.",
     },
+    avaliacaoTitulo: "Como foi?",
+    pergunta: "Você trabalharia nesse local de novo?",
+    sim: "Sim",
+    nao: "Não",
+    respondeu: "Sua resposta:",
+    avaliacao: {
+      registrada: "Obrigado. Sua resposta foi registrada.",
+      antes_do_fim: "A avaliação abre depois do fim do turno.",
+      sem_presenca_verificada: "Só turno com presença confirmada pode ser avaliado.",
+      ja_registrada: "Você já respondeu sobre este turno.",
+      sem_permissao: "Só quem trabalhou no turno pode avaliar.",
+      indisponivel: "Não deu para enviar agora. Tente de novo em instantes.",
+    },
   },
 } as const;
