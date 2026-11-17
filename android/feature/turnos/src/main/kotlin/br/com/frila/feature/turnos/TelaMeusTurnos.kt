@@ -634,6 +634,8 @@ private fun SecaoDeCheckin(
                         aoClicar = { aoExibirComprovante(comprovante) },
                     )
                 }
+                // L1-4: com a confirmação por código ligada (fiação no L1-7), o profissional digita o código da casa.
+                CampoDoCodigo(turno)
             }
             estado.status == StatusCheckin.OCIOSO && comprovante?.tipoVerificacao == TipoVerificacaoCheckin.NAO_VERIFICADO -> {
                 Text(
