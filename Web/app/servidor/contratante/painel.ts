@@ -99,7 +99,14 @@ export type PosicaoNaTela = {
   aCaminho: boolean;
 };
 
-export type DetalheDaVaga = VagaNaTela & { local: string; regiao: string; modo: VagaNoPainel["modo"]; lista: PosicaoNaTela[] };
+export type DetalheDaVaga = VagaNaTela & {
+  local: string;
+  regiao: string;
+  modo: VagaNoPainel["modo"];
+  lista: PosicaoNaTela[];
+  /** Quantos lugares o "republicar em urgência" publicaria agora (calculado pelo servidor); 0 = o botão não aparece. */
+  republicavelEmUrgencia: number;
+};
 
 /**
  * O detalhe da vaga para a casa sai do painel: o `detalhe_vaga` do contrato é do profissional e recusa a conta de
@@ -114,6 +121,7 @@ export function detalheDaVaga(painel: Painel, vagaId: string): DetalheDaVaga | n
     local: item.vaga.local,
     regiao: item.vaga.regiao_administrativa,
     modo: item.modo,
+    republicavelEmUrgencia: item.republicavel_em_urgencia ?? 0,
     lista: item.posicoes.map((posicao) => ({
       id: posicao.id,
       estado: posicao.estado,

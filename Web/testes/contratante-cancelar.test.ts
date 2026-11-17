@@ -1,0 +1,106 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { action, loader } from "../app/rotas/contratante/vaga";
+import { textos } from "../app/textos/pt-BR";
+import { argumentos, CASA, CHAVE, ok, recusa, redirecionamento } from "./contratante-apoio";
+
+const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
+vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api }));
+
+const ta = textos.contratante.acoes;
+const VAGA = "de829c0f-b442-445b-95d7-0fb70df2e22e";
+const aqui = `/painel/vagas/${VAGA}`;
+const comVaga = (args: ReturnType<typeof argumentos>) => ({ ...(args as object), params: { vagaId: VAGA } }) as never;
+const enviar = (dados: Record<string, string>) => action(comVaga(argumentos(aqui, { casa: CASA, ...dados })));
+
+beforeEach(() => {
+  api.GET.mockReset();
+  api.POST.mockReset();
+});
+
+describe("vaga da casa: cancelar", () => {
+  it("cancela com o motivo e volta à vaga com o aviso", async () => {
+    api.POST.mockResolvedValue(ok({ vaga_id: VAGA, estado: "cancelada", posicoes_canceladas: 1 }));
+    expect(await redirecionamento(enviar({ intencao: "cancelar", motivo: "  Evento adiado  " }))).toBe(`${aqui}?casa=${CASA}&cancelada=1`);
+    expect(api.POST).toHaveBeenCalledWith("/rpc/cancelar_vaga", expect.objectContaining({ body: { vaga_id: VAGA, motivo: "Evento adiado" } }));
+  });
+
+  it("motivo curto não chega ao servidor; cada recusa volta com o motivo digitado", async () => {
+    expect(await enviar({ intencao: "cancelar", motivo: "ok" })).toEqual({ erro: ta.erros.motivo_curto, onde: "cancelar", motivo: "ok" });
+    expect(api.POST).not.toHaveBeenCalled();
+    const com = async (resposta: unknown) => {
+      api.POST.mockResolvedValue(resposta);
+      return (await enviar({ intencao: "cancelar", motivo: "Motivo sintético" })).erro;
+    };
+    expect(await com(recusa(409, "vaga_encerrada"))).toBe(ta.erros.vaga_encerrada);
+    expect(await com(recusa(422, "campo_invalido", "motivo"))).toBe(ta.erros.motivo_recusado);
+    expect(await com(recusa(422, "campo_obrigatorio", "motivo"))).toBe(ta.erros.motivo_curto);
+    expect(await com(recusa(404, "nao_encontrado"))).toBe(ta.erros.nao_encontrada);
+    expect(await com(recusa(403, "sem_permissao"))).toBe(ta.erros.sem_permissao);
+    expect(await com(recusa(500, "XX000"))).toBe(ta.erros.indisponivel);
+  });
+});
+
+describe("vaga da casa: repetir em outro dia", () => {
+  it("manda só o dia e o horário novos, em UTC, com a chave da tela", async () => {
+    api.POST.mockResolvedValue(ok({ vaga_id: "nova", posicoes: ["p"] }));
+    const destino = await redirecionamento(enviar({ intencao: "repetir", chave: CHAVE, dia: "2026-12-05", inicio: "18:00", fim: "23:00" }));
+    expect(destino).toBe(`/painel?casa=${CASA}&publicada=1`);
+    expect(api.POST).toHaveBeenCalledWith("/rpc/republicar_vaga", expect.objectContaining({
+      body: { vaga_id: VAGA, inicio_em: "2026-12-05T21:00:00.000Z", fim_em: "2026-12-06T02:00:00.000Z", chave: CHAVE },
+    }));
+  });
+
+  it("horário incompleto ou sem chave não sai; recusa devolve a mesma chave", async () => {
+    expect((await enviar({ intencao: "repetir", chave: CHAVE, dia: "", inicio: "18:00", fim: "23:00" })).erro).toBe(ta.erros.dia);
+    expect((await enviar({ intencao: "repetir", chave: "", dia: "2026-12-05", inicio: "18:00", fim: "23:00" })).erro).toBe(ta.erros.formularioVelho);
+    expect(api.POST).not.toHaveBeenCalled();
+    const com = async (resposta: unknown) => {
+      api.POST.mockResolvedValue(resposta);
+      return enviar({ intencao: "repetir", chave: CHAVE, dia: "2026-12-05", inicio: "18:00", fim: "23:00" });
+    };
+    expect(await com(recusa(422, "horario_invalido"))).toEqual({ erro: ta.erros.horario_invalido, onde: "repetir", chave: CHAVE });
+    expect((await com(recusa(422, "selecao_sem_antecedencia"))).erro).toBe(ta.erros.selecao_sem_antecedencia);
+    expect((await com(recusa(422, "vaga_oculta"))).erro).toBe(ta.erros.vaga_oculta);
+    expect((await com(recusa(422, "campo_invalido", "observacoes"))).erro).toBe(ta.erros.texto_recusado);
+    expect((await com(recusa(403, "sem_permissao", "conta_suspensa"))).erro).toBe(ta.erros.conta_suspensa);
+    expect((await com(recusa(500))).chave).toBe(CHAVE);
+    api.POST.mockResolvedValue(recusa(401, "PGRST301"));
+    expect(await redirecionamento(enviar({ intencao: "repetir", chave: CHAVE, dia: "2026-12-05", inicio: "18:00", fim: "23:00" }))).toBe("/entrar");
+  });
+});
+
+describe("vaga da casa: republicar os lugares restantes em urgência", () => {
+  it("manda só a vaga e a chave; o servidor decide modo, horário, valor e quantidade", async () => {
+    api.POST.mockResolvedValue(ok({ vaga_id: "nova", posicoes: ["p"] }));
+    expect(await redirecionamento(enviar({ intencao: "restantes", chave: CHAVE }))).toBe(`/painel?casa=${CASA}&publicada=1`);
+    expect(api.POST).toHaveBeenCalledWith("/rpc/republicar_posicoes_restantes", expect.objectContaining({ body: { vaga_id: VAGA, chave: CHAVE } }));
+  });
+
+  it("traduz o motivo de republicacao_indisponivel", async () => {
+    const com = async (details: string) => {
+      api.POST.mockResolvedValue(recusa(422, "republicacao_indisponivel", details));
+      return (await enviar({ intencao: "restantes", chave: CHAVE })).erro;
+    };
+    expect(await com("ja_republicada")).toBe(ta.erros.ja_republicada);
+    expect(await com("sem_posicoes_restantes")).toBe(ta.erros.sem_posicoes_restantes);
+    expect(await com("selecao_em_curso")).toBe(ta.erros.republicacao_indisponivel);
+  });
+
+  it("o loader mostra o botão só quando o servidor diz quantos lugares sobram", async () => {
+    const painel = (republicavel: number | null) => ok({
+      estabelecimento_id: CASA, checkins_pendentes: [],
+      vagas: [{
+        vaga: { id: VAGA, funcao: "garçom", local: "Rua Sintética, 1", regiao_administrativa: "Plano Piloto", inicio_em: "2026-11-28T06:00:00Z", fim_em: "2026-11-28T08:00:00Z", valor_centavos: 14000 },
+        republicavel_em_urgencia: republicavel, modo: "selecao", estado: "encerrada", oculta: false, alerta_vaga_vazia: false, candidatos_pendentes: 0, posicoes: [],
+      }],
+    });
+    const casas = ok([{ id: CASA, nome: "Bar Sintético", papel: "administrador" }]);
+    for (const [republicavel, esperado] of [[2, 2], [null, 0]] as const) {
+      api.GET.mockImplementation(async (caminho: string) => (caminho === "/rpc/meus_estabelecimentos" ? casas : painel(republicavel)));
+      const dados = await loader(comVaga(argumentos(`${aqui}?casa=${CASA}`)));
+      expect(dados.estado === "ok" && dados.vaga.republicavelEmUrgencia).toBe(esperado);
+      expect(dados.estado === "ok" && dados.chaves.repetir).not.toBe(dados.estado === "ok" && dados.chaves.restantes);
+    }
+  });
+});
