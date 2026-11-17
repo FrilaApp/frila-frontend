@@ -240,8 +240,14 @@ val moduloFeatures = module {
             }
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
-    viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() }) }
+    viewModel { EntradaViewModel(get(), permitirDominioDeTeste = BuildConfig.DEBUG) }
+    viewModel { (email: String) ->
+        CodigoViewModel(
+            email, get(), get(),
+            aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+        )
+    }
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
