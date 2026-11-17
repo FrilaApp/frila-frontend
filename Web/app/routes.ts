@@ -12,6 +12,9 @@ export default [
 
   // Conta suspensa, contestação e suporte (os dois lados)
   route("conta/suspensa", "rotas/conta/suspensa.tsx"),
+  // Minha conta: exportar os dados e excluir a conta (2.11)
+  route("conta", "rotas/conta/dados.tsx"),
+  route("conta/meus-dados", "rotas/conta/meus-dados.ts"),
   route("suporte/:turnoId", "rotas/suporte.tsx"),
 
   // Páginas públicas (textos do marketing)

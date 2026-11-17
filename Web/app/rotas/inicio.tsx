@@ -137,6 +137,9 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
               </button>
             </Form>
           ) : null}
+          <Link to="/conta" className="inline-flex min-h-12 items-center text-lg font-bold underline underline-offset-4">
+            {textos.contaDados.abrir}
+          </Link>
           <Form method="post" action="/sair">
             <button type="submit" className={classeDoBotao}>
               {textos.conta.sair}
