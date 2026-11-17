@@ -1322,6 +1322,24 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(vm.podeChamar)
     }
 
+    @Test("A folha dos termos abre com a pendência; fechá-la sem escolher vale como Cancelar e nada sai")
+    func folhaDosTermosFechadaCancela() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        #expect(!vm.mostrarTermosDaVagaAberta)
+        await fonte.abrirTrabalho(naVaga: UUID(), valorCentavos: 25_000)
+        await vm.chamar(trabalho: try trabalho())
+        #expect(vm.mostrarTermosDaVagaAberta)
+        let antes = await fonte.pedidos.count
+
+        vm.mostrarTermosDaVagaAberta = false // o que a folha faz ao ser arrastada para baixo
+        #expect(!vm.mostrarTermosDaVagaAberta && vm.termosParaConfirmar == nil)
+        #expect(await fonte.pedidos.count == antes)
+        #expect(vm.resultadosDaChamada[id] == nil)
+    }
+
     @Test("409 com a leitura dos termos falhando: erro genérico, nada sai pelo vaga_id e nada trava")
     func leituraDosTermosFalhou() async throws {
         let (fonte, vm) = preparar(total: 1)

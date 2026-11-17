@@ -104,6 +104,12 @@ public struct TelaBuscaDeProfissionais: View {
             Button { Task { await reenviarComJ7() } } label: { Text(verbatim: TextosChamadaDireta.j7Confirmar) }
                 .accessibilityIdentifier("busca-j7-confirmar")
         } message: { Text(verbatim: TextosChamadaDireta.j7Mensagem) }
+        .sheet(isPresented: $viewModel.mostrarTermosDaVagaAberta) {
+            // 0.2.95: a vaga já aberta do trabalho tem outros termos. Só sai com Confirmar; fechar a folha é Cancelar.
+            if let folha = TelaTermosDaVagaAbertaProvisoria(modelo: viewModel) {
+                ScrollView { folha }
+            }
+        }
     }
 
     // MARK: Estados

@@ -407,6 +407,13 @@ public final class BuscaDeProfissionaisViewModel {
     /// 0.2.95: os termos da vaga já aberta que a tela provisória mostra para a casa confirmar; `nil` sem pendência.
     public var termosParaConfirmar: TermosDaVagaAberta? { confirmacaoDosTermos?.termos }
 
+    /// A folha dos termos da vaga aberta fica na tela enquanto há termos para confirmar. Fechar a folha sem escolher
+    /// (arrastar para baixo) vale como Cancelar: nada sai.
+    public var mostrarTermosDaVagaAberta: Bool {
+        get { confirmacaoDosTermos != nil }
+        set { if !newValue { cancelarTermosDaVagaAberta() } }
+    }
+
     /// Já houve um envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma folha nova.
     public var temEnvioRegistrado: Bool { trabalhoEnviado != nil }
 
