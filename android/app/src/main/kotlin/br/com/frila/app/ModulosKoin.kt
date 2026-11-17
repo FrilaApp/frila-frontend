@@ -12,6 +12,7 @@ import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
+import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
@@ -66,6 +67,8 @@ import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.OpcaoDePontoBase
+import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
 import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
 import br.com.frila.feature.perfil.FluxoDaFotoDePerfil
@@ -382,6 +385,20 @@ val moduloFeatures = module {
             carregarRegioes = perfil::regioesAdministrativas,
             salvarApresentacao = perfil::atualizarApresentacaoProfissional,
             salvarRegioes = perfil::definirRegioesAtendidas,
+        )
+    }
+    /**
+     * Ponto base (tela provisória): a pessoa escolhe uma das regiões administrativas do DF, que já estão no app, e o centro dela vira o ponto
+     * base. Nada lê a posição do aparelho nem consulta serviço de endereço.
+     */
+    viewModel {
+        val perfil = get<ServicoPerfil>()
+        PontoBaseViewModel(
+            opcoes = GeocodificadorDfOffline.REGIOES_ADMINISTRATIVAS.map { OpcaoDePontoBase(it.nome, it.centroide) },
+            carregarPerfil = perfil::obterMeuPerfilProfissional,
+            carregarFuncoes = get<ServicoVagas>()::listarFuncoes,
+            criarPerfil = perfil::criarPerfilProfissional,
+            atualizarPerfil = perfil::atualizarPerfilProfissional,
         )
     }
     /**

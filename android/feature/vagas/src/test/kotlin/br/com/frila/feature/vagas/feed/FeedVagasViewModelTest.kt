@@ -116,6 +116,46 @@ class FeedVagasViewModelTest {
     }
 
     @Test
+    fun `sem coordenada e sem ponto base o feed avisa que falta o ponto base`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = """{"code":"campo_obrigatorio","message":"sem ponto de referência","details":"latitude"}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.semPontoBase)
+    }
+
+    @Test
+    fun `outro erro do servidor nao e tratado como falta de ponto base, e recarregar limpa o aviso`() = runBlocking {
+        var resposta = """{"code":"campo_obrigatorio","message":"sem ponto de referência","details":"latitude"}"""
+        var status = HttpStatusCode.UnprocessableEntity
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = resposta, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.carregar().join()
+        assertTrue(viewModel.estado.value.semPontoBase)
+
+        resposta = """{"code":"campo_obrigatorio","message":"falta outro campo","details":"limite"}"""
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        assertTrue(!viewModel.estado.value.semPontoBase)
+
+        resposta = "[]"
+        status = HttpStatusCode.OK
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.VAZIO, viewModel.estado.value.status)
+        assertTrue(!viewModel.estado.value.semPontoBase)
+    }
+
+    @Test
     fun `filtro de distancia 5km exclui vaga mais distante`() = runBlocking {
         val viewModel = viewModelComEngine(
             MockEngine {

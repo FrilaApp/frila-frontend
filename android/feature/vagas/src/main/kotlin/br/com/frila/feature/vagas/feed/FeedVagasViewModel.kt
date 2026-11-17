@@ -2,6 +2,7 @@ package br.com.frila.feature.vagas.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
@@ -97,7 +98,7 @@ class FeedVagasViewModel(
     }
 
     fun carregar(): Job {
-        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null) }
+        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null, semPontoBase = false) }
         return escopoDeTrabalho.launch {
             try {
                 restaurarPreferencias()
@@ -107,10 +108,16 @@ class FeedVagasViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
-                _estado.update { it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro)) }
+                _estado.update {
+                    it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro), semPontoBase = faltaPontoBase(erro))
+                }
             }
         }
     }
+
+    /** Como no iOS (`FalhaDoFeed.semPontoDeReferencia`): sem ponto base, o servidor não tem de onde medir. */
+    private fun faltaPontoBase(erro: Exception): Boolean =
+        erro is ErroDaApi && erro.codigo == CodigoErroAPI.CAMPO_OBRIGATORIO && erro.detalhes == "latitude"
 
     /**
      * O feed não lê a posição do aparelho: o servidor ordena pelo ponto base do perfil, como no iOS.

@@ -123,8 +123,9 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 
 ## 7. Fora do contrato hoje
 
-Nada disto entra na web sem decisão dos sócios: ou muda o modelo do produto, ou ainda não existe no contrato.
-Ficam listados para a decisão, não como fila de trabalho.
+**Decisão do Cauê (pedido 2026-11-17-02, 17/11/2026): fora por agora, decidir depois.** Nada disto entra na web nem nos
+apps sem ordem dele. A origem é esta comparação com o freela+ e o Scalador. O registro está em `frila-docs`, `produto/AGORA.md`,
+na seção "Fora por agora", e nos módulos.
 
 | Recurso | Por que não entra agora |
 |---|---|
@@ -136,6 +137,7 @@ Ficam listados para a decisão, não como fila de trabalho.
 | Escala que se repete toda semana | Sem operação no contrato |
 | Indicação com prêmio e programa de parceiros | Decisão comercial |
 | Recrutamento para vaga fixa | Outro produto |
+| Painel interno (administração e CRM) | Ferramenta da equipe, fora do produto |
 
 ## 8. Soluções técnicas da web do Frila
 
