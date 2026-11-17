@@ -7,6 +7,7 @@ import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.dominio.modelo.RegraCancelamentoTurno
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.TurnoDto
 import java.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -62,11 +63,27 @@ class MeusTurnosViewModel(
                         paginaHistorico = 1,
                     )
                 }
-                monitorizador?.avaliarTurnos(turnos)
+                avaliarTurnosProximos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusMeusTurnos.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica (campo que o servidor omitiu, HTML de portal) não é ErroDaApi:
+                // sem isto a tela ficava em "carregando" e a exceção subia crua.
+                _estado.update {
+                    it.copy(
+                        status = StatusMeusTurnos.ERRO,
+                        mensagemErro = "Não foi possível carregar seus turnos. Tente de novo em instantes.",
+                    )
+                }
             }
         }
+    }
+
+    /** O alerta de aproximação é um extra: se falhar, a lista de turnos que já carregou continua na tela. */
+    private fun avaliarTurnosProximos(turnos: List<TurnoDto>) {
+        runCatching { monitorizador?.avaliarTurnos(turnos) }
     }
 
     fun tentarNovamente(): Job = carregar()
@@ -109,7 +126,7 @@ class MeusTurnosViewModel(
                         mensagemErro = null,
                     )
                 }
-                monitorizador?.avaliarTurnos(turnos)
+                avaliarTurnosProximos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {

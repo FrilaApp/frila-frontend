@@ -520,4 +520,45 @@ class MeusTurnosViewModelTest {
         assertEquals(false, viewModel.estado.value.atualizando)
         assertTrue(viewModel.estado.value.mensagemErro != null)
     }
+
+    /** Resposta 200 que não é a lista esperada não é `ErroDaApi`: sem o catch geral a tela ficava em "carregando". */
+    @Test
+    fun `carregar com resposta 200 ilegivel sai de carregando com erro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "<html>portal</html>",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.mensagemErro != null)
+    }
+
+    /** Revisão do #813: falha no alerta de aproximação não pode trocar a lista já carregada por uma tela de erro. */
+    @Test
+    fun `falha ao avaliar os turnos proximos nao troca a lista carregada por erro`() = runBlocking {
+        val monitorizador = mockk<MonitorizadorDeTurnosProximos>()
+        io.mockk.every { monitorizador.avaliarTurnos(any()) } throws IllegalStateException("alerta de aproximação indisponível")
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            monitorizador = monitorizador,
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(1, viewModel.estado.value.agendados.size)
+    }
 }

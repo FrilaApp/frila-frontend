@@ -101,4 +101,48 @@ class AvaliacaoViewModelTest {
 
         assertEquals(StatusAvaliacao.OCIOSO, viewModel.estado.value.status)
     }
+
+    @Test
+    fun `avaliar com resposta 200 ilegivel resulta em ERRO com mensagem`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "<html>portal</html>",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+            },
+        )
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
+        assertNotNull(viewModel.estado.value.mensagemErro)
+    }
+
+    /** Dois toques seguidos ("sim" e "não") com a primeira chamada em voo: só a primeira vai ao servidor. */
+    @Test
+    fun `segundo toque com a avaliacao em voo nao envia de novo`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger(0)
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamadas.incrementAndGet()
+                kotlinx.coroutines.delay(200)
+                respond(
+                    content = avaliacaoJson(true),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        val primeiro = viewModel.avaliar(turnoId, true)
+        val segundo = viewModel.avaliar(turnoId, false)
+        primeiro.join()
+        segundo.join()
+
+        assertEquals(1, chamadas.get())
+        assertEquals(StatusAvaliacao.SUCESSO, viewModel.estado.value.status)
+        assertEquals(true, viewModel.estado.value.respostaRegistrada)
+    }
 }

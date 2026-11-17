@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,12 @@ class OcorrenciaTurnoViewModel(
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     private val _estado = MutableStateFlow(EstadoOcorrencia())
+
+    /**
+     * A chave do chamado em aberto. O servidor é idempotente por ela: fica a mesma em toda nova tentativa,
+     * até dar certo (como no iOS). Uma resposta ilegível pode ter criado o chamado, e chave nova abriria outro.
+     */
+    private var chaveDaTentativa: String? = null
     val estado: StateFlow<EstadoOcorrencia> = _estado.asStateFlow()
 
     fun selecionarMotivo(motivo: MotivoOcorrencia) {
@@ -61,11 +68,22 @@ class OcorrenciaTurnoViewModel(
                 val protocolo = servicoTurnos.abrirSuporte(
                     turnoId = turnoId,
                     categoria = motivo.categoria,
-                    chave = geradorDeChave(),
+                    chave = chaveDaTentativa ?: geradorDeChave().also { chaveDaTentativa = it },
                 )
+                chaveDaTentativa = null
                 _estado.update { it.copy(status = StatusOcorrencia.SUCESSO, protocolo = protocolo) }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusOcorrencia.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica não é ErroDaApi: sem isto a tela ficava em "enviando".
+                _estado.update {
+                    it.copy(
+                        status = StatusOcorrencia.ERRO,
+                        mensagemErro = "Não foi possível abrir o chamado. Tente de novo.",
+                    )
+                }
             }
         }
     }
