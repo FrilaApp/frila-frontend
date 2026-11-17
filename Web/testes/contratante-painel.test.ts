@@ -44,7 +44,7 @@ describe("painel da casa: loader", () => {
     if (dados.estado !== "ok") return;
     expect(dados.casa).toEqual({ id: CASA, nome: "Bar Sintético" });
     expect(dados.outrasCasas).toEqual([{ id: OUTRA_CASA, nome: "Buffet Sintético" }]);
-    expect(dados.vagas.map((v) => v.id)).toEqual(["v1", "v2"]);
+    expect(dados.grupos.map((g) => [g.situacao, g.vagas.map((v) => v.id)])).toEqual([["publicada", ["v1", "v2"]]]);
     expect(dados.checkinsPendentes).toBe(1);
     const consulta = api.GET.mock.calls.find(([caminho]) => caminho === "/rpc/painel_estabelecimento")?.[1];
     expect(consulta.params.query.estabelecimento_id).toBe(CASA);

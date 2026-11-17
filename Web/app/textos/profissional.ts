@@ -159,6 +159,8 @@ export const profissional = {
     pergunta: "Você trabalharia nesse local de novo?",
     sim: "Sim",
     nao: "Não",
+    enviarAvaliacao: "Enviar avaliação",
+    dicaDaAvaliacao: "Escolha Sim ou Não para avaliar.",
     respondeu: "Sua resposta:",
     avaliacao: {
       registrada: "Obrigado. Sua resposta foi registrada.",
