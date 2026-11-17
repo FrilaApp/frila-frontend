@@ -9,15 +9,16 @@ public protocol FonteDaBuscaDeProfissionais: Sendable {
     func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada
     /// 0.2.90: o aceite dos Termos que a busca pede com `termos_pendentes`.
     func aceitarTermos(versao: String) async throws -> AceiteDeTermos
-    /// 0.2.95: as leituras com que a casa vê os termos da vaga que o `409 trabalho_ja_aberto` apontou.
-    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo]
+    /// 0.2.95: as leituras com que a casa vê os termos da vaga que o `409 trabalho_ja_aberto` apontou (as páginas de
+    /// `minhas_chamadas`, com o cursor, e o `detalhe_chamada`).
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
 }
 
 public extension FonteDaBuscaDeProfissionais {
     /// Fonte sem as leituras (dublê que não simula o 409 da 0.2.95): a leitura dos termos falha, e o 409 vira o erro
     /// genérico, sem repetir. A fonte real é `FonteDaBuscaPelaApi`, que lê pela API.
-    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas {
         throw ErroDaApi(codigo: .naoEncontrado)
     }
 
@@ -34,8 +35,8 @@ public struct FonteDaBuscaPelaApi: FonteDaBuscaDeProfissionais {
     }
     public func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada { try await api.chamarProfissional(pedido) }
     public func aceitarTermos(versao: String) async throws -> AceiteDeTermos { try await api.aceitarTermos(versao: versao) }
-    public func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
-        try await api.minhasChamadas(estado: estado, cursor: cursor, limite: limite)
+    public func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas {
+        try await api.paginaDeMinhasChamadas(estado: estado, cursor: cursor, limite: limite)
     }
     public func detalheChamada(id: UUID) async throws -> ChamadaDetalhe { try await api.detalheChamada(id: id) }
 }
@@ -500,7 +501,9 @@ public final class BuscaDeProfissionaisViewModel {
                 break
             }
         }
-        mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
+        // Com termos da vaga aberta pendentes, a folha deles vem primeiro: o J7 não manda nada antes de a casa responder
+        // (`podeChamar`), e volta ao confirmar ou cancelar.
+        mostrarJ7 = confirmacaoDosTermos == nil && resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
     }
 
     /// Reenvia com o trabalho e o recado do 1º envio (nunca um novo). Sem envio anterior não faz nada: o 1º envio
@@ -564,17 +567,24 @@ public final class BuscaDeProfissionaisViewModel {
     }
 
     /// Os termos da vaga aberta como a casa os lê (0.2.95, e não por `detalhe_vaga`): o valor no item `aberta` de
-    /// `minhas_chamadas` com esse `vaga_id` (o trabalho aberto sempre tem um, e a casa tem no máximo 10 abertas, RN34) e
-    /// os inclusos no `detalhe_chamada` dele. O mesmo `prazo` para as duas leituras; sem o item, falha.
+    /// `minhas_chamadas` com esse `vaga_id`, seguindo o cursor até achá-lo (em geral está na 1ª página), e os inclusos no
+    /// `detalhe_chamada` dele. O mesmo `prazo` para todas as leituras (ele também corta um cursor que não acaba); sem o
+    /// item em nenhuma página, falha, e o 409 vira o erro genérico, sem repetir.
     private func lerTermos(daVaga vagaID: UUID) async throws -> TermosDaVagaAberta {
         let fonte = fonte
         return try await PrazoDaAbertura.esperar(prazo) {
-            let abertas = try await fonte.minhasChamadas(estado: .aberta, cursor: nil, limite: nil)
-            guard let chamada = abertas.first(where: { $0.vagaID == vagaID }) else { throw ErroDaApi(codigo: .naoEncontrado) }
-            let detalhe = try await fonte.detalheChamada(id: chamada.id)
-            return TermosDaVagaAberta(vagaID: vagaID, valor: Dinheiro(centavos: chamada.valorCentavos),
-                                      inclusos: Inclusos(refeicao: detalhe.incluiRefeicao, transporte: detalhe.incluiTransporte,
-                                                         exigeMaterialProprio: detalhe.exigeMaterialProprio))
+            var cursor: String?
+            repeat {
+                let pagina = try await fonte.paginaDeMinhasChamadas(estado: .aberta, cursor: cursor, limite: nil)
+                if let chamada = pagina.itens.first(where: { $0.vagaID == vagaID }) {
+                    let detalhe = try await fonte.detalheChamada(id: chamada.id)
+                    return TermosDaVagaAberta(vagaID: vagaID, valor: Dinheiro(centavos: chamada.valorCentavos),
+                                              inclusos: Inclusos(refeicao: detalhe.incluiRefeicao, transporte: detalhe.incluiTransporte,
+                                                                 exigeMaterialProprio: detalhe.exigeMaterialProprio))
+                }
+                cursor = pagina.proximoCursor
+            } while cursor != nil
+            throw ErroDaApi(codigo: .naoEncontrado)
         }
     }
 
@@ -588,11 +598,13 @@ public final class BuscaDeProfissionaisViewModel {
         await chamar(trabalho: pendente.trabalho, recado: pendente.recado, chave: chave)
     }
 
-    /// A casa não quis os termos da vaga aberta: nada sai, e quem esperava volta a ficar sem resultado.
+    /// A casa não quis os termos da vaga aberta: nada sai, e quem esperava volta a ficar sem resultado. Quem espera o
+    /// J7 continua esperando, e o alerta dele volta.
     public func cancelarTermosDaVagaAberta() {
         guard let pendente = confirmacaoDosTermos else { return }
         confirmacaoDosTermos = nil
         soltarQuemEsperava(pendente.termos)
+        mostrarJ7 = resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
     }
 
     private func soltarQuemEsperava(_ termos: TermosDaVagaAberta) {
