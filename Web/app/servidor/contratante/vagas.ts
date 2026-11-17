@@ -5,7 +5,7 @@ type Erro = { code?: string; details?: string | null } | undefined;
 
 export type ResultadoDoCancelamento =
   | { ok: true }
-  | { ok: false; motivo: "motivo_curto" | "motivo_recusado" | "vaga_encerrada" | "nao_encontrada" | "sem_permissao" | "sem_sessao" | "indisponivel" };
+  | { ok: false; motivo: "motivo_curto" | "motivo_recusado" | "vaga_encerrada" | "nao_encontrada" | "sem_permissao" | "conta_suspensa" | "sem_sessao" | "indisponivel" };
 
 /** Cancela a vaga inteira, com motivo (RN12). O reenvio pelo mesmo autor devolve 200 sem avisar de novo. */
 export async function cancelarVaga(api: Api | null, vagaId: string, motivo: string): Promise<ResultadoDoCancelamento> {
@@ -14,7 +14,7 @@ export async function cancelarVaga(api: Api | null, vagaId: string, motivo: stri
     const { data, error, response } = await api.POST("/rpc/cancelar_vaga", { body: { vaga_id: vagaId, motivo }, signal: prazo() });
     if (data) return { ok: true };
     if (response.status === 401) return { ok: false, motivo: "sem_sessao" };
-    if (response.status === 403) return { ok: false, motivo: "sem_permissao" };
+    if (response.status === 403) return { ok: false, motivo: error?.details === "conta_suspensa" ? "conta_suspensa" : "sem_permissao" };
     if (response.status === 404) return { ok: false, motivo: "nao_encontrada" };
     if (response.status === 409) return { ok: false, motivo: "vaga_encerrada" };
     if (response.status === 422 && error?.details === "motivo") {

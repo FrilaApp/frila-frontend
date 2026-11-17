@@ -2,7 +2,7 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { escolherCandidato, lerCandidatos, candidatosParaATela } from "../../servidor/contratante/candidatos";
 import { escolherCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
-import { detalheDaVaga, lerPainel } from "../../servidor/contratante/painel";
+import { detalheDaVaga, lerPainel, podeCancelarVaga } from "../../servidor/contratante/painel";
 import { ehUuid, horarioEmUtc } from "../../servidor/contratante/publicar-vaga";
 import { cancelarVaga, republicarRestantes, republicarVaga } from "../../servidor/contratante/vagas";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
@@ -29,7 +29,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   const casa = leitura.estado === "ok" ? escolherCasa(leitura.casas, endereco.searchParams.get("casa")) : null;
   if (!casa) throw redirect("/painel");
 
-  const painel = await lerPainel(api, casa.id, new Date());
+  const agora = new Date();
+  const painel = await lerPainel(api, casa.id, agora);
   if (painel.estado === "sem_sessao") throw redirect("/entrar");
   if (painel.estado !== "ok") return { estado: painel.estado, casaId: casa.id } as const;
   const vaga = detalheDaVaga(painel.painel, params.vagaId);
@@ -48,6 +49,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     candidatosIndisponiveis: comCandidatos && candidatos?.estado !== "ok",
     escolhido: endereco.searchParams.get("escolhido") === "1",
     cancelada: endereco.searchParams.get("cancelada") === "1",
+    podeCancelar: podeCancelarVaga(vaga, agora),
     // Uma chave por formulário de republicação: o reenvio devolve a mesma vaga nova.
     chaves: { repetir: crypto.randomUUID(), restantes: crypto.randomUUID() },
   } as const;
@@ -223,9 +225,8 @@ function Erro({ actionData, onde }: { actionData: Retorno | undefined; onde: Ond
 
 function Acoes({ loaderData, actionData, navegacao }: { loaderData: Dados; actionData: Retorno | undefined; navegacao: ReturnType<typeof useNavigation> }) {
   const enviando = navegacao.state !== "idle";
-  const { vaga, casaId, chaves } = loaderData;
+  const { vaga, casaId, chaves, podeCancelar } = loaderData;
   const chaveDe = (onde: "repetir" | "restantes") => (actionData?.onde === onde && actionData.chave) || chaves[onde];
-  const podeCancelar = vaga.estado === "publicada" || vaga.estado === "preenchida";
   return (
     <>
       {vaga.republicavelEmUrgencia > 0 ? (

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { action, loader } from "../app/rotas/contratante/vaga";
+import { podeCancelarVaga } from "../app/servidor/contratante/painel";
 import { textos } from "../app/textos/pt-BR";
 import { argumentos, CASA, CHAVE, ok, recusa, redirecionamento } from "./contratante-apoio";
 
@@ -38,6 +39,52 @@ describe("vaga da casa: cancelar", () => {
     expect(await com(recusa(404, "nao_encontrado"))).toBe(ta.erros.nao_encontrada);
     expect(await com(recusa(403, "sem_permissao"))).toBe(ta.erros.sem_permissao);
     expect(await com(recusa(500, "XX000"))).toBe(ta.erros.indisponivel);
+  });
+
+  it("conta suspensa tem aviso próprio, igual ao de republicar", async () => {
+    api.POST.mockResolvedValue(recusa(403, "sem_permissao", "conta_suspensa"));
+    expect(await enviar({ intencao: "cancelar", motivo: "Motivo sintético" })).toEqual({ erro: ta.erros.conta_suspensa, onde: "cancelar", motivo: "Motivo sintético" });
+  });
+});
+
+describe("vaga da casa: quando oferecer o cancelamento", () => {
+  const AGORA = new Date("2026-11-26T20:00:00Z");
+  const antes = "2026-11-26T22:00:00Z";
+  const depois = "2026-11-26T19:00:00Z";
+
+  it("só enquanto a vaga está aberta ou completa e ainda não começou (como no iOS)", () => {
+    expect(podeCancelarVaga({ estado: "publicada", inicioEm: antes }, AGORA)).toBe(true);
+    expect(podeCancelarVaga({ estado: "preenchida", inicioEm: antes }, AGORA)).toBe(true);
+    expect(podeCancelarVaga({ estado: "preenchida", inicioEm: depois }, AGORA)).toBe(false);
+    expect(podeCancelarVaga({ estado: "publicada", inicioEm: depois }, AGORA)).toBe(false);
+    expect(podeCancelarVaga({ estado: "encerrada", inicioEm: antes }, AGORA)).toBe(false);
+    expect(podeCancelarVaga({ estado: "cancelada", inicioEm: antes }, AGORA)).toBe(false);
+  });
+
+  it("começar agora, no instante exato, já não oferece", () => {
+    expect(podeCancelarVaga({ estado: "preenchida", inicioEm: AGORA.toISOString() }, AGORA)).toBe(false);
+  });
+
+  it("o loader entrega a decisão pronta, calculada com o relógio de agora", async () => {
+    vi.useFakeTimers();
+    try {
+      const painel = ok({
+        estabelecimento_id: CASA, checkins_pendentes: [],
+        vagas: [{
+          vaga: { id: VAGA, funcao: "garçom", local: "Rua Sintética, 1", regiao_administrativa: "Plano Piloto", inicio_em: "2026-11-26T22:00:00Z", fim_em: "2026-11-27T02:00:00Z", valor_centavos: 14000 },
+          republicavel_em_urgencia: 0, modo: "urgencia", estado: "preenchida", oculta: false, alerta_vaga_vazia: false, candidatos_pendentes: 0, posicoes: [],
+        }],
+      });
+      const casas = ok([{ id: CASA, nome: "Bar Sintético", papel: "administrador" }]);
+      api.GET.mockImplementation(async (caminho: string) => (caminho === "/rpc/meus_estabelecimentos" ? casas : painel));
+      for (const [agora, esperado] of [["2026-11-26T20:00:00Z", true], ["2026-11-26T22:30:00Z", false]] as const) {
+        vi.setSystemTime(new Date(agora));
+        const dados = await loader(comVaga(argumentos(`${aqui}?casa=${CASA}`)));
+        expect(dados.estado === "ok" && dados.podeCancelar).toBe(esperado);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
