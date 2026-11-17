@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   conferir:
-    name: "Contrato, lint, tipos, testes, build e orçamento da web"
+    name: "Contrato, lint, tipos, testes, build, orçamento e fumaça da web"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -65,3 +65,6 @@ jobs:
 
       - name: Orçamento do pacote
         run: npm run orcamento
+
+      - name: Fumaça (rotas e cabeçalhos de segurança no runtime local)
+        run: npm run fumaca

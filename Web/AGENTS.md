@@ -7,7 +7,7 @@ Vale o `AGENTS.md` da raiz; aqui fica só o que é da web. O que construir e em 
 ```bash
 npm ci                 # instala (versões exatas, pelo lockfile)
 npm run dev            # servidor local em http://localhost:5173/app/
-npm run conferir       # contrato + lint + tipos + testes + build + orçamento do pacote: o gate local (a CI roda o mesmo)
+npm run conferir       # contrato + lint + tipos + testes + build + orçamento + fumaça: o gate local (a CI roda o mesmo)
 scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com o Supabase de dev
 ```
 
@@ -24,6 +24,8 @@ scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com 
 - **Variáveis do Worker:** `import { env } from "cloudflare:workers"`, só em código de servidor (loader, action, `app/servidor/`).
 - **Sessão só no servidor:** cookie `HttpOnly` gravado pelo Worker. Token nunca vai para o JavaScript da página, nem
   `localStorage`. Não use `@supabase/ssr`. Nunca `service_role`.
+- **CSP com nonce** (`app/entry.server.tsx`, `app/servidor/cabecalhos.ts`): nada de `<script>` ou `<style>` embutido
+  sem nonce, nada de `style=""` no JSX, nada de script de terceiro. Precisa abrir a política? Mude lá, com teste.
 - **Textos só pelo catálogo** `app/textos/pt-BR.ts`. Nenhum texto visível direto no JSX.
 - **Regra de negócio fica no servidor do Frila.** A web mostra o que o servidor decide.
 - **Tela provisória** leva o comentário `// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício` e usa só os tokens de

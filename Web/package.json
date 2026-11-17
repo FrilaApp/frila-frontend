@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "teste": "vitest run",
     "orcamento": "node scripts/orcamento-do-pacote.mjs",
-    "conferir": "npm run contrato && npm run lint && npm run typecheck && npm run teste && npm run build && npm run orcamento",
+    "fumaca": "node scripts/fumaca.mjs",
+    "conferir": "npm run contrato && npm run lint && npm run typecheck && npm run teste && npm run build && npm run orcamento && npm run fumaca",
     "postinstall": "wrangler types && npm run contrato:tipos"
   },
   "dependencies": {
