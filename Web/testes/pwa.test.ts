@@ -165,50 +165,35 @@ describe("service worker", () => {
   });
 });
 
+// Se o push mostra o conteúdo (sessão viva, outra conta, depois do sair), está em testes/revisao-lince-886.test.ts.
 describe("service worker: push", () => {
-  const neutro = { titulo: textos.pwa.avisos.neutroTitulo, corpo: textos.pwa.avisos.neutroCorpo };
-  const aviso = (vinculo: string | null) => ({
-    data: { json: () => ({ notification: { title: "Turno amanhã", body: "Bar do Zé, 19h" }, data: { tipo: "turno", vinculo_id: vinculo } }) },
-  });
-  const comVinculo = async (vinculo: string | null) => {
-    const sw = serviceWorker({ rede: async () => new Response("") });
-    await sw.disparar("message", { data: { tipo: "vinculo", vinculo_id: vinculo, neutro } });
-    return sw;
-  };
+  const aviso = { data: { json: () => ({ notification: { title: "Turno amanhã", body: "Bar do Zé, 19h" }, data: { vinculo_id: "v-1" } }) } };
 
-  it("aviso da conta que ligou os avisos aparece com o conteúdo", async () => {
-    const sw = await comVinculo("v-1");
-    await sw.disparar("push", aviso("v-1"));
+  it("pergunta ao Worker a cada push, com o vínculo do aviso, e nada além disso", async () => {
+    const pedidos: Array<{ url: string; corpo: string }> = [];
+    const sw = serviceWorker({
+      rede: async (pedido) => {
+        pedidos.push({ url: pedido.url, corpo: await pedido.text() });
+        return Response.json({ mostrar: true, neutro: { titulo: "Frila", corpo: "neutro" } });
+      },
+    });
+    await sw.disparar("push", aviso);
+    expect(pedidos).toEqual([{ url: "https://frilabr.com/app/avisos/vinculo", corpo: JSON.stringify({ vinculo_id: "v-1" }) }]);
     expect(sw.notificacoes).toEqual([{ titulo: "Turno amanhã", corpo: "Bar do Zé, 19h" }]);
   });
 
-  it("aviso de outra conta aparece neutro (RN15)", async () => {
-    const sw = await comVinculo("v-1");
-    await sw.disparar("push", aviso("v-2"));
-    await sw.disparar("push", aviso(null));
+  it("sem rede, aparece o texto neutro guardado da última conferência", async () => {
+    let online = true;
+    const sw = serviceWorker({
+      rede: async () => (online ? Response.json({ mostrar: false, neutro: { titulo: "Frila", corpo: "Você tem um aviso." } }) : Promise.reject(new TypeError("offline"))),
+    });
+    await sw.disparar("push", aviso);
+    online = false;
+    await sw.disparar("push", aviso);
     expect(sw.notificacoes).toEqual([
-      { titulo: neutro.titulo, corpo: neutro.corpo },
-      { titulo: neutro.titulo, corpo: neutro.corpo },
+      { titulo: "Frila", corpo: "Você tem um aviso." },
+      { titulo: "Frila", corpo: "Você tem um aviso." },
     ]);
-  });
-
-  it("depois do sair, até o aviso do vínculo antigo aparece neutro", async () => {
-    const sw = await comVinculo("v-1");
-    await sw.disparar("message", { data: { tipo: "esquecer" } });
-    await sw.disparar("push", aviso("v-1"));
-    expect(sw.notificacoes).toEqual([{ titulo: neutro.titulo, corpo: neutro.corpo }]);
-  });
-
-  it("sem nada guardado (avisos nunca ligados aqui), não mostra conteúdo", async () => {
-    const sw = serviceWorker({ rede: async () => new Response("") });
-    await sw.disparar("push", aviso("v-1"));
-    expect(sw.notificacoes[0]?.corpo).not.toContain("Bar do Zé");
-  });
-
-  it("servidor sem vínculo na resposta: sem conferência, como diz o contrato", async () => {
-    const sw = await comVinculo(null);
-    await sw.disparar("push", aviso(null));
-    expect(sw.notificacoes).toEqual([{ titulo: "Turno amanhã", corpo: "Bar do Zé, 19h" }]);
   });
 
   it("tocar no aviso abre o Frila, ou volta para a janela já aberta", async () => {

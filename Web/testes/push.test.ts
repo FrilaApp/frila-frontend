@@ -117,16 +117,16 @@ describe("registrar o aparelho web", () => {
     expect(await simulado.pedidos[0]?.json()).toEqual({ token_fcm: TOKEN, plataforma: "web", versao_app: "1.0.0" });
   });
 
-  it("a tela grava o token no cookie HttpOnly e devolve só o vínculo", async () => {
+  it("a tela grava o token no cookie HttpOnly e não devolve nada dele", async () => {
     simulado.responder = () => Response.json({ plataforma: "web", atualizado_em: "2026-11-17T08:00:00Z", vinculo_id: "v-1" });
     const { dados, cabecalhos } = await resultado(avisos({ request: envio("avisos", { intencao: "ligar", token_fcm: TOKEN }), context: contexto() } as never));
-    expect(dados).toEqual({ ok: true, vinculoId: "v-1" });
+    expect(dados).toEqual({ ok: true });
     expect(cabecalhos.get("Set-Cookie")).toContain(`frila_aparelho=${TOKEN}`);
   });
 
   it("token estranho não chega ao servidor", async () => {
     const { dados } = await resultado(avisos({ request: envio("avisos", { intencao: "ligar", token_fcm: "x" }), context: contexto() } as never));
-    expect(dados).toEqual({ ok: false, vinculoId: null });
+    expect(dados).toEqual({ ok: false });
     expect(simulado.pedidos).toHaveLength(0);
   });
 

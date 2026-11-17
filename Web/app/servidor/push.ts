@@ -85,3 +85,17 @@ export async function removerAparelho(api: Api | null, token: string): Promise<b
     return false;
   }
 }
+
+/**
+ * O aviso que chegou é da sessão viva deste navegador? Quem decide é o servidor do Frila, na hora do push: o registro
+ * do token pela sessão atual devolve o vínculo dela, e o aviso só mostra o conteúdo com esse mesmo vínculo (RN15).
+ * Sem sessão, sem token, com falha ou com vínculo diferente: não.
+ */
+export async function avisoEhDestaSessao(api: Api | null, token: string | null, vinculoDoAviso: unknown): Promise<boolean> {
+  if (!api || !token) return false;
+  const registro = await registrarAparelho(api, token);
+  if (!registro.ok) return false;
+  // Servidor sem vínculo na resposta: o contrato diz "sem conferência por vínculo" (aqui, com sessão viva e aparelho dela).
+  if (registro.vinculoId === null) return true;
+  return typeof vinculoDoAviso === "string" && vinculoDoAviso === registro.vinculoId;
+}

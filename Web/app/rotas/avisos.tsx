@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { useEffect, useRef, useState } from "react";
 import { data, Link, redirect, useFetcher } from "react-router";
 
-import { esquecerVinculo, estadoDosAvisos, type EstadoDosAvisos, guardarVinculo, navegadorSuportaPush } from "../pwa/avisos";
+import { estadoDosAvisos, type EstadoDosAvisos, navegadorSuportaPush } from "../pwa/avisos";
 import { usePlataforma } from "../pwa/navegador";
 import { apiDoUsuario } from "../servidor/deste-ambiente";
 import { exigirSessao } from "../servidor/guarda";
@@ -31,13 +31,13 @@ export async function action({ context, request }: Route.ActionArgs) {
   if (formulario.get("intencao") === "desligar") {
     const guardado = lerTokenDoAparelho(request);
     if (guardado) await removerAparelho(apiDoUsuario(sessao.acesso), guardado);
-    return data({ ok: true as const, vinculoId: null }, { headers: { "Set-Cookie": cookieDoAparelho(null, seguro) } });
+    return data({ ok: true as const }, { headers: { "Set-Cookie": cookieDoAparelho(null, seguro) } });
   }
-  if (!tokenValido(token)) return { ok: false as const, vinculoId: null };
+  if (!tokenValido(token)) return { ok: false as const };
   const resultado = await registrarAparelho(apiDoUsuario(sessao.acesso), token);
   if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
-  if (!resultado.ok) return { ok: false as const, vinculoId: null };
-  return data({ ok: true as const, vinculoId: resultado.vinculoId }, { headers: { "Set-Cookie": cookieDoAparelho(token, seguro) } });
+  if (!resultado.ok) return { ok: false as const };
+  return data({ ok: true as const }, { headers: { "Set-Cookie": cookieDoAparelho(token, seguro) } });
 }
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
@@ -49,9 +49,8 @@ export default function Avisos({ loaderData }: Route.ComponentProps) {
   const [estado, setEstado] = useState<EstadoDosAvisos | null>(null);
   const [falhou, setFalhou] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  // Só renova uma vez por visita; e a resposta do servidor é lida pela última intenção (ligar ou desligar).
+  // Só renova uma vez por visita.
   const renovou = useRef(false);
-  const intencao = useRef<"ligar" | "desligar">("ligar");
 
   useEffect(() => {
     if (!plataforma) return;
@@ -61,21 +60,15 @@ export default function Avisos({ loaderData }: Route.ComponentProps) {
     );
   }, [plataforma, config, registrado]);
 
-  // A resposta do registro diz o vínculo deste aparelho com a conta: o service worker passa a conferir por ele.
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data) return;
     setOcupado(false);
-    if (!fetcher.data.ok) {
-      setFalhou(true);
-      return;
-    }
-    if (intencao.current === "ligar") void guardarVinculo(fetcher.data.vinculoId);
+    if (!fetcher.data.ok) setFalhou(true);
   }, [fetcher.state, fetcher.data]);
 
   async function registrar() {
     if (!config) return;
     renovou.current = true;
-    intencao.current = "ligar";
     setFalhou(false);
     setOcupado(true);
     try {
@@ -96,7 +89,6 @@ export default function Avisos({ loaderData }: Route.ComponentProps) {
 
   async function desligar() {
     if (!config) return;
-    intencao.current = "desligar";
     setOcupado(true);
     try {
       const { apagarToken } = await import("../pwa/token-do-push");
@@ -104,7 +96,6 @@ export default function Avisos({ loaderData }: Route.ComponentProps) {
     } catch {
       // O registro no servidor sai de qualquer jeito (pelo cookie deste navegador).
     }
-    await esquecerVinculo();
     fetcher.submit({ intencao: "desligar" }, { method: "post" });
   }
 

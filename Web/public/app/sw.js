@@ -42,37 +42,39 @@ self.addEventListener("fetch", (evento) => {
   );
 });
 
-// Push (fase 4, item 6.1). O aviso só mostra o conteúdo quando vem para a conta que ligou os avisos neste aparelho
-// (`vinculo_id` igual ao guardado, RN15). De outra conta, ou depois do sair, aparece só o texto neutro.
-// A tela /avisos manda o vínculo e o texto neutro (do catálogo); ficam num cache próprio, fora do prefixo da casca.
+// Push (fase 4, item 6.1). O conteúdo só aparece quando o Worker do Frila, com a sessão viva deste navegador, confirma
+// que o aviso é dela (RN15): a cada push o SW pergunta, e nada fica guardado aqui que uma página, outra aba ou uma
+// resposta atrasada possa trocar. Sem sessão, depois do sair, de outra conta ou sem rede: só o texto neutro.
 const CACHE_DO_AVISO = "frila-aviso-v1";
-const CHAVE_DO_AVISO = "/app/__aviso";
+const CHAVE_DO_NEUTRO = "/app/__neutro";
+const CONFERIR = "/app/avisos/vinculo";
 
-async function lerAviso() {
+async function conferirComOServidor(vinculoId) {
   try {
-    const resposta = await (await caches.open(CACHE_DO_AVISO)).match(CHAVE_DO_AVISO);
-    return resposta ? await resposta.json() : null;
+    const resposta = await fetch(
+      new Request(CONFERIR, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vinculo_id: vinculoId ?? null }) }),
+    );
+    if (!resposta.ok) return null;
+    const corpo = await resposta.json();
+    // O texto neutro (do catálogo, sem dado de ninguém) fica guardado para o push que chegar sem rede.
+    if (corpo.neutro) {
+      const cache = await caches.open(CACHE_DO_AVISO);
+      await cache.put(CHAVE_DO_NEUTRO, new Response(JSON.stringify(corpo.neutro), { headers: { "Content-Type": "application/json" } }));
+    }
+    return corpo;
   } catch {
     return null;
   }
 }
 
-async function gravarAviso(aviso) {
-  const cache = await caches.open(CACHE_DO_AVISO);
-  await cache.put(CHAVE_DO_AVISO, new Response(JSON.stringify(aviso), { headers: { "Content-Type": "application/json" } }));
-}
-
-self.addEventListener("message", (evento) => {
-  const mensagem = evento.data ?? {};
-  if (mensagem.tipo === "vinculo" && mensagem.neutro) {
-    // Sem vínculo na resposta (servidor antigo), o contrato diz: sem conferência por vínculo.
-    evento.waitUntil(gravarAviso({ vinculo_id: mensagem.vinculo_id ?? null, conferir: mensagem.vinculo_id != null, neutro: mensagem.neutro }));
-  } else if (mensagem.tipo === "esquecer") {
-    evento.waitUntil(
-      lerAviso().then((aviso) => gravarAviso({ vinculo_id: null, conferir: true, neutro: aviso?.neutro ?? null })),
-    );
+async function neutroGuardado() {
+  try {
+    const resposta = await (await caches.open(CACHE_DO_AVISO)).match(CHAVE_DO_NEUTRO);
+    return resposta ? await resposta.json() : null;
+  } catch {
+    return null;
   }
-});
+}
 
 self.addEventListener("push", (evento) => {
   evento.waitUntil(
@@ -85,12 +87,12 @@ self.addEventListener("push", (evento) => {
       }
       const conteudo = carga.notification ?? {};
       const dados = carga.data ?? {};
-      const aviso = await lerAviso();
-      const daConta = aviso !== null && (aviso.conferir ? aviso.vinculo_id !== null && dados.vinculo_id === aviso.vinculo_id : true);
-      const neutro = aviso?.neutro ?? { titulo: "Frila", corpo: "" };
+      const conferido = await conferirComOServidor(dados.vinculo_id);
+      const mostrar = conferido?.mostrar === true;
+      const neutro = conferido?.neutro ?? (await neutroGuardado()) ?? { titulo: "Frila", corpo: "" };
       // Toda chegada mostra uma notificação (o iPhone corta o push de quem não mostra).
-      await self.registration.showNotification(daConta ? (conteudo.title ?? neutro.titulo) : neutro.titulo, {
-        body: daConta ? (conteudo.body ?? "") : neutro.corpo,
+      await self.registration.showNotification(mostrar ? (conteudo.title ?? neutro.titulo) : neutro.titulo, {
+        body: mostrar ? (conteudo.body ?? "") : neutro.corpo,
         icon: "/app/icone-192.png",
         lang: "pt-BR",
       });
