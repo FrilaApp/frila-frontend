@@ -17,6 +17,11 @@ export const vagaPublica = {
   verNoApp: "Ver a vaga",
   encerrada: "Esta vaga não está mais aberta.",
   verOutras: "Ver outras vagas",
+  removidaTitulo: "Esta vaga não está mais disponível",
+  removidaCorpo: "Ela foi cancelada ou o turno já começou. Veja outras vagas abertas no Frila.",
+  tituloDaAbaRemovida: "Vaga não disponível · Frila",
+  // Descrição dos dados estruturados: só o que a página mostra.
+  descricaoCompleta: "Turno de {funcao} no Distrito Federal, pelo Frila. Quando: {periodo}. Valor do turno: {valor}.",
   naoEncontradaTitulo: "Vaga não encontrada",
   naoEncontradaCorpo: "O link pode estar errado, ou a vaga não está mais disponível.",
   tituloDaAbaSemVaga: "Vaga não encontrada · Frila",

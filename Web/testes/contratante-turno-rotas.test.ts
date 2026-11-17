@@ -136,3 +136,34 @@ describe("tela do turno da casa", () => {
     await expect(agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "confirmar", turno_id: TURNO_ID }))).rejects.toHaveProperty("status", 302);
   });
 });
+
+describe("avaliar o profissional (C5)", () => {
+  const carregar = async () =>
+    (await carregarTurno(argumentos(`/casa/turnos/${TURNO_ID}?casa=${CASA_A}`))) as {
+      turno: { podeAvaliar: boolean; respostaDada: boolean | null } | null;
+    };
+  const cumprido = { estado: "cumprida", checkin_em: minutosAtras(90), checkout_em: minutosAtras(5), verificacao: "verificado" };
+
+  it("depois do turno com presença verificada, a pergunta abre; a resposta dada aparece no lugar", async () => {
+    servidor({ [CASA_A]: [turno({ ...cumprido, pode_avaliar: true, avaliacao: null })] });
+    expect((await carregar()).turno).toMatchObject({ podeAvaliar: true, respostaDada: null });
+    servidor({ [CASA_A]: [turno({ ...cumprido, pode_avaliar: false, avaliacao: { turno_id: TURNO_ID, resposta: false, criada_em: "x" } })] });
+    expect((await carregar()).turno).toMatchObject({ podeAvaliar: false, respostaDada: false });
+  });
+
+  it("servidor anterior sem o campo avaliacao: não afirma que a casa ainda não avaliou", async () => {
+    servidor({ [CASA_A]: [turno({ ...cumprido, pode_avaliar: false })] });
+    expect((await carregar()).turno).toMatchObject({ podeAvaliar: false, respostaDada: null });
+  });
+
+  it("a action manda o turno e a resposta; resposta fora de sim ou não nem sai", async () => {
+    api.POST.mockResolvedValueOnce(resposta(200, { turno_id: TURNO_ID, resposta: true, criada_em: "x" }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "avaliar", turno_id: TURNO_ID, resposta: "sim" }))).toEqual({ avaliacao: "registrada" });
+    expect(api.POST.mock.calls[0]?.[0]).toBe("/rpc/avaliar");
+    expect(api.POST.mock.calls[0]?.[1]).toMatchObject({ body: { turno_id: TURNO_ID, resposta: true } });
+    api.POST.mockResolvedValueOnce(resposta(409, { code: "avaliacao_ja_registrada" }));
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "avaliar", turno_id: TURNO_ID, resposta: "nao" }))).toEqual({ avaliacao: "ja_registrada" });
+    expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "avaliar", turno_id: TURNO_ID, resposta: "talvez" }))).toEqual({ avaliacao: "indisponivel" });
+    expect(api.POST).toHaveBeenCalledTimes(2);
+  });
+});
