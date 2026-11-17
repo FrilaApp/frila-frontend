@@ -78,6 +78,9 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
       <Link to={`/painel/publicar?casa=${casa.id}`} className={classeDoBotao}>
         {t.publicar}
       </Link>
+      <Link to={`/casa/membros?casa=${casa.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+        {textos.contratanteMembros.abrir}
+      </Link>
       <Link to={`/casa/equipe?casa=${casa.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
         {textos.contratanteEquipe.abrir}
       </Link>
