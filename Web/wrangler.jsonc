@@ -1,0 +1,51 @@
+/**
+ * Worker da web do Frila. Plano grátis da Cloudflare.
+ * O ambiente padrão é o de dev (Supabase dev). Produção: CLOUDFLARE_ENV=producao no build.
+ * Endereço e chave publicável do Supabase NÃO ficam aqui: vêm de `.dev.vars` (local)
+ * e das variáveis do Worker (painel ou `wrangler secret put`).
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "frila-web-dev",
+	"compatibility_date": "2026-11-16",
+	"main": "./workers/app.ts",
+	"workers_dev": true,
+	"preview_urls": true,
+	"vars": {
+		"AMBIENTE": "dev",
+		// "1" mostra a web; qualquer outro valor mostra só a página "em breve".
+		"WEB_LIGADA": "1",
+		// Conta de demonstração do dev (a mesma do app, para teste de ponta a ponta). Não existe em produção.
+		"EMAILS_DE_DEMONSTRACAO": "revisao-profissional@frila.app"
+	},
+	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
+	"secrets": {
+		"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+	},
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"env": {
+		"producao": {
+			"name": "frila-web",
+			"workers_dev": false,
+			"preview_urls": false,
+			// Só estes três caminhos vão ao Worker; o resto do frilabr.com fica como está.
+			// Não use "frilabr.com/app*": pegaria também /apps, /app-store etc.
+			// /app.data é o pedido de dados da página inicial do React Router v8.
+			"routes": [
+				{ "pattern": "frilabr.com/app", "zone_name": "frilabr.com" },
+				{ "pattern": "frilabr.com/app/*", "zone_name": "frilabr.com" },
+				{ "pattern": "frilabr.com/app.data", "zone_name": "frilabr.com" }
+			],
+			"secrets": {
+				"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
+			},
+			"vars": {
+				"AMBIENTE": "producao",
+				"WEB_LIGADA": "0"
+			}
+		}
+	}
+}

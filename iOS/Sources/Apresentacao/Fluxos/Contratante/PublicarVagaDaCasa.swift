@@ -68,11 +68,14 @@ public struct DestinoDePublicarVaga: View {
     private let sair: () -> Void
     private let cancelar: () -> Void
     private let aoPublicar: () -> Void
+    private let rascunhoDaBusca: RascunhoDeVagaDaBusca?
 
     public init(
         api: any ApiCliente, fila: any FilaDeAcoes, modelo: PublicacaoDaCasaViewModel,
+        rascunhoDaBusca: RascunhoDeVagaDaBusca? = nil,
         sair: @escaping () -> Void = {}, cancelar: @escaping () -> Void, aoPublicar: @escaping () -> Void
     ) {
+        self.rascunhoDaBusca = rascunhoDaBusca
         self.api = api
         self.fila = fila
         self.modelo = modelo
@@ -96,7 +99,7 @@ public struct DestinoDePublicarVaga: View {
                 .background(FrilaCor.fundo.ignoresSafeArea())
             case let .pronta(estabelecimento, _):
                 // O "Publicar vaga" do app é o Estúdio de Criação do FrilaLowPhase (Docs/EstudioDeVaga.md).
-                TelaEstudioDeVaga(api: api, fila: fila, estabelecimento: estabelecimento, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
+                TelaEstudioDeVaga(api: api, fila: fila, estabelecimento: estabelecimento, rascunhoDaBusca: rascunhoDaBusca, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
             case let .erro(mensagem):
                 ScrollView {
                     VStack(spacing: FrilaEspaco.medio) {

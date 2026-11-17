@@ -56,8 +56,9 @@ struct BuscaDeProfissionaisContratoTests {
     @Test("CartaoProfissional do contrato tem exatamente os campos que o DTO lê")
     func camposDoCartao() throws {
         let doContrato = try propriedades(doSchema: "CartaoProfissional")
-        #expect(doContrato == ["id", "nome", "servico", "regioes", "atende_todo_df", "distancia_faixa", "reputacao", "disponivel_no_horario"])
-        #expect(!doContrato.contains("foto_url"))
+        // 0.2.90 (CD-B07): o cartão ganhou foto_url e foto_id, com as mesmas condições de PerfilPublico.
+        #expect(doContrato == ["id", "nome", "servico", "regioes", "atende_todo_df", "distancia_faixa", "reputacao", "disponivel_no_horario",
+                               "foto_url", "foto_id"])
     }
 
     @Test("A página decodifica o cartão inteiro e o cursor; cartão com faixa nova sai da página, os outros ficam")
