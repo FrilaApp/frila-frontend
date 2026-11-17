@@ -1,6 +1,7 @@
 package br.com.frila.feature.turnos
 
 import br.com.frila.core.dominio.modelo.ComprovanteCheckin
+import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
@@ -73,5 +74,6 @@ fun TurnoDto.paraItem(): ItemTurno {
         podeAvaliar = podeAvaliar,
         avaliacaoResposta = avaliacao?.resposta,
         comprovante = comprovanteMapeado,
+        pontoDaVaga = vaga.ponto?.let { Coordenada(latitude = it.latitude, longitude = it.longitude) },
     )
 }
