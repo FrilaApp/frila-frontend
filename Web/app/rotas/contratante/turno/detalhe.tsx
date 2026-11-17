@@ -4,6 +4,7 @@ import { avaliarOProfissional } from "../../../servidor/contratante/turno/avalia
 import { confirmarPresenca, gerarCodigo, reabrirPorAtraso } from "../../../servidor/contratante/turno/presenca";
 import { casaDaTela, chegadaDo, listarMinhasCasas, listarTurnosDaCasa } from "../../../servidor/contratante/turno/turnos";
 import { apiDoUsuario } from "../../../servidor/deste-ambiente";
+import { registrarEvento } from "../../../servidor/eventos";
 import { exigirSessao } from "../../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../../servidor/profissional/formato";
 import { textos } from "../../../textos/pt-BR";
@@ -71,6 +72,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         : ({ ok: false, motivo: "indisponivel" } as const);
     const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
     if (avaliacao === "sem_sessao") throw redirect("/entrar");
+    if (resultado.ok) registrarEvento(sessao.acesso, "avaliacao_enviada", { turno_id: turnoId });
     return { avaliacao };
   }
   if (intencao === "codigo") {
