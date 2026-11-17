@@ -1,6 +1,7 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
+import { registrarEvento } from "../../servidor/eventos";
 import { exigirSessao } from "../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../servidor/profissional/formato";
 import { avaliarACasa } from "../../servidor/profissional/avaliacao";
@@ -71,11 +72,13 @@ export async function action({ context, request }: Route.ActionArgs) {
         : ({ ok: false, motivo: "indisponivel" } as const);
     const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
     if (avaliacao === "sem_sessao") throw redirect("/entrar");
+    if (resultado.ok) registrarEvento(sessao.acesso, "avaliacao_enviada", { turno_id: String(formulario.get("turno_id") ?? "") });
     return { avaliacao };
   }
   if (intencao === "chegar" || intencao === "validar" || intencao === "encerrar") {
     const turnoId = String(formulario.get("turno_id") ?? "");
     const distancia = distanciaDoFormulario(formulario.get("distancia_m"));
+    if (intencao === "chegar") registrarEvento(sessao.acesso, "checkin_tentado", { turno_id: turnoId });
     const resultado =
       intencao === "chegar"
         ? await marcarChegada(api, turnoId, distancia)
@@ -83,6 +86,9 @@ export async function action({ context, request }: Route.ActionArgs) {
           ? await validarCodigo(api, turnoId, String(formulario.get("codigo") ?? "").trim(), distancia)
           : await marcarSaida(api, turnoId, distancia);
     if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
+    // Como no app: a presença conta como concluída quando fica verificada; a saída, quando o servidor a grava.
+    if (resultado.ok && intencao === "encerrar") registrarEvento(sessao.acesso, "checkout_concluido", { turno_id: turnoId });
+    else if (resultado.ok && resultado.verificado) registrarEvento(sessao.acesso, "checkin_concluido", { turno_id: turnoId });
     const presenca = resultado.ok
       ? intencao === "encerrar"
         ? ("saida" as const)
