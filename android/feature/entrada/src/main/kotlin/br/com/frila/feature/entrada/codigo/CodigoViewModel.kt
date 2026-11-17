@@ -25,6 +25,9 @@ private const val TAMANHO_CODIGO = 6
 /** Quanto tempo o código vale depois de enviado: 10 min, igual a `CodigoViewModel.validadeDoCodigo` do iOS. */
 private val VALIDADE_DO_CODIGO: Duration = Duration.ofSeconds(600)
 
+/** Espera entre um pedido de código e o próximo: 60 s, igual ao temporizador do iOS. */
+private val ESPERA_PARA_REENVIAR: Duration = Duration.ofSeconds(60)
+
 /** O Auth responde `otp_expired` tanto para o código errado quanto para o vencido. */
 private const val ERRO_DO_AUTH_CODIGO_RECUSADO = "otp_expired"
 
@@ -50,6 +53,17 @@ class CodigoViewModel(
 
     /** Quando o último código foi pedido (primeiro envio ou reenvio): separa "incorreto" de "expirado". */
     private var codigoPedidoEm: Instant = agora()
+
+    /**
+     * Segundos que faltam para poder pedir outro código: 60 s depois do último pedido (primeiro envio ou
+     * reenvio), como no iOS. A tela usa este valor para a contagem do botão.
+     */
+    fun segundosParaReenviar(): Long {
+        val liberadoEm = codigoPedidoEm.plus(ESPERA_PARA_REENVIAR)
+        val falta = Duration.between(agora(), liberadoEm)
+        // Arredonda para cima: com 0,4 s faltando a tela ainda mostra 1.
+        return if (falta.isNegative || falta.isZero) 0 else (falta.toMillis() + 999) / 1000
+    }
 
     /** A verificação em voo: um segundo toque não manda de novo. */
     private var verificacao: Job? = null
@@ -95,10 +109,12 @@ class CodigoViewModel(
     }
 
     fun reenviarCodigo(): Job? {
+        if (segundosParaReenviar() > 0 || _estado.value.carregando) return null
         val email = _estado.value.email
 
         if (DemonstracaoContas.ehContaDeDemonstracao(email)) {
-            _estado.update { it.copy(reenviado = true, erro = null) }
+            codigoPedidoEm = agora()
+            _estado.update { it.copy(reenviado = true, erro = null, reenviosFeitos = it.reenviosFeitos + 1) }
             return null
         }
 
@@ -107,7 +123,9 @@ class CodigoViewModel(
             try {
                 servicoAutenticacao.solicitarOtp(email)
                 codigoPedidoEm = agora()
-                _estado.update { it.copy(carregando = false, reenviado = true, codigo = "") }
+                _estado.update {
+                    it.copy(carregando = false, reenviado = true, codigo = "", reenviosFeitos = it.reenviosFeitos + 1)
+                }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
             }
