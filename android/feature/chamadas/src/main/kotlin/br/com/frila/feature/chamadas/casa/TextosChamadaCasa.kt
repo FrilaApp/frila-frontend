@@ -183,6 +183,14 @@ object TextosChamadaCasa {
     const val BUSCA_TERMOS_ACEITANDO = "Registrando o aceite…"
     const val BUSCA_TERMOS_ERRO = "Não foi possível registrar o aceite agora. Verifique sua conexão e tente novamente."
 
+    // Termos da vaga já aberta no 409 trabalho_ja_aberto (0.2.95), como no iOS. PROVISÓRIOS até o desenho do Fabrício.
+    fun buscaTermosDaVagaAberta(linha: String) = "Esta chamada vai com os termos da vaga já aberta: $linha"
+    const val BUSCA_TERMOS_DA_VAGA_CONFIRMAR = "Confirmar"
+    const val REFEICAO_E_TRANSPORTE_INCLUSOS = "Refeição e transporte inclusos"
+    const val REFEICAO_INCLUSA_SEM_TRANSPORTE = "Refeição inclusa, sem transporte"
+    const val SEM_REFEICAO_TRANSPORTE_INCLUSO = "Sem refeição, transporte incluso"
+    const val SEM_REFEICAO_NEM_TRANSPORTE = "Sem refeição nem transporte"
+
     fun buscaChamar(quantos: Int) = "Chamar ($quantos)"
     fun buscaSelecionados(quantos: Int) = if (quantos == 1) "1 selecionado de 3" else "$quantos selecionados de 3"
 }

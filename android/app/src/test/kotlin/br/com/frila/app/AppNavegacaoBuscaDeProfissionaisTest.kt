@@ -95,6 +95,8 @@ class AppNavegacaoBuscaDeProfissionaisTest {
                                 recursoHabilitado = { true },
                                 buscarProfissionais = { error("não deveria buscar") },
                                 chamarProfissional = { error("não deveria chamar") },
+                                minhasChamadas = { _, _ -> error("não deveria ler") },
+                                detalheChamada = { error("não deveria ler") },
                                 listarFuncoes = { listOf(garcom) },
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )

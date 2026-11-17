@@ -89,6 +89,8 @@ fun TelaBuscaDeProfissionais(
         aoAbrirTermos = aoAbrirTermos,
         aoAceitarTermos = { viewModel.aceitarTermosEBuscar() },
         carregarFoto = carregarFoto,
+        aoConfirmarTermosDaVaga = { viewModel.confirmarTermosDaVagaAberta() },
+        aoCancelarTermosDaVaga = viewModel::cancelarTermosDaVagaAberta,
     )
 }
 
@@ -119,15 +121,23 @@ fun ConteudoBuscaDeProfissionais(
     aoAbrirTermos: () -> Unit = {},
     aoAceitarTermos: () -> Unit = {},
     carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
+    aoConfirmarTermosDaVaga: () -> Unit = {},
+    aoCancelarTermosDaVaga: () -> Unit = {},
 ) {
     var folhaAberta by rememberSaveable { mutableStateOf(false) }
+    // 0.2.95: fechar a folha com os termos da vaga aberta por confirmar vale Cancelar, como no iOS. Sem isso, o "Chamar"
+    // fica desligado (podeChamar) e a casa não volta à folha para responder.
+    val fecharFolha: () -> Unit = {
+        if (estado.termosParaConfirmar != null) aoCancelarTermosDaVaga()
+        folhaAberta = false
+    }
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text(TextosChamadaCasa.BUSCA_TITULO, modifier = Modifier.semantics { heading() }) },
                 navigationIcon = {
-                    IconButton(onClick = if (folhaAberta) ({ folhaAberta = false }) else aoVoltar) {
+                    IconButton(onClick = if (folhaAberta) fecharFolha else aoVoltar) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = TextosChamadaCasa.VOLTAR)
                     }
                 },
@@ -141,8 +151,10 @@ fun ConteudoBuscaDeProfissionais(
                 aoChamar = aoChamar,
                 aoReenviar = aoReenviar,
                 aoConfirmarJ7 = aoConfirmarJ7,
-                aoFechar = { folhaAberta = false },
+                aoFechar = fecharFolha,
                 modifier = Modifier.padding(preenchimento),
+                aoConfirmarTermos = aoConfirmarTermosDaVaga,
+                aoCancelarTermos = aoCancelarTermosDaVaga,
             )
         } else {
             ListaDaBusca(
@@ -430,9 +442,11 @@ private fun ListaDaBusca(
                             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-aviso-limite"))
                         }
                         Text(TextosChamadaCasa.buscaSelecionados(estado.selecionados.size))
+                        // 0.2.95: com termos da vaga aberta por confirmar (o 409 chegou com a folha já fechada), o botão
+                        // reabre a folha, que é onde estão o Confirmar e o Cancelar.
                         Button(
                             onClick = aoAbrirFolha,
-                            enabled = estado.podeChamar,
+                            enabled = estado.podeChamar || estado.termosParaConfirmar != null,
                             modifier = Modifier.fillMaxWidth().testTag("busca-chamar"),
                         ) { Text(TextosChamadaCasa.buscaChamar(estado.selecionados.size)) }
                     }
@@ -490,6 +504,8 @@ private fun FolhaDeChamadaDaBusca(
     aoConfirmarJ7: () -> Unit,
     aoFechar: () -> Unit,
     modifier: Modifier = Modifier,
+    aoConfirmarTermos: () -> Unit = {},
+    aoCancelarTermos: () -> Unit = {},
 ) {
     val horarioDoFiltro = estado.horario
     val comeco = horarioDoFiltro?.inicio ?: relogio().plus(Duration.ofHours(24))
@@ -605,6 +621,8 @@ private fun FolhaDeChamadaDaBusca(
                     ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia -> TextosChamadaCasa.BUSCA_RESULTADO_J7
                     ResultadoDaChamadaDaBusca.NaoEnviada -> TextosChamadaCasa.BUSCA_RESULTADO_NAO_ENVIADA
                     is ResultadoDaChamadaDaBusca.Erro -> resultado.mensagem
+                    is ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos ->
+                        TextosChamadaCasa.buscaTermosDaVagaAberta(linhaDosTermos(resultado.termos))
                     null -> TextosChamadaCasa.CARREGANDO
                 }
                 Text("$nome: $texto", modifier = Modifier.testTag("folha-resultado-$id"))
@@ -625,9 +643,29 @@ private fun FolhaDeChamadaDaBusca(
                 if (estado.podeReenviar) Text(TextosChamadaCasa.BUSCA_CONFIRMAR_DEPOIS, color = MaterialTheme.colorScheme.error)
                 Button(
                     onClick = aoConfirmarJ7,
-                    enabled = !estado.enviando && !estado.podeReenviar,
+                    // Com termos da vaga aberta por confirmar, eles vêm primeiro (o J7 não mandaria nada).
+                    enabled = !estado.enviando && !estado.podeReenviar && estado.termosParaConfirmar == null,
                     modifier = Modifier.fillMaxWidth().testTag("folha-confirmar-j7"),
                 ) { Text(TextosChamadaCasa.J7_CONFIRMAR) }
+            }
+        }
+        estado.termosParaConfirmar?.let { termos ->
+            // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício. 0.2.95: a vaga já aberta do trabalho tem outros
+            // termos; nada sai antes de Confirmar, e Cancelar não manda nada.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    TextosChamadaCasa.buscaTermosDaVagaAberta(linhaDosTermos(termos)),
+                    modifier = Modifier.testTag("folha-termos-da-vaga"),
+                )
+                Button(
+                    onClick = aoConfirmarTermos,
+                    enabled = !estado.enviando,
+                    modifier = Modifier.fillMaxWidth().testTag("folha-termos-confirmar"),
+                ) { Text(TextosChamadaCasa.BUSCA_TERMOS_DA_VAGA_CONFIRMAR) }
+                OutlinedButton(
+                    onClick = aoCancelarTermos,
+                    modifier = Modifier.fillMaxWidth().testTag("folha-termos-cancelar"),
+                ) { Text(TextosChamadaCasa.CANCELAR) }
             }
         }
         OutlinedButton(
@@ -635,4 +673,16 @@ private fun FolhaDeChamadaDaBusca(
             modifier = Modifier.fillMaxWidth().testTag("folha-fechar"),
         ) { Text(if (travada) TextosChamadaCasa.FECHAR else TextosChamadaCasa.CANCELAR) }
     }
+}
+
+/** "R$ 150,00, Refeição inclusa, sem transporte" (e ", Exige material próprio" quando a vaga exige), como no iOS. */
+internal fun linhaDosTermos(termos: TermosDaVagaAberta): String {
+    val refeicaoETransporte = when {
+        termos.incluiRefeicao && termos.incluiTransporte -> TextosChamadaCasa.REFEICAO_E_TRANSPORTE_INCLUSOS
+        termos.incluiRefeicao -> TextosChamadaCasa.REFEICAO_INCLUSA_SEM_TRANSPORTE
+        termos.incluiTransporte -> TextosChamadaCasa.SEM_REFEICAO_TRANSPORTE_INCLUSO
+        else -> TextosChamadaCasa.SEM_REFEICAO_NEM_TRANSPORTE
+    }
+    val material = TextosChamadaCasa.EXIGE_MATERIAL_PROPRIO.takeIf { termos.exigeMaterialProprio }
+    return listOfNotNull(dinheiro(termos.valorCentavos), refeicaoETransporte, material).joinToString(", ")
 }

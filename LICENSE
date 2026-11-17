@@ -1,21 +1,34 @@
-MIT License
+Copyright (c) 2026 FRILA TECNOLOGIA INOVA SIMPLES (I.S.), CNPJ 69.728.564/0001-41, Brasília/DF.
+Todos os direitos reservados.
 
-Copyright (c) 2026 BlendOps
+O código-fonte, o design, os textos e as imagens deste repositório são protegidos pela
+Lei nº 9.609/1998 (programa de computador) e pela Lei nº 9.610/1998 (direitos autorais).
+O repositório é público só para leitura. Sem autorização prévia e por escrito da titular,
+ninguém pode usar, copiar, alterar, distribuir, publicar, sublicenciar ou vender este
+conteúdo, no todo ou em parte, nem aproveitá-lo em outro programa, produto ou serviço.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Ver o repositório e fazer fork dentro do GitHub são permitidos só na medida dos Termos de
+Serviço do GitHub. Isso não concede nenhuma outra licença.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+As versões publicadas antes deste aviso foram distribuídas sob a licença MIT, e essa licença
+continua valendo para elas. Este aviso vale para tudo o que for publicado depois dele, em
+qualquer ramo deste repositório.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Componentes de terceiros mantêm as licenças próprias (ver iOS/Docs/LicencasDeTerceiros.md
+e a tela de licenças de cada app).
+
+Pedidos de autorização: contato@frilabr.com
+
+---
+
+English summary. The Portuguese text above prevails.
+
+Copyright (c) 2026 FRILA TECNOLOGIA INOVA SIMPLES (I.S.). All rights reserved.
+This repository is public for reading only. Without prior written authorization from the
+copyright holder, no one may use, copy, modify, distribute, publish, sublicense or sell its
+contents, in whole or in part, or reuse them in another program, product or service.
+Viewing and forking on GitHub are allowed only as provided in the GitHub Terms of Service.
+Versions published before this notice were released under the MIT License, which still
+applies to those versions. This notice applies to everything published after it, on any
+branch. Third-party components keep their own licenses.
+Authorization requests: contato@frilabr.com
