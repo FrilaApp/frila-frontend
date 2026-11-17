@@ -39,6 +39,12 @@ class OcorrenciaTurnoViewModel(
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     private val _estado = MutableStateFlow(EstadoOcorrencia())
+
+    /**
+     * A chave do chamado em aberto. O servidor é idempotente por ela: fica a mesma em toda nova tentativa,
+     * até dar certo (como no iOS). Uma resposta ilegível pode ter criado o chamado, e chave nova abriria outro.
+     */
+    private var chaveDaTentativa: String? = null
     val estado: StateFlow<EstadoOcorrencia> = _estado.asStateFlow()
 
     fun selecionarMotivo(motivo: MotivoOcorrencia) {
@@ -62,8 +68,9 @@ class OcorrenciaTurnoViewModel(
                 val protocolo = servicoTurnos.abrirSuporte(
                     turnoId = turnoId,
                     categoria = motivo.categoria,
-                    chave = geradorDeChave(),
+                    chave = chaveDaTentativa ?: geradorDeChave().also { chaveDaTentativa = it },
                 )
+                chaveDaTentativa = null
                 _estado.update { it.copy(status = StatusOcorrencia.SUCESSO, protocolo = protocolo) }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusOcorrencia.ERRO, mensagemErro = mensagemDeErro(erro)) }

@@ -144,4 +144,40 @@ class OcorrenciaTurnoViewModelTest {
         assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
         assertTrue(viewModel.estado.value.mensagemErro != null)
     }
+
+    /**
+     * Revisão do #813: o chamado é idempotente pela chave. Depois de uma resposta 200 ilegível o chamado já
+     * existe no servidor; se o "Tente de novo" gerasse chave nova, abriria um segundo. A chave fica guardada
+     * até dar certo, como no iOS (`SuporteTurnoViewModel.chaveIdempotente`).
+     */
+    @Test
+    fun `depois de uma resposta 200 ilegivel, tentar de novo manda a mesma chave`() = runBlocking {
+        val corpos = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val contador = java.util.concurrent.atomic.AtomicInteger(0)
+        val engine = MockEngine { request ->
+            corpos += (request.body as io.ktor.http.content.TextContent).text
+            if (corpos.size == 1) {
+                respond("<html>portal</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html"))
+            } else {
+                respond(protocoloJson(), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            }
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val viewModel = OcorrenciaTurnoViewModel(
+            turnoId = turnoId,
+            servicoTurnos = ServicoTurnos(cliente),
+            geradorDeChave = { "chave-${contador.incrementAndGet()}" },
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        viewModel.selecionarMotivo(MotivoOcorrencia.ATRASO_OU_IMPREVISTO)
+
+        viewModel.enviar()?.join()
+        assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
+        viewModel.enviar()?.join()
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+
+        assertEquals(2, corpos.size)
+        assertTrue(corpos[0].contains("\"chave\":\"chave-1\""))
+        assertTrue(corpos[1].contains("\"chave\":\"chave-1\""))
+    }
 }
