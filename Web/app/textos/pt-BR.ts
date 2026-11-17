@@ -21,6 +21,7 @@ export const textos = {
       sem_configuracao: "ainda não existe para a web",
       indisponivel: "servidor indisponível",
       nao_configurado: "endereço do servidor não configurado neste ambiente",
+      chave_recusada: "a chave configurada neste ambiente foi recusada",
     },
     versaoMinima: "Versão mínima",
   },
