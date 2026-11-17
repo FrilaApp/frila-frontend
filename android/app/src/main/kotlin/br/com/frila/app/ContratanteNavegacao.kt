@@ -227,6 +227,9 @@ internal fun RotaTurnoDoContratante(
         }
         is EstadoDoTurnoDaRota.Pronto -> {
             val viewModel: AcompanhamentoContratanteViewModel = koinViewModel(parameters = { parametersOf(atual.contexto) })
+            LaunchedEffect(viewModel, atual.contexto) {
+                viewModel.atualizarContexto(atual.contexto)
+            }
             val codigoDaCasa = codigoDaCasaDoTurno(checkinPorCodigoHabilitado, atual.contexto.turnoId) { tentativa++ }
             TelaTurnoDoContratante(
                 viewModel = viewModel,
