@@ -332,6 +332,7 @@ private fun SecaoTurnoConfirmado(
                 criarCheckinViewModel = criarCheckinViewModel,
                 aoExibirComprovante = aoExibirComprovante,
             )
+            SecaoDeCheckout(turno = turno, criarCheckinViewModel = criarCheckinViewModel, agora = relogio())
             BotaoSecundario(
                 texto = "Cancelar turno",
                 aoClicar = { aoCancelar(turno) },
@@ -339,7 +340,8 @@ private fun SecaoTurnoConfirmado(
             )
         }
         is EstadoContagemRegressiva.TurnoFinalizado -> {
-            // Turno finalizado não exibe check-in nem cancelamento
+            // Turno finalizado não exibe check-in nem cancelamento. L1-4: o check-out ainda vale até 60 min depois do fim.
+            SecaoDeCheckout(turno = turno, criarCheckinViewModel = criarCheckinViewModel, agora = relogio())
         }
     }
 }

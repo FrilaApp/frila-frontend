@@ -32,6 +32,8 @@ data class ItemTurno(
     val pontoDaVaga: Coordenada? = null,
     /** C0-9: id do perfil público da casa (`Turno.contraparte`), o alvo de "Denunciar" como no iOS (`TelaMeuTurno.swift:125`). */
     val contraparteId: String? = null,
+    /** L1-4: quando o check-out foi registrado (`Turno.checkout_em`); `null` enquanto não houve. */
+    val checkoutEm: Instant? = null,
 )
 
 /** Estado do diálogo RN12 enquanto o profissional decide e envia o cancelamento. */
