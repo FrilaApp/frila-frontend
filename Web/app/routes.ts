@@ -8,12 +8,23 @@ export default [
   route("aceitar-termos", "rotas/aceitar-termos.ts"),
   route("saude", "rotas/saude.ts"),
 
+  // Páginas públicas (textos do marketing)
+  route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),
+  route("como-funciona/profissional", "rotas/publico/como-funciona-profissional.tsx"),
+  route("perguntas", "rotas/publico/perguntas.tsx"),
+
   // Lado do profissional
   route("vagas", "rotas/profissional/vagas.tsx"),
   route("vagas/:vagaId", "rotas/profissional/vaga.tsx"),
   route("candidaturas", "rotas/profissional/candidaturas.tsx"),
   route("turnos", "rotas/profissional/turnos.tsx"),
   route("turnos/:turnoId", "rotas/profissional/turno.tsx"),
+  route("perfil", "rotas/profissional/perfil.tsx"),
+  route("chamadas", "rotas/profissional/chamadas.tsx"),
+  route("chamadas/:chamadaId", "rotas/profissional/chamada.tsx"),
+  route("denunciar", "rotas/profissional/denunciar.tsx"),
+  route("bloqueados", "rotas/profissional/bloqueados.tsx"),
+  route("preferencias", "rotas/profissional/preferencias.tsx"),
 
   // Lado do contratante
 ] satisfies RouteConfig;

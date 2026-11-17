@@ -50,6 +50,32 @@ diz("o início mostra o caminho para os turnos", inicio.includes('href="/app/tur
 const turnos = await pedir("/app/turnos");
 const htmlDosTurnos = await turnos.text();
 diz("Meus turnos abre", turnos.status === 200 && htmlDosTurnos.includes("Meus turnos"));
+const chamadas = await pedir("/app/chamadas");
+const htmlDasChamadas = await chamadas.text();
+const desligadas = htmlDasChamadas.includes("ainda não estão ligadas na web");
+diz("Chamadas abre (a lista, ou o aviso de recurso desligado)", chamadas.status === 200 && (htmlDasChamadas.includes("Casas que chamaram você") || desligadas), desligadas ? "(chamada_direta desligada no dev)" : "");
+const chamadaAlheia = await pedir("/app/chamadas/00000000-0000-4000-8000-000000000000");
+diz("chamada que não é da pessoa não abre", chamadaAlheia.status === 404 || desligadas, `(${chamadaAlheia.status})`);
+// Preferências: salva de volta os MESMOS valores (a chave de chamadas não muda, então nenhum registro novo).
+const telaDasPreferencias = await pedir("/app/preferencias");
+const htmlDasPreferencias = await telaDasPreferencias.text();
+diz("Preferências de chamadas abre com o texto busca-1", telaDasPreferencias.status === 200 && htmlDasPreferencias.includes("Aceito chamadas diretas") && htmlDasPreferencias.includes("Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga."));
+const marcada = (nome) => new RegExp(`<input[^>]*name="${nome}"[^>]*checked`).test(htmlDasPreferencias);
+const antecedencia = /<option value="(\d+)" selected/.exec(htmlDasPreferencias)?.[1];
+const pausa = /name="pausado_ate"[^>]*value="([\d-]*)"/.exec(htmlDasPreferencias)?.[1] ?? "";
+const antes = /name="aceita_chamadas_antes" value="(sim|nao)"/.exec(htmlDasPreferencias)?.[1];
+if (antecedencia && antes) {
+  const campos = { aceita_chamadas_antes: antes, antecedencia, pausado_ate: pausa };
+  if (marcada("aceita_chamadas")) campos.aceita_chamadas = "sim";
+  if (marcada("de_quem_ja_trabalhou")) campos.de_quem_ja_trabalhou = "sim";
+  if (marcada("pausar")) campos.pausar = "sim";
+  const salvas = await (await envio("/app/preferencias", campos)).text();
+  diz("salvar as preferências (com os mesmos valores)", salvas.includes("Preferências atualizadas com sucesso."));
+} else {
+  diz("ler as preferências antes de salvar", false, "(não salvou nada)");
+}
+const bloqueados = await pedir("/app/bloqueados");
+diz("Casas bloqueadas abre", bloqueados.status === 200 && (await bloqueados.text()).includes("Casas bloqueadas"));
 const turnoAlheio = await pedir("/app/turnos/00000000-0000-4000-8000-000000000000");
 diz("turno que não é da pessoa responde 404", turnoAlheio.status === 404);
 
@@ -67,6 +93,14 @@ if (ids.length > 0) {
   const htmlDaVaga = await vaga.text();
   diz("o detalhe da primeira vaga abre", vaga.status === 200 && htmlDaVaga.includes("Quem recebe no local"));
   diz("o token não aparece no detalhe", !htmlDaVaga.includes(acesso.slice(0, 40)));
+  // Denunciar e bloquear: só abre as telas. Nada é enviado (uma denúncia abriria ocorrência real; bloquear a casa
+  // de demonstração esconderia as vagas dela).
+  const linkDaDenuncia = /href="(\/app\/denunciar\?alvo=[0-9a-f-]{36})"/.exec(htmlDaVaga)?.[1];
+  diz("o detalhe da vaga leva a denunciar ou bloquear a casa", Boolean(linkDaDenuncia));
+  if (linkDaDenuncia) {
+    const denuncia = await (await pedir(linkDaDenuncia.replace(/^\/app/, "/app"))).text();
+    diz("a tela de denúncia abre com os atalhos 190 e 180 e a chave", denuncia.includes('href="tel:190"') && denuncia.includes('href="tel:180"') && /name="chave" value="[0-9a-f-]{36}"/.test(denuncia));
+  }
 }
 const inexistente = await pedir("/app/vagas/00000000-0000-4000-8000-000000000000");
 diz("vaga que não existe responde 404", inexistente.status === 404 && (await inexistente.text()).includes("Vaga não encontrada"));
@@ -100,6 +134,26 @@ if (idDaSelecao) {
   diz("retirar a candidatura", retirou.status === 200 && (await retirou.text()).includes("Candidatura retirada"));
 } else {
   diz("há vaga do modo seleção para provar o candidatar", false, "(nenhuma na lista)");
+}
+
+// Perfil: lê e salva de volta os MESMOS textos (exercita a escrita sem mudar a conta de demonstração).
+const desfazer = (texto) => texto.replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+const telaDoPerfil = await pedir("/app/perfil");
+const htmlDoPerfil = await telaDoPerfil.text();
+diz("Meu perfil abre com as funções", telaDoPerfil.status === 200 && htmlDoPerfil.includes("Funções"));
+diz("o perfil não manda ponto base ao navegador", !/latitude|longitude|ponto_base/.test(htmlDoPerfil));
+const textoDe = (nome) => {
+  const achado = new RegExp(`<textarea[^>]*name="${nome}"[^>]*>([\\s\\S]*?)</textarea>`).exec(htmlDoPerfil);
+  return achado ? desfazer(achado[1]) : null;
+};
+const atuais = { apresentacao: textoDe("apresentacao"), onde_trabalhei: textoDe("onde_trabalhei") };
+// Trava: sem ler os dois textos, não salva (mandar vazio apagaria o perfil da conta de demonstração).
+if (atuais.apresentacao !== null && atuais.onde_trabalhei !== null) {
+  const salvou = await envio("/app/perfil", atuais);
+  const htmlSalvo = await salvou.text();
+  diz("salvar o perfil (com os mesmos textos)", salvou.status === 200 && htmlSalvo.includes("Perfil salvo."), htmlSalvo.includes("não está disponível") ? "(perfil rico desligado no dev)" : "");
+} else {
+  diz("ler os textos do perfil antes de salvar", false, "(não salvou nada)");
 }
 
 const saida = await envio("/app/sair", {});

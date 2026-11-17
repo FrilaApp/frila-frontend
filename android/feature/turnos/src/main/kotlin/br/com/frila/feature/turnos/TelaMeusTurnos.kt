@@ -1,5 +1,9 @@
 package br.com.frila.feature.turnos
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.Manifest
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,7 +84,7 @@ private const val ESTADO_CHECKIN_DISPONIVEL = "confirmada"
 @Composable
 fun TelaMeusTurnos(
     viewModel: MeusTurnosViewModel,
-    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    criarCheckinViewModel: @Composable (turno: ItemTurno) -> CheckinViewModel,
     modifier: Modifier = Modifier,
     aoAbrirAvaliacao: (turnoId: String) -> Unit = {},
     relogio: () -> Instant = { Instant.now() },
@@ -194,7 +198,7 @@ fun TelaMeusTurnos(
 @Composable
 private fun ListaDeTurnos(
     itens: List<ItemTurno>,
-    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    criarCheckinViewModel: @Composable (turno: ItemTurno) -> CheckinViewModel,
     aoAbrirAvaliacao: (turnoId: String) -> Unit,
     aoCancelar: (ItemTurno) -> Unit,
     aoExibirComprovante: (ComprovanteCheckin) -> Unit,
@@ -278,7 +282,7 @@ private fun ListaDeTurnos(
 @Composable
 private fun SecaoTurnoConfirmado(
     turno: ItemTurno,
-    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    criarCheckinViewModel: @Composable (turno: ItemTurno) -> CheckinViewModel,
     aoCancelar: (ItemTurno) -> Unit,
     aoExibirComprovante: (ComprovanteCheckin) -> Unit,
     relogio: () -> Instant = { Instant.now() },
@@ -425,7 +429,8 @@ fun DialogoCancelamentoTurno(
 @Composable
 private fun DialogoDefensivoLocalizacao(
     dialogo: DialogoDefensivoLocalizacao,
-    aoAbrirConfiguracoes: () -> Unit,
+    /** Abrir as Configurações (permissão, GPS) ou, na leitura imprecisa, tentar o GPS de novo. */
+    aoAcaoPrincipal: () -> Unit,
     aoContinuarManual: () -> Unit,
     aoDispensar: () -> Unit,
 ) {
@@ -444,6 +449,13 @@ private fun DialogoDefensivoLocalizacao(
                 "contratante confirmar.",
             "Ativar GPS",
         )
+        // Como o `.semGPS(.imprecisa)` do iOS (TextosDaPresenca.motivoImprecisa e manualExplicacao).
+        DialogoDefensivoLocalizacao.LEITURA_IMPRECISA -> Triple(
+            "Localização não confirmada",
+            "O sinal do GPS está fraco demais para confirmar que você está no endereço. Você pode tentar " +
+                "de novo ou fazer o check-in manual, que fica pendente até o contratante confirmar.",
+            "Tentar de novo",
+        )
     }
 
     AlertDialog(
@@ -451,7 +463,7 @@ private fun DialogoDefensivoLocalizacao(
         title = { Text(titulo, modifier = Modifier.semantics { heading() }) },
         text = { Text(texto) },
         confirmButton = {
-            BotaoPrimario(texto = textoBotaoPrimario, aoClicar = aoAbrirConfiguracoes)
+            BotaoPrimario(texto = textoBotaoPrimario, aoClicar = aoAcaoPrincipal)
         },
         dismissButton = {
             BotaoSecundario(texto = "Continuar manual", aoClicar = aoContinuarManual)
@@ -493,13 +505,22 @@ object TextosCheckin {
     const val ERRO_PADRAO = "Não foi possível registrar o check-in."
 }
 
+/** Fina ou aproximada: o Android deixa a pessoa escolher, e a aproximada cai na regra dos 100 m. */
+private val PERMISSOES_DE_LOCALIZACAO = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+
+/**
+ * Troca o pedido de permissão do sistema num teste (o Robolectric não responde ao diálogo do sistema): recebe quem
+ * trata a resposta (`true` = concedida). `null` em produção, e o pedido vai ao sistema.
+ */
+val LocalPedidoDePermissaoDeLocalizacao = staticCompositionLocalOf<((aoResponder: (Boolean) -> Unit) -> Unit)?> { null }
+
 @Composable
 private fun SecaoDeCheckin(
     turno: ItemTurno,
-    criarCheckinViewModel: @Composable (turnoId: String) -> CheckinViewModel,
+    criarCheckinViewModel: @Composable (turno: ItemTurno) -> CheckinViewModel,
     aoExibirComprovante: (ComprovanteCheckin) -> Unit,
 ) {
-    val viewModel = criarCheckinViewModel(turno.turnoId)
+    val viewModel = criarCheckinViewModel(turno)
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val emitirFeedback = lembrarFeedbackAcaoCritica()
@@ -510,15 +531,33 @@ private fun SecaoDeCheckin(
 
     val comprovanteAtivo = estado.comprovante ?: turno.comprovante
 
+    // C0-7: sem permissão, o 1º toque pede ao sistema; a resposta volta à VM (recusa = diálogo das Configurações).
+    val pedidoDeTeste = LocalPedidoDePermissaoDeLocalizacao.current
+    val lancadorDePermissao = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { respostas ->
+        viewModel.respostaDaPermissao(concedida = respostas.values.any { it })
+    }
+    LaunchedEffect(estado.pedirPermissao) {
+        if (estado.pedirPermissao) {
+            viewModel.pedidoDePermissaoAberto()
+            if (pedidoDeTeste != null) {
+                pedidoDeTeste { concedida -> viewModel.respostaDaPermissao(concedida) }
+            } else {
+                lancadorDePermissao.launch(PERMISSOES_DE_LOCALIZACAO)
+            }
+        }
+    }
+
     estado.dialogoDefensivo?.let { dialogo ->
         DialogoDefensivoLocalizacao(
             dialogo = dialogo,
-            aoAbrirConfiguracoes = {
-                val intent = when (dialogo) {
-                    DialogoDefensivoLocalizacao.PERMISSAO_NEGADA -> criarIntentConfiguracoesApp(contexto)
-                    DialogoDefensivoLocalizacao.GPS_DESLIGADO -> criarIntentConfiguracoesGps()
+            aoAcaoPrincipal = {
+                when (dialogo) {
+                    DialogoDefensivoLocalizacao.PERMISSAO_NEGADA ->
+                        abrirConfiguracoesComFallback(contexto, criarIntentConfiguracoesApp(contexto))
+                    DialogoDefensivoLocalizacao.GPS_DESLIGADO ->
+                        abrirConfiguracoesComFallback(contexto, criarIntentConfiguracoesGps())
+                    DialogoDefensivoLocalizacao.LEITURA_IMPRECISA -> { emitirFeedback(); viewModel.fazerCheckin() }
                 }
-                abrirConfiguracoesComFallback(contexto, intent)
             },
             aoContinuarManual = { viewModel.prosseguirCheckinManual() },
             aoDispensar = { viewModel.dispensarDialogoDefensivo() },

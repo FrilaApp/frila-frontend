@@ -2,21 +2,25 @@ import { env } from "cloudflare:workers";
 import { Form, Link } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { lerConfiguracaoDesteAmbiente } from "../servidor/abertura";
+import { lerConfiguracaoDesteAmbiente, lerLinkDaAppStore } from "../servidor/abertura";
 import { lerMinhaConta } from "../servidor/conta";
 import { apiDoUsuario } from "../servidor/deste-ambiente";
+import { condicoesPublicas } from "../servidor/publico";
 import { textos } from "../textos/pt-BR";
 import { VERSAO_DOS_TERMOS } from "../versao";
 import type { Route } from "./+types/inicio";
+import { InicioPublico } from "./publico/inicio-publico";
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   if (env.WEB_LIGADA !== "1") {
     return { webLigada: false as const };
   }
   const sessao = context.get(contextoDaSessao);
-  const [leitura, conta] = await Promise.all([
+  const [leitura, conta, linkDaAppStore] = await Promise.all([
     lerConfiguracaoDesteAmbiente(),
     sessao ? lerMinhaConta(apiDoUsuario(sessao.acesso)) : null,
+    // Só quem não entrou vê a página pública com o botão da loja.
+    sessao ? null : lerLinkDaAppStore(),
   ]);
   return {
     webLigada: true as const,
@@ -25,6 +29,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     versaoMinima: leitura.estado === "ok" ? leitura.configuracao.versao_minima : null,
     // Só o que a tela mostra: o token fica no servidor.
     entrou: sessao ? { email: sessao.email, conta } : null,
+    // Para a página de quem não entrou: o que o marketing deixa mostrar com os recursos ligados.
+    condicoes: condicoesPublicas(leitura, linkDaAppStore),
     // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
     termosPendentes: conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS,
     termosVersao: VERSAO_DOS_TERMOS,
@@ -39,6 +45,9 @@ export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData?.webLigada) {
     return [{ title: textos.emBreve.tituloDaAba }, { name: "description", content: textos.emBreve.descricao }];
   }
+  if (!loaderData.entrou) {
+    return [{ title: textos.publico.inicio.tituloDaAba }, { name: "description", content: textos.publico.inicio.descricao }];
+  }
   return [{ title: textos.inicio.tituloDaAba }, { name: "robots", content: "noindex" }];
 }
 
@@ -48,6 +57,10 @@ const classeDoBotao = "min-h-12 rounded-controle border border-borda bg-superfic
 export default function Inicio({ loaderData }: Route.ComponentProps) {
   const bloco = loaderData.webLigada ? textos.inicio : textos.emBreve;
   const entrou = loaderData.webLigada ? loaderData.entrou : null;
+  // Quem não entrou vê a página pública (a não ser que o sair tenha falhado: aí a tela oferece tentar de novo).
+  if (loaderData.webLigada && !entrou && !loaderData.sairFalhou) {
+    return <InicioPublico condicoes={loaderData.condicoes} />;
+  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 p-6">
@@ -88,6 +101,12 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
               </Link>{" "}
               <Link to="/turnos" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
                 {textos.profissional.turnos.titulo}
+              </Link>{" "}
+              <Link to="/perfil" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
+                {textos.profissional.perfil.verPerfil}
+              </Link>{" "}
+              <Link to="/chamadas" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
+                {textos.profissional.chamadas.titulo}
               </Link>
             </p>
           ) : null}
