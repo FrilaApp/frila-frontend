@@ -10,6 +10,9 @@ object TextosEquipe {
     const val VAZIO_TITULO = "Ninguém na equipe ainda"
     const val VAZIO_MENSAGEM = "Inclua um profissional a partir de um turno que ele já cumpriu aqui."
     const val CARREGANDO = "Carregando a equipe…"
+    const val INCLUIR = "Incluir na equipe"
+    const val INCLUINDO = "Incluindo…"
+    const val NA_EQUIPE = "Na equipe de confiança"
     const val REMOVER = "Remover"
     const val CHAMAR_DE_NOVO = "Chamar de novo"
     const val REMOVENDO = "Removendo…"
@@ -34,6 +37,8 @@ object TextosEquipe {
 
     fun efeitoRemocao(nome: String): String =
         "$nome deixa de receber as vagas desta casa além de 15 km. Sem penalidade nem aviso."
+
+    fun rotuloIncluir(nome: String): String = "$INCLUIR: $nome"
 
     fun rotuloRemover(nome: String): String = "$REMOVER $nome"
 

@@ -139,15 +139,7 @@ class EquipeDeConfiancaViewModel(
     }
 
     /** As recusas do contrato para listar e remover; `sem_turno_cumprido` e `conta_suspensa` vêm em `details`. */
-    private fun mensagemDeErro(erro: ErroDaApi): String = when {
-        erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "sem_turno_cumprido" -> TextosEquipe.SEM_TURNO_CUMPRIDO
-        erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "conta_suspensa" -> TextosEquipe.CONTA_SUSPENSA
-        erro.codigo == CodigoErroAPI.CONTA_SUSPENSA -> TextosEquipe.CONTA_SUSPENSA
-        erro.codigo == CodigoErroAPI.SEM_PERMISSAO -> TextosEquipe.SO_ADMINISTRADOR
-        erro.codigo == CodigoErroAPI.NAO_ENCONTRADO -> TextosEquipe.INDISPONIVEL
-        erro.codigo == CodigoErroAPI.SEM_REDE -> TextosEquipe.SEM_REDE
-        else -> TextosEquipe.ERRO
-    }
+    private fun mensagemDeErro(erro: ErroDaApi): String = mensagemDeErroDaEquipe(erro)
 
     /** `sair_da_equipe`: `403` é "não é profissional"; `422 campo_invalido` em `estabelecimento_id` é "não está na equipe". */
     private fun mensagemDeErroAoSair(erro: ErroDaApi): String = when {
