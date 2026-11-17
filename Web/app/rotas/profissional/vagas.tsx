@@ -52,7 +52,7 @@ function linkComFiltros(filtros: { data: string | null; distanciaMaxKm: number |
 }
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
-const classeDoBotao = "min-h-12 rounded-controle bg-acao px-6 text-lg font-bold text-tinta";
+const classeDoBotao = "min-h-12 rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao";
 const classeDoLink = "inline-flex min-h-11 items-center font-semibold underline underline-offset-4";
 
 const AVISO_DO_ESTADO = {

@@ -46,6 +46,12 @@ const acesso = pote.get(`${prefixo}frila-acesso`) ?? "";
 
 const inicio = await (await pedir("/app/")).text();
 diz("o início mostra o caminho para as vagas", inicio.includes('href="/app/vagas"'));
+diz("o início mostra o caminho para os turnos", inicio.includes('href="/app/turnos"'));
+const turnos = await pedir("/app/turnos");
+const htmlDosTurnos = await turnos.text();
+diz("Meus turnos abre", turnos.status === 200 && htmlDosTurnos.includes("Meus turnos"));
+const turnoAlheio = await pedir("/app/turnos/00000000-0000-4000-8000-000000000000");
+diz("turno que não é da pessoa responde 404", turnoAlheio.status === 404);
 
 const lista = await pedir("/app/vagas");
 const htmlDaLista = await lista.text();
@@ -84,7 +90,11 @@ if (idDaSelecao) {
   const minhas = await (await pedir("/app/candidaturas")).text();
   diz("a candidatura aparece em Minhas candidaturas, aguardando a casa", minhas.includes(`href="/app/vagas/${idDaSelecao}"`) && minhas.includes("Aguardando a casa"));
   const repetida = await envio(`/app/vagas/${idDaSelecao}`, { intencao: "candidatar" });
-  diz("candidatar de novo não duplica (o servidor devolve a mesma)", repetida.status === 200 && (await repetida.text()).includes("Candidatura enviada"));
+  diz("candidatar de novo responde como a primeira", repetida.status === 200 && (await repetida.text()).includes("Candidatura enviada"));
+  // Não duplicou: em Minhas candidaturas, continua UMA candidatura desta vaga, e pendente.
+  const depoisDaRepeticao = await (await pedir("/app/candidaturas")).text();
+  const daVaga = [...depoisDaRepeticao.matchAll(/<li>(.*?)<\/li>/gs)].map((m) => m[1]).filter((item) => item.includes(`href="/app/vagas/${idDaSelecao}"`));
+  diz("candidatar de novo não duplica: segue 1 candidatura desta vaga, pendente", daVaga.length === 1 && daVaga[0].includes("Aguardando a casa"), `(${daVaga.length})`);
   const idDaCandidatura = /name="candidatura_id" value="([0-9a-f-]{36})"/.exec(htmlCandidatou)?.[1] ?? "";
   const retirou = await envio(`/app/vagas/${idDaSelecao}`, { intencao: "retirar", candidatura_id: idDaCandidatura });
   diz("retirar a candidatura", retirou.status === 200 && (await retirou.text()).includes("Candidatura retirada"));
