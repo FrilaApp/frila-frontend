@@ -102,6 +102,11 @@ describe("cadastro do profissional: a tela de cada passo", () => {
     expect(tela).toMatch(new RegExp(`name="horas:${GARCOM}"[^>]*value="10"`));
     expect(tela).toMatch(new RegExp(`name="pessoas:${GARCOM}"[^>]*value="1"`));
     expect(tela).toContain(`>${t.criar}</button>`);
+    // O cadastro não liga as chamadas diretas: a tela final só diz onde isso fica, com o nome que a tela de lá usa.
+    expect(tela).toContain(t.servicos.chamadasDiretas);
+    expect(t.servicos.chamadasDiretas).toContain(textos.profissional.preferencias.aceitoChamadas);
+    expect(tela).not.toContain('name="aceita_chamadas"');
+    expect(noPasso("regioes", { funcoes: [GARCOM] })).not.toContain(t.servicos.chamadasDiretas);
     // Sem nada preenchido, o bloco abre em "não oferecer", com a diária de 8 horas sugerida (como no app).
     const vazia = noPasso("servicos", { funcoes: [GARCOM, COZINHEIRO] });
     expect(vazia).toContain(`<option value="nao" selected="">${t.servicos.naoOferecer}</option>`);

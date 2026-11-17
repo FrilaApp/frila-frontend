@@ -62,6 +62,8 @@ export const profissionalCadastro = {
     horas: "Horas incluídas na diária (4 a 12)",
     pessoas: "Mínimo de pessoas (1 a 2.000)",
     pacote: "Descrição do pacote (até 120 caracteres)",
+    // O nome entre aspas é o da tela de preferências (profissional.preferencias.aceitoChamadas).
+    chamadasDiretas: "Para a casa poder te chamar direto, ligue \"Aceito chamadas diretas\" nas suas preferências de chamadas, depois de criar o perfil.",
   },
   avisos: {
     ja_tem_perfil: "Você já tem um perfil de profissional.",

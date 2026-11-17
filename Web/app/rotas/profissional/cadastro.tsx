@@ -295,6 +295,7 @@ function PassoDosServicos({ funcoes, servicos }: { funcoes: Array<{ id: string; 
           </fieldset>
         );
       })}
+      <p className="text-sm text-tinta-suave">{s.chamadasDiretas}</p>
     </div>
   );
 }
