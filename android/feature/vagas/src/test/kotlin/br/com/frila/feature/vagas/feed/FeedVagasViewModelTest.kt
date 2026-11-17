@@ -1,7 +1,5 @@
 package br.com.frila.feature.vagas.feed
 
-import br.com.frila.core.dominio.modelo.Coordenada
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import io.ktor.client.engine.mock.MockEngine
@@ -9,8 +7,6 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -58,21 +54,13 @@ class FeedVagasViewModelTest {
         }
     """.trimIndent()
 
-    private fun provedorSemCoordenada(): ProvedorDeLocalizacao {
-        val provedor = mockk<ProvedorDeLocalizacao>()
-        coEvery { provedor.obterCoordenadaAtual() } returns null
-        return provedor
-    }
-
     private fun viewModelComEngine(
         engine: MockEngine,
         preferencias: ArmazenamentoPreferenciasFiltro = ArmazenamentoPreferenciasFiltroEmMemoria(),
-        provedorDeLocalizacao: ProvedorDeLocalizacao = provedorSemCoordenada(),
     ): FeedVagasViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(cliente),
-            provedorDeLocalizacao = provedorDeLocalizacao,
             armazenamentoPreferencias = preferencias,
             escopo = CoroutineScope(Dispatchers.Default),
         )
@@ -687,40 +675,18 @@ class FeedVagasViewModelTest {
     }
 
     @Test
-    fun `carregar repassa coordenada atual ao ServicoVagas`() = runBlocking {
-        var latitudeRecebida: String? = null
-        var longitudeRecebida: String? = null
-        val provedor = mockk<ProvedorDeLocalizacao>()
-        coEvery { provedor.obterCoordenadaAtual() } returns Coordenada(latitude = -15.79, longitude = -47.88)
+    fun `carregar chama vagas_abertas sem latitude e sem longitude`() = runBlocking {
+        var tinhaCoordenada = true
         val viewModel = viewModelComEngine(
             MockEngine { request ->
-                latitudeRecebida = request.url.parameters["latitude"]
-                longitudeRecebida = request.url.parameters["longitude"]
+                tinhaCoordenada = request.url.parameters.contains("latitude") || request.url.parameters.contains("longitude")
                 respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
             },
-            provedorDeLocalizacao = provedor,
         )
 
         viewModel.carregar().join()
 
-        assertEquals("-15.79", latitudeRecebida)
-        assertEquals("-47.88", longitudeRecebida)
-    }
-
-    @Test
-    fun `carregar sem coordenada disponivel chama ServicoVagas sem latitude e longitude (fallback gracioso)`() = runBlocking {
-        var tinhaLatitude = true
-        val viewModel = viewModelComEngine(
-            MockEngine { request ->
-                tinhaLatitude = request.url.parameters.contains("latitude")
-                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
-            },
-            provedorDeLocalizacao = provedorSemCoordenada(),
-        )
-
-        viewModel.carregar().join()
-
-        assertTrue(!tinhaLatitude)
+        assertTrue(!tinhaCoordenada)
         assertEquals(StatusFeed.VAZIO, viewModel.estado.value.status)
     }
 
@@ -793,40 +759,18 @@ class FeedVagasViewModelTest {
     }
 
     @Test
-    fun `atualizar repassa coordenada atual ao ServicoVagas`() = runBlocking {
-        var latitudeRecebida: String? = null
-        var longitudeRecebida: String? = null
-        val provedor = mockk<ProvedorDeLocalizacao>()
-        coEvery { provedor.obterCoordenadaAtual() } returns Coordenada(latitude = -15.79, longitude = -47.88)
+    fun `atualizar chama vagas_abertas sem latitude e sem longitude`() = runBlocking {
+        var tinhaCoordenada = true
         val viewModel = viewModelComEngine(
             MockEngine { request ->
-                latitudeRecebida = request.url.parameters["latitude"]
-                longitudeRecebida = request.url.parameters["longitude"]
+                tinhaCoordenada = request.url.parameters.contains("latitude") || request.url.parameters.contains("longitude")
                 respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
             },
-            provedorDeLocalizacao = provedor,
         )
 
         viewModel.atualizar().join()
 
-        assertEquals("-15.79", latitudeRecebida)
-        assertEquals("-47.88", longitudeRecebida)
-    }
-
-    @Test
-    fun `atualizar sem coordenada disponivel chama ServicoVagas sem latitude e longitude (fallback gracioso)`() = runBlocking {
-        var tinhaLatitude = true
-        val viewModel = viewModelComEngine(
-            MockEngine { request ->
-                tinhaLatitude = request.url.parameters.contains("latitude")
-                respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
-            },
-            provedorDeLocalizacao = provedorSemCoordenada(),
-        )
-
-        viewModel.atualizar().join()
-
-        assertTrue(!tinhaLatitude)
+        assertTrue(!tinhaCoordenada)
     }
 
     // RF10/RNF04: ordenação flexível do feed por maior valor e menor distância.

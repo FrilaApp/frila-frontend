@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.dominio.modelo.Coordenada
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.LeituraDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
@@ -122,7 +121,6 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
                 coEvery { lerParaCheckin() } returns LeituraDeLocalizacao(coordenada = vaga, precisaoMetros = 10f, simulada = false)
             }
         }
-        single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
     }
 
     @Test
