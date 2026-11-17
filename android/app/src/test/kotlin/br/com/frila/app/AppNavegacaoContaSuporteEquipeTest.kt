@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -125,6 +126,7 @@ class AppNavegacaoContaSuporteEquipeTest {
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
+                        viewModel { meusTurnos }
                         viewModel { (estabelecimentoId: String) ->
                             EquipeDeConfiancaViewModel(
                                 estabelecimentoId = estabelecimentoId,
@@ -152,6 +154,37 @@ class AppNavegacaoContaSuporteEquipeTest {
     }
 
     private fun rotaAtual() = nav.currentDestination?.route
+
+    /** Um turno já concluído da profissional na casa "e1" (sem check-in a fazer). */
+    private val meusTurnos = mockk<br.com.frila.feature.turnos.MeusTurnosViewModel>(relaxed = true) {
+        every { estado } returns MutableStateFlow(
+            br.com.frila.feature.turnos.EstadoMeusTurnos(
+                status = br.com.frila.feature.turnos.StatusMeusTurnos.SUCESSO,
+                agendados = listOf(
+                    br.com.frila.feature.turnos.ItemTurno(
+                        turnoId = "turno-7", posicaoId = "posicao-7", inicio = java.time.Instant.parse("2026-11-01T21:00:00Z"),
+                        funcaoNome = "Garçom", estabelecimentoNome = "Bar do Zé", dataHorarioFormatado = "01/11 18:00",
+                        valorFormatado = "R$ 160,00", estado = "concluida", contraparteId = "e1",
+                    ),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `C0-9 - de Meus turnos a profissional chega a denuncia da casa, com o turno`() {
+        montar(inicio = Rotas.MEUS_TURNOS)
+
+        rule.onNodeWithContentDescription("Denunciar Bar do Zé").performScrollTo().performClick()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.DENUNCIA, rotaAtual())
+            val argumentos = nav.currentBackStackEntry?.arguments
+            assertEquals("estabelecimento", argumentos?.getString("alvoTipo"))
+            assertEquals("e1", argumentos?.getString("alvoId"))
+            assertEquals("turno-7", argumentos?.getString("turnoId"))
+        }
+    }
 
     @Test
     fun excluirContaNoPerfilAbreATelaDedicadaEmVezDoDialogo() {

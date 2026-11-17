@@ -237,7 +237,7 @@ export default function PublicarVaga({ loaderData, actionData }: Route.Component
           <Aviso id="erro-observacoes" texto={erros.observacoes} />
         </label>
 
-        <button type="submit" disabled={enviando} className="min-h-12 w-full rounded-controle bg-acao px-4 text-lg font-bold text-tinta disabled:opacity-60">
+        <button type="submit" disabled={enviando} className="min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60">
           {enviando ? t.publicando : t.publicar}
         </button>
       </Form>

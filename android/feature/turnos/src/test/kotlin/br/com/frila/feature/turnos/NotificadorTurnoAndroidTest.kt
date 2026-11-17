@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
@@ -7,6 +8,7 @@ import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,6 +25,12 @@ class NotificadorTurnoAndroidTest {
 
     private val turnoId = "t-1"
     private val fimTurno: Instant = Instant.parse("2026-11-02T02:00:00Z")
+
+    /** Os testes que postam rodam com o aviso permitido (no Android 13 ou mais a pessoa pode negar). */
+    @Before
+    fun permitirAvisos() {
+        shadowOf(contexto).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+    }
 
     private fun especificacao(): EspecificacaoNotificacaoTurno = EspecificacaoNotificacaoTurno.paraTurnoEmAndamento(
         turnoId = turnoId,
@@ -68,6 +76,16 @@ class NotificadorTurnoAndroidTest {
         val ativas = shadowOf(gerenciador).allNotifications
 
         assertEquals(1, ativas.size)
+    }
+
+    @Test
+    fun `postar sem a permissao POST_NOTIFICATIONS nao posta nada (Android 13 ou mais)`() {
+        shadowOf(contexto).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+
+        notificador.postar(especificacao(), fimTurno)
+
+        val gerenciador = contexto.getSystemService(NotificationManager::class.java)
+        assertTrue(shadowOf(gerenciador).allNotifications.isEmpty())
     }
 
     @Test

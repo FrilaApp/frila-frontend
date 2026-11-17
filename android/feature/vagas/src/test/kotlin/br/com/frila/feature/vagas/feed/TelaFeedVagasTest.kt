@@ -121,6 +121,30 @@ class TelaFeedVagasTest {
     }
 
     @Test
+    fun `C0-9 - o feed tem entrada para Meus turnos, com alvo de toque de 44`() {
+        var abriuMeusTurnos = 0
+        val viewModel = criarViewModel()
+
+        compose.setContent {
+            FrilaTheme {
+                TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {}, aoAbrirMeusTurnos = { abriuMeusTurnos++ })
+            }
+        }
+
+        compose.onNodeWithText("Meus turnos").assertIsDisplayed().assertHeightIsAtLeast(44.dp).performClick()
+        assertEquals(1, abriuMeusTurnos)
+    }
+
+    @Test
+    fun `C0-9 - sem o caminho de Meus turnos o botao nao aparece`() {
+        val viewModel = criarViewModel()
+
+        compose.setContent { FrilaTheme { TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {}) } }
+
+        compose.onNodeWithText("Meus turnos").assertDoesNotExist()
+    }
+
+    @Test
     fun `quando feed esta vazio exibe mensagem de estado vazio`() {
         runBlocking {
             val viewModel = criarViewModel("[]")

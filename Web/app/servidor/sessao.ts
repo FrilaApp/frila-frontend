@@ -104,7 +104,10 @@ export type AuthDaSessao = {
   conferir: (acesso: string) => Promise<Conferencia>;
 };
 
-type Decisao = { sessao: SessaoAtual | null; cookies: string[] };
+/** `ok`: há sessão · `recusou`: a sessão não existe mais · `indisponivel`: o Auth falhou · `sem_cookie`: ninguém entrou. */
+export type RespostaDoAuth = "ok" | "recusou" | "indisponivel" | "sem_cookie";
+
+type Decisao = { sessao: SessaoAtual | null; cookies: string[]; auth: RespostaDoAuth };
 
 /**
  * Decide a sessão de um pedido, uma vez só (no middleware da raiz). Quem diz se a sessão existe é o Auth, no
@@ -123,10 +126,10 @@ export async function resolverSessao(
   const seguro = ehPedidoSeguro(request);
   const { acesso, renovacao } = lerCookiesDaSessao(request);
   if (!acesso && !renovacao) {
-    return { sessao: null, cookies: [] };
+    return { sessao: null, cookies: [], auth: "sem_cookie" };
   }
   if (!auth) {
-    return { sessao: null, cookies: [] };
+    return { sessao: null, cookies: [], auth: "indisponivel" };
   }
 
   const venceEm = acesso ? lerToken(acesso).venceEm : null;
@@ -135,16 +138,21 @@ export async function resolverSessao(
 
   if (acesso && (acessoFolgado || (acessoVale && !renovacao))) {
     const conferencia = await auth.conferir(acesso);
-    if (conferencia.ok) return { sessao: sessaoAtualDe(acesso), cookies: [] };
-    return { sessao: null, cookies: conferencia.motivo === "recusada" ? cookiesDeSaida(seguro) : [] };
+    if (conferencia.ok) return { sessao: sessaoAtualDe(acesso), cookies: [], auth: "ok" };
+    return conferencia.motivo === "recusada"
+      ? { sessao: null, cookies: cookiesDeSaida(seguro), auth: "recusou" }
+      : { sessao: null, cookies: [], auth: "indisponivel" };
   }
   if (!renovacao) {
-    return { sessao: null, cookies: cookiesDeSaida(seguro) };
+    // Token vencido (ou ilegível) e nada com que renovar: não há sessão a manter.
+    return { sessao: null, cookies: cookiesDeSaida(seguro), auth: "recusou" };
   }
 
   const resultado = await auth.renovar(renovacao);
   if (resultado.ok) {
-    return { sessao: sessaoAtualDe(resultado.sessao.access_token), cookies: cookiesDaSessao(resultado.sessao, seguro) };
+    return { sessao: sessaoAtualDe(resultado.sessao.access_token), cookies: cookiesDaSessao(resultado.sessao, seguro), auth: "ok" };
   }
-  return { sessao: null, cookies: resultado.motivo === "recusada" ? cookiesDeSaida(seguro) : [] };
+  return resultado.motivo === "recusada"
+    ? { sessao: null, cookies: cookiesDeSaida(seguro), auth: "recusou" }
+    : { sessao: null, cookies: [], auth: "indisponivel" };
 }

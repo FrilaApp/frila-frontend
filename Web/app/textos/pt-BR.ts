@@ -3,9 +3,15 @@
  * todo texto visível sai daqui.
  */
 import { contratante } from "./contratante";
+import { profissional } from "./profissional";
+import { publico } from "./publico";
 
 export const textos = {
   marca: "Frila",
+  // Páginas públicas, textos do marketing (arquivo próprio para entrar como vieram).
+  publico,
+  // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
+  profissional,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
@@ -57,6 +63,7 @@ export const textos = {
     entrou: "Você entrou como",
     semEmail: "sua conta",
     sair: "Sair",
+    sairFalhou: "Não deu para sair agora. Tente de novo.",
     estado: {
       ok: "Conta",
       sem_conta: "Falta completar o cadastro para usar o Frila.",
@@ -65,6 +72,7 @@ export const textos = {
     perfil: { profissional: "Profissional", contratante: "Contratante" },
     entrar: "Entrar",
     completarCadastro: "Completar cadastro",
+    verVagas: "Ver vagas",
     termosMudaram: "Os Termos de Uso e a Política de Privacidade mudaram. Leia e aceite para continuar usando o Frila.",
     aceitarTermos: "Li e aceito",
     aceiteFalhou: "Não deu para registrar o aceite agora. Tente de novo em instantes.",
