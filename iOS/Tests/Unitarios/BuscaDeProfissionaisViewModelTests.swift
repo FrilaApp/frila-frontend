@@ -203,9 +203,12 @@ struct BuscaDeProfissionaisViewModelTests {
         return (fonte, vm)
     }
 
-    private func trabalho(valor: Int = 20_000) throws -> PublicacaoVaga {
+    /// Outro serviço da casa: na mesma busca, um trabalho é por serviço; outro trabalho do mesmo serviço só fechando e abrindo.
+    private let outroServico = UUID(uuidString: "F0000000-0000-0000-0000-000000000002")!
+
+    private func trabalho(valor: Int = 20_000, funcaoID: UUID? = nil) throws -> PublicacaoVaga {
         PublicacaoVaga(
-            estabelecimentoID: casaID, funcaoID: funcaoID,
+            estabelecimentoID: casaID, funcaoID: funcaoID ?? self.funcaoID,
             periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * 3600)),
             local: "Rua Teste", regiaoAdministrativa: "Asa Sul", ponto: try Coordenada(latitude: -15.8, longitude: -47.9),
             valor: Dinheiro(centavos: valor), posicoes: 1, inclusos: Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false),
@@ -639,9 +642,10 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.chamar(trabalho: try trabalho())
         vm.regiaoID = nil
+        vm.funcaoID = outroServico // outro serviço: outro trabalho, outra vaga (o mesmo serviço sairia pelo vaga_id)
         await vm.buscar()
         vm.alternarSelecao(try #require(vm.resultados.first).id)
-        await vm.chamar(trabalho: try trabalho(valor: 21_000)) // outro trabalho: outra vaga
+        await vm.chamar(trabalho: try trabalho(funcaoID: outroServico))
         let pedidos = await fonte.pedidos
         #expect(pedidos.map(\.regiaoID) == [7, nil])
         #expect(pedidos.allSatisfy { $0.trabalho != nil })
@@ -778,40 +782,43 @@ struct BuscaDeProfissionaisViewModelTests {
         Set(ids.compactMap { enviada(vm.resultadosDaChamada[$0])?.vagaID })
     }
 
-    @Test("Dois trabalhos seguidos na mesma busca, 3 selecionados cada: 2 vagas, uma por trabalho")
+    @Test("Outro trabalho do mesmo serviço na mesma busca: o view model manda o guardado do 1º envio e os 3 novos entram na vaga dele (1 vaga)")
     func doisTrabalhosNaMesmaBusca() async throws {
         let (fonte, vm) = preparar(total: 6)
         await vm.buscar()
         let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 6)
         ids.prefix(3).forEach { vm.alternarSelecao($0) }
-        await vm.chamar(trabalho: try trabalho())
+        let primeiro = try trabalho()
+        await vm.chamar(trabalho: primeiro, recado: "Recado do 1º")
         ids.prefix(3).forEach { vm.alternarSelecao($0) } // desmarca
         ids.suffix(3).forEach { vm.alternarSelecao($0) }
-        await vm.chamar(trabalho: try trabalho(valor: 21_000))
+        // DINHEIRO: uma tela que montasse outro trabalho (outro valor, outro horário) para o mesmo serviço abriria uma 2ª vaga.
+        await vm.chamar(trabalho: try trabalho(valor: 21_000), recado: "Outro recado")
         let pedidos = await fonte.pedidos
         #expect(pedidos.count == 6)
-        try #require(pedidos.count >= 6)
-        #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, true, false, false])
+        #expect(pedidos.map { $0.trabalho != nil } == [true, false, false, false, false, false])
+        #expect(pedidos.allSatisfy { $0.trabalho?.valor != Dinheiro(centavos: 21_000) }, "o trabalho recebido não sai")
         let primeira = try #require(vagas(vm, Array(ids.prefix(3))).first)
-        let segunda = try #require(vagas(vm, Array(ids.suffix(3))).first)
-        #expect(vagas(vm, ids) == [primeira, segunda])
-        #expect(primeira != segunda)
-        #expect(pedidos[1].vagaID == primeira && pedidos[2].vagaID == primeira)
-        #expect(pedidos[4].vagaID == segunda && pedidos[5].vagaID == segunda)
+        #expect(vagas(vm, ids) == [primeira])
+        #expect(pedidos.suffix(3).allSatisfy { $0.vagaID == primeira && $0.recado == "Recado do 1º" })
+        #expect(vm.trabalhoEnviado == primeiro && vm.recadoEnviado == "Recado do 1º")
     }
 
-    @Test("Nova busca guarda a vaga: o mesmo trabalho entra pelo vaga_id da vaga que já existe; outro trabalho abre outra")
+    @Test("Nova busca guarda a vaga: o mesmo trabalho entra pelo vaga_id da vaga que já existe; outro serviço (outro trabalho) abre outra")
     func novaBuscaGuardaAVaga() async throws {
         let (fonte, vm) = preparar(total: 9)
         await vm.buscar()
         vm.resultados.prefix(3).forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho())
         let primeira = try #require(vagas(vm, vm.selecionados).first)
+        vm.funcaoID = outroServico
         await vm.buscar()
         try #require(vm.resultados.count >= 6)
         vm.resultados[3...5].forEach { vm.alternarSelecao($0.id) }
-        await vm.chamar(trabalho: try trabalho(valor: 21_000))
+        await vm.chamar(trabalho: try trabalho(valor: 21_000, funcaoID: outroServico))
         let segunda = try #require(vagas(vm, vm.selecionados).first)
+        vm.funcaoID = funcaoID
         await vm.buscar()
         vm.resultados.suffix(3).forEach { vm.alternarSelecao($0.id) }
         await vm.chamar(trabalho: try trabalho())
@@ -824,7 +831,7 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(vagas(vm, vm.selecionados) == [primeira])
     }
 
-    @Test("Nova busca com a vaga do trabalho encerrada: o servidor barra e o mesmo trabalho não abre outra sozinho; outro trabalho abre")
+    @Test("Nova busca com a vaga do trabalho encerrada: o servidor barra e o mesmo trabalho não abre outra sozinho; outro trabalho abre ao fechar e abrir a busca")
     func vagaDoTrabalhoEncerradaNaoAbreOutra() async throws {
         let (fonte, vm) = preparar(total: 6)
         await vm.buscar()
@@ -844,11 +851,19 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(novos.allSatisfy { if case .erro = vm.resultadosDaChamada[$0] { true } else { false } })
         #expect(!vm.travadoPeloIncerto) // recusa definitiva não trava
 
-        // A pessoa muda o trabalho: aí começa ciclo novo, numa vaga nova.
+        // A pessoa muda o trabalho: na mesma busca, o trabalho recebido não vale (sai o guardado, pela vaga dele).
         await fonte.ajustar(erroNaChamada: [:])
         await vm.buscar()
         vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.chamar(trabalho: try trabalho(valor: 22_000))
+        pedidos = await fonte.pedidos
+        #expect(pedidos.last?.trabalho == nil && pedidos.last?.vagaID == primeira)
+        // Outro trabalho exige fechar e abrir a busca (view model novo, mesmo servidor): aí começa ciclo novo, numa vaga nova.
+        let reaberta = BuscaDeProfissionaisViewModel(fonte: fonte, estabelecimentoID: casaID)
+        reaberta.funcaoID = funcaoID
+        await reaberta.buscar()
+        reaberta.alternarSelecao(try #require(reaberta.resultados.first).id)
+        await reaberta.chamar(trabalho: try trabalho(valor: 22_000))
         pedidos = await fonte.pedidos
         #expect(pedidos.last?.trabalho != nil && pedidos.last?.vagaID == nil)
         #expect(pedidos.filter { $0.trabalho != nil }.count == 2)
@@ -1067,7 +1082,7 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(!vm.travadoPeloIncerto)
     }
 
-    @Test("Contraprova: com outro trabalho, quem ainda não saiu abre 2ª vaga; com reenviar, entra na vaga do 1º envio")
+    @Test("Outro trabalho na mão depois do 1º envio: sai o guardado, e quem não saiu entra na vaga do 1º envio, como no reenviar")
     func reenviarComOutroTrabalhoAbriaSegundaVaga() async throws {
         // Contraprova: o caminho antigo (folha nova com valor/horário diferentes) abre outra vaga para quem não tentou.
         let (fonte, vm) = preparar(total: 2)
@@ -1080,7 +1095,11 @@ struct BuscaDeProfissionaisViewModelTests {
         await fonte.ajustar(perdeResposta: [])
         await vm.chamar(trabalho: try trabalho(valor: 25_000))
         var pedidos = await fonte.pedidos
-        #expect(pedidos.last?.profissionalID == ids[1] && pedidos.last?.trabalho != nil, "outro trabalho: 2ª vaga (o que a tela evita)")
+        // Outro trabalho na mão não vale: sai o guardado, o incerto repete a chave e quem não saiu entra na vaga dele.
+        let vagaDoIncerto = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        #expect(pedidos.last?.profissionalID == ids[1] && pedidos.last?.trabalho == nil && pedidos.last?.vagaID == vagaDoIncerto,
+                "outro trabalho na mão: sem 2ª vaga")
+        #expect(pedidos.allSatisfy { $0.trabalho?.valor != Dinheiro(centavos: 25_000) })
 
         let (fonte2, vm2) = preparar(total: 2)
         await vm2.buscar()

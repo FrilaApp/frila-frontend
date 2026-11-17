@@ -451,7 +451,8 @@ public final class BuscaDeProfissionaisViewModel {
     /// trabalho (com a região da busca) e o servidor cria a vaga direta; as seguintes levam o `vaga_id` dela, para
     /// as até 3 chamadas serem do mesmo trabalho (contrato 0.2.55). Se o servidor recusar a 1ª (erro definitivo ou J7),
     /// a próxima vira a 1ª. Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave. Se a casa
-    /// já tem o trabalho aberto (`409 trabalho_ja_aberto`, 0.2.95), a pessoa vai pelo `vaga_id` dele (`enviar`).
+    /// já tem o trabalho aberto (`409 trabalho_ja_aberto`, 0.2.95), a pessoa vai pelo `vaga_id` dele (`enviar`). Depois do
+    /// 1º envio do serviço da busca, o `trabalho` e o `recado` recebidos não valem: saem os guardados.
     ///
     /// DINHEIRO: se o pedido que leva o trabalho termina incerto (prazo de 15 s, sem rede, resposta ilegível,
     /// desconhecido), o servidor pode ter criado a vaga e a resposta se perdido. Promover o próximo abriria outra vaga
@@ -461,6 +462,10 @@ public final class BuscaDeProfissionaisViewModel {
     public func chamar(trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
                        chave: () -> UUID = UUID.init) async {
         guard podeChamar, let servico = funcaoDaBusca else { return }
+        // DINHEIRO: com envio do serviço, saem o trabalho e o recado guardados, venha o que vier de quem chama. Outro
+        // trabalho (outro horário, outro valor) faria quem ainda não foi chamado abrir uma 2ª vaga; outro trabalho do
+        // mesmo serviço exige fechar e abrir a busca (decisão do #790).
+        let (trabalho, recado) = enviadosPorServico[servico] ?? (trabalho: trabalho, recado: recado)
         let pendentes = selecionados.filter { resultadosDaChamada[$0] == .pedeConfirmacaoDeRecorrencia }
         // A confirmação J7 só vale depois da recusa correspondente.
         guard !confirmoRecorrencia || !pendentes.isEmpty else { return }
