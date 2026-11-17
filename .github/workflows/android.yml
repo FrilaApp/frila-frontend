@@ -69,14 +69,34 @@ jobs:
           FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
         run: ./gradlew --no-daemon testDebugUnitTest
 
-      - name: Gerar APK (debug) e AAB (release)
+      # Em PR sem segredo (fork, Dependabot) o par PROD não chega: o AAB de release é pulado com uma linha no log, e o
+      # APK debug e os testes seguem. Onde há segredo (push na main, PR do próprio repositório) o release roda, e a trava
+      # do app/build.gradle.kts (release sem o par PROD falha) vale como sempre: só a CI escolhe se roda.
+      - name: Conferir se os segredos do Supabase chegaram
+        id: segredos
+        env:
+          FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
+        run: |
+          if [ -n "$FRILA_SUPABASE_PROD_URL" ]; then
+            echo "tem_prod=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tem_prod=false" >> "$GITHUB_OUTPUT"
+            echo "Sem os segredos do Supabase neste evento (PR de fork ou do Dependabot): AAB de release pulado; APK debug e testes seguem."
+          fi
+
+      - name: Gerar APK (debug)
+        env:
+          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
+          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Gerar AAB (release)
+        if: steps.segredos.outputs.tem_prod == 'true'
         env:
           FRILA_RELEASE_KEYSTORE_BASE64: ${{ secrets.FRILA_RELEASE_KEYSTORE_BASE64 }}
           FRILA_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.FRILA_RELEASE_KEYSTORE_PASSWORD }}
           FRILA_RELEASE_KEY_ALIAS: ${{ secrets.FRILA_RELEASE_KEY_ALIAS }}
           FRILA_RELEASE_KEY_PASSWORD: ${{ secrets.FRILA_RELEASE_KEY_PASSWORD }}
-          FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
-          FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
           FRILA_SUPABASE_PROD_URL: ${{ secrets.FRILA_SUPABASE_PROD_URL }}
           FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_PROD_PUBLISHABLE_KEY }}
         run: |
@@ -88,7 +108,7 @@ jobs:
           else
             echo "Segredos de release ausentes (pendente de configuração por pessoa). Gerando artefato sem assinar."
           fi
-          ./gradlew --no-daemon assembleDebug bundleRelease
+          ./gradlew --no-daemon bundleRelease
           if [ -f "/tmp/release.keystore" ]; then
             rm -f /tmp/release.keystore
           fi
@@ -103,6 +123,7 @@ jobs:
           retention-days: 2
 
       - name: Publicar AAB de release
+        if: steps.segredos.outputs.tem_prod == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frila-android-release-aab
