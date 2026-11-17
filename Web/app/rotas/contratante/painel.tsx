@@ -78,6 +78,9 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
       <Link to={`/painel/publicar?casa=${casa.id}`} className={classeDoBotao}>
         {t.publicar}
       </Link>
+      <Link to={`/casa/busca?casa=${casa.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+        {textos.contratanteBusca.abrir}
+      </Link>
 
       {grupos.length === 0 ? <p>{t.vazio}</p> : null}
       {grupos.map((grupo) => (
