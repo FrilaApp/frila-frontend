@@ -10,6 +10,7 @@ data class DadosDoPush(
     val vagaId: String?,
     val titulo: String?,
     val corpo: String?,
+    val chamadaId: String? = null,
 ) {
     companion object {
         private const val CHAVE_VINCULO_ID = "vinculo_id"
@@ -17,6 +18,7 @@ data class DadosDoPush(
         private const val CHAVE_VAGA_ID = "vaga_id"
         private const val CHAVE_TITULO = "titulo"
         private const val CHAVE_CORPO = "corpo"
+        private const val CHAVE_CHAMADA_ID = "chamada_id"
 
         fun doPayload(payload: Map<String, String>): DadosDoPush = DadosDoPush(
             vinculoId = payload[CHAVE_VINCULO_ID],
@@ -24,6 +26,7 @@ data class DadosDoPush(
             vagaId = payload[CHAVE_VAGA_ID],
             titulo = payload[CHAVE_TITULO],
             corpo = payload[CHAVE_CORPO],
+            chamadaId = payload[CHAVE_CHAMADA_ID],
         )
     }
 }
@@ -38,6 +41,8 @@ data class NotificacaoParaExibir(
     val neutralizada: Boolean,
     /** RF06: canal desativado pelo usuário — quem exibe não deve chamar `notify()`. */
     val silenciada: Boolean = false,
+    /** Só nos avisos da chamada ao profissional (como o `RoteadorDePush` do iOS): vira `frila://chamadas/<id>`. */
+    val chamadaId: String? = null,
 )
 
 /**
@@ -49,6 +54,13 @@ class ProcessadorDePush(
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
     private val preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
 ) {
+    private companion object {
+        /** `chamada_aceita` e `chamada_recusada` vão à casa, que não tem esta tela. */
+        val TIPOS_DA_CHAMADA_RECEBIDA = setOf(
+            "chamada_recebida", "chamada_lembrete", "chamada_cancelada", "chamada_expirada", "chamada_encerrada",
+        )
+    }
+
     fun processar(payload: Map<String, String>): NotificacaoParaExibir {
         val dados = DadosDoPush.doPayload(payload)
         val sessaoAtiva = armazenamentoDeSessao.obterSessao()
@@ -76,6 +88,7 @@ class ProcessadorDePush(
             titulo = dados.titulo ?: "Frila",
             corpo = dados.corpo ?: "",
             vagaId = dados.vagaId,
+            chamadaId = dados.chamadaId?.takeIf { dados.tipo in TIPOS_DA_CHAMADA_RECEBIDA },
             neutralizada = false,
             silenciada = !preferenciasNotificacao.estaAtivado(canal),
         )

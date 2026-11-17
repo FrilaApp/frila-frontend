@@ -6,6 +6,10 @@ object ResolvedorDeDeepLinkPush {
     fun resolver(notificacao: NotificacaoParaExibir): String? {
         if (notificacao.neutralizada) return null
 
+        notificacao.chamadaId?.takeIf(String::isNotBlank)?.let { chamadaId ->
+            return "frila://chamadas/$chamadaId"
+        }
+
         notificacao.vagaId?.takeIf(String::isNotBlank)?.let { vagaId ->
             return "frila://vagas/$vagaId"
         }
