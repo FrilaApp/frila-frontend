@@ -178,3 +178,9 @@ na seção "Fora por agora", e nos módulos.
 | B5 | Leitura da vaga pelo link, sem login | 3 | contrato 0.2.100 a caminho; depois o backend |
 | B6 | Envio de push com bloco de web (o registro do aparelho `web` já é aceito) | 4 | pedido |
 | B7 | Backend da escala em lote (`publicar_escala`) | 5 | contrato pronto, falta o servidor |
+
+## Provas que faltam no Prod (web ligada em 17/11/2026)
+
+- **Página pública da vaga, resposta 200:** provar na 1ª vaga real aberta, só com GET (sem gravar nada) e conferindo que
+  aparecem só os campos públicos. No dia da ligação não havia vaga real aberta, e criar uma avisaria profissionais reais.
+  O 410 (vaga cancelada) e o 404 (vaga de demonstração e id inexistente) já foram provados no Prod; o 200, no dev.
