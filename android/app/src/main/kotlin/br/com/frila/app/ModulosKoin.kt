@@ -32,6 +32,7 @@ import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoDispositivo
 import br.com.frila.core.rede.RegistroDeErroDaApi
+import br.com.frila.core.rede.ServicoMidia
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVerificacaoIdentidade
@@ -67,16 +68,25 @@ import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
+import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
+import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
+import br.com.frila.feature.perfil.FluxoDaFotoDePerfil
+import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
+import br.com.frila.feature.perfil.PreparadorDeJpegDoAparelho
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
+import br.com.frila.feature.turnos.MedidorDeDistancia
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
+import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
 import java.time.Instant
 import org.koin.androidx.viewmodel.dsl.viewModel
 import kotlinx.coroutines.CoroutineScope
@@ -169,6 +179,8 @@ val moduloRede = module {
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
+    /** Foto de perfil (contrato 0.2.54): pedir o envio, PUT na URL assinada, confirmar, remover e listar. */
+    single { ServicoMidia { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoVerificacaoIdentidade { get<GestorClienteKtor>().clienteAtual } }
     single { RepositorioVerificacaoIdentidade(get()) }
     /** Denúncia, bloqueio e equipe de confiança (RF26/RF18); membros do estabelecimento (RF21). */
@@ -367,6 +379,52 @@ val moduloFeatures = module {
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
             buscarCasa = get<ServicoMembros>()::meuEstabelecimento,
         )
+    }
+    /**
+     * Apresentação e regiões do profissional (L1-2): `meu_perfil_detalhado`, as regiões ativas e as duas gravações. As quatro operações chegam por
+     * função ao ViewModel; a rota é do `AppNavegacao`.
+     */
+    viewModel {
+        val perfil = get<ServicoPerfil>()
+        val chamadas = get<ServicoChamadaDireta>()
+        ApresentacaoERegioesViewModel(
+            carregarPerfil = chamadas::meuPerfilDetalhado,
+            carregarRegioes = perfil::regioesAdministrativas,
+            salvarApresentacao = perfil::atualizarApresentacaoProfissional,
+            salvarRegioes = perfil::definirRegioesAtendidas,
+        )
+    }
+    /**
+     * Foto de perfil (L1-3): o detector e o preparo do JPEG são do aparelho (sem rede); só o envio fala com o servidor. O `Context` só é pedido
+     * na hora de preparar a foto, para o grafo montar também onde não há `Context` (testes).
+     */
+    single<ConferidorDeRostoDaFoto> { ConferidorDeRostoDoAndroid() }
+    single<PreparadorDaFotoDePerfil> {
+        val escopo = this
+        PreparadorDaFotoDePerfil { referencia -> PreparadorDeJpegDoAparelho(escopo.get<Context>()).preparar(referencia) }
+    }
+    viewModel {
+        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), get<ServicoMidia>())
+        val preparador = get<PreparadorDaFotoDePerfil>()
+        FotoDePerfilViewModel(prepararJpeg = preparador::preparar, enviar = fluxo::enviar)
+    }
+    /**
+     * Código de chegada (L1-4b): o profissional digita o código que a casa mostra. A distância é medida no toque, até o ponto da vaga (só ela sai,
+     * nunca a coordenada); `aoPresencaVerificada` avisa a tela para reler o turno.
+     */
+    viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?, aoPresencaVerificada: (() -> Unit)?) ->
+        val turnos = get<ServicoTurnos>()
+        val localizacao = get<ProvedorDeLocalizacao>()
+        ValidacaoDoCodigoViewModel(
+            turnoId = turnoId,
+            validar = turnos::validarCodigoCheckin,
+            medirDistancia = { MedidorDeDistancia(localizacao, coordenadaDaVaga).medir() },
+            aoPresencaVerificada = aoPresencaVerificada,
+        )
+    }
+    /** Código de chegada, lado da casa (L1-5): `gerar_codigo_checkin`; `aoConfirmar` avisa a tela quando a presença foi verificada. */
+    viewModel { (turnoId: String, aoConfirmar: (() -> Unit)?) ->
+        CodigoDaCasaViewModel(turnoId = turnoId, gerar = get<ServicoTurnos>()::gerarCodigoCheckin, aoConfirmar = aoConfirmar)
     }
     /** Chamada direta, lado do profissional (contrato 0.2.88): serviços com preço, preferências e chamada recebida. */
     viewModel {
