@@ -27,8 +27,69 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     private(set) var termosAceitos = true
     var erroNoAceite: ErroDaApi?
     private(set) var aceitesRecebidos: [String] = []
+    /// 0.2.95: a casa já tem o trabalho aberto nesta vaga. O pedido pelo trabalho, ou pelo `vaga_id` de outra vaga,
+    /// recebe `409 trabalho_ja_aberto` com ela em `details`. Nada é criado e a chave não é gasta.
+    private(set) var vagaDoTrabalhoAberto: UUID?
+    /// O mesmo 409 no pedido pelo trabalho, mas sem o `vaga_id` em `details`.
+    private(set) var trabalhoAbertoSemVagaID = false
+    /// 0.2.95: o valor e os inclusos de cada vaga aberta, como `minhas_chamadas` (valor) e `detalhe_chamada` (inclusos)
+    /// os devolvem; a chamada aberta de cada vaga usa o uuid da própria vaga. Sem a vaga aqui, a leitura não a acha.
+    private var termosDasVagas: [UUID: (valorCentavos: Int, inclusos: Inclusos)] = [:]
+    private var falhaNaLeituraDosTermos = false
+    /// Cada página de `minhas_chamadas` lida conta uma.
+    private(set) var leiturasDosTermos = 0
+    /// As vagas cuja chamada aberta só vem na 2ª página de `minhas_chamadas` (cursor "2").
+    private var vagasNaSegundaPagina: Set<UUID> = []
+    private(set) var cursoresDasChamadas: [String?] = []
 
     init(total: Int) { self.total = total }
+
+    func passarParaSegundaPagina(_ vagaID: UUID) { vagasNaSegundaPagina.insert(vagaID) }
+
+    /// A vaga aberta tem, por padrão, os mesmos termos do `trabalho()` dos testes (R$ 200, sem inclusos).
+    func abrirTrabalho(naVaga vagaID: UUID, valorCentavos: Int = 20_000,
+                       inclusos: Inclusos = Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false)) {
+        vagaDoTrabalhoAberto = vagaID
+        definirTermos(daVaga: vagaID, valorCentavos: valorCentavos, inclusos: inclusos)
+    }
+
+    func definirTermos(daVaga vagaID: UUID, valorCentavos: Int = 20_000,
+                       inclusos: Inclusos = Inclusos(refeicao: false, transporte: false, exigeMaterialProprio: false)) {
+        termosDasVagas[vagaID] = (valorCentavos, inclusos)
+    }
+
+    func abrirTrabalhoSemVagaID() { trabalhoAbertoSemVagaID = true }
+
+    func falharLeituraDosTermos() { falhaNaLeituraDosTermos = true }
+
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas {
+        leiturasDosTermos += 1
+        cursoresDasChamadas.append(cursor)
+        if falhaNaLeituraDosTermos { throw ErroDaApi(codigo: .semRede) }
+        let segunda = cursor == "2"
+        let itens = termosDasVagas.filter { vagasNaSegundaPagina.contains($0.key) == segunda }.map { vagaID, termos in
+            ChamadaResumo(id: vagaID, vagaID: vagaID, profissionalID: Self.id(900), estabelecimentoID: Self.id(901), estado: .aberta,
+                          expiraEm: Date(timeIntervalSince1970: 2_000_000_000), criadaEm: Date(timeIntervalSince1970: 1_900_000_000),
+                          funcao: Self.funcao, inicioEm: Date(timeIntervalSince1970: 1_900_000_000),
+                          fimEm: Date(timeIntervalSince1970: 1_900_014_400), valorCentavos: termos.valorCentavos, outraParte: Self.perfil)
+        }
+        return PaginaChamadas(itens: itens, proximoCursor: !segunda && !vagasNaSegundaPagina.isEmpty ? "2" : nil)
+    }
+
+    func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
+        guard let termos = termosDasVagas[id] else { throw ErroDaApi(codigo: .naoEncontrado) }
+        return ChamadaDetalhe(id: id, vagaID: id, profissionalID: Self.id(900), estabelecimentoID: Self.id(901), estado: .aberta,
+                              expiraEm: Date(timeIntervalSince1970: 2_000_000_000), criadaEm: Date(timeIntervalSince1970: 1_900_000_000),
+                              funcao: Self.funcao, inicioEm: Date(timeIntervalSince1970: 1_900_000_000),
+                              fimEm: Date(timeIntervalSince1970: 1_900_014_400), valorCentavos: termos.valorCentavos,
+                              outraParte: Self.perfil, regiaoAdministrativa: "Asa Sul", incluiRefeicao: termos.inclusos.refeicao,
+                              incluiTransporte: termos.inclusos.transporte, exigeMaterialProprio: termos.inclusos.exigeMaterialProprio)
+    }
+
+    static let funcao = Funcao(id: funcaoID, nome: "Garçom", categoria: "Salão")
+    static let perfil = PerfilPublico(id: id(900), tipo: .profissional, nome: "Pessoa 900",
+                                      reputacao: Reputacao(positivas: 0, total: 0, taxaComparecimento: nil,
+                                                           turnosConsiderados: 0, turnosRealizados: 0))
 
     func ajustar(buscaLigada: Bool? = nil, erroNaBusca: ErroDaApi? = nil, erroNaPaginaSeguinte: ErroDaApi? = nil,
                  erroNaChamada: [UUID: ErroDaApi]? = nil, recorrenciaPendente: Set<UUID>? = nil,
@@ -89,6 +150,11 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
         // O erro de agora é antes de chegar ao servidor (nada é criado).
         if let erro = erroNaChamada[pedido.profissionalID] { throw erro }
         if let existente = chamadasPorChave[pedido.chave] { return existente }
+        // 0.2.95: depois da chave e antes do que é do profissional.
+        if trabalhoAbertoSemVagaID, pedido.trabalho != nil { throw ErroDaApi(codigo: .trabalhoJaAberto) }
+        if let aberta = vagaDoTrabalhoAberto, pedido.vagaID != aberta {
+            throw ErroDaApi(codigo: .trabalhoJaAberto, detalhes: aberta.uuidString.lowercased())
+        }
         if recorrenciaPendente.contains(pedido.profissionalID), !pedido.confirmoRecorrencia {
             throw ErroDaApi(codigo: .recorrenciaNaoConfirmada)
         }
@@ -1096,6 +1162,260 @@ struct BuscaDeProfissionaisViewModelTests {
         vm.alternarSelecao(try #require(vm.resultados.first).id)
         await vm.buscar()
         #expect(vm.selecionados.isEmpty)
+    }
+
+    // MARK: Trabalho já aberto (409 trabalho_ja_aberto, contrato 0.2.95)
+
+    @Test("409 trabalho_ja_aberto com os mesmos termos: quem levou o trabalho vai de novo pelo vaga_id de details, com chave nova, e fica enviada; os outros e a nova busca entram direto nela")
+    func trabalhoJaAbertoSegueNaVaga() async throws {
+        let (fonte, vm) = preparar(total: 4)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 4)
+        ids.prefix(3).forEach { vm.alternarSelecao($0) }
+        let aberta = UUID()
+        await fonte.abrirTrabalho(naVaga: aberta)
+        await vm.chamar(trabalho: try trabalho())
+        var pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1], ids[2]])
+        try #require(pedidos.count >= 4)
+        #expect(pedidos[0].trabalho != nil && pedidos[0].vagaID == nil)
+        // Depois do 409 ninguém leva o trabalho: todos entram pela vaga aberta, cada um com a sua chave.
+        #expect(pedidos.dropFirst().allSatisfy { $0.vagaID == aberta && $0.trabalho == nil })
+        #expect(pedidos[1].chave != pedidos[0].chave)
+        #expect(Set(pedidos.map(\.chave)).count == 4)
+        #expect(ids.prefix(3).allSatisfy { enviada(vm.resultadosDaChamada[$0])?.vagaID == aberta })
+        #expect(!vm.travadoPeloIncerto && !vm.podeReenviar)
+        // Termos lidos uma vez só (no 409); os próximos entram direto, e nada pede confirmação.
+        #expect(await fonte.leiturasDosTermos == 1)
+        #expect(vm.termosParaConfirmar == nil)
+
+        // A vaga que o 409 apontou ficou como a do trabalho: a nova busca entra direto nela.
+        await vm.buscar()
+        vm.alternarSelecao(ids[3])
+        await vm.chamar(trabalho: try trabalho())
+        pedidos = await fonte.pedidos
+        #expect(pedidos.count == 5)
+        #expect(pedidos.last?.profissionalID == ids[3])
+        #expect(pedidos.last?.vagaID == aberta && pedidos.last?.trabalho == nil)
+        #expect(enviada(vm.resultadosDaChamada[ids[3]])?.vagaID == aberta)
+    }
+
+    @Test("409 trabalho_ja_aberto sem vaga_id em details: erro genérico, nenhum pedido pelo vaga_id e nada trava")
+    func trabalhoJaAbertoSemVagaID() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.abrirTrabalhoSemVagaID()
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        // Recusa definitiva: o 2º vira o 1º e recebe o mesmo 409; ninguém vai pelo vaga_id.
+        #expect(pedidos.map(\.profissionalID) == ids)
+        #expect(pedidos.allSatisfy { $0.trabalho != nil && $0.vagaID == nil })
+        #expect(ids.allSatisfy { vm.resultadosDaChamada[$0] == .erro(TextosChamadaDireta.erro) })
+        #expect(!vm.travadoPeloIncerto)
+        #expect(vm.podeReenviar)
+    }
+
+    @Test("409 trabalho_ja_aberto no pedido pelo vaga_id: a vaga de details passa a ser a do trabalho e o próximo entra direto nela")
+    func trabalhoJaAbertoNoPedidoPelaVaga() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
+        vm.alternarSelecao(ids[0])
+        await vm.chamar(trabalho: try trabalho())
+        let primeira = try #require(enviada(vm.resultadosDaChamada[ids[0]])).vagaID
+        // Outra vaga direta do mesmo trabalho passou a ter a chamada aberta (por exemplo, de outro aparelho).
+        let outra = UUID()
+        await fonte.abrirTrabalho(naVaga: outra)
+        await vm.buscar()
+        vm.alternarSelecao(ids[1])
+        vm.alternarSelecao(ids[2])
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[1], ids[1], ids[2]])
+        #expect(pedidos.filter { $0.trabalho != nil }.count == 1)
+        #expect(pedidos.filter { $0.profissionalID == ids[1] }.map(\.vagaID) == [primeira, outra])
+        #expect(pedidos.last?.vagaID == outra)
+        #expect(enviada(vm.resultadosDaChamada[ids[1]])?.vagaID == outra)
+        #expect(enviada(vm.resultadosDaChamada[ids[2]])?.vagaID == outra)
+    }
+
+    @Test("409 trabalho_ja_aberto também no pedido pelo vaga_id: não insiste, vira erro genérico e o próximo entra na vaga")
+    func trabalhoJaAbertoUmaVezSo() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        let aberta = UUID()
+        await fonte.definirTermos(daVaga: aberta) // os mesmos termos do trabalho: segue direto
+        await fonte.ajustar(erroNaChamada: [ids[0]: ErroDaApi(codigo: .trabalhoJaAberto, detalhes: aberta.uuidString)])
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0], ids[0], ids[1]])
+        #expect(pedidos.dropFirst().allSatisfy { $0.vagaID == aberta && $0.trabalho == nil })
+        #expect(vm.resultadosDaChamada[ids[0]] == .erro(TextosChamadaDireta.erro))
+        #expect(enviada(vm.resultadosDaChamada[ids[1]])?.vagaID == aberta)
+        #expect(!vm.travadoPeloIncerto)
+    }
+
+    // MARK: Termos da vaga aberta diferentes dos digitados (0.2.95, head 15026bc do #265)
+
+    private let termosDiferentes = Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: false)
+
+    @Test("409 com valor ou inclusos diferentes: nada sai pelo vaga_id; quem levou o trabalho e os próximos esperam a confirmação")
+    func termosDiferentesEsperamConfirmacao() async throws {
+        let (fonte, vm) = preparar(total: 3)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 3)
+        ids.forEach { vm.alternarSelecao($0) }
+        let aberta = UUID()
+        await fonte.abrirTrabalho(naVaga: aberta, valorCentavos: 25_000, inclusos: termosDiferentes)
+        await vm.chamar(trabalho: try trabalho())
+        // Só o 1º saiu, pelo trabalho, e recebeu o 409; ninguém foi pelo vaga_id.
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [ids[0]])
+        let termos = TermosDaVagaAberta(vagaID: aberta, valor: Dinheiro(centavos: 25_000), inclusos: termosDiferentes)
+        #expect(vm.termosParaConfirmar == termos)
+        #expect(ids.allSatisfy { vm.resultadosDaChamada[$0] == .pedeConfirmacaoDosTermos(termos) })
+        #expect(!vm.podeChamar && !vm.travadoPeloIncerto)
+        #expect(TelaTermosDaVagaAbertaProvisoria(modelo: vm) != nil)
+        // Chamar de novo sem confirmar também não manda nada.
+        await vm.chamar(trabalho: try trabalho())
+        #expect(await fonte.pedidos.count == 1)
+    }
+
+    @Test("Confirmar os termos da vaga aberta: um pedido só, pelo vaga_id dela e com chave nova, e a pessoa fica enviada")
+    func confirmarTermosDaVagaAberta() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        let aberta = UUID()
+        await fonte.abrirTrabalho(naVaga: aberta, valorCentavos: 25_000)
+        await vm.chamar(trabalho: try trabalho())
+        let antes = await fonte.pedidos
+        #expect(antes.count == 1)
+
+        await vm.confirmarTermosDaVagaAberta()
+        let todos = await fonte.pedidos
+        let depois = Array(todos.dropFirst(antes.count))
+        #expect(depois.count == 1)
+        #expect(depois.allSatisfy { $0.profissionalID == id && $0.vagaID == aberta && $0.trabalho == nil })
+        #expect(Set(depois.map(\.chave)).isDisjoint(with: antes.map(\.chave)))
+        #expect(enviada(vm.resultadosDaChamada[id])?.vagaID == aberta)
+        #expect(vm.termosParaConfirmar == nil)
+        #expect(TelaTermosDaVagaAbertaProvisoria(modelo: vm) == nil)
+    }
+
+    @Test("Cancelar os termos da vaga aberta: nada sai, e quem esperava volta a ficar sem resultado")
+    func cancelarTermosDaVagaAberta() async throws {
+        let (fonte, vm) = preparar(total: 2)
+        await vm.buscar()
+        let ids = vm.resultados.map(\.id)
+        try #require(ids.count >= 2)
+        ids.forEach { vm.alternarSelecao($0) }
+        await fonte.abrirTrabalho(naVaga: UUID(), inclusos: termosDiferentes)
+        await vm.chamar(trabalho: try trabalho())
+        let antes = await fonte.pedidos.count
+
+        vm.cancelarTermosDaVagaAberta()
+        #expect(await fonte.pedidos.count == antes)
+        #expect(vm.termosParaConfirmar == nil)
+        #expect(ids.allSatisfy { vm.resultadosDaChamada[$0] == nil })
+        #expect(vm.podeChamar)
+    }
+
+    @Test("A folha dos termos abre com a pendência; fechá-la sem escolher vale como Cancelar e nada sai")
+    func folhaDosTermosFechadaCancela() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        #expect(!vm.mostrarTermosDaVagaAberta)
+        await fonte.abrirTrabalho(naVaga: UUID(), valorCentavos: 25_000)
+        await vm.chamar(trabalho: try trabalho())
+        #expect(vm.mostrarTermosDaVagaAberta)
+        let antes = await fonte.pedidos.count
+
+        vm.mostrarTermosDaVagaAberta = false // o que a folha faz ao ser arrastada para baixo
+        #expect(!vm.mostrarTermosDaVagaAberta && vm.termosParaConfirmar == nil)
+        #expect(await fonte.pedidos.count == antes)
+        #expect(vm.resultadosDaChamada[id] == nil)
+    }
+
+    @Test("409 com a leitura dos termos falhando: erro genérico, nada sai pelo vaga_id e nada trava")
+    func leituraDosTermosFalhou() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        await fonte.abrirTrabalho(naVaga: UUID())
+        await fonte.falharLeituraDosTermos()
+        await vm.chamar(trabalho: try trabalho())
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.count == 1)
+        #expect(pedidos.allSatisfy { $0.vagaID == nil })
+        #expect(vm.resultadosDaChamada[id] == .erro(TextosChamadaDireta.erro))
+        #expect(vm.termosParaConfirmar == nil && !vm.travadoPeloIncerto)
+    }
+
+    @Test("409 com a vaga fora de minhas_chamadas: a leitura falha, e é o mesmo erro genérico")
+    func vagaDoTrabalhoForaDasChamadas() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        let semTermos = UUID()
+        await fonte.ajustar(erroNaChamada: [id: ErroDaApi(codigo: .trabalhoJaAberto, detalhes: semTermos.uuidString)])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(await fonte.pedidos.count == 1)
+        #expect(await fonte.leiturasDosTermos == 1)
+        #expect(vm.resultadosDaChamada[id] == .erro(TextosChamadaDireta.erro))
+    }
+
+    // MARK: minhas_chamadas em mais de uma página (0.2.95, head final cc40db7 do #265)
+
+    @Test("409 com a chamada da vaga aberta só na 2ª página de minhas_chamadas: segue o cursor, acha, compara e, com os mesmos termos, vai pelo vaga_id")
+    func termosDaVagaNaSegundaPagina() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        let aberta = UUID()
+        await fonte.definirTermos(daVaga: UUID(), valorCentavos: 99_000) // outra chamada aberta da casa, na 1ª página
+        await fonte.abrirTrabalho(naVaga: aberta)
+        await fonte.passarParaSegundaPagina(aberta)
+        await vm.chamar(trabalho: try trabalho())
+        #expect(await fonte.cursoresDasChamadas == [nil, "2"])
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [id, id])
+        #expect(pedidos.last?.vagaID == aberta && pedidos.last?.trabalho == nil)
+        #expect(enviada(vm.resultadosDaChamada[id])?.vagaID == aberta)
+        #expect(vm.termosParaConfirmar == nil)
+    }
+
+    @Test("409 sem a chamada da vaga aberta em nenhuma página de minhas_chamadas: lê todas, não repete pelo vaga_id e é o erro genérico")
+    func vagaDoTrabalhoEmNenhumaPagina() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        let naSegunda = UUID()
+        await fonte.definirTermos(daVaga: UUID()) // 1ª página: outra chamada aberta da casa
+        await fonte.definirTermos(daVaga: naSegunda) // 2ª página: mais uma, e nenhuma é a do 409
+        await fonte.passarParaSegundaPagina(naSegunda)
+        await fonte.ajustar(erroNaChamada: [id: ErroDaApi(codigo: .trabalhoJaAberto, detalhes: UUID().uuidString)])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(await fonte.cursoresDasChamadas == [nil, "2"])
+        #expect(await fonte.pedidos.count == 1)
+        #expect(vm.resultadosDaChamada[id] == .erro(TextosChamadaDireta.erro))
+        #expect(vm.termosParaConfirmar == nil && !vm.travadoPeloIncerto)
     }
 
     // MARK: Integração com o dublê do cenário .buscaDeProfissionais (relógio fixo)
