@@ -140,6 +140,9 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
           <p>
             <Link to="/instalar" className="inline-flex min-h-12 items-center font-semibold underline underline-offset-4">
               {textos.pwa.instalar.link}
+            </Link>{" "}
+            <Link to="/avisos" className="inline-flex min-h-12 items-center px-4 font-semibold underline underline-offset-4">
+              {textos.pwa.avisos.link}
             </Link>
           </p>
           <Form method="post" action="/sair">

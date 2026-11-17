@@ -59,10 +59,16 @@ describe("página sem conexão", () => {
 });
 
 /** Roda o `public/app/sw.js` num contexto falso, com caches e rede de mentira. */
-function serviceWorker(opcoes: { rede: (pedido: Request) => Promise<Response>; caches?: string[] }) {
+function serviceWorker(opcoes: {
+  rede: (pedido: Request) => Promise<Response>;
+  caches?: string[];
+  janelas?: Array<{ url: string; focus: () => Promise<void> }>;
+}) {
   const ouvintes = new Map<string, (evento: unknown) => void>();
   const guardados = new Map<string, Map<string, Response>>((opcoes.caches ?? []).map((nome) => [nome, new Map()]));
   const pedidosDaRede: string[] = [];
+  const notificacoes: Array<{ titulo: string; corpo: string }> = [];
+  const abertas: string[] = [];
   const caches = {
     open: async (nome: string) => {
       const cache = guardados.get(nome) ?? new Map<string, Response>();
@@ -72,6 +78,8 @@ function serviceWorker(opcoes: { rede: (pedido: Request) => Promise<Response>; c
           pedidosDaRede.push(pedido.url);
           cache.set(new URL(pedido.url).pathname, await opcoes.rede(pedido));
         },
+        put: async (caminho: string, resposta: Response) => void cache.set(caminho, resposta),
+        match: async (caminho: string) => cache.get(caminho)?.clone(),
       };
     },
     keys: async () => [...guardados.keys()],
@@ -81,8 +89,15 @@ function serviceWorker(opcoes: { rede: (pedido: Request) => Promise<Response>; c
   const self = {
     addEventListener: (tipo: string, ouvinte: (evento: unknown) => void) => ouvintes.set(tipo, ouvinte),
     skipWaiting: async () => undefined,
-    clients: { claim: async () => undefined },
-    registration: { navigationPreload: { enable: async () => undefined } },
+    clients: {
+      claim: async () => undefined,
+      matchAll: async () => opcoes.janelas ?? [],
+      openWindow: async (endereco: string) => void abertas.push(endereco),
+    },
+    registration: {
+      navigationPreload: { enable: async () => undefined },
+      showNotification: async (titulo: string, detalhe: { body: string }) => void notificacoes.push({ titulo, corpo: detalhe.body }),
+    },
   };
   const BaseRequest = Request;
   // No service worker, caminho relativo resolve pelo endereço do próprio arquivo.
@@ -105,7 +120,7 @@ function serviceWorker(opcoes: { rede: (pedido: Request) => Promise<Response>; c
     await Promise.all(esperas);
     return resposta ? await resposta : undefined;
   }
-  return { disparar, guardados, pedidosDaRede };
+  return { disparar, guardados, pedidosDaRede, notificacoes, abertas };
 }
 
 const navegar = (caminho: string) => ({ url: `https://frilabr.com${caminho}`, mode: "navigate", method: "GET" });
@@ -147,5 +162,65 @@ describe("service worker", () => {
     const sw = serviceWorker({ rede: paginaDaRede, caches: ["frila-casca-v0", "cache-do-site", "frila-casca-v1"] });
     await sw.disparar("activate");
     expect([...sw.guardados.keys()].sort()).toEqual(["cache-do-site", "frila-casca-v1"]);
+  });
+});
+
+describe("service worker: push", () => {
+  const neutro = { titulo: textos.pwa.avisos.neutroTitulo, corpo: textos.pwa.avisos.neutroCorpo };
+  const aviso = (vinculo: string | null) => ({
+    data: { json: () => ({ notification: { title: "Turno amanhã", body: "Bar do Zé, 19h" }, data: { tipo: "turno", vinculo_id: vinculo } }) },
+  });
+  const comVinculo = async (vinculo: string | null) => {
+    const sw = serviceWorker({ rede: async () => new Response("") });
+    await sw.disparar("message", { data: { tipo: "vinculo", vinculo_id: vinculo, neutro } });
+    return sw;
+  };
+
+  it("aviso da conta que ligou os avisos aparece com o conteúdo", async () => {
+    const sw = await comVinculo("v-1");
+    await sw.disparar("push", aviso("v-1"));
+    expect(sw.notificacoes).toEqual([{ titulo: "Turno amanhã", corpo: "Bar do Zé, 19h" }]);
+  });
+
+  it("aviso de outra conta aparece neutro (RN15)", async () => {
+    const sw = await comVinculo("v-1");
+    await sw.disparar("push", aviso("v-2"));
+    await sw.disparar("push", aviso(null));
+    expect(sw.notificacoes).toEqual([
+      { titulo: neutro.titulo, corpo: neutro.corpo },
+      { titulo: neutro.titulo, corpo: neutro.corpo },
+    ]);
+  });
+
+  it("depois do sair, até o aviso do vínculo antigo aparece neutro", async () => {
+    const sw = await comVinculo("v-1");
+    await sw.disparar("message", { data: { tipo: "esquecer" } });
+    await sw.disparar("push", aviso("v-1"));
+    expect(sw.notificacoes).toEqual([{ titulo: neutro.titulo, corpo: neutro.corpo }]);
+  });
+
+  it("sem nada guardado (avisos nunca ligados aqui), não mostra conteúdo", async () => {
+    const sw = serviceWorker({ rede: async () => new Response("") });
+    await sw.disparar("push", aviso("v-1"));
+    expect(sw.notificacoes[0]?.corpo).not.toContain("Bar do Zé");
+  });
+
+  it("servidor sem vínculo na resposta: sem conferência, como diz o contrato", async () => {
+    const sw = await comVinculo(null);
+    await sw.disparar("push", aviso(null));
+    expect(sw.notificacoes).toEqual([{ titulo: "Turno amanhã", corpo: "Bar do Zé, 19h" }]);
+  });
+
+  it("tocar no aviso abre o Frila, ou volta para a janela já aberta", async () => {
+    const fechar = { close: () => undefined };
+    const sw = serviceWorker({ rede: async () => new Response("") });
+    await sw.disparar("notificationclick", { notification: fechar });
+    expect(sw.abertas).toEqual(["/app/"]);
+
+    let focou = false;
+    const comJanela = serviceWorker({ rede: async () => new Response(""), janelas: [{ url: "https://frilabr.com/app/turnos", focus: async () => void (focou = true) }] });
+    await comJanela.disparar("notificationclick", { notification: fechar });
+    expect(focou).toBe(true);
+    expect(comJanela.abertas).toEqual([]);
   });
 });

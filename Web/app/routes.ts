@@ -10,6 +10,7 @@ export default [
   // Instalar na tela de início e a página que o service worker mostra sem rede (fase 4)
   route("instalar", "rotas/instalar.tsx"),
   route("sem-conexao", "rotas/sem-conexao.ts"),
+  route("avisos", "rotas/avisos.tsx"),
   // A vaga pelo link, sem login (para compartilhar)
   route("v/:vagaId", "rotas/publico/vaga.tsx"),
 

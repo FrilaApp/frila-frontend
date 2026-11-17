@@ -27,7 +27,8 @@ export function politicaDeConteudo(nonce: string): string {
     "style-src 'self'",
     "img-src 'self' data:",
     "font-src 'self'",
-    "connect-src 'self'",
+    // Push (fase 4): o token do aparelho sai do navegador direto para o Firebase. Só estes dois endereços.
+    "connect-src 'self' https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
     "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",

@@ -1,7 +1,8 @@
 import { redirect } from "react-router";
 
 import { contextoDaSessao, contextoDoAuth } from "../contexto";
-import { authDesteAmbiente } from "../servidor/deste-ambiente";
+import { apiDoUsuario, authDesteAmbiente } from "../servidor/deste-ambiente";
+import { cookieDoAparelho, lerTokenDoAparelho, removerAparelho } from "../servidor/push";
 import { cookiesDeSaida, ehPedidoSeguro } from "../servidor/sessao";
 import type { Route } from "./+types/sair";
 
@@ -13,6 +14,10 @@ import type { Route } from "./+types/sair";
 export async function action({ request, context }: Route.ActionArgs) {
   const sessao = context.get(contextoDaSessao);
   const respostaDoAuth = context.get(contextoDoAuth);
+  // Push na web (RN15): antes de encerrar, o token deste navegador deixa de ser da conta. Se falhar, o sair segue: o
+  // service worker já esqueceu o vínculo, e o aviso que chegar aparece sem conteúdo.
+  const tokenDoAparelho = lerTokenDoAparelho(request);
+  if (sessao && tokenDoAparelho) await removerAparelho(apiDoUsuario(sessao.acesso), tokenDoAparelho);
   const encerrada = sessao
     ? (await authDesteAmbiente()?.encerrar(sessao.acesso))?.ok === true
     : respostaDoAuth === "recusou" || respostaDoAuth === "sem_cookie";
@@ -21,6 +26,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const cabecalhos = new Headers();
   for (const linha of cookiesDeSaida(ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+  if (tokenDoAparelho) cabecalhos.append("Set-Cookie", cookieDoAparelho(null, ehPedidoSeguro(request)));
   throw redirect("/entrar", { headers: cabecalhos });
 }
 
