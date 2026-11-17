@@ -6,7 +6,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.ByteArrayContent
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
@@ -52,7 +52,8 @@ class ServicoMidiaTest {
             visto.temApikey = request.headers.contains("apikey")
             when (val corpo = request.body) {
                 is TextContent -> visto.corpo = ClienteSupabase.jsonFrila.parseToJsonElement(corpo.text).jsonObject
-                is ByteArrayContent -> {
+                // O PUT chega como `OutgoingContent.ByteArrayContent` (classe anônima do Ktor), não como `ByteArrayContent`.
+                is OutgoingContent.ByteArrayContent -> {
                     visto.corpoBytes = corpo.bytes()
                     visto.tipoDoCorpo = corpo.contentType?.toString()
                 }
@@ -154,6 +155,23 @@ class ServicoMidiaTest {
             assertFalse(tudo.contains("enviar-midia"), "URL vazou no erro de ${status.value}")
             assertFalse(tudo.contains("caminho secreto"), "corpo vazou no erro de ${status.value}")
         }
+    }
+
+    @Test
+    fun `enviarFoto com falha de rede vira sem_rede sem citar a URL nem o token`() = runTest {
+        val engine = MockEngine { request ->
+            // O Ktor cita a URL inteira na mensagem das falhas de rede (ex.: ConnectTimeoutException).
+            throw java.io.IOException("Connect timeout has expired [url=${request.url}, connect_timeout=60000 ms]")
+        }
+        val s = ServicoMidia(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+
+        val erro = runCatching { s.enviarFoto(urlDeUpload, byteArrayOf(1)) }.exceptionOrNull() as ErroDaApi
+
+        assertEquals(CodigoErroAPI.SEM_REDE, erro.codigo)
+        val tudo = listOfNotNull(erro.message, erro.mensagemCrua, erro.codigoOriginal, erro.detalhes, erro.cause?.message).joinToString(" ")
+        assertFalse(tudo.contains("SEGREDO-DO-TOKEN"), "token vazou na falha de rede")
+        assertFalse(tudo.contains("enviar-midia"), "URL vazou na falha de rede")
+        assertNull(erro.cause)
     }
 
     @Test
