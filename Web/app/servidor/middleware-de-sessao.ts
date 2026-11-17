@@ -1,6 +1,6 @@
 import type { MiddlewareFunction } from "react-router";
 
-import { contextoDaSessao } from "../contexto";
+import { contextoDaSessao, contextoDoAuth } from "../contexto";
 import { authDesteAmbiente } from "./deste-ambiente";
 import { resolverSessao, respostaJaGravaSessao } from "./sessao";
 
@@ -10,8 +10,9 @@ import { resolverSessao, respostaJaGravaSessao } from "./sessao";
  */
 export const middlewareDeSessao: MiddlewareFunction<Response> = async ({ request, context }, next) => {
   const auth = authDesteAmbiente();
-  const { sessao, cookies } = await resolverSessao(request, auth);
+  const { sessao, cookies, auth: respostaDoAuth } = await resolverSessao(request, auth);
   context.set(contextoDaSessao, sessao);
+  context.set(contextoDoAuth, respostaDoAuth);
 
   const resposta = await next();
   if (cookies.length > 0 && !respostaJaGravaSessao(resposta)) {
