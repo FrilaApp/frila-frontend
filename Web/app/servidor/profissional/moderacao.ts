@@ -1,6 +1,6 @@
 /**
- * Denunciar e bloquear uma casa, do lado do profissional (denunciar, bloquear, listar_bloqueios, desbloquear).
- * O alvo é o `id` do PerfilPublico que o servidor mostrou (vaga, turno ou chamada). A Equipe Frila responde à
+ * Denunciar e bloquear (denunciar, bloquear, listar_bloqueios, desbloquear), dos dois lados: o profissional denuncia
+ * a casa, e a casa denuncia o profissional (`alvoTipo`). O alvo é o `id` do PerfilPublico que o servidor mostrou. A Equipe Frila responde à
  * denúncia por e-mail; o bloqueio vale na hora, nos dois sentidos.
  */
 import type { components } from "../../contrato/tipos.gerado";
@@ -8,6 +8,7 @@ import type { Api } from "../api";
 
 export type MotivoDaDenuncia = components["schemas"]["MotivoDenuncia"];
 export type ItemBloqueio = components["schemas"]["ItemBloqueio"];
+export type TipoDeAlvo = components["schemas"]["TipoDeAlvo"];
 export const MOTIVOS_DA_DENUNCIA: readonly MotivoDaDenuncia[] = ["assedio", "discriminacao", "risco_seguranca", "outro"];
 export const MINIMO_DO_RELATO = 10;
 
@@ -33,7 +34,7 @@ function falha(status: number, erro: { code?: string; details?: string | null } 
 
 export async function denunciarCasa(
   api: Api | null,
-  dados: { alvoId: string; turnoId: string | null; motivo: MotivoDaDenuncia; relato: string; chave: string },
+  dados: { alvoId: string; turnoId: string | null; motivo: MotivoDaDenuncia; relato: string; chave: string; alvoTipo?: TipoDeAlvo },
 ): Promise<ResultadoDaDenuncia> {
   const relato = dados.relato.trim();
   if (!ehUuid(dados.alvoId) || !ehUuid(dados.chave)) return { ok: false, motivo: "nao_encontrado" };
@@ -42,7 +43,7 @@ export async function denunciarCasa(
   try {
     const { data, error, response } = await api.POST("/rpc/denunciar", {
       body: {
-        alvo_tipo: "estabelecimento",
+        alvo_tipo: dados.alvoTipo ?? "estabelecimento",
         alvo_id: dados.alvoId,
         turno_id: dados.turnoId && ehUuid(dados.turnoId) ? dados.turnoId : null,
         motivo: dados.motivo,
@@ -59,11 +60,16 @@ export async function denunciarCasa(
 }
 
 /** Bloquear e desbloquear são idempotentes no servidor. */
-export async function bloquearCasa(api: Api | null, alvoId: string, desfazer = false): Promise<{ ok: true } | { ok: false; motivo: Falha }> {
+export async function bloquearCasa(
+  api: Api | null,
+  alvoId: string,
+  desfazer = false,
+  alvoTipo: TipoDeAlvo = "estabelecimento",
+): Promise<{ ok: true } | { ok: false; motivo: Falha }> {
   if (!ehUuid(alvoId)) return { ok: false, motivo: "nao_encontrado" };
   if (!api) return { ok: false, motivo: "indisponivel" };
   try {
-    const corpo = { body: { alvo_tipo: "estabelecimento" as const, alvo_id: alvoId }, signal: prazo() };
+    const corpo = { body: { alvo_tipo: alvoTipo, alvo_id: alvoId }, signal: prazo() };
     const { data, error, response } = desfazer ? await api.POST("/rpc/desbloquear", corpo) : await api.POST("/rpc/bloquear", corpo);
     if (data) return { ok: true };
     return { ok: false, motivo: falha(response.status, error) };

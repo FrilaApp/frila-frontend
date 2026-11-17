@@ -8,6 +8,7 @@ import { contratanteEscala } from "./contratante-escala";
 import { contratanteBusca } from "./contratante-busca";
 import { contratanteEquipe } from "./contratante-equipe";
 import { contratanteMembros } from "./contratante-membros";
+import { contratanteModeracao } from "./contratante-moderacao";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
@@ -31,6 +32,8 @@ export const textos = {
   profissional,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
+  // Denunciar e bloquear do lado da casa (arquivo próprio).
+  contratanteModeracao,
   // Escala de evento em lote do lado da casa (arquivo próprio).
   contratanteEscala,
   // Busca de profissionais do lado da casa (arquivo próprio).
