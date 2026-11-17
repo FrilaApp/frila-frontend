@@ -25,14 +25,14 @@ const pedido = (cookies: string, url = "https://frilabr.com/app/") => new Reques
 const semRenovar = vi.fn<(t: string) => Promise<Renovacao>>(() => Promise.reject(new Error("não devia renovar")));
 
 describe("cookies da sessão", () => {
-  it("em HTTPS: HttpOnly, Secure, SameSite=Lax, presos a /app e com o prefixo __Secure-", () => {
+  it("em HTTPS: HttpOnly, Secure, SameSite=Lax, presos ao host (Path=/) e com o prefixo __Host-", () => {
     const [acesso, renovacao] = cookiesDaSessao(sessaoNova, true);
     for (const linha of [acesso, renovacao]) {
-      expect(linha).toMatch(/^__Secure-frila-(acesso|renovacao)=/);
+      expect(linha).toMatch(/^__Host-frila-(acesso|renovacao)=/);
       expect(linha).toContain("; HttpOnly");
       expect(linha).toContain("; Secure");
       expect(linha).toContain("; SameSite=Lax");
-      expect(linha).toContain("; Path=/app");
+      expect(linha).toContain("; Path=/;");
       expect(linha).not.toContain("Domain=");
     }
     expect(acesso).toContain("; Max-Age=3600");
@@ -51,14 +51,14 @@ describe("cookies da sessão", () => {
     const linhas = cookiesDeSaida(true);
     expect(linhas).toHaveLength(2);
     for (const linha of linhas) {
-      expect(linha).toMatch(/^__Secure-frila-(acesso|renovacao)=; /);
+      expect(linha).toMatch(/^__Host-frila-(acesso|renovacao)=; /);
       expect(linha).toContain("; Max-Age=0");
       expect(linha).toContain("; HttpOnly");
     }
   });
 
   it("lê de volta o que gravou e ignora cookie de outro nome", () => {
-    const lidos = lerCookiesDaSessao(pedido("outro=1; __Secure-frila-acesso=aaa; __Secure-frila-renovacao=bbb"));
+    const lidos = lerCookiesDaSessao(pedido("outro=1; __Host-frila-acesso=aaa; __Host-frila-renovacao=bbb"));
     expect(lidos).toEqual({ acesso: "aaa", renovacao: "bbb" });
     // Em HTTPS o cookie sem prefixo (que um subdomínio poderia plantar) não vale.
     expect(lerCookiesDaSessao(pedido("frila-acesso=aaa"))).toEqual({ acesso: null, renovacao: null });
@@ -74,12 +74,16 @@ describe("cookies da sessão", () => {
 
 describe("leitura do token", () => {
   it("tira vencimento, usuário e e-mail", () => {
-    expect(lerToken(acessoQueVenceEm(10))).toEqual({ venceEm: AGORA + 10, usuarioId: "usuario-1", email: "ana@example.com" });
+    expect(lerToken(acessoQueVenceEm(10))).toEqual({ venceEm: AGORA + 10, usuarioId: "usuario-1", email: "ana@example.com", sessaoId: null });
+  });
+
+  it("lê a sessão do Auth (session_id), que a renovação mantém", () => {
+    expect(lerToken(token({ exp: AGORA, sub: "u", session_id: "sessao-1" })).sessaoId).toBe("sessao-1");
   });
 
   it("token estragado não derruba nada", () => {
-    expect(lerToken("lixo")).toEqual({ venceEm: null, usuarioId: null, email: null });
-    expect(lerToken("a.@@@.c")).toEqual({ venceEm: null, usuarioId: null, email: null });
+    expect(lerToken("lixo")).toEqual({ venceEm: null, usuarioId: null, email: null, sessaoId: null });
+    expect(lerToken("a.@@@.c")).toEqual({ venceEm: null, usuarioId: null, email: null, sessaoId: null });
   });
 });
 
@@ -90,7 +94,7 @@ describe("sessão de um pedido", () => {
 
   it("token de acesso com folga: usa sem renovar", async () => {
     const acesso = acessoQueVenceEm(600);
-    const resultado = await resolverSessao(pedido(`__Secure-frila-acesso=${acesso}; __Secure-frila-renovacao=r1`), semRenovar, AGORA);
+    const resultado = await resolverSessao(pedido(`__Host-frila-acesso=${acesso}; __Host-frila-renovacao=r1`), semRenovar, AGORA);
     expect(resultado).toEqual({ sessao: { acesso, usuarioId: "usuario-1", email: "ana@example.com" }, cookies: [] });
     expect(semRenovar).not.toHaveBeenCalled();
   });
@@ -98,7 +102,7 @@ describe("sessão de um pedido", () => {
   it("token perto de vencer: renova uma vez e regrava os cookies", async () => {
     const renovar = vi.fn<(t: string) => Promise<Renovacao>>(async () => ({ ok: true, sessao: sessaoNova }));
     const resultado = await resolverSessao(
-      pedido(`__Secure-frila-acesso=${acessoQueVenceEm(30)}; __Secure-frila-renovacao=r1`),
+      pedido(`__Host-frila-acesso=${acessoQueVenceEm(30)}; __Host-frila-renovacao=r1`),
       renovar,
       AGORA,
     );
@@ -109,14 +113,14 @@ describe("sessão de um pedido", () => {
 
   it("só o token de renovação (o de acesso já sumiu): renova", async () => {
     const renovar = vi.fn<(t: string) => Promise<Renovacao>>(async () => ({ ok: true, sessao: sessaoNova }));
-    const resultado = await resolverSessao(pedido("__Secure-frila-renovacao=r1"), renovar, AGORA);
+    const resultado = await resolverSessao(pedido("__Host-frila-renovacao=r1"), renovar, AGORA);
     expect(resultado.sessao?.usuarioId).toBe("usuario-1");
     expect(resultado.cookies).toHaveLength(2);
   });
 
   it("renovação recusada: sai e apaga os cookies", async () => {
     const resultado = await resolverSessao(
-      pedido(`__Secure-frila-acesso=${acessoQueVenceEm(-10)}; __Secure-frila-renovacao=velho`),
+      pedido(`__Host-frila-acesso=${acessoQueVenceEm(-10)}; __Host-frila-renovacao=velho`),
       async () => ({ ok: false, motivo: "recusada" }),
       AGORA,
     );
@@ -126,24 +130,24 @@ describe("sessão de um pedido", () => {
   it("Supabase fora do ar: segue com o token enquanto ele vale, sem apagar nada", async () => {
     const fora = async (): Promise<Renovacao> => ({ ok: false, motivo: "indisponivel" });
     const aindaVale = acessoQueVenceEm(30);
-    expect(await resolverSessao(pedido(`__Secure-frila-acesso=${aindaVale}; __Secure-frila-renovacao=r1`), fora, AGORA)).toEqual({
+    expect(await resolverSessao(pedido(`__Host-frila-acesso=${aindaVale}; __Host-frila-renovacao=r1`), fora, AGORA)).toEqual({
       sessao: { acesso: aindaVale, usuarioId: "usuario-1", email: "ana@example.com" },
       cookies: [],
     });
     expect(
-      await resolverSessao(pedido(`__Secure-frila-acesso=${acessoQueVenceEm(-5)}; __Secure-frila-renovacao=r1`), fora, AGORA),
+      await resolverSessao(pedido(`__Host-frila-acesso=${acessoQueVenceEm(-5)}; __Host-frila-renovacao=r1`), fora, AGORA),
     ).toEqual({ sessao: null, cookies: [] });
   });
 
   it("token vencido e sem renovação: sai", async () => {
-    expect(await resolverSessao(pedido(`__Secure-frila-acesso=${acessoQueVenceEm(-5)}`), semRenovar, AGORA)).toEqual({
+    expect(await resolverSessao(pedido(`__Host-frila-acesso=${acessoQueVenceEm(-5)}`), semRenovar, AGORA)).toEqual({
       sessao: null,
       cookies: cookiesDeSaida(true),
     });
   });
 
   it("token sem vencimento legível não vale como sessão", async () => {
-    expect(await resolverSessao(pedido("__Secure-frila-acesso=lixo"), semRenovar, AGORA)).toEqual({
+    expect(await resolverSessao(pedido("__Host-frila-acesso=lixo"), semRenovar, AGORA)).toEqual({
       sessao: null,
       cookies: cookiesDeSaida(true),
     });
