@@ -78,6 +78,57 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
                        "com a chave desligada, Encontrar profissional não existe")
     }
 
+    // MARK: Envio incerto sobrevive a publicar uma vaga (#798, item 3)
+
+    /// A resposta do 1º envio se perde (`-FRILA_BUSCA_RESPOSTA_PERDIDA`, só no DEBUG) e a busca trava no envio incerto.
+    /// Fechar, abrir "Publicar vaga" (Minhas vagas sai da tela) e cancelar não pode soltar a trava: reaberta, a busca é a
+    /// mesma e o "Tentar de novo" resolve com a mesma chave (o dublê devolve a chamada já criada).
+    func testEnvioIncertoSobreviveAPublicarVagaEVoltar() {
+        let app = abrir(cenario + ["-FRILA_BUSCA_RESPOSTA_PERDIDA"])
+        abrirABusca(app)
+        buscar(app)
+        let pessoa = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'")).firstMatch
+        XCTAssertTrue(pessoa.waitForExistence(timeout: 15), "a busca traz profissionais")
+        pessoa.tap()
+        app.buttons["chamar-selecionados"].tap()
+        enviarPelaFolha(app)
+        XCTAssertTrue(app.staticTexts["busca-envio-incerto"].waitForExistence(timeout: 20), "a resposta se perdeu: a busca trava")
+
+        app.buttons["busca-fechar"].tap()
+        let publicar = app.buttons["publicar-vaga-entrada"]
+        XCTAssertTrue(publicar.waitForExistence(timeout: 10), "Minhas vagas volta com a entrada de publicar")
+        publicar.tap()
+        let cancelar = app.buttons["cancelar-publicacao"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: 10), "a publicação abre no lugar de Minhas vagas")
+        cancelar.tap()
+
+        abrirABusca(app)
+        XCTAssertTrue(app.staticTexts["busca-envio-incerto"].waitForExistence(timeout: 10),
+                      "depois de publicar e voltar, a busca segue travada no mesmo envio")
+        let tentar = app.buttons["busca-tentar-de-novo"]
+        XCTAssertTrue(tentar.waitForExistence(timeout: 5))
+        tentar.tap()
+        let enviada = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'resultado-chamada-' AND label == 'Chamada enviada'"))
+        XCTAssertTrue(enviada.firstMatch.waitForExistence(timeout: 20), "o Tentar de novo resolve com a mesma chave")
+        XCTAssertFalse(app.staticTexts["busca-envio-incerto"].exists, "resolvido, a trava sai")
+    }
+
+    /// A folha de chamada: valor 200, confirma o total e envia.
+    private func enviarPelaFolha(_ app: XCUIApplication) {
+        let valor = app.textFields["busca-valor-total"]
+        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre")
+        valor.tap()
+        valor.typeText("200")
+        let confirmo = app.switches["busca-confirmo-total"]
+        XCTAssertTrue(confirmo.waitForExistence(timeout: 5))
+        // O centro da linha não aciona o switch: toca no lado dele (como na chamada direta).
+        confirmo.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let enviar = app.buttons["busca-enviar-chamadas"]
+        for _ in 0..<4 where !(enviar.exists && enviar.isHittable) { app.swipeUp() }
+        XCTAssertTrue(enviar.waitForExistence(timeout: 5) && enviar.isEnabled, "com valor e total confirmado, o envio libera")
+        enviar.tap()
+    }
+
     // MARK: Capturas (padrão e AX5), só como anexos do XCTest
 
     private func salvar(_ app: XCUIApplication, _ nome: String) {

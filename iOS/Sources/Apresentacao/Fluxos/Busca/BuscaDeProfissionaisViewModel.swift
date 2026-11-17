@@ -187,8 +187,19 @@ public final class BuscaDeProfissionaisViewModel {
 
     public convenience init(api: any ApiCliente, estabelecimentoID: UUID, prazo: Duration = .seconds(15),
                             versaoDosTermos: String = VersaoDosTermos.vigente) {
-        self.init(fonte: FonteDaBuscaPelaApi(api: api), estabelecimentoID: estabelecimentoID, prazo: prazo,
+        self.init(fonte: BuscaDeProfissionaisViewModel.fonte(api: api), estabelecimentoID: estabelecimentoID, prazo: prazo,
                   versaoDosTermos: versaoDosTermos)
+    }
+
+    /// A fonte pela API. Só no DEBUG, para o UI test: `-FRILA_BUSCA_RESPOSTA_PERDIDA` perde a 1ª resposta de chamada.
+    private static func fonte(api: any ApiCliente) -> any FonteDaBuscaDeProfissionais {
+        let fonte = FonteDaBuscaPelaApi(api: api)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-FRILA_BUSCA_RESPOSTA_PERDIDA") {
+            return FonteDaBuscaComRespostaPerdida(base: fonte)
+        }
+        #endif
+        return fonte
     }
 
     public var podeBuscar: Bool {
