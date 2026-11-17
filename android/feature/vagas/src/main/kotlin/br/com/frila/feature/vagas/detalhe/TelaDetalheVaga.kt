@@ -34,7 +34,7 @@ import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.dominio.modelo.Dinheiro
-import java.time.Instant
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -120,8 +120,8 @@ fun TelaDetalheVaga(
         CartaoVaga(modifier = Modifier.fillMaxWidth()) {
             LinhaDetalhe(rotulo = "Local", valor = vaga.local)
             LinhaDetalhe(rotulo = "Região", valor = vaga.regiaoAdministrativa)
-            LinhaDetalhe(rotulo = "Início", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(Instant.parse(vaga.inicioEm)))
-            LinhaDetalhe(rotulo = "Fim", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(Instant.parse(vaga.fimEm)))
+            LinhaDetalhe(rotulo = "Início", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.inicioEm)))
+            LinhaDetalhe(rotulo = "Fim", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.fimEm)))
             LinhaDetalhe(rotulo = "Valor", valor = Dinheiro(vaga.valorCentavos).formatado())
             LinhaDetalhe(rotulo = "Distância", valor = "${"%.1f".format(vaga.distanciaKm)} km")
         }

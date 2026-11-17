@@ -1,8 +1,8 @@
 package br.com.frila.feature.vagas.feed
 
 import br.com.frila.core.dominio.modelo.Dinheiro
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.VagaAbertaDto
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -14,7 +14,7 @@ fun VagaAbertaDto.paraItem(): ItemVaga = ItemVaga(
     id = id,
     funcaoNome = funcao.nome,
     estabelecimentoNome = estabelecimento.nome,
-    horarioFormatado = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(Instant.parse(inicioEm)),
+    horarioFormatado = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(inicioEm)),
     valorFormatado = Dinheiro(valorCentavos).formatado(),
     distanciaKm = distanciaKm,
     modo = modo,
