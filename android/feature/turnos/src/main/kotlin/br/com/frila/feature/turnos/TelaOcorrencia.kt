@@ -66,19 +66,22 @@ fun TelaOcorrencia(
             )
         },
     ) { paddingInterno ->
-        when (estado.status) {
-            StatusOcorrencia.SUCESSO -> ConfirmacaoDeOcorrencia(
-                protocoloCurto = estado.protocolo?.ocorrenciaId?.take(8)?.replace("-", "")?.uppercase() ?: "",
-                aoAbrirEmailDeSuporte = aoAbrirEmailDeSuporte,
-                aoVoltar = aoVoltar,
-            )
-            else -> FormularioDeOcorrencia(
-                estado = estado,
-                aoSelecionarMotivo = viewModel::selecionarMotivo,
-                aoAtualizarRelato = viewModel::atualizarRelato,
-                aoSelecionarFoto = aoSelecionarFoto,
-                aoEnviar = { viewModel.enviar() },
-            )
+        // O conteúdo fica abaixo da barra do topo (o Scaffold devolve o espaço dela em paddingInterno).
+        Column(modifier = Modifier.padding(paddingInterno)) {
+            when (estado.status) {
+                StatusOcorrencia.SUCESSO -> ConfirmacaoDeOcorrencia(
+                    protocoloCurto = estado.protocolo?.ocorrenciaId?.take(8)?.replace("-", "")?.uppercase() ?: "",
+                    aoAbrirEmailDeSuporte = aoAbrirEmailDeSuporte,
+                    aoVoltar = aoVoltar,
+                )
+                else -> FormularioDeOcorrencia(
+                    estado = estado,
+                    aoSelecionarMotivo = viewModel::selecionarMotivo,
+                    aoAtualizarRelato = viewModel::atualizarRelato,
+                    aoSelecionarFoto = aoSelecionarFoto,
+                    aoEnviar = { viewModel.enviar() },
+                )
+            }
         }
     }
 }

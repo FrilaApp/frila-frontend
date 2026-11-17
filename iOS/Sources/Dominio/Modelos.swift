@@ -1797,6 +1797,18 @@ public struct ChamadaResumo: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
+/// Uma página de `minhas_chamadas`; `proximoCursor` é `nil` na última. 0.2.95: a busca segue o cursor até achar a
+/// chamada aberta da vaga do `409 trabalho_ja_aberto`.
+public struct PaginaChamadas: Equatable, Sendable {
+    public let itens: [ChamadaResumo]
+    public let proximoCursor: String?
+
+    public init(itens: [ChamadaResumo], proximoCursor: String? = nil) {
+        self.itens = itens
+        self.proximoCursor = proximoCursor
+    }
+}
+
 public struct ChamadaDetalhe: Codable, Equatable, Sendable, Identifiable {
     public let id: UUID
     public let vagaID: UUID
