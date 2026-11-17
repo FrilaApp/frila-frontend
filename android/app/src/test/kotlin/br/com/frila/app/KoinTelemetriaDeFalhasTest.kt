@@ -2,7 +2,6 @@ package br.com.frila.app
 
 import br.com.frila.app.falhas.DestinoDeFalhas
 import br.com.frila.app.falhas.TelemetriaDeFalhas
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
@@ -37,7 +36,6 @@ class KoinTelemetriaDeFalhasTest : KoinTest {
 
     private val modulosDeTeste = module {
         single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
-        single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
     }
 
     private suspend fun respostaDeErro() =

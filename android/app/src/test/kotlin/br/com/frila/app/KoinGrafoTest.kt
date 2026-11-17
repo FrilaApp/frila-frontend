@@ -29,13 +29,11 @@ import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
-import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import io.mockk.mockk
@@ -64,12 +62,10 @@ import kotlin.reflect.jvm.isAccessible
  * que `ArmazenamentoDeSessao`/`ArmazenamentoPreferenciasFiltro` continuam utilizáveis em JVM puro,
  * sem `Context`. `moduloLocalizacao` é o único módulo que exige um `Context` Android de verdade
  * (via `ProvedorDeLocalizacaoFused`), então aqui ele é substituído por [moduloLocalizacaoFalso],
- * que resolve `ProvedorDeLocalizacao` sem precisar de `Context` — preserva o resto do grafo
- * exatamente como era antes do RF05/RN02 (filtro por raio GPS) acrescentar essa dependência.
+ * que resolve `ProvedorDeLocalizacao` sem precisar de `Context`.
  */
 private val moduloLocalizacaoFalso = module {
     single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
-    single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
 }
 
 class KoinGrafoTest : KoinTest {
@@ -125,7 +121,6 @@ class KoinGrafoTest : KoinTest {
         assertInstanceOf(RepositorioVagas::class.java, propriedadeCache.get(feed))
         assertNotNull(get<PerfilViewModel>())
         assertNotNull(get<VerificacaoIdentidadeViewModel>())
-        assertNotNull(get<MonitorizadorDeTurnosProximos>())
         assertNotNull(get<MeusTurnosViewModel>())
         assertNotNull(get<CodigoViewModel> { parametersOf("profissional@exemplo.com") })
         assertNotNull(get<DetalheVagaViewModel> { parametersOf(vagaDeTeste) })
@@ -202,24 +197,6 @@ class KoinGrafoTest : KoinTest {
         assertTrue(resultado.silenciada) {
             "ProcessadorDePush deveria ver o canal_turnos desativado pelo mesmo gerenciador usado no PerfilViewModel."
         }
-    }
-
-    @Test
-    fun `MonitorizadorDeTurnosProximos e o mesmo singleton injetado em MeusTurnosViewModel e CheckinViewModel`() {
-        // Ressalva do Shisui (PR #598): provar via reflexão que o grafo não cai na mesma classe
-        // de bug do PR #596 — um default divergente dentro do construtor, em vez da instância
-        // única registrada no Koin.
-        startKoin { modules(modulosDeTeste) }
-
-        val meusTurnos = get<MeusTurnosViewModel>()
-        val checkin = get<CheckinViewModel> { parametersOf("turno-1", null) }
-        val doGrafo = get<MonitorizadorDeTurnosProximos>()
-
-        val monitorizadorDeMeusTurnos = propriedadePrivada(meusTurnos, "monitorizador")
-        val monitorizadorDeCheckin = propriedadePrivada(checkin, "monitorizador")
-
-        assertSame(doGrafo, monitorizadorDeMeusTurnos)
-        assertSame(doGrafo, monitorizadorDeCheckin)
     }
 
     @Test

@@ -43,7 +43,7 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | 2.5 | Sair | — (apaga os cookies e encerra no Auth) | | 1 |
 | 2.6 | Criar conta escolhendo o papel | `criar_conta`, `minha_conta` | | 1 |
 | 2.7 | Aceite dos termos, e novo aceite quando mudam | `aceitar_termos` | | 1 |
-| 2.8 | Cadastro do profissional em passos | `criar_perfil_profissional`, `definir_servicos`, `definir_regioes_atendidas` | | 2P |
+| 2.8 | Cadastro do profissional em passos | `criar_perfil_profissional`, `definir_servicos`, `definir_regioes_atendidas` | parcial: falta serviços com preço e horários (2.8b) | 2P |
 | 2.9 | Cadastro do estabelecimento | `cadastrar_estabelecimento` | | 2C |
 | 2.10 | Conta suspensa: ver o motivo e contestar | `situacao_da_conta`, `contestar_suspensao` | | 2C/2P |
 | 2.11 | Exportar os próprios dados e excluir a conta | `exportar-meus-dados`, `excluir-conta` | | 5 |
@@ -123,8 +123,9 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 
 ## 7. Fora do contrato hoje
 
-Nada disto entra na web sem decisão dos sócios: ou muda o modelo do produto, ou ainda não existe no contrato.
-Ficam listados para a decisão, não como fila de trabalho.
+**Decisão do Cauê (pedido 2026-11-17-02, 17/11/2026): fora por agora, decidir depois.** Nada disto entra na web nem nos
+apps sem ordem dele. A origem é esta comparação com o freela+ e o Scalador. O registro está em `frila-docs`, `produto/AGORA.md`,
+na seção "Fora por agora", e nos módulos.
 
 | Recurso | Por que não entra agora |
 |---|---|
@@ -136,6 +137,7 @@ Ficam listados para a decisão, não como fila de trabalho.
 | Escala que se repete toda semana | Sem operação no contrato |
 | Indicação com prêmio e programa de parceiros | Decisão comercial |
 | Recrutamento para vaga fixa | Outro produto |
+| Painel interno (administração e CRM) | Ferramenta da equipe, fora do produto |
 
 ## 8. Soluções técnicas da web do Frila
 
@@ -176,3 +178,9 @@ Ficam listados para a decisão, não como fila de trabalho.
 | B5 | Leitura da vaga pelo link, sem login | 3 | contrato 0.2.100 a caminho; depois o backend |
 | B6 | Envio de push com bloco de web (o registro do aparelho `web` já é aceito) | 4 | pedido |
 | B7 | Backend da escala em lote (`publicar_escala`) | 5 | contrato pronto, falta o servidor |
+
+## Provas que faltam no Prod (web ligada em 17/11/2026)
+
+- **Página pública da vaga, resposta 200:** provar na 1ª vaga real aberta, só com GET (sem gravar nada) e conferindo que
+  aparecem só os campos públicos. No dia da ligação não havia vaga real aberta, e criar uma avisaria profissionais reais.
+  O 410 (vaga cancelada) e o 404 (vaga de demonstração e id inexistente) já foram provados no Prod; o 200, no dev.
