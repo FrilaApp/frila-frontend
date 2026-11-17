@@ -73,10 +73,14 @@ describe("config do push", () => {
     FIREBASE_VAPID_CHAVE_PUBLICA: "e",
   };
 
-  it("só existe com as cinco variáveis; faltando uma, o push fica desligado neste ambiente", () => {
+  it("existe com as quatro variáveis do app; faltando uma, o push fica desligado neste ambiente", () => {
     expect(lerConfigDoPush(completa)).toEqual({ apiKey: "a", projectId: "b", messagingSenderId: "c", appId: "d", vapidKey: "e" });
-    expect(lerConfigDoPush({ ...completa, FIREBASE_VAPID_CHAVE_PUBLICA: "" })).toBeNull();
+    expect(lerConfigDoPush({ ...completa, FIREBASE_WEB_APP_ID: "" })).toBeNull();
     expect(lerConfigDoPush({})).toBeNull();
+  });
+
+  it("a VAPID própria é opcional: sem ela, vale a chave padrão do FCM", () => {
+    expect(lerConfigDoPush({ ...completa, FIREBASE_VAPID_CHAVE_PUBLICA: "" })).toEqual({ apiKey: "a", projectId: "b", messagingSenderId: "c", appId: "d" });
   });
 });
 

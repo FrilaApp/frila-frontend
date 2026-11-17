@@ -7,18 +7,21 @@
 import type { Api } from "./api";
 import { VERSAO_DA_WEB } from "../versao";
 
-/** Config pública do app web do Firebase (vai para o navegador, que tira o token). Fora do repositório: variáveis do Worker. */
-export type ConfigDoPush = { apiKey: string; projectId: string; messagingSenderId: string; appId: string; vapidKey: string };
+/**
+ * Config pública do app web do Firebase (vai para o navegador, que tira o token). Fora do repositório: variáveis do Worker.
+ * Sem `vapidKey`, o SDK usa a chave padrão do FCM (vale no dev); a chave própria entra antes do Prod.
+ */
+export type ConfigDoPush = { apiKey: string; projectId: string; messagingSenderId: string; appId: string; vapidKey?: string };
 
 const NOMES = {
   apiKey: "FIREBASE_WEB_API_KEY",
   projectId: "FIREBASE_PROJECT_ID",
   messagingSenderId: "FIREBASE_MESSAGING_SENDER_ID",
   appId: "FIREBASE_WEB_APP_ID",
-  vapidKey: "FIREBASE_VAPID_CHAVE_PUBLICA",
 } as const;
+const NOME_DA_VAPID = "FIREBASE_VAPID_CHAVE_PUBLICA";
 
-/** Sem qualquer uma das variáveis, o push fica desligado neste ambiente (a tela diz isso). */
+/** Sem qualquer uma das quatro variáveis, o push fica desligado neste ambiente (a tela diz isso). A VAPID é opcional. */
 export function lerConfigDoPush(variaveis: object): ConfigDoPush | null {
   const lidas = variaveis as Record<string, unknown>;
   const config: Partial<ConfigDoPush> = {};
@@ -27,6 +30,8 @@ export function lerConfigDoPush(variaveis: object): ConfigDoPush | null {
     if (typeof valor !== "string" || valor.trim() === "") return null;
     config[campo] = valor.trim();
   }
+  const vapid = lidas[NOME_DA_VAPID];
+  if (typeof vapid === "string" && vapid.trim() !== "") config.vapidKey = vapid.trim();
   return config as ConfigDoPush;
 }
 

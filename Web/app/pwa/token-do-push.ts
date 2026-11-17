@@ -23,7 +23,8 @@ function mensageria(config: ConfigDoPush) {
 /** Usa o service worker do Frila (/app/sw.js): o Firebase não registra outro. */
 export async function tirarToken(config: ConfigDoPush): Promise<string> {
   const registro = await navigator.serviceWorker.ready;
-  return getToken(mensageria(config), { vapidKey: config.vapidKey, serviceWorkerRegistration: registro });
+  // Sem a chave própria, o SDK usa a padrão do FCM.
+  return getToken(mensageria(config), { ...(config.vapidKey ? { vapidKey: config.vapidKey } : {}), serviceWorkerRegistration: registro });
 }
 
 export async function apagarToken(config: ConfigDoPush): Promise<void> {
