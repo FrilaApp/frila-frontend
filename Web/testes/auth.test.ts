@@ -93,3 +93,37 @@ describe("conversa com o Supabase Auth", () => {
     expect(await auth.pedirCodigo("a@b.co")).toEqual({ ok: false, motivo: "indisponivel" });
   });
 });
+
+describe("conferir a sessão no Auth (auth/v1/user)", () => {
+  it("manda o token de acesso e aceita o 200", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json({ id: "u1" }));
+    expect(await auth.conferir("token-de-acesso")).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/user");
+    expect(pedidos[0]?.method).toBe("GET");
+    expect(pedidos[0]?.headers.get("Authorization")).toBe("Bearer token-de-acesso");
+    expect(pedidos[0]?.headers.get("apikey")).toBe("sb_publishable_teste");
+  });
+
+  it("sessão encerrada (403 session_not_found), token ruim (401) e usuário apagado (404) são recusa", async () => {
+    for (const status of [401, 403, 404]) {
+      const { auth } = authQueResponde(() => Response.json({ error_code: "session_not_found" }, { status }));
+      expect(await auth.conferir("t"), String(status)).toEqual({ ok: false, motivo: "recusada" });
+    }
+  });
+
+  it("limite, erro do Auth, falta de rede e prazo estourado são indisponibilidade, não recusa", async () => {
+    for (const status of [429, 500, 503]) {
+      const { auth } = authQueResponde(() => new Response(null, { status }));
+      expect(await auth.conferir("t"), String(status)).toEqual({ ok: false, motivo: "indisponivel" });
+    }
+    const semRede = authQueResponde(() => Promise.reject(new TypeError("rede")));
+    expect(await semRede.auth.conferir("t")).toEqual({ ok: false, motivo: "indisponivel" });
+    // Como o fetch de verdade: o prazo estoura e o pedido é abortado.
+    const lento = criarAuth(ambiente, {
+      prazoMs: 20,
+      fetch: (_entrada, inicio) =>
+        new Promise<Response>((_, rejeitar) => inicio?.signal?.addEventListener("abort", () => rejeitar(new Error("prazo")))),
+    });
+    expect(await lento.conferir("t")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+});

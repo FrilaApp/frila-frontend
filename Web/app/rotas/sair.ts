@@ -2,7 +2,7 @@ import { redirect } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
 import { authDesteAmbiente } from "../servidor/deste-ambiente";
-import { cookieDeSessaoEncerrada, cookiesDeSaida, ehPedidoSeguro } from "../servidor/sessao";
+import { cookiesDeSaida, ehPedidoSeguro } from "../servidor/sessao";
 import type { Route } from "./+types/sair";
 
 /** Sair é sempre um envio (POST): um link de outro site não desloga ninguém. */
@@ -13,8 +13,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const cabecalhos = new Headers();
   for (const linha of cookiesDeSaida(ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
-  const encerrada = sessao ? cookieDeSessaoEncerrada(request, sessao.acesso) : null;
-  if (encerrada) cabecalhos.append("Set-Cookie", encerrada);
   throw redirect("/entrar", { headers: cabecalhos });
 }
 
