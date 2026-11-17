@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   conferir:
-    name: "Lint, tipos, testes, build e orçamento da web"
+    name: "Contrato, lint, tipos, testes, build e orçamento da web"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -47,6 +47,9 @@ jobs:
 
       - name: Auditar dependências
         run: npm audit --audit-level=high
+
+      - name: Contrato (espelho íntegro)
+        run: npm run contrato
 
       - name: Lint
         run: npm run lint

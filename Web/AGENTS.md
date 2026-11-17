@@ -7,13 +7,19 @@ Vale o `AGENTS.md` da raiz; aqui fica só o que é da web. O que construir e em 
 ```bash
 npm ci                 # instala (versões exatas, pelo lockfile)
 npm run dev            # servidor local em http://localhost:5173/app/
-npm run conferir       # lint + tipos + testes + build + orçamento do pacote: o gate local (a CI roda o mesmo)
+npm run conferir       # contrato + lint + tipos + testes + build + orçamento do pacote: o gate local (a CI roda o mesmo)
+scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com o Supabase de dev
 ```
 
 ## Regras que o agente erra sem ler
 - **React Router v8:** tudo vem de `react-router`. `react-router-dom` e `@remix-run/*` não existem mais (o lint barra).
   Não use `json()` nem `defer()`: o loader devolve o objeto direto. A documentação da versão instalada está em
   `node_modules/react-router/docs/`: leia antes de usar API de que não tem certeza.
+- **Contrato:** `contrato/openapi.yaml` é espelho de `frila-documentacao/api/openapi.yaml`. Não edite: mudança de
+  contrato nasce lá, depois backend, depois clientes. Para atualizar: `scripts/contrato-traz.sh <arquivo>`. Os tipos
+  (`app/contrato/tipos.gerado.ts`) saem do espelho em `npm run tipos` e não entram no git.
+- **Supabase só pelo servidor**, com `criarApi` (`app/servidor/api.ts`), tipado pelo contrato. O navegador nunca chama
+  o Supabase direto. Toda chamada tem prazo e um estado para a falha (veja `app/servidor/configuracao.ts`).
 - **Tudo debaixo de `/app`** (`basename` no `react-router.config.ts`). Link interno é relativo à base: `<Link to="/">`.
 - **Variáveis do Worker:** `import { env } from "cloudflare:workers"`, só em código de servidor (loader, action, `app/servidor/`).
 - **Sessão só no servidor:** cookie `HttpOnly` gravado pelo Worker. Token nunca vai para o JavaScript da página, nem

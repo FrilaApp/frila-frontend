@@ -14,3 +14,6 @@
 worker-configuration.d.ts
 
 !.dev.vars.exemplo
+
+# Tipos gerados do contrato (npm run tipos)
+/app/contrato/tipos.gerado.ts
