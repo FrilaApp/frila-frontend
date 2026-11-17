@@ -46,6 +46,7 @@ export default [
   ...prefix("painel", [
     index("rotas/contratante/painel.tsx"),
     route("publicar", "rotas/contratante/publicar-vaga.tsx"),
+    route("escala", "rotas/contratante/publicar-escala.tsx"),
     route("vagas/:vagaId", "rotas/contratante/vaga.tsx"),
   ]),
 
