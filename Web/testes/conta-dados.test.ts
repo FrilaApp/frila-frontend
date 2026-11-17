@@ -65,7 +65,7 @@ describe("conta: excluir", () => {
       if (!(resposta instanceof Response)) throw resposta;
       expect(resposta.headers.get("Location")).toBe("/entrar");
       const cookies = resposta.headers.getSetCookie();
-      expect(cookies).toHaveLength(2);
+      expect(cookies).toHaveLength(3);
       for (const linha of cookies) expect(linha).toMatch(/Max-Age=0/);
     }
     expect(funcoes.POST).toHaveBeenCalledWith("/excluir-conta", expect.objectContaining({ body: { confirmar: true } }));
