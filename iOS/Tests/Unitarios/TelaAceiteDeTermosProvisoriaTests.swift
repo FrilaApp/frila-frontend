@@ -52,8 +52,15 @@ struct TelaAceiteDeTermosProvisoriaTests {
         #expect(modelo.estado == .resultados)
     }
 
-    @Test("Os Termos abrem pelo endereço oficial que o app já usa")
+    @Test("Os Termos e a Política abrem pelos endereços oficiais que o app já usa")
     func enderecoOficial() {
         #expect(EnderecosOficiais.padrao.termosDeUso.absoluteString == "https://frilabr.com/termos")
+        #expect(EnderecosOficiais.padrao.politicaDePrivacidade.absoluteString == "https://frilabr.com/privacidade")
+    }
+
+    @Test("O link da Política acrescenta uma linha de 44 pt: título, 2 links e o botão")
+    func linkDaPoliticaNaTela() {
+        // Só com o 2º link a tela passa de 3 controles de 44 pt e 3 espaços de 16 pt (sem ele, ~142 a 164 pt).
+        #expect(altura(aceitando: false, erro: false).height >= 3 * 44 + 3 * 16)
     }
 }

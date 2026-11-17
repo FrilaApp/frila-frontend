@@ -36,9 +36,15 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
     /// os devolvem; a chamada aberta de cada vaga usa o uuid da própria vaga. Sem a vaga aqui, a leitura não a acha.
     private var termosDasVagas: [UUID: (valorCentavos: Int, inclusos: Inclusos)] = [:]
     private var falhaNaLeituraDosTermos = false
+    /// Cada página de `minhas_chamadas` lida conta uma.
     private(set) var leiturasDosTermos = 0
+    /// As vagas cuja chamada aberta só vem na 2ª página de `minhas_chamadas` (cursor "2").
+    private var vagasNaSegundaPagina: Set<UUID> = []
+    private(set) var cursoresDasChamadas: [String?] = []
 
     init(total: Int) { self.total = total }
+
+    func passarParaSegundaPagina(_ vagaID: UUID) { vagasNaSegundaPagina.insert(vagaID) }
 
     /// A vaga aberta tem, por padrão, os mesmos termos do `trabalho()` dos testes (R$ 200, sem inclusos).
     func abrirTrabalho(naVaga vagaID: UUID, valorCentavos: Int = 20_000,
@@ -56,15 +62,18 @@ private actor FonteDaBuscaFalsa: FonteDaBuscaDeProfissionais {
 
     func falharLeituraDosTermos() { falhaNaLeituraDosTermos = true }
 
-    func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas {
         leiturasDosTermos += 1
+        cursoresDasChamadas.append(cursor)
         if falhaNaLeituraDosTermos { throw ErroDaApi(codigo: .semRede) }
-        return termosDasVagas.map { vagaID, termos in
+        let segunda = cursor == "2"
+        let itens = termosDasVagas.filter { vagasNaSegundaPagina.contains($0.key) == segunda }.map { vagaID, termos in
             ChamadaResumo(id: vagaID, vagaID: vagaID, profissionalID: Self.id(900), estabelecimentoID: Self.id(901), estado: .aberta,
                           expiraEm: Date(timeIntervalSince1970: 2_000_000_000), criadaEm: Date(timeIntervalSince1970: 1_900_000_000),
                           funcao: Self.funcao, inicioEm: Date(timeIntervalSince1970: 1_900_000_000),
                           fimEm: Date(timeIntervalSince1970: 1_900_014_400), valorCentavos: termos.valorCentavos, outraParte: Self.perfil)
         }
+        return PaginaChamadas(itens: itens, proximoCursor: !segunda && !vagasNaSegundaPagina.isEmpty ? "2" : nil)
     }
 
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
@@ -1389,6 +1398,45 @@ struct BuscaDeProfissionaisViewModelTests {
         #expect(await fonte.pedidos.count == 1)
         #expect(await fonte.leiturasDosTermos == 1)
         #expect(vm.resultadosDaChamada[id] == .erro(TextosChamadaDireta.erro))
+    }
+
+    // MARK: minhas_chamadas em mais de uma página (0.2.95, head final cc40db7 do #265)
+
+    @Test("409 com a chamada da vaga aberta só na 2ª página de minhas_chamadas: segue o cursor, acha, compara e, com os mesmos termos, vai pelo vaga_id")
+    func termosDaVagaNaSegundaPagina() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        let aberta = UUID()
+        await fonte.definirTermos(daVaga: UUID(), valorCentavos: 99_000) // outra chamada aberta da casa, na 1ª página
+        await fonte.abrirTrabalho(naVaga: aberta)
+        await fonte.passarParaSegundaPagina(aberta)
+        await vm.chamar(trabalho: try trabalho())
+        #expect(await fonte.cursoresDasChamadas == [nil, "2"])
+        let pedidos = await fonte.pedidos
+        #expect(pedidos.map(\.profissionalID) == [id, id])
+        #expect(pedidos.last?.vagaID == aberta && pedidos.last?.trabalho == nil)
+        #expect(enviada(vm.resultadosDaChamada[id])?.vagaID == aberta)
+        #expect(vm.termosParaConfirmar == nil)
+    }
+
+    @Test("409 sem a chamada da vaga aberta em nenhuma página de minhas_chamadas: lê todas, não repete pelo vaga_id e é o erro genérico")
+    func vagaDoTrabalhoEmNenhumaPagina() async throws {
+        let (fonte, vm) = preparar(total: 1)
+        await vm.buscar()
+        let id = try #require(vm.resultados.first).id
+        vm.alternarSelecao(id)
+        let naSegunda = UUID()
+        await fonte.definirTermos(daVaga: UUID()) // 1ª página: outra chamada aberta da casa
+        await fonte.definirTermos(daVaga: naSegunda) // 2ª página: mais uma, e nenhuma é a do 409
+        await fonte.passarParaSegundaPagina(naSegunda)
+        await fonte.ajustar(erroNaChamada: [id: ErroDaApi(codigo: .trabalhoJaAberto, detalhes: UUID().uuidString)])
+        await vm.chamar(trabalho: try trabalho())
+        #expect(await fonte.cursoresDasChamadas == [nil, "2"])
+        #expect(await fonte.pedidos.count == 1)
+        #expect(vm.resultadosDaChamada[id] == .erro(TextosChamadaDireta.erro))
+        #expect(vm.termosParaConfirmar == nil && !vm.travadoPeloIncerto)
     }
 
     // MARK: Integração com o dublê do cenário .buscaDeProfissionais (relógio fixo)

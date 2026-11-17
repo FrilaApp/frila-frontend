@@ -187,6 +187,10 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         let aceitar = app.buttons["aceite-termos-aceitar"]
         XCTAssertTrue(aceitar.waitForExistence(timeout: 15) || procurar(aceitar, em: app), "sem os Termos 1.1, a busca pede o aceite")
         XCTAssertTrue(app.descendants(matching: .any)["aceite-termos-link"].exists, "o aceite leva aos Termos de Uso")
+        // A versão aceita cobre os Termos 1.2 e a Política 1.3: a Política também está na tela (revisão do #800).
+        XCTAssertTrue(app.descendants(matching: .any)["aceite-politica-link"].exists, "o aceite leva à Política de Privacidade")
+        XCTAssertTrue(app.staticTexts["aceite-termos-titulo"].label.contains("Política de Privacidade"),
+                      "a frase do topo cita os Termos e a Política")
         let selecoes = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'"))
         XCTAssertEqual(selecoes.count, 0, "antes do aceite a busca não traz ninguém")
         // Em AX5 os filtros ocupam a tela: a captura sai depois de rolar até o aceite.
