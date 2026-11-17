@@ -28,6 +28,7 @@ class CodigoViewModelTest {
         email: String = "profissional@exemplo.com",
         armazenamento: ArmazenamentoDeSessaoEmMemoria = ArmazenamentoDeSessaoEmMemoria(),
         agora: () -> Instant = Instant::now,
+        aoEntrar: suspend () -> Unit = {},
     ): Pair<CodigoViewModel, ArmazenamentoDeSessaoEmMemoria> {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val viewModel = CodigoViewModel(
@@ -36,6 +37,7 @@ class CodigoViewModelTest {
             armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
             agora = agora,
+            aoEntrar = aoEntrar,
         )
         return viewModel to armazenamento
     }
@@ -105,6 +107,54 @@ class CodigoViewModelTest {
         assertEquals("/functions/v1/entrar-demonstracao", caminhoChamado)
         assertTrue(viewModel.estado.value.autenticado)
         assertTrue(armazenamento.estaAutenticado())
+    }
+
+    private fun motorQueEntra() = MockEngine {
+        respond(
+            content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+            status = HttpStatusCode.OK,
+            headers = headersOf(HttpHeaders.ContentType, "application/json"),
+        )
+    }
+
+    @Test
+    fun `depois de entrar com o codigo certo, chama aoEntrar uma vez, ja com a sessao salva (C0-10)`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var sessaoNaHora: String? = null
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val (viewModel, _) = viewModelComEngine(motorQueEntra(), armazenamento = armazenamento, aoEntrar = {
+            chamadas.incrementAndGet()
+            sessaoNaHora = armazenamento.obterSessao()?.accessToken
+        })
+
+        viewModel.aoMudarCodigo("123456")
+        viewModel.confirmarCodigo()?.join()
+
+        assertEquals(1, chamadas.get())
+        assertEquals("tok123", sessaoNaHora, "o registro do aparelho precisa da sessão")
+    }
+
+    @Test
+    fun `com o codigo errado, aoEntrar nao e chamado`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        val (viewModel, _) = viewModelComEngine(motorComCodigoRecusadoPeloAuth(), aoEntrar = { chamadas.incrementAndGet() })
+
+        viewModel.aoMudarCodigo("000000")
+        viewModel.confirmarCodigo()?.join()
+
+        assertEquals(0, chamadas.get())
+    }
+
+    @Test
+    fun `aoEntrar que falha nao desfaz a entrada`() = runBlocking {
+        val (viewModel, armazenamento) = viewModelComEngine(motorQueEntra(), aoEntrar = { error("sem rede para registrar") })
+
+        viewModel.aoMudarCodigo("123456")
+        viewModel.confirmarCodigo()?.join()
+
+        assertTrue(viewModel.estado.value.autenticado)
+        assertTrue(armazenamento.estaAutenticado())
+        assertNull(viewModel.estado.value.erro)
     }
 
     @Test
