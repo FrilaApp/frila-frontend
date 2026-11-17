@@ -67,7 +67,14 @@ export default function PreferenciasDeChamadas({ loaderData, actionData }: Route
       <h1 className="font-titulo text-3xl font-bold">{t.titulo}</h1>
       {actionData ? <p role={actionData.erro ? "alert" : "status"}>{actionData.erro ? t.resultado[actionData.erro] : t.salvas}</p> : null}
       {estado !== "ok" || !preferencias ? (
-        <p role="alert">{AVISO_DO_ESTADO[estado]}</p>
+        <>
+          <p role="alert">{AVISO_DO_ESTADO[estado]}</p>
+          {estado === "sem_perfil" ? (
+            <Link to="/perfil/cadastro" className={`${classeDoBotao} inline-flex items-center justify-center`}>
+              {textos.profissionalCadastro.abrir}
+            </Link>
+          ) : null}
+        </>
       ) : (
         <Form method="post" className="flex flex-col gap-5">
           <input type="hidden" name="aceita_chamadas_antes" value={preferencias.aceitaChamadas ? "sim" : "nao"} />
