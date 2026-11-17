@@ -72,8 +72,8 @@ describe("vaga pelo link, sem login", () => {
     for (const proibido of ["Rua X 123", "latitude", "Fulano", "+5561"]) expect(texto, proibido).not.toContain(proibido);
   });
 
-  it("encerrada: não publicada, sem lugar ou já começada", async () => {
-    for (const extra of [{ estado: "preenchida" }, { posicoes_abertas: 0 }, { inicio_em: daqui(-1) }]) {
+  it("encerrada (200, com o aviso): preenchida ou sem lugar, ainda por vir; a já começada é 410 (abaixo)", async () => {
+    for (const extra of [{ estado: "preenchida" }, { posicoes_abertas: 0 }]) {
       resposta = () => Response.json(vaga(extra));
       expect(((await loader(argumentos())) as Dados).vaga?.encerrada, JSON.stringify(extra)).toBe(true);
     }
@@ -96,5 +96,75 @@ describe("vaga pelo link, sem login", () => {
     const torto = (await loader(argumentos("nao-e-uuid"))) as { init: ResponseInit | null };
     expect(torto.init?.status).toBe(404);
     expect(pedidos).toHaveLength(0);
+  });
+});
+
+type Meta = Array<Record<string, unknown>>;
+const ldJson = (dados: unknown) => (meta({ loaderData: dados } as never) as Meta).find((m) => "script:ld+json" in m)?.["script:ld+json"] as
+  | Record<string, unknown>
+  | undefined;
+const status = (dados: unknown) => (dados as { init?: ResponseInit | null }).init?.status ?? 200;
+
+describe("dados estruturados e vaga removida (5.2)", () => {
+  it("404 x 410 x 200: inexistente, vencida ou cancelada, aberta", async () => {
+    resposta = () => Response.json({ code: "nao_encontrado", message: "x" }, { status: 404 });
+    expect(status(await loader(argumentos()))).toBe(404);
+    for (const extra of [{ estado: "cancelada" }, { estado: "encerrada" }, { inicio_em: daqui(-1) }]) {
+      resposta = () => Response.json(vaga(extra));
+      const dados = await loader(argumentos());
+      expect(status(dados), JSON.stringify(extra)).toBe(410);
+      expect((dados as { data: { estado: string } }).data.estado).toBe("removida");
+      expect(robots((dados as { data: unknown }).data)).toBe("noindex");
+    }
+    resposta = () => Response.json(vaga());
+    expect(status(await loader(argumentos()))).toBe(200);
+    // Preenchida, mas ainda por vir: o link continua, dizendo que não está mais aberta (200, sem JSON-LD).
+    resposta = () => Response.json(vaga({ estado: "preenchida", posicoes_abertas: 0 }));
+    const preenchida = await loader(argumentos());
+    expect(status(preenchida)).toBe(200);
+    ambiente.env.VAGA_PUBLICA_NO_INDICE = "1";
+    expect(ldJson(await loader(argumentos()))).toBeUndefined();
+  });
+
+  it("PORTÃO fechado: nada de JSON-LD, e o noindex continua", async () => {
+    resposta = () => Response.json(vaga());
+    const dados = await loader(argumentos());
+    expect(ldJson(dados)).toBeUndefined();
+    expect(robots(dados)).toBe("noindex");
+  });
+
+  it("PORTÃO aberto: JobPosting só com o que a página mostra", async () => {
+    ambiente.env.VAGA_PUBLICA_NO_INDICE = "1";
+    resposta = () => Response.json(vaga({ local: "Rua X 123", ponto: { latitude: 1, longitude: 2 }, documento: "12345678000199", telefone: "+5561" }));
+    const json = ldJson(await loader(argumentos()));
+    expect(json).toMatchObject({
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      title: "Garçom",
+      hiringOrganization: { "@type": "Organization", name: "Casa Sintética" },
+      jobLocation: { "@type": "Place", address: { "@type": "PostalAddress", addressLocality: "Plano Piloto", addressRegion: "DF", addressCountry: "BR" } },
+      baseSalary: { "@type": "MonetaryAmount", currency: "BRL", value: { "@type": "QuantitativeValue", value: 150, unitText: "DAY" } },
+    });
+    const texto = JSON.stringify(json);
+    for (const proibido of ["Rua X 123", "latitude", "12345678000199", "+5561", "streetAddress", "telephone", "email", "identifier"]) {
+      expect(texto, proibido).not.toContain(proibido);
+    }
+  });
+
+  it("sem o nome da casa (CPF), quem anuncia é o Frila; sem região, só o DF", async () => {
+    ambiente.env.VAGA_PUBLICA_NO_INDICE = "1";
+    resposta = () => Response.json(vaga({ estabelecimento_nome: null, regiao_administrativa: null }));
+    const json = ldJson(await loader(argumentos())) as { hiringOrganization: { name: string }; jobLocation: { address: Record<string, string> } };
+    expect(json.hiringOrganization.name).toBe("Frila");
+    expect(json.jobLocation.address.addressLocality).toBeUndefined();
+    expect(json.jobLocation.address.addressRegion).toBe("DF");
+  });
+
+  it("cartão de compartilhamento com a função e o valor", async () => {
+    resposta = () => Response.json(vaga());
+    const metas = meta({ loaderData: await loader(argumentos()) } as never) as Meta;
+    const titulo = metas.find((m) => m.property === "og:title")?.content as string;
+    expect(titulo.replace(/\s/g, " ")).toBe("Garçom · R$ 150,00 · Frila");
+    expect(metas.some((m) => m.property === "og:description")).toBe(true);
   });
 });
