@@ -9,7 +9,7 @@ import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/vaga";
-import { preencher } from "./comum";
+import { enviandoEste, preencher } from "./comum";
 
 const t = textos.contratante.vaga;
 const tp = textos.contratante.painel;
@@ -111,7 +111,8 @@ const MENSAGEM = { sem_permissao: tp.semPermissao, indisponivel: tp.indisponivel
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentProps) {
-  const enviando = useNavigation().state !== "idle";
+  const navegacao = useNavigation();
+  const enviando = navegacao.state !== "idle";
   const voltar = (
     <Link to={`/painel?casa=${loaderData.casaId}`} className="min-h-11 font-semibold underline underline-offset-4">
       {t.voltar}
@@ -193,7 +194,7 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
                   <input type="hidden" name="casa" value={casaId} />
                   <input type="hidden" name="candidatura_id" value={candidato.candidaturaId} />
                   <button type="submit" disabled={enviando} className="min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60">
-                    {enviando ? t.escolhendo : t.escolher}
+                    {enviandoEste(navegacao, "escolher", candidato.candidaturaId) ? t.escolhendo : t.escolher}
                   </button>
                 </Form>
               </li>
@@ -201,7 +202,7 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
           </ol>
         </section>
       ) : null}
-      <Acoes loaderData={loaderData} actionData={actionData} enviando={enviando} />
+      <Acoes loaderData={loaderData} actionData={actionData} navegacao={navegacao} />
     </main>
   );
 }
@@ -220,7 +221,8 @@ function Erro({ actionData, onde }: { actionData: Retorno | undefined; onde: Ond
   ) : null;
 }
 
-function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; actionData: Retorno | undefined; enviando: boolean }) {
+function Acoes({ loaderData, actionData, navegacao }: { loaderData: Dados; actionData: Retorno | undefined; navegacao: ReturnType<typeof useNavigation> }) {
+  const enviando = navegacao.state !== "idle";
   const { vaga, casaId, chaves } = loaderData;
   const chaveDe = (onde: "repetir" | "restantes") => (actionData?.onde === onde && actionData.chave) || chaves[onde];
   const podeCancelar = vaga.estado === "publicada" || vaga.estado === "preenchida";
@@ -270,7 +272,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
           </div>
           <p className="text-sm text-tinta-suave">{textos.contratante.publicar.ajudaDoHorario}</p>
           <button type="submit" disabled={enviando} className={classeDoBotaoDeBorda}>
-            {enviando ? ta.repetindo : ta.repetir}
+            {enviandoEste(navegacao, "repetir") ? ta.repetindo : ta.repetir}
           </button>
         </Form>
         <Erro actionData={actionData} onde="repetir" />
@@ -290,7 +292,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
               <input name="motivo" type="text" required minLength={3} defaultValue={actionData?.motivo ?? ""} className={classeDoCampo} />
             </label>
             <button type="submit" disabled={enviando} className={classeDoBotaoDeBorda}>
-              {enviando ? ta.cancelando : ta.cancelar}
+              {enviandoEste(navegacao, "cancelar") ? ta.cancelando : ta.cancelar}
             </button>
           </Form>
           <Erro actionData={actionData} onde="cancelar" />

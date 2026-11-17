@@ -88,7 +88,7 @@ describe("vaga da casa: a chave acompanha o horário enviado", () => {
     for (const mudanca of [{ dia: "2026-12-06" }, { inicio: "19:00" }, { fim: "22:00" }]) {
       api.POST.mockClear();
       const retorno = await repetir({ ...horario, ...mudanca, campos_da_chave: campos });
-      const enviada = api.POST.mock.calls[0][1].body.chave;
+      const enviada = api.POST.mock.calls[0]?.[1].body.chave;
       expect(enviada).not.toBe(CHAVE);
       expect(retorno).toMatchObject({ onde: "repetir", chave: enviada });
     }
