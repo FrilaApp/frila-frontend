@@ -2,14 +2,14 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { escolherCandidato, lerCandidatos, candidatosParaATela } from "../../servidor/contratante/candidatos";
 import { escolherCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
-import { detalheDaVaga, lerPainel } from "../../servidor/contratante/painel";
+import { detalheDaVaga, lerPainel, podeCancelarVaga } from "../../servidor/contratante/painel";
 import { ehUuid, horarioEmUtc } from "../../servidor/contratante/publicar-vaga";
 import { cancelarVaga, republicarRestantes, republicarVaga } from "../../servidor/contratante/vagas";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/vaga";
-import { preencher } from "./comum";
+import { enviandoEste, preencher, rotuloDosRestantes } from "./comum";
 
 const t = textos.contratante.vaga;
 const tp = textos.contratante.painel;
@@ -29,7 +29,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   const casa = leitura.estado === "ok" ? escolherCasa(leitura.casas, endereco.searchParams.get("casa")) : null;
   if (!casa) throw redirect("/painel");
 
-  const painel = await lerPainel(api, casa.id, new Date());
+  const agora = new Date();
+  const painel = await lerPainel(api, casa.id, agora);
   if (painel.estado === "sem_sessao") throw redirect("/entrar");
   if (painel.estado !== "ok") return { estado: painel.estado, casaId: casa.id } as const;
   const vaga = detalheDaVaga(painel.painel, params.vagaId);
@@ -48,13 +49,16 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     candidatosIndisponiveis: comCandidatos && candidatos?.estado !== "ok",
     escolhido: endereco.searchParams.get("escolhido") === "1",
     cancelada: endereco.searchParams.get("cancelada") === "1",
+    podeCancelar: podeCancelarVaga(vaga, agora),
     // Uma chave por formulário de republicação: o reenvio devolve a mesma vaga nova.
     chaves: { repetir: crypto.randomUUID(), restantes: crypto.randomUUID() },
   } as const;
 }
 
 type Onde = "escolher" | "cancelar" | "repetir" | "restantes";
-type Retorno = { erro: string; onde: Onde; chave?: string; motivo?: string };
+// `campos` é o dia e o horário que a `chave` levou ao servidor: se a casa mudar um deles depois de um "indisponível",
+// a chave antiga já pode ter gravado a vaga com o horário velho, e reenviá-la devolveria aquela cópia.
+type Retorno = { erro: string; onde: Onde; chave?: string; campos?: string; motivo?: string };
 
 export async function action({ request, params, context }: Route.ActionArgs): Promise<Retorno> {
   const sessao = exigirSessao(context);
@@ -81,9 +85,13 @@ export async function action({ request, params, context }: Route.ActionArgs): Pr
     if (!ehUuid(chave)) return { erro: ta.erros.formularioVelho, onde: intencao };
     let resultado;
     if (intencao === "repetir") {
+      const campos = [campo("dia"), campo("inicio"), campo("fim")].join("|");
+      const anteriores = campo("campos_da_chave");
       const horario = horarioEmUtc(campo("dia"), campo("inicio"), campo("fim"));
-      if (!horario) return { erro: ta.erros.dia, onde: "repetir", chave };
-      resultado = await republicarVaga(api, { vaga_id: vaga, ...horario, chave });
+      if (!horario) return { erro: ta.erros.dia, onde: "repetir", chave, campos: anteriores || undefined };
+      const chaveDoEnvio = anteriores && anteriores !== campos ? crypto.randomUUID() : chave;
+      resultado = await republicarVaga(api, { vaga_id: vaga, ...horario, chave: chaveDoEnvio });
+      if (!resultado.ok && resultado.motivo !== "sem_sessao") return { erro: ta.erros[resultado.motivo], onde: "repetir", chave: chaveDoEnvio, campos };
     } else {
       resultado = await republicarRestantes(api, vaga, chave);
     }
@@ -105,7 +113,8 @@ const MENSAGEM = { sem_permissao: tp.semPermissao, indisponivel: tp.indisponivel
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentProps) {
-  const enviando = useNavigation().state !== "idle";
+  const navegacao = useNavigation();
+  const enviando = navegacao.state !== "idle";
   const voltar = (
     <Link to={`/painel?casa=${loaderData.casaId}`} className="min-h-11 font-semibold underline underline-offset-4">
       {t.voltar}
@@ -187,7 +196,7 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
                   <input type="hidden" name="casa" value={casaId} />
                   <input type="hidden" name="candidatura_id" value={candidato.candidaturaId} />
                   <button type="submit" disabled={enviando} className="min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60">
-                    {enviando ? t.escolhendo : t.escolher}
+                    {enviandoEste(navegacao, "escolher", candidato.candidaturaId) ? t.escolhendo : t.escolher}
                   </button>
                 </Form>
               </li>
@@ -195,7 +204,7 @@ export default function VagaDaCasa({ loaderData, actionData }: Route.ComponentPr
           </ol>
         </section>
       ) : null}
-      <Acoes loaderData={loaderData} actionData={actionData} enviando={enviando} />
+      <Acoes loaderData={loaderData} actionData={actionData} navegacao={navegacao} />
     </main>
   );
 }
@@ -214,10 +223,10 @@ function Erro({ actionData, onde }: { actionData: Retorno | undefined; onde: Ond
   ) : null;
 }
 
-function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; actionData: Retorno | undefined; enviando: boolean }) {
-  const { vaga, casaId, chaves } = loaderData;
+function Acoes({ loaderData, actionData, navegacao }: { loaderData: Dados; actionData: Retorno | undefined; navegacao: ReturnType<typeof useNavigation> }) {
+  const enviando = navegacao.state !== "idle";
+  const { vaga, casaId, chaves, podeCancelar } = loaderData;
   const chaveDe = (onde: "repetir" | "restantes") => (actionData?.onde === onde && actionData.chave) || chaves[onde];
-  const podeCancelar = vaga.estado === "publicada" || vaga.estado === "preenchida";
   return (
     <>
       {vaga.republicavelEmUrgencia > 0 ? (
@@ -231,7 +240,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
             <input type="hidden" name="casa" value={casaId} />
             <input type="hidden" name="chave" value={chaveDe("restantes")} />
             <button type="submit" disabled={enviando} className={classeDoBotaoLaranja}>
-              {preencher(ta.restantes, { n: vaga.republicavelEmUrgencia })}
+              {rotuloDosRestantes(vaga.republicavelEmUrgencia)}
             </button>
           </Form>
           <Erro actionData={actionData} onde="restantes" />
@@ -247,6 +256,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
           <input type="hidden" name="intencao" value="repetir" />
           <input type="hidden" name="casa" value={casaId} />
           <input type="hidden" name="chave" value={chaveDe("repetir")} />
+          {actionData?.onde === "repetir" && actionData.campos ? <input type="hidden" name="campos_da_chave" value={actionData.campos} /> : null}
           <label className="flex flex-col gap-2 font-semibold">
             {textos.contratante.publicar.dia}
             <input name="dia" type="date" required className={classeDoCampo} />
@@ -263,7 +273,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
           </div>
           <p className="text-sm text-tinta-suave">{textos.contratante.publicar.ajudaDoHorario}</p>
           <button type="submit" disabled={enviando} className={classeDoBotaoDeBorda}>
-            {enviando ? ta.repetindo : ta.repetir}
+            {enviandoEste(navegacao, "repetir") ? ta.repetindo : ta.repetir}
           </button>
         </Form>
         <Erro actionData={actionData} onde="repetir" />
@@ -283,7 +293,7 @@ function Acoes({ loaderData, actionData, enviando }: { loaderData: Dados; action
               <input name="motivo" type="text" required minLength={3} defaultValue={actionData?.motivo ?? ""} className={classeDoCampo} />
             </label>
             <button type="submit" disabled={enviando} className={classeDoBotaoDeBorda}>
-              {enviando ? ta.cancelando : ta.cancelar}
+              {enviandoEste(navegacao, "cancelar") ? ta.cancelando : ta.cancelar}
             </button>
           </Form>
           <Erro actionData={actionData} onde="cancelar" />

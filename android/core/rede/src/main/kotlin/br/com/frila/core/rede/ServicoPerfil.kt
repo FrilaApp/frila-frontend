@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -83,6 +84,19 @@ class ServicoPerfil(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.post(cliente.urlRpc("definir_regioes_atendidas")) {
             contentType(ContentType.Application.Json)
             setBody(dados)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `GET /rest/v1/regiao_administrativa`: catálogo fechado das regiões administrativas do DF (0.2.52, RN44), na ordem oficial
+     * (RA I, RA II...). O perfil marca as regiões onde atende por `id`, nunca por texto. Só as ativas.
+     */
+    suspend fun regioesAdministrativas(): List<RegiaoAdministrativaDto> {
+        val resposta = cliente.http.get(cliente.urlCompleta("/rest/v1/regiao_administrativa")) {
+            parameter("select", "id,numero,nome")
+            parameter("ativo", "eq.true")
+            parameter("order", "id.asc")
         }
         return cliente.corpoOuErro(resposta)
     }

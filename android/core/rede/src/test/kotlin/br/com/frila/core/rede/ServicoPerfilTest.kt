@@ -741,4 +741,47 @@ class ServicoPerfilTest {
         assertEquals(CodigoErroAPI.CAMPO_INVALIDO, erro.codigo)
         assertEquals("regioes", erro.detalhes)
     }
+
+    @Test
+    fun `regioesAdministrativas le o catalogo ativo na ordem oficial`() = runTest {
+        var url: String? = null
+        var metodo: HttpMethod? = null
+        val engine = MockEngine { request ->
+            url = request.url.toString()
+            metodo = request.method
+            respond(
+                content = """[{"id":1,"numero":"I","nome":"Plano Piloto"},{"id":3,"numero":"III","nome":"Taguatinga","ativo":true}]""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoPerfil(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val regioes = servico.regioesAdministrativas()
+
+        assertEquals(HttpMethod.Get, metodo)
+        assertTrue(url!!.startsWith("https://frila.supabase.co/rest/v1/regiao_administrativa?"))
+        assertTrue(url!!.contains("select=id%2Cnumero%2Cnome") || url!!.contains("select=id,numero,nome"))
+        assertTrue(url!!.contains("ativo=eq.true"))
+        assertTrue(url!!.contains("order=id.asc"))
+        assertEquals(listOf(1, 3), regioes.map { it.id })
+        assertEquals("Plano Piloto", regioes[0].nome)
+        assertEquals("III", regioes[1].numero)
+    }
+
+    @Test
+    fun `regioesAdministrativas com 401 propaga NAO_AUTENTICADO`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"nao_autenticado","message":"x"}""",
+                status = HttpStatusCode.Unauthorized,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoPerfil(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val erro = runCatching { servico.regioesAdministrativas() }.exceptionOrNull() as ErroDaApi
+
+        assertEquals(CodigoErroAPI.NAO_AUTENTICADO, erro.codigo)
+    }
 }

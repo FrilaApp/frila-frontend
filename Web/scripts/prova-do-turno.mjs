@@ -7,6 +7,8 @@
 // A distância faz o papel da medida do navegador no toque (a prova não tem navegador); o padrão é 20 m.
 import { readFileSync } from "node:fs";
 
+import { turnoDaVaga } from "./turno-da-vaga.mjs";
+
 const [BASE, arquivoDoAmbiente, arquivoDosEmails, arquivoDoCodigo, arquivoDaCasa, VAGA_ID, distancia = "20"] = process.argv.slice(2);
 const chaves = (p) => Object.fromEntries(readFileSync(p, "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 const ambiente = chaves(arquivoDoAmbiente);
@@ -15,6 +17,12 @@ const codigoDeEntrada = readFileSync(arquivoDoCodigo, "utf8").trim();
 const emailDaCasa = /e-mail:\s*`?([^\s`]+@[^\s`]+)`?/.exec(readFileSync(arquivoDaCasa, "utf8"))?.[1];
 const origem = new URL(BASE).origin;
 const diz = (nome, ok, extra = "") => console.log(`${ok ? "ok  " : "ERRO"} ${nome} ${extra}`);
+// Sem a vaga certa (ou com um id fixo de demonstração, de000000-…), a prova nem começa: ela só toca o turno da vaga dada.
+const antes = turnoDaVaga([], VAGA_ID).recusa;
+if (antes === "vaga_invalida" || antes === "dado_fixo_de_demonstracao") {
+  console.log(`ERRO recusado (${antes}): o id da vaga é obrigatório, precisa ser um uuid e não pode ser de dado fixo de demonstração; a prova não age em nenhum turno`);
+  process.exit(1);
+}
 
 const pote = new Map();
 const guardar = (r) => {
@@ -45,12 +53,20 @@ if (vaga.includes("Quero este turno")) {
   diz("candidatar numa vaga de urgência confirma o turno na hora", candidatou.includes("Pronto: o turno é seu."));
 }
 
-const lista = await (await pedir("/app/turnos")).text();
-const itens = [...lista.matchAll(/<li>(.*?)<\/li>/gs)].map((m) => m[1]);
-const doTurno = itens.find((item) => item.includes("Confirmado") || item.includes("Presença registrada") || item.includes("Cumprido"));
-const turnoId = doTurno ? /href="\/app\/turnos\/([0-9a-f-]{36})"/.exec(doTurno)?.[1] : null;
-diz("o turno aparece em Meus turnos", Boolean(turnoId));
-if (!turnoId) process.exit(1);
+// O turno sai pela vaga dada (meus_turnos, com o token da sessão que a web gravou no pote; não é impresso), e
+// nunca pelo primeiro da lista. Sem turno desta vaga, ou com mais de um de pé, a prova recusa e não toca em nada.
+const acesso = pote.get("__Host-frila-acesso") ?? pote.get("frila-acesso");
+const leitura = acesso
+  ? await fetch(`${ambiente.SUPABASE_URL}/rest/v1/rpc/meus_turnos`, { headers: { apikey: ambiente.SUPABASE_CHAVE_PUBLICAVEL, Authorization: `Bearer ${acesso}` } })
+  : null;
+const escolha = turnoDaVaga(leitura?.ok ? await leitura.json() : null, VAGA_ID);
+const turnoId = "turnoId" in escolha ? escolha.turnoId : null;
+const lista = turnoId ? await (await pedir("/app/turnos")).text() : "";
+diz("o turno DESTA vaga aparece em Meus turnos", Boolean(turnoId) && lista.includes(`href="/app/turnos/${turnoId}"`), turnoId ? "" : `(recusado: ${escolha.recusa})`);
+if (!turnoId || !lista.includes(`href="/app/turnos/${turnoId}"`)) {
+  await envio("/app/sair", {});
+  process.exit(1);
+}
 
 const tela = async () => (await pedir(`/app/turnos/${turnoId}`)).text();
 let html = await tela();
