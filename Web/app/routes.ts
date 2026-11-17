@@ -29,6 +29,8 @@ export default [
   route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),
   route("como-funciona/profissional", "rotas/publico/como-funciona-profissional.tsx"),
   route("perguntas", "rotas/publico/perguntas.tsx"),
+  // Mapa do site para buscadores (5.4): só as páginas públicas acima
+  route("sitemap.xml", "rotas/publico/sitemap.ts"),
 
   // Lado do profissional
   route("vagas", "rotas/profissional/vagas.tsx"),
