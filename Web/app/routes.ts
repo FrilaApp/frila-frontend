@@ -61,6 +61,8 @@ export default [
 
   // Busca de profissionais e chamada direta da casa (3.8)
   route("casa/busca", "rotas/contratante/busca.tsx"),
+  // Cadastro da casa (2.9)
+  route("casa/cadastro", "rotas/contratante/cadastro-casa.tsx"),
   route("casa/chamadas", "rotas/contratante/chamadas.tsx"),
   // Pessoas da casa e o link de convite (3.16 e 5.7)
   route("casa/membros", "rotas/contratante/membros.tsx"),

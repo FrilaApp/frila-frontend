@@ -3,6 +3,10 @@ package br.com.frila.app
 import android.content.Context
 import android.util.Log
 import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
+import br.com.frila.app.falhas.ColetaDeFalhas
+import br.com.frila.app.falhas.DestinoCrashlytics
+import br.com.frila.app.falhas.DestinoDeFalhas
+import br.com.frila.app.falhas.TelemetriaDeFalhas
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
@@ -27,6 +31,7 @@ import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoDispositivo
+import br.com.frila.core.rede.RegistroDeErroDaApi
 import br.com.frila.core.rede.ServicoMidia
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
@@ -137,6 +142,16 @@ val moduloRede = module {
             ?.let(::MonitorDeConectividadeAndroid)
             ?: MonitorDeConectividadeFalso()
     }
+    /**
+     * L1-7d: telemetria de falhas (Crashlytics). A coleta sai DESLIGADA no manifesto, como o iOS 1.1 (C1, 08/11/2026): com ela desligada nada é
+     * gravado. Só código, rota e duração; nunca identificador de usuário. Sem `Context` (testes) também sai desligada.
+     */
+    single {
+        TelemetriaDeFalhas(
+            coletaLigada = getOrNull<Context>()?.let(ColetaDeFalhas::ligadaNoManifesto) ?: false,
+            destino = getOrNull<DestinoDeFalhas>() ?: DestinoCrashlytics(),
+        )
+    }
     /** Cartão 101: gestor de ciclo de vida do cliente Ktor para recriação limpa após logout. */
     single {
         // Debug compilado sem o par DEV: o app sobe, mas diz no log por que não alcança o servidor (sem valores).
@@ -147,6 +162,7 @@ val moduloRede = module {
                 apiKey = configuracaoSupabase.chavePublicavel,
                 armazenamentoDeSessao = get(),
                 monitorDeConectividade = get(),
+                registroDeErros = get<TelemetriaDeFalhas>().let { telemetria -> RegistroDeErroDaApi(telemetria::registrarErroDaApi) },
             )
         }
     }
