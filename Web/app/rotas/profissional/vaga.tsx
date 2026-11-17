@@ -46,6 +46,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       id: vaga.id,
       funcao: vaga.funcao.nome,
       casa: vaga.estabelecimento.nome,
+      casaId: vaga.estabelecimento.id,
       periodo: formatarPeriodo(vaga.inicio_em, vaga.fim_em),
       valor: formatarValor(vaga.valor_centavos),
       local: vaga.local,
@@ -168,6 +169,9 @@ export default function DetalheDaVaga({ loaderData, actionData }: Route.Componen
             </Form>
           ) : null}
           {vaga.aceitaCandidatura || candidatura ? null : <p role="status">{t.fechada}</p>}
+          <Link to={`/denunciar?alvo=${vaga.casaId}`} className={classeDoLink}>
+            {textos.profissional.moderacao.link}
+          </Link>
           <Link to="/candidaturas" className={classeDoLink}>
             {t.verCandidaturas}
           </Link>

@@ -90,4 +90,13 @@ if (html.includes("Encerrar o turno")) {
 }
 const fim = await tela();
 diz("o turno mostra a saída registrada", fim.includes("Saída registrada"));
+// A avaliação só abre depois do fim previsto (o servidor diz em pode_avaliar): rode de novo depois do fim.
+if (fim.includes("Você trabalharia nesse local de novo?")) {
+  const avaliou = await (await envio(`/app/turnos/${turnoId}`, { intencao: "avaliar", turno_id: turnoId, resposta: "sim" })).text();
+  diz("avaliar a casa depois do turno", avaliou.includes("Sua resposta foi registrada"));
+} else if (fim.includes("Sua resposta:")) {
+  diz("a avaliação já dada aparece no turno", true);
+} else {
+  console.log("     a avaliação ainda não abriu (abre depois do fim previsto do turno)");
+}
 await envio("/app/sair", {});

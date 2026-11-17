@@ -11,7 +11,9 @@ import {respostaAntesDoApp} from "../app/servidor/porteiro";
 import {comCabecalhosDeSeguranca} from "../app/servidor/cabecalhos";
 vi.mock("cloudflare:workers",()=>({env:{WEB_LIGADA:"1",AMBIENTE:"dev",SUPABASE_URL:"https://sintetico.supabase.co",SUPABASE_CHAVE_PUBLICAVEL:"sb_publishable_sintetica"}}));
 const A="11111111-1111-4111-8111-111111111111",B="22222222-2222-4222-8222-222222222222";
-const token=(id:string)=>`a.${btoa(JSON.stringify({sub:id,exp:Math.floor(Date.now()/1000)+3600}))}.assinatura-${id}`;
+// Ajuste da Safira: o vencimento é calculado uma vez (antes, duas chamadas em segundos diferentes davam tokens diferentes).
+const EXP=Math.floor(Date.now()/1000)+3600;
+const token=(id:string)=>`a.${btoa(JSON.stringify({sub:id,exp:EXP}))}.assinatura-${id}`;
 const cookie=(id:string)=>cookiesDaSessao({access_token:token(id),refresh_token:`r-${id}`,expires_in:3600,token_type:"bearer"},true).map(x=>x.split(";")[0]).join("; ");
 
 let pedidos:any[],authStatus=200,postStatus=200,postErro:any,falta=true,inicioEm:string;

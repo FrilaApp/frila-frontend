@@ -3,6 +3,7 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../servidor/profissional/formato";
+import { avaliarACasa } from "../../servidor/profissional/avaliacao";
 import { distanciaDoFormulario, marcarChegada, marcarSaida, validarCodigo } from "../../servidor/profissional/presenca";
 import { avisarACaminho, desistirDoTurno, listarMeusTurnos } from "../../servidor/profissional/turnos";
 import { textos } from "../../textos/pt-BR";
@@ -32,6 +33,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       posicaoId: turno.posicao_id,
       funcao: turno.vaga.funcao,
       casa: turno.contraparte.nome,
+      casaId: turno.contraparte.id,
       periodo: formatarPeriodo(turno.vaga.inicio_em, turno.vaga.fim_em),
       local: `${turno.vaga.local} · ${turno.vaga.regiao_administrativa}`,
       valor: formatarValor(turno.valor_acordado_centavos),
@@ -48,6 +50,9 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       verificado: turno.verificacao === "verificado",
       podeEncerrar: turno.checkin_em !== null && turno.checkout_em === null && turno.estado !== "cancelada",
       saiu: turno.checkout_em !== null,
+      podeAvaliar: turno.pode_avaliar,
+      // Ausente não é o mesmo que nulo (contrato): só mostra a resposta quando ela veio.
+      respostaDada: turno.avaliacao ? turno.avaliacao.resposta : null,
     },
   };
 }
@@ -57,6 +62,16 @@ export async function action({ context, request }: Route.ActionArgs) {
   const api = apiDoUsuario(sessao.acesso);
   const formulario = await request.formData();
   const intencao = formulario.get("intencao");
+  if (intencao === "avaliar") {
+    const resposta = formulario.get("resposta");
+    const resultado =
+      resposta === "sim" || resposta === "nao"
+        ? await avaliarACasa(api, String(formulario.get("turno_id") ?? ""), resposta === "sim")
+        : ({ ok: false, motivo: "indisponivel" } as const);
+    const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
+    if (avaliacao === "sem_sessao") throw redirect("/entrar");
+    return { avaliacao };
+  }
   if (intencao === "chegar" || intencao === "validar" || intencao === "encerrar") {
     const turnoId = String(formulario.get("turno_id") ?? "");
     const distancia = distanciaDoFormulario(formulario.get("distancia_m"));
@@ -119,6 +134,10 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
           {actionData && "presenca" in actionData && actionData.presenca ? (
             <p role="status" className="font-semibold">
               {t.presenca[actionData.presenca]}
+            </p>
+          ) : actionData && "avaliacao" in actionData && actionData.avaliacao ? (
+            <p role="status" className="font-semibold">
+              {t.avaliacao[actionData.avaliacao]}
             </p>
           ) : actionData && "resultado" in actionData && actionData.resultado ? (
             <p role="status" className="font-semibold">
@@ -197,6 +216,26 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
             </section>
           ) : null}
           {turno.saiu ? <p>{t.saidaRegistrada}</p> : null}
+          {turno.respostaDada !== null ? (
+            <p>
+              {t.respondeu} <strong>{turno.respostaDada ? t.sim : t.nao}</strong>
+            </p>
+          ) : turno.podeAvaliar ? (
+            <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
+              <h2 className="font-semibold">{t.avaliacaoTitulo}</h2>
+              <p id="pergunta-da-avaliacao">{t.pergunta}</p>
+              <input type="hidden" name="intencao" value="avaliar" />
+              <input type="hidden" name="turno_id" value={turno.id} />
+              <div className="flex gap-3" role="group" aria-labelledby="pergunta-da-avaliacao">
+                <button type="submit" name="resposta" value="sim" disabled={enviando} className={classeDoBotao}>
+                  {t.sim}
+                </button>
+                <button type="submit" name="resposta" value="nao" disabled={enviando} className={classeDoBotaoSecundario}>
+                  {t.nao}
+                </button>
+              </div>
+            </Form>
+          ) : null}
           {turno.podeAvisar ? (
             <Form method="post">
               <input type="hidden" name="intencao" value="a_caminho" />
@@ -232,6 +271,11 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
           ) : null}
         </>
       )}
+      {turno ? (
+        <Link to={`/denunciar?alvo=${turno.casaId}&turno=${turno.id}`} className={classeDoLink}>
+          {textos.profissional.moderacao.link}
+        </Link>
+      ) : null}
       <Link to="/turnos" className={classeDoLink}>
         {t.voltar}
       </Link>
