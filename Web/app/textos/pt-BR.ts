@@ -4,6 +4,7 @@
  */
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { suspensao } from "./suspensao";
 
 export const textos = {
   marca: "Frila",
@@ -11,6 +12,8 @@ export const textos = {
   publico,
   // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
   profissional,
+  // Conta suspensa e contestação (os dois lados).
+  suspensao,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
