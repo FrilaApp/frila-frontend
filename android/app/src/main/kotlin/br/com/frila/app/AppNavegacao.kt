@@ -569,6 +569,17 @@ fun AppNavegacao(
             }
 
             composable(Rotas.DESBLOQUEIO) {
+                if (!biometriaHabilitada) {
+                    // C0-11 (P2 do Lince no #854): com a trava desligada não há desbloqueio, mas o Android ainda restaura
+                    // uma pilha salva nesta rota (processo morto, rotação). Não desenha a tela, que pediria a digital
+                    // sozinha, e segue para o destino normal da conta.
+                    LaunchedEffect(Unit) {
+                        navController.navigate(destinoInicial) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                    return@composable
+                }
                 LaunchedEffect(Unit) {
                     aoPronto?.invoke()
                 }
