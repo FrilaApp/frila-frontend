@@ -117,7 +117,7 @@ function contexto(acesso: string | null) {
   return ctx;
 }
 
-it("push para A depois do Sair nativo com remover 503: texto neutro, sem conteúdo", async () => {
+it("Sair nativo com remover 503: o Sair falha (achado A4 do Juiz), e o push de A segue neutro", async () => {
   const sw = await swInstalado();
   // Mensagens antigas da página não valem nada para o SW.
   await sw.disparar("message", { data: { tipo: "vinculo", vinculo_id: "v-A", neutro: { titulo: "x", corpo: "y" } } });
@@ -130,8 +130,9 @@ it("push para A depois do Sair nativo com remover 503: texto neutro, sem conteú
     if (e instanceof Response) resposta = e;
     else throw e;
   }
-  expect(resposta?.headers.get("Location")).toBe("/entrar");
-  expect(resposta?.headers.getSetCookie()).toHaveLength(3);
+  expect(resposta?.headers.get("Location")).toBe("/?sair=falhou");
+  expect(resposta?.headers.getSetCookie()).toEqual([]);
+  expect(mock.encerrar).not.toHaveBeenCalled();
   expect(new URL(mock.pedidos[0]?.url ?? "").pathname).toBe("/rest/v1/rpc/remover_dispositivo");
   await sw.disparar("push", pushDe("A"));
   expect(sw.notificacoes).toEqual([NEUTRO]);

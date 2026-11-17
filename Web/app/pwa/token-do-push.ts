@@ -1,7 +1,8 @@
 /**
  * Token do FCM no navegador. Este módulo é importado sob demanda só pela tela /avisos: o SDK do Firebase (só app e
  * messaging, sem Analytics) não entra em nenhuma outra tela. O token sai daqui para o Firebase (endereços liberados na
- * CSP) e para o Worker do Frila; nada vai para o armazenamento da página.
+ * CSP) e para o Worker do Frila. O próprio SDK guarda o token e a instalação no IndexedDB deste navegador (é como ele
+ * funciona); a sessão do Frila nunca vai para lá.
  */
 import { getApps, initializeApp } from "@firebase/app";
 import { deleteToken, getMessaging, getToken } from "@firebase/messaging";
