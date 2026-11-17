@@ -111,6 +111,11 @@ val moduloSeguranca = module {
             diretorioArquivos = getOrNull<Context>()?.filesDir,
             escopoDeCorrotinas = get(named(ESCOPO_DA_SESSAO)),
             gestorClienteKtor = getOrNull(),
+            // C0-10: o Sair pede remover_dispositivo depois da limpeza local; falha só vira log, sem token nem sessão.
+            servicoDispositivo = getOrNull(),
+            provedorDeTokenFcm = { lerTokenDoFcm() },
+            escopoDaRemocao = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            registrarFalha = { motivo -> Log.w("FrilaPush", motivo) },
         )
     }
 }
