@@ -77,6 +77,20 @@ private struct ConfirmacaoDosTermos {
     let recado: String?
 }
 
+/// O serviço e o horário de uma busca feita. Cada par é um trabalho: a busca guarda um por par, e outro serviço ou outro
+/// horário abre a folha e a sua vaga (MENOR 2 do #807).
+private struct BuscaFeita: Hashable {
+    let funcaoID: UUID
+    let horario: Periodo?
+}
+
+/// A tentativa de uma pessoa é da busca em que saiu: a mesma pessoa, buscada para outro serviço ou horário, é outra
+/// chamada, com pedido próprio (MENOR 3 do #807).
+private struct ChaveDaTentativa: Hashable {
+    let pessoa: UUID
+    let busca: BuscaFeita
+}
+
 /// Lançado por `enviar` quando os termos da vaga aberta não batem com os digitados (0.2.95).
 private struct TermosDiferentesDaVagaAberta: Error {
     let termos: TermosDaVagaAberta
@@ -156,22 +170,24 @@ public final class BuscaDeProfissionaisViewModel {
     private var filtroDaBuscaPendenteDeTermos: FiltroBuscaProfissionais?
     private let versaoDosTermos: String
     private var recursoConfirmado = false
-    private var tentativas: [UUID: PedidoChamada] = [:]
+    /// O último pedido de cada pessoa em cada busca feita (serviço e horário).
+    private var tentativas: [ChaveDaTentativa: PedidoChamada] = [:]
     /// As vagas diretas desta tela, uma por trabalho (comparado sem a chave): a 1ª chamada que deu certo pelo
     /// trabalho criou a vaga (ou o `409 trabalho_ja_aberto` apontou a que já existia, 0.2.95); as seguintes para o
     /// mesmo trabalho entram nela pelo `vaga_id`, inclusive depois de outra busca. Trabalho novo começa outra.
     /// DINHEIRO: nova busca não zera (a vaga é do trabalho, não da busca).
     private var vagasDosTrabalhos: [(trabalho: PublicacaoVaga, id: UUID)] = []
-    /// Quem terminou a última tentativa sem resposta definitiva: a chamada pode ter sido criada. Nova busca não
-    /// apaga nem eles nem a tentativa (a chave) deles: só a mesma chave descobre o que o servidor fez.
-    private var incertos: Set<UUID> = []
+    /// Quem terminou a última tentativa sem resposta definitiva, em cada busca feita: a chamada pode ter sido criada. Nova
+    /// busca não apaga nem eles nem a tentativa (a chave) deles: só a mesma chave descobre o que o servidor fez, quando a
+    /// mesma pessoa volta a ser chamada na mesma busca (serviço e horário).
+    private var incertos: Set<ChaveDaTentativa> = []
     /// 0.2.95: a vaga aberta do trabalho tem termos diferentes dos digitados. Nada do trabalho sai até a casa confirmar.
     private var confirmacaoDosTermos: ConfirmacaoDosTermos?
-    /// O trabalho e o recado do 1º envio de cada serviço buscado (`filtroDaBusca.funcaoID`). DINHEIRO: depois dele, todo
-    /// reenvio desse serviço (Tentar de novo, Chamar selecionados de novo, J7) repete ESTE trabalho, sem folha nova: um
-    /// trabalho diferente (horário que muda a cada abertura, outro valor) faria quem ainda não foi chamado abrir uma 2ª
-    /// vaga. Outro serviço é outro trabalho: abre a folha e guarda o seu.
-    private var enviadosPorServico: [UUID: (trabalho: PublicacaoVaga, recado: String?)] = [:]
+    /// O trabalho e o recado do 1º envio de cada busca feita (serviço e horário buscados). DINHEIRO: depois dele, todo
+    /// reenvio dessa busca (Tentar de novo, Chamar selecionados de novo, J7, a mesma busca refeita) repete ESTE trabalho,
+    /// sem folha nova: um trabalho diferente (horário que muda a cada abertura, outro valor) faria quem ainda não foi
+    /// chamado abrir uma 2ª vaga. Outro serviço ou outro horário buscado é outro trabalho: abre a folha e guarda o seu.
+    private var enviadosPorBusca: [BuscaFeita: (trabalho: PublicacaoVaga, recado: String?)] = [:]
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
     /// O prazo de cada `await` de rede; o teste injeta um menor.
@@ -412,9 +428,11 @@ public final class BuscaDeProfissionaisViewModel {
 
     // MARK: - Chamar
 
-    /// Com termos da vaga aberta para confirmar (0.2.95), nada sai antes de `confirmarTermosDaVagaAberta()`.
+    /// Com termos da vaga aberta para confirmar (0.2.95), nada sai antes de `confirmarTermosDaVagaAberta()`. Com a página
+    /// seguinte em voo também não (MENOR 4 do #807): o `cursor_invalido` ou o `termos_pendentes` dela refaz a lista e a
+    /// seleção, e tiraria dela quem estivesse com o pedido em voo (incerto, ele travaria a busca sem poder ser reenviado).
     public var podeChamar: Bool {
-        !selecionados.isEmpty && !enviando && estado == .resultados && confirmacaoDosTermos == nil
+        !selecionados.isEmpty && !enviando && !carregandoMais && estado == .resultados && confirmacaoDosTermos == nil
     }
 
     /// 0.2.95: os termos da vaga já aberta que a tela provisória mostra para a casa confirmar; `nil` sem pendência.
@@ -431,11 +449,15 @@ public final class BuscaDeProfissionaisViewModel {
     /// monta o trabalho com este.
     public var funcaoDaBusca: UUID? { filtroDaBusca?.funcaoID }
 
-    /// O trabalho e o recado do 1º envio do serviço da busca feita; `nil` se esse serviço ainda não teve envio.
-    public var trabalhoEnviado: PublicacaoVaga? { funcaoDaBusca.flatMap { enviadosPorServico[$0]?.trabalho } }
-    public var recadoEnviado: String? { funcaoDaBusca.flatMap { enviadosPorServico[$0]?.recado } }
+    /// O serviço e o horário da busca feita (os da lista na tela).
+    private var buscaFeita: BuscaFeita? { filtroDaBusca.map { BuscaFeita(funcaoID: $0.funcaoID, horario: $0.horario) } }
 
-    /// O serviço da busca feita já teve envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma folha nova.
+    /// O trabalho e o recado do 1º envio da busca feita (serviço e horário); `nil` se ela ainda não teve envio.
+    public var trabalhoEnviado: PublicacaoVaga? { buscaFeita.flatMap { enviadosPorBusca[$0]?.trabalho } }
+    public var recadoEnviado: String? { buscaFeita.flatMap { enviadosPorBusca[$0]?.recado } }
+
+    /// A busca feita (serviço e horário) já teve envio: o próximo é um reenvio do mesmo trabalho (`reenviar`), não uma
+    /// folha nova.
     public var temEnvioRegistrado: Bool { trabalhoEnviado != nil }
 
     /// Há selecionado com erro ou que nem saiu: `chamar` de novo reenvia só esses, cada um com a chave que já tinha.
@@ -453,7 +475,8 @@ public final class BuscaDeProfissionaisViewModel {
     /// as até 3 chamadas serem do mesmo trabalho (contrato 0.2.55). Se o servidor recusar a 1ª (erro definitivo ou J7),
     /// a próxima vira a 1ª. Cada profissional leva a sua chave; o reenvio (erro ou J7) usa a mesma chave. Se a casa
     /// já tem o trabalho aberto (`409 trabalho_ja_aberto`, 0.2.95), a pessoa vai pelo `vaga_id` dele (`enviar`). Depois do
-    /// 1º envio do serviço da busca, o `trabalho` e o `recado` recebidos não valem: saem os guardados.
+    /// 1º envio da busca feita (serviço e horário), o `trabalho` e o `recado` recebidos não valem: saem os guardados. O 1º
+    /// envio só sai com um trabalho do serviço da busca.
     ///
     /// DINHEIRO: se o pedido que leva o trabalho termina incerto (prazo de 15 s, sem rede, resposta ilegível,
     /// desconhecido), o servidor pode ter criado a vaga e a resposta se perdido. Promover o próximo abriria outra vaga
@@ -462,48 +485,52 @@ public final class BuscaDeProfissionaisViewModel {
     /// também espera esse pedido: ela só vale para quem a recebeu, e quem ficou incerto vai sem ela.
     public func chamar(trabalho: PublicacaoVaga, recado: String? = nil, confirmoRecorrencia: Bool = false,
                        chave: () -> UUID = UUID.init) async {
-        guard podeChamar, let servico = funcaoDaBusca else { return }
-        // DINHEIRO: com envio do serviço, saem o trabalho e o recado guardados, venha o que vier de quem chama. Outro
+        guard podeChamar, let busca = buscaFeita else { return }
+        // A folha monta o trabalho com o serviço da busca; um de outro serviço não abre vaga por esta lista.
+        guard enviadosPorBusca[busca] != nil || trabalho.funcaoID == busca.funcaoID else { return }
+        // DINHEIRO: com envio da busca, saem o trabalho e o recado guardados, venha o que vier de quem chama. Outro
         // trabalho (outro horário, outro valor) faria quem ainda não foi chamado abrir uma 2ª vaga; outro trabalho do
-        // mesmo serviço exige fechar e abrir a busca (decisão do #790).
-        let (trabalho, recado) = enviadosPorServico[servico] ?? (trabalho: trabalho, recado: recado)
+        // mesmo serviço e horário exige fechar e abrir a busca (decisão do #790), e aí o `409 trabalho_ja_aberto` do
+        // servidor aponta a vaga que já existe.
+        let (trabalho, recado) = enviadosPorBusca[busca] ?? (trabalho: trabalho, recado: recado)
+        let chaveDe = { (pessoa: UUID) in ChaveDaTentativa(pessoa: pessoa, busca: busca) }
         let pendentes = selecionados.filter { resultadosDaChamada[$0] == .pedeConfirmacaoDeRecorrencia }
         // A confirmação J7 só vale depois da recusa correspondente.
         guard !confirmoRecorrencia || !pendentes.isEmpty else { return }
         // Quem ficou incerto levando o trabalho resolve a vaga antes de qualquer outro, inclusive na confirmação J7:
         // o confirmado só sai depois, e pelo `vaga_id` se a vaga existir. Se continuar incerto, o confirmado nem sai.
-        let primeiros = selecionados.filter { incertos.contains($0) && tentativas[$0]?.trabalho != nil }
+        let primeiros = selecionados.filter { incertos.contains(chaveDe($0)) && tentativas[chaveDe($0)]?.trabalho != nil }
         let alvos = primeiros + selecionados.filter { id in
             if case .enviada = resultadosDaChamada[id] { return false }
             return !primeiros.contains(id) && (!confirmoRecorrencia || pendentes.contains(id))
         }
-        if enviadosPorServico[servico] == nil {
-            enviadosPorServico[servico] = (trabalho, recado)
+        if enviadosPorBusca[busca] == nil {
+            enviadosPorBusca[busca] = (trabalho, recado)
         }
         enviando = true
         defer { enviando = false }
         for (posicao, id) in alvos.enumerated() {
-            let pedido = pedidoDaVez(para: id, trabalho: trabalho, recado: recado, chave: chave,
+            let pedido = pedidoDaVez(para: id, busca: busca, trabalho: trabalho, recado: recado, chave: chave,
                                      confirmando: confirmoRecorrencia && pendentes.contains(id))
-            tentativas[id] = pedido
+            tentativas[chaveDe(id)] = pedido
             do {
-                let chamada = try await enviar(pedido, digitado: pedido.trabalho ?? trabalho, chave: chave)
+                let chamada = try await enviar(pedido, busca: busca, digitado: pedido.trabalho ?? trabalho, chave: chave)
                 resultadosDaChamada[id] = .enviada(chamada)
-                incertos.remove(id)
+                incertos.remove(chaveDe(id))
                 if let enviado = pedido.trabalho, vagaReutilizavel(para: enviado) == nil {
                     vagasDosTrabalhos.append((enviado.comChave(Self.semChave), chamada.vagaID))
                 }
             } catch let recusa as ErroDaApi where recusa.codigo == .recorrenciaNaoConfirmada {
                 resultadosDaChamada[id] = .pedeConfirmacaoDeRecorrencia
-                incertos.remove(id)
+                incertos.remove(chaveDe(id))
             } catch let diferentes as TermosDiferentesDaVagaAberta {
                 // 0.2.95: a vaga aberta tem outros termos. Ninguém do trabalho sai antes de a casa confirmar: este e os
                 // próximos esperam (quem espera a confirmação J7 continua esperando). O 409 não gastou a chave nem criou
                 // nada, então a tentativa deste sai, e a confirmação manda cada um com chave nova.
                 confirmacaoDosTermos = ConfirmacaoDosTermos(termos: diferentes.termos, recusado: diferentes.recusado,
                                                             trabalho: trabalho, recado: recado)
-                tentativas[id] = nil
-                incertos.remove(id)
+                tentativas[chaveDe(id)] = nil
+                incertos.remove(chaveDe(id))
                 resultadosDaChamada[id] = .pedeConfirmacaoDosTermos(diferentes.termos)
                 for resto in alvos.dropFirst(posicao + 1) where resultadosDaChamada[resto] != .pedeConfirmacaoDeRecorrencia {
                     resultadosDaChamada[resto] = .pedeConfirmacaoDosTermos(diferentes.termos)
@@ -512,12 +539,12 @@ public final class BuscaDeProfissionaisViewModel {
             } catch {
                 resultadosDaChamada[id] = .erro(Self.mensagemDaChamada(error))
                 guard Self.resultadoIncerto(error) else {
-                    incertos.remove(id)
+                    incertos.remove(chaveDe(id))
                     continue
                 }
-                incertos.insert(id)
+                incertos.insert(chaveDe(id))
                 // O último pedido que saiu: depois do `409 trabalho_ja_aberto`, é o do `vaga_id`, que não abre vaga.
-                guard tentativas[id]?.trabalho != nil else { continue }
+                guard tentativas[chaveDe(id)]?.trabalho != nil else { continue }
                 // Quem espera a confirmação J7 continua esperando; os demais nem saem.
                 for resto in alvos.dropFirst(posicao + 1) where resultadosDaChamada[resto] != .pedeConfirmacaoDeRecorrencia {
                     resultadosDaChamada[resto] = .naoEnviada
@@ -530,21 +557,21 @@ public final class BuscaDeProfissionaisViewModel {
         mostrarJ7 = confirmacaoDosTermos == nil && resultadosDaChamada.values.contains(.pedeConfirmacaoDeRecorrencia)
     }
 
-    /// Reenvia com o trabalho e o recado do 1º envio do serviço da busca feita (nunca um novo). Sem envio desse serviço
-    /// não faz nada: o 1º envio de cada serviço passa pela folha de chamada e por `chamar(trabalho:)`.
+    /// Reenvia com o trabalho e o recado do 1º envio da busca feita (nunca um novo). Sem envio dela não faz nada: o 1º
+    /// envio de cada serviço e horário passa pela folha de chamada e por `chamar(trabalho:)`.
     public func reenviar(confirmoRecorrencia: Bool = false, chave: () -> UUID = UUID.init) async {
         guard let trabalho = trabalhoEnviado else { return }
         await chamar(trabalho: trabalho, recado: recadoEnviado, confirmoRecorrencia: confirmoRecorrencia, chave: chave)
     }
 
-    /// O pedido de um selecionado nesta rodada. Quem ainda não tentou leva o `vaga_id` da vaga do trabalho, se
+    /// O pedido de um selecionado nesta rodada. Quem ainda não tentou nesta busca (serviço e horário) leva o `vaga_id` da vaga do trabalho, se
     /// ela já existe, ou o trabalho com uma chave nova. Quem tentou repete a chave; se foi pelo trabalho e a vaga
     /// passou a existir, vai pelo `vaga_id` dela: o servidor só guarda a chave quando cria a chamada e, se o
     /// envio anterior criou (resposta perdida), a mesma chave devolve aquela chamada em vez de abrir outra.
-    private func pedidoDaVez(para id: UUID, trabalho: PublicacaoVaga, recado: String?, chave: () -> UUID,
-                             confirmando: Bool) -> PedidoChamada {
+    private func pedidoDaVez(para id: UUID, busca: BuscaFeita, trabalho: PublicacaoVaga, recado: String?,
+                             chave: () -> UUID, confirmando: Bool) -> PedidoChamada {
         let base: PedidoChamada
-        if let anterior = tentativas[id] {
+        if let anterior = tentativas[ChaveDaTentativa(pessoa: id, busca: busca)] {
             if let antigo = anterior.trabalho, let vagaID = vagaReutilizavel(para: antigo) {
                 base = PedidoChamada(profissionalID: id, vagaID: vagaID, estabelecimentoID: antigo.estabelecimentoID,
                                      chave: anterior.chave, recado: anterior.recado)
@@ -567,7 +594,8 @@ public final class BuscaDeProfissionaisViewModel {
     /// e o mesmo profissional vai de novo por ele, num pedido novo com chave nova, como a 2ª e a 3ª chamadas. Diferentes,
     /// nada se repete: lança `TermosDiferentesDaVagaAberta` e a casa decide. Leitura que falha e 409 sem `vaga_id` seguem
     /// a recusa, que vira o erro genérico. Uma vez só: se o pedido pelo `vaga_id` também for recusado, a recusa segue.
-    private func enviar(_ pedido: PedidoChamada, digitado: PublicacaoVaga, chave: () -> UUID) async throws -> Chamada {
+    private func enviar(_ pedido: PedidoChamada, busca: BuscaFeita, digitado: PublicacaoVaga,
+                        chave: () -> UUID) async throws -> Chamada {
         do {
             return try await enviarComPrazo(pedido)
         } catch let recusa as ErroDaApi {
@@ -580,7 +608,7 @@ public final class BuscaDeProfissionaisViewModel {
             let pelaVaga = PedidoChamada(profissionalID: pedido.profissionalID, vagaID: vagaAberta,
                                          estabelecimentoID: pedido.estabelecimentoID, chave: chave(),
                                          recado: pedido.recado, confirmoRecorrencia: pedido.confirmoRecorrencia)
-            tentativas[pedido.profissionalID] = pelaVaga
+            tentativas[ChaveDaTentativa(pessoa: pedido.profissionalID, busca: busca)] = pelaVaga
             return try await enviarComPrazo(pelaVaga)
         }
     }
