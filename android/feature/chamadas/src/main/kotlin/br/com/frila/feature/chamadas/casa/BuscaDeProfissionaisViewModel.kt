@@ -565,7 +565,8 @@ class BuscaDeProfissionaisViewModel(
             return escopoDeTrabalho.launch { }
         }
         ultimoEnvio = trabalho to recado
-        if (busca != null && busca !in enviadosPorBusca) {
+        val gravouOEnvioDaBusca = busca != null && busca !in enviadosPorBusca
+        if (gravouOEnvioDaBusca && busca != null) {
             enviadosPorBusca[busca] = trabalho to recado
             _estado.update { it.copy(trabalhoEnviadoDaBusca = trabalho) }
         }
@@ -663,6 +664,16 @@ class BuscaDeProfissionaisViewModel(
                     _estado.update { it.copy(resultadosDaChamada = it.resultadosDaChamada + naoEnviados) }
                     break
                 }
+            }
+            // Só a rodada que guardou a busca pode liberá-la: todas as recusas foram definitivas e não há vaga.
+            // Enviada, incerto, quem não saiu e confirmações pendentes mantêm o trabalho e o recado originais.
+            val soRecusasDefinitivas = alvos.all { id ->
+                val resultado = _estado.value.resultadosDaChamada[id]
+                resultado is ResultadoDaChamadaDaBusca.Erro && !resultado.incerto
+            }
+            if (gravouOEnvioDaBusca && soRecusasDefinitivas && chaveDoTrabalho !in vagasPorTrabalho) {
+                enviadosPorBusca.remove(busca)
+                _estado.update { it.copy(trabalhoEnviadoDaBusca = null) }
             }
             // Com termos da vaga aberta pendentes, eles vêm primeiro: o J7 não manda nada antes de a casa responder
             // (podeChamar), e volta ao confirmar ou cancelar.

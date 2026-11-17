@@ -180,4 +180,119 @@ class BuscaUmTrabalhoPorServicoEHorarioTest {
         withTimeout(5_000) { carregando.join() }
         assertTrue(vm.estado.value.podeChamar)
     }
+    @Test
+    fun `repro Codex - recusa definitiva antes de criar vaga permite corrigir o recado`() = runBlocking {
+        val rede = rede()
+        rede.rota("chamar_profissional") { pedido ->
+            if (pedido.corpo["recado"]?.jsonPrimitive?.content == "recado recusado") {
+                respond("""{"code":"campo_invalido","message":"recado recusado","details":"recado"}""", HttpStatusCode.UnprocessableEntity, json)
+            } else {
+                respond("""{"id":"c1","vaga_id":"vaga-1","profissional_id":"p1","estabelecimento_id":"$casa","estado":"aberta","expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z"}""", HttpStatusCode.OK, json)
+            }
+        }
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.chamar(trabalho(sexta), "recado recusado").join()
+        assertFalse(vm.estado.value.temEnvioPendente)
+        assertNull(vm.estado.value.trabalhoEnviadoDaBusca, "sem vaga nem pendência a folha volta a abrir")
+        vm.chamar(trabalho(sexta), "recado corrigido").join()
+        val segunda = rede.chamadas().last().corpo
+        assertEquals("18000", segunda["valor_centavos"]?.jsonPrimitive?.content, "a correção envia o trabalho completo")
+        assertFalse("vaga_id" in segunda)
+        val recados = rede.chamadas().map { it.corpo["recado"]?.jsonPrimitive?.content }
+        println("REPRO CODEX recados enviados: $recados; resultado: ${vm.estado.value.resultadosDaChamada["p1"]}")
+        assertEquals("recado corrigido", recados.last(), "recusa definitiva sem vaga deve aceitar a correção")
+    }
+
+    @Test
+    fun `envio incerto e nao enviados preservam o trabalho e a mesma chave no reenvio`() = runBlocking {
+        val rede = rede()
+        rede.rota("chamar_profissional") { throw java.io.IOException("sem rede") }
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.alternarSelecao("p2")
+        vm.chamar(trabalho(sexta), "original").join()
+        assertTrue((vm.estado.value.resultadosDaChamada["p1"] as ResultadoDaChamadaDaBusca.Erro).incerto)
+        assertEquals(ResultadoDaChamadaDaBusca.NaoEnviada, vm.estado.value.resultadosDaChamada["p2"])
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca)
+        val primeiro = rede.chamadas().single().corpo
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertEquals(primeiro, rede.chamadas().last().corpo)
+        rede.recusa("chamar_profissional", HttpStatusCode.UnprocessableEntity, "campo_invalido")
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertTrue(vm.estado.value.resultadosDaChamada.values.all { it is ResultadoDaChamadaDaBusca.Erro && !it.incerto })
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca, "reenvio nunca apaga o guardado")
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertEquals("original", rede.chamadas().last().corpo["recado"]?.jsonPrimitive?.content)
+        assertEquals("18000", rede.chamadas().last().corpo["valor_centavos"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `uma enviada e uma recusada mantem a vaga e o recado guardados`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.alternarSelecao("p2")
+        // A primeira resposta cria a vaga; a segunda é recusada definitivamente.
+        rede.rota("chamar_profissional") { pedido ->
+            if (pedido.corpo["profissional_id"]?.jsonPrimitive?.content == "p2") {
+                respond("""{"code":"campo_invalido","message":"recusado"}""", HttpStatusCode.UnprocessableEntity, json)
+            } else {
+                respond("""{"id":"c1","vaga_id":"vaga-1","profissional_id":"p1","estabelecimento_id":"$casa","estado":"aberta","expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z"}""", HttpStatusCode.OK, json)
+            }
+        }
+        vm.chamar(trabalho(sexta), "original").join()
+        assertTrue(vm.estado.value.resultadosDaChamada["p1"] is ResultadoDaChamadaDaBusca.Enviada)
+        assertFalse((vm.estado.value.resultadosDaChamada["p2"] as ResultadoDaChamadaDaBusca.Erro).incerto)
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca)
+        // Um reenvio só com recusas também nunca apaga o guardado da rodada anterior.
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca)
+        val reenvio = rede.chamadas().last().corpo
+        assertEquals("vaga-1", reenvio["vaga_id"]?.jsonPrimitive?.content)
+        assertEquals("original", reenvio["recado"]?.jsonPrimitive?.content)
+        assertFalse("valor_centavos" in reenvio)
+    }
+
+    @Test
+    fun `J7 preserva o trabalho e o recado ate a confirmacao`() = runBlocking {
+        val rede = rede()
+        rede.recusa("chamar_profissional", HttpStatusCode.Conflict, "recorrencia_nao_confirmada")
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.chamar(trabalho(sexta), "original").join()
+        assertEquals(ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia, vm.estado.value.resultadosDaChamada["p1"])
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca)
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado", confirmoRecorrencia = true).join()
+        val reenvio = rede.chamadas().last().corpo
+        assertEquals("18000", reenvio["valor_centavos"]?.jsonPrimitive?.content)
+        assertEquals("original", reenvio["recado"]?.jsonPrimitive?.content)
+        assertEquals("true", reenvio["confirmo_recorrencia"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `409 com termos diferentes preserva o trabalho ate a casa confirmar`() = runBlocking {
+        val rede = rede()
+        rede.recusa("chamar_profissional", HttpStatusCode.Conflict, "trabalho_ja_aberto", "55555555-5555-4555-8555-555555555555")
+        val base = """"id":"c1","vaga_id":"55555555-5555-4555-8555-555555555555","profissional_id":"p1","estabelecimento_id":"$casa","estado":"aberta","expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z","funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":25000,"outra_parte":{"id":"p1","tipo":"profissional","nome":"Pessoa","reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
+        rede.ok("minhas_chamadas", """{"itens":[{$base}],"proximo_cursor":null}""")
+        rede.ok("detalhe_chamada", """{$base,"regiao_administrativa":"Plano Piloto","inclui_refeicao":false,"inclui_transporte":false,"exige_material_proprio":false}""")
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.alternarSelecao("p2")
+        vm.chamar(trabalho(sexta), "original").join()
+        assertTrue(vm.estado.value.resultadosDaChamada.values.all { it is ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos })
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca)
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertEquals(1, rede.chamadas().size, "nada sai antes da confirmação")
+        vm.confirmarTermosDaVagaAberta().join()
+        assertEquals("55555555-5555-4555-8555-555555555555", rede.chamadas().last().corpo["vaga_id"]?.jsonPrimitive?.content)
+        assertEquals("original", rede.chamadas().last().corpo["recado"]?.jsonPrimitive?.content)
+    }
+
 }
