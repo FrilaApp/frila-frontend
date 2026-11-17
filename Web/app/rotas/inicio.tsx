@@ -27,7 +27,9 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     entrou: sessao ? { email: sessao.email, conta } : null,
     // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
     termosPendentes: conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS,
+    termosVersao: VERSAO_DOS_TERMOS,
     aceiteFalhou: new URL(request.url).searchParams.get("termos") === "falhou",
+    termosMudaramNaTela: new URL(request.url).searchParams.get("termos") === "mudou",
   };
 }
 
@@ -72,6 +74,7 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
           ) : null}
           {loaderData.webLigada && loaderData.termosPendentes ? (
             <Form method="post" action="/aceitar-termos" className="flex flex-col gap-3 border-t border-borda pt-3">
+              <input type="hidden" name="termos_versao" value={loaderData.termosVersao} />
               <p>{textos.conta.termosMudaram}</p>
               <p className="text-sm text-tinta-suave">
                 <a href="https://frilabr.com/termos" target="_blank" rel="noreferrer" className="underline underline-offset-4">
@@ -83,6 +86,7 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
                 </a>
               </p>
               {loaderData.aceiteFalhou ? <p role="alert">{textos.conta.aceiteFalhou}</p> : null}
+              {loaderData.termosMudaramNaTela ? <p role="alert">{textos.conta.termosMudaramNaTela}</p> : null}
               <button type="submit" className={classeDoBotao}>
                 {textos.conta.aceitarTermos}
               </button>

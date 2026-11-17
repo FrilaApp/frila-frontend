@@ -66,6 +66,7 @@ export const textos = {
     termosMudaram: "Os Termos de Uso e a Política de Privacidade mudaram. Leia e aceite para continuar usando o Frila.",
     aceitarTermos: "Li e aceito",
     aceiteFalhou: "Não deu para registrar o aceite agora. Tente de novo em instantes.",
+    termosMudaramNaTela: "Os Termos mudaram depois que você abriu esta página. Leia a versão atual e aceite de novo.",
   },
   cadastro: {
     tituloDaAba: "Criar conta no Frila",
@@ -98,6 +99,7 @@ export const textos = {
       menorDeIdade: "O Frila é só para maiores de 18 anos.",
       aceite: "Para criar a conta, é preciso aceitar os Termos e a Política.",
       termosDesatualizados: "Os Termos mudaram agora há pouco. Recarregue a página e tente de novo.",
+      termosMudaramNaTela: "Os Termos mudaram depois que você abriu esta página. Leia a versão atual e marque o aceite de novo.",
       indisponivel: "Não deu para criar a conta agora. Tente de novo em instantes.",
     },
   },

@@ -27,7 +27,8 @@ export async function loader({ context }: Route.LoaderArgs) {
   if (conta.estado === "ok") {
     throw redirect("/");
   }
-  return { email: sessao.email, indisponivel: conta.estado === "indisponivel" };
+  // A versão dos termos vai no formulário: o aceite grava a versão que a pessoa viu, não a deste deploy.
+  return { email: sessao.email, indisponivel: conta.estado === "indisponivel", termosVersao: VERSAO_DOS_TERMOS };
 }
 
 export async function action({ request, context }: Route.ActionArgs): Promise<Retorno> {
@@ -49,6 +50,8 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   if (!telefone) erros.telefone = t.erros.telefone;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(valores.nascimento)) erros.nascimento = t.erros.nascimentoObrigatorio;
   if (formulario.get("aceite") !== "sim") erros.aceite = t.erros.aceite;
+  // Termos mudaram depois que a página abriu (ou a versão não veio): não grava; a tela volta com os atuais.
+  else if (formulario.get("termos_versao") !== VERSAO_DOS_TERMOS) erros.aceite = t.erros.termosMudaramNaTela;
   if (!perfil || !telefone || Object.keys(erros).length > 0) {
     return { erros, valores };
   }
@@ -110,6 +113,7 @@ export default function Cadastro({ loaderData, actionData }: Route.ComponentProp
       {loaderData.indisponivel ? <p role="status">{t.contaIndisponivel}</p> : null}
 
       <Form method="post" className="flex flex-col gap-5" noValidate>
+        <input type="hidden" name="termos_versao" value={loaderData.termosVersao} />
         <Aviso id="erro-geral" texto={erros.geral} />
 
         <fieldset className="flex flex-col gap-2" aria-describedby={erros.perfil ? "erro-perfil" : "ajuda-perfil"}>
@@ -186,6 +190,8 @@ export default function Cadastro({ loaderData, actionData }: Route.ComponentProp
         <div className="flex flex-col gap-2">
           <label className="flex min-h-12 items-start gap-3">
             <input
+              // Versão nova dos termos: o aceite volta desmarcado.
+              key={loaderData.termosVersao}
               type="checkbox"
               name="aceite"
               value="sim"
