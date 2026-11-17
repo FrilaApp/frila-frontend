@@ -129,6 +129,8 @@ fun TelaPerfil(
     /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
     aoAbrirApresentacao: (() -> Unit)? = null,
     aoAbrirFotoDePerfil: (() -> Unit)? = null,
+    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    aoAbrirPontoBase: (() -> Unit)? = null,
     /**
      * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
      * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
@@ -346,6 +348,7 @@ fun TelaPerfil(
                 aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
                 aoAbrirApresentacao = aoAbrirApresentacao,
                 aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
+                aoAbrirPontoBase = aoAbrirPontoBase,
                 aoEncontrarProfissional = aoEncontrarProfissional,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -412,6 +415,8 @@ private fun ConteudoDoPerfil(
     /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
     aoAbrirApresentacao: (() -> Unit)? = null,
     aoAbrirFotoDePerfil: (() -> Unit)? = null,
+    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -474,6 +479,7 @@ private fun ConteudoDoPerfil(
             aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
             aoAbrirApresentacao = aoAbrirApresentacao,
             aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
+            aoAbrirPontoBase = aoAbrirPontoBase,
             aoEncontrarProfissional = aoEncontrarProfissional,
         )
     }
@@ -1065,6 +1071,8 @@ private fun BlocoDeConta(
     /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
     aoAbrirApresentacao: (() -> Unit)? = null,
     aoAbrirFotoDePerfil: (() -> Unit)? = null,
+    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
@@ -1176,6 +1184,16 @@ private fun BlocoDeConta(
                     .fillMaxWidth()
                     .padding(top = FrilaEspacamento.pequeno)
                     .testTag("perfil-encontrar-profissional"),
+            )
+        }
+        if (aoAbrirPontoBase != null) {
+            BotaoSecundario(
+                texto = TextosPontoBase.TITULO,
+                aoClicar = aoAbrirPontoBase,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-ponto-base"),
             )
         }
         if (aoAbrirApresentacao != null) {
