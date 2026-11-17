@@ -37,6 +37,8 @@ class MainActivity : FragmentActivity() {
                 var chamadaDireta by remember { mutableStateOf(false) }
                 var buscaProfissionais by remember { mutableStateOf(false) }
                 var mensagemBloqueio by remember { mutableStateOf(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO) }
+                var perfilRico by remember { mutableStateOf(false) }
+                var fotoDePerfil by remember { mutableStateOf(false) }
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
@@ -51,6 +53,8 @@ class MainActivity : FragmentActivity() {
                                 chamadaDireta = configuracao.recursos.chamadaDireta
                                 buscaProfissionais = configuracao.recursos.buscaProfissionais
                                 configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
+                                perfilRico = configuracao.recursos.perfilRico
+                                fotoDePerfil = configuracao.recursos.fotoDePerfil
                             }
                         } catch (_: Exception) {
                             // Falha transitória de rede ou offline nunca bloqueia o acesso
@@ -98,6 +102,8 @@ class MainActivity : FragmentActivity() {
                     },
                 ) {
                     AppNavegacao(
+                        perfilRicoHabilitado = perfilRico,
+                        fotoDePerfilHabilitada = fotoDePerfil,
                         chamadaDiretaHabilitada = chamadaDireta,
                         buscaProfissionaisHabilitada = buscaProfissionais,
                         aoPronto = {

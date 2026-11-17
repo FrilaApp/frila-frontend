@@ -126,6 +126,9 @@ fun TelaPerfil(
      * chamador só informa com `recursos.chamada_direta` ligado (RN46) e para quem é profissional.
      */
     aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
+    aoAbrirApresentacao: (() -> Unit)? = null,
+    aoAbrirFotoDePerfil: (() -> Unit)? = null,
     /**
      * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
      * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
@@ -341,6 +344,8 @@ fun TelaPerfil(
                 aoMinhasVagas = aoMinhasVagas,
                 aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                 aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+                aoAbrirApresentacao = aoAbrirApresentacao,
+                aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
                 aoEncontrarProfissional = aoEncontrarProfissional,
                 verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                 podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -404,6 +409,9 @@ private fun ConteudoDoPerfil(
     aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
+    aoAbrirApresentacao: (() -> Unit)? = null,
+    aoAbrirFotoDePerfil: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -464,6 +472,8 @@ private fun ConteudoDoPerfil(
             aoMinhasVagas = aoMinhasVagas,
             aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
             aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+            aoAbrirApresentacao = aoAbrirApresentacao,
+            aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
             aoEncontrarProfissional = aoEncontrarProfissional,
         )
     }
@@ -520,6 +530,8 @@ private fun ConteudoDaCasa(
             aoMinhasVagas = aoMinhasVagas,
             aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
             aoAbrirChamadasDiretas = null,
+            aoAbrirApresentacao = null,
+            aoAbrirFotoDePerfil = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
         )
     }
@@ -1050,6 +1062,9 @@ private fun BlocoDeConta(
     aoMinhasVagas: (() -> Unit)? = null,
     aoCadastrarEstabelecimento: (() -> Unit)? = null,
     aoAbrirChamadasDiretas: (() -> Unit)? = null,
+    /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
+    aoAbrirApresentacao: (() -> Unit)? = null,
+    aoAbrirFotoDePerfil: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
 ) {
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
@@ -1161,6 +1176,26 @@ private fun BlocoDeConta(
                     .fillMaxWidth()
                     .padding(top = FrilaEspacamento.pequeno)
                     .testTag("perfil-encontrar-profissional"),
+            )
+        }
+        if (aoAbrirApresentacao != null) {
+            BotaoSecundario(
+                texto = TextosApresentacaoERegioes.TITULO,
+                aoClicar = aoAbrirApresentacao,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-apresentacao"),
+            )
+        }
+        if (aoAbrirFotoDePerfil != null) {
+            BotaoSecundario(
+                texto = TextosDaFotoDePerfil.TITULO,
+                aoClicar = aoAbrirFotoDePerfil,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FrilaEspacamento.pequeno)
+                    .testTag("perfil-foto"),
             )
         }
         if (aoAbrirChamadasDiretas != null) {
