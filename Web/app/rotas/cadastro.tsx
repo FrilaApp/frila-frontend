@@ -86,7 +86,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
 }
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
-const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-4 text-lg font-bold text-tinta disabled:opacity-60";
+const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60";
 const classeDoRotulo = "flex flex-col gap-2 font-semibold";
 
 function Aviso({ id, texto }: { id: string; texto?: string }) {

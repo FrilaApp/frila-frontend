@@ -105,7 +105,7 @@ export async function action({ context, request }: Route.ActionArgs) {
 }
 
 const classeDoLink = "inline-flex min-h-11 items-center font-semibold underline underline-offset-4";
-const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-6 text-lg font-bold text-tinta disabled:opacity-60";
+const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao disabled:opacity-60";
 const classeDoBotaoSecundario = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-6 text-lg font-bold disabled:opacity-60";
 const AVISO_DO_ESTADO = {
   perfil_incompativel: tv.perfilIncompativel,
