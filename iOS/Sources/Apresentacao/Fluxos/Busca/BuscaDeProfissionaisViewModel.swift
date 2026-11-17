@@ -408,6 +408,13 @@ public final class BuscaDeProfissionaisViewModel {
     /// 0.2.95: os termos da vaga já aberta que a tela provisória mostra para a casa confirmar; `nil` sem pendência.
     public var termosParaConfirmar: TermosDaVagaAberta? { confirmacaoDosTermos?.termos }
 
+    /// A folha dos termos da vaga aberta fica na tela enquanto há termos para confirmar. Fechar a folha sem escolher
+    /// (arrastar para baixo) vale como Cancelar: nada sai.
+    public var mostrarTermosDaVagaAberta: Bool {
+        get { confirmacaoDosTermos != nil }
+        set { if !newValue { cancelarTermosDaVagaAberta() } }
+    }
+
     /// O serviço da busca feita (o da lista na tela), e não o do seletor (`funcaoID`), que pode mudar sem Buscar. A folha
     /// monta o trabalho com este.
     public var funcaoDaBusca: UUID? { filtroDaBusca?.funcaoID }
