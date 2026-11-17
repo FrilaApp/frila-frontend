@@ -64,6 +64,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
+    // C0-7: pedido de permissão de localização pelo diálogo do sistema (já no catálogo).
+    implementation(libs.androidx.activity.compose)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(platform(libs.compose.bom))

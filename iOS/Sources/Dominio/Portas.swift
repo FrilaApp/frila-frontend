@@ -453,6 +453,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada
     func cancelarChamada(id: UUID) async throws -> Chamada
     func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo]
+    /// 0.2.95: a mesma `minhas_chamadas`, com o `proximoCursor` da página, para seguir o cursor (a busca procura a vaga
+    /// do `409 trabalho_ja_aberto`). Sem implementação própria, é a página de `minhasChamadas`, sem cursor.
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
     func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada
     func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas
@@ -693,6 +696,10 @@ public extension ApiCliente {
 
     func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo] {
         []
+    }
+
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas {
+        PaginaChamadas(itens: try await minhasChamadas(estado: estado, cursor: cursor, limite: limite))
     }
 
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {

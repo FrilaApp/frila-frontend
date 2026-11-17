@@ -12,6 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import br.com.frila.core.designsystem.tema.FrilaMetricas
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.Coordenada
@@ -127,6 +131,29 @@ class TelaMeusTurnosTest {
     """.trimIndent()
 
     @Test
+    fun `C0-9 - Denunciar no turno leva o id da casa e o do turno, como o iOS`() {
+        runBlocking {
+            val viewModel = criarViewModel("[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]")
+            viewModel.carregar().join()
+            val denuncias = mutableListOf<Pair<String, String>>()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(
+                        viewModel = viewModel,
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
+                        aoDenunciarEstabelecimento = { casa, turno -> denuncias += casa to turno },
+                    )
+                }
+            }
+
+            compose.onNodeWithContentDescription("Denunciar Bar do Zé").performScrollTo()
+                .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+            assertEquals(listOf("e1" to "t1"), denuncias)
+        }
+    }
+
+    @Test
     fun `tela inicial exibe titulo e abas Agendados e Historico`() {
         val viewModel = criarViewModel("[]")
 
@@ -134,7 +161,7 @@ class TelaMeusTurnosTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                 )
             }
         }
@@ -154,7 +181,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     )
                 }
             }
@@ -175,7 +202,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     )
                 }
             }
@@ -196,7 +223,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                         relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                     )
                 }
@@ -226,7 +253,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                         relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                     )
                 }
@@ -257,7 +284,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                         relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                     )
                 }
@@ -276,7 +303,7 @@ class TelaMeusTurnosTest {
     }
 
     @Test
-    fun `sem permissao de localizacao, tocar em Fazer check-in exibe dialogo Permissao de localizacao`() {
+    fun `sem permissao, tocar em Fazer check-in pede a permissao do sistema e a recusa exibe o dialogo Permissao de localizacao`() {
         runBlocking {
             val json = "[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]"
             val viewModel = criarViewModel(json)
@@ -287,13 +314,18 @@ class TelaMeusTurnosTest {
                 override fun isGpsAtivado(): Boolean = true
             }
 
+            var pedidos = 0
+            val pedido: (aoResponder: (Boolean) -> Unit) -> Unit = { responder -> pedidos++; responder(false) }
+
             compose.setContent {
-                FrilaTheme {
-                    TelaMeusTurnos(
-                        viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> remember(turnoId) { criarCheckin(turnoId, provedorDeLocalizacao = provedor) } },
-                        relogio = { Instant.parse("2026-11-01T20:45:00Z") },
-                    )
+                CompositionLocalProvider(LocalPedidoDePermissaoDeLocalizacao provides pedido) {
+                    FrilaTheme {
+                        TelaMeusTurnos(
+                            viewModel = viewModel,
+                            criarCheckinViewModel = { turno -> remember(turno.turnoId) { criarCheckin(turno.turnoId, provedorDeLocalizacao = provedor) } },
+                            relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                        )
+                    }
                 }
             }
             compose.waitForIdle()
@@ -301,6 +333,8 @@ class TelaMeusTurnosTest {
             compose.onNodeWithText("Fazer check-in").performClick()
             compose.waitForIdle()
 
+            // C0-7: o toque pede a permissão ao sistema uma vez; só a recusa leva ao diálogo das Configurações.
+            assertEquals(1, pedidos)
             compose.onNodeWithText("Permissão de localização").assertIsDisplayed()
             compose.onNodeWithText("Abrir configurações").assertIsDisplayed().assertHasClickAction()
             compose.onNodeWithText("Continuar manual").assertIsDisplayed().assertHasClickAction()
@@ -323,7 +357,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> remember(turnoId) { criarCheckin(turnoId, provedorDeLocalizacao = provedor) } },
+                        criarCheckinViewModel = { turno -> remember(turno.turnoId) { criarCheckin(turno.turnoId, provedorDeLocalizacao = provedor) } },
                         relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                     )
                 }
@@ -358,13 +392,17 @@ class TelaMeusTurnosTest {
                 )
             }
 
+            val pedido: (aoResponder: (Boolean) -> Unit) -> Unit = { responder -> responder(false) }
+
             compose.setContent {
-                FrilaTheme {
-                    TelaMeusTurnos(
-                        viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> remember(turnoId) { criarCheckin(turnoId, provedorDeLocalizacao = provedor, engine = engine) } },
-                        relogio = { Instant.parse("2026-11-01T20:45:00Z") },
-                    )
+                CompositionLocalProvider(LocalPedidoDePermissaoDeLocalizacao provides pedido) {
+                    FrilaTheme {
+                        TelaMeusTurnos(
+                            viewModel = viewModel,
+                            criarCheckinViewModel = { turno -> remember(turno.turnoId) { criarCheckin(turno.turnoId, provedorDeLocalizacao = provedor, engine = engine) } },
+                            relogio = { Instant.parse("2026-11-01T20:45:00Z") },
+                        )
+                    }
                 }
             }
             compose.waitForIdle()
@@ -392,7 +430,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     )
                 }
             }
@@ -417,7 +455,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     )
                 }
             }
@@ -450,7 +488,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     )
                 }
             }
@@ -479,7 +517,7 @@ class TelaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     )
                 }
             }
@@ -499,7 +537,7 @@ class TelaMeusTurnosTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                 )
             }
         }
@@ -517,7 +555,7 @@ class TelaMeusTurnosTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                 )
             }
         }
@@ -579,7 +617,7 @@ class TelaMeusTurnosTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                 )
             }
@@ -600,7 +638,7 @@ class TelaMeusTurnosTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                 )
             }
@@ -621,7 +659,7 @@ class TelaMeusTurnosTest {
             FrilaTheme {
                 TelaMeusTurnos(
                     viewModel = viewModel,
-                    criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                     relogio = { Instant.parse("2026-11-01T20:45:00Z") },
                 )
             }

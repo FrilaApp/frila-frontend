@@ -204,6 +204,8 @@ internal fun RotaTurnoDoContratante(
     posicaoId: String,
     buscarPainel: (suspend (String, Instant, Instant) -> Result<PainelDto>)?,
     aoVoltar: () -> Unit,
+    /** C0-9: denunciar a profissional do turno (id do perfil público, id do turno). */
+    aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
 ) {
     var tentativa by remember { mutableIntStateOf(0) }
     var estado by remember(estabelecimentoId, vagaId, posicaoId) { mutableStateOf<EstadoDoTurnoDaRota>(EstadoDoTurnoDaRota.Carregando) }
@@ -223,7 +225,7 @@ internal fun RotaTurnoDoContratante(
         }
         is EstadoDoTurnoDaRota.Pronto -> {
             val viewModel: AcompanhamentoContratanteViewModel = koinViewModel(parameters = { parametersOf(atual.contexto) })
-            TelaTurnoDoContratante(viewModel = viewModel, aoVoltar = aoVoltar)
+            TelaTurnoDoContratante(viewModel = viewModel, aoVoltar = aoVoltar, aoDenunciarProfissional = aoDenunciarProfissional)
         }
     }
 }

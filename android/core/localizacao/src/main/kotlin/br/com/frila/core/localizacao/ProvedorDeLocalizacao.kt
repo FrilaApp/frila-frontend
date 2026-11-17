@@ -15,11 +15,12 @@ interface ProvedorDeLocalizacao {
      * lançar quando não há permissão ou quando a posição não chega dentro do prazo
      * ([TEMPO_LIMITE_DA_LEITURA_MS], o mesmo do iOS). Quem decide se a precisão serve é o chamador.
      *
-     * A implementação padrão existe para dublês de teste: usa [obterCoordenadaAtual] e trata a
-     * leitura como exata.
+     * A implementação padrão existe para dublês: usa [obterCoordenadaAtual] sem precisão conhecida
+     * (infinita), e uma leitura assim não vale como prova de presença. Quem quer provar presença
+     * sobrescreve e informa a precisão.
      */
     suspend fun lerParaCheckin(): LeituraDeLocalizacao? =
-        obterCoordenadaAtual()?.let { LeituraDeLocalizacao(coordenada = it, precisaoMetros = 0f, simulada = false) }
+        obterCoordenadaAtual()?.let { LeituraDeLocalizacao(coordenada = it, precisaoMetros = Float.POSITIVE_INFINITY, simulada = false) }
 
     /**
      * Lê a coordenada atual. Retorna `null` sem lançar exceção quando não há permissão, o GPS

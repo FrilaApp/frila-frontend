@@ -18,6 +18,14 @@ public struct TelaPreferenciasDeChamada: View {
         Form {
             if let erro = viewModel.erro {
                 AvisoFrila(verbatim: erro, tom: .erro)
+                // Sem a leitura, o Salvar fica desligado: só religa quando ler de novo der certo.
+                if !viewModel.leituraFeita {
+                    BotaoSecundario(verbatim: TextosChamadaDireta.tentarDeNovo) {
+                        Task { await viewModel.carregar() }
+                    }
+                    .disabled(viewModel.carregando)
+                    .accessibilityIdentifier("preferencias-tentar-de-novo")
+                }
             }
             if viewModel.sucesso {
                 AvisoFrila(verbatim: TextosChamadaDireta.preferenciasSalvas, tom: .informativo)
@@ -77,6 +85,7 @@ public struct TelaPreferenciasDeChamada: View {
                 BotaoPrimario(verbatim: TextosChamadaDireta.salvarPreferencias, carregando: viewModel.salvando) {
                     Task { await viewModel.salvar() }
                 }
+                .disabled(!viewModel.podeSalvar)
                 .accessibilityIdentifier("salvar-preferencias-chamada")
             }
         }

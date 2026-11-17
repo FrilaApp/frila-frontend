@@ -107,5 +107,7 @@ public enum TextosChamadaDireta {
     public static let quemSoCnpj = String(localized: "Apenas estabelecimentos com CNPJ", bundle: bundleApresentacao)
     public static let avisoChamadasExistentes = String(localized: "Alterações nas preferências não afetam chamadas que você já recebeu; elas continuam disponíveis até o prazo limite.", bundle: bundleApresentacao)
     public static let salvarPreferencias = String(localized: "Salvar preferências", bundle: bundleApresentacao)
+    /// A leitura das preferências falhou: lê de novo (o Salvar só liga depois dela).
+    public static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
     public static let preferenciasSalvas = String(localized: "Preferências atualizadas com sucesso.", bundle: bundleApresentacao)
 }

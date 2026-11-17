@@ -7,6 +7,9 @@ object TextosTurnoDoContratante {
     const val PROFISSIONAL = "Profissional"
     const val SEM_PROFISSIONAL = "Posição sem profissional confirmado."
     const val FUNCOES = "Funções: %s"
+    const val DENUNCIAR = "Denunciar"
+    /** Como o iOS (`AcoesDeSeguranca.swift:46`): "Denunciar <nome>". */
+    const val DENUNCIAR_ROTULO = "Denunciar %s"
     const val CHEGADA = "Chegada"
     const val AGUARDANDO = "Aguardando o profissional chegar."
     const val A_CAMINHO = "%s está a caminho desde as %s."
