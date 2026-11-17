@@ -123,7 +123,27 @@ fun TelaDetalheVaga(
             LinhaDetalhe(rotulo = "Início", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.inicioEm)))
             LinhaDetalhe(rotulo = "Fim", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.fimEm)))
             LinhaDetalhe(rotulo = "Valor", valor = Dinheiro(vaga.valorCentavos).formatado())
-            LinhaDetalhe(rotulo = "Distância", valor = "${"%.1f".format(vaga.distanciaKm)} km")
+            if (estado.mostraDistancia) {
+                LinhaDetalhe(rotulo = "Distância", valor = "${"%.1f".format(vaga.distanciaKm)} km")
+            }
+        }
+
+        // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+        estado.detalhe?.let { detalhe ->
+            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = TextosAberturaDeVaga.DETALHES,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.semantics { heading() },
+                )
+                LinhaDetalhe(
+                    rotulo = TextosAberturaDeVaga.POSICOES_ABERTAS,
+                    valor = TextosAberturaDeVaga.POSICOES_DE.format(detalhe.posicoesAbertas, detalhe.posicoes),
+                )
+                LinhaDetalhe(rotulo = TextosAberturaDeVaga.RESPONSAVEL_NO_LOCAL, valor = detalhe.responsavelLocal)
+                detalhe.traje?.takeIf { it.isNotBlank() }?.let { LinhaDetalhe(rotulo = TextosAberturaDeVaga.TRAJE, valor = it) }
+                detalhe.observacoes?.takeIf { it.isNotBlank() }?.let { LinhaDetalhe(rotulo = TextosAberturaDeVaga.OBSERVACOES, valor = it) }
+            }
         }
 
         CartaoVaga(modifier = Modifier.fillMaxWidth()) {
