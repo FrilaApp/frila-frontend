@@ -6,6 +6,7 @@ import { contaDados } from "./conta-dados";
 import { contratante } from "./contratante";
 import { contratanteEscala } from "./contratante-escala";
 import { contratanteBusca } from "./contratante-busca";
+import { contratanteCadastro } from "./contratante-cadastro";
 import { contratanteEquipe } from "./contratante-equipe";
 import { contratanteMembros } from "./contratante-membros";
 import { contratanteTurno } from "./contratante-turno";
@@ -35,6 +36,8 @@ export const textos = {
   contratanteEscala,
   // Busca de profissionais do lado da casa (arquivo próprio).
   contratanteBusca,
+  // Cadastro da casa na web (arquivo próprio).
+  contratanteCadastro,
   // Pessoas da casa e o convite (arquivo próprio).
   contratanteMembros,
   // Minha conta: exportar os dados e excluir a conta (arquivo próprio).

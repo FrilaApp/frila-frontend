@@ -25,7 +25,7 @@ export const contratante = {
       encerrada: "Encerrada",
       cancelada: "Cancelada",
     },
-    semCasa: "Sua conta ainda não tem uma casa cadastrada. Cadastre a casa no app do Frila para publicar vagas.",
+    semCasa: "Sua conta ainda não tem uma casa cadastrada. Cadastre a casa para publicar vagas.",
     perfilProfissional: "Esta área é de quem contrata. A sua conta é de profissional.",
     contaSuspensa: "A sua conta está suspensa. Você recebeu o motivo por e-mail.",
     semPermissao: "Você não faz mais parte desta casa.",
