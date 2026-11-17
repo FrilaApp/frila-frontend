@@ -458,6 +458,9 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func responderChamada(id: UUID, resposta: RespostaChamada, motivoRecusa: MotivoRecusaChamada?) async throws -> ResultadoChamada
     func cancelarChamada(id: UUID) async throws -> Chamada
     func minhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> [ChamadaResumo]
+    /// 0.2.95: a mesma `minhas_chamadas`, com o `proximoCursor` da página, para seguir o cursor (a busca procura a vaga
+    /// do `409 trabalho_ja_aberto`). Sem implementação própria, é a página de `minhasChamadas`, sem cursor.
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe
     func publicarAPartirDaChamada(vagaID: UUID, chave: UUID, modo: ModoPreenchimento?) async throws -> VagaPublicada
     func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas
@@ -467,6 +470,10 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// Mais de 60 buscas por hora: `limiteExcedido` (429). Cursor de outra busca ou de outro dia:
     /// `cursorInvalido`, e o app refaz a busca da primeira página. Lista vazia: oferecer "Publicar para todos".
     func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais
+    /// 0.2.90 (`POST /rpc/aceitar_termos`): quem já tem conta aceita uma versão dos Termos e da Política que a tela
+    /// exibiu. O servidor carimba o instante; repetir a mesma versão devolve o aceite que existe. Versão vazia:
+    /// `campoObrigatorio`; anterior à já aceita: `campoInvalido`. Primeiro uso: depois de `termosPendentes` na busca.
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
@@ -696,6 +703,10 @@ public extension ApiCliente {
         []
     }
 
+    func paginaDeMinhasChamadas(estado: EstadoChamada?, cursor: String?, limite: Int?) async throws -> PaginaChamadas {
+        PaginaChamadas(itens: try await minhasChamadas(estado: estado, cursor: cursor, limite: limite))
+    }
+
     func detalheChamada(id: UUID) async throws -> ChamadaDetalhe {
         throw ErroDaApi(codigo: .naoEncontrado)
     }
@@ -709,6 +720,10 @@ public extension ApiCliente {
     }
 
     func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
         throw ErroDaApi(codigo: .respostaInvalida)
     }
 }

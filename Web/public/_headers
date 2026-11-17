@@ -1,0 +1,5 @@
+# Arquivos estáticos são entregues pela Cloudflare sem passar pelo Worker.
+# O nome de cada arquivo de /app/assets traz o hash do conteúdo: pode ficar em cache para sempre.
+/app/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff

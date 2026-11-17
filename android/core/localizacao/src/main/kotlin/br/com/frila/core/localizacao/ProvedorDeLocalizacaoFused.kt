@@ -10,6 +10,7 @@ import br.com.frila.core.dominio.modelo.Coordenada
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -70,7 +71,11 @@ class ProvedorDeLocalizacaoFused(
 
         return try {
             suspendCancellableCoroutine { continuacao ->
-                val tarefa = clienteFused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                // Se a espera desiste (prazo de 10 s), o pedido ao GPS também para; senão seguiria ligado e um
+                // 2º toque abriria outro (revisão do #812).
+                val fonte = CancellationTokenSource()
+                continuacao.invokeOnCancellation { fonte.cancel() }
+                val tarefa = clienteFused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, fonte.token)
                 tarefa.addOnSuccessListener { localizacao: Location? ->
                     if (continuacao.isActive) continuacao.resumeWith(Result.success(localizacao))
                 }

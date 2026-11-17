@@ -1,0 +1,39 @@
+/* Ativos de marca da web do Frila: cor e fonte. Fonte: BRANDBOOK.md (cap. 4 e 5) e telas/tokens.css do Fabrício.
+   Mesmos nomes do tokens.css do app. Se divergir do Brandbook ou do DESIGN.md, eles vencem.
+   Só cor e fonte: tamanho, espaço e layout são da tela (Fabrício). */
+
+@font-face {
+  font-family: "Prodigy Sans";
+  src: url("fontes/ProdigySans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* O par da marca */
+  --cor-acao: #F46700;        /* Laranja Frila, a única cor de marca; no produto, só em ação */
+  --cor-sobre-acao: #FFFFFF;  /* texto e logo sobre o laranja (preferido); 3,09:1, só texto grande */
+  --cor-tinta: #111111;       /* texto principal; sobre o laranja dá 6,10:1 */
+
+  /* Neutros do app (telas/tokens.css) */
+  --cor-fundo: #F9F6F4;
+  --cor-superficie: #FFFFFF;
+  --cor-tinta-suave: #5A5A58;
+  --cor-borda: #E5E3DD;
+
+  /* Fontes: Prodigy Sans 700 em título e número de destaque; texto corrido na fonte do sistema */
+  --fonte-titulo: "Prodigy Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --fonte-corpo: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@supports (color: oklch(0 0 0)) {
+  :root {
+    --cor-acao: oklch(0.68 0.194 45.538);
+    --cor-tinta: oklch(0.178 0 0);
+    --cor-fundo: oklch(0.975 0.004 56.375);
+    --cor-superficie: oklch(1 0 0);
+    --cor-tinta-suave: oklch(0.467 0.003 106.522);
+    --cor-borda: oklch(0.916 0.008 91.488);
+  }
+}

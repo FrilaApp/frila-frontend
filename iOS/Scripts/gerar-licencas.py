@@ -34,12 +34,18 @@ if not RESOLVIDO.exists():
 DESTINO = ROOT / "Resources" / "Licencas.json"
 DERIVED_DATA_PADRAO = pathlib.Path.home() / "Library" / "Developer" / "Xcode" / "DerivedData"
 
-# Fontes fora do SPM: a revisão identifica exatamente o binário distribuído.
+# Fontes fora do SPM: a revisão identifica exatamente o binário distribuído. `aviso` (opcional) é um arquivo
+# em Resources/Fonts que vai junto da licença, como o NOTICE de um pacote. A Bricolage Grotesque tem 4 pesos
+# do mesmo pacote e da mesma licença: a revisão é a do -Regular.
 FONTES_EMBUTIDAS = (
+    {"id": "bricolage-grotesque", "nome": "Bricolage Grotesque", "versao": "1.001", "arquivo": "BricolageGrotesque-Regular.ttf",
+     "licenca": "BricolageGrotesque-OFL.txt", "url": "https://github.com/ateliertriay/bricolage"},
     {"id": "jost", "nome": "Jost", "versao": "3.710", "arquivo": "Jost.ttf",
      "licenca": "Jost-OFL.txt", "url": "https://github.com/google/fonts/tree/main/ofl/jost"},
+    # Deriva da Work Sans, do mesmo autor: a OFL pede que o aviso original vá junto (F-041).
     {"id": "prodigy-sans", "nome": "Prodigy Sans", "versao": "1.001", "arquivo": "ProdigySans-Bold.ttf",
-     "licenca": "ProdigySans-Bold-OFL.txt", "url": "https://github.com/weiweihuanghuang/Prodigy-Sans"},
+     "licenca": "ProdigySans-Bold-OFL.txt", "url": "https://github.com/weiweihuanghuang/Prodigy-Sans",
+     "aviso": "ProdigySans-Bold-WorkSans-OFL.txt"},
 )
 
 ARQUIVO_DE_LICENCA = re.compile(r"^(licen[cs]e|copying)(\.(txt|md))?$", re.IGNORECASE)
@@ -135,19 +141,23 @@ def gerar(checkouts: pathlib.Path) -> tuple[list[dict], list[str]]:
     for fonte in FONTES_EMBUTIDAS:
         arquivo = ROOT / "Resources" / "Fonts" / fonte["arquivo"]
         licenca = ROOT / "Resources" / "Fonts" / fonte["licenca"]
-        if not arquivo.is_file() or not licenca.is_file():
-            falhas.append(f"{fonte['id']}: fonte embutida ou licença não encontrada em Resources/Fonts")
+        aviso = ROOT / "Resources" / "Fonts" / fonte["aviso"] if "aviso" in fonte else None
+        if not arquivo.is_file() or not licenca.is_file() or (aviso is not None and not aviso.is_file()):
+            falhas.append(f"{fonte['id']}: fonte embutida, licença ou aviso não encontrado em Resources/Fonts")
             continue
         texto = ler_texto(licenca)
         tipo = tipo_da_licenca(texto)
         if tipo is None:
             falhas.append(f"{fonte['id']}: tipo de licença não reconhecido em {licenca.name}")
             continue
-        licencas.append({
+        entrada = {
             "id": fonte["id"], "nome": fonte["nome"], "versao": fonte["versao"],
             "revisao": "sha256:" + hashlib.sha256(arquivo.read_bytes()).hexdigest(),
             "url": fonte["url"], "tipo": tipo, "texto": texto,
-        })
+        }
+        if aviso is not None:
+            entrada["aviso"] = ler_texto(aviso)
+        licencas.append(entrada)
 
     licencas.sort(key=lambda entrada: entrada["nome"].casefold())
     return licencas, falhas

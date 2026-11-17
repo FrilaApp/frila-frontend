@@ -162,7 +162,8 @@ class TelaBuscaDeProfissionaisTest {
         montar(EstadoBusca(funcoes = listOf(garcom), funcaoId = "f1", estado = EstadoDaBusca.TermosPendentes()))
 
         rule.onNodeWithTag("busca-termos-pendentes").assertIsDisplayed()
-        rule.onNodeWithText(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO).assertIsDisplayed()
+        // A frase do topo cita os dois textos que o aceite cobre (decisão jurídica; a mesma do iOS).
+        rule.onNodeWithText("Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade.").assertIsDisplayed()
         rule.onNodeWithTag("busca-buscar").assertIsNotEnabled()
         rule.onAllNodesWithTag("busca-termos-erro").assertCountEquals(0)
 

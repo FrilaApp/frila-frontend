@@ -125,7 +125,7 @@ class AuditoriaSemanticaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                         relogio = relogioFixo,
                     )
                 }
@@ -153,7 +153,7 @@ class AuditoriaSemanticaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                         relogio = relogioFixo,
                     )
                 }
@@ -184,7 +184,7 @@ class AuditoriaSemanticaMeusTurnosTest {
                 FrilaTheme {
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId -> criarCheckin(turnoId) },
+                        criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
                         relogio = relogioFixo,
                     )
                 }

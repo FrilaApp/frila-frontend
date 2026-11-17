@@ -199,7 +199,8 @@ struct ChamadaDiretaF4Tests {
     @Test("I5d - Preferências: salvar antecedência, pausa e filtros")
     func salvarPreferenciasDeChamada() async throws {
         let api = ApiClienteEmMemoria(cenario: .chamadaDireta)
-        let vm = PreferenciasChamadaViewModel(api: api)
+        let vm = PreferenciasChamadaViewModel(api: ApiQueLeOPerfil(base: api))
+        await vm.carregar() // o Salvar só liga depois da leitura (revisão do #792)
 
         vm.aceitaDeQuemJaTrabalhou = true
         vm.antecedenciaMinimaH = 24

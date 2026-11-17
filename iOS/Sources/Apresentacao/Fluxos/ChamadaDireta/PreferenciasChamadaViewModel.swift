@@ -15,8 +15,13 @@ public final class PreferenciasChamadaViewModel {
     }
     /// O que ainda impede de aparecer na busca, como o servidor devolveu na última resposta.
     public private(set) var pendenciasParaBusca: [PendenciaParaBusca] = []
+    /// A chave `busca_profissionais` do servidor: desligada, a tela não mostra "Aceito chamadas diretas".
+    public private(set) var buscaHabilitada = false
 
     public private(set) var carregando = false
+    /// A leitura das preferências deu certo ao menos uma vez. Sem ela a tela mostra os padrões, e salvar gravaria
+    /// esses padrões por cima do que o servidor tem (tiraria a pausa, voltaria a 6 h e a "todos").
+    public private(set) var leituraFeita = false
     public private(set) var salvando = false
     public private(set) var erro: String?
     public private(set) var sucesso: Bool = false
@@ -36,6 +41,9 @@ public final class PreferenciasChamadaViewModel {
         self.pausadoAte = agora().addingTimeInterval(24 * 3600)
     }
 
+    /// O Salvar só liga depois de uma leitura que deu certo (o erro da leitura oferece "Tentar de novo").
+    public var podeSalvar: Bool { leituraFeita && !carregando && !salvando }
+
     /// Ligou "Aceito chamadas diretas" e nada falta: aparece na busca.
     public var apareceNaBusca: Bool { aceitaChamadas && pendenciasParaBusca.isEmpty }
 
@@ -54,17 +62,44 @@ public final class PreferenciasChamadaViewModel {
         erro = nil
         defer { carregando = false }
 
+        let api = api
+        buscaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
+            try await api.configuracaoDoApp()
+        })?.recursos.buscaProfissionais == true
+
         do {
-            // Preferências são lidas ou padrão
-            // Podemos chamar api.meuPerfilDetalhado() ou manter valores persistidos
+            // O servidor guarda as preferências e as devolve em `meu_perfil_detalhado` (contrato 0.2.56).
+            // Prazo explícito: sem ele a tela ficaria em "carregando" com a rede presa.
+            let perfil = try await PrazoDaAbertura.esperar(.seconds(15)) {
+                try await api.meuPerfilDetalhado()
+            }
+            if let salvas = perfil.preferenciaChamadas { aplicar(salvas) }
+            leituraFeita = true
             sucesso = false
         } catch {
             erro = TextosChamadaDireta.erro
         }
     }
 
+    /// Mostra o que o servidor tem. `aceitaChamadas` não conta como mexido pela pessoa: só vai de
+    /// volta ao servidor depois que ela mexer nele.
+    private func aplicar(_ preferencias: PreferenciaChamadas) {
+        aceitaDeQuemJaTrabalhou = preferencias.aceitaDeQuemJaTrabalhou
+        if let pausa = preferencias.pausadoAte {
+            pausarChamadas = true
+            pausadoAte = pausa
+        } else {
+            pausarChamadas = false
+        }
+        antecedenciaMinimaH = preferencias.antecedenciaMinimaH
+        aceitaDe = preferencias.aceitaDe
+        aceitaChamadas = preferencias.aceitaChamadas
+        aceitaChamadasMexido = false
+        pendenciasParaBusca = preferencias.pendenciasParaBusca
+    }
+
     public func salvar() async {
-        guard !salvando else { return }
+        guard podeSalvar else { return }
         salvando = true
         erro = nil
         sucesso = false
@@ -81,18 +116,7 @@ public final class PreferenciasChamadaViewModel {
                 versaoTextoBusca: aceitaChamadasMexido && aceitaChamadas ? Self.versaoDoTextoDaBusca : nil
             )
             let atualizado = try await api.definirPreferenciaChamadas(alteracao)
-            aceitaDeQuemJaTrabalhou = atualizado.aceitaDeQuemJaTrabalhou
-            if let pausa = atualizado.pausadoAte {
-                pausarChamadas = true
-                pausadoAte = pausa
-            } else {
-                pausarChamadas = false
-            }
-            antecedenciaMinimaH = atualizado.antecedenciaMinimaH
-            aceitaDe = atualizado.aceitaDe
-            aceitaChamadas = atualizado.aceitaChamadas
-            aceitaChamadasMexido = false
-            pendenciasParaBusca = atualizado.pendenciasParaBusca
+            aplicar(atualizado)
             sucesso = true
         } catch let apiErro as ErroDaApi {
             if apiErro.recursoDesligado {

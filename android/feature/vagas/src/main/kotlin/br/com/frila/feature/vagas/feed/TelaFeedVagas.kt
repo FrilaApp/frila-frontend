@@ -62,6 +62,8 @@ fun TelaFeedVagas(
     aoAbrirDetalhe: (String) -> Unit,
     modifier: Modifier = Modifier,
     aoAbrirPerfil: () -> Unit = {},
+    /** C0-9: sem este caminho, "Meus turnos" não tinha entrada no app. Nulo esconde o botão. */
+    aoAbrirMeusTurnos: (() -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
@@ -71,6 +73,15 @@ fun TelaFeedVagas(
             CenterAlignedTopAppBar(
                 title = { Text(if (estado.emCache) "Vagas salvas" else "Vagas abertas", modifier = Modifier.semantics { heading() }) },
                 actions = {
+                    // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+                    aoAbrirMeusTurnos?.let { abrir ->
+                        TextButton(
+                            onClick = abrir,
+                            modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
+                        ) {
+                            Text("Meus turnos")
+                        }
+                    }
                     TextButton(
                         onClick = aoAbrirPerfil,
                         modifier = Modifier

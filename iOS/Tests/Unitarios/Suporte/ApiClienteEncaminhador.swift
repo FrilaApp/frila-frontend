@@ -116,6 +116,7 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
 
     // Aplicativo e dispositivo
     func configuracaoDoApp() async throws -> ConfiguracaoApp { try await base.configuracaoDoApp() }
+    func definirPreferenciaChamadas(_ preferencias: AlteracaoPreferenciaChamadas) async throws -> PreferenciaChamadas { try await base.definirPreferenciaChamadas(preferencias) }
     func registrarDispositivo(tokenFCM: String) async throws -> Dispositivo { try await base.registrarDispositivo(tokenFCM: tokenFCM) }
     /// Passa pelo `registrarDispositivo(tokenFCM:)` deste dublê, como fazia a extensão da porta: quem
     /// sobrescreve só aquele continua vendo o registro. Quem quer espiar a versão sobrescreve este.
