@@ -13,8 +13,6 @@ robolectric = "4.15.1"
 composeBom = "2024.09.00"
 lifecycle = "2.8.4"
 firebaseBom = "35.1.0"
-# L1-3a: aprovado pelo O2 em 17/11 (versão EMBUTIDA, modelo no aparelho; só o rosto). Versão fixa.
-mlkitFaceDetection = "16.1.7"
 androidxCore = "1.13.1"
 navigationCompose = "2.8.3"
 activityCompose = "1.9.3"
@@ -75,7 +73,6 @@ lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-com
 
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
-mlkit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "mlkitFaceDetection" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }

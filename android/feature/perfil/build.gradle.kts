@@ -68,8 +68,6 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)
-    // L1-3a: conferência do rosto no aparelho, ML Kit embutido (modelo dentro do app), versão fixa no catálogo.
-    implementation(libs.mlkit.face.detection)
 
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
