@@ -25,6 +25,13 @@ const configuracaoDeExemplo = {
 };
 
 describe("leitura de configuracao_do_app", () => {
+  it("lê a linha ios quando pedida (só para o link da loja, url_da_loja)", async () => {
+    const ios = { ...configuracaoDeExemplo, plataforma: "ios", url_da_loja: "https://apps.apple.com/br/app/frila/id1" };
+    const { api, pedidos } = apiQueResponde(() => Response.json(ios));
+    expect(await lerConfiguracaoDoApp(api, { plataforma: "ios" })).toEqual({ estado: "ok", configuracao: ios });
+    expect(new URL(pedidos[0]?.url ?? "").searchParams.get("plataforma")).toBe("ios");
+  });
+
   it("pede a plataforma web com a versão da web, a chave publicável e nenhum token de usuário", async () => {
     const { api, pedidos } = apiQueResponde(() => Response.json(configuracaoDeExemplo));
 

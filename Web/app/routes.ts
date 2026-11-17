@@ -8,6 +8,11 @@ export default [
   route("aceitar-termos", "rotas/aceitar-termos.ts"),
   route("saude", "rotas/saude.ts"),
 
+  // Páginas públicas (textos do marketing)
+  route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),
+  route("como-funciona/profissional", "rotas/publico/como-funciona-profissional.tsx"),
+  route("perguntas", "rotas/publico/perguntas.tsx"),
+
   // Lado do profissional
   route("vagas", "rotas/profissional/vagas.tsx"),
   route("vagas/:vagaId", "rotas/profissional/vaga.tsx"),
