@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import Cadastro from "../app/rotas/profissional/cadastro";
 import Perfil from "../app/rotas/profissional/perfil";
+import Preferencias from "../app/rotas/profissional/preferencias";
 import { textos } from "../app/textos/pt-BR";
 
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => null }));
@@ -101,5 +102,13 @@ describe("perfil sem cadastro: a tela leva ao cadastro", () => {
 
   it("as outras recusas do perfil não oferecem o cadastro", () => {
     expect(html(Perfil, { loaderData: { estado: "perfil_incompativel", perfil: null, linkDaAppStore: null } })).not.toContain("/perfil/cadastro");
+  });
+
+  it("as preferências de quem não tem perfil mostram o mesmo texto e o mesmo botão", () => {
+    const tela = html(Preferencias, { loaderData: { estado: "sem_perfil", preferencias: null } });
+    expect(tela).toContain(textos.profissional.perfil.semPerfil);
+    expect(tela).toContain(`href="/perfil/cadastro"`);
+    expect(tela).toContain(t.abrir);
+    expect(html(Preferencias, { loaderData: { estado: "conta_suspensa", preferencias: null } })).not.toContain("/perfil/cadastro");
   });
 });
