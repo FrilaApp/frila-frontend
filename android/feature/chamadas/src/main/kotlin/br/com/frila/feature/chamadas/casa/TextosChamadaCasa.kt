@@ -179,6 +179,7 @@ object TextosChamadaCasa {
     // Aceite dos Termos 1.1 antes da busca (0.2.90). PROVISÓRIOS: texto jurídico e do Fabrício substituem estes.
     const val BUSCA_TERMOS_EXPLICACAO = "Para buscar profissionais, aceite os Termos de Uso atualizados."
     const val BUSCA_TERMOS_LER = "Ler os Termos de Uso"
+    const val BUSCA_TERMOS_POLITICA = "Política de privacidade"
     const val BUSCA_TERMOS_ACEITAR = "Aceitar"
     const val BUSCA_TERMOS_ACEITANDO = "Registrando o aceite…"
     const val BUSCA_TERMOS_ERRO = "Não foi possível registrar o aceite agora. Verifique sua conexão e tente novamente."

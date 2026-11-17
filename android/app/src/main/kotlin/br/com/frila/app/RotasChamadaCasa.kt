@@ -173,6 +173,15 @@ private fun NavGraphBuilder.rotasDaBuscaDeProfissionais(
                         )
                     } catch (_: Exception) { }
                 },
+                aoAbrirPolitica = {
+                    try {
+                        contexto.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(EnderecosOficiais.padrao.politicaDePrivacidade)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            },
+                        )
+                    } catch (_: Exception) { }
+                },
             )
         }
     }

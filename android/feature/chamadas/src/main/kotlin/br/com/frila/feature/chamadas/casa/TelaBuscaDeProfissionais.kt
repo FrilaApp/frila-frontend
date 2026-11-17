@@ -65,6 +65,8 @@ fun TelaBuscaDeProfissionais(
     relogio: () -> Instant = Instant::now,
     /** Abre os Termos de Uso (o link que o app já usa) para quem vai aceitá-los antes de buscar (0.2.90). */
     aoAbrirTermos: () -> Unit = {},
+    /** Abre a Política de Privacidade: a versão aceita (2026-11-16) cobre os Termos 1.2 e a Política 1.3. */
+    aoAbrirPolitica: () -> Unit = {},
     carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
 ) {
     val estado by viewModel.estado.collectAsState()
@@ -87,6 +89,7 @@ fun TelaBuscaDeProfissionais(
         modifier = modifier,
         relogio = relogio,
         aoAbrirTermos = aoAbrirTermos,
+        aoAbrirPolitica = aoAbrirPolitica,
         aoAceitarTermos = { viewModel.aceitarTermosEBuscar() },
         carregarFoto = carregarFoto,
         aoConfirmarTermosDaVaga = { viewModel.confirmarTermosDaVagaAberta() },
@@ -119,6 +122,7 @@ fun ConteudoBuscaDeProfissionais(
     modifier: Modifier = Modifier,
     relogio: () -> Instant = Instant::now,
     aoAbrirTermos: () -> Unit = {},
+    aoAbrirPolitica: () -> Unit = {},
     aoAceitarTermos: () -> Unit = {},
     carregarFoto: CarregadorDeFoto = ::carregarFotoPorUrl,
     aoConfirmarTermosDaVaga: () -> Unit = {},
@@ -171,6 +175,7 @@ fun ConteudoBuscaDeProfissionais(
                 aoPublicarParaTodos = aoPublicarParaTodos,
                 aoAbrirFolha = { folhaAberta = true },
                 aoAbrirTermos = aoAbrirTermos,
+                aoAbrirPolitica = aoAbrirPolitica,
                 aoAceitarTermos = aoAceitarTermos,
                 carregarFoto = carregarFoto,
                 modifier = Modifier.padding(preenchimento),
@@ -195,6 +200,7 @@ private fun ListaDaBusca(
     aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Unit,
     aoAbrirFolha: () -> Unit,
     aoAbrirTermos: () -> Unit,
+    aoAbrirPolitica: () -> Unit,
     aoAceitarTermos: () -> Unit,
     carregarFoto: CarregadorDeFoto,
     modifier: Modifier = Modifier,
@@ -382,6 +388,9 @@ private fun ListaDaBusca(
                     Text(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO)
                     OutlinedButton(onClick = aoAbrirTermos, modifier = Modifier.testTag("busca-termos-ler")) {
                         Text(TextosChamadaCasa.BUSCA_TERMOS_LER)
+                    }
+                    OutlinedButton(onClick = aoAbrirPolitica, modifier = Modifier.testTag("busca-termos-politica")) {
+                        Text(TextosChamadaCasa.BUSCA_TERMOS_POLITICA)
                     }
                     situacao.erro?.let {
                         Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-termos-erro"))
