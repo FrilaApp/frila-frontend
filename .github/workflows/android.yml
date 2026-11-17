@@ -61,6 +61,47 @@ jobs:
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
 
+      - name: Restaurar cache do Robolectric (android-all)
+        id: cache-robolectric
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-4.15.1-${{ hashFiles('android/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-robolectric-4.15.1-
+
+      - name: Baixar jars do Robolectric se faltarem no cache
+        if: steps.cache-robolectric.outputs.cache-hit != 'true'
+        run: |
+          VERSOES=(
+            "9-robolectric-4913185-2-i7"
+            "10-robolectric-5803371-i7"
+            "11-robolectric-6757853-i7"
+            "12-robolectric-7732740-i7"
+            "12.1-robolectric-8229987-i7"
+            "13-robolectric-9030017-i7"
+            "14-robolectric-10818077-i7"
+            "15-robolectric-12650502-i7"
+          )
+          BASE_URL="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented"
+          M2_DIR="$HOME/.m2/repository/org/robolectric/android-all-instrumented"
+
+          for v in "${VERSOES[@]}"; do
+            DEST_DIR="$M2_DIR/$v"
+            mkdir -p "$DEST_DIR"
+            if [ ! -f "$DEST_DIR/android-all-instrumented-$v.jar" ]; then
+              echo "Baixando android-all-instrumented-$v.jar..."
+              curl -sSfL --retry 5 --retry-all-errors \
+                "$BASE_URL/$v/android-all-instrumented-$v.jar" \
+                -o "$DEST_DIR/android-all-instrumented-$v.jar"
+            fi
+            if [ ! -f "$DEST_DIR/android-all-instrumented-$v.pom" ]; then
+              curl -sSfL --retry 5 --retry-all-errors \
+                "$BASE_URL/$v/android-all-instrumented-$v.pom" \
+                -o "$DEST_DIR/android-all-instrumented-$v.pom"
+            fi
+          done
+
       # Supabase (pedido 16-26): o par DEV vai para o BuildConfig do debug e o par PROD para o do release
       # (app/build.gradle.kts). Cada passo recebe só o par que usa; o Gradle nunca imprime os valores.
       - name: Executar testes unitários
@@ -68,6 +109,13 @@ jobs:
           FRILA_SUPABASE_DEV_URL: ${{ secrets.FRILA_SUPABASE_DEV_URL }}
           FRILA_SUPABASE_DEV_PUBLISHABLE_KEY: ${{ secrets.FRILA_SUPABASE_DEV_PUBLISHABLE_KEY }}
         run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Salvar cache do Robolectric (android-all)
+        if: always() && steps.cache-robolectric.outputs.cache-hit != 'true'
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-4.15.1-${{ hashFiles('android/gradle/libs.versions.toml') }}
 
       # Só PR de fork ou do Dependabot chega sem os segredos: ali o AAB de release é pulado com uma linha no log, e o APK
       # debug e os testes seguem. Em qualquer outro evento (push na main, tag, PR do próprio repositório, disparo manual)
