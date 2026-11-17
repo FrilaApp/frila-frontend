@@ -126,6 +126,19 @@ struct ContratoDaSprint2Tests {
         #expect((corpo.allKeys as? [String])?.sorted() == ["alvo_id", "alvo_tipo", "chave", "motivo", "relato"])
     }
 
+    @Test("Denúncia feita na tela da chamada manda chamada_id; sem a chamada, o campo não vai (0.2.71, A-001)")
+    func denunciaComChamada() throws {
+        let chamadaID = UUID(uuidString: "C1000000-0000-0000-0000-000000000001")!
+        let daChamada = Denuncia(alvo: Esperado.alvo, motivo: .assedio, relato: "Mensagem ofensiva na chamada.", chave: IDs.chave,
+                                 chamadaID: chamadaID)
+        let corpo = try ContratoTests.objeto(ContratoAPI.Denunciar(daChamada))
+        #expect((corpo["chamada_id"] as? String)?.lowercased() == chamadaID.uuidString.lowercased())
+        #expect(corpo["turno_id"] == nil && corpo["midia_id"] == nil)
+
+        let semChamada = Denuncia(alvo: Esperado.alvo, motivo: .assedio, relato: "Mensagem ofensiva na chamada.", chave: IDs.chave)
+        #expect(try ContratoTests.objeto(ContratoAPI.Denunciar(semChamada))["chamada_id"] == nil)
+    }
+
     @Test("Os motivos de denúncia são os do contrato", arguments: [
         (MotivoDenuncia.assedio, "assedio"), (.discriminacao, "discriminacao"), (.riscoSeguranca, "risco_seguranca"), (.outro, "outro"),
     ])
