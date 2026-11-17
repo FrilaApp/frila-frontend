@@ -203,6 +203,8 @@ def main() -> None:
         "RepublicarVagaDto": "/rpc/republicar_vaga",
         "RepublicarPosicoesRestantesDto": "/rpc/republicar_posicoes_restantes",
         "RetirarCandidaturaDto": "/rpc/retirar_candidatura",
+        "ContestarSuspensaoDto": "/rpc/contestar_suspensao",
+        "PedirRevisaoDespachoDto": "/rpc/pedir_revisao_despacho",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
