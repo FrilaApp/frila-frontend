@@ -34,4 +34,7 @@ export default [
   // Lado do contratante
   // Contratante (2C, Citrino): painel da casa e publicar vaga. Só se acrescenta neste bloco.
   ...prefix("painel", [index("rotas/contratante/painel.tsx"), route("publicar", "rotas/contratante/publicar-vaga.tsx")]),
+
+  // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
+  route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
 ] satisfies RouteConfig;
