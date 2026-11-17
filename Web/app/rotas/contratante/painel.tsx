@@ -49,7 +49,7 @@ const MENSAGEM = {
   indisponivel: t.indisponivel,
 } as const;
 
-const classeDoBotao = "inline-flex min-h-12 items-center justify-center rounded-controle bg-acao px-4 text-lg font-bold text-tinta";
+const classeDoBotao = "inline-flex min-h-12 items-center justify-center rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao";
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
