@@ -71,9 +71,8 @@ internal fun RotaDeAbertura(
     }
 }
 
-/** Serviço da conta e avaliador do destino; entra no grafo pelo fim de `todosOsModulos`. */
+/** Avaliador do destino da conta; entra no grafo pelo fim de `todosOsModulos`. O `ServicoConta` vem de `moduloRede`. */
 internal val moduloDestinoDaConta: Module = module {
-    single { br.com.frila.core.rede.ServicoConta { get<br.com.frila.core.rede.GestorClienteKtor>().clienteAtual } }
     single<DestinoGuardado> {
         DestinoGuardadoEmArquivo(
             raiz = getOrNull<android.content.Context>()?.noBackupFilesDir,

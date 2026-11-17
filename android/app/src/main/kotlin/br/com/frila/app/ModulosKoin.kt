@@ -27,6 +27,7 @@ import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
@@ -171,6 +172,7 @@ val moduloRede = module {
     factory { get<GestorClienteKtor>().clienteAtual }
     /** Serviços singleton, mas leem o cliente vigente do gestor a cada chamada. */
     single { ServicoAutenticacao { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoConta { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoVagas { get<GestorClienteKtor>().clienteAtual } }
     factory {
         val servico = get<ServicoVagas>()
@@ -240,9 +242,15 @@ val moduloFeatures = module {
             }
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
-    viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() }) }
-    viewModel { CadastroViewModel() }
+    viewModel { EntradaViewModel(get(), permitirDominioDeTeste = BuildConfig.DEBUG) }
+    viewModel { (email: String) ->
+        CodigoViewModel(
+            email, get(), get(),
+            aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+        )
+    }
+    viewModel { CadastroViewModel(get()) }
     viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
     viewModel { MeusTurnosViewModel(get()) }

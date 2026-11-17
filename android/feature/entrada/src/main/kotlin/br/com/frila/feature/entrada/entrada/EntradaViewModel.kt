@@ -32,6 +32,7 @@ private val PADRAO_EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 class EntradaViewModel(
     private val servicoAutenticacao: ServicoAutenticacao,
     escopo: CoroutineScope? = null,
+    private val permitirDominioDeTeste: Boolean = false,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -44,7 +45,7 @@ class EntradaViewModel(
             it.copy(
                 email = novoEmail,
                 erro = null,
-                ehContaDeDemonstracao = DemonstracaoContas.ehContaDeDemonstracao(novoEmail.trim()),
+                ehContaDeDemonstracao = DemonstracaoContas.ehContaDeDemonstracao(novoEmail, permitirDominioDeTeste),
             )
         }
     }
@@ -75,7 +76,7 @@ class EntradaViewModel(
 
         _estado.update { it.copy(email = email) }
 
-        if (DemonstracaoContas.ehContaDeDemonstracao(email)) {
+        if (DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste)) {
             // Modo demo: não há OTP a solicitar, a tela de código chama entrarDemonstracao direto.
             _estado.update { it.copy(erro = null, otpSolicitado = true) }
             return null

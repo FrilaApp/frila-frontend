@@ -26,9 +26,9 @@ class EntradaViewModelTest {
      * compartilhado com `advanceUntilIdle()` nem um `UnconfinedTestDispatcher` isolado bastam
      * para garantir, de forma determinística, que a corrotina terminou antes da asserção.
      */
-    private fun viewModelComEngine(engine: MockEngine): EntradaViewModel {
+    private fun viewModelComEngine(engine: MockEngine, permitirDominioDeTeste: Boolean = false): EntradaViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
-        return EntradaViewModel(ServicoAutenticacao(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return EntradaViewModel(ServicoAutenticacao(cliente), escopo = CoroutineScope(Dispatchers.Default), permitirDominioDeTeste = permitirDominioDeTeste)
     }
 
     @ParameterizedTest
@@ -220,4 +220,20 @@ class EntradaViewModelTest {
 
         assertEquals(1, chamadas.get())
     }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `dominio de teste so pula OTP com a permissao de debug`(permitirDominioDeTeste: Boolean) = runBlocking {
+        val caminhos = mutableListOf<String>()
+        val vm = viewModelComEngine(MockEngine { request ->
+            caminhos += request.url.encodedPath
+            respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }, permitirDominioDeTeste)
+        vm.aoMudarEmail("  Qualquer@FRILA.TEST  ")
+        assertEquals(permitirDominioDeTeste, vm.estado.value.ehContaDeDemonstracao)
+        vm.solicitarCodigo()?.join()
+        assertTrue(vm.estado.value.otpSolicitado)
+        assertEquals(if (permitirDominioDeTeste) emptyList<String>() else listOf("/auth/v1/otp"), caminhos)
+    }
+
 }
