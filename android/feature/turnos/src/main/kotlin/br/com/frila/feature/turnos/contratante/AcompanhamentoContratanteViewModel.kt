@@ -120,7 +120,13 @@ class AcompanhamentoContratanteViewModel(
 
     /** Incorpora o painel relido sem recriar o acompanhamento nem interromper a confirmação em voo. */
     fun atualizarContexto(contexto: ContextoDoTurnoContratante) {
-        _estado.update { it.copy(contexto = contexto) }
+        _estado.update { atual ->
+            // Uma releitura iniciada antes da confirmação pode chegar depois dela.
+            if (atual.contexto.turnoId == contexto.turnoId &&
+                atual.presenca == PresencaDoTurno.VERIFICADA &&
+                presencaDe(contexto) != PresencaDoTurno.VERIFICADA
+            ) atual else atual.copy(contexto = contexto)
+        }
     }
 
     fun confirmarPresenca(): Job {
