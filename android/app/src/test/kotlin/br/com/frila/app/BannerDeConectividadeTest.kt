@@ -21,7 +21,10 @@ private const val MENSAGEM_OFFLINE = "Sem conexão com a internet. Verifique sua
 @Config(sdk = [35], application = Application::class)
 class BannerDeConectividadeTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     @Test

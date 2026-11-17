@@ -1,7 +1,10 @@
 package br.com.frila.app
 
 import android.app.Application
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -49,7 +52,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class SaidaDaContaNaNavegacaoTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private val sessao = ArmazenamentoDeSessaoEmMemoria().apply {
@@ -70,7 +76,8 @@ class SaidaDaContaNaNavegacaoTest {
         gestor.close()
     }
 
-    private fun montar(): NavHostController {
+    /** [trava] nula usa o padrão da AppNavegacao (desligada), como o app. */
+    private fun montar(trava: Boolean? = true): NavHostController {
         lateinit var navController: NavHostController
         val feedViewModel = mockk<FeedVagasViewModel>(relaxed = true)
         every { feedViewModel.estado } returns MutableStateFlow(EstadoFeed(status = StatusFeed.SUCESSO))
@@ -87,10 +94,18 @@ class SaidaDaContaNaNavegacaoTest {
                     },
                 )
             }) {
-                AppNavegacao(
-                    monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
-                    navController = navController,
-                )
+                if (trava == null) {
+                    AppNavegacao(
+                        monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
+                        navController = navController,
+                    )
+                } else {
+                    AppNavegacao(
+                        monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
+                        navController = navController,
+                        biometriaHabilitada = trava,
+                    )
+                }
             }
         }
         rule.waitForIdle()
@@ -109,6 +124,60 @@ class SaidaDaContaNaNavegacaoTest {
         assertEquals(Rotas.ENTRADA, navController.currentDestination?.route)
         assertNull(sessao.obterSessao())
         assertTrue("o cliente Ktor da conta suspensa tem de ser fechado", clienteDeA.estaFechado)
+    }
+
+    /** C0-11: quem ligou a biometria antes (flag guardada) não é mais travado ao abrir; o iOS não tem esse bloqueio. */
+    @Test
+    fun `C0-11 - biometria guardada nao pede digital ao abrir o app`() {
+        sessao.definirBiometriaAtivada(true)
+        val navController = montar(trava = null)
+
+        assertEquals(Rotas.FEED, navController.currentDestination?.route)
+        rule.onAllNodesWithText("Entrar com outra conta").assertCountEquals(0)
+    }
+
+    /**
+     * C0-11, achado P2 do Lince no #854: o Android restaura a pilha salva (morte do processo, rotação). Quem estava
+     * no desbloqueio no app antigo (trava ligada) não pode voltar a ele no app atualizado (trava desligada): a tela
+     * pediria a digital sozinha. O esperado é o destino normal da conta, o feed.
+     */
+    @Test
+    fun `C0-11 - pilha restaurada no desbloqueio com a trava desligada segue para o feed`() {
+        sessao.definirBiometriaAtivada(true)
+        val feedViewModel = mockk<FeedVagasViewModel>(relaxed = true)
+        every { feedViewModel.estado } returns MutableStateFlow(EstadoFeed(status = StatusFeed.SUCESSO))
+        var trava = true
+        lateinit var navController: NavHostController
+        val restaurador = StateRestorationTester(rule)
+        restaurador.setContent {
+            navController = rememberNavController()
+            KoinApplication(application = {
+                modules(
+                    module {
+                        single { mockk<ServicoAutenticacao>(relaxed = true) }
+                        single<ArmazenamentoDeSessao> { sessao }
+                        single { CoordenadorDeLogout(armazenamentoDeSessao = get(), gestorClienteKtor = gestor) }
+                        viewModel { EntradaViewModel(get()) }
+                        viewModel { feedViewModel }
+                    },
+                )
+            }) {
+                AppNavegacao(
+                    monitorDeConectividade = MonitorDeConectividadeFalso(StatusConectividade.CONECTADO),
+                    navController = navController,
+                    biometriaHabilitada = trava,
+                )
+            }
+        }
+        rule.waitForIdle()
+        assertEquals("o app antigo abre no desbloqueio", Rotas.DESBLOQUEIO, navController.currentDestination?.route)
+
+        trava = false // o app atualizado, com a pilha antiga salva
+        restaurador.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        assertEquals(Rotas.FEED, navController.currentDestination?.route)
+        rule.onAllNodesWithText("Entrar com outra conta").assertCountEquals(0)
     }
 
     @Test
