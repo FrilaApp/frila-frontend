@@ -1,11 +1,13 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
+import { avaliarOProfissional } from "../../../servidor/contratante/turno/avaliacao";
 import { confirmarPresenca, gerarCodigo, reabrirPorAtraso } from "../../../servidor/contratante/turno/presenca";
 import { casaDaTela, chegadaDo, listarMinhasCasas, listarTurnosDaCasa } from "../../../servidor/contratante/turno/turnos";
 import { apiDoUsuario } from "../../../servidor/deste-ambiente";
 import { exigirSessao } from "../../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../../servidor/profissional/formato";
 import { textos } from "../../../textos/pt-BR";
+import { FormularioDaAvaliacao } from "../../avaliacao-do-turno";
 import type { Route } from "./+types/detalhe";
 
 const t = textos.contratanteTurno;
@@ -45,6 +47,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       podeConfirmar: presencaPendente,
       // A tolerância é do servidor (422 antes dela); a tela só não oferece o botão antes da hora.
       podeReabrir: confirmado && turno.checkin_em === null && Date.now() >= Date.parse(turno.vaga.inicio_em) + TOLERANCIA_MS,
+      // Avaliar abre depois do fim, com presença verificada (o servidor diz em pode_avaliar). Ausente não é nulo.
+      podeAvaliar: turno.pode_avaliar,
+      respostaDada: turno.avaliacao ? turno.avaliacao.resposta : null,
     },
   };
 }
@@ -55,6 +60,16 @@ export async function action({ context, request }: Route.ActionArgs) {
   const formulario = await request.formData();
   const intencao = formulario.get("intencao");
   const turnoId = String(formulario.get("turno_id") ?? "");
+  if (intencao === "avaliar") {
+    const resposta = formulario.get("resposta");
+    const resultado =
+      resposta === "sim" || resposta === "nao"
+        ? await avaliarOProfissional(api, turnoId, resposta === "sim")
+        : ({ ok: false, motivo: "indisponivel" } as const);
+    const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
+    if (avaliacao === "sem_sessao") throw redirect("/entrar");
+    return { avaliacao };
+  }
   if (intencao === "codigo") {
     const gerado = await gerarCodigo(api, turnoId);
     if (!gerado.ok && gerado.motivo === "sem_sessao") throw redirect("/entrar");
@@ -85,6 +100,7 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
   const enviando = useNavigation().state !== "idle";
   const codigo = actionData && "codigo" in actionData && actionData.codigo ? { codigo: actionData.codigo, minutos: actionData.minutos ?? 1 } : null;
   const resultado = actionData && "resultado" in actionData ? actionData.resultado : null;
+  const avaliacao = actionData && "avaliacao" in actionData ? actionData.avaliacao : null;
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 p-6">
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
@@ -93,6 +109,11 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
       {resultado ? (
         <p role="status" className="font-semibold">
           {t.resultado[resultado]}
+        </p>
+      ) : null}
+      {avaliacao ? (
+        <p role="status" className="font-semibold">
+          {t.avaliacao.resultado[avaliacao]}
         </p>
       ) : null}
       {turno ? (
@@ -157,7 +178,20 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
               </button>
             </Form>
           ) : null}
+          {turno.respostaDada !== null ? (
+            <p>
+              {t.avaliacao.respondeu} <strong>{turno.respostaDada ? t.avaliacao.sim : t.avaliacao.nao}</strong>
+            </p>
+          ) : turno.podeAvaliar ? (
+            <FormularioDaAvaliacao turnoId={turno.id} enviando={enviando} textos={{ ...t.avaliacao, enviando: t.turno.enviando }} />
+          ) : null}
         </>
+      ) : null}
+      {turno && casaId ? (
+        // O suporte (#861) lê o turno pela lista da casa: por isso leva o ?casa=.
+        <Link to={`/suporte/${turno.id}?casa=${casaId}`} className={classeDoLink}>
+          {t.turno.ajuda}
+        </Link>
       ) : null}
       <Link to={casaId ? `/casa/turnos?casa=${casaId}` : "/casa/turnos"} className={classeDoLink}>
         {t.turno.voltar}

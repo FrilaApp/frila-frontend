@@ -81,7 +81,7 @@ describe("vaga da casa: loader", () => {
 });
 
 describe("vaga da casa: escolher (action)", () => {
-  const escolher = (dados: Record<string, string> = { casa: CASA, candidatura_id: CANDIDATURA }) =>
+  const escolher = (dados: Record<string, string> = { intencao: "escolher", casa: CASA, candidatura_id: CANDIDATURA }) =>
     action(comVaga(argumentos(`/painel/vagas/${VAGA}`, dados)));
 
   it("escolhe pela candidatura e volta à vaga com o aviso", async () => {
@@ -95,19 +95,19 @@ describe("vaga da casa: escolher (action)", () => {
       api.POST.mockResolvedValue(resposta);
       return escolher();
     };
-    expect(await com(recusa(409, "posicao_ja_preenchida"))).toEqual({ erro: t.erros.posicao_ja_preenchida });
-    expect(await com(recusa(409, "candidatura_indisponivel"))).toEqual({ erro: t.erros.candidatura_indisponivel });
-    expect(await com(recusa(409, "vaga_encerrada"))).toEqual({ erro: t.erros.vaga_encerrada });
-    expect(await com(recusa(422, "inelegivel", "turno_sobreposto"))).toEqual({ erro: t.erros.turno_sobreposto });
-    expect(await com(recusa(422, "vaga_oculta"))).toEqual({ erro: t.erros.vaga_oculta });
-    expect(await com(recusa(403, "sem_permissao"))).toEqual({ erro: t.erros.sem_permissao });
-    expect(await com(recusa(500, "XX000"))).toEqual({ erro: t.erros.indisponivel });
+    expect(await com(recusa(409, "posicao_ja_preenchida"))).toEqual({ erro: t.erros.posicao_ja_preenchida, onde: "escolher" });
+    expect(await com(recusa(409, "candidatura_indisponivel"))).toEqual({ erro: t.erros.candidatura_indisponivel, onde: "escolher" });
+    expect(await com(recusa(409, "vaga_encerrada"))).toEqual({ erro: t.erros.vaga_encerrada, onde: "escolher" });
+    expect(await com(recusa(422, "inelegivel", "turno_sobreposto"))).toEqual({ erro: t.erros.turno_sobreposto, onde: "escolher" });
+    expect(await com(recusa(422, "vaga_oculta"))).toEqual({ erro: t.erros.vaga_oculta, onde: "escolher" });
+    expect(await com(recusa(403, "sem_permissao"))).toEqual({ erro: t.erros.sem_permissao, onde: "escolher" });
+    expect(await com(recusa(500, "XX000"))).toEqual({ erro: t.erros.indisponivel, onde: "escolher" });
     api.POST.mockResolvedValue(recusa(401, "PGRST301"));
     expect(await redirecionamento(escolher())).toBe("/entrar");
   });
 
   it("formulário sem candidatura válida não chega ao servidor", async () => {
-    expect(await escolher({ casa: CASA, candidatura_id: "x" })).toEqual({ erro: t.erros.formularioVelho });
+    expect(await escolher({ casa: CASA, candidatura_id: "x" })).toEqual({ erro: t.erros.formularioVelho, onde: "escolher" });
     expect(api.POST).not.toHaveBeenCalled();
   });
 });

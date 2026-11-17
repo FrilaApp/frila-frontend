@@ -16,9 +16,15 @@ enum class DialogoDefensivoLocalizacao {
     LEITURA_IMPRECISA,
 }
 
+/** Status do check-out de um turno (RF13/RN11/RN22): sem localização ele segue com `distancia_m` nulo, nunca trava. */
+enum class StatusCheckout { OCIOSO, REGISTRANDO, FEITO, ERRO }
+
 /** Estado da ação de check-in de um turno específico. */
 data class EstadoCheckin(
     val status: StatusCheckin = StatusCheckin.OCIOSO,
+    /** L1-4: o check-out feito neste aparelho; o que o servidor já tinha vem em `ItemTurno.checkoutEm`. */
+    val checkout: StatusCheckout = StatusCheckout.OCIOSO,
+    val mensagemErroCheckout: String? = null,
     val mensagemErro: String? = null,
     val comprovante: ComprovanteCheckin? = null,
     val dialogoDefensivo: DialogoDefensivoLocalizacao? = null,

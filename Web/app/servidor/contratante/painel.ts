@@ -99,7 +99,20 @@ export type PosicaoNaTela = {
   aCaminho: boolean;
 };
 
-export type DetalheDaVaga = VagaNaTela & { local: string; regiao: string; modo: VagaNoPainel["modo"]; lista: PosicaoNaTela[] };
+export type DetalheDaVaga = VagaNaTela & {
+  local: string;
+  regiao: string;
+  modo: VagaNoPainel["modo"];
+  lista: PosicaoNaTela[];
+  inicioEm: string;
+  /** Quantos lugares o "republicar em urgência" publicaria agora (calculado pelo servidor); 0 = o botão não aparece. */
+  republicavelEmUrgencia: number;
+};
+
+/** Cancelar a vaga inteira só faz sentido antes do turno começar, como no iOS: depois disso o servidor responde 409. */
+export function podeCancelarVaga(vaga: { estado: DetalheDaVaga["estado"]; inicioEm: string }, agora: Date): boolean {
+  return (vaga.estado === "publicada" || vaga.estado === "preenchida") && new Date(vaga.inicioEm).getTime() > agora.getTime();
+}
 
 /**
  * O detalhe da vaga para a casa sai do painel: o `detalhe_vaga` do contrato é do profissional e recusa a conta de
@@ -114,6 +127,8 @@ export function detalheDaVaga(painel: Painel, vagaId: string): DetalheDaVaga | n
     local: item.vaga.local,
     regiao: item.vaga.regiao_administrativa,
     modo: item.modo,
+    inicioEm: item.vaga.inicio_em,
+    republicavelEmUrgencia: item.republicavel_em_urgencia ?? 0,
     lista: item.posicoes.map((posicao) => ({
       id: posicao.id,
       estado: posicao.estado,
