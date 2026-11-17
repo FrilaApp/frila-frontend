@@ -9,7 +9,7 @@ import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/vaga";
-import { enviandoEste, preencher } from "./comum";
+import { enviandoEste, preencher, rotuloDosRestantes } from "./comum";
 
 const t = textos.contratante.vaga;
 const tp = textos.contratante.painel;
@@ -240,7 +240,7 @@ function Acoes({ loaderData, actionData, navegacao }: { loaderData: Dados; actio
             <input type="hidden" name="casa" value={casaId} />
             <input type="hidden" name="chave" value={chaveDe("restantes")} />
             <button type="submit" disabled={enviando} className={classeDoBotaoLaranja}>
-              {preencher(ta.restantes, { n: vaga.republicavelEmUrgencia })}
+              {rotuloDosRestantes(vaga.republicavelEmUrgencia)}
             </button>
           </Form>
           <Erro actionData={actionData} onde="restantes" />

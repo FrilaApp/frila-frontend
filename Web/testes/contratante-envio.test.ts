@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { enviandoEste } from "../app/rotas/contratante/comum";
+import { enviandoEste, rotuloDosRestantes } from "../app/rotas/contratante/comum";
 
 const formulario = (dados: Record<string, string>) => new URLSearchParams(dados) as unknown as FormData;
 const enviando = (dados: Record<string, string>) => ({ formData: formulario(dados) });
@@ -23,5 +23,13 @@ describe("rótulo de envio por formulário", () => {
   it("parado, ou navegando sem formulário (carregando a página), nenhum botão muda", () => {
     expect(enviandoEste({ formData: undefined }, "cancelar")).toBe(false);
     expect(enviandoEste({}, "cancelar")).toBe(false);
+  });
+});
+
+describe("rótulo de republicar os lugares restantes", () => {
+  it("1 lugar fica no singular", () => {
+    expect(rotuloDosRestantes(1)).toBe("Republicar 1 lugar em urgência");
+    expect(rotuloDosRestantes(2)).toBe("Republicar 2 lugares em urgência");
+    expect(rotuloDosRestantes(12)).toBe("Republicar 12 lugares em urgência");
   });
 });

@@ -140,6 +140,7 @@ export const contratante = {
     repetindo: "Publicando…",
     restantesTitulo: "Lugares que a seleção deixou vazios",
     restantes: "Republicar {n} lugares em urgência",
+    restantesUm: "Republicar 1 lugar em urgência",
     restantesAjuda: "Mesmo dia, horário e valor. Quem aceitar primeiro fica com o lugar.",
     erros: {
       motivo_curto: "Escreva o motivo, com pelo menos 3 letras.",
