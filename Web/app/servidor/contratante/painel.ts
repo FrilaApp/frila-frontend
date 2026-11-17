@@ -80,3 +80,38 @@ export function vagasParaATela(painel: Painel): VagaNaTela[] {
       ocupadas: item.posicoes.filter((posicao) => posicao.estado === "confirmada" || posicao.estado === "cumprida").length,
     }));
 }
+
+export type PosicaoNaTela = {
+  id: string;
+  estado: VagaNoPainel["posicoes"][number]["estado"];
+  profissional: string | null;
+  verificacao: VagaNoPainel["posicoes"][number]["verificacao"];
+  emAtraso: boolean;
+  aCaminho: boolean;
+};
+
+export type DetalheDaVaga = VagaNaTela & { local: string; regiao: string; modo: VagaNoPainel["modo"]; lista: PosicaoNaTela[] };
+
+/**
+ * O detalhe da vaga para a casa sai do painel: o `detalhe_vaga` do contrato é do profissional e recusa a conta de
+ * contratante (`422 perfil_incompativel`). Vaga fora da janela do painel, ou de outra casa, não aparece.
+ */
+export function detalheDaVaga(painel: Painel, vagaId: string): DetalheDaVaga | null {
+  const item = painel.vagas.find((vaga) => vaga.vaga.id === vagaId);
+  const [resumo] = item ? vagasParaATela({ ...painel, vagas: [item] }) : [];
+  if (!item || !resumo) return null;
+  return {
+    ...resumo,
+    local: item.vaga.local,
+    regiao: item.vaga.regiao_administrativa,
+    modo: item.modo,
+    lista: item.posicoes.map((posicao) => ({
+      id: posicao.id,
+      estado: posicao.estado,
+      profissional: posicao.profissional?.nome ?? null,
+      verificacao: posicao.verificacao,
+      emAtraso: posicao.em_atraso,
+      aCaminho: posicao.a_caminho_em != null,
+    })),
+  };
+}

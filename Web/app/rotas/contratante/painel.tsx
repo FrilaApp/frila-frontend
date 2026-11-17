@@ -6,6 +6,7 @@ import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/painel";
+import { preencher } from "./comum";
 
 const t = textos.contratante.painel;
 
@@ -37,9 +38,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     publicada: endereco.searchParams.get("publicada") === "1",
   } as const;
 }
-
-const preencher = (modelo: string, valores: Record<string, number>) =>
-  modelo.replace(/\{(\w+)\}/g, (_, chave: string) => String(valores[chave] ?? ""));
 
 const MENSAGEM = {
   sem_casa: t.semCasa,
@@ -88,7 +86,9 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
           {vagas.map((vaga) => (
             <li key={vaga.id} className="flex flex-col gap-1 rounded-cartao border border-borda bg-superficie p-4">
               <p className="flex flex-wrap items-baseline justify-between gap-2">
-                <strong className="text-lg first-letter:uppercase">{vaga.funcao}</strong>
+                <Link to={`/painel/vagas/${vaga.id}?casa=${casa.id}`} className="text-lg font-bold underline underline-offset-4 first-letter:uppercase">
+                  {vaga.funcao}
+                </Link>
                 <span className="text-sm font-semibold">{t.estado[vaga.estado]}</span>
               </p>
               <p>

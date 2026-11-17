@@ -8,5 +8,9 @@ export default [
   route("aceitar-termos", "rotas/aceitar-termos.ts"),
   route("saude", "rotas/saude.ts"),
   // Contratante (2C, Citrino): painel da casa e publicar vaga. Só se acrescenta neste bloco.
-  ...prefix("painel", [index("rotas/contratante/painel.tsx"), route("publicar", "rotas/contratante/publicar-vaga.tsx")]),
+  ...prefix("painel", [
+    index("rotas/contratante/painel.tsx"),
+    route("publicar", "rotas/contratante/publicar-vaga.tsx"),
+    route("vagas/:vagaId", "rotas/contratante/vaga.tsx"),
+  ]),
 ] satisfies RouteConfig;
