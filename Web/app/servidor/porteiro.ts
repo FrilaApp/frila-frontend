@@ -2,10 +2,11 @@
  * O que o Worker responde antes de entregar o pedido ao React Router.
  *
  * - A web mora em /app. Pedido fora de /app vai para /app/.
- * - Com a chave desligada, só a página inicial existe (ela mostra "em breve"):
- *   qualquer outro caminho volta para ela, e nenhum loader das outras rotas roda.
+ * - Com a chave desligada, só existem a página inicial (ela mostra "em breve") e a
+ *   rota de saúde: qualquer outro caminho volta para o início, e nenhum loader das outras rotas roda.
  */
 export const BASE = "/app";
+const SEMPRE_ABERTOS = new Set([BASE, `${BASE}/`, `${BASE}/saude`]);
 
 export function respostaAntesDoApp(request: Request, opcoes: { webLigada: boolean }): Response | null {
   const url = new URL(request.url);
@@ -19,8 +20,7 @@ export function respostaAntesDoApp(request: Request, opcoes: { webLigada: boolea
     return null;
   }
 
-  const ehInicio = caminho === BASE || caminho === `${BASE}/`;
-  return ehInicio ? null : redirecionar(url, `${BASE}/`);
+  return SEMPRE_ABERTOS.has(caminho) ? null : redirecionar(url, `${BASE}/`);
 }
 
 function redirecionar(url: URL, caminho: string): Response {

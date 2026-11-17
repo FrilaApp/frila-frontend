@@ -21,9 +21,10 @@ describe("porteiro do Worker", () => {
     expect(respostaAntesDoApp(pedido("/app/vagas/123"), { webLigada: true })).toBeNull();
   });
 
-  it("com a chave desligada, só a página inicial passa", () => {
+  it("com a chave desligada, só a página inicial e a rota de saúde passam", () => {
     expect(respostaAntesDoApp(pedido("/app"), { webLigada: false })).toBeNull();
     expect(respostaAntesDoApp(pedido("/app/"), { webLigada: false })).toBeNull();
+    expect(respostaAntesDoApp(pedido("/app/saude"), { webLigada: false })).toBeNull();
   });
 
   it("com a chave desligada, as outras rotas voltam para a página inicial", () => {

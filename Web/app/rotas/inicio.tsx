@@ -1,11 +1,20 @@
 import { env } from "cloudflare:workers";
 
+import { lerConfiguracaoDesteAmbiente } from "../servidor/abertura";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/inicio";
 
-export function loader() {
-  const webLigada = env.WEB_LIGADA === "1";
-  return { webLigada, ambiente: webLigada ? env.AMBIENTE : null };
+export async function loader() {
+  if (env.WEB_LIGADA !== "1") {
+    return { webLigada: false as const };
+  }
+  const leitura = await lerConfiguracaoDesteAmbiente();
+  return {
+    webLigada: true as const,
+    ambiente: env.AMBIENTE,
+    configuracao: leitura.estado,
+    versaoMinima: leitura.estado === "ok" ? leitura.configuracao.versao_minima : null,
+  };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -24,10 +33,19 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
       <p className="font-titulo text-xl font-bold text-acao">{textos.marca}</p>
       <h1 className="font-titulo text-3xl font-bold">{bloco.titulo}</h1>
       <p className="text-texto-secundario">{bloco.corpo}</p>
-      {loaderData.ambiente ? (
-        <p className="text-sm text-texto-secundario">
-          {textos.inicio.ambiente}: {loaderData.ambiente}
-        </p>
+      {loaderData.webLigada ? (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-texto-secundario">
+          <dt>{textos.inicio.ambiente}</dt>
+          <dd>{loaderData.ambiente}</dd>
+          <dt>{textos.inicio.configuracao}</dt>
+          <dd>{textos.inicio.estadoDaConfiguracao[loaderData.configuracao]}</dd>
+          {loaderData.versaoMinima ? (
+            <>
+              <dt>{textos.inicio.versaoMinima}</dt>
+              <dd>{loaderData.versaoMinima}</dd>
+            </>
+          ) : null}
+        </dl>
       ) : null}
     </main>
   );

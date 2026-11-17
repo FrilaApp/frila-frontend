@@ -15,6 +15,14 @@ export const textos = {
     corpo: "A fundação da web do Frila está no ar.",
     tituloDaAba: "Frila",
     ambiente: "Ambiente",
+    configuracao: "Configuração do app no servidor",
+    estadoDaConfiguracao: {
+      ok: "lida",
+      sem_configuracao: "ainda não existe para a web",
+      indisponivel: "servidor indisponível",
+      nao_configurado: "endereço do servidor não configurado neste ambiente",
+    },
+    versaoMinima: "Versão mínima",
   },
   erro: {
     naoEncontradoTitulo: "Página não encontrada",
