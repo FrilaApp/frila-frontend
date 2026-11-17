@@ -88,6 +88,22 @@ class CheckinViewModelTest {
         assertNotNull(comprovante.coordenadasAproximadas)
     }
 
+    /** A posição do toque só serve para medir a distância: não fica no comprovante nem sai no texto que a pessoa compartilha. */
+    @Test
+    fun `o comprovante do check-in geolocalizado nao guarda nem compartilha a posicao`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima)
+        val servico = servicoComResposta(resultadoJson(tipo = "geolocalizado", verificacao = "verificado", distanciaM = "111"))
+        val viewModel = criarViewModel(provedor, servico)
+
+        viewModel.fazerCheckin().join()
+
+        val comprovante = viewModel.estado.value.comprovante!!
+        assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante.tipoVerificacao)
+        val compartilhado = comprovante.textoCompartilhamento()
+        assertTrue("Localização" !in compartilhado, compartilhado)
+        assertTrue(!Regex("""-?\d{1,3}\.\d{2,}""").containsMatchIn(compartilhado), compartilhado)
+    }
+
     @Test
     fun `distancia acima de 200m resulta em presenca manual pendente`() = runBlocking {
         val provedor = provedorComPermissaoEGps(coordenadaDistante)
