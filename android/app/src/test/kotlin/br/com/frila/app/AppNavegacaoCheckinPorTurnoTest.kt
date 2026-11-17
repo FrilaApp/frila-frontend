@@ -55,7 +55,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = android.app.Application::class, qualifiers = "w411dp-h2400dp")
 class AppNavegacaoCheckinPorTurnoTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste() // C0-6b: testReleaseUnitTest
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private val pontoT1 = Coordenada(latitude = -15.7942, longitude = -47.8822)
