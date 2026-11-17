@@ -46,6 +46,12 @@ const acesso = pote.get(`${prefixo}frila-acesso`) ?? "";
 
 const inicio = await (await pedir("/app/")).text();
 diz("o início mostra o caminho para as vagas", inicio.includes('href="/app/vagas"'));
+diz("o início mostra o caminho para os turnos", inicio.includes('href="/app/turnos"'));
+const turnos = await pedir("/app/turnos");
+const htmlDosTurnos = await turnos.text();
+diz("Meus turnos abre", turnos.status === 200 && htmlDosTurnos.includes("Meus turnos"));
+const turnoAlheio = await pedir("/app/turnos/00000000-0000-4000-8000-000000000000");
+diz("turno que não é da pessoa responde 404", turnoAlheio.status === 404);
 
 const lista = await pedir("/app/vagas");
 const htmlDaLista = await lista.text();
