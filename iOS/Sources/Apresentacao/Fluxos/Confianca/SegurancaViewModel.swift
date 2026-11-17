@@ -34,6 +34,8 @@ public final class SegurancaViewModel {
     public var bloqueado: Bool { bloqueios.alvos.contains(alvo) }
     private let alvo: Alvo
     private let turnoID: UUID?
+    /// 0.2.71 (A-001): a chamada da tela em que a denúncia nasceu; nas outras telas, `nil` e o campo não vai.
+    private let chamadaID: UUID?
     /// O `foto_id` do perfil, quando o servidor mandou a foto (recurso ligado e vínculo de leitura).
     private let fotoID: UUID?
     private let api: any ApiCliente
@@ -45,6 +47,7 @@ public final class SegurancaViewModel {
     public init(
         perfil: PerfilPublico,
         turnoID: UUID? = nil,
+        chamadaID: UUID? = nil,
         api: any ApiCliente,
         bloqueios: BloqueiosDaSessao,
         cacheEquipe: CacheEquipeDeConfianca = .compartilhado,
@@ -52,6 +55,7 @@ public final class SegurancaViewModel {
     ) {
         alvo = Alvo(perfil)
         self.turnoID = turnoID
+        self.chamadaID = chamadaID
         fotoID = perfil.fotoID
         self.api = api
         self.bloqueios = bloqueios
@@ -72,7 +76,8 @@ public final class SegurancaViewModel {
         // inicia outra denúncia: nunca reutiliza uma chave para um corpo diferente.
         let midiaID = sobreAFoto ? fotoID : nil
         if tentativa?.motivo != motivo || tentativa?.relato != texto || tentativa?.midiaID != midiaID {
-            tentativa = Denuncia(alvo: alvo, turnoID: turnoID, motivo: motivo, relato: texto, chave: UUID(), midiaID: midiaID)
+            tentativa = Denuncia(alvo: alvo, turnoID: turnoID, motivo: motivo, relato: texto, chave: UUID(), midiaID: midiaID,
+                                 chamadaID: chamadaID)
         }
         guard let tentativa else { return }
         enviando = true

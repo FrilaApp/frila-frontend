@@ -48,7 +48,7 @@ private struct ConteudoDaChamadaRecebida: View {
             } else if let resultado = viewModel.resultado, resultado.chamada.estado == .recusada {
                 AvisoFrila(verbatim: TextosChamadaDireta.chamadaRecusadaAviso, tom: .informativo)
                 // Recusar não tira o direito de denunciar ou bloquear quem chamou (CD-RF12, CD-S13).
-                if let detalhe = viewModel.detalhe { acoesDeSeguranca(detalhe.outraParte) }
+                if let detalhe = viewModel.detalhe { acoesDeSeguranca(detalhe.outraParte, chamadaID: detalhe.id) }
             } else if let detalhe = viewModel.detalhe {
                 conteudoChamada(detalhe)
             }
@@ -184,13 +184,14 @@ private struct ConteudoDaChamadaRecebida: View {
             }
         }
 
-        acoesDeSeguranca(detalhe.outraParte)
+        acoesDeSeguranca(detalhe.outraParte, chamadaID: detalhe.id)
     }
 
-    /// CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou.
-    private func acoesDeSeguranca(_ quemChamou: PerfilPublico) -> some View {
+    /// CD-RF12: denúncia e bloqueio também a partir da chamada, sobre quem chamou. A denúncia leva o id da chamada
+    /// (0.2.71, A-001).
+    private func acoesDeSeguranca(_ quemChamou: PerfilPublico, chamadaID: UUID) -> some View {
         Section {
-            AcoesDeSeguranca(perfil: quemChamou, api: viewModel.api, bloqueios: bloqueios,
+            AcoesDeSeguranca(perfil: quemChamou, chamadaID: chamadaID, api: viewModel.api, bloqueios: bloqueios,
                              identificadorDenunciar: "denunciar-chamada", identificadorBloquear: "bloquear-chamada",
                              identificadorConfirmarBloqueio: "confirmar-bloqueio-chamada")
                 .id(quemChamou.id)
