@@ -172,6 +172,7 @@ def main() -> None:
         "CancelarChamadaDto": "/rpc/cancelar_chamada",
         "PublicarAPartirDaChamadaDto": "/rpc/publicar_a_partir_da_chamada",
         "AceitarTermosDto": "/rpc/aceitar_termos",
+        "GerarCodigoCheckinDto": "/rpc/gerar_codigo_checkin",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
