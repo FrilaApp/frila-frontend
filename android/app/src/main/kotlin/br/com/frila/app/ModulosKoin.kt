@@ -169,7 +169,12 @@ val moduloNotificacoes = module {
     }
     single { ProcessadorDePush(get(), get()) }
     // C0-10: o registro do aparelho numa função só (abrir com sessão, depois de entrar e onNewToken), com versao_app.
-    single { RegistradorDeDispositivo(get(), get(), versaoApp = BuildConfig.VERSION_NAME) { lerTokenDoFcm() } }
+    // Falha do registro (rede, servidor, token) só vira log, com o motivo e sem token nem sessão.
+    single {
+        RegistradorDeDispositivo(
+            get(), get(), versaoApp = BuildConfig.VERSION_NAME, registrarFalha = { motivo -> Log.w("FrilaPush", motivo) },
+        ) { lerTokenDoFcm() }
+    }
 }
 
 /**
@@ -195,7 +200,7 @@ val moduloFeatures = module {
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
     viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrar() }) }
+    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() }) }
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }

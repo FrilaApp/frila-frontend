@@ -63,10 +63,10 @@ class MainActivity : FragmentActivity() {
                 }
 
                 LaunchedEffect(Unit) {
-                    // C0-10: ao abrir com sessão, registra o aparelho para o push (com versao_app). Sem sessão, o
+                    // C0-10: ao abrir com sessão, registra o aparelho para o push (com versao_app), sem esperar. Sem sessão, o
                     // registrador não chama; sem token (sem Firebase ou sem rede), nada sai. Falha nunca trava a abertura.
                     try {
-                        GlobalContext.getOrNull()?.getOrNull<RegistradorDeDispositivo>()?.registrar()
+                        GlobalContext.getOrNull()?.getOrNull<RegistradorDeDispositivo>()?.registrarEmSegundoPlano()
                     } catch (cancelado: CancellationException) {
                         throw cancelado
                     } catch (_: Exception) {
