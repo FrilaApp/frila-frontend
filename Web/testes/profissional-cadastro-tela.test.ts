@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import Cadastro from "../app/rotas/profissional/cadastro";
 import Perfil from "../app/rotas/profissional/perfil";
 import Preferencias from "../app/rotas/profissional/preferencias";
+import { VAZIO } from "../app/servidor/profissional/cadastro";
 import { textos } from "../app/textos/pt-BR";
 
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => null }));
@@ -29,14 +30,14 @@ function html(Tela: unknown, props: Record<string, unknown>) {
   return renderToStaticMarkup(createElement(Stub, { initialEntries: ["/perfil/cadastro"] })).replace(/&quot;/g, '"');
 }
 const noPasso = (passo: string, valores: Record<string, unknown>, erro: string | null = null, loaderData: unknown = dados) =>
-  html(Cadastro, { loaderData, actionData: { passo, erro, valores: { funcoes: [], ponto_regiao: "", atende_todo_df: false, regioes: [], ...valores } } });
+  html(Cadastro, { loaderData, actionData: { passo, erro, valores: { ...VAZIO, ...valores } } });
 const escondido = (nome: string, valor: string) => `<input type="hidden" name="${nome}" value="${valor}"/>`;
 
 describe("cadastro do profissional: a tela de cada passo", () => {
   it("abre no passo das funções, com uma caixa por função do catálogo e sem botão de voltar", () => {
     const tela = html(Cadastro, { loaderData: dados });
     expect(tela).toContain(escondido("passo", "funcoes"));
-    expect(tela).toContain(t.passoDe.replace("{atual}", "1").replace("{total}", "3"));
+    expect(tela).toContain(t.passoDe.replace("{atual}", "1").replace("{total}", "5"));
     expect(tela).toContain(`<input type="checkbox" class="size-5 shrink-0" name="funcoes" value="${GARCOM}"/>`);
     expect(tela).toContain(`name="funcoes" value="${COZINHEIRO}"`);
     expect(tela).toContain(t.continuar);
@@ -53,24 +54,75 @@ describe("cadastro do profissional: a tela de cada passo", () => {
     expect(tela).not.toContain('type="checkbox"');
   });
 
-  it("nas regiões, funções e ponto viajam escondidos, todas as regiões do catálogo aparecem e o botão cria o perfil", () => {
-    const tela = noPasso("regioes", { funcoes: [GARCOM, COZINHEIRO], ponto_regiao: "3", regioes: ["37"] });
+  it("nos horários, cada horário marcado aparece com o seu botão de remover, e o formulário de um novo vem com os sete dias", () => {
+    const tela = noPasso("horarios", { funcoes: [GARCOM], ponto_regiao: "3", janelas: ["1-08:00-12:00", "5-18:00-02:00"] });
+    expect(tela).toContain(escondido("funcoes", GARCOM));
+    expect(tela).toContain(escondido("ponto_regiao", "3"));
+    expect(tela).toContain(escondido("janelas", "1-08:00-12:00"));
+    expect(tela).toContain("Segunda-feira: 08:00 até 12:00<");
+    expect(tela).toContain("Sexta-feira: 18:00 até 02:00 (dia seguinte)");
+    expect(tela).toMatch(/<button[^>]*value="5-18:00-02:00"[^>]*name="remover"/);
+    expect(tela.match(/type="checkbox"[^>]*name="dias"/g)).toHaveLength(7);
+    expect(tela).toContain('<input type="time" class="min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg" name="inicio" value="18:00"/>');
+    expect(tela).toContain('name="fim" value="00:00"');
+    expect(tela).not.toContain(t.horarios.nenhum);
+    // A tecla Enter aciona o primeiro botão de envio do formulário: aqui é o de adicionar, nunca um "Remover".
+    expect(tela.slice(tela.indexOf("<form")).match(/<button[^>]*type="submit"[^>]*>/)?.[0]).toContain('value="adicionar_horario"');
+  });
+
+  it("sem horário marcado, a tela avisa que o aviso de vaga não chega; o que estava no formulário volta depois de um erro", () => {
+    const tela = noPasso("horarios", { funcoes: [GARCOM], novo_horario: { dias: ["5"], inicio: "18:00", fim: "18:00" } }, t.erros.horarioIgual);
+    expect(tela).toContain(t.horarios.nenhum);
+    expect(tela).toContain('name="dias" checked="" value="5"');
+    expect(tela).toContain('name="fim" value="18:00"');
+    expect(tela).toContain(t.erros.horarioIgual);
+  });
+
+  it("nas regiões, funções, ponto e horários viajam escondidos e todas as regiões do catálogo aparecem", () => {
+    const tela = noPasso("regioes", { funcoes: [GARCOM, COZINHEIRO], ponto_regiao: "3", janelas: ["5-18:00-02:00"], regioes: ["37"] });
     expect(tela).toContain(escondido("funcoes", GARCOM));
     expect(tela).toContain(escondido("funcoes", COZINHEIRO));
     expect(tela).toContain(escondido("ponto_regiao", "3"));
+    expect(tela).toContain(escondido("janelas", "5-18:00-02:00"));
     expect(tela).toContain('name="regioes" checked="" value="37"');
     expect(tela).toContain('name="regioes" value="1"');
     expect(tela).toContain('name="atende_todo_df" value="sim"');
-    expect(tela).toContain(t.regioes.horarios);
+    expect(tela).toContain(`>${t.continuar}</button>`);
+  });
+
+  it("nos serviços, só as funções marcadas ganham bloco, o que já foi preenchido volta e o botão cria o perfil", () => {
+    const tela = noPasso("servicos", { funcoes: [GARCOM], ponto_regiao: "3", janelas: ["5-18:00-02:00"], regioes: ["1"], servicos: { [GARCOM]: { unidade: "diaria", valor: "180", horas: "10", pessoas: "", pacote: "" } } });
+    expect(tela).toContain(escondido("janelas", "5-18:00-02:00"));
+    expect(tela).toContain(escondido("regioes", "1"));
+    expect(tela).toContain(`<select name="unidade:${GARCOM}"`);
+    expect(tela).not.toContain(`unidade:${COZINHEIRO}`);
+    expect(tela).toContain(`<option value="nao">${t.servicos.naoOferecer}</option>`);
+    expect(tela).toContain('<option value="diaria" selected="">Diária</option>');
+    expect(tela).toMatch(new RegExp(`name="valor:${GARCOM}"[^>]*value="180"`));
+    expect(tela).toMatch(new RegExp(`name="horas:${GARCOM}"[^>]*value="10"`));
+    expect(tela).toMatch(new RegExp(`name="pessoas:${GARCOM}"[^>]*value="1"`));
     expect(tela).toContain(`>${t.criar}</button>`);
+    // O cadastro não liga as chamadas diretas: a tela final só diz onde isso fica, com o nome que a tela de lá usa.
+    expect(tela).toContain(t.servicos.chamadasDiretas);
+    expect(t.servicos.chamadasDiretas).toContain(textos.profissional.preferencias.aceitoChamadas);
+    expect(tela).not.toContain('name="aceita_chamadas"');
+    expect(noPasso("regioes", { funcoes: [GARCOM] })).not.toContain(t.servicos.chamadasDiretas);
+    // Sem nada preenchido, o bloco abre em "não oferecer", com a diária de 8 horas sugerida (como no app).
+    const vazia = noPasso("servicos", { funcoes: [GARCOM, COZINHEIRO] });
+    expect(vazia).toContain(`<option value="nao" selected="">${t.servicos.naoOferecer}</option>`);
+    expect(vazia).toMatch(new RegExp(`name="horas:${COZINHEIRO}"[^>]*value="8"`));
   });
 
   it("ao voltar, o que foi marcado nos passos seguintes continua no formulário", () => {
-    const tela = noPasso("funcoes", { funcoes: [GARCOM], ponto_regiao: "3", atende_todo_df: true, regioes: ["1"] });
+    const tela = noPasso("funcoes", { funcoes: [GARCOM], ponto_regiao: "3", janelas: ["5-18:00-02:00"], atende_todo_df: true, regioes: ["1"], servicos: { [GARCOM]: { unidade: "pacote", valor: "300", horas: "", pessoas: "", pacote: "Jantar" } } });
     expect(tela).toContain(`name="funcoes" checked="" value="${GARCOM}"`);
     expect(tela).toContain(escondido("ponto_regiao", "3"));
+    expect(tela).toContain(escondido("janelas", "5-18:00-02:00"));
     expect(tela).toContain(escondido("atende_todo_df", "sim"));
     expect(tela).toContain(escondido("regioes", "1"));
+    expect(tela).toContain(escondido(`unidade:${GARCOM}`, "pacote"));
+    expect(tela).toContain(escondido(`valor:${GARCOM}`, "300"));
+    expect(tela).toContain(escondido(`pacote:${GARCOM}`, "Jantar"));
   });
 
   it("o aviso do passo aparece como alerta", () => {
@@ -83,7 +135,7 @@ describe("cadastro do profissional: a tela de cada passo", () => {
     expect(aviso).toContain(t.avisos.ja_tem_perfil);
     expect(aviso).toContain('href="/perfil"');
     expect(aviso).not.toContain("<form");
-    const depois = noPasso("regioes", { funcoes: [GARCOM], ponto_regiao: "3" }, t.erros.regioesNaoSalvas, jaTem);
+    const depois = noPasso("servicos", { funcoes: [GARCOM], ponto_regiao: "3" }, t.erros.regioesNaoSalvas, jaTem);
     expect(depois).toContain("<form");
     expect(depois).toContain("O seu perfil foi criado, mas as regiões não foram salvas.");
     expect(html(Cadastro, { loaderData: { ...dados, situacao: "perfil_incompativel" } })).toContain(t.avisos.perfil_incompativel);

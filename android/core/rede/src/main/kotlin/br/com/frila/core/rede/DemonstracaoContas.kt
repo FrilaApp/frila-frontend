@@ -10,7 +10,10 @@ object DemonstracaoContas {
 
     private val EMAILS_DE_DEMONSTRACAO = setOf(EMAIL_PROFISSIONAL, EMAIL_CONTRATANTE)
 
-    /** `true` se o e-mail informado é uma das contas de demonstração da Play Store. */
-    fun ehContaDeDemonstracao(email: String): Boolean =
-        email.trim().lowercase() in EMAILS_DE_DEMONSTRACAO
+    /** O app habilita o domínio de teste só em debug; o padrão mantém apenas as contas da Play Store. */
+    fun ehContaDeDemonstracao(email: String, permitirDominioDeTeste: Boolean = false): Boolean {
+        val normalizado = email.trim().lowercase()
+        return normalizado in EMAILS_DE_DEMONSTRACAO ||
+            (permitirDominioDeTeste && normalizado.endsWith("@frila.test"))
+    }
 }

@@ -208,6 +208,24 @@ class KoinGrafoTest : KoinTest {
         assertSame(get<ServicoConta>(), propriedadePrivada(get<PerfilViewModel>(), "servicoConta"))
     }
 
+    @Test
+    fun `ServicoConta resolve so com moduloRede`() {
+        startKoin { modules(moduloSeguranca, moduloRede) }
+
+        assertNotNull(get<ServicoConta>())
+    }
+
+    @Test
+    fun `o grafo carrega sem sobrescrever nenhuma definicao`() {
+        // Uma definição repetida em dois módulos passa despercebida com o padrão do Koin (a última vence).
+        startKoin {
+            allowOverride(false)
+            modules(modulosDeTeste)
+        }
+
+        assertNotNull(get<ServicoConta>())
+    }
+
     private fun propriedadePrivada(instancia: Any, nome: String): Any? =
         instancia::class.memberProperties
             .first { it.name == nome }
