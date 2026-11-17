@@ -206,6 +206,8 @@ internal fun RotaTurnoDoContratante(
     aoVoltar: () -> Unit,
     /** C0-9: denunciar a profissional do turno (id do perfil público, id do turno). */
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
+    /** L1-5: chave `checkin_por_codigo`; ligada, a casa vê o código de chegada do turno e, ao confirmar, o turno é relido. */
+    checkinPorCodigoHabilitado: Boolean = false,
 ) {
     var tentativa by remember { mutableIntStateOf(0) }
     var estado by remember(estabelecimentoId, vagaId, posicaoId) { mutableStateOf<EstadoDoTurnoDaRota>(EstadoDoTurnoDaRota.Carregando) }
@@ -225,7 +227,13 @@ internal fun RotaTurnoDoContratante(
         }
         is EstadoDoTurnoDaRota.Pronto -> {
             val viewModel: AcompanhamentoContratanteViewModel = koinViewModel(parameters = { parametersOf(atual.contexto) })
-            TelaTurnoDoContratante(viewModel = viewModel, aoVoltar = aoVoltar, aoDenunciarProfissional = aoDenunciarProfissional)
+            val codigoDaCasa = codigoDaCasaDoTurno(checkinPorCodigoHabilitado, atual.contexto.turnoId) { tentativa++ }
+            TelaTurnoDoContratante(
+                viewModel = viewModel,
+                aoVoltar = aoVoltar,
+                aoDenunciarProfissional = aoDenunciarProfissional,
+                codigoDaCasa = codigoDaCasa,
+            )
         }
     }
 }
