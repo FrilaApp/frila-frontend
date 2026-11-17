@@ -3,10 +3,14 @@ import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, 
 import type { Route } from "./+types/root";
 import "./app.css";
 import fonteDoTitulo from "./marca/fontes/ProdigySans-Bold.woff2?url";
+import { middlewareDeSessao } from "./servidor/middleware-de-sessao";
 import { textos } from "./textos/pt-BR";
 
 // Ativos de marca (app/marca/LEIAME.md). Os arquivos ficam em public/app e são servidos em /app.
 const IMAGEM_DE_COMPARTILHAMENTO = "https://frilabr.com/app/og-1200x630.png";
+
+// A sessão é decidida aqui, uma vez por pedido, para todas as rotas.
+export const middleware: Route.MiddlewareFunction[] = [middlewareDeSessao];
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/app/favicon.svg", type: "image/svg+xml" },

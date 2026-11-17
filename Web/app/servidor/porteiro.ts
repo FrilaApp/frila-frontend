@@ -1,17 +1,26 @@
 /**
  * O que o Worker responde antes de entregar o pedido ao React Router.
  *
+ * - Pedido que muda dado (POST e afins) só passa se veio de uma página do próprio endereço (cabeçalho `Origin`).
+ *   Com o cookie `SameSite=Lax`, é a defesa contra pedido forjado por outro site (CSRF).
  * - A web mora em /app. Pedido fora de /app vai para /app/.
  * - Com a chave desligada, só existem a página inicial (ela mostra "em breve") e a
  *   rota de saúde: qualquer outro caminho volta para o início, e nenhum loader das outras rotas roda.
  */
 export const BASE = "/app";
-const SEMPRE_ABERTOS = new Set([BASE, `${BASE}/`, `${BASE}/saude`]);
+/** Pedidos de dados da página inicial (o React Router v8 pede `/app.data` ou `/app/_.data` ao navegar sem recarregar). */
+const DADOS_DO_INICIO = new Set([`${BASE}.data`, `${BASE}/_.data`]);
+const SEMPRE_ABERTOS = new Set([BASE, `${BASE}/`, `${BASE}/saude`, ...DADOS_DO_INICIO]);
+const METODOS_QUE_SO_LEEM = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export function respostaAntesDoApp(request: Request, opcoes: { webLigada: boolean }): Response | null {
   const url = new URL(request.url);
   const caminho = url.pathname;
-  const dentroDaBase = caminho === BASE || caminho.startsWith(`${BASE}/`);
+  const dentroDaBase = caminho === BASE || caminho.startsWith(`${BASE}/`) || DADOS_DO_INICIO.has(caminho);
+
+  if (!METODOS_QUE_SO_LEEM.has(request.method.toUpperCase()) && request.headers.get("Origin") !== url.origin) {
+    return new Response(null, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
 
   if (!dentroDaBase) {
     return redirecionar(url, `${BASE}/`);
