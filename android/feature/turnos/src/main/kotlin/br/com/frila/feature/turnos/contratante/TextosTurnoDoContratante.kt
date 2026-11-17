@@ -35,7 +35,8 @@ object TextosTurnoDoContratante {
     const val ERRO_CHECKIN_REGISTRADO = "O profissional já fez o check-in. A vaga não pode ser reaberta."
     const val ERRO_SITUACAO_MUDOU = "A situação deste turno mudou. Atualize a tela."
     const val ERRO_REABRIR_SEM_PERMISSAO = "Você não tem permissão para reabrir a vaga deste turno."
-    const val ERRO_REABRIR_SEM_REDE = "Sem conexão. A vaga não foi reaberta. Tente de novo quando a internet voltar."
+    /** TEXTO PROVISÓRIO (o final é do Fabrício): a resposta se perdeu, e o servidor pode ter reaberto a vaga e registrado a falta. */
+    const val ERRO_REABRIR_RESULTADO_INCERTO = "Não deu para confirmar se a vaga foi reaberta. Atualize a tela antes de tentar de novo."
     const val ERRO_REABRIR_GENERICO = "Não foi possível reabrir a vaga. Tente novamente."
 
     const val ERRO_CHECKIN_PENDENTE = "O profissional ainda não fez o check-in. Não há presença para confirmar."

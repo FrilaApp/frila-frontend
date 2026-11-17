@@ -106,7 +106,7 @@ enum class AvisoDaReabertura(val mensagem: String, val erro: Boolean) {
     SITUACAO_MUDOU(TextosTurnoDoContratante.ERRO_SITUACAO_MUDOU, true),
     SEM_PERMISSAO(TextosTurnoDoContratante.ERRO_REABRIR_SEM_PERMISSAO, true),
     SESSAO_EXPIRADA(TextosTurnoDoContratante.ERRO_SESSAO, true),
-    SEM_REDE(TextosTurnoDoContratante.ERRO_REABRIR_SEM_REDE, true),
+    RESULTADO_INCERTO(TextosTurnoDoContratante.ERRO_REABRIR_RESULTADO_INCERTO, true),
     GENERICO(TextosTurnoDoContratante.ERRO_REABRIR_GENERICO, true),
 }
 
@@ -121,7 +121,7 @@ data class EstadoTurnoDoContratante(
     val reabrindo: Boolean = false,
     val reabertura: ResultadoDaReabertura? = null,
     val avisoDaReabertura: AvisoDaReabertura? = null,
-    /** O servidor recusou a reabertura: o botão só volta quando o painel for relido. */
+    /** O servidor recusou a reabertura, ou o resultado ficou incerto: o botão só volta quando o painel for relido. */
     val reaberturaRecusada: Boolean = false,
 ) {
     val presenca: PresencaDoTurno get() = presencaDe(contexto)
@@ -239,13 +239,20 @@ class AcompanhamentoContratanteViewModel(
             } catch (erro: ErroDaApi) {
                 aplicarFalhaDaReabertura(erro)
             } catch (_: Exception) {
-                // Resposta que não decodifica (HTML de portal, campo omitido) não é ErroDaApi: nunca o corpo cru (RN15).
-                _estado.update { it.copy(reabrindo = false, avisoDaReabertura = AvisoDaReabertura.GENERICO) }
+                // Resposta que não decodifica (HTML de portal, campo omitido) não é ErroDaApi: nunca o corpo cru (RN15). O
+                // servidor pode já ter reaberto e registrado a falta, então o resultado é incerto, como na falha de rede.
+                _estado.update {
+                    it.copy(reabrindo = false, avisoDaReabertura = AvisoDaReabertura.RESULTADO_INCERTO, reaberturaRecusada = true)
+                }
             }
         }
     }
 
-    /** As recusas do contrato; a do servidor esconde o botão até o painel ser relido, a de rede deixa tentar de novo. */
+    /**
+     * As recusas do contrato escondem o botão até o painel ser relido. Falha de rede (inclusive timeout depois do envio) e
+     * resposta ilegível também: o servidor pode ter reaberto e registrado a falta, que não tem volta, então o resultado é
+     * incerto e nada é reenviado sozinho. Só o 401 (a chamada nem chegou a valer) e o erro genérico deixam tentar de novo.
+     */
     private fun aplicarFalhaDaReabertura(erro: ErroDaApi) {
         val (aviso, recusada) = when (erro.codigo) {
             CodigoErroAPI.REABERTURA_ANTES_DA_TOLERANCIA -> AvisoDaReabertura.ANTES_DA_TOLERANCIA to true
@@ -253,7 +260,7 @@ class AcompanhamentoContratanteViewModel(
                 (if (erro.detalhes == "checkin_registrado") AvisoDaReabertura.CHECKIN_REGISTRADO else AvisoDaReabertura.SITUACAO_MUDOU) to true
             CodigoErroAPI.SEM_PERMISSAO -> AvisoDaReabertura.SEM_PERMISSAO to true
             CodigoErroAPI.NAO_AUTENTICADO -> AvisoDaReabertura.SESSAO_EXPIRADA to false
-            CodigoErroAPI.SEM_REDE -> AvisoDaReabertura.SEM_REDE to false
+            CodigoErroAPI.SEM_REDE, CodigoErroAPI.RESPOSTA_INVALIDA -> AvisoDaReabertura.RESULTADO_INCERTO to true
             else -> AvisoDaReabertura.GENERICO to false
         }
         _estado.update { it.copy(reabrindo = false, avisoDaReabertura = aviso, reaberturaRecusada = recusada) }

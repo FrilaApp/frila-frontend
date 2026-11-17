@@ -12,6 +12,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import java.net.SocketTimeoutException
 import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -238,12 +239,70 @@ class ReabrirPorAtrasoTest {
         recusaComAviso({ recusa(HttpStatusCode.Unauthorized, "nao_autenticado") }, AvisoDaReabertura.SESSAO_EXPIRADA, recusada = false)
 
     @Test
-    fun `sem rede diz que a vaga nao foi reaberta e deixa tentar de novo`() =
-        recusaComAviso({ throw ConnectTimeoutException("sem rota", null) }, AvisoDaReabertura.SEM_REDE, recusada = false)
+    fun `sem rede diz que o resultado e incerto e esconde o botao ate reler o painel`() =
+        recusaComAviso({ throw ConnectTimeoutException("sem rota", null) }, AvisoDaReabertura.RESULTADO_INCERTO, recusada = true)
 
     @Test
-    fun `resposta ilegivel de gateway vira o texto generico, sem o corpo cru`() =
-        recusaComAviso({ respond("<html>502</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html")) }, AvisoDaReabertura.GENERICO, recusada = false)
+    fun `resposta ilegivel de gateway diz que o resultado e incerto, sem o corpo cru`() =
+        recusaComAviso({ respond("<html>502</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html")) }, AvisoDaReabertura.RESULTADO_INCERTO, recusada = true)
+
+    @Test
+    fun `resultado incerto nunca afirma que a vaga nao foi reaberta`() {
+        val texto = AvisoDaReabertura.RESULTADO_INCERTO.mensagem
+        assertFalse(texto.contains("não foi reaberta", ignoreCase = true), texto)
+        assertTrue(texto.contains("Atualize a tela"), texto)
+    }
+
+    /**
+     * A sequência do Lince Codex (#935): o servidor registra a falta e cancela a participação na 1ª chamada, e a queda vem
+     * ao devolver. A casa não pode dizer que nada aconteceu, não pode reenviar sozinha e só volta a tentar depois de reler.
+     */
+    private fun efeitoNoServidorSemRespostaLegivel(falhaAoDevolver: suspend MockRequestHandleScope.() -> HttpResponseData) = runBlocking {
+        var efeitosRegistrados = 0
+        val rede = Rede {
+            if (efeitosRegistrados == 0) {
+                efeitosRegistrados++
+                falhaAoDevolver()
+            } else {
+                recusa(HttpStatusCode.Conflict, "posicao_nao_cancelavel")
+            }
+        }
+        val vm = viewModelCom(rede)
+        vm.pedirReabertura()
+
+        vm.confirmarReabertura()!!.join()
+
+        val incerto = vm.estado.value
+        assertEquals(AvisoDaReabertura.RESULTADO_INCERTO, incerto.avisoDaReabertura)
+        assertFalse(incerto.podeReabrir, "o botão não pode voltar antes de reler o painel")
+        assertFalse(incerto.reabrindo)
+        assertNull(incerto.reabertura)
+        assertEquals(1, rede.caminhos.size, "nenhum reenvio automático")
+        // Sem como tocar de novo: nem a pergunta abre.
+        vm.pedirReabertura()
+        assertFalse(vm.estado.value.pedindoReabertura)
+        assertNull(vm.confirmarReabertura())
+        assertEquals(1, rede.caminhos.size)
+
+        // O painel foi relido e a posição ainda aparece em atraso: o novo toque na mesma posição cai no 409 do servidor.
+        vm.atualizarContexto(contexto(emAtraso = true))
+        assertTrue(vm.estado.value.podeReabrir)
+        vm.pedirReabertura()
+        vm.confirmarReabertura()!!.join()
+
+        val depois = vm.estado.value
+        assertEquals(AvisoDaReabertura.SITUACAO_MUDOU, depois.avisoDaReabertura)
+        assertFalse(depois.podeReabrir)
+        assertEquals(listOf("/rest/v1/rpc/reabrir_por_atraso", "/rest/v1/rpc/reabrir_por_atraso"), rede.caminhos)
+    }
+
+    @Test
+    fun `timeout depois do envio nao diz que a vaga nao foi reaberta, nao reenvia e o novo toque recebe 409`() =
+        efeitoNoServidorSemRespostaLegivel { throw SocketTimeoutException("Read timed out") }
+
+    @Test
+    fun `resposta ilegivel depois do envio tem o mesmo tratamento do timeout`() =
+        efeitoNoServidorSemRespostaLegivel { respond("<html>502</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "text/html")) }
 
     @Test
     fun `depois de uma recusa o botao volta so quando o painel for relido`() = runBlocking {
