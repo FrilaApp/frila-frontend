@@ -6,7 +6,7 @@ import createClient from "openapi-fetch";
 
 import type { paths } from "../contrato/tipos.gerado";
 import type { AmbienteDoSupabase } from "./ambiente";
-import type { Renovacao, Sessao } from "./sessao";
+import type { Conferencia, Renovacao, Sessao } from "./sessao";
 
 export const PRAZO_DO_AUTH_MS = 8000;
 
@@ -67,6 +67,27 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
         if (data) return { ok: true, sessao: data };
         // 400 e 401: o token de renovação não vale mais. 429 e 5xx: o Supabase é que falhou.
         const recusada = response.status === 400 || response.status === 401 || response.status === 403;
+        return { ok: false, motivo: recusada ? "recusada" : "indisponivel" };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
+      }
+    },
+
+    /**
+     * A sessão deste token ainda existe no Auth? O PostgREST aceita o token até vencer, mesmo depois do sair; quem
+     * sabe que a sessão foi encerrada é o Auth (provado no dev: depois do logout, 403 session_not_found).
+     */
+    async conferir(acesso: string): Promise<Conferencia> {
+      try {
+        // Rota padrão do Supabase Auth, fora do contrato do Frila (não tem regra do produto).
+        const resposta = await buscar(`${ambiente.url}/auth/v1/user`, {
+          headers: { apikey: ambiente.chavePublicavel, Authorization: `Bearer ${acesso}` },
+          signal: prazo(),
+        });
+        await resposta.body?.cancel();
+        if (resposta.ok) return { ok: true };
+        // 401 e 403 (token ruim, sessão encerrada) e 404 (usuário apagado): não há sessão. O resto é falha do Auth.
+        const recusada = resposta.status === 401 || resposta.status === 403 || resposta.status === 404;
         return { ok: false, motivo: recusada ? "recusada" : "indisponivel" };
       } catch {
         return { ok: false, motivo: "indisponivel" };

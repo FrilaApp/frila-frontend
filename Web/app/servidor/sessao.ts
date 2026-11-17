@@ -11,9 +11,6 @@ export type SessaoAtual = { acesso: string; usuarioId: string | null; email: str
 
 const NOME_ACESSO = "frila-acesso";
 const NOME_RENOVACAO = "frila-renovacao";
-/** Sessões do Auth que esta pessoa encerrou neste navegador (as últimas). Barra resposta atrasada que regrave a sessão. */
-const NOME_ENCERRADAS = "frila-encerradas";
-const MAXIMO_DE_ENCERRADAS = 5;
 /** Sem uso por 30 dias, a pessoa entra de novo. */
 const VIDA_DA_RENOVACAO_S = 60 * 60 * 24 * 30;
 /** Renova um pouco antes de vencer, para o token não morrer no meio de um pedido. */
@@ -26,11 +23,7 @@ export const FOLGA_DA_RENOVACAO_S = 60;
  */
 function nomes(seguro: boolean) {
   const prefixo = seguro ? "__Host-" : "";
-  return {
-    acesso: `${prefixo}${NOME_ACESSO}`,
-    renovacao: `${prefixo}${NOME_RENOVACAO}`,
-    encerradas: `${prefixo}${NOME_ENCERRADAS}`,
-  };
+  return { acesso: `${prefixo}${NOME_ACESSO}`, renovacao: `${prefixo}${NOME_RENOVACAO}` };
 }
 
 function cookie(nome: string, valor: string, vidaEmSegundos: number, seguro: boolean): string {
@@ -71,39 +64,6 @@ export function lerCookiesDaSessao(request: Request): { acesso: string | null; r
   return { acesso: cookies.get(nome.acesso) || null, renovacao: cookies.get(nome.renovacao) || null };
 }
 
-function sessoesEncerradas(request: Request): string[] {
-  const valor = cookiesDoPedido(request).get(nomes(ehPedidoSeguro(request)).encerradas) ?? "";
-  return valor.split(".").filter((chave) => /^[\w-]{1,64}$/.test(chave));
-}
-
-/**
- * A sessão do Auth a que o token pertence (`session_id`): a renovação troca o token e mantém a sessão.
- * Sem `session_id`, usa o fim da assinatura do próprio token.
- */
-function chaveDaSessao(acesso: string): string | null {
-  const { sessaoId } = lerToken(acesso);
-  if (sessaoId && /^[\w-]{1,64}$/.test(sessaoId)) return sessaoId;
-  const assinatura = (acesso.split(".")[2] ?? "").replace(/[^\w-]/g, "").slice(-43);
-  return assinatura.length > 0 ? assinatura : null;
-}
-
-function foiEncerrada(acesso: string, encerradas: string[]): boolean {
-  const chave = chaveDaSessao(acesso);
-  return chave !== null && encerradas.includes(chave);
-}
-
-/**
- * Ao sair: guarda a sessão encerrada num cookie próprio, que nenhuma outra resposta regrava. Assim uma renovação que
- * ficou retida e responde depois do sair não reativa a sessão: o próximo pedido vê que ela foi encerrada e sai.
- */
-export function cookieDeSessaoEncerrada(request: Request, acesso: string): string | null {
-  const chave = chaveDaSessao(acesso);
-  if (!chave) return null;
-  const encerradas = [...sessoesEncerradas(request).filter((c) => c !== chave), chave].slice(-MAXIMO_DE_ENCERRADAS);
-  const seguro = ehPedidoSeguro(request);
-  return cookie(nomes(seguro).encerradas, encerradas.join("."), VIDA_DA_RENOVACAO_S, seguro);
-}
-
 /** A resposta já mexe nos cookies da sessão? (entrar e sair gravam os seus; a renovação não pode passar por cima.) */
 export function respostaJaGravaSessao(resposta: Response): boolean {
   return resposta.headers.getSetCookie().some((linha) => /^(__Host-)?frila-(acesso|renovacao)=/.test(linha));
@@ -113,12 +73,7 @@ export function respostaJaGravaSessao(resposta: Response): boolean {
  * Lê o corpo do token de acesso SEM conferir a assinatura: serve só para saber quando renovar e o que mostrar.
  * Quem confere o token é o Supabase, em cada pedido. Nada aqui decide permissão.
  */
-export function lerToken(acesso: string): {
-  venceEm: number | null;
-  usuarioId: string | null;
-  email: string | null;
-  sessaoId: string | null;
-} {
+export function lerToken(acesso: string): { venceEm: number | null; usuarioId: string | null; email: string | null } {
   try {
     const corpo = acesso.split(".")[1] ?? "";
     const bytes = Uint8Array.from(atob(corpo.replace(/-/g, "+").replace(/_/g, "/")), (letra) => letra.charCodeAt(0));
@@ -129,10 +84,9 @@ export function lerToken(acesso: string): {
       venceEm: typeof campos.exp === "number" ? campos.exp : null,
       usuarioId: typeof campos.sub === "string" ? campos.sub : null,
       email: typeof campos.email === "string" ? campos.email : null,
-      sessaoId: typeof campos.session_id === "string" ? campos.session_id : null,
     };
   } catch {
-    return { venceEm: null, usuarioId: null, email: null, sessaoId: null };
+    return { venceEm: null, usuarioId: null, email: null };
   }
 }
 
@@ -142,52 +96,55 @@ export function sessaoAtualDe(acesso: string): SessaoAtual {
 }
 
 export type Renovacao = { ok: true; sessao: Sessao } | { ok: false; motivo: "recusada" | "indisponivel" };
+export type Conferencia = { ok: true } | { ok: false; motivo: "recusada" | "indisponivel" };
+
+/** O que a sessão precisa do Auth. As duas chamadas nunca acontecem no mesmo pedido. */
+export type AuthDaSessao = {
+  renovar: (tokenDeRenovacao: string) => Promise<Renovacao>;
+  conferir: (acesso: string) => Promise<Conferencia>;
+};
+
+type Decisao = { sessao: SessaoAtual | null; cookies: string[] };
 
 /**
- * Decide a sessão de um pedido, uma vez só (no middleware da raiz):
- * - token de acesso ainda bom: usa;
- * - vencido ou perto de vencer, com token de renovação: renova e manda regravar os cookies;
- * - renovação recusada: sai (apaga os cookies);
- * - Supabase fora do ar: segue com o token atual enquanto ele valer, sem apagar nada;
- * - token de uma sessão que a pessoa encerrou neste navegador (antes ou depois de renovar): sai.
+ * Decide a sessão de um pedido, uma vez só (no middleware da raiz). Quem diz se a sessão existe é o Auth, no
+ * servidor, em todo pedido com cookie de sessão, com UMA chamada:
+ * - token de acesso com folga: confere no Auth (`conferir`);
+ * - vencido ou perto de vencer, com token de renovação: renova (a renovação já é a conferência) e regrava os cookies;
+ * - Auth recusa (sessão encerrada, token ruim): sai e apaga os cookies;
+ * - Auth fora do ar ou sem resposta no prazo: sem sessão neste pedido, leitura ou envio, sem apagar os cookies
+ *   (quando o Auth voltar, a pessoa segue logada). Nada guardado no navegador decide sozinho que há sessão.
  */
 export async function resolverSessao(
   request: Request,
-  renovar: (tokenDeRenovacao: string) => Promise<Renovacao>,
+  auth: AuthDaSessao | null,
   agoraEmSegundos: number = Math.floor(Date.now() / 1000),
-): Promise<{ sessao: SessaoAtual | null; cookies: string[] }> {
+): Promise<Decisao> {
   const seguro = ehPedidoSeguro(request);
   const { acesso, renovacao } = lerCookiesDaSessao(request);
   if (!acesso && !renovacao) {
     return { sessao: null, cookies: [] };
   }
-
-  const encerradas = sessoesEncerradas(request);
-  if (acesso && foiEncerrada(acesso, encerradas)) {
-    return { sessao: null, cookies: cookiesDeSaida(seguro) };
+  if (!auth) {
+    return { sessao: null, cookies: [] };
   }
 
   const venceEm = acesso ? lerToken(acesso).venceEm : null;
   const acessoVale = acesso !== null && venceEm !== null && venceEm > agoraEmSegundos;
   const acessoFolgado = acessoVale && venceEm - agoraEmSegundos > FOLGA_DA_RENOVACAO_S;
-  if (acesso && acessoFolgado) {
-    return { sessao: sessaoAtualDe(acesso), cookies: [] };
+
+  if (acesso && (acessoFolgado || (acessoVale && !renovacao))) {
+    const conferencia = await auth.conferir(acesso);
+    if (conferencia.ok) return { sessao: sessaoAtualDe(acesso), cookies: [] };
+    return { sessao: null, cookies: conferencia.motivo === "recusada" ? cookiesDeSaida(seguro) : [] };
   }
   if (!renovacao) {
-    return acesso && acessoVale
-      ? { sessao: sessaoAtualDe(acesso), cookies: [] }
-      : { sessao: null, cookies: cookiesDeSaida(seguro) };
-  }
-
-  const resultado = await renovar(renovacao);
-  if (resultado.ok) {
-    if (foiEncerrada(resultado.sessao.access_token, encerradas)) {
-      return { sessao: null, cookies: cookiesDeSaida(seguro) };
-    }
-    return { sessao: sessaoAtualDe(resultado.sessao.access_token), cookies: cookiesDaSessao(resultado.sessao, seguro) };
-  }
-  if (resultado.motivo === "recusada") {
     return { sessao: null, cookies: cookiesDeSaida(seguro) };
   }
-  return { sessao: acesso && acessoVale ? sessaoAtualDe(acesso) : null, cookies: [] };
+
+  const resultado = await auth.renovar(renovacao);
+  if (resultado.ok) {
+    return { sessao: sessaoAtualDe(resultado.sessao.access_token), cookies: cookiesDaSessao(resultado.sessao, seguro) };
+  }
+  return { sessao: null, cookies: resultado.motivo === "recusada" ? cookiesDeSaida(seguro) : [] };
 }
