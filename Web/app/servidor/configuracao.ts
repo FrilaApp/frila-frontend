@@ -20,14 +20,15 @@ export const PRAZO_MS = 3000;
 
 export async function lerConfiguracaoDoApp(
   api: Api | null,
-  opcoes: { prazoMs?: number } = {},
+  opcoes: { prazoMs?: number; plataforma?: "web" | "ios" } = {},
 ): Promise<LeituraDaConfiguracao> {
   if (!api) {
     return { estado: "nao_configurado" };
   }
   try {
     const { data, response } = await api.GET("/rpc/configuracao_do_app", {
-      params: { query: { plataforma: "web", versao_app: VERSAO_DA_WEB } },
+      // A linha "ios" só serve para o link da loja (url_da_loja), que o próprio app usa.
+      params: { query: { plataforma: opcoes.plataforma ?? "web", versao_app: VERSAO_DA_WEB } },
       signal: AbortSignal.timeout(opcoes.prazoMs ?? PRAZO_MS),
     });
     if (data) {
@@ -42,11 +43,11 @@ export async function lerConfiguracaoDoApp(
 /** Monta o cliente com as variáveis do Worker e lê a configuração. Chave de serviço vira estado, não erro 500. */
 export async function lerConfiguracaoComVariaveis(
   variaveis: Parameters<typeof ambienteDoSupabase>[0],
-  opcoes: { fetch?: typeof fetch } = {},
+  opcoes: { fetch?: typeof fetch; plataforma?: "web" | "ios" } = {},
 ): Promise<LeituraDaConfiguracao> {
   try {
     const ambiente = ambienteDoSupabase(variaveis);
-    return await lerConfiguracaoDoApp(ambiente ? criarApi(ambiente, opcoes) : null);
+    return await lerConfiguracaoDoApp(ambiente ? criarApi(ambiente, { fetch: opcoes.fetch }) : null, { plataforma: opcoes.plataforma });
   } catch (erro) {
     if (erro instanceof ChaveProibida) {
       console.error(erro.message);
