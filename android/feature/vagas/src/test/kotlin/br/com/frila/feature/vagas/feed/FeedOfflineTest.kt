@@ -11,19 +11,16 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
-import br.com.frila.core.dominio.modelo.Coordenada
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.*
 import io.mockk.mockk
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Rule
@@ -48,14 +45,8 @@ class FeedOfflineTest {
         1.0, 12000, 1, InclusosDto(false, false, false), "selecao",
     )
     private fun semRede(): Nothing = throw ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "Teste")
-    private fun localizacao(travada: Boolean = false) = object : ProvedorDeLocalizacao {
-        override fun temPermissaoDeLocalizacao() = false
-        override fun isGpsAtivado() = false
-        override suspend fun obterCoordenadaAtual(): Coordenada? = if (travada) awaitCancellation() else null
-    }
-    private fun criarVm(repo: RepositorioVagas, escopo: CoroutineScope = CoroutineScope(Dispatchers.Default),
-        gpsTravado: Boolean = false) = FeedVagasViewModel(
-        mockk(relaxed = true), localizacao(gpsTravado), escopo = escopo, repositorioVagas = repo,
+    private fun criarVm(repo: RepositorioVagas, escopo: CoroutineScope = CoroutineScope(Dispatchers.Default)) = FeedVagasViewModel(
+        mockk(relaxed = true), escopo = escopo, repositorioVagas = repo,
     )
 
     @Test fun `nova abertura offline le disco e exibe lista sem ficar carregando`() = runBlocking {
@@ -69,15 +60,18 @@ class FeedOfflineTest {
         assertEquals(vaga, vm.encontrarVagaPorId("vaga-teste"))
     }
 
-    @Test fun `cache aparece antes de GPS responder e prazo permite fallback`() = runTest {
-        val repo = RepositorioVagas(null) { listOf(vaga) }
+    @Test fun `cache aparece antes de a rede responder`() = runTest {
+        val redeLiberada = CompletableDeferred<Unit>()
+        var redeLenta = false
+        val repo = RepositorioVagas(null) { if (redeLenta) redeLiberada.await(); listOf(vaga) }
         repo.listar()
-        val vm = criarVm(repo, this, gpsTravado = true)
+        redeLenta = true
+        val vm = criarVm(repo, this)
         val carga = vm.carregar()
         vm.estado.first { it.status == StatusFeed.SUCESSO }
         assertTrue(vm.estado.value.emCache)
         assertFalse(carga.isCompleted)
-        advanceTimeBy(3_001)
+        redeLiberada.complete(Unit)
         carga.join()
         assertFalse(vm.estado.value.emCache)
     }
@@ -138,7 +132,7 @@ class FeedOfflineTest {
         val repo = RepositorioVagas(null, agora = agora) { if (offline) semRede() else listOf(encerrando) }
         repo.listar()
         offline = true
-        val vm = FeedVagasViewModel(mockk(relaxed = true), localizacao(), escopo = CoroutineScope(Dispatchers.Default),
+        val vm = FeedVagasViewModel(mockk(relaxed = true), escopo = CoroutineScope(Dispatchers.Default),
             repositorioVagas = repo, agora = agora)
         vm.carregar().join()
         assertEquals(1, vm.estado.value.vagas.size)

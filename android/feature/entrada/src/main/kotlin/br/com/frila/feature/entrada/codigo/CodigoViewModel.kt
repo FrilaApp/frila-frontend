@@ -45,6 +45,7 @@ class CodigoViewModel(
     private val agora: () -> Instant = Instant::now,
     /** Depois da entrada (sessão já salva): no app, registra o aparelho para o push (C0-10). */
     private val aoEntrar: suspend () -> Unit = {},
+    private val permitirDominioDeTeste: Boolean = false,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -90,7 +91,7 @@ class CodigoViewModel(
         return escopoDeTrabalho.launch {
             _estado.update { it.copy(carregando = true, erro = null) }
             try {
-                val sessaoDto = if (DemonstracaoContas.ehContaDeDemonstracao(estadoAtual.email)) {
+                val sessaoDto = if (DemonstracaoContas.ehContaDeDemonstracao(estadoAtual.email, permitirDominioDeTeste)) {
                     servicoAutenticacao.entrarDemonstracao(estadoAtual.email, estadoAtual.codigo)
                 } else {
                     servicoAutenticacao.verificarOtp(estadoAtual.email, estadoAtual.codigo)
@@ -121,7 +122,7 @@ class CodigoViewModel(
         if (segundosParaReenviar() > 0 || _estado.value.carregando) return null
         val email = _estado.value.email
 
-        if (DemonstracaoContas.ehContaDeDemonstracao(email)) {
+        if (DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste)) {
             codigoPedidoEm = agora()
             _estado.update { it.copy(reenviado = true, erro = null, reenviosFeitos = it.reenviosFeitos + 1) }
             return null

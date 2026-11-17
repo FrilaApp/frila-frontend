@@ -19,6 +19,8 @@ data class EstadoCadastro(
     val aceitouTermos: Boolean = false,
     val erro: String? = null,
     val concluido: Boolean = false,
+    /** `true` enquanto `criar_conta` está em voo: bloqueia um segundo envio. */
+    val enviando: Boolean = false,
 ) {
     /** `false` só quando há data de nascimento preenchida e ela indica menor de idade (RN20). */
     val nascimentoValido: Boolean

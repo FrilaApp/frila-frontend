@@ -12,11 +12,11 @@ import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosNulo
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnosReal
+import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
+import br.com.frila.core.localizacao.RemovedorDeGeofencesAntigos
+import br.com.frila.core.localizacao.RemovedorDeGeofencesAntigosDoPlayServices
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
@@ -27,6 +27,7 @@ import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
@@ -69,6 +70,8 @@ import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.OpcaoDePontoBase
+import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
 import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
 import br.com.frila.feature.perfil.FluxoDaFotoDePerfil
@@ -83,7 +86,6 @@ import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MedidorDeDistancia
 import br.com.frila.feature.turnos.MeusTurnosViewModel
-import br.com.frila.feature.turnos.MonitorizadorDeTurnosProximos
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
 import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
@@ -170,11 +172,12 @@ val moduloRede = module {
     factory { get<GestorClienteKtor>().clienteAtual }
     /** Serviços singleton, mas leem o cliente vigente do gestor a cada chamada. */
     single { ServicoAutenticacao { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoConta { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoVagas { get<GestorClienteKtor>().clienteAtual } }
     factory {
         val servico = get<ServicoVagas>()
         val armazenamento = get<ArmazenamentoDeSessao>()
-        get<CacheVagasDaSessao>().criar(armazenamento) { coordenada -> servico.listarVagasAbertas(coordenada) }
+        get<CacheVagasDaSessao>().criar(armazenamento) { servico.listarVagasAbertas() }
     }
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
@@ -211,15 +214,22 @@ val moduloNotificacoes = module {
 }
 
 /**
- * Leitura de localização sob demanda para o check-in presencial (RF13/RN06/RN22), e geofencing
- * passivo de aproximação de turno (RN06/RNF04, cartão Uu04zAt4).
+ * Leitura de localização sob demanda, só no toque de marcar presença e saída (RF13/RN06/RN22). Nada lê a posição fora
+ * do toque: não há geofence nem leitura ao abrir a lista de vagas.
  */
 val moduloLocalizacao = module {
     single<ProvedorDeLocalizacao> { ProvedorDeLocalizacaoFused(get()) }
-    single<GerenciadorGeofencingTurnos> {
-        getOrNull<Context>()
-            ?.let(::GerenciadorGeofencingTurnosReal)
-            ?: GerenciadorGeofencingTurnosNulo()
+    /** Só desfaz o que uma versão anterior registrou; sem `Context` (testes) não há Play Services e nada a remover. */
+    single<RemovedorDeGeofencesAntigos> {
+        getOrNull<Context>()?.let { RemovedorDeGeofencesAntigosDoPlayServices(it) } ?: RemovedorDeGeofencesAntigos { }
+    }
+    single {
+        val turnos = get<ServicoTurnos>()
+        LimpezaDeGeofencesAntigos(
+            temSessao = get<ArmazenamentoDeSessao>()::estaAutenticado,
+            idsDosTurnos = { turnos.listarMeusTurnos().map { it.id } },
+            remover = get<RemovedorDeGeofencesAntigos>()::remover,
+        )
     }
 }
 
@@ -232,15 +242,20 @@ val moduloFeatures = module {
             }
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
-    viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() }) }
-    viewModel { CadastroViewModel() }
-    viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
+    viewModel { EntradaViewModel(get(), permitirDominioDeTeste = BuildConfig.DEBUG) }
+    viewModel { (email: String) ->
+        CodigoViewModel(
+            email, get(), get(),
+            aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+        )
+    }
+    viewModel { CadastroViewModel(get()) }
+    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
-    single { MonitorizadorDeTurnosProximos(gerenciadorGeofencing = get(), preferenciasNotificacao = get()) }
-    viewModel { MeusTurnosViewModel(get(), monitorizador = get()) }
+    viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
-        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), monitorizador = get())
+        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get())
     }
     viewModel { AvaliacaoViewModel(get()) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
@@ -392,6 +407,20 @@ val moduloFeatures = module {
             carregarRegioes = perfil::regioesAdministrativas,
             salvarApresentacao = perfil::atualizarApresentacaoProfissional,
             salvarRegioes = perfil::definirRegioesAtendidas,
+        )
+    }
+    /**
+     * Ponto base (tela provisória): a pessoa escolhe uma das regiões administrativas do DF, que já estão no app, e o centro dela vira o ponto
+     * base. Nada lê a posição do aparelho nem consulta serviço de endereço.
+     */
+    viewModel {
+        val perfil = get<ServicoPerfil>()
+        PontoBaseViewModel(
+            opcoes = GeocodificadorDfOffline.REGIOES_ADMINISTRATIVAS.map { OpcaoDePontoBase(it.nome, it.centroide) },
+            carregarPerfil = perfil::obterMeuPerfilProfissional,
+            carregarFuncoes = get<ServicoVagas>()::listarFuncoes,
+            criarPerfil = perfil::criarPerfilProfissional,
+            atualizarPerfil = perfil::atualizarPerfilProfissional,
         )
     }
     /**

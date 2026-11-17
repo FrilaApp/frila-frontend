@@ -142,6 +142,22 @@ data class ResultadoCandidaturaDto(
 )
 
 /**
+ * Corpo de `POST /rest/v1/rpc/criar_conta` (RF01, RN20, RN25). `nascimento` vai como `YYYY-MM-DD`
+ * e `telefone` em E.164. `termosVersao` é a versão dos Termos e da Política que a tela mostrou;
+ * o instante do aceite é carimbado pelo servidor. `sinalIdade` é opcional e fica fora do JSON
+ * quando nulo (`dezoito_ou_mais`, `recusou` ou `indisponivel`).
+ */
+@Serializable
+data class CriarContaDto(
+    @SerialName("perfil") val perfil: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("telefone") val telefone: String,
+    @SerialName("nascimento") val nascimento: String,
+    @SerialName("termos_versao") val termosVersao: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("sinal_idade") val sinalIdade: String? = null,
+)
+
+/**
  * Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). `versao_app` (0.2.56) é opcional: sem ela o
  * campo não vai no corpo (nem como null), e o servidor trata o aparelho como antigo para os avisos de chamada.
  */
@@ -1110,4 +1126,30 @@ data class AceitarTermosDto(
 data class AceiteDeTermosDto(
     @SerialName("termos_versao") val termosVersao: String,
     @SerialName("aceito_em") val aceitoEm: String,
+)
+
+// ---------------------------------------------------------------------------------------------
+// Lote 2 da paridade com o iOS (L2-0, contrato 0.2.95): turno do profissional e da casa, vagas da
+// casa, vaga do profissional, conta e contestação. As leituras vão em POST com os parâmetros no
+// corpo, como no iOS: o POST não esbarra na transação somente leitura do GET.
+// `contato_do_turno` fica de fora: descontinuada na 0.2.49 (o app não troca contato).
+// ---------------------------------------------------------------------------------------------
+
+/** Corpo de `POST /rest/v1/rpc/avisar_a_caminho`: o turno em que o profissional está confirmado. */
+@Serializable
+data class AvisarACaminhoDto(
+    @SerialName("turno_id") val turnoId: String,
+)
+
+/** Resposta de `avisar_a_caminho` (schema `ResultadoACaminho`): repetir devolve o `a_caminho_em` original. */
+@Serializable
+data class ResultadoACaminhoDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("a_caminho_em") val aCaminhoEm: String,
+)
+
+/** Corpo de `POST /rest/v1/rpc/reabrir_por_atraso`: a posição do profissional que não chegou. */
+@Serializable
+data class ReabrirPorAtrasoDto(
+    @SerialName("posicao_id") val posicaoId: String,
 )

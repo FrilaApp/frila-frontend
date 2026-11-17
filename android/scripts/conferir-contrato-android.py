@@ -186,6 +186,7 @@ def main() -> None:
         "EscolherCandidatoDto": "/rpc/escolher_candidato",
         "ConfirmarCheckinManualDto": "/rpc/confirmar_checkin_manual",
         "RemoverDispositivoDto": "/rpc/remover_dispositivo",
+        "CriarContaDto": "/rpc/criar_conta",
         "DefinirServicosDto": "/rpc/definir_servicos",
         "DefinirPreferenciaChamadasDto": "/rpc/definir_preferencia_chamadas",
         "BuscarProfissionaisDto": "/rpc/buscar_profissionais",
@@ -197,6 +198,8 @@ def main() -> None:
         "GerarCodigoCheckinDto": "/rpc/gerar_codigo_checkin",
         "DefinirRegioesAtendidasDto": "/rpc/definir_regioes_atendidas",
         "ValidarCodigoCheckinDto": "/rpc/validar_codigo_checkin",
+        "AvisarACaminhoDto": "/rpc/avisar_a_caminho",
+        "ReabrirPorAtrasoDto": "/rpc/reabrir_por_atraso",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
