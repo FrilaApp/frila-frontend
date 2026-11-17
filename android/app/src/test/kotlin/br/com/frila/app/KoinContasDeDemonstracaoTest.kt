@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
@@ -44,6 +45,8 @@ class KoinContasDeDemonstracaoTest : KoinTest {
 
     @Test
     fun `debug aceita o dominio de teste nos dois ViewModels do grafo real`() = runBlocking {
+        // Só vale no debug; o release tem o teste dele em KoinDemonstracaoSoDebugTest.
+        assumeTrue(BuildConfig.DEBUG, "só vale no build debug")
         val pedidos = mutableListOf<String>()
         val cliente = ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = MockEngine { request ->
             pedidos += request.url.encodedPath
