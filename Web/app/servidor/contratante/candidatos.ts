@@ -30,6 +30,7 @@ export async function lerCandidatos(api: Api | null, vagaId: string): Promise<Le
 
 export type CandidatoNaTela = {
   candidaturaId: string;
+  profissionalId: string;
   nome: string;
   daEquipe: boolean;
   /** "7 de 7": sempre com o denominador, nunca média (RN07, RN08). `null` = sem histórico. */
@@ -46,6 +47,7 @@ export function candidatosParaATela(candidatos: Candidato[]): CandidatoNaTela[] 
     const chegada = quandoDaVaga(criada_em, criada_em);
     return {
       candidaturaId: candidatura_id,
+      profissionalId: profissional.id,
       nome: profissional.nome,
       daEquipe: da_equipe ?? false,
       chamariamDeNovo: reputacao.total > 0 ? { positivas: reputacao.positivas, total: reputacao.total } : null,

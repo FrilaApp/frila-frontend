@@ -92,7 +92,12 @@ export default function EquipeDaCasa({ loaderData, actionData }: Route.Component
             const removendo = enviandoEste(navegacao, "remover") && navegacao.formData?.get("profissional_id") === membro.id;
             return (
               <li key={membro.id} className="flex flex-col gap-2 rounded-cartao border border-borda bg-superficie p-4">
-                <p className="text-lg font-semibold">{membro.nome}</p>
+                <Link
+                  to={`/casa/profissionais/${membro.id}?volta=${encodeURIComponent(`/casa/equipe?casa=${casa.id}`)}`}
+                  className="text-lg font-semibold underline underline-offset-4"
+                >
+                  {membro.nome}
+                </Link>
                 {membro.funcoes.length > 0 ? <p className="text-tinta-suave">{membro.funcoes.join(", ")}</p> : null}
                 {casa.administrador ? (
                   <Form method="post" className="flex flex-col gap-2">

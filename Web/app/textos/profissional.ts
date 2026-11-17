@@ -167,6 +167,7 @@ export const profissional = {
       antes_do_fim: "A avaliação abre depois do fim do turno.",
       sem_presenca_verificada: "Só turno com presença confirmada pode ser avaliado.",
       ja_registrada: "Você já respondeu sobre este turno.",
+      conta_suspensa: "A sua conta está suspensa. Fale com o suporte para saber mais.",
       sem_permissao: "Só quem trabalhou no turno pode avaliar.",
       indisponivel: "Não deu para enviar agora. Tente de novo em instantes.",
     },
