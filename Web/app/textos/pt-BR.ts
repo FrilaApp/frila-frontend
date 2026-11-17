@@ -2,8 +2,16 @@
  * Catálogo único de textos da web. Tela nenhuma escreve texto direto no JSX:
  * todo texto visível sai daqui.
  */
+import { profissional } from "./profissional";
+import { publico } from "./publico";
+
 export const textos = {
   marca: "Frila",
+  // Páginas públicas, textos do marketing (arquivo próprio para entrar como vieram).
+  publico,
+  // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
+  profissional,
+  imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
     corpo: "Em breve você vai poder publicar vagas e pegar turnos também pelo navegador. Por enquanto, o Frila está no iPhone.",
@@ -24,6 +32,85 @@ export const textos = {
       chave_recusada: "a chave configurada neste ambiente foi recusada",
     },
     versaoMinima: "Versão mínima",
+  },
+  entrar: {
+    tituloDaAba: "Entrar no Frila",
+    titulo: "Entrar",
+    corpo: "Digite seu e-mail. A gente manda um código de 6 dígitos para você entrar, sem senha.",
+    rotuloDoEmail: "E-mail",
+    pedirCodigo: "Receber código",
+    enviando: "Enviando…",
+    tituloDoCodigo: "Digite o código",
+    corpoDoCodigo: "Se o e-mail estiver certo, o código chega em instantes em",
+    rotuloDoCodigo: "Código de 6 dígitos",
+    confirmar: "Entrar",
+    conferindo: "Conferindo…",
+    trocarEmail: "Usar outro e-mail",
+    reenviar: "Mandar outro código",
+    termos: "Ao entrar, você concorda com os Termos de Uso e a Política de Privacidade do Frila.",
+    linkDosTermos: "Termos de Uso",
+    linkDaPrivacidade: "Política de Privacidade",
+    erros: {
+      email_invalido: "Confira o e-mail: ele parece incompleto.",
+      codigo_incompleto: "O código tem 6 dígitos.",
+      codigo_invalido: "Código errado ou vencido. Confira ou peça outro.",
+      limite: "Muitas tentativas. Espere um minuto e tente de novo.",
+      indisponivel: "Não deu para falar com o servidor. Tente de novo em instantes.",
+    },
+  },
+  conta: {
+    entrou: "Você entrou como",
+    semEmail: "sua conta",
+    sair: "Sair",
+    sairFalhou: "Não deu para sair agora. Tente de novo.",
+    estado: {
+      ok: "Conta",
+      sem_conta: "Falta completar o cadastro para usar o Frila.",
+      indisponivel: "Não deu para carregar sua conta agora. Tente de novo em instantes.",
+    },
+    perfil: { profissional: "Profissional", contratante: "Contratante" },
+    entrar: "Entrar",
+    completarCadastro: "Completar cadastro",
+    verVagas: "Ver vagas",
+    termosMudaram: "Os Termos de Uso e a Política de Privacidade mudaram. Leia e aceite para continuar usando o Frila.",
+    aceitarTermos: "Li e aceito",
+    aceiteFalhou: "Não deu para registrar o aceite agora. Tente de novo em instantes.",
+    termosMudaramNaTela: "Os Termos mudaram depois que você abriu esta página. Leia a versão atual e aceite de novo.",
+  },
+  cadastro: {
+    tituloDaAba: "Criar conta no Frila",
+    titulo: "Criar sua conta",
+    corpo: "Falta pouco. Você entrou com",
+    contaIndisponivel: "Não deu para conferir sua conta agora. Se você já tem cadastro, tente de novo em instantes.",
+    perfil: "Como você vai usar o Frila?",
+    ajudaDoPerfil: "Essa escolha não muda depois. Para usar o outro perfil, é preciso outra conta, com outro e-mail.",
+    opcoesDoPerfil: {
+      contratante: "publico vagas para o meu bar, restaurante ou evento",
+      profissional: "quero pegar turnos e diárias",
+    },
+    nome: "Nome completo",
+    telefone: "Celular",
+    ajudaDoTelefone: "Com DDD. É o contato no dia do turno.",
+    nascimento: "Data de nascimento",
+    ajudaDoNascimento: "O Frila é para maiores de 18 anos.",
+    aceite: "Li e aceito os Termos de Uso e a Política de Privacidade do Frila.",
+    abreEmOutraAba: "(abrem em outra aba)",
+    criar: "Criar conta",
+    enviando: "Criando…",
+    sairEUsarOutroEmail: "Sair e usar outro e-mail",
+    erros: {
+      perfil: "Escolha como você vai usar o Frila.",
+      nomeObrigatorio: "Digite seu nome completo.",
+      nomeInvalido: "Esse nome não pode ser usado. Digite seu nome de verdade.",
+      telefone: "Confira o celular: DDD e número, só do Brasil.",
+      nascimentoObrigatorio: "Informe sua data de nascimento.",
+      nascimentoInvalido: "Confira a data de nascimento.",
+      menorDeIdade: "O Frila é só para maiores de 18 anos.",
+      aceite: "Para criar a conta, é preciso aceitar os Termos e a Política.",
+      termosDesatualizados: "Os Termos mudaram agora há pouco. Recarregue a página e tente de novo.",
+      termosMudaramNaTela: "Os Termos mudaram depois que você abriu esta página. Leia a versão atual e marque o aceite de novo.",
+      indisponivel: "Não deu para criar a conta agora. Tente de novo em instantes.",
+    },
   },
   erro: {
     naoEncontradoTitulo: "Página não encontrada",

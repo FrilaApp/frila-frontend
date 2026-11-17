@@ -1,10 +1,14 @@
 package br.com.frila.core.localizacao
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
@@ -53,6 +57,12 @@ class GeofenceAlertaReceiver : BroadcastReceiver(), KoinComponent {
     }
 
     private fun mostrarNotificacao(context: Context, canal: String, titulo: String, corpo: String, idDoAlerta: String?) {
+        // Android 13 ou mais: sem a permissão de aviso, nada a mostrar.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         try {
             val notificacao = NotificationCompat.Builder(context, canal)
                 .setContentTitle(titulo)

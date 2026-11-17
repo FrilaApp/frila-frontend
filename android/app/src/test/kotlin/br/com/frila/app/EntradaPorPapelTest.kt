@@ -166,6 +166,7 @@ class EntradaPorPapelTest {
                             )
                         }
                         viewModel { FeedVagasViewModel(ServicoVagas(cliente), semLocalizacao) }
+                        viewModel { br.com.frila.feature.turnos.MeusTurnosViewModel(br.com.frila.core.rede.ServicoTurnos { cliente }) }
                         viewModel { (id: String, nome: String?, recente: String?) ->
                             MinhasVagasViewModel(
                                 estabelecimentoId = id,
@@ -279,6 +280,17 @@ class EntradaPorPapelTest {
 
         assertTrue("o feed do profissional deveria ler as vagas (rota: ${rotaAtual()}, chamadas: $chamadas)", leu)
         assertEquals(Rotas.FEED, rotaAtual())
+    }
+
+    @Test
+    fun `C0-9 - do feed da profissional chega-se a Meus turnos`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED && chamadas.any { it.endsWith("/rpc/vagas_abertas") } }
+
+        rule.onNodeWithText("Meus turnos").performClick()
+
+        assertTrue("o botão do feed não levou a Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
+        assertEquals("Meus turnos abre por cima do feed", Rotas.FEED, rotaAbaixo())
     }
 
     // ───────────────── Revisão do #785: a casa nunca fica presa na tela inicial ─────────────────

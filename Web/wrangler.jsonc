@@ -14,7 +14,9 @@
 	"vars": {
 		"AMBIENTE": "dev",
 		// "1" mostra a web; qualquer outro valor mostra só a página "em breve".
-		"WEB_LIGADA": "1"
+		"WEB_LIGADA": "1",
+		// Conta de demonstração do dev (a mesma do app, para teste de ponta a ponta). Não existe em produção.
+		"EMAILS_DE_DEMONSTRACAO": "revisao-profissional@frila.app"
 	},
 	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
 	"secrets": {
@@ -27,7 +29,16 @@
 	"env": {
 		"producao": {
 			"name": "frila-web",
+			"workers_dev": false,
 			"preview_urls": false,
+			// Só estes três caminhos vão ao Worker; o resto do frilabr.com fica como está.
+			// Não use "frilabr.com/app*": pegaria também /apps, /app-store etc.
+			// /app.data é o pedido de dados da página inicial do React Router v8.
+			"routes": [
+				{ "pattern": "frilabr.com/app", "zone_name": "frilabr.com" },
+				{ "pattern": "frilabr.com/app/*", "zone_name": "frilabr.com" },
+				{ "pattern": "frilabr.com/app.data", "zone_name": "frilabr.com" }
+			],
 			"secrets": {
 				"required": ["SUPABASE_URL", "SUPABASE_CHAVE_PUBLICAVEL"]
 			},

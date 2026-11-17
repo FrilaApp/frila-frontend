@@ -134,25 +134,45 @@ class CheckinViewModelTest {
         assertTrue(comprovante.codigoAutenticacao.startsWith("CHK-"))
     }
 
-    /** Igual ao iOS (`RegraDePresenca.precisaoHorizontalMaximaMetros`): leitura com erro acima de 100 m não prova presença. */
+    /**
+     * Igual ao iOS (`RegraDePresenca.precisaoHorizontalMaximaMetros` e a etapa `.semGPS(.imprecisa)`): leitura com erro acima de
+     * 100 m não prova presença. Nada sai sozinho: a tela diz o motivo e a pessoa escolhe tentar de novo ou o check-in manual.
+     */
     @Test
-    fun `leitura com precisao pior que 100 m nao vira distancia e o checkin segue manual`() = runBlocking {
-        val provedor = provedorComPermissaoEGps(coordenadaProxima, precisaoMetros = 150f)
-        var corpoRecebido: String? = null
-        val engine = MockEngine { request ->
-            corpoRecebido = (request.body as io.ktor.http.content.TextContent).text
-            respond(
-                content = resultadoJson(tipo = "manual", verificacao = "pendente"),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-            )
-        }
-        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
-        val viewModel = criarViewModel(provedor, servico)
+    fun `leitura com precisao pior que 100 m mostra o motivo e nao envia nada ate a pessoa escolher`() = runBlocking {
+        val provedor = mockk<ProvedorDeLocalizacao>()
+        every { provedor.temPermissaoDeLocalizacao() } returns true
+        every { provedor.isGpsAtivado() } returns true
+        coEvery { provedor.lerParaCheckin() } returnsMany listOf(
+            LeituraDeLocalizacao(coordenadaProxima, precisaoMetros = 150f, simulada = false),
+            LeituraDeLocalizacao(coordenadaProxima, precisaoMetros = 20f, simulada = false),
+        )
+        val corpos = mutableListOf<String>()
+        val viewModel = criarViewModel(provedor, servicoQueGrava(corpos, resultadoJson("geolocalizado", "verificado", distanciaM = "111")))
 
         viewModel.fazerCheckin().join()
 
-        assertTrue(corpoRecebido!!.contains("\"distancia_m\":null"))
+        assertEquals(DialogoDefensivoLocalizacao.LEITURA_IMPRECISA, viewModel.estado.value.dialogoDefensivo)
+        assertEquals(StatusCheckin.OCIOSO, viewModel.estado.value.status)
+        assertTrue(corpos.isEmpty())
+
+        // "Tentar de novo": fecha o aviso, lê de novo e, com a leitura boa, manda a distância.
+        viewModel.fazerCheckin().join()
+        assertEquals(null, viewModel.estado.value.dialogoDefensivo)
+        assertTrue(Regex("\"distancia_m\":\\d+").containsMatchIn(corpos.single()))
+    }
+
+    @Test
+    fun `leitura imprecisa e Continuar manual manda distancia_m nulo e fica manual pendente`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima, precisaoMetros = 150f)
+        val corpos = mutableListOf<String>()
+        val viewModel = criarViewModel(provedor, servicoQueGrava(corpos))
+        viewModel.fazerCheckin().join()
+        assertEquals(DialogoDefensivoLocalizacao.LEITURA_IMPRECISA, viewModel.estado.value.dialogoDefensivo)
+
+        viewModel.prosseguirCheckinManual().join()
+
+        assertTrue(corpos.single().contains("\"distancia_m\":null"))
         assertEquals(StatusCheckin.MANUAL_PENDENTE, viewModel.estado.value.status)
     }
 
@@ -228,23 +248,85 @@ class CheckinViewModelTest {
         assertEquals(null, CheckinViewModel.calcularDistanciaMetros(coordenadaProxima, null))
     }
 
+    /** Grava o corpo de cada `fazer_checkin` e responde com [resposta]. */
+    private fun servicoQueGrava(corpos: MutableList<String>, resposta: String = resultadoJson(tipo = "manual", verificacao = "pendente")): ServicoTurnos {
+        val engine = MockEngine { request ->
+            corpos += (request.body as io.ktor.http.content.TextContent).text
+            respond(content = resposta, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        return ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+    }
+
     @Test
-    fun `sem permissao de localizacao, exibe dialogo PERMISSAO_NEGADA e nao chama a API (RN06, RN22)`() = runBlocking {
+    fun `sem permissao, o 1o toque pede a permissao do sistema, sem dialogo e sem chamar a API (C0-7)`() = runBlocking {
         val provedor = mockk<ProvedorDeLocalizacao>()
         every { provedor.temPermissaoDeLocalizacao() } returns false
-        var apiChamada = false
-        val engine = MockEngine {
-            apiChamada = true
-            respond(content = resultadoJson(tipo = "manual", verificacao = "pendente"), status = HttpStatusCode.OK)
-        }
-        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
-        val viewModel = criarViewModel(provedor, servico)
+        val corpos = mutableListOf<String>()
+        val viewModel = criarViewModel(provedor, servicoQueGrava(corpos))
 
         viewModel.fazerCheckin().join()
 
-        assertEquals(DialogoDefensivoLocalizacao.PERMISSAO_NEGADA, viewModel.estado.value.dialogoDefensivo)
+        assertTrue(viewModel.estado.value.pedirPermissao)
+        assertEquals(null, viewModel.estado.value.dialogoDefensivo)
         assertEquals(StatusCheckin.OCIOSO, viewModel.estado.value.status)
-        assertTrue(!apiChamada, "a API não deveria ser chamada sem permissão de localização")
+        assertTrue(corpos.isEmpty(), "a API não deveria ser chamada antes da resposta da permissão")
+        // A tela abre o pedido do sistema uma vez só.
+        viewModel.pedidoDePermissaoAberto()
+        assertTrue(!viewModel.estado.value.pedirPermissao)
+    }
+
+    @Test
+    fun `recusada a permissao do sistema, aparece o dialogo que leva as Configuracoes e a API nao e chamada (RN06, RN22)`() = runBlocking {
+        val provedor = mockk<ProvedorDeLocalizacao>()
+        every { provedor.temPermissaoDeLocalizacao() } returns false
+        val corpos = mutableListOf<String>()
+        val viewModel = criarViewModel(provedor, servicoQueGrava(corpos))
+        viewModel.fazerCheckin().join()
+
+        viewModel.respostaDaPermissao(concedida = false).join()
+
+        assertEquals(DialogoDefensivoLocalizacao.PERMISSAO_NEGADA, viewModel.estado.value.dialogoDefensivo)
+        assertTrue(!viewModel.estado.value.pedirPermissao)
+        assertEquals(StatusCheckin.OCIOSO, viewModel.estado.value.status)
+        assertTrue(corpos.isEmpty(), "a API não deveria ser chamada sem permissão de localização")
+
+        // Depois da recusa, o próximo toque já mostra o diálogo, sem pedir de novo ao sistema.
+        viewModel.dispensarDialogoDefensivo()
+        viewModel.fazerCheckin().join()
+        assertEquals(DialogoDefensivoLocalizacao.PERMISSAO_NEGADA, viewModel.estado.value.dialogoDefensivo)
+        assertTrue(!viewModel.estado.value.pedirPermissao)
+    }
+
+    @Test
+    fun `concedida a permissao do sistema, o check-in segue pelo GPS e manda a distancia (C0-7)`() = runBlocking {
+        val provedor = mockk<ProvedorDeLocalizacao>()
+        every { provedor.temPermissaoDeLocalizacao() } returnsMany listOf(false, true)
+        every { provedor.isGpsAtivado() } returns true
+        coEvery { provedor.lerParaCheckin() } returns LeituraDeLocalizacao(coordenadaProxima, precisaoMetros = 10f, simulada = false)
+        val corpos = mutableListOf<String>()
+        val viewModel = criarViewModel(provedor, servicoQueGrava(corpos, resultadoJson("geolocalizado", "verificado", distanciaM = "111")))
+        viewModel.fazerCheckin().join()
+        assertTrue(viewModel.estado.value.pedirPermissao)
+
+        viewModel.respostaDaPermissao(concedida = true).join()
+
+        assertEquals(1, corpos.size)
+        assertTrue(Regex("\"distancia_m\":\\d+").containsMatchIn(corpos.single()))
+        assertEquals(StatusCheckin.VERIFICADO, viewModel.estado.value.status)
+        assertEquals(null, viewModel.estado.value.dialogoDefensivo)
+    }
+
+    @Test
+    fun `com o ponto da vaga e leitura a ate 200 m, o corpo de fazer_checkin leva distancia_m com numero (C0-7)`() = runBlocking {
+        val provedor = provedorComPermissaoEGps(coordenadaProxima)
+        val corpos = mutableListOf<String>()
+        val viewModel = criarViewModel(provedor, servicoQueGrava(corpos, resultadoJson("geolocalizado", "verificado", distanciaM = "111")))
+
+        viewModel.fazerCheckin().join()
+
+        val distancia = Regex("\"distancia_m\":(\\d+)").find(corpos.single())?.groupValues?.get(1)?.toInt()
+        assertNotNull(distancia)
+        assertTrue(distancia!! <= CheckinViewModel.LIMITE_METROS)
     }
 
     @Test
@@ -283,6 +365,7 @@ class CheckinViewModelTest {
         val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
         val viewModel = criarViewModel(provedor, servico)
         viewModel.fazerCheckin().join()
+        viewModel.respostaDaPermissao(concedida = false).join()
         assertEquals(DialogoDefensivoLocalizacao.PERMISSAO_NEGADA, viewModel.estado.value.dialogoDefensivo)
 
         viewModel.prosseguirCheckinManual().join()
@@ -299,6 +382,7 @@ class CheckinViewModelTest {
         val servico = servicoComResposta(resultadoJson(tipo = "manual", verificacao = "pendente"))
         val viewModel = criarViewModel(provedor, servico)
         viewModel.fazerCheckin().join()
+        viewModel.respostaDaPermissao(concedida = false).join()
         assertEquals(DialogoDefensivoLocalizacao.PERMISSAO_NEGADA, viewModel.estado.value.dialogoDefensivo)
 
         viewModel.dispensarDialogoDefensivo()

@@ -61,6 +61,32 @@ try {
   confere("GET / vai para /app/", raiz.status === 302 && raiz.headers.get("location") === `${BASE}/app/`);
   confere("o redirecionamento também leva nosniff", raiz.headers.get("x-content-type-options") === "nosniff");
 
+  for (const dados of ["/app.data", "/app/_.data"]) {
+    const resposta = await fetch(`${BASE}${dados}`, { redirect: "manual" });
+    confere(`pedido de dados da página inicial (${dados})`, resposta.status === 200 && (resposta.headers.get("content-type") ?? "").includes("text/x-script"), String(resposta.status));
+  }
+
+  const entrar = await fetch(`${BASE}/app/entrar`);
+  const htmlDoEntrar = await entrar.text();
+  confere("GET /app/entrar mostra o formulário e não vai para buscador", entrar.status === 200 && htmlDoEntrar.includes('name="email"') && htmlDoEntrar.includes('content="noindex"'));
+  const forjado = await fetch(`${BASE}/app/entrar`, { method: "POST", redirect: "manual", headers: { Origin: "https://outro.example" }, body: new URLSearchParams({ email: "a@b.co", intencao: "pedir" }) });
+  confere("envio vindo de outro site é recusado (403)", forjado.status === 403, String(forjado.status));
+  const semOrigem = await fetch(`${BASE}/app/sair`, { method: "POST", redirect: "manual" });
+  confere("envio sem origem é recusado (403)", semOrigem.status === 403, String(semOrigem.status));
+  const sair = await fetch(`${BASE}/app/sair`, { method: "POST", redirect: "manual", headers: { Origin: BASE } });
+  const apagados = sair.headers.getSetCookie();
+  confere(
+    "sair sem sessão responde 302 e apaga os cookies, todos HttpOnly",
+    sair.status === 302 && apagados.length === 2 && apagados.every((linha) => linha.includes("HttpOnly") && linha.includes("Max-Age=0")),
+    `${sair.status} ${apagados.length}`,
+  );
+  const cadastroSemSessao = await fetch(`${BASE}/app/cadastro`, { redirect: "manual" });
+  confere("cadastro sem sessão manda entrar", cadastroSemSessao.status === 302 && (cadastroSemSessao.headers.get("location") ?? "").endsWith("/app/entrar"));
+  const aceiteSemSessao = await fetch(`${BASE}/app/aceitar-termos`, { method: "POST", redirect: "manual", headers: { Origin: BASE } });
+  confere("aceite dos termos sem sessão manda entrar", aceiteSemSessao.status === 302 && (aceiteSemSessao.headers.get("location") ?? "").endsWith("/app/entrar"));
+  const semCookie = await fetch(`${BASE}/app/`);
+  confere("sem sessão, a página não grava cookie nenhum", semCookie.headers.getSetCookie().length === 0);
+
   const perdida = await fetch(`${BASE}/app/nao-existe`);
   confere("rota inexistente responde 404 com CSP", perdida.status === 404 && perdida.headers.has("content-security-policy"));
 
@@ -68,6 +94,16 @@ try {
   const corpoDaSaude = await saude.json();
   confere("GET /app/saude responde JSON sem cache", saude.status === 200 && saude.headers.get("cache-control") === "no-store");
   confere("a saúde diz o estado da configuração", typeof corpoDaSaude.configuracao_do_app === "string");
+
+  const manifesto = await fetch(`${BASE}/app/site.webmanifest`);
+  const icones = manifesto.ok ? (await manifesto.json()).icons : [];
+  confere("o manifest responde e lista os ícones", icones.length === 3);
+  for (const caminho of ["/app/favicon.svg", "/app/apple-touch-icon-180.png", "/app/og-1200x630.png", ...new Set(icones.map((icone) => icone.src))]) {
+    confere(`ativo de marca ${caminho}`, (await fetch(`${BASE}${caminho}`)).status === 200);
+  }
+  const fonte = /href="(\/app\/assets\/ProdigySans-Bold-[^"]+\.woff2)"/.exec(html)?.[1];
+  confere("a fonte do título é pré-carregada e responde", Boolean(fonte) && (await fetch(`${BASE}${fonte}`)).status === 200, String(fonte));
+  confere("a página aponta a imagem de compartilhamento em frilabr.com/app", html.includes('content="https://frilabr.com/app/og-1200x630.png"'));
 
   const arquivo = /\/app\/assets\/entry\.client-[^"]+\.js/.exec(html)?.[0];
   const estatico = arquivo ? await fetch(`${BASE}${arquivo}`) : null;
