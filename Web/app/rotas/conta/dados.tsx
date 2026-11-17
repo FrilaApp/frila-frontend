@@ -59,6 +59,10 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
         </Form>
       </section>
 
+      <Link to="/conta/relatorio" className={classeDoLink}>
+        {textos.relatorioTurnos.abrir}
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-cartao border border-borda p-4" aria-labelledby="titulo-excluir">
         <h2 id="titulo-excluir" className="font-titulo text-xl font-bold">
           {t.excluir.titulo}
