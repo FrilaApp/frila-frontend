@@ -203,7 +203,7 @@ val moduloFeatures = module {
     }
     viewModel { AvaliacaoViewModel(get()) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
-    viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get()) }
+    viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get(), servicoConta = get()) }
     viewModel { VerificacaoIdentidadeViewModel(get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
     /**

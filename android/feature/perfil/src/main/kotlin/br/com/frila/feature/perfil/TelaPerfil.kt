@@ -132,7 +132,7 @@ fun TelaPerfil(
      */
     aoEncontrarProfissional: (() -> Unit)? = null,
     /**
-     * Mantém os atalhos da casa quando o endpoint de perfil profissional recusa a conta contratante.
+     * Mantém os atalhos da casa quando o perfil cai em erro (sem rede, servidor fora do ar).
      * O erro e a tentativa novamente continuam visíveis; esta flag nunca transforma falha em sucesso.
      */
     manterAtalhosDeContratanteNoErro: Boolean = false,
@@ -183,6 +183,18 @@ fun TelaPerfil(
         }
     }
     var mensagemErroBiometria by remember { mutableStateOf<String?>(null) }
+    val alternarBiometria: (Boolean) -> Unit = { marcado ->
+        if (!marcado) {
+            mensagemErroBiometria = null
+            viewModel.definirBiometriaAtivada(false)
+        } else {
+            autenticarBiometria(
+                contexto,
+                { mensagemErroBiometria = null; viewModel.definirBiometriaAtivada(true) },
+                { erro -> mensagemErroBiometria = erro },
+            )
+        }
+    }
 
     // RF03/RNF04: repõe o avatar persistido ao montar a tela — independente do carregamento de
     // rede em viewModel.carregar(). MEDIDO (Shisui, PR #590): sem isto o avatar desaparecia ao
@@ -223,7 +235,28 @@ fun TelaPerfil(
             )
         },
     ) { paddingInterno ->
-        when (estado.status) {
+        // A casa não tem perfil profissional: o perfil dela é a conta (`minha_conta`) e os atalhos da casa, como o iOS.
+        if (estado.status == StatusPerfil.SUCESSO && estado.ehContratante) {
+            ConteudoDaCasa(
+                nome = estado.conta?.nome.orEmpty(),
+                paddingValues = paddingInterno,
+                aoDeslogar = {
+                    viewModel.aoDeslogar()
+                    aoDeslogar()
+                },
+                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
+                biometriaAtivada = estado.biometriaAtivada,
+                disponibilidadeBiometrica = disponibilidadeBiometrica,
+                mensagemErroBiometria = mensagemErroBiometria,
+                aoAlternarBiometria = alternarBiometria,
+                aoAbrirAjuda = aoAbrirAjuda,
+                aoAbrirEquipe = aoAbrirEquipe,
+                aoPublicarVaga = aoPublicarVaga,
+                aoMinhasVagas = aoMinhasVagas,
+                aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+                aoEncontrarProfissional = aoEncontrarProfissional,
+            )
+        } else when (estado.status) {
             StatusPerfil.CARREGANDO -> Carregando(paddingInterno)
             StatusPerfil.ERRO -> Erro(
                 mensagem = estado.mensagemErro,
@@ -232,7 +265,7 @@ fun TelaPerfil(
                 aoAbrirEquipe = aoAbrirEquipe.takeIf { manterAtalhosDeContratanteNoErro },
                 aoPublicarVaga = aoPublicarVaga.takeIf { manterAtalhosDeContratanteNoErro },
                 aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
-                // A casa não tem `meu_perfil_profissional`: o perfil cai em erro, mas a busca precisa continuar acessível.
+                // Com o perfil em erro (sem rede, por exemplo), a busca da casa continua acessível.
                 aoEncontrarProfissional = aoEncontrarProfissional.takeIf { manterAtalhosDeContratanteNoErro },
                 // Sair e excluir a conta não dependem do perfil ter carregado: mesmos caminhos do perfil carregado.
                 aoDeslogar = {
@@ -285,18 +318,7 @@ fun TelaPerfil(
                 biometriaAtivada = estado.biometriaAtivada,
                 disponibilidadeBiometrica = disponibilidadeBiometrica,
                 mensagemErroBiometria = mensagemErroBiometria,
-                aoAlternarBiometria = { marcado ->
-                    if (!marcado) {
-                        mensagemErroBiometria = null
-                        viewModel.definirBiometriaAtivada(false)
-                    } else {
-                        autenticarBiometria(
-                            contexto,
-                            { mensagemErroBiometria = null; viewModel.definirBiometriaAtivada(true) },
-                            { erro -> mensagemErroBiometria = erro },
-                        )
-                    }
-                },
+                aoAlternarBiometria = alternarBiometria,
                 notificacaoUrgenciaAtivada = estado.notificacaoUrgenciaAtivada,
                 notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
                 notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
@@ -428,6 +450,60 @@ private fun ConteudoDoPerfil(
             aoMinhasVagas = aoMinhasVagas,
             aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
             aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+            aoEncontrarProfissional = aoEncontrarProfissional,
+        )
+    }
+}
+
+/**
+ * Perfil da casa (C0-4b): a conta de contratante não tem perfil profissional (`meu_perfil_profissional` responde
+ * 404). Mostra o nome da conta e o bloco de conta com os atalhos da casa, sem os blocos do profissional; as
+ * preferências de chamada são do profissional e nunca aparecem aqui.
+ */
+// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+@Composable
+private fun ConteudoDaCasa(
+    nome: String,
+    paddingValues: PaddingValues,
+    aoDeslogar: () -> Unit,
+    aoAbrirExclusao: () -> Unit,
+    biometriaAtivada: Boolean,
+    disponibilidadeBiometrica: DisponibilidadeBiometrica,
+    mensagemErroBiometria: String?,
+    aoAlternarBiometria: (Boolean) -> Unit,
+    aoAbrirAjuda: () -> Unit,
+    aoAbrirEquipe: (() -> Unit)?,
+    aoPublicarVaga: (() -> Unit)?,
+    aoMinhasVagas: (() -> Unit)?,
+    aoCadastrarEstabelecimento: (() -> Unit)?,
+    aoEncontrarProfissional: (() -> Unit)?,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.medio),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+    ) {
+        Text(
+            text = nome,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
+        BlocoDeConta(
+            aoDeslogar = aoDeslogar,
+            aoAbrirExclusao = aoAbrirExclusao,
+            biometriaAtivada = biometriaAtivada,
+            disponibilidadeBiometrica = disponibilidadeBiometrica,
+            mensagemErroBiometria = mensagemErroBiometria,
+            aoAlternarBiometria = aoAlternarBiometria,
+            aoAbrirAjuda = aoAbrirAjuda,
+            aoAbrirEquipe = aoAbrirEquipe,
+            aoPublicarVaga = aoPublicarVaga,
+            aoMinhasVagas = aoMinhasVagas,
+            aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+            aoAbrirChamadasDiretas = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
         )
     }
@@ -1280,7 +1356,7 @@ private fun Erro(
                 modifier = Modifier.fillMaxWidth().testTag("perfil-encontrar-profissional"),
             )
         }
-        // Conta de casa cai sempre aqui (não tem perfil profissional): sem estes dois, não saía nem excluía a conta.
+        // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
         BotaoSecundario(
             texto = "Sair da conta",
             aoClicar = aoDeslogar,
