@@ -19,10 +19,10 @@ class ServicoDispositivo(private val provedorDeCliente: () -> ClienteSupabase) {
      * `vinculo_id` deste token com a conta ativa (RN15): o app deve guardar esse valor junto
      * com a sessão (`Sessao.vinculoId` em `:core:seguranca`).
      */
-    suspend fun registrarDispositivo(tokenFcm: String, plataforma: String = "android"): DispositivoDto {
+    suspend fun registrarDispositivo(tokenFcm: String, plataforma: String = "android", versaoApp: String? = null): DispositivoDto {
         val resposta = cliente.http.post(cliente.urlRpc("registrar_dispositivo")) {
             contentType(ContentType.Application.Json)
-            setBody(RegistrarDispositivoDto(tokenFcm = tokenFcm, plataforma = plataforma))
+            setBody(RegistrarDispositivoDto(tokenFcm = tokenFcm, plataforma = plataforma, versaoApp = versaoApp))
         }
         return cliente.corpoOuErro(resposta)
     }
