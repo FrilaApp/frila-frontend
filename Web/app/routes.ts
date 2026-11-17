@@ -44,6 +44,8 @@ export default [
   route("denunciar", "rotas/profissional/denunciar.tsx"),
   route("bloqueados", "rotas/profissional/bloqueados.tsx"),
   route("preferencias", "rotas/profissional/preferencias.tsx"),
+  // Cadastro do profissional em passos (2.8): funções, ponto base e regiões atendidas
+  route("perfil/cadastro", "rotas/profissional/cadastro.tsx"),
 
   // Lado do contratante
   // Contratante (2C, Citrino): painel da casa e publicar vaga. Só se acrescenta neste bloco.
