@@ -3,9 +3,11 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../servidor/profissional/formato";
+import { distanciaDoFormulario, marcarChegada, marcarSaida, validarCodigo } from "../../servidor/profissional/presenca";
 import { avisarACaminho, desistirDoTurno, listarMeusTurnos } from "../../servidor/profissional/turnos";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/turno";
+import { FormularioDePresenca } from "./localizacao";
 
 const t = textos.profissional.turno;
 const tt = textos.profissional.turnos;
@@ -39,6 +41,13 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       // Os botões seguem o estado do turno; a janela e a regra da falta são do servidor.
       podeAvisar: confirmado && turno.a_caminho_em === null && turno.checkin_em === null,
       podeDesistir: confirmado && turno.checkin_em === null,
+      // Presença: chegada → código da casa → saída. O ponto da casa só vem enquanto o turno está confirmado.
+      ponto: turno.vaga.ponto ?? null,
+      podeChegar: confirmado && turno.checkin_em === null,
+      precisaDoCodigo: confirmado && turno.checkin_em !== null && turno.verificacao === "pendente",
+      verificado: turno.verificacao === "verificado",
+      podeEncerrar: turno.checkin_em !== null && turno.checkout_em === null && turno.estado !== "cancelada",
+      saiu: turno.checkout_em !== null,
     },
   };
 }
@@ -47,7 +56,29 @@ export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const api = apiDoUsuario(sessao.acesso);
   const formulario = await request.formData();
-  if (formulario.get("intencao") === "desistir") {
+  const intencao = formulario.get("intencao");
+  if (intencao === "chegar" || intencao === "validar" || intencao === "encerrar") {
+    const turnoId = String(formulario.get("turno_id") ?? "");
+    const distancia = distanciaDoFormulario(formulario.get("distancia_m"));
+    const resultado =
+      intencao === "chegar"
+        ? await marcarChegada(api, turnoId, distancia)
+        : intencao === "validar"
+          ? await validarCodigo(api, turnoId, String(formulario.get("codigo") ?? "").trim(), distancia)
+          : await marcarSaida(api, turnoId, distancia);
+    if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
+    const presenca = resultado.ok
+      ? intencao === "encerrar"
+        ? ("saida" as const)
+        : resultado.verificado
+          ? ("verificada" as const)
+          : ("chegada" as const)
+      : resultado.motivo === "sem_sessao"
+        ? ("indisponivel" as const)
+        : resultado.motivo;
+    return { presenca };
+  }
+  if (intencao === "desistir") {
     const desistencia = await desistirDoTurno(api, String(formulario.get("posicao_id") ?? ""), String(formulario.get("motivo") ?? ""));
     const resultado = desistencia.ok ? (desistencia.falta ? ("desistiu_com_falta" as const) : ("desistiu" as const)) : desistencia.motivo;
     if (resultado === "sem_sessao") throw redirect("/entrar");
@@ -85,7 +116,11 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
       ) : (
         <>
           <h1 className="font-titulo text-3xl font-bold">{turno.funcao}</h1>
-          {actionData ? (
+          {actionData && "presenca" in actionData && actionData.presenca ? (
+            <p role="status" className="font-semibold">
+              {t.presenca[actionData.presenca]}
+            </p>
+          ) : actionData && "resultado" in actionData && actionData.resultado ? (
             <p role="status" className="font-semibold">
               {t.resultado[actionData.resultado]}
             </p>
@@ -109,6 +144,59 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
               </>
             ) : null}
           </dl>
+          {turno.podeChegar || turno.precisaDoCodigo || turno.podeEncerrar ? (
+            <section className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
+              <h2 className="font-semibold">{t.presencaTitulo}</h2>
+              <p className="text-sm text-tinta-suave">{t.sobreALocalizacao}</p>
+              {turno.podeChegar ? (
+                <FormularioDePresenca destino={turno.ponto} textoLendo={t.lendoLocalizacao}>
+                  <input type="hidden" name="intencao" value="chegar" />
+                  <input type="hidden" name="turno_id" value={turno.id} />
+                  <button type="submit" disabled={enviando} className={classeDoBotao}>
+                    {enviando ? t.enviando : t.cheguei}
+                  </button>
+                </FormularioDePresenca>
+              ) : null}
+              {turno.precisaDoCodigo ? (
+                <FormularioDePresenca destino={turno.ponto} textoLendo={t.lendoLocalizacao} className="flex flex-col gap-3">
+                  <input type="hidden" name="intencao" value="validar" />
+                  <input type="hidden" name="turno_id" value={turno.id} />
+                  <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
+                    {t.codigo}
+                    <span id="ajuda-do-codigo" className="text-sm font-normal text-tinta-suave">
+                      {t.ajudaDoCodigo}
+                    </span>
+                    <input
+                      id="codigo"
+                      name="codigo"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      required
+                      aria-describedby="ajuda-do-codigo"
+                      className="min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-2xl tracking-widest"
+                    />
+                  </label>
+                  <button type="submit" disabled={enviando} className={classeDoBotao}>
+                    {enviando ? t.enviando : t.confirmarPresenca}
+                  </button>
+                  <p className="text-sm">{t.semCodigo}</p>
+                </FormularioDePresenca>
+              ) : null}
+              {turno.verificado ? <p>{t.presencaConfirmada}</p> : null}
+              {turno.podeEncerrar ? (
+                <FormularioDePresenca destino={turno.ponto} textoLendo={t.lendoLocalizacao}>
+                  <input type="hidden" name="intencao" value="encerrar" />
+                  <input type="hidden" name="turno_id" value={turno.id} />
+                  <button type="submit" disabled={enviando} className={classeDoBotaoSecundario}>
+                    {enviando ? t.enviando : t.encerrar}
+                  </button>
+                </FormularioDePresenca>
+              ) : null}
+            </section>
+          ) : null}
+          {turno.saiu ? <p>{t.saidaRegistrada}</p> : null}
           {turno.podeAvisar ? (
             <Form method="post">
               <input type="hidden" name="intencao" value="a_caminho" />
