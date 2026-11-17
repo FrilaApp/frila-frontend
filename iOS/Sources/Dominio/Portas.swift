@@ -462,6 +462,10 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     /// Mais de 60 buscas por hora: `limiteExcedido` (429). Cursor de outra busca ou de outro dia:
     /// `cursorInvalido`, e o app refaz a busca da primeira página. Lista vazia: oferecer "Publicar para todos".
     func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais
+    /// 0.2.90 (`POST /rpc/aceitar_termos`): quem já tem conta aceita uma versão dos Termos e da Política que a tela
+    /// exibiu. O servidor carimba o instante; repetir a mesma versão devolve o aceite que existe. Versão vazia:
+    /// `campoObrigatorio`; anterior à já aceita: `campoInvalido`. Primeiro uso: depois de `termosPendentes` na busca.
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos
     func publicarVaga(_ publicacao: PublicacaoVaga) async throws -> VagaPublicada
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
@@ -704,6 +708,10 @@ public extension ApiCliente {
     }
 
     func buscarProfissionais(_ filtro: FiltroBuscaProfissionais, cursor: String?, limite: Int?) async throws -> PaginaBuscaProfissionais {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
         throw ErroDaApi(codigo: .respostaInvalida)
     }
 }
