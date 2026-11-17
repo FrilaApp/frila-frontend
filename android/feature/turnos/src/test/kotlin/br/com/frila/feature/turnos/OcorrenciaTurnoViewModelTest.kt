@@ -126,4 +126,22 @@ class OcorrenciaTurnoViewModelTest {
         assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
         assertTrue(viewModel.estado.value.mensagemErro != null)
     }
+
+    @Test
+    fun `resposta 200 ilegivel resulta em status ERRO com mensagem amigavel`() = runBlocking {
+        val engine = MockEngine {
+                respond(
+                    content = "<html>portal</html>",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.selecionarMotivo(MotivoOcorrencia.ATRASO_OU_IMPREVISTO)
+
+        viewModel.enviar()?.join()
+
+        assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.mensagemErro != null)
+    }
 }

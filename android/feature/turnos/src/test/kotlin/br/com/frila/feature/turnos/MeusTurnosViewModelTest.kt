@@ -520,4 +520,23 @@ class MeusTurnosViewModelTest {
         assertEquals(false, viewModel.estado.value.atualizando)
         assertTrue(viewModel.estado.value.mensagemErro != null)
     }
+
+    /** Resposta 200 que não é a lista esperada não é `ErroDaApi`: sem o catch geral a tela ficava em "carregando". */
+    @Test
+    fun `carregar com resposta 200 ilegivel sai de carregando com erro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "<html>portal</html>",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.mensagemErro != null)
+    }
 }

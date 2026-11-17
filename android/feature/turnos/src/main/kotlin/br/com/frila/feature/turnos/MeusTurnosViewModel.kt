@@ -65,6 +65,17 @@ class MeusTurnosViewModel(
                 monitorizador?.avaliarTurnos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusMeusTurnos.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica (campo que o servidor omitiu, HTML de portal) não é ErroDaApi:
+                // sem isto a tela ficava em "carregando" e a exceção subia crua.
+                _estado.update {
+                    it.copy(
+                        status = StatusMeusTurnos.ERRO,
+                        mensagemErro = "Não foi possível carregar seus turnos. Tente de novo em instantes.",
+                    )
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,11 @@ class AvaliacaoViewModel(
     private val _estado = MutableStateFlow(EstadoAvaliacao())
     val estado: StateFlow<EstadoAvaliacao> = _estado.asStateFlow()
 
+    /** A avaliação em voo: um segundo toque ("sim" e "não" em sequência) não envia de novo. */
+    private var envio: Job? = null
+
     fun avaliar(turnoId: String, resposta: Boolean): Job {
+        envio?.takeIf { it.isActive }?.let { return it }
         _estado.update { it.copy(status = StatusAvaliacao.ENVIANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
@@ -42,8 +47,18 @@ class AvaliacaoViewModel(
                 }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusAvaliacao.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica não é ErroDaApi: sem isto a tela ficava em "enviando".
+                _estado.update {
+                    it.copy(
+                        status = StatusAvaliacao.ERRO,
+                        mensagemErro = "Não foi possível registrar sua avaliação. Tente de novo.",
+                    )
+                }
             }
-        }
+        }.also { envio = it }
     }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {

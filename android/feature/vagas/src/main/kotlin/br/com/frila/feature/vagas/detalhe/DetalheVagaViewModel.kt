@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +52,13 @@ class DetalheVagaViewModel(
                 }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(statusCandidatura = StatusCandidatura.ERRO, mensagem = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica não é ErroDaApi: sem isto a tela ficava em "enviando".
+                _estado.update {
+                    it.copy(statusCandidatura = StatusCandidatura.ERRO, mensagem = "Não foi possível enviar sua candidatura. Tente de novo em instantes.")
+                }
             }
         }
     }

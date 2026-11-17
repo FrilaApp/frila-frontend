@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,6 +67,16 @@ class OcorrenciaTurnoViewModel(
                 _estado.update { it.copy(status = StatusOcorrencia.SUCESSO, protocolo = protocolo) }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusOcorrencia.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Resposta que não decodifica não é ErroDaApi: sem isto a tela ficava em "enviando".
+                _estado.update {
+                    it.copy(
+                        status = StatusOcorrencia.ERRO,
+                        mensagemErro = "Não foi possível abrir o chamado. Tente de novo.",
+                    )
+                }
             }
         }
     }
