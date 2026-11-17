@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Chave publicável e URL do projeto ficam em .env.local, fora do Git. Nunca service_role.
+.env
+.env.*
+!.env.example
