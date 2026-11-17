@@ -31,3 +31,37 @@ export function vagaEncerrada(vaga: VagaPublica, agora: Date = new Date()): bool
 export function podeIndexar(vaga: VagaPublica, chave: string | undefined, agora: Date = new Date()): boolean {
   return chave === "1" && !vagaEncerrada(vaga, agora);
 }
+
+/** Removida para o link (410): cancelada, encerrada ou já começada. A preenchida que ainda vai acontecer continua (200). */
+export function vagaRemovida(vaga: VagaPublica, agora: Date = new Date()): boolean {
+  return vaga.estado === "cancelada" || vaga.estado === "encerrada" || new Date(vaga.inicio_em) <= agora;
+}
+
+/**
+ * JobPosting (schema.org) só com o que a página mostra: função, valor, data e horário, região e o nome da casa.
+ * Nunca endereço, coordenada, contato, documento ou id de pessoa. Sem o nome (casa com CPF), quem anuncia é o
+ * Frila (contrato 0.2.101). `datePosted` e `validThrough` são exigidos pelo esquema e não são dado pessoal.
+ */
+export function dadosEstruturados(vaga: VagaPublica, descricao: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: vaga.funcao.nome,
+    description: descricao,
+    datePosted: vaga.publicado_em,
+    validThrough: vaga.inicio_em,
+    employmentType: "TEMPORARY",
+    hiringOrganization: { "@type": "Organization", name: vaga.estabelecimento_nome ?? "Frila" },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        ...(vaga.regiao_administrativa ? { addressLocality: vaga.regiao_administrativa } : {}),
+        addressRegion: "DF",
+        addressCountry: "BR",
+      },
+    },
+    // O valor é do turno (diária): "DAY" é a unidade do esquema que mais se aproxima.
+    baseSalary: { "@type": "MonetaryAmount", currency: "BRL", value: { "@type": "QuantitativeValue", value: vaga.valor_centavos / 100, unitText: "DAY" } },
+  };
+}

@@ -272,6 +272,11 @@ export default function DetalheDoTurno({ loaderData, actionData }: Route.Compone
         </>
       )}
       {turno ? (
+        <Link to={`/suporte/${turno.id}`} className={classeDoLink}>
+          {textos.suporte.link}
+        </Link>
+      ) : null}
+      {turno ? (
         <Link to={`/denunciar?alvo=${turno.casaId}&turno=${turno.id}`} className={classeDoLink}>
           {textos.profissional.moderacao.link}
         </Link>
