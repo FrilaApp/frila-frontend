@@ -50,6 +50,12 @@ diz("o início mostra o caminho para os turnos", inicio.includes('href="/app/tur
 const turnos = await pedir("/app/turnos");
 const htmlDosTurnos = await turnos.text();
 diz("Meus turnos abre", turnos.status === 200 && htmlDosTurnos.includes("Meus turnos"));
+const chamadas = await pedir("/app/chamadas");
+const htmlDasChamadas = await chamadas.text();
+const desligadas = htmlDasChamadas.includes("ainda não estão ligadas na web");
+diz("Chamadas abre (a lista, ou o aviso de recurso desligado)", chamadas.status === 200 && (htmlDasChamadas.includes("Casas que chamaram você") || desligadas), desligadas ? "(chamada_direta desligada no dev)" : "");
+const chamadaAlheia = await pedir("/app/chamadas/00000000-0000-4000-8000-000000000000");
+diz("chamada que não é da pessoa não abre", chamadaAlheia.status === 404 || desligadas, `(${chamadaAlheia.status})`);
 const turnoAlheio = await pedir("/app/turnos/00000000-0000-4000-8000-000000000000");
 diz("turno que não é da pessoa responde 404", turnoAlheio.status === 404);
 
