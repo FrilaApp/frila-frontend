@@ -110,6 +110,7 @@ export const textos = {
     entrar: "Entrar",
     completarCadastro: "Completar cadastro",
     verVagas: "Ver vagas",
+    verPainel: "Painel da casa",
     termosMudaram: "Os Termos de Uso e a Política de Privacidade mudaram. Leia e aceite para continuar usando o Frila.",
     aceitarTermos: "Li e aceito",
     aceiteFalhou: "Não deu para registrar o aceite agora. Tente de novo em instantes.",

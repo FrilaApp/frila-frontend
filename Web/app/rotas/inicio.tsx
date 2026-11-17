@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { Form, Link, redirect } from "react-router";
+import { Form, Link } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
 import { lerConfiguracaoDesteAmbiente, lerLinkDaAppStore } from "../servidor/abertura";
@@ -26,12 +26,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   // As versões são datas (AAAA-MM-DD): comparar o texto compara a data.
   const termosPendentes = conta?.estado === "ok" && (conta.termosVersao ?? "") < VERSAO_DOS_TERMOS;
   const sairFalhou = url.searchParams.get("sair") === "falhou";
-  // Com a conta pronta, cada lado começa no seu início: a casa no painel (que oferece cadastrar a casa, se faltar), a
-  // profissional nas vagas. Fica aqui só o que o início resolve: aceitar os termos, criar a conta, servidor fora, sair que
-  // falhou. Ambiente e versão não aparecem a ninguém (só no /app/saude).
-  if (conta?.estado === "ok" && !termosPendentes && !sairFalhou) {
-    throw redirect(conta.perfil === "contratante" ? "/painel" : "/vagas");
-  }
+  // O início é o menu de cada lado (os atalhos, a conta, instalar, avisos e o Sair), então não redireciona com a conta
+  // pronta (achado do Lince no #924). Ambiente e versão não aparecem a ninguém (só no /app/saude).
   return {
     webLigada: true as const,
     // Só o que a tela mostra: o token fica no servidor.
@@ -114,6 +110,13 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
               </Link>{" "}
               <Link to="/chamadas" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
                 {textos.profissional.chamadas.titulo}
+              </Link>
+            </p>
+          ) : null}
+          {entrou.conta?.estado === "ok" && entrou.conta.perfil === "contratante" ? (
+            <p>
+              <Link to="/painel" className="inline-flex min-h-12 items-center rounded-controle bg-acao px-6 text-xl font-bold text-sobre-acao">
+                {textos.conta.verPainel}
               </Link>
             </p>
           ) : null}

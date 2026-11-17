@@ -1,7 +1,7 @@
 /**
- * O `/app` com sessão leva cada lado ao seu início (achado 1 do P5): a casa ao painel, a profissional às vagas. O que
- * fica na tela de início (termos a aceitar, conta a criar, servidor fora, sair que falhou) não mostra ambiente,
- * configuração nem versão a ninguém: isso é só do `/app/saude`. Dados sintéticos.
+ * O `/app` com sessão continua sendo o início de cada lado (menu: o Sair, a conta, instalar, avisos e os atalhos de cada
+ * perfil), sem redirecionar (achado do Lince no #924). Nenhuma tela de início mostra ambiente, configuração nem versão:
+ * isso é só do `/app/saude`. Dados sintéticos.
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -9,8 +9,9 @@ import { createStaticHandler, createStaticRouter, StaticRouterProvider } from "r
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Inicio, { loader } from "../app/rotas/inicio";
+import { textos } from "../app/textos/pt-BR";
 import { VERSAO_DOS_TERMOS } from "../app/versao";
-import { argumentos, ok, recusa, redirecionamento } from "./contratante-apoio";
+import { argumentos, ok, recusa } from "./contratante-apoio";
 
 const AMBIENTE = "ambiente-sintetico";
 const VERSAO_MINIMA = "9.8.7";
@@ -49,15 +50,35 @@ beforeEach(() => {
   api.POST.mockReset();
 });
 
-describe("início com sessão: cada lado vai ao seu início", () => {
-  it("a casa (contratante) com os termos em dia vai ao painel", async () => {
+describe("início com sessão: é o menu de cada lado, sem redirecionar", () => {
+  const PROIBIDOS = ["Ambiente", "Configuração do app no servidor", "Versão mínima", AMBIENTE, VERSAO_MINIMA];
+  const temLink = (pagina: string, caminho: string) => pagina.includes(`href="${caminho}"`);
+
+  it("a casa (contratante) com os termos em dia fica no início e vê o painel, a conta, instalar, avisos e o Sair", async () => {
     minhaConta(conta("contratante"));
-    expect(await redirecionamento(loader(argumentos("/")))).toBe("/painel");
+    const dados = await loader(argumentos("/"));
+    const pagina = await html(dados);
+    for (const caminho of ["/painel", "/conta", "/instalar", "/avisos"]) expect(temLink(pagina, caminho), caminho).toBe(true);
+    expect(pagina).toContain('action="/sair"');
+    expect(pagina).toContain(textos.conta.verPainel);
+    for (const proibido of PROIBIDOS) expect(pagina).not.toContain(proibido);
   });
 
-  it("a profissional com os termos em dia vai às vagas", async () => {
+  it("a profissional com os termos em dia fica no início e vê vagas, turnos, perfil, chamadas, a conta, instalar, avisos e o Sair", async () => {
     minhaConta(conta("profissional"));
-    expect(await redirecionamento(loader(argumentos("/")))).toBe("/vagas");
+    const dados = await loader(argumentos("/"));
+    const pagina = await html(dados);
+    for (const caminho of ["/vagas", "/turnos", "/perfil", "/chamadas", "/conta", "/instalar", "/avisos"]) {
+      expect(temLink(pagina, caminho), caminho).toBe(true);
+    }
+    expect(pagina).toContain('action="/sair"');
+    expect(temLink(pagina, "/painel")).toBe(false);
+    for (const proibido of PROIBIDOS) expect(pagina).not.toContain(proibido);
+  });
+
+  it("a profissional não vê o link do painel da casa, e a casa não vê o das vagas", async () => {
+    minhaConta(conta("contratante"));
+    expect(temLink(await html(await loader(argumentos("/"))), "/vagas")).toBe(false);
   });
 
   it("sem sessão, o /app segue com a página pública (sem redirecionar)", async () => {
