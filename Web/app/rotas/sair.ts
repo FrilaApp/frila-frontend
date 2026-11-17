@@ -15,7 +15,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const sessao = context.get(contextoDaSessao);
   const respostaDoAuth = context.get(contextoDoAuth);
   // Push na web (RN15): antes de encerrar, o token deste navegador deixa de ser da conta. Se falhar, o sair segue: o
-  // service worker já esqueceu o vínculo, e o aviso que chegar aparece sem conteúdo.
+  // push da web mostra sempre só o texto neutro (sw.js), então nenhum conteúdo da conta aparece depois do sair.
   const tokenDoAparelho = lerTokenDoAparelho(request);
   if (sessao && tokenDoAparelho) await removerAparelho(apiDoUsuario(sessao.acesso), tokenDoAparelho);
   const encerrada = sessao
