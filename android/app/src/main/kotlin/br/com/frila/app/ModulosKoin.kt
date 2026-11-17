@@ -17,6 +17,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
+import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
@@ -110,6 +111,11 @@ val moduloSeguranca = module {
             diretorioArquivos = getOrNull<Context>()?.filesDir,
             escopoDeCorrotinas = get(named(ESCOPO_DA_SESSAO)),
             gestorClienteKtor = getOrNull(),
+            // C0-10: o Sair pede remover_dispositivo depois da limpeza local; falha só vira log, sem token nem sessão.
+            servicoDispositivo = getOrNull(),
+            provedorDeTokenFcm = { lerTokenDoFcm() },
+            escopoDaRemocao = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            registrarFalha = { motivo -> Log.w("FrilaPush", motivo) },
         )
     }
 }
@@ -167,6 +173,13 @@ val moduloNotificacoes = module {
             ?: GerenciadorPreferenciasNotificacaoEmMemoria()
     }
     single { ProcessadorDePush(get(), get()) }
+    // C0-10: o registro do aparelho numa função só (abrir com sessão, depois de entrar e onNewToken), com versao_app.
+    // Falha do registro (rede, servidor, token) só vira log, com o motivo e sem token nem sessão.
+    single {
+        RegistradorDeDispositivo(
+            get(), get(), versaoApp = BuildConfig.VERSION_NAME, registrarFalha = { motivo -> Log.w("FrilaPush", motivo) },
+        ) { lerTokenDoFcm() }
+    }
 }
 
 /**
@@ -192,7 +205,7 @@ val moduloFeatures = module {
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
     viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
+    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() }) }
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
