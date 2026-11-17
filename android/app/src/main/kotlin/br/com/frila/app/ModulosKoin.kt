@@ -1,6 +1,7 @@
 package br.com.frila.app
 
 import android.content.Context
+import android.util.Log
 import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
@@ -79,9 +80,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.onClose
 import org.koin.dsl.module
 
-/** Endpoint real do Supabase do Frila. Em produção isto vem de `BuildConfig`, não de literal. */
-private const val SUPABASE_URL = "https://frila.supabase.co"
-private const val SUPABASE_ANON_KEY = "TODO_INJETAR_VIA_BUILDCONFIG"
+/** URL e chave publicável do Supabase, do `BuildConfig` (par DEV no debug, PROD no release; ver app/build.gradle.kts). */
+private val configuracaoSupabase = ConfiguracaoSupabase.doBuildConfig()
 
 /** Qualificador do [CoroutineScope] cujos filhos o logout cancela. */
 const val ESCOPO_DA_SESSAO = "escopoDaSessao"
@@ -123,10 +123,12 @@ val moduloRede = module {
     }
     /** Cartão 101: gestor de ciclo de vida do cliente Ktor para recriação limpa após logout. */
     single {
+        // Debug compilado sem o par DEV: o app sobe, mas diz no log por que não alcança o servidor (sem valores).
+        configuracaoSupabase.problema?.let { Log.w("FRILA_CONFIG", "Supabase sem configuração que sirva: $it") }
         GestorClienteKtor {
             ClienteSupabase(
-                baseUrl = SUPABASE_URL,
-                apiKey = SUPABASE_ANON_KEY,
+                baseUrl = configuracaoSupabase.url,
+                apiKey = configuracaoSupabase.chavePublicavel,
                 armazenamentoDeSessao = get(),
                 monitorDeConectividade = get(),
             )
