@@ -1,0 +1,60 @@
+package br.com.frila.feature.vagas.painel
+
+/** Textos de republicar a vaga com outro horário (paridade com `TextosRepublicarVaga` do iOS). */
+object TextosRepublicarVaga {
+    const val TITULO = "Republicar vaga"
+    const val REPUBLICAR_VAGA_DE = "Republicar a vaga de %s"
+    const val SUBTITULO = "Os dados da vaga anterior foram copiados. Escolha a nova data e horário."
+    const val INICIO = "Início"
+    const val TERMINO = "Término"
+    const val DATA_DE = "Data de %s"
+    const val HORA_DE = "Hora de %s"
+    const val CONFIRMAR = "Confirmar republicação"
+    const val TENTAR_NOVAMENTE = "Tentar novamente"
+    const val CANCELAR = "Cancelar"
+    const val FECHAR = "Fechar"
+    const val OK = "OK"
+    const val ENVIANDO = "Republicando a vaga…"
+    const val SUCESSO = "Vaga republicada."
+    const val INICIO_NO_PASSADO = "A data e horário de início devem ser no futuro."
+    const val FIM_ANTES_DO_INICIO = "O horário de término deve ser após o início."
+    const val TURNO_CURTO = "O turno deve ter pelo menos 2 horas."
+    const val TURNO_LONGO = "O turno não pode ultrapassar 16 horas."
+    const val SELECAO_SEM_ANTECEDENCIA = "Vagas no modo seleção exigem pelo menos 24 horas de antecedência."
+    const val HORARIO_INVALIDO = "Horário informado não é válido."
+    const val NAO_ENCONTRADO = "A vaga original não foi encontrada."
+    const val SEM_PERMISSAO = "Você não tem permissão para republicar esta vaga."
+    const val VAGA_OCULTA = "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada."
+    const val PERFIL_INCOMPATIVEL = "Apenas contratantes podem republicar vagas."
+    const val SEM_REDE = "Sem conexão com a internet. Tente novamente."
+    const val SESSAO_EXPIRADA = "Sua sessão expirou. Entre novamente para continuar."
+    const val ERRO_GENERICO = "Não foi possível republicar a vaga. Tente novamente."
+}
+
+/** Textos de republicar em urgência as posições que a seleção deixou vazias (paridade com o iOS). */
+object TextosRepublicarPosicoesRestantes {
+    const val REPUBLICANDO = "Republicando posições restantes…"
+    const val BOTAO_UMA = "Republicar 1 posição em urgência"
+    const val BOTAO_VARIAS = "Republicar %d posições em urgência"
+    const val CONFIRMACAO_TITULO = "Republicar posições em urgência?"
+    const val CONFIRMACAO_MENSAGEM = "O primeiro profissional será confirmado na hora."
+    const val CONFIRMAR = "Confirmar"
+    const val CANCELAR = "Cancelar"
+    const val JA_REPUBLICADA = "As posições restantes desta vaga já foram republicadas em urgência."
+    const val SEM_POSICOES_RESTANTES = "Todas as posições desta vaga foram preenchidas."
+    const val SELECAO_EM_CURSO = "A seleção desta vaga ainda está em andamento."
+    const val JA_COMECOU = "O turno desta vaga já começou."
+    const val VAGA_CANCELADA = "Esta vaga foi cancelada."
+    const val NAO_E_SELECAO = "Apenas vagas no modo seleção podem ser republicadas com este atalho."
+    const val INDISPONIVEL = "A republicação desta vaga não está disponível."
+    const val VAGA_OCULTA = "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada."
+    const val PERFIL_INCOMPATIVEL = "Apenas contas de contratante podem republicar vagas."
+    const val SEM_PERMISSAO = "Você não tem permissão para republicar esta vaga."
+    const val CONTA_SUSPENSA = "Sua conta está suspensa e não pode republicar vagas."
+    const val NAO_ENCONTRADO = "A vaga original não foi encontrada."
+    const val SEM_REDE = "Sem conexão com a internet. Tente novamente."
+    const val SESSAO_EXPIRADA = "Sua sessão expirou. Entre novamente para continuar."
+    const val ERRO_GENERICO = "Não foi possível republicar as posições restantes. Tente novamente."
+
+    fun botao(posicoes: Int): String = if (posicoes == 1) BOTAO_UMA else BOTAO_VARIAS.format(posicoes)
+}

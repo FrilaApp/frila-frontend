@@ -7,11 +7,12 @@ import br.com.frila.core.rede.VagaResumoDto
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/** O que o painel diz que a casa pode fazer com cada vaga (L2-3): cancelar. */
+/** O que o painel diz que a casa pode fazer com cada vaga (L2-3): cancelar, republicar e republicar posições vazias. */
 class MinhasVagasAcoesDaVagaTest {
 
     /** Terça-feira, 10/11/2026, 12h em Brasília. */
@@ -52,5 +53,35 @@ class MinhasVagasAcoesDaVagaTest {
         assertFalse(itens.getValue("cancelada").podeCancelar)
         assertFalse(itens.getValue("encerrada").podeCancelar)
         assertFalse(itens.getValue("ilegivel").podeCancelar)
+    }
+
+    @Test
+    fun `so a vaga encerrada, cancelada ou com o fim no passado pode ser republicada`() {
+        val itens = itens(
+            vaga("futura", "2026-11-12T21:00:00Z", "2026-11-13T03:00:00Z"),
+            vaga("em-curso", "2026-11-10T14:00:00Z", "2026-11-10T20:00:00Z"),
+            vaga("passada", "2026-11-09T14:00:00Z", "2026-11-09T20:00:00Z"),
+            vaga("cancelada", "2026-11-12T21:00:00Z", "2026-11-13T03:00:00Z", estado = "cancelada"),
+            vaga("encerrada", "2026-11-09T14:00:00Z", "2026-11-09T20:00:00Z", estado = "encerrada"),
+            vaga("ilegivel", "ontem", "2026-11-09T20:00:00Z", estado = "encerrada"),
+        )
+
+        assertFalse(itens.getValue("futura").podeRepublicar)
+        assertFalse(itens.getValue("em-curso").podeRepublicar)
+        assertTrue(itens.getValue("passada").podeRepublicar)
+        assertTrue(itens.getValue("cancelada").podeRepublicar)
+        assertTrue(itens.getValue("encerrada").podeRepublicar)
+        assertFalse(itens.getValue("ilegivel").podeRepublicar, "sem horário legível não há duração para copiar")
+    }
+
+    @Test
+    fun `as posicoes republicaveis em urgencia vem do servidor, e ausente vale zero`() {
+        val itens = itens(
+            vaga("com-duas", "2026-11-12T21:00:00Z", "2026-11-13T03:00:00Z", republicavel = 2),
+            vaga("sem-campo", "2026-11-12T21:00:00Z", "2026-11-13T03:00:00Z"),
+        )
+
+        assertEquals(2, itens.getValue("com-duas").republicavelEmUrgencia)
+        assertEquals(0, itens.getValue("sem-campo").republicavelEmUrgencia)
     }
 }

@@ -66,6 +66,10 @@ data class ItemMinhaVaga(
     val turnos: List<TurnoDoItem> = emptyList(),
     /** A casa ainda pode cancelar a vaga inteira: nem cancelada, nem encerrada, e antes do início (RN12). */
     val podeCancelar: Boolean = false,
+    /** Vaga encerrada, cancelada ou com o fim no passado: dá para republicar com outro horário (RF05). */
+    val podeRepublicar: Boolean = false,
+    /** Quantas posições a seleção deixou vazias e dá para republicar em urgência (0.2.41). Zero esconde o atalho. */
+    val republicavelEmUrgencia: Int = 0,
 )
 
 sealed interface ListaMinhasVagas {
@@ -212,6 +216,9 @@ class MinhasVagasViewModel(
                 .filter { it.turnoId != null && (it.estado == POSICAO_CONFIRMADA || it.estado == POSICAO_CUMPRIDA) }
                 .map { TurnoDoItem(posicaoId = it.id, nomeProfissional = it.profissional?.nome) },
             podeCancelar = estado != VAGA_CANCELADA && estado != VAGA_ENCERRADA && inicio != null && inicio.isAfter(agora),
+            podeRepublicar = inicio != null && fim != null &&
+                (estado == VAGA_ENCERRADA || estado == VAGA_CANCELADA || !fim.isAfter(agora)),
+            republicavelEmUrgencia = (republicavelEmUrgencia ?: 0).coerceAtLeast(0),
         )
     }
 
