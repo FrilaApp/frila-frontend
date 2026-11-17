@@ -20,6 +20,8 @@
     "postinstall": "wrangler types && npm run contrato:tipos"
   },
   "dependencies": {
+    "@firebase/app": "0.16.5",
+    "@firebase/messaging": "0.13.3",
     "isbot": "5.2.3",
     "openapi-fetch": "0.17.0",
     "react": "19.3.1",

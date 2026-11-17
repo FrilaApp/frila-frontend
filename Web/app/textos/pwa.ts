@@ -22,6 +22,27 @@ export const pwa = {
     abrirNoNavegador: "Abrir no navegador",
     fechar: "Fechar aviso",
   },
+  avisos: {
+    tituloDaAba: "Avisos no aparelho · Frila",
+    titulo: "Avisos neste aparelho",
+    corpo: "Receba neste aparelho os mesmos avisos que o app do Frila manda.",
+    link: "Avisos no aparelho",
+    ligar: "Ligar avisos",
+    ligando: "Ligando…",
+    desligar: "Desligar avisos neste aparelho",
+    ligados: "Os avisos estão ligados neste aparelho.",
+    desligados: "Os avisos estão desligados neste aparelho.",
+    semConfig: "Os avisos pelo navegador ainda não estão disponíveis.",
+    semSuporte: "Este navegador não recebe avisos. Use o Chrome, o Edge ou o Firefox, ou instale o Frila na tela de início do iPhone.",
+    iphoneSemInstalar: "No iPhone, os avisos só chegam com o Frila na tela de início. Instale e abra o Frila por lá para ligar os avisos.",
+    instalarPrimeiro: "Instalar na tela de início",
+    negado: "Os avisos do Frila estão bloqueados neste navegador. Para ligar, libere as notificações do Frila nos ajustes do navegador ou do aparelho e volte aqui.",
+    falhou: "Não deu para ligar os avisos agora. Tente de novo em instantes.",
+    // Todo push da web v1 mostra só este texto (decisão do O2, 17/11): o conteúdo aparece ao abrir o Frila com a sessão.
+    // TEXTO PROVISÓRIO: o mesmo neutro do iOS (VinculoDoPush.swift); o final é do Fabrício.
+    neutroTitulo: "Nova notificação do Frila",
+    neutroCorpo: "Abra o aplicativo para conferir.",
+  },
   semConexao: {
     tituloDaAba: "Sem conexão · Frila",
     titulo: "Sem conexão",
