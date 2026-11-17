@@ -442,9 +442,11 @@ private fun ListaDaBusca(
                             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-aviso-limite"))
                         }
                         Text(TextosChamadaCasa.buscaSelecionados(estado.selecionados.size))
+                        // 0.2.95: com termos da vaga aberta por confirmar (o 409 chegou com a folha já fechada), o botão
+                        // reabre a folha, que é onde estão o Confirmar e o Cancelar.
                         Button(
                             onClick = aoAbrirFolha,
-                            enabled = estado.podeChamar,
+                            enabled = estado.podeChamar || estado.termosParaConfirmar != null,
                             modifier = Modifier.fillMaxWidth().testTag("busca-chamar"),
                         ) { Text(TextosChamadaCasa.buscaChamar(estado.selecionados.size)) }
                     }
@@ -641,7 +643,8 @@ private fun FolhaDeChamadaDaBusca(
                 if (estado.podeReenviar) Text(TextosChamadaCasa.BUSCA_CONFIRMAR_DEPOIS, color = MaterialTheme.colorScheme.error)
                 Button(
                     onClick = aoConfirmarJ7,
-                    enabled = !estado.enviando && !estado.podeReenviar,
+                    // Com termos da vaga aberta por confirmar, eles vêm primeiro (o J7 não mandaria nada).
+                    enabled = !estado.enviando && !estado.podeReenviar && estado.termosParaConfirmar == null,
                     modifier = Modifier.fillMaxWidth().testTag("folha-confirmar-j7"),
                 ) { Text(TextosChamadaCasa.J7_CONFIRMAR) }
             }

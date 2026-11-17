@@ -449,6 +449,41 @@ class TelaBuscaDeProfissionaisTest {
     }
 
     @Test
+    fun comTermosDaVagaAbertaPorConfirmarEAFolhaFechadaOChamarReabreAFolhaComConfirmarECancelar() {
+        // O 409 com termos diferentes chegou depois de a casa fechar a folha durante o envio.
+        val termos = TermosDaVagaAberta("v-aberta", 15000, incluiRefeicao = false, incluiTransporte = false, exigeMaterialProprio = false)
+        montar(comResultados(selecionados = listOf("p1")) {
+            it.copy(resultadosDaChamada = mapOf("p1" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)), termosParaConfirmar = termos)
+        })
+
+        rolarAteTag("busca-chamar")
+        rule.onNodeWithTag("busca-chamar").assertIsEnabled().performClick()
+        rule.onNodeWithTag("folha-termos-da-vaga").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().performClick()
+        assertEquals(1, chamadas.confirmouTermosDaVaga)
+    }
+
+    @Test
+    fun folhaComJ7ETermosDaVagaAbertaDesligaOConfirmarDoJ7() {
+        abrirFolha(comResultados(selecionados = listOf("p1", "p2")))
+        val termos = TermosDaVagaAberta("v-aberta", 25000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = false)
+        estado = comResultados(selecionados = listOf("p1", "p2")) {
+            it.copy(
+                resultadosDaChamada = mapOf(
+                    "p1" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia,
+                    "p2" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos),
+                ),
+                mostrarJ7 = true,
+                termosParaConfirmar = termos,
+            )
+        }
+
+        // Os termos vêm primeiro: o Confirmar do J7 não mandaria nada enquanto eles esperam.
+        rule.onNodeWithTag("folha-confirmar-j7").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().assertIsEnabled()
+    }
+
+    @Test
     fun folhaComEnvioIncertoMostraNaoEnviadosEOBotaoDeTentarDeNovoReenviaOMesmoTrabalho() {
         abrirFolha(comResultados(selecionados = listOf("p1", "p2")))
         rule.onNodeWithTag("folha-valor").performTextInput("180")

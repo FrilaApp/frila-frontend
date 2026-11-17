@@ -183,11 +183,11 @@ class BuscaDeProfissionaisViewModel(
     /** `ServicoChamadaDireta.aceitarTermos` (0.2.90). Sem ela, o aceite não sai e a busca fica bloqueada. */
     private val aceitarTermos: (suspend (termosVersao: String) -> AceiteDeTermosDto)? = null,
     /**
-     * `ServicoChamadaDireta.minhasChamadas` e `detalheChamada` (0.2.95): os termos da vaga do `409 trabalho_ja_aberto`.
-     * Sem elas, a leitura falha e o 409 vira o erro genérico, sem repetir.
+     * `ServicoChamadaDireta.minhasChamadas` (com o cursor da página) e `detalheChamada` (0.2.95): os termos da vaga do
+     * `409 trabalho_ja_aberto`. Obrigatórias: sem elas, o 409 viraria o erro genérico em silêncio.
      */
-    private val minhasChamadas: (suspend (estado: String) -> PaginaDeChamadasDto)? = null,
-    private val detalheChamada: (suspend (chamadaId: String) -> ChamadaDetalheDto)? = null,
+    private val minhasChamadas: suspend (estado: String, cursor: String?) -> PaginaDeChamadasDto,
+    private val detalheChamada: suspend (chamadaId: String) -> ChamadaDetalheDto,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     private val prazoMs: Long = ChamadaDiretaViewModel.PRAZO_PADRAO_MS,
     /** `ServicoVagas.listarFuncoes`, `ServicoDeRegioes.regioesAtivas` e `ServicoMembros.meuEstabelecimento`. */
@@ -628,10 +628,13 @@ class BuscaDeProfissionaisViewModel(
                     break
                 }
             }
+            // Com termos da vaga aberta pendentes, eles vêm primeiro: o J7 não manda nada antes de a casa responder
+            // (podeChamar), e volta ao confirmar ou cancelar.
             _estado.update {
                 it.copy(
                     enviando = false,
-                    mostrarJ7 = it.resultadosDaChamada.values.any { r -> r == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia },
+                    mostrarJ7 = it.termosParaConfirmar == null &&
+                        it.resultadosDaChamada.values.any { r -> r == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia },
                 )
             }
         }
@@ -663,19 +666,25 @@ class BuscaDeProfissionaisViewModel(
 
     /**
      * Os termos da vaga aberta como a casa os lê (0.2.95, e não por `detalhe_vaga`): o valor no item `aberta` de
-     * `minhas_chamadas` com esse `vaga_id` (o trabalho aberto sempre tem um, e a casa tem no máximo 10 abertas, RN34) e os
-     * inclusos no `detalhe_chamada` dele. O mesmo prazo das outras chamadas; sem as leituras, sem o item, com erro ou com o
-     * prazo estourado, `null`.
+     * `minhas_chamadas` com esse `vaga_id`, seguindo o cursor até achá-lo (em geral está na 1ª página), e os inclusos no
+     * `detalhe_chamada` dele. Um prazo só para todas as leituras (ele também corta um cursor que não acaba); sem o item em
+     * nenhuma página, com erro (inclusive `cursor_invalido`) ou com o prazo estourado, `null`, e o 409 não se repete.
      */
     private suspend fun lerTermos(vagaId: String): TermosDaVagaAberta? {
-        val lerChamadas = minhasChamadas ?: return null
-        val lerDetalhe = detalheChamada ?: return null
         return try {
             withTimeout(prazoMs) {
-                val chamada = lerChamadas("aberta").itens.firstOrNull { it.vagaId == vagaId } ?: return@withTimeout null
-                val detalhe = lerDetalhe(chamada.id)
-                TermosDaVagaAberta(vagaId, chamada.valorCentavos, detalhe.incluiRefeicao, detalhe.incluiTransporte,
-                                   detalhe.exigeMaterialProprio)
+                var cursor: String? = null
+                do {
+                    val pagina = minhasChamadas("aberta", cursor)
+                    val chamada = pagina.itens.firstOrNull { it.vagaId == vagaId }
+                    if (chamada != null) {
+                        val detalhe = detalheChamada(chamada.id)
+                        return@withTimeout TermosDaVagaAberta(vagaId, chamada.valorCentavos, detalhe.incluiRefeicao,
+                                                              detalhe.incluiTransporte, detalhe.exigeMaterialProprio)
+                    }
+                    cursor = pagina.proximoCursor
+                } while (cursor != null)
+                null
             }
         } catch (erro: CancellationException) {
             if (erro !is TimeoutCancellationException) throw erro
@@ -698,11 +707,17 @@ class BuscaDeProfissionaisViewModel(
         return chamar(pendente.trabalho, pendente.recado)
     }
 
-    /** A casa não quis os termos da vaga aberta: nada sai, e quem esperava volta a ficar sem resultado. */
+    /**
+     * A casa não quis os termos da vaga aberta: nada sai, e quem esperava volta a ficar sem resultado. Quem espera o J7
+     * continua esperando, e o aviso dele volta.
+     */
     fun cancelarTermosDaVagaAberta() {
         val pendente = confirmacaoDosTermos ?: return
         confirmacaoDosTermos = null
         soltarQuemEsperava(pendente.termos)
+        _estado.update {
+            it.copy(mostrarJ7 = it.resultadosDaChamada.values.any { r -> r == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia })
+        }
     }
 
     private fun soltarQuemEsperava(termos: TermosDaVagaAberta) {

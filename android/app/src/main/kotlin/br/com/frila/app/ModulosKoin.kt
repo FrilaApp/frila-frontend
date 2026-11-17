@@ -329,8 +329,8 @@ val moduloFeatures = module {
             buscarProfissionais = chamadas::buscarProfissionais,
             chamarProfissional = chamadas::chamarProfissional,
             aceitarTermos = chamadas::aceitarTermos,
-            // 0.2.95: os termos da vaga do 409 trabalho_ja_aberto, como a casa os lê.
-            minhasChamadas = { estado -> chamadas.minhasChamadas(estado = estado) },
+            // 0.2.95: os termos da vaga do 409 trabalho_ja_aberto, como a casa os lê (seguindo o cursor).
+            minhasChamadas = { estado, cursor -> chamadas.minhasChamadas(estado = estado, cursor = cursor) },
             detalheChamada = chamadas::detalheChamada,
             listarFuncoes = get<ServicoVagas>()::listarFuncoes,
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
