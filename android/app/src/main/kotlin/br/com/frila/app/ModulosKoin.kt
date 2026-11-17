@@ -15,6 +15,8 @@ import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacaoFused
+import br.com.frila.core.localizacao.RemovedorDeGeofencesAntigos
+import br.com.frila.core.localizacao.RemovedorDeGeofencesAntigosDoPlayServices
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
@@ -215,6 +217,18 @@ val moduloNotificacoes = module {
  */
 val moduloLocalizacao = module {
     single<ProvedorDeLocalizacao> { ProvedorDeLocalizacaoFused(get()) }
+    /** Só desfaz o que uma versão anterior registrou; sem `Context` (testes) não há Play Services e nada a remover. */
+    single<RemovedorDeGeofencesAntigos> {
+        getOrNull<Context>()?.let { RemovedorDeGeofencesAntigosDoPlayServices(it) } ?: RemovedorDeGeofencesAntigos { }
+    }
+    single {
+        val turnos = get<ServicoTurnos>()
+        LimpezaDeGeofencesAntigos(
+            temSessao = get<ArmazenamentoDeSessao>()::estaAutenticado,
+            idsDosTurnos = { turnos.listarMeusTurnos().map { it.id } },
+            remover = get<RemovedorDeGeofencesAntigos>()::remover,
+        )
+    }
 }
 
 val moduloFeatures = module {
