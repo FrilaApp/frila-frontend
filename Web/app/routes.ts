@@ -7,6 +7,12 @@ export default [
   route("cadastro", "rotas/cadastro.tsx"),
   route("aceitar-termos", "rotas/aceitar-termos.ts"),
   route("saude", "rotas/saude.ts"),
+  // A vaga pelo link, sem login (para compartilhar)
+  route("v/:vagaId", "rotas/publico/vaga.tsx"),
+
+  // Conta suspensa, contestação e suporte (os dois lados)
+  route("conta/suspensa", "rotas/conta/suspensa.tsx"),
+  route("suporte/:turnoId", "rotas/suporte.tsx"),
 
   // Páginas públicas (textos do marketing)
   route("como-funciona/casa", "rotas/publico/como-funciona-casa.tsx"),
@@ -33,4 +39,8 @@ export default [
     route("publicar", "rotas/contratante/publicar-vaga.tsx"),
     route("vagas/:vagaId", "rotas/contratante/vaga.tsx"),
   ]),
+
+  // Dia do turno da casa (C4 e C5): bloco próprio, fora do prefixo do painel e das vagas
+  route("casa/turnos", "rotas/contratante/turno/lista.tsx"),
+  route("casa/turnos/:turnoId", "rotas/contratante/turno/detalhe.tsx"),
 ] satisfies RouteConfig;

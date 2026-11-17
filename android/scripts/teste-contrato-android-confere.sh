@@ -154,6 +154,85 @@ with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
 "
 esperar_reprovacao "ConfirmarCheckinManualDto com campo trocado" "não mapeia campos obrigatórios (required) de '/rpc/confirmar_checkin_manual': ['turno_id']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
 
+# 3b. O portão lê todos os `Dtos*.kt` de core/rede, não só o `Dtos.kt` (DtosCheckin.kt, DtosValidarCodigo.kt e DtosPerfil.kt
+# ficaram de fora e nada acusava). Os casos abaixo usam um segundo arquivo, `DtosExtra.kt`.
+DIR_REDE="$TMPDIR_TESTE/android/core/rede/src/main/kotlin/br/com/frila/core/rede"
+EXTRA_FILE="$DIR_REDE/DtosExtra.kt"
+cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTOS_FILE"
+
+cat > "$EXTRA_FILE" <<'KT'
+package br.com.frila.core.rede
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class OrfaoDto(
+    @SerialName("x") val x: String,
+)
+KT
+esperar_reprovacao "DTO sem schema em outro arquivo Dtos*.kt" "DTO 'OrfaoDto' não possui schema correspondente 'Orfao'" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+cat > "$EXTRA_FILE" <<'KT'
+package br.com.frila.core.rede
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class CodigoDeCheckinDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("codigo") val codigo: String,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("segundos_restantes") val segundosRestantes: Int,
+    @SerialName("campo_a_mais") val campoAMais: String,
+)
+KT
+esperar_reprovacao "campo inventado em outro arquivo Dtos*.kt" "possui campos inventados ausentes no schema 'CodigoDeCheckin': ['campo_a_mais']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+cat > "$EXTRA_FILE" <<'KT'
+package br.com.frila.core.rede
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class CodigoDeCheckinDto(
+    @SerialName("turno_id") val turnoId: String,
+)
+KT
+esperar_reprovacao "campo obrigatório ausente em outro arquivo Dtos*.kt" "não mapeia campos obrigatórios (required) do schema 'CodigoDeCheckin': ['codigo', 'expira_em', 'segundos_restantes']" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+cat > "$EXTRA_FILE" <<'KT'
+package br.com.frila.core.rede
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class TurnoDto(
+    @SerialName("id") val id: String,
+)
+KT
+esperar_reprovacao "mesma classe em dois arquivos Dtos*.kt" "DTO 'TurnoDto' declarado em mais de um arquivo" --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+
+cat > "$EXTRA_FILE" <<'KT'
+package br.com.frila.core.rede
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class CodigoDeCheckinDto(
+    @SerialName("turno_id") val turnoId: String,
+    @SerialName("codigo") val codigo: String,
+    @SerialName("expira_em") val expiraEm: String,
+    @SerialName("segundos_restantes") val segundosRestantes: Int,
+)
+KT
+esperar_aprovacao --contrato "$CONTRATO_OFICIAL" --android-dir "$TMPDIR_TESTE/android"
+rm -f "$EXTRA_FILE"
+
 # 4. Mutação 3: contrato alterado sem regravar a soma
 mkdir -p "$TMPDIR_TESTE/contrato"
 cp "$CONTRATO_OFICIAL" "$TMPDIR_TESTE/contrato/openapi.yaml"

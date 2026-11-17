@@ -55,6 +55,21 @@ class AppDeepLinkNavegacaoTest {
         assertTrue(destino(Rotas.TURNO_AVISO, DeepLinks.TURNO_AVISO).hasDeepLink(intent.data!!))
     }
 
+    /** C0-10 (achado L do F-036): sem o host `chamadas` no manifesto, o link do aviso da chamada não chegava ao app. */
+    @Test
+    fun `intent de chamada recebida resolve MainActivity e corresponde ao destino da chamada`() {
+        val intent = intentPara("frila://chamadas/chamada-9")
+
+        assertEquals(
+            ComponentName(contexto, MainActivity::class.java),
+            intent.resolveActivity(contexto.packageManager),
+        )
+        assertTrue(
+            destino(RotasChamadaProfissional.RECEBIDA, RotasChamadaProfissional.DEEP_LINK_RECEBIDA)
+                .hasDeepLink(intent.data!!),
+        )
+    }
+
     private fun intentPara(uri: String): Intent =
         Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(contexto.packageName).also {
             assertNotNull(it.resolveActivity(contexto.packageManager))
