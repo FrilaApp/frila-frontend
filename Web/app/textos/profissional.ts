@@ -210,6 +210,7 @@ export const profissional = {
     naoEncontradaTitulo: "Chamada não encontrada",
     naoEncontradaCorpo: "Ela pode ter sido encerrada ou não é sua.",
     recado: "Recado da casa",
+    situacao: "Situação",
     distancia: { ate_5_km: "Até 5 km do seu ponto base", de_5_a_15_km: "De 5 a 15 km do seu ponto base", mais_de_15_km: "Mais de 15 km do seu ponto base" },
     enderecoDepois: "O endereço aparece quando você aceita.",
     aceitar: "Aceitar o turno",

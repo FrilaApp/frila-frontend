@@ -91,6 +91,9 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
               </Link>{" "}
               <Link to="/perfil" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
                 {textos.profissional.perfil.verPerfil}
+              </Link>{" "}
+              <Link to="/chamadas" className="inline-flex min-h-12 items-center px-4 text-lg font-bold underline underline-offset-4">
+                {textos.profissional.chamadas.titulo}
               </Link>
             </p>
           ) : null}
