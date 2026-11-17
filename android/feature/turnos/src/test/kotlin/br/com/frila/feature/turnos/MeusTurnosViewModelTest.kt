@@ -539,4 +539,26 @@ class MeusTurnosViewModelTest {
         assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
         assertTrue(viewModel.estado.value.mensagemErro != null)
     }
+
+    /** Revisão do #813: falha no alerta de aproximação não pode trocar a lista já carregada por uma tela de erro. */
+    @Test
+    fun `falha ao avaliar os turnos proximos nao troca a lista carregada por erro`() = runBlocking {
+        val monitorizador = mockk<MonitorizadorDeTurnosProximos>()
+        io.mockk.every { monitorizador.avaliarTurnos(any()) } throws IllegalStateException("alerta de aproximação indisponível")
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = "[${turnoJson("a", "confirmada")}]",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            monitorizador = monitorizador,
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(1, viewModel.estado.value.agendados.size)
+    }
 }
