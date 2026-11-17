@@ -4,15 +4,15 @@ Todos os direitos reservados.
 O código-fonte, o design, os textos e as imagens deste repositório são protegidos pela
 Lei nº 9.609/1998 (programa de computador) e pela Lei nº 9.610/1998 (direitos autorais).
 O repositório é público só para leitura. Sem autorização prévia e por escrito da titular,
-ninguém pode copiar, alterar, distribuir, publicar, sublicenciar, vender ou usar este
-conteúdo, no todo ou em parte, em outro programa, produto ou serviço.
+ninguém pode usar, copiar, alterar, distribuir, publicar, sublicenciar ou vender este
+conteúdo, no todo ou em parte, nem aproveitá-lo em outro programa, produto ou serviço.
 
 Ver o repositório e fazer fork dentro do GitHub são permitidos só na medida dos Termos de
 Serviço do GitHub. Isso não concede nenhuma outra licença.
 
-As versões publicadas até 17/11/2026 foram distribuídas sob a licença MIT, e essa licença
-continua valendo para aquelas versões. Este aviso vale para o que for publicado a partir
-de 17/11/2026.
+As versões publicadas antes deste aviso foram distribuídas sob a licença MIT, e essa licença
+continua valendo para elas. Este aviso vale para tudo o que for publicado depois dele, em
+qualquer ramo deste repositório.
 
 Componentes de terceiros mantêm as licenças próprias (ver iOS/Docs/LicencasDeTerceiros.md
 e a tela de licenças de cada app).
@@ -21,9 +21,14 @@ Pedidos de autorização: contato@frilabr.com
 
 ---
 
+English summary. The Portuguese text above prevails.
+
 Copyright (c) 2026 FRILA TECNOLOGIA INOVA SIMPLES (I.S.). All rights reserved.
-This repository is public for reading only. No permission is granted to copy, modify,
-distribute, sublicense, sell or otherwise use its contents without prior written
-authorization from the copyright holder. Versions published before 17/11/2026 were released
-under the MIT License, which still applies to those versions. Third-party components keep
-their own licenses.
+This repository is public for reading only. Without prior written authorization from the
+copyright holder, no one may use, copy, modify, distribute, publish, sublicense or sell its
+contents, in whole or in part, or reuse them in another program, product or service.
+Viewing and forking on GitHub are allowed only as provided in the GitHub Terms of Service.
+Versions published before this notice were released under the MIT License, which still
+applies to those versions. This notice applies to everything published after it, on any
+branch. Third-party components keep their own licenses.
+Authorization requests: contato@frilabr.com
