@@ -208,14 +208,19 @@ public struct Denuncia: Codable, Equatable, Sendable {
     /// 0.2.54 (CD-RF12): a foto denunciada, pelo `foto_id` que o perfil mostrou. Sem ela, a denúncia
     /// é sobre o perfil, como antes. Duas denúncias de contas diferentes ocultam a foto no servidor.
     public let midiaID: UUID?
+    /// 0.2.71 (A-001): a chamada em que aconteceu, quando a denúncia sai da tela de uma chamada. Ela tem de envolver as
+    /// duas partes; senão, 422 `campo_invalido` (`chamada_id`).
+    public let chamadaID: UUID?
 
-    public init(alvo: Alvo, turnoID: UUID? = nil, motivo: MotivoDenuncia, relato: String, chave: UUID, midiaID: UUID? = nil) {
+    public init(alvo: Alvo, turnoID: UUID? = nil, motivo: MotivoDenuncia, relato: String, chave: UUID, midiaID: UUID? = nil,
+                chamadaID: UUID? = nil) {
         self.alvo = alvo
         self.turnoID = turnoID
         self.motivo = motivo
         self.relato = relato
         self.chave = chave
         self.midiaID = midiaID
+        self.chamadaID = chamadaID
     }
 }
 

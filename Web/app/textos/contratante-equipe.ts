@@ -1,0 +1,27 @@
+/** Textos da equipe de confiança do lado da casa (3.9). As frases seguem as do app (TextosEquipeDeConfianca). */
+export const contratanteEquipe = {
+  tituloDaAba: "Equipe de confiança · Frila",
+  titulo: "Equipe de confiança",
+  abrir: "Equipe de confiança",
+  explicacao: "Quem está na equipe recebe as vagas desta casa mesmo além de 15 km, desde que tenha a função e esteja disponível. Não há exclusividade nem ordem de preferência.",
+  vazioTitulo: "Ninguém na equipe ainda",
+  vazioMensagem: "Inclua um profissional a partir de um turno que ele já cumpriu aqui.",
+  remover: "Remover da equipe",
+  efeitoRemocao: "{nome} deixa de receber as vagas desta casa além de 15 km. Sem penalidade nem aviso.",
+  removendo: "Removendo…",
+  removido: "Removido da equipe.",
+  incluir: "Incluir na equipe",
+  incluindo: "Incluindo…",
+  incluido: "Incluído na equipe de confiança.",
+  soAdministradorAltera: "Só o administrador da casa muda a equipe.",
+  voltar: "Voltar ao painel",
+  erros: {
+    sem_turno_cumprido: "Só dá para incluir quem já cumpriu um turno com presença verificada nesta casa.",
+    so_administrador: "Só o administrador do estabelecimento altera a equipe.",
+    conta_suspensa: "Sua conta está suspensa. Enquanto a suspensão durar, a equipe não muda.",
+    nao_encontrado: "Este perfil não está mais disponível.",
+    indisponivel: "Não foi possível concluir esta ação. Tente novamente.",
+    carregar: "Não foi possível carregar a equipe. Tente novamente.",
+    semPermissao: "Você não faz mais parte desta casa.",
+  },
+} as const;
