@@ -69,6 +69,16 @@ try {
   confere("GET /app/saude responde JSON sem cache", saude.status === 200 && saude.headers.get("cache-control") === "no-store");
   confere("a saúde diz o estado da configuração", typeof corpoDaSaude.configuracao_do_app === "string");
 
+  const manifesto = await fetch(`${BASE}/app/site.webmanifest`);
+  const icones = manifesto.ok ? (await manifesto.json()).icons : [];
+  confere("o manifest responde e lista os ícones", icones.length === 3);
+  for (const caminho of ["/app/favicon.svg", "/app/apple-touch-icon-180.png", "/app/og-1200x630.png", ...new Set(icones.map((icone) => icone.src))]) {
+    confere(`ativo de marca ${caminho}`, (await fetch(`${BASE}${caminho}`)).status === 200);
+  }
+  const fonte = /href="(\/app\/assets\/ProdigySans-Bold-[^"]+\.woff2)"/.exec(html)?.[1];
+  confere("a fonte do título é pré-carregada e responde", Boolean(fonte) && (await fetch(`${BASE}${fonte}`)).status === 200, String(fonte));
+  confere("a página aponta a imagem de compartilhamento em frilabr.com/app", html.includes('content="https://frilabr.com/app/og-1200x630.png"'));
+
   const arquivo = /\/app\/assets\/entry\.client-[^"]+\.js/.exec(html)?.[0];
   const estatico = arquivo ? await fetch(`${BASE}${arquivo}`) : null;
   confere("o JavaScript da página responde 200", estatico?.status === 200, String(arquivo));

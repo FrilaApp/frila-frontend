@@ -31,6 +31,8 @@ scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com 
 - **Regra de negócio fica no servidor do Frila.** A web mostra o que o servidor decide.
 - **Tela provisória** leva o comentário `// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício` e usa só os tokens de
   `app/app.css`. Decisão de tela é do Fabrício.
+- **Marca:** cor, fonte e ativos vêm do time de marca (`app/marca/LEIAME.md`); texto de página pública vem do
+  marketing. A web encaixa: não desenha ativo, não escolhe cor e não escreve texto de marketing.
 - **Sala limpa:** nada de código, texto, imagem, cor, nome ou dado de outros produtos.
 - **Custo zero:** plano grátis da Cloudflare. Página pública pronta de antemão, servidor mínimo, nada de serviço pago.
 - **Dependência nova:** versão exata (`npm install --save-exact`), citada no PR. Não crie `.npmrc` (a guarda de segredos barra). Endereço e chave do Supabase não entram no repositório

@@ -30,11 +30,11 @@ export default function Inicio({ loaderData }: Route.ComponentProps) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 p-6">
-      <p className="font-titulo text-xl font-bold text-acao">{textos.marca}</p>
+      <p className="font-titulo text-xl font-bold">{textos.marca}</p>
       <h1 className="font-titulo text-3xl font-bold">{bloco.titulo}</h1>
-      <p className="text-texto-secundario">{bloco.corpo}</p>
+      <p className="text-tinta-suave">{bloco.corpo}</p>
       {loaderData.webLigada ? (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-texto-secundario">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-tinta-suave">
           <dt>{textos.inicio.ambiente}</dt>
           <dd>{loaderData.ambiente}</dd>
           <dt>{textos.inicio.configuracao}</dt>
