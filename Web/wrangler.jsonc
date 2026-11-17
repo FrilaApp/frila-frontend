@@ -14,7 +14,9 @@
 	"vars": {
 		"AMBIENTE": "dev",
 		// "1" mostra a web; qualquer outro valor mostra só a página "em breve".
-		"WEB_LIGADA": "1"
+		"WEB_LIGADA": "1",
+		// Conta de demonstração do dev (a mesma do app, para teste de ponta a ponta). Não existe em produção.
+		"EMAILS_DE_DEMONSTRACAO": "revisao-profissional@frila.app"
 	},
 	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
 	"secrets": {

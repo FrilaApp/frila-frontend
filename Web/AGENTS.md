@@ -9,6 +9,7 @@ npm ci                 # instala (versões exatas, pelo lockfile)
 npm run dev            # servidor local em http://localhost:5173/app/
 npm run conferir       # contrato + lint + tipos + testes + build + orçamento + fumaça: o gate local (a CI roda o mesmo)
 scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com o Supabase de dev
+node scripts/prova-da-entrada.mjs <endereço> <arquivo do e-mail> <arquivo do código>   # entrada de ponta a ponta no dev
 ```
 
 ## Regras que o agente erra sem ler
@@ -23,6 +24,10 @@ scripts/gerar-dev-vars.sh   # uma vez: cria o .dev.vars (ignorado pelo git) com 
 - **Tudo debaixo de `/app`** (`basename` no `react-router.config.ts`). Link interno é relativo à base: `<Link to="/">`.
   Na tela de erro, use `<a href>` (a navegação sem recarregar não existe com a chave desligada).
 - **Variáveis do Worker:** `import { env } from "cloudflare:workers"`, só em código de servidor (loader, action, `app/servidor/`).
+- **Sessão:** o middleware da raiz decide a sessão uma vez por pedido; loader e action leem com
+  `context.get(contextoDaSessao)` (`app/contexto.ts`) e falam com o servidor do Frila por `apiDoUsuario(sessao.acesso)`.
+  Nunca devolva `sessao.acesso` no loader: o que o loader devolve vai para o navegador.
+- **Envio (POST e afins)** só passa com `Origin` do próprio endereço (o porteiro barra o resto): use `<Form>`.
 - **Sessão só no servidor:** cookie `HttpOnly` gravado pelo Worker. Token nunca vai para o JavaScript da página, nem
   `localStorage`. Não use `@supabase/ssr`. Nunca `service_role`.
 - **CSP com nonce** (`app/entry.server.tsx`, `app/servidor/cabecalhos.ts`): nada de `<script>` ou `<style>` embutido

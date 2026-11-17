@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+
+import { criarAuth } from "~/servidor/auth";
+
+const ambiente = { url: "https://exemplo.supabase.co", chavePublicavel: "sb_publishable_teste" };
+const sessao = { access_token: "a.b.c", refresh_token: "r", token_type: "bearer", expires_in: 3600 };
+
+function authQueResponde(resposta: () => Response | Promise<Response>, prazoMs?: number) {
+  const pedidos: Request[] = [];
+  const auth = criarAuth(ambiente, {
+    prazoMs,
+    fetch: async (entrada, inicio) => {
+      pedidos.push(new Request(entrada, inicio));
+      return resposta();
+    },
+  });
+  return { auth, pedidos };
+}
+const corpoDe = async (pedido: Request | undefined) => (pedido ? ((await pedido.json()) as Record<string, unknown>) : {});
+
+describe("conversa com o Supabase Auth", () => {
+  it("pede o código em auth/v1/otp só com a chave publicável", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json({}));
+    expect(await auth.pedirCodigo("ana@example.com")).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/otp");
+    expect(pedidos[0]?.method).toBe("POST");
+    expect(pedidos[0]?.headers.get("apikey")).toBe("sb_publishable_teste");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com" });
+  });
+
+  it("limite de pedidos de código vira motivo próprio", async () => {
+    const { auth } = authQueResponde(() => Response.json({ code: "limite_excedido", message: "x" }, { status: 429 }));
+    expect(await auth.pedirCodigo("ana@example.com")).toEqual({ ok: false, motivo: "limite" });
+  });
+
+  it("confirma o código em auth/v1/verify e devolve a sessão", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json(sessao));
+    expect(await auth.confirmarCodigo("ana@example.com", "123456")).toEqual({ ok: true, sessao });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/verify");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", token: "123456", type: "email" });
+  });
+
+  it("código errado, limite e servidor fora do ar têm motivos diferentes", async () => {
+    const com = (status: number) => authQueResponde(() => Response.json({ code: "x", message: "x" }, { status })).auth;
+    expect(await com(401).confirmarCodigo("a@b.co", "000000")).toEqual({ ok: false, motivo: "codigo_invalido" });
+    expect(await com(403).confirmarCodigo("a@b.co", "000000")).toEqual({ ok: false, motivo: "codigo_invalido" });
+    expect(await com(429).confirmarCodigo("a@b.co", "000000")).toEqual({ ok: false, motivo: "limite" });
+    expect(await com(500).confirmarCodigo("a@b.co", "000000")).toEqual({ ok: false, motivo: "indisponivel" });
+    const semRede = authQueResponde(() => Promise.reject(new TypeError("fetch failed"))).auth;
+    expect(await semRede.confirmarCodigo("a@b.co", "000000")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+
+  it("renova em auth/v1/token?grant_type=refresh_token", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json(sessao));
+    expect(await auth.renovar("r1")).toEqual({ ok: true, sessao });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/token?grant_type=refresh_token");
+    expect(await corpoDe(pedidos[0])).toEqual({ refresh_token: "r1" });
+  });
+
+  it("renovação: token recusado é diferente de servidor fora do ar", async () => {
+    const com = (status: number) => authQueResponde(() => Response.json({ code: "x", message: "x" }, { status })).auth;
+    expect(await com(400).renovar("r")).toEqual({ ok: false, motivo: "recusada" });
+    expect(await com(401).renovar("r")).toEqual({ ok: false, motivo: "recusada" });
+    expect(await com(429).renovar("r")).toEqual({ ok: false, motivo: "indisponivel" });
+    expect(await com(503).renovar("r")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+
+  it("a conta de demonstração entra pela função própria", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json(sessao));
+    expect(await auth.entrarDemonstracao("demo@example.com", "codigo-fixo")).toEqual({ ok: true, sessao });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/functions/v1/entrar-demonstracao");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "demo@example.com", codigo: "codigo-fixo" });
+  });
+
+  it("sair encerra só esta sessão, com o token de quem entrou, e não lança sem rede", async () => {
+    const { auth, pedidos } = authQueResponde(() => new Response(null, { status: 204 }));
+    await auth.encerrar("token-do-usuario");
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/logout?scope=local");
+    expect(pedidos[0]?.headers.get("Authorization")).toBe("Bearer token-do-usuario");
+    const semRede = authQueResponde(() => Promise.reject(new TypeError("fetch failed"))).auth;
+    await expect(semRede.encerrar("t")).resolves.toBeUndefined();
+  });
+
+  it("servidor que não responde é cortado pelo prazo", async () => {
+    const auth = criarAuth(ambiente, {
+      prazoMs: 30,
+      fetch: (entrada, inicio) =>
+        new Promise<Response>((_, rejeitar) => {
+          const sinal = new Request(entrada, inicio).signal;
+          sinal.addEventListener("abort", () => rejeitar(sinal.reason));
+        }),
+    });
+    expect(await auth.pedirCodigo("a@b.co")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+});

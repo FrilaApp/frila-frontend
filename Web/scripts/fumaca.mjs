@@ -61,6 +61,28 @@ try {
   confere("GET / vai para /app/", raiz.status === 302 && raiz.headers.get("location") === `${BASE}/app/`);
   confere("o redirecionamento também leva nosniff", raiz.headers.get("x-content-type-options") === "nosniff");
 
+  for (const dados of ["/app.data", "/app/_.data"]) {
+    const resposta = await fetch(`${BASE}${dados}`, { redirect: "manual" });
+    confere(`pedido de dados da página inicial (${dados})`, resposta.status === 200 && (resposta.headers.get("content-type") ?? "").includes("text/x-script"), String(resposta.status));
+  }
+
+  const entrar = await fetch(`${BASE}/app/entrar`);
+  const htmlDoEntrar = await entrar.text();
+  confere("GET /app/entrar mostra o formulário e não vai para buscador", entrar.status === 200 && htmlDoEntrar.includes('name="email"') && htmlDoEntrar.includes('content="noindex"'));
+  const forjado = await fetch(`${BASE}/app/entrar`, { method: "POST", redirect: "manual", headers: { Origin: "https://outro.example" }, body: new URLSearchParams({ email: "a@b.co", intencao: "pedir" }) });
+  confere("envio vindo de outro site é recusado (403)", forjado.status === 403, String(forjado.status));
+  const semOrigem = await fetch(`${BASE}/app/sair`, { method: "POST", redirect: "manual" });
+  confere("envio sem origem é recusado (403)", semOrigem.status === 403, String(semOrigem.status));
+  const sair = await fetch(`${BASE}/app/sair`, { method: "POST", redirect: "manual", headers: { Origin: BASE } });
+  const apagados = sair.headers.getSetCookie();
+  confere(
+    "sair sem sessão responde 302 e apaga os cookies, todos HttpOnly",
+    sair.status === 302 && apagados.length === 2 && apagados.every((linha) => linha.includes("HttpOnly") && linha.includes("Max-Age=0")),
+    `${sair.status} ${apagados.length}`,
+  );
+  const semCookie = await fetch(`${BASE}/app/`);
+  confere("sem sessão, a página não grava cookie nenhum", semCookie.headers.getSetCookie().length === 0);
+
   const perdida = await fetch(`${BASE}/app/nao-existe`);
   confere("rota inexistente responde 404 com CSP", perdida.status === 404 && perdida.headers.has("content-security-policy"));
 
