@@ -47,8 +47,6 @@ class CheckinViewModel(
     private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val instanteAtual: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
-    /** RNF04 (RN06, cartão Uu04zAt4): remove o alerta de aproximação assim que o check-in é feito. */
-    private val monitorizador: MonitorizadorDeTurnosProximos? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -99,7 +97,7 @@ class CheckinViewModel(
                 // Sem leitura no prazo (sem sinal): segue como "sem localização", check-in manual (RN06).
                 val coordenadaAtual = leitura?.coordenada
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
-                registrarCheckin(distanciaMetros, coordenadaAtual)
+                registrarCheckin(distanciaMetros)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
@@ -171,7 +169,7 @@ class CheckinViewModel(
         }
         return escopoDeTrabalho.launch {
             try {
-                registrarCheckin(distanciaMetros = null, coordenadaAtual = null)
+                registrarCheckin(distanciaMetros = null)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
@@ -183,7 +181,7 @@ class CheckinViewModel(
         _estado.update { it.copy(dialogoDefensivo = null, status = StatusCheckin.OCIOSO) }
     }
 
-    private suspend fun registrarCheckin(distanciaMetros: Int?, coordenadaAtual: Coordenada?) {
+    private suspend fun registrarCheckin(distanciaMetros: Int?) {
         val agora = instanteAtual()
 
         val resultado = servicoTurnos.fazerCheckin(
@@ -191,11 +189,6 @@ class CheckinViewModel(
             distanciaMetros = distanciaMetros,
             registradoEm = agora.toString(),
         )
-
-        // RNF04: o alerta de aproximação não serve mais depois do check-in confirmado. Só
-        // depois do sucesso da chamada de rede — se ela falhar, o alerta não deve ser perdido
-        // antes da hora (MEDIDO/ressalva do Shisui, PR #598).
-        monitorizador?.removerAlerta(turnoId)
 
         val tipoVerificacao = mapearTipoVerificacaoCheckin(
             verificacao = resultado.verificacao,
@@ -206,7 +199,6 @@ class CheckinViewModel(
             turnoId = turnoId,
             registradoEm = agora,
             tipoVerificacao = tipoVerificacao,
-            coordenada = if (tipoVerificacao == TipoVerificacaoCheckin.GEOLOCALIZADO) coordenadaAtual else null,
         )
 
         val status = when (tipoVerificacao) {
