@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { contextoDaSessao } from "../app/contexto";
 import { action, loader } from "../app/rotas/profissional/cadastro";
+import { type Valores, VAZIO } from "../app/servidor/profissional/cadastro";
 import { textos } from "../app/textos/pt-BR";
 import { argumentos, ok, recusa, redirecionamento } from "./contratante-apoio";
 
@@ -39,7 +40,9 @@ function envio(pares: Array<[string, string]>) {
 }
 
 const corpos = () => api.POST.mock.calls.map(([caminho, opcoes]) => [caminho, (opcoes as { body: unknown }).body]);
-const COMPLETO: Array<[string, string]> = [["passo", "regioes"], ["ir", "avancar"], ["funcoes", GARCOM], ["funcoes", COZINHEIRO], ["ponto_regiao", "3"], ["regioes", "1"], ["regioes", "3"]];
+const comValores = (mudancas: Partial<Valores>): Valores => ({ ...VAZIO, ...mudancas });
+// O último passo (serviços e preço) é o que cria o perfil; aqui, sem serviço oferecido.
+const COMPLETO: Array<[string, string]> = [["passo", "servicos"], ["ir", "avancar"], ["funcoes", GARCOM], ["funcoes", COZINHEIRO], ["ponto_regiao", "3"], ["regioes", "1"], ["regioes", "3"]];
 
 beforeEach(() => {
   api.GET.mockReset();
@@ -85,7 +88,7 @@ describe("cadastro do profissional: passo das funções", () => {
     expect(await action(envio([["passo", "funcoes"], ["ir", "avancar"]]))).toEqual({
       passo: "funcoes",
       erro: t.semFuncao,
-      valores: { funcoes: [], ponto_regiao: "", atende_todo_df: false, regioes: [] },
+      valores: VAZIO,
     });
     expect((await action(envio([["passo", "funcoes"], ["ir", "avancar"], ["funcoes", FORA_DO_CATALOGO]]))).erro).toBe(t.semFuncao);
     expect(api.POST).not.toHaveBeenCalled();
@@ -94,7 +97,7 @@ describe("cadastro do profissional: passo das funções", () => {
   it("com função do catálogo, vai ao ponto base levando só as funções que existem, sem repetir", async () => {
     servidor();
     const retorno = await action(envio([["passo", "funcoes"], ["ir", "avancar"], ["funcoes", GARCOM], ["funcoes", GARCOM], ["funcoes", FORA_DO_CATALOGO]]));
-    expect(retorno).toEqual({ passo: "ponto", erro: null, valores: { funcoes: [GARCOM], ponto_regiao: "", atende_todo_df: false, regioes: [] } });
+    expect(retorno).toEqual({ passo: "ponto", erro: null, valores: comValores({ funcoes: [GARCOM] }) });
     expect(api.POST).not.toHaveBeenCalled();
   });
 
@@ -115,9 +118,9 @@ describe("cadastro do profissional: passo do ponto base", () => {
     expect(api.POST).not.toHaveBeenCalled();
   });
 
-  it("com a região escolhida, vai às regiões atendidas, ainda sem enviar nada", async () => {
+  it("com a região escolhida, vai aos horários, ainda sem enviar nada", async () => {
     servidor();
-    expect(await action(envio(noPonto("3")))).toEqual({ passo: "regioes", erro: null, valores: { funcoes: [GARCOM], ponto_regiao: "3", atende_todo_df: false, regioes: [] } });
+    expect(await action(envio(noPonto("3")))).toEqual({ passo: "horarios", erro: null, valores: comValores({ funcoes: [GARCOM], ponto_regiao: "3" }) });
     expect(api.POST).not.toHaveBeenCalled();
   });
 
@@ -126,15 +129,25 @@ describe("cadastro do profissional: passo do ponto base", () => {
     expect(await action(envio([["passo", "ponto"], ["ir", "voltar"], ["funcoes", GARCOM], ["ponto_regiao", "abc"]]))).toEqual({
       passo: "funcoes",
       erro: null,
-      valores: { funcoes: [GARCOM], ponto_regiao: "abc", atende_todo_df: false, regioes: [] },
+      valores: comValores({ funcoes: [GARCOM], ponto_regiao: "abc" }),
     });
-    expect((await action(envio([...COMPLETO.filter(([campo]) => campo !== "ir"), ["ir", "voltar"]]))).passo).toBe("ponto");
+    expect((await action(envio([...COMPLETO.filter(([campo]) => campo !== "ir"), ["ir", "voltar"]]))).passo).toBe("regioes");
+    expect((await action(envio([["passo", "regioes"], ["ir", "voltar"]]))).passo).toBe("horarios");
+    expect((await action(envio([["passo", "horarios"], ["ir", "voltar"]]))).passo).toBe("ponto");
     expect(api.GET).not.toHaveBeenCalled();
     expect(api.POST).not.toHaveBeenCalled();
   });
 });
 
 describe("cadastro do profissional: passo das regiões e a criação", () => {
+  it("no passo das regiões, continuar confere a lista e vai aos serviços, sem enviar nada", async () => {
+    servidor();
+    const nasRegioes: Array<[string, string]> = [["passo", "regioes"], ["ir", "avancar"], ["funcoes", GARCOM], ["ponto_regiao", "3"], ["regioes", "1"]];
+    expect(await action(envio(nasRegioes))).toEqual({ passo: "servicos", erro: null, valores: comValores({ funcoes: [GARCOM], ponto_regiao: "3", regioes: ["1"] }) });
+    expect(await action(envio([...nasRegioes, ["regioes", "99"]]))).toMatchObject({ passo: "regioes", erro: t.regioes });
+    expect(api.POST).not.toHaveBeenCalled();
+  });
+
   it("cria o perfil com as funções, o centro da região como ponto base e a grade vazia; depois grava as regiões e vai às vagas", async () => {
     servidor();
     expect(await redirecionamento(action(envio(COMPLETO)))).toBe("/vagas");
@@ -175,14 +188,14 @@ describe("cadastro do profissional: recusas do contrato viram texto do Frila", (
   };
 
   it("recusas ao criar o perfil", async () => {
-    expect(await com({ criar: recusa(422, "perfil_incompativel") })).toMatchObject({ passo: "regioes", erro: t.perfil_incompativel });
-    expect(await com({ criar: recusa(403, "sem_permissao", "conta_suspensa") })).toMatchObject({ passo: "regioes", erro: t.conta_suspensa });
+    expect(await com({ criar: recusa(422, "perfil_incompativel") })).toMatchObject({ passo: "servicos", erro: t.perfil_incompativel });
+    expect(await com({ criar: recusa(403, "sem_permissao", "conta_suspensa") })).toMatchObject({ passo: "servicos", erro: t.conta_suspensa });
     expect(await com({ criar: recusa(422, "campo_invalido", "funcoes") })).toMatchObject({ passo: "funcoes", erro: t.funcoes });
     expect(await com({ criar: recusa(422, "campo_obrigatorio", "funcoes") })).toMatchObject({ passo: "funcoes", erro: t.funcoes });
     expect(await com({ criar: recusa(422, "campo_invalido", "ponto_base") })).toMatchObject({ passo: "ponto", erro: t.pontoBase });
     const caiu = await com({ criar: recusa(500) });
-    expect(caiu).toMatchObject({ passo: "regioes", erro: t.indisponivel });
-    expect(caiu.valores).toEqual({ funcoes: [GARCOM, COZINHEIRO], ponto_regiao: "3", atende_todo_df: false, regioes: ["1", "3"] });
+    expect(caiu).toMatchObject({ passo: "servicos", erro: t.indisponivel });
+    expect(caiu.valores).toEqual(comValores({ funcoes: [GARCOM, COZINHEIRO], ponto_regiao: "3", regioes: ["1", "3"] }));
     // Perfil não criado: as regiões nem são tentadas.
     expect(api.POST).toHaveBeenCalledTimes(1);
     servidor({ criar: recusa(401) });
@@ -196,9 +209,9 @@ describe("cadastro do profissional: recusas do contrato viram texto do Frila", (
   });
 
   it("recusas ao gravar as regiões: o perfil já existe, e a tela diz isso", async () => {
-    expect(await com({ regioes: recusa(422, "campo_invalido", "regioes") })).toMatchObject({ passo: "regioes", erro: t.regioesNaoSalvas });
-    expect(await com({ regioes: recusa(500) })).toMatchObject({ passo: "regioes", erro: t.regioesNaoSalvas });
-    expect(await com({ regioes: recusa(403, "sem_permissao", "conta_suspensa") })).toMatchObject({ passo: "regioes", erro: t.regioesNaoSalvas });
+    expect(await com({ regioes: recusa(422, "campo_invalido", "regioes") })).toMatchObject({ passo: "servicos", erro: t.regioesNaoSalvas });
+    expect(await com({ regioes: recusa(500) })).toMatchObject({ passo: "servicos", erro: t.regioesNaoSalvas });
+    expect(await com({ regioes: recusa(403, "sem_permissao", "conta_suspensa") })).toMatchObject({ passo: "servicos", erro: t.regioesNaoSalvas });
     servidor({ regioes: recusa(401) });
     expect(await redirecionamento(action(envio(COMPLETO)))).toBe("/entrar");
   });
@@ -211,6 +224,6 @@ describe("cadastro do profissional: recusas do contrato viram texto do Frila", (
   it("o servidor cair no meio (exceção de rede) não derruba a tela", async () => {
     servidor();
     api.POST.mockRejectedValue(new Error("rede"));
-    expect(await action(envio(COMPLETO))).toMatchObject({ passo: "regioes", erro: t.indisponivel });
+    expect(await action(envio(COMPLETO))).toMatchObject({ passo: "servicos", erro: t.indisponivel });
   });
 });

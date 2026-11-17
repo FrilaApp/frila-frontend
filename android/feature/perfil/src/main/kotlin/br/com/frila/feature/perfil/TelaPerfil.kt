@@ -177,7 +177,10 @@ fun TelaPerfil(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
-    val disponibilidadeBiometrica = remember { verificarDisponibilidadeBiometrica(contexto) }
+    // Com o recurso desligado o hardware nem é consultado: o app não declara a permissão de biometria, e a consulta sem ela lança.
+    val disponibilidadeBiometrica = remember(recursoBiometriaHabilitado) {
+        if (recursoBiometriaHabilitado) verificarDisponibilidadeBiometrica(contexto) else DisponibilidadeBiometrica.INDISPONIVEL
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     var notificacoesDoSistemaAtivadas by remember {
         mutableStateOf(verificarNotificacoesDoSistema(contexto))
