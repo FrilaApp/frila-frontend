@@ -93,13 +93,21 @@ describe("telas de denúncia e bloqueio", () => {
     const resultado = await enviarDenuncia(
       argumentos("https://frilabr.com/app/denunciar", { alvo: CASA, turno: "", chave: CHAVE, motivo: "discriminacao", relato: "relato com detalhes", bloquear: "sim" }),
     );
-    expect(resultado).toEqual({ protocolo: "6F1C2A4E", bloqueada: true, erro: null });
+    expect(resultado).toEqual({ protocolo: "6F1C2A4E", bloqueada: true, erro: null, chave: CHAVE, bloqueioPendente: false });
     expect(api.POST.mock.calls.map((c) => c[0])).toEqual(["/rpc/denunciar", "/rpc/bloquear"]);
+  });
+
+  it("denúncia salva e bloqueio falhou: volta o protocolo, a MESMA chave e só o bloqueio pendente", async () => {
+    api.POST.mockResolvedValueOnce(ok(protocolo)).mockResolvedValueOnce({ error: { code: "x" }, response: new Response(null, { status: 503 }) });
+    const resultado = await enviarDenuncia(
+      argumentos("https://frilabr.com/app/denunciar", { alvo: CASA, chave: CHAVE, motivo: "assedio", relato: "relato com detalhes", bloquear: "sim" }),
+    );
+    expect(resultado).toEqual({ protocolo: "6F1C2A4E", bloqueada: false, erro: "indisponivel", chave: CHAVE, bloqueioPendente: true });
   });
 
   it("só bloquear não denuncia", async () => {
     api.POST.mockResolvedValueOnce(ok({ alvo_tipo: "estabelecimento", alvo_id: CASA, criado_em: "x" }));
-    expect(await enviarDenuncia(argumentos("https://frilabr.com/app/denunciar", { alvo: CASA, intencao: "bloquear" }))).toEqual({ protocolo: null, bloqueada: true, erro: null });
+    expect(await enviarDenuncia(argumentos("https://frilabr.com/app/denunciar", { alvo: CASA, intencao: "bloquear" }))).toMatchObject({ protocolo: null, bloqueada: true, erro: null });
     expect(api.POST.mock.calls.map((c) => c[0])).toEqual(["/rpc/bloquear"]);
   });
 
