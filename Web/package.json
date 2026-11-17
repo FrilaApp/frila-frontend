@@ -1,0 +1,41 @@
+{
+  "name": "frila-web",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "react-router dev",
+    "build": "react-router build",
+    "tipos": "wrangler types && react-router typegen",
+    "typecheck": "npm run tipos && tsc -b",
+    "lint": "eslint .",
+    "teste": "vitest run",
+    "orcamento": "node scripts/orcamento-do-pacote.mjs",
+    "conferir": "npm run lint && npm run typecheck && npm run teste && npm run build && npm run orcamento",
+    "postinstall": "wrangler types"
+  },
+  "dependencies": {
+    "isbot": "5.2.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "8.5.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.69.1",
+    "@eslint/js": "10.0.1",
+    "@react-router/dev": "8.5.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.15.0",
+    "tailwindcss": "4.3.5",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.73.0",
+    "vite": "8.3.8",
+    "vitest": "5.1.0",
+    "wrangler": "4.163.0"
+  }
+}
