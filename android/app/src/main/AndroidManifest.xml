@@ -69,6 +69,17 @@
             </intent-filter>
         </activity>
 
+        <!--
+          FCM sem métrica ao Google (decisão do O2, 17/11): a entrega do push não é exportada para o BigQuery, e o token só nasce quando o app o pede
+          (`TokenDoFcm`, depois da sessão), não na primeira abertura. Sem Firebase Analytics no app (nem `firebase-analytics`, nem `play-services-measurement`).
+        -->
+        <meta-data
+            android:name="delivery_metrics_exported_to_big_query_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+
     </application>
 
 </manifest>
