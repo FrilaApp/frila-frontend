@@ -2,6 +2,8 @@
  * Catálogo único de textos da web. Tela nenhuma escreve texto direto no JSX:
  * todo texto visível sai daqui.
  */
+import { contratante } from "./contratante";
+
 export const textos = {
   marca: "Frila",
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
@@ -103,6 +105,7 @@ export const textos = {
       indisponivel: "Não deu para criar a conta agora. Tente de novo em instantes.",
     },
   },
+  contratante,
   erro: {
     naoEncontradoTitulo: "Página não encontrada",
     naoEncontradoCorpo: "O endereço pode ter mudado ou a página não existe mais.",
