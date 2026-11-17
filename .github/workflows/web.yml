@@ -45,8 +45,14 @@ jobs:
       - name: Instalar dependências (versões exatas do lockfile)
         run: npm ci
 
-      - name: Auditar dependências
-        run: npm audit --audit-level=moderate
+      # O que vai para produção segue no nível moderado. As ferramentas de desenvolvimento (vite, @react-router/dev,
+      # vitest, eslint) ficam no nível crítico enquanto o GHSA-fc5q-39xc-vjpf (picomatch, sem versão corrigida em
+      # 17/11/2026) não tiver conserto. Voltar ao audit completo moderado quando houver: issue #937.
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Auditar ferramentas de desenvolvimento
+        run: npm audit --audit-level=critical
 
       - name: Contrato (espelho íntegro)
         run: npm run contrato
