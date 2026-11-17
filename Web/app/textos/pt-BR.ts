@@ -6,6 +6,7 @@ import { contratante } from "./contratante";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
+import { pwa } from "./pwa";
 import { suporte } from "./suporte";
 import { suspensao } from "./suspensao";
 import { vagaPublica } from "./vaga-publica";
@@ -24,6 +25,8 @@ export const textos = {
   profissional,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
+  // Instalar na tela de início, navegador embutido e página sem conexão (arquivo próprio).
+  pwa,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
