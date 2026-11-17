@@ -17,6 +17,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
+import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
@@ -167,6 +168,8 @@ val moduloNotificacoes = module {
             ?: GerenciadorPreferenciasNotificacaoEmMemoria()
     }
     single { ProcessadorDePush(get(), get()) }
+    // C0-10: o registro do aparelho numa função só (abrir com sessão, depois de entrar e onNewToken), com versao_app.
+    single { RegistradorDeDispositivo(get(), get(), versaoApp = BuildConfig.VERSION_NAME) { lerTokenDoFcm() } }
 }
 
 /**
@@ -192,7 +195,7 @@ val moduloFeatures = module {
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
     viewModel { EntradaViewModel(get()) }
-    viewModel { (email: String) -> CodigoViewModel(email, get(), get()) }
+    viewModel { (email: String) -> CodigoViewModel(email, get(), get(), aoEntrar = { get<RegistradorDeDispositivo>().registrar() }) }
     viewModel { CadastroViewModel() }
     viewModel { FeedVagasViewModel(get(), get(), get(), repositorioVagas = get()) }
     viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }

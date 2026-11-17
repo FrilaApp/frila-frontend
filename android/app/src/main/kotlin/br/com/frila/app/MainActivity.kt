@@ -15,6 +15,8 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.notificacoes.RegistradorDeDispositivo
+import kotlin.coroutines.cancellation.CancellationException
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -57,6 +59,17 @@ class MainActivity : FragmentActivity() {
                         }
                     } else {
                         verificando = false
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    // C0-10: ao abrir com sessão, registra o aparelho para o push (com versao_app). Sem sessão, o
+                    // registrador não chama; sem token (sem Firebase ou sem rede), nada sai. Falha nunca trava a abertura.
+                    try {
+                        GlobalContext.getOrNull()?.getOrNull<RegistradorDeDispositivo>()?.registrar()
+                    } catch (cancelado: CancellationException) {
+                        throw cancelado
+                    } catch (_: Exception) {
                     }
                 }
 
