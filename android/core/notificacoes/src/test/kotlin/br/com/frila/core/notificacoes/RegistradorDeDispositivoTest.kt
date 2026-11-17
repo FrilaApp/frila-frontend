@@ -9,6 +9,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import java.nio.channels.UnresolvedAddressException
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
@@ -112,6 +113,44 @@ class RegistradorDeDispositivoTest {
 
         assertEquals(1, falhas.size)
         assertTrue(falhas.none { it.contains("token-fcm") || it.contains("access") }, "o log não leva token nem sessão")
+    }
+
+    /**
+     * Visto no emulator-5554 (17/11, 02h38): logo depois de instalar, o FCM chamou `onNewToken`, o pedido falhou com
+     * `UnresolvedAddressException` (não é ErroDaApi) e a corrotina sem tratamento derrubou o app. O token novo passa
+     * pelo mesmo caminho protegido da abertura: erro de rede vira só log.
+     */
+    @Test
+    fun `token novo em segundo plano, endereco que nao resolve vira log e nada lanca`() = runTest {
+        val falhas = mutableListOf<String>()
+        val servico = ServicoDispositivo(
+            ClienteSupabase(
+                baseUrl = "https://frila.supabase.co",
+                apiKey = "chave-teste",
+                engine = MockEngine { throw UnresolvedAddressException() },
+            ),
+        )
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply { salvarSessao(sessao) }
+        val registrador = RegistradorDeDispositivo(
+            servico, armazenamento, versaoApp = "1.2.0", escopo = backgroundScope, registrarFalha = { falhas += it },
+        ) { null }
+
+        registrador.registrarTokenNovoEmSegundoPlano("token-fcm-novo-de-teste-com-20-chars").join()
+
+        assertEquals(1, falhas.size)
+        assertTrue(falhas.none { it.contains("token-fcm") || it.contains("access") }, "o log não leva token nem sessão")
+    }
+
+    @Test
+    fun `token novo sem sessao nao chama o servidor (recusaria com 401)`() = runTest {
+        val servidor = Servidor()
+        val registrador = RegistradorDeDispositivo(
+            servidor.servico, ArmazenamentoDeSessaoEmMemoria(), versaoApp = "1.2.0", escopo = backgroundScope,
+        ) { null }
+
+        registrador.registrarTokenNovoEmSegundoPlano("token-fcm-novo-de-teste-com-20-chars").join()
+
+        assertTrue(servidor.corpos.isEmpty())
     }
 
     @Test
