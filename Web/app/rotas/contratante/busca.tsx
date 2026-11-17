@@ -363,6 +363,9 @@ export default function BuscaDaCasa({ loaderData, actionData }: Route.ComponentP
       <p className="font-titulo text-xl font-bold">{casa.nome}</p>
       <h1 className="font-titulo text-3xl font-bold">{t.titulo}</h1>
       <p>{t.explicacao}</p>
+      <Link to={`/casa/chamadas?casa=${casa.id}`} className={classeDoLink}>
+        {textos.contratanteChamadas.abrir}
+      </Link>
       {loaderData.catalogoIndisponivel ? <p role="status">{t.erros.catalogo}</p> : null}
 
       <Form method="post" className="flex flex-col gap-4" noValidate>

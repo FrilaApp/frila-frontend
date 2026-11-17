@@ -4,6 +4,7 @@
  */
 import { contratante } from "./contratante";
 import { contratanteBusca } from "./contratante-busca";
+import { contratanteChamadas } from "./contratante-chamadas";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
 import { publico } from "./publico";
@@ -27,6 +28,8 @@ export const textos = {
   contratanteTurno,
   // Busca de profissionais do lado da casa (arquivo próprio).
   contratanteBusca,
+  // Chamadas enviadas pela casa (arquivo próprio).
+  contratanteChamadas,
   imagemDeCompartilhamento: "Logo do Frila em branco sobre o laranja",
   emBreve: {
     titulo: "A web do Frila está chegando",
