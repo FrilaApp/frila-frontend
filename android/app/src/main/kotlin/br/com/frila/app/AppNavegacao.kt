@@ -438,8 +438,9 @@ fun AppNavegacao(
                             if (turnoEncontrado) {
                                 TelaMeusTurnos(
                                     viewModel = viewModel,
-                                    criarCheckinViewModel = { id ->
-                                        koinViewModel(parameters = { parametersOf(id, null) })
+                                    criarCheckinViewModel = { turno ->
+                                        // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
+                                        koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                 )
@@ -468,8 +469,9 @@ fun AppNavegacao(
                             // Não transforma erro de conexão em "não encontrado" (DestinosDoAviso.swift:208)
                             TelaMeusTurnos(
                                 viewModel = viewModel,
-                                criarCheckinViewModel = { id ->
-                                    koinViewModel(parameters = { parametersOf(id, null) })
+                                criarCheckinViewModel = { turno ->
+                                    // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
+                                    koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
                                 },
                                 aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                             )
@@ -487,12 +489,10 @@ fun AppNavegacao(
                     LaunchedEffect(viewModel) { viewModel.carregar() }
                     TelaMeusTurnos(
                         viewModel = viewModel,
-                        criarCheckinViewModel = { turnoId ->
-                            // Contrato de `/rpc/meus_turnos` ainda não traz a coordenada da vaga
-                            // (schema `VagaResumo`), só `local`/`regiao_administrativa` em texto — por
-                            // ora o check-in sempre degrada para o caminho "sem localização" (manual
-                            // pendente, RN06), até o backend expor a coordenada aqui.
-                            koinViewModel(parameters = { parametersOf(turnoId, null) })
+                        criarCheckinViewModel = { turno ->
+                            // C0-7: um check-in por turno (key; antes todos os cartões dividiam um só), com o ponto
+                            // da vaga (`VagaResumo.ponto`), para medir a distância até ela (RN06).
+                            koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
                         },
                         aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                     )

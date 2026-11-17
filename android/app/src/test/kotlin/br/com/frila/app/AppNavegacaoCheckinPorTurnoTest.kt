@@ -3,7 +3,6 @@ package br.com.frila.app
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.core.dominio.modelo.Coordenada
@@ -21,6 +20,9 @@ import br.com.frila.feature.turnos.EstadoMeusTurnos
 import br.com.frila.feature.turnos.ItemTurno
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.StatusMeusTurnos
+import br.com.frila.feature.vagas.feed.EstadoFeed
+import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.vagas.feed.StatusFeed
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -49,7 +51,8 @@ import org.robolectric.annotation.Config
  * todos os cartões dividiam um só (e sem ponto), e o toque no 2º registrava no 1º.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = android.app.Application::class)
+// Tela alta: os dois cartões cabem nela e o toque chega ao 2º.
+@Config(sdk = [35], application = android.app.Application::class, qualifiers = "w411dp-h2400dp")
 class AppNavegacaoCheckinPorTurnoTest {
 
     @get:Rule
@@ -93,6 +96,9 @@ class AppNavegacaoCheckinPorTurnoTest {
                 agendados = listOf(turno("t1", pontoT1, inicio), turno("t2", pontoT2, inicio.plus(5, ChronoUnit.MINUTES))),
             ),
         )
+        // A rota inicial com sessão é o feed: ele só precisa existir.
+        val feedViewModel = mockk<FeedVagasViewModel>(relaxed = true)
+        every { feedViewModel.estado } returns MutableStateFlow(EstadoFeed(status = StatusFeed.SUCESSO))
         val criados = Collections.synchronizedList(mutableListOf<Pair<String, Coordenada?>>())
         val corpos = Collections.synchronizedList(mutableListOf<String>())
         val engine = MockEngine { pedido ->
@@ -114,6 +120,7 @@ class AppNavegacaoCheckinPorTurnoTest {
                         single { mockk<ServicoAutenticacao>(relaxed = true) }
                         single { armazenamento }
                         viewModel { EntradaViewModel(get()) }
+                        viewModel { feedViewModel }
                         viewModel { turnosViewModel }
                         viewModel { (turnoId: String, ponto: Coordenada?) ->
                             criados += turnoId to ponto
@@ -135,7 +142,7 @@ class AppNavegacaoCheckinPorTurnoTest {
         rule.waitForIdle()
 
         val botoes = rule.onAllNodesWithText("Fazer check-in")
-        botoes[1].performScrollTo().performClick()
+        botoes[1].performClick()
         rule.waitUntil(timeoutMillis = 5_000) { corpos.isNotEmpty() }
 
         // Um controlador por turno, cada um com o ponto da vaga dele.
