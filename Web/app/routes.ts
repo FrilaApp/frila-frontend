@@ -51,6 +51,10 @@ export default [
   route("casa/busca", "rotas/contratante/busca.tsx"),
   route("casa/chamadas", "rotas/contratante/chamadas.tsx"),
 
+  // Pessoas da casa e o link de convite (3.16 e 5.7)
+  route("casa/membros", "rotas/contratante/membros.tsx"),
+  route("convite", "rotas/convite.tsx"),
+
   // Equipe de confiança da casa (3.9)
   route("casa/equipe", "rotas/contratante/equipe.tsx"),
 ] satisfies RouteConfig;
