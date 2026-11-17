@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- O aviso do push é uma notificação; no Android 13 ou mais a pessoa pode negar. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <service
