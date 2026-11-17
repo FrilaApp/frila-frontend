@@ -50,6 +50,9 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       // Avaliar abre depois do fim, com presença verificada (o servidor diz em pode_avaliar). Ausente não é nulo.
       podeAvaliar: turno.pode_avaliar,
       respostaDada: turno.avaliacao ? turno.avaliacao.resposta : null,
+      // Equipe de confiança (3.9): só quem cumpriu o turno com presença verificada (UC11); o servidor confere de novo.
+      profissionalId: turno.contraparte.id,
+      podeIncluirNaEquipe: turno.verificacao === "verificado",
     },
   };
 }
@@ -186,6 +189,15 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
             <FormularioDaAvaliacao turnoId={turno.id} enviando={enviando} textos={{ ...t.avaliacao, enviando: t.turno.enviando }} />
           ) : null}
         </>
+      ) : null}
+      {turno?.podeIncluirNaEquipe && casaId ? (
+        <Form method="post" action="/casa/equipe">
+          <input type="hidden" name="casa" value={casaId} />
+          <input type="hidden" name="profissional_id" value={turno.profissionalId} />
+          <button type="submit" name="intencao" value="incluir" disabled={enviando} className="min-h-11 rounded-controle border border-borda px-4 font-semibold disabled:opacity-60">
+            {textos.contratanteEquipe.incluir}
+          </button>
+        </Form>
       ) : null}
       {turno && casaId ? (
         // O suporte (#861) lê o turno pela lista da casa: por isso leva o ?casa=.
