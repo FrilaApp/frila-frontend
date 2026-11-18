@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,7 +20,10 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.abertura.RotuloDaMarca
+import br.com.frila.core.designsystem.abertura.destinoDoRotuloDaAbertura
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
@@ -32,12 +36,15 @@ import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.feature.entrada.fraseComLinksLegais
 
+/** Altura do rótulo "Frila" no topo da tela (a mesma do iOS). */
+private val ALTURA_DA_MARCA = 32.dp
+
 /** O que o [EntradaViewModel] escreve quando o e-mail não tem o formato certo: erro do campo, não da ação. */
 private const val ERRO_EMAIL_INVALIDO = "Informe um e-mail válido."
 
 /**
- * T6 (entrada por e-mail, sem senha), no desenho do Fabrício e sem a abertura animada, sem ilustração e
- * sem entrar com Apple ou Google: título e apoio, o campo com o rótulo acima e, ancorado embaixo, o texto
+ * T6 (entrada por e-mail, sem senha), no desenho do Fabrício, sem entrar com Apple ou Google: o rótulo "Frila" no
+ * topo (onde a abertura animada pousa), a arte da Turma em camadas, título e apoio, o campo com o rótulo acima e, ancorado embaixo, o texto
  * do que o toque faz (os Termos e a Política) e o único botão laranja. O erro do formato do e-mail fica no
  * campo; o da ação (rede, limite) fica junto ao botão. Quem muda de tela é o `aoReceberCodigo`.
  */
@@ -104,13 +111,25 @@ fun TelaEntrada(
                 ),
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
-                TituloDaTela("Bem-vindo ao Frila")
-                Text(
-                    text = "Entre com seu e-mail para receber o código de acesso.",
-                    style = FrilaTipo.apoio,
-                    color = cores.tintaSuave,
-                )
+            // A marca da tela: o rótulo "Frila", o mesmo desenho em que a abertura termina. O rótulo da abertura pousa
+            // aqui e vira este (D-DS-21); enquanto ela cobre, este fica escondido.
+            RotuloDaMarca(
+                modifier = Modifier
+                    .height(ALTURA_DA_MARCA)
+                    .destinoDoRotuloDaAbertura(),
+            )
+
+            // A arte e o título formam um bloco: a base da arte esmaece no fundo e o título começa logo abaixo.
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                IlustracaoDeBoasVindas()
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    TituloDaTela("Bem-vindo ao Frila")
+                    Text(
+                        text = "Entre com seu e-mail para receber o código de acesso.",
+                        style = FrilaTipo.apoio,
+                        color = cores.tintaSuave,
+                    )
+                }
             }
 
             CampoDeTexto(
