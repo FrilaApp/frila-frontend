@@ -1,41 +1,39 @@
 package br.com.frila.feature.chamadas.profissional
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.ChipFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.EstadoVazio
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.EspecialidadeDto
 
 /** Liga o [EditarServicosViewModel] ao [ConteudoEditarServicos]. */
@@ -59,9 +57,10 @@ fun TelaEditarServicos(
 }
 
 /**
- * Serviços com preço (RN27, RN44; paridade com `TelaEditarServicos.swift`): uma linha por função marcada no
- * perfil, com chave "oferecer este serviço", unidade de preço, valor e os campos que a unidade pede, "leva
- * material?", o que está incluído e as especialidades (até 8). O erro de campo aparece na linha da função.
+ * Serviços com preço (RN27, RN44; paridade com `TelaEditarServicos.swift`): um cartão por função marcada no
+ * perfil, com a chave "oferecer este serviço", unidade de preço, valor e os campos que a unidade pede, "leva
+ * material?", o que está incluído e as especialidades (até 8, em chips). O erro de campo aparece no campo da
+ * função; o que não tem campo vai junto ao botão. "Salvar alterações" fica no rodapé ancorado.
  */
 @Composable
 fun ConteudoEditarServicos(
@@ -75,29 +74,53 @@ fun ConteudoEditarServicos(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { BarraDoTopoChamada(TextosChamadaProfissional.SERVICOS_TITULO, aoVoltar) },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
+        bottomBar = {
+            RodapeAncorado {
+                if (tela.carregou) {
+                    tela.erro?.let { MensagemJuntoAoBotao(it) }
+                    if (tela.sucesso) {
+                        MensagemJuntoAoBotao(
+                            texto = TextosChamadaProfissional.SERVICOS_SALVOS,
+                            modifier = Modifier.testTag("servicos-sucesso"),
+                        )
+                    }
+                }
+                BotaoPrimario(
+                    texto = TextosChamadaProfissional.SERVICOS_SALVAR,
+                    aoClicar = aoSalvar,
+                    habilitado = tela.carregou && !tela.carregando && !tela.salvando,
+                    modifier = Modifier.fillMaxWidth().testTag("salvar-servicos"),
+                )
+            }
+        },
     ) { preenchimento ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
-            Text(text = TextosChamadaProfissional.SERVICOS_EXPLICACAO, style = MaterialTheme.typography.bodyMedium)
+            TituloDaTela(TextosChamadaProfissional.SERVICOS_TITULO, modifier = Modifier.padding(bottom = FrilaEspacamento.item))
+            Text(
+                text = TextosChamadaProfissional.SERVICOS_EXPLICACAO,
+                style = FrilaTipo.apoio,
+                color = FrilaTema.cores.tintaSuave,
+            )
             if (tela.carregando) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = FrilaEspacamento.grande),
-                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Text(text = TextosChamadaProfissional.CARREGANDO, style = MaterialTheme.typography.bodyMedium)
-                }
+                EstadoCarregando(mensagem = TextosChamadaProfissional.CARREGANDO)
+            }
+            if (!tela.carregando && !tela.carregou) {
+                ErroDeCargaChamada(
+                    mensagem = tela.erro ?: TextosChamadaProfissional.ERRO,
+                    aoTentarNovamente = aoTentarNovamente,
+                )
             }
             if (tela.carregou && tela.rascunhos.isEmpty()) {
-                Text(text = TextosChamadaProfissional.SERVICOS_SEM_FUNCOES, style = MaterialTheme.typography.bodyMedium)
+                EstadoVazio(titulo = TextosChamadaProfissional.SERVICOS_SEM_FUNCOES)
             }
             tela.rascunhos.forEach { linha ->
                 EditorDeServico(
@@ -109,29 +132,11 @@ fun ConteudoEditarServicos(
                     aoAlternarEspecialidade = { id, marcada -> aoAlternarEspecialidade(linha.funcao.id, id, marcada) },
                 )
             }
-            tela.erro?.let { erro ->
-                AvisoFrila(tom = TomAviso.ERRO, mensagem = erro, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
-                if (!tela.carregou) {
-                    BotaoSecundario(texto = TextosChamadaProfissional.TENTAR_NOVAMENTE, aoClicar = aoTentarNovamente)
-                }
-            }
-            if (tela.sucesso) {
-                AvisoFrila(
-                    tom = TomAviso.INFORMATIVO,
-                    mensagem = TextosChamadaProfissional.SERVICOS_SALVOS,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("servicos-sucesso"),
-                )
-            }
-            BotaoPrimario(
-                texto = TextosChamadaProfissional.SERVICOS_SALVAR,
-                aoClicar = aoSalvar,
-                habilitado = tela.carregou && !tela.carregando && !tela.salvando,
-                modifier = Modifier.fillMaxWidth().testTag("salvar-servicos"),
-            )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditorDeServico(
     linha: ServicoEmEdicao,
@@ -142,102 +147,139 @@ private fun EditorDeServico(
     aoAlternarEspecialidade: (especialidadeId: String, marcada: Boolean) -> Unit,
 ) {
     val id = linha.funcao.id
-    Column(
-        modifier = Modifier.fillMaxWidth().testTag("servico-$id"),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-    ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        LinhaComChave(
-            titulo = linha.funcao.nome,
-            ligado = linha.habilitado,
-            aoMudar = { ligado -> aoEditar { it.copy(habilitado = ligado) } },
-            habilitado = !bloqueado,
-            modifier = Modifier.testTag("habilitar-$id"),
-        )
-        if (!linha.habilitado) return@Column
+    // O campo do contrato que a API recusou só vira erro de campo se o campo está na tela; senão cai no fim do cartão.
+    val camposNaTela = camposNaTela(linha)
 
-        EscolhaUnica(
-            titulo = TextosChamadaProfissional.SERVICOS_UNIDADE,
-            opcoes = UNIDADES_DE_PRECO.map { it to TextosChamadaProfissional.unidade(it) },
-            selecionada = linha.unidade,
-            aoEscolher = { nova -> aoEditar { it.comUnidade(nova) } },
-            habilitado = !bloqueado,
-            modifier = Modifier.testTag("unidade-servico-$id"),
-        )
-        if (linha.unidade == "a_combinar") {
-            Text(text = TextosChamadaProfissional.SERVICOS_A_COMBINAR, style = MaterialTheme.typography.bodyMedium)
-        } else {
-            Campo(TextosChamadaProfissional.SERVICOS_VALOR, linha.valor, KeyboardType.Decimal, bloqueado, "valor-servico-$id") { novo ->
-                aoEditar { it.copy(valor = novo) }
-            }
-            if (linha.unidade in listOf("hora", "diaria", "pacote")) {
-                Campo(TextosChamadaProfissional.SERVICOS_VALOR_MAXIMO, linha.valorMaximo, KeyboardType.Decimal, bloqueado, "valor-maximo-$id") { novo ->
-                    aoEditar { it.copy(valorMaximo = novo) }
-                }
-            }
-            Text(text = TextosChamadaProfissional.SERVICOS_FAIXA_DE_VALOR, style = MaterialTheme.typography.bodySmall)
-        }
-        resumoDaDiaria(linha)?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
-
-        when (linha.unidade) {
-            "diaria" -> Campo(TextosChamadaProfissional.SERVICOS_HORAS_DIARIA, linha.horasIncluidas, KeyboardType.Number, bloqueado, "horas-servico-$id") { novo ->
-                aoEditar { it.copy(horasIncluidas = novo) }
-            }
-            "hora" -> Campo(TextosChamadaProfissional.SERVICOS_MINIMO_HORAS, linha.minimoHoras, KeyboardType.Number, bloqueado, "minimo-horas-$id") { novo ->
-                aoEditar { it.copy(minimoHoras = novo) }
-            }
-            "evento" -> {
-                Campo(TextosChamadaProfissional.SERVICOS_DURACAO, linha.duracaoTipicaH, KeyboardType.Number, bloqueado, "duracao-servico-$id") { novo ->
-                    aoEditar { it.copy(duracaoTipicaH = novo) }
-                }
-                Campo(TextosChamadaProfissional.SERVICOS_ATE_PESSOAS, linha.atePessoas, KeyboardType.Number, bloqueado, "ate-pessoas-$id") { novo ->
-                    aoEditar { it.copy(atePessoas = novo) }
-                }
-            }
-            "pacote" -> Campo(TextosChamadaProfissional.SERVICOS_DESCRICAO_PACOTE, linha.descricaoPacote, KeyboardType.Text, bloqueado, "pacote-servico-$id") { novo ->
-                aoEditar { it.copy(descricaoPacote = novo) }
-            }
-            "por_pessoa" -> Campo(TextosChamadaProfissional.SERVICOS_MINIMO_PESSOAS, linha.minimoPessoas, KeyboardType.Number, bloqueado, "minimo-pessoas-$id") { novo ->
-                aoEditar { it.copy(minimoPessoas = novo) }
-            }
-        }
-
-        EscolhaUnica(
-            titulo = TextosChamadaProfissional.SERVICOS_LEVA_MATERIAL,
-            opcoes = listOf<Pair<String?, String>>(null to TextosChamadaProfissional.SERVICOS_MATERIAL_NAO_INFORMADO) +
-                OPCOES_LEVA_MATERIAL.map { it to TextosChamadaProfissional.material(it) },
-            selecionada = linha.levaMaterial,
-            aoEscolher = { novo -> aoEditar { it.copy(levaMaterial = novo) } },
-            habilitado = !bloqueado,
-            modifier = Modifier.testTag("material-servico-$id"),
-        )
-        Campo(TextosChamadaProfissional.SERVICOS_INCLUI, linha.inclui, KeyboardType.Text, bloqueado, "inclui-servico-$id") { novo ->
-            aoEditar { it.copy(inclui = novo) }
-        }
-
-        especialidades.forEach { especialidade ->
-            val marcada = especialidade.id in linha.especialidadeIds
+    CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("servico-$id")) {
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
             LinhaComChave(
-                titulo = especialidade.nome,
-                ligado = marcada,
-                aoMudar = { ligado -> aoAlternarEspecialidade(especialidade.id, ligado) },
-                habilitado = !bloqueado && (marcada || linha.especialidadeIds.size < MAXIMO_DE_ESPECIALIDADES),
+                titulo = linha.funcao.nome,
+                ligado = linha.habilitado,
+                aoMudar = { ligado -> aoEditar { it.copy(habilitado = ligado) } },
+                habilitado = !bloqueado,
+                comRecuo = false,
+                estiloDoTitulo = FrilaTipo.nome,
+                modifier = Modifier.testTag("habilitar-$id"),
             )
-        }
-        if (especialidades.isNotEmpty()) {
-            Text(text = TextosChamadaProfissional.SERVICOS_ESPECIALIDADES, style = MaterialTheme.typography.bodySmall)
-        }
-        if (campoComErro != null) {
-            Text(
-                text = TextosChamadaProfissional.campo(campoComErro),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.testTag("erro-servico-$campoComErro"),
+            if (!linha.habilitado) return@Column
+
+            EscolhaUnica(
+                titulo = TextosChamadaProfissional.SERVICOS_UNIDADE,
+                opcoes = UNIDADES_DE_PRECO.map { it to TextosChamadaProfissional.unidade(it) },
+                selecionada = linha.unidade,
+                aoEscolher = { nova -> aoEditar { it.comUnidade(nova) } },
+                habilitado = !bloqueado,
+                modifier = Modifier.testTag("unidade-servico-$id"),
             )
+            if (linha.unidade == "a_combinar") {
+                Text(
+                    text = TextosChamadaProfissional.SERVICOS_A_COMBINAR,
+                    style = FrilaTipo.apoio,
+                    color = FrilaTema.cores.tintaSuave,
+                )
+            } else {
+                Campo(TextosChamadaProfissional.SERVICOS_VALOR, linha.valor, KeyboardType.Decimal, bloqueado, "valor-servico-$id", "valor_centavos", campoComErro) { novo ->
+                    aoEditar { it.copy(valor = novo) }
+                }
+                if (linha.unidade in listOf("hora", "diaria", "pacote")) {
+                    Campo(TextosChamadaProfissional.SERVICOS_VALOR_MAXIMO, linha.valorMaximo, KeyboardType.Decimal, bloqueado, "valor-maximo-$id", "valor_max_centavos", campoComErro) { novo ->
+                        aoEditar { it.copy(valorMaximo = novo) }
+                    }
+                }
+                Text(
+                    text = TextosChamadaProfissional.SERVICOS_FAIXA_DE_VALOR,
+                    style = FrilaTipo.apoio,
+                    color = FrilaTema.cores.tintaSuave,
+                )
+            }
+            resumoDaDiaria(linha)?.let { Text(text = it, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave) }
+
+            when (linha.unidade) {
+                "diaria" -> Campo(TextosChamadaProfissional.SERVICOS_HORAS_DIARIA, linha.horasIncluidas, KeyboardType.Number, bloqueado, "horas-servico-$id", "horas_incluidas", campoComErro) { novo ->
+                    aoEditar { it.copy(horasIncluidas = novo) }
+                }
+                "hora" -> Campo(TextosChamadaProfissional.SERVICOS_MINIMO_HORAS, linha.minimoHoras, KeyboardType.Number, bloqueado, "minimo-horas-$id", "minimo_horas", campoComErro) { novo ->
+                    aoEditar { it.copy(minimoHoras = novo) }
+                }
+                "evento" -> {
+                    Campo(TextosChamadaProfissional.SERVICOS_DURACAO, linha.duracaoTipicaH, KeyboardType.Number, bloqueado, "duracao-servico-$id", "duracao_tipica_h", campoComErro) { novo ->
+                        aoEditar { it.copy(duracaoTipicaH = novo) }
+                    }
+                    Campo(TextosChamadaProfissional.SERVICOS_ATE_PESSOAS, linha.atePessoas, KeyboardType.Number, bloqueado, "ate-pessoas-$id", "ate_pessoas", campoComErro) { novo ->
+                        aoEditar { it.copy(atePessoas = novo) }
+                    }
+                }
+                "pacote" -> Campo(TextosChamadaProfissional.SERVICOS_DESCRICAO_PACOTE, linha.descricaoPacote, KeyboardType.Text, bloqueado, "pacote-servico-$id", "descricao_pacote", campoComErro) { novo ->
+                    aoEditar { it.copy(descricaoPacote = novo) }
+                }
+                "por_pessoa" -> Campo(TextosChamadaProfissional.SERVICOS_MINIMO_PESSOAS, linha.minimoPessoas, KeyboardType.Number, bloqueado, "minimo-pessoas-$id", "minimo_pessoas", campoComErro) { novo ->
+                    aoEditar { it.copy(minimoPessoas = novo) }
+                }
+            }
+
+            EscolhaUnica(
+                titulo = TextosChamadaProfissional.SERVICOS_LEVA_MATERIAL,
+                opcoes = listOf<Pair<String?, String>>(null to TextosChamadaProfissional.SERVICOS_MATERIAL_NAO_INFORMADO) +
+                    OPCOES_LEVA_MATERIAL.map { it to TextosChamadaProfissional.material(it) },
+                selecionada = linha.levaMaterial,
+                aoEscolher = { novo -> aoEditar { it.copy(levaMaterial = novo) } },
+                habilitado = !bloqueado,
+                modifier = Modifier.testTag("material-servico-$id"),
+            )
+            Campo(TextosChamadaProfissional.SERVICOS_INCLUI, linha.inclui, KeyboardType.Text, bloqueado, "inclui-servico-$id", "inclui", campoComErro, umaLinha = false) { novo ->
+                aoEditar { it.copy(inclui = novo) }
+            }
+
+            if (especialidades.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(TextosChamadaProfissional.SERVICOS_ESPECIALIDADES)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                        especialidades.forEach { especialidade ->
+                            val marcada = especialidade.id in linha.especialidadeIds
+                            ChipFrila(
+                                texto = especialidade.nome,
+                                selecionado = marcada,
+                                aoClicar = { aoAlternarEspecialidade(especialidade.id, !marcada) },
+                                habilitado = !bloqueado && (marcada || linha.especialidadeIds.size < MAXIMO_DE_ESPECIALIDADES),
+                            )
+                        }
+                    }
+                }
+            }
+            if (campoComErro != null && campoComErro !in camposNaTela) {
+                Text(
+                    text = TextosChamadaProfissional.campo(campoComErro),
+                    style = FrilaTipo.corpo,
+                    color = FrilaTema.cores.tinta,
+                    modifier = Modifier.testTag("erro-servico-$campoComErro"),
+                )
+            }
         }
     }
 }
 
+/** Os campos do contrato que a tela desenha para a unidade de preço da linha. */
+private fun camposNaTela(linha: ServicoEmEdicao): Set<String> = buildSet {
+    if (!linha.habilitado) return@buildSet
+    add("inclui")
+    if (linha.unidade != "a_combinar") add("valor_centavos")
+    if (linha.unidade in listOf("hora", "diaria", "pacote")) add("valor_max_centavos")
+    when (linha.unidade) {
+        "diaria" -> add("horas_incluidas")
+        "hora" -> add("minimo_horas")
+        "evento" -> {
+            add("duracao_tipica_h")
+            add("ate_pessoas")
+        }
+        "pacote" -> add("descricao_pacote")
+        "por_pessoa" -> add("minimo_pessoas")
+    }
+}
+
+/**
+ * Campo de texto da linha. Se a API recusou este campo (`campoDoContrato`), o erro vai embaixo dele, escrito em
+ * tinta, e o `testTag` `erro-servico-<campo>` marca o campo com erro.
+ */
 @Composable
 private fun Campo(
     rotulo: String,
@@ -245,16 +287,24 @@ private fun Campo(
     teclado: KeyboardType,
     bloqueado: Boolean,
     etiqueta: String,
+    campoDoContrato: String,
+    campoComErro: String?,
+    umaLinha: Boolean = true,
     aoMudar: (String) -> Unit,
 ) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = aoMudar,
-        label = { Text(rotulo) },
-        enabled = !bloqueado,
-        keyboardOptions = KeyboardOptions(keyboardType = teclado),
-        modifier = Modifier.fillMaxWidth().heightIn(min = FrilaMetricas.alvoMinimo).testTag(etiqueta),
-    )
+    val comErro = campoComErro == campoDoContrato
+    Box(modifier = if (comErro) Modifier.testTag("erro-servico-$campoDoContrato") else Modifier) {
+        CampoDeTexto(
+            valor = valor,
+            aoMudar = aoMudar,
+            rotulo = rotulo,
+            habilitado = !bloqueado,
+            umaLinha = umaLinha,
+            keyboardOptions = KeyboardOptions(keyboardType = teclado),
+            erro = if (comErro) TextosChamadaProfissional.campo(campoDoContrato) else null,
+            modifier = Modifier.testTag(etiqueta),
+        )
+    }
 }
 
 /** "R$ 800,00 por diária de 8 h", quando a diária tem valor e horas válidos (como o iOS). */

@@ -143,28 +143,28 @@ class AuditoriaSemanticaCartoesTest {
 
     @Test
     fun `contraste de texto sobre superficies de cartao atinge WCAG AA no tema claro e escuro`() {
-        // Tema claro: texto sobre cartão (SurfaceElevatedLight)
+        // Tema claro: texto sobre cartão (superficieClaro)
         AuditoriaSemanticaAcessibilidade.assertContrasteAA(
-            corTexto = FrilaCores.textPrimaryLight,
-            corFundo = FrilaCores.surfaceElevatedLight,
-            descricaoCores = "textPrimaryLight sobre surfaceElevatedLight",
+            corTexto = FrilaCores.tintaClaro,
+            corFundo = FrilaCores.superficieClaro,
+            descricaoCores = "tintaClaro sobre superficieClaro",
         )
         AuditoriaSemanticaAcessibilidade.assertContrasteAA(
-            corTexto = FrilaCores.textSecondaryLight,
-            corFundo = FrilaCores.surfaceElevatedLight,
-            descricaoCores = "textSecondaryLight sobre surfaceElevatedLight",
+            corTexto = FrilaCores.tintaSuaveClaro,
+            corFundo = FrilaCores.superficieClaro,
+            descricaoCores = "tintaSuaveClaro sobre superficieClaro",
         )
 
-        // Tema escuro: texto sobre cartão (SurfaceElevatedDark)
+        // Tema escuro: texto sobre cartão (superficieEscuro)
         AuditoriaSemanticaAcessibilidade.assertContrasteAA(
-            corTexto = FrilaCores.textPrimaryDark,
-            corFundo = FrilaCores.surfaceElevatedDark,
-            descricaoCores = "textPrimaryDark sobre surfaceElevatedDark",
+            corTexto = FrilaCores.tintaEscuro,
+            corFundo = FrilaCores.superficieEscuro,
+            descricaoCores = "tintaEscuro sobre superficieEscuro",
         )
         AuditoriaSemanticaAcessibilidade.assertContrasteAA(
-            corTexto = FrilaCores.textSecondaryDark,
-            corFundo = FrilaCores.surfaceElevatedDark,
-            descricaoCores = "textSecondaryDark sobre surfaceElevatedDark",
+            corTexto = FrilaCores.tintaSuaveEscuro,
+            corFundo = FrilaCores.superficieEscuro,
+            descricaoCores = "tintaSuaveEscuro sobre superficieEscuro",
         )
     }
 }

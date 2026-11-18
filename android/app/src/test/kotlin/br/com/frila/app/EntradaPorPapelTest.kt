@@ -3,7 +3,9 @@ package br.com.frila.app
 import android.app.Application
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -22,6 +24,7 @@ import br.com.frila.core.seguranca.Sessao
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
+import br.com.frila.feature.vagas.candidaturas.TextosCandidaturas
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
@@ -42,6 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -207,7 +211,7 @@ class EntradaPorPapelTest {
     private fun entrarComCodigo(): String? {
         rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
         // Completar os 6 dígitos confirma sozinho (como o iOS): sem toque em "Confirmar código".
-        rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
         aguardar { rotaAtual() != Rotas.CODIGO && rotaAtual() != Rotas.ABERTURA }
         // Dá tempo de uma decisão que dependa do servidor terminar de rotear.
         aguardar(1_500) { rotaAtual() !in listOf(Rotas.CADASTRO, Rotas.CODIGO, Rotas.ABERTURA) }
@@ -280,14 +284,97 @@ class EntradaPorPapelTest {
     }
 
     @Test
-    fun `C0-9 - do feed da profissional chega-se a Meus turnos`() {
+    fun `C0-9 - do feed da profissional chega-se a Meus turnos pela aba`() {
         montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.FEED && chamadas.any { it.endsWith("/rpc/vagas_abertas") } }
 
-        rule.onNodeWithText("Meus turnos").performClick()
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
 
-        assertTrue("o botão do feed não levou a Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
-        assertEquals("Meus turnos abre por cima do feed", Rotas.FEED, rotaAbaixo())
+        assertTrue("a aba não levou a Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
+        assertEquals("a primeira aba (Vagas) é o chão da pilha: voltar em Meus turnos leva ao feed", Rotas.FEED, rotaAbaixo())
+    }
+
+    @Test
+    fun `RN - no codigo, Trocar e-mail volta para a entrada`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = false)
+        rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
+        aguardar { rotaAtual() == Rotas.CODIGO }
+
+        rule.onNodeWithText("Trocar e-mail").performClick()
+
+        assertTrue("o link não voltou para a entrada (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.ENTRADA })
+        assertNull("a entrada volta a ser o chão da pilha", rotaAbaixo())
+    }
+
+    // ───────────────── RN: abas das telas raiz do profissional ─────────────────
+
+    @Test
+    fun `RN - a profissional ve as quatro abas no feed e a aba Conta leva ao Perfil, ainda com a barra`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+
+        listOf(TextosDasAbas.VAGAS, TextosDasAbas.MEUS_TURNOS, TextosCandidaturas.TITULO, TextosDasAbas.CONTA).forEach {
+            rule.onNodeWithText(it).assertIsDisplayed()
+        }
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+
+        assertTrue("a aba Conta não levou ao Perfil (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PERFIL })
+        rule.onNodeWithText(TextosDasAbas.VAGAS).assertIsDisplayed()
+        assertEquals("o feed fica embaixo: voltar na Conta leva às vagas", Rotas.FEED, rotaAbaixo())
+    }
+
+    @Test
+    fun `RN - trocar de aba nao empilha - a pilha fica na primeira aba e na escolhida, e voltar leva as vagas`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        assertTrue(aguardar { rotaAtual() == Rotas.PERFIL })
+        assertEquals("Meus turnos saiu da pilha ao trocar de aba", Rotas.FEED, rotaAbaixo())
+
+        voltarDoSistema()
+
+        assertEquals(Rotas.FEED, rotaAtual())
+        assertNull("a primeira aba é o chão: voltar nela sai do app", rotaAbaixo())
+    }
+
+    @Test
+    fun `RN - a aba que sai nao fica guardada - voltar a ela abre de novo, sem o estado de antes nem de outra conta`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+        var entradaDeAntes: String? = null
+        rule.runOnIdle {
+            entradaDeAntes = nav.currentBackStackEntry!!.id
+            nav.currentBackStackEntry!!.savedStateHandle["marca"] = "de antes"
+        }
+
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        aguardar { rotaAtual() == Rotas.PERFIL }
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+
+        rule.runOnIdle {
+            // Estado de aba guardado sobreviveria à saída da conta e reapareceria na conta seguinte.
+            assertNull("a aba voltou com o estado de antes", nav.currentBackStackEntry!!.savedStateHandle.get<String>("marca"))
+            assertNotEquals("a aba voltou com a mesma entrada da pilha", entradaDeAntes, nav.currentBackStackEntry!!.id)
+        }
+    }
+
+    @Test
+    fun `RN - tela aberta por cima de uma raiz nao tem barra de abas`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+        rule.onNodeWithText(TextosDasAbas.CONTA).assertIsDisplayed()
+
+        rule.runOnUiThread { nav.navigate(Rotas.AJUDA) }
+        aguardar { rotaAtual() == Rotas.AJUDA }
+
+        rule.onNodeWithText(TextosDasAbas.CONTA).assertDoesNotExist()
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).assertDoesNotExist()
     }
 
     // ───────────────── Revisão do #785: a casa nunca fica presa na tela inicial ─────────────────
@@ -305,35 +392,38 @@ class EntradaPorPapelTest {
     }
 
     @Test
-    fun `casa com sessao guardada alcanca o Perfil e o Sair a partir de Minhas vagas`() {
+    fun `casa com sessao guardada alcanca a Conta e o Sair pela aba, a partir de Minhas vagas`() {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
 
         assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
-        assertEquals("o Perfil (Sair, Equipe) fica embaixo da tela inicial da casa", Rotas.PERFIL, rotaAbaixo())
+        assertNull("Minhas vagas é a primeira aba da casa: o chão da pilha", rotaAbaixo())
 
-        // A seta de Minhas vagas leva ao Perfil, nunca a uma pilha vazia.
-        rule.runOnUiThread { nav.popBackStack() }
-        rule.waitForIdle()
-        assertEquals(Rotas.PERFIL, rotaAtual())
+        // A aba Conta leva ao Perfil (Sair, Equipe): a casa nunca fica presa na tela inicial.
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        assertTrue("a aba Conta não levou ao Perfil (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PERFIL })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
 
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(Rotas.ENTRADA, rotaAtual())
+        rule.onNodeWithText(TextosDasAbas.CONTA).assertDoesNotExist()
     }
 
     @Test
     fun `casa com sessao guardada Voltar na raiz sai do app em vez de deixar tela em branco`() {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        aguardar { rotaAtual() == Rotas.PERFIL }
 
-        voltarDoSistema() // Minhas vagas -> Perfil
-        assertEquals(Rotas.PERFIL, rotaAtual())
+        voltarDoSistema() // Conta -> Minhas vagas
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
         assertFalse("ainda há tela para voltar", rule.activity.isFinishing)
 
-        voltarDoSistema() // Perfil é a raiz: sai do app
+        voltarDoSistema() // Minhas vagas é a raiz: sai do app
         assertTrue("Voltar na raiz deve sair do app", rule.activity.isFinishing)
-        assertEquals("a pilha nunca fica vazia", Rotas.PERFIL, rotaAtual())
+        assertEquals("a pilha nunca fica vazia", Rotas.MINHAS_VAGAS, rotaAtual())
     }
 
     @Test

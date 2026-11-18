@@ -1,6 +1,6 @@
 package br.com.frila.feature.perfil
 
-/** Textos do ponto base (tela provisória). Os que o iOS já tem (`TextosDoProfissional.Perfil`) vêm iguais. */
+/** Textos do ponto base. Os que o iOS já tem (`TextosDoProfissional.Perfil`) vêm iguais. */
 object TextosPontoBase {
     const val TITULO = "Ponto base"
     const val DICA = "Para calcular a distância até as vagas. Não é sua localização em tempo real."
@@ -12,6 +12,12 @@ object TextosPontoBase {
     const val SALVANDO = "Salvando…"
     const val CARREGANDO = "Carregando…"
     const val VOLTAR = "Voltar"
+
+    // Busca na lista de regiões (a T1c do desenho: o campo de busca e o "sem resultado", sem botão).
+    const val BUSCAR_REGIAO = "Buscar região"
+    const val SEM_RESULTADO_DICA = "Tente outra busca."
+
+    fun semResultado(termo: String) = "Nenhuma região com “$termo”."
 
     const val ERRO_SEM_PONTO_BASE = "Informe o ponto base."
     const val ERRO_SEM_FUNCAO = "Selecione ao menos uma função."

@@ -4,20 +4,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Raios de borda do Design System.
- *
- * `grande` e `total` seguem o valor explicitamente pedido para o módulo Android (16.dp e
- * 999.dp), não o valor medido no iOS. MEDIDO em `iOS/Sources/Apresentacao/DesignTokens.swift`
- * (`FrilaRaio`): `grande` vale **20**pt lá (usado em `radiusGroupedCard`/`cartaoFrila()`), e não
- * existe um raio `total`/pill — o maior valor do enum iOS é `folha` (28pt, topo de bottom
- * sheet). Ficam aqui os dois valores lado a lado para quem for alinhar os dois design systems
- * decidir qual prevalece; por ora o Android usa os valores pedidos para este módulo.
+ * Raios do desenho do Fabrício, nos valores nominais: cartão 24, elemento dentro de cartão 16, selo 8.
+ * Tudo que se toca (botão, chip, busca) é cápsula; quem informa e não se toca (selo) tem canto pequeno.
  */
 object FrilaRaios {
-    val pequeno: Dp = 8.dp
-    val medio: Dp = 12.dp
-    val grande: Dp = 16.dp
+    /** Selo de status. */
+    val selo: Dp = 8.dp
 
-    /** Pill / círculo total (ex.: chip, botão arredondado por completo). */
+    /** Campo, bloco de aviso, grupo de linhas e o que fica dentro de um cartão. */
+    val interno: Dp = 16.dp
+
+    /** Cartão, diálogo e topo de folha. */
+    val cartao: Dp = 24.dp
+
+    /** Só o cartão de vaga com botão dentro: par concêntrico com o botão de raio 16 (20 de respiro + 16). */
+    val cartaoDeVaga: Dp = 36.dp
+
+    /** Cápsula. */
     val total: Dp = 999.dp
+
+    // Nomes de antes do redesign, apontando para os valores novos. Código novo usa os nomes acima.
+    val pequeno: Dp = selo
+    val medio: Dp = interno
+    val grande: Dp = cartao
 }
