@@ -14,38 +14,39 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.semantics.heading
-import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
-import java.time.Instant
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import java.time.Instant
 
 // Peças deste formulário que o sistema de design ainda não tem. Quando subirem para `core/designsystem`, esta cópia sai.
 
@@ -167,23 +168,36 @@ internal fun SeletorDeInstante(
 
     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
         RotuloDeGrupo(titulo)
-        Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        val campoDaData: @Composable (Modifier) -> Unit = { modificador ->
             CampoDeSelecao(
                 rotulo = null,
                 valor = data,
                 aoClicar = { escolhendoData = true },
                 habilitado = habilitado,
                 descricao = "$rotuloData: $data",
-                modifier = Modifier.weight(1f),
+                modifier = modificador,
             )
+        }
+        val campoDaHora: @Composable (Modifier) -> Unit = { modificador ->
             CampoDeSelecao(
                 rotulo = null,
                 valor = hora,
                 aoClicar = { escolhendoHora = true },
                 habilitado = habilitado,
                 descricao = "$rotuloHora: $hora",
-                modifier = Modifier.weight(1f),
+                modifier = modificador,
             )
+        }
+        // Com a fonte do sistema grande (acima de 1,3×) a data não cabe em meia largura e quebraria no meio do número:
+        // os dois campos passam a ficar um embaixo do outro.
+        if (LocalDensity.current.fontScale <= 1.3f) {
+            Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                campoDaData(Modifier.weight(1f))
+                campoDaHora(Modifier.weight(1f))
+            }
+        } else {
+            campoDaData(Modifier.fillMaxWidth())
+            campoDaHora(Modifier.fillMaxWidth())
         }
         if (erro != null) Text(text = erro, style = FrilaTipo.apoio, color = FrilaTema.cores.tinta)
     }
