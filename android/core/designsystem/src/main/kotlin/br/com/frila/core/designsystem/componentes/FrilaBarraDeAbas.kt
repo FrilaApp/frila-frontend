@@ -14,12 +14,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+
+/**
+ * Até onde o rótulo da aba cresce com a fonte do sistema. 1,0 = fica no tamanho do desenho, como a barra de abas do iOS:
+ * com quatro abas num celular de 360dp, "Candidaturas" já não cabe em 1,15×.
+ */
+private const val ESCALA_MAXIMA_DO_ROTULO = 1f
 
 /** Uma aba da barra: o rótulo, o ícone e quantos itens precisam da pessoa (some com zero). */
 data class AbaFrila(
@@ -44,6 +51,11 @@ fun FrilaBarraDeAbas(
     modifier: Modifier = Modifier,
 ) {
     val cores = FrilaTema.cores
+    // Quatro rótulos dividem a largura da tela: acima de ESCALA_MAXIMA_DO_ROTULO o rótulo para de crescer com a fonte do
+    // sistema, senão "Candidaturas" e "Meus turnos" seriam cortados. A aba continua com o ícone, e o leitor de tela fala o rótulo inteiro.
+    val escala = LocalDensity.current.fontScale
+    val freio = if (escala > ESCALA_MAXIMA_DO_ROTULO) ESCALA_MAXIMA_DO_ROTULO / escala else 1f
+    val estiloDoRotulo = FrilaTipo.legenda.copy(fontSize = FrilaTipo.legenda.fontSize * freio, lineHeight = FrilaTipo.legenda.lineHeight * freio)
 
     Column(modifier = modifier) {
         FrilaDivisoria(cor = cores.bordaNav)
@@ -76,7 +88,7 @@ fun FrilaBarraDeAbas(
                     label = {
                         Text(
                             text = aba.rotulo,
-                            style = FrilaTipo.legenda.copy(fontWeight = if (ativa) FontWeight.Bold else FontWeight.Medium),
+                            style = estiloDoRotulo.copy(fontWeight = if (ativa) FontWeight.Bold else FontWeight.Medium),
                             maxLines = 1,
                         )
                     },
