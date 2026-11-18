@@ -78,6 +78,7 @@ import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
+import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.OpcaoDePontoBase
@@ -322,6 +323,15 @@ val moduloFeatures = module {
             estabelecimento = estabelecimento,
             buscarFuncoes = vagas::listarFuncoes,
             enviarVaga = vagas::publicarVaga,
+        )
+    }
+    /** Escala de evento (RF19, `publicar_escala`): o mesmo estabelecimento lido da publicação de vaga, com a chave única da escala. */
+    viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
+        val vagas = get<ServicoVagas>()
+        EscalaDeEventoViewModel(
+            estabelecimento = estabelecimento,
+            buscarFuncoes = vagas::listarFuncoes,
+            enviarEscala = vagas::publicarEscala,
         )
     }
     /**
