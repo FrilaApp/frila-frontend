@@ -36,24 +36,44 @@ final class CapturasR0FundacaoUITests: XCTestCase {
         }
     }
 
-    /// Percorre as seções da fundação, uma captura por tela, conferindo em cada uma que todo botão visível tem
-    /// rótulo e alvo de ao menos 44 pt.
+    /// Os controles novos que o percurso tem de ver, no tamanho padrão e em AX5.
+    private static let controlesDaFundacao = ["Aceitar turno", "Receber código", "MARCAR PRESENÇA", "Reenviar código",
+                                              "Cancelar turno", "Trabalho", "Avisos"]
+
+    /// Percorre as seções da fundação, uma captura por tela, e confere em cada uma que todo botão visível tem rótulo
+    /// e alvo de ao menos 44 pt. No fim, exige que cada controle novo tenha sido conferido: sem isso, um controle
+    /// que nunca entrasse na janela passaria calado.
     private func percorrer(ax5: Bool, telas: Int) {
         let app = abrirCatalogo(ax5: ax5)
         let sufixo = ax5 ? "ax5" : "padrao"
         let janela = app.windows.firstMatch.frame
+        // "Na janela" é pelo quadro, não pelo `isHittable`: dois dos controles novos são botões desligados.
+        func naJanela(_ elemento: XCUIElement) -> Bool {
+            elemento.exists && !elemento.frame.isEmpty && janela.intersects(elemento.frame)
+        }
+        // O catálogo já abre na fundação; se a rolagem inicial não tiver chegado, rola até o primeiro controle novo.
+        let primeiro = app.buttons["Aceitar turno"]
+        XCTAssertTrue(primeiro.waitForExistence(timeout: Espera.aparecer), "o catálogo tem as seções da fundação")
+        for _ in 0..<40 where !naJanela(primeiro) { app.swipeUp() }
+        XCTAssertTrue(naJanela(primeiro), "as seções da fundação devem estar na tela")
+
+        var conferidos = Set<String>()
         var problemas: [String] = []
         for indice in 0..<telas {
             capturar(String(format: "r0-fundacao-%@-%02d", sufixo, indice))
-            for botao in app.buttons.allElementsBoundByIndex where botao.exists && janela.contains(botao.frame) {
-                if botao.label.trimmingCharacters(in: .whitespaces).isEmpty { problemas.append("sem rótulo: \(botao.identifier)") }
+            for botao in app.buttons.allElementsBoundByIndex where naJanela(botao) {
+                let rotulo = botao.label.trimmingCharacters(in: .whitespaces)
+                conferidos.insert(rotulo)
+                if rotulo.isEmpty { problemas.append("sem rótulo: \(botao.identifier)") }
                 if botao.frame.height < 44 || botao.frame.width < 44 {
-                    problemas.append("alvo \(Int(botao.frame.width))×\(Int(botao.frame.height)) pt: \(botao.label)")
+                    problemas.append("alvo \(Int(botao.frame.width))×\(Int(botao.frame.height)) pt: \(rotulo)")
                 }
             }
             app.swipeUp()
         }
-        XCTAssertTrue(problemas.isEmpty, "controles da fundação fora da regra: \(Set(problemas).sorted())")
+        XCTAssertTrue(problemas.isEmpty, "controles da fundação fora da regra (\(sufixo)): \(Set(problemas).sorted())")
+        let faltaram = Self.controlesDaFundacao.filter { !conferidos.contains($0) }
+        XCTAssertTrue(faltaram.isEmpty, "controles da fundação que o percurso não conferiu (\(sufixo)): \(faltaram)")
     }
 
     func testFundacaoNoTamanhoPadrao() {
@@ -61,7 +81,7 @@ final class CapturasR0FundacaoUITests: XCTestCase {
     }
 
     func testFundacaoEmAX5() {
-        percorrer(ax5: true, telas: 6)
+        percorrer(ax5: true, telas: 8)
     }
 
     /// O botão primário em conferência (desligado) continua no lugar, com o rótulo, e não aceita toque.
