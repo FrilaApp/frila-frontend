@@ -686,7 +686,8 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                 }
                 GrupoDeLinhas {
-                    if !model.carregando, model.mensagemErro == nil, let entradasDaCasa {
+                    // As linhas da casa não dependem de o perfil ter carregado: um 404 dele (bloqueio) não as esconde.
+                    if !model.carregando, let entradasDaCasa {
                         entradasDaCasa(model.estabelecimento)
                     }
                     if !model.carregando, model.mensagemErro == nil, let estabelecimento = model.estabelecimento {

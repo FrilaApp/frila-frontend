@@ -3,17 +3,22 @@ import Foundation
 /// Uma pessoa da casa, como o administrador a vê em `membros_do_estabelecimento` (contrato 0.2.103, RF21, US24).
 /// `id` é o `membro_id` do vínculo, o que `remover_membro` e `transferir_administracao` recebem; não é o id da conta.
 /// Sem e-mail, telefone, documento nem `usuario_id` (minimização, LGPD). `eVoce` marca a linha de quem chama.
+///
+/// `papelConhecido` é falso quando o servidor mandou um papel que este app não conhece: a pessoa continua na lista, com o papel
+/// de menos permissão (`operador`), mas sem ação nenhuma de administrador sobre ela (nem remover, nem promover).
 public struct MembroDaCasa: Hashable, Identifiable, Sendable {
     public let id: UUID
     public let nome: String
     public let papel: PapelMembro
+    public let papelConhecido: Bool
     public let desde: Date?
     public let eVoce: Bool
 
-    public init(id: UUID, nome: String, papel: PapelMembro, desde: Date? = nil, eVoce: Bool = false) {
+    public init(id: UUID, nome: String, papel: PapelMembro, papelConhecido: Bool = true, desde: Date? = nil, eVoce: Bool = false) {
         self.id = id
         self.nome = nome
         self.papel = papel
+        self.papelConhecido = papelConhecido
         self.desde = desde
         self.eVoce = eVoce
     }

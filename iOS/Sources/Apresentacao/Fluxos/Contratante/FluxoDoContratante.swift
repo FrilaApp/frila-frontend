@@ -24,6 +24,8 @@ public final class FluxoDoContratanteViewModel {
     /// vencer ou entrar com outra conta tira o fluxo da tela (`destinoAtual = nil`) e o modelo vai junto, então a escolha volta a
     /// `nil`. Toda leitura confere se a conta ainda é membro dela; se não é, vale a primeira casa.
     public private(set) var escolhidaID: UUID?
+    /// As guardas de dinheiro (escala e busca) de cada casa: ver `GuardasPorCasa`. Trocar de casa não apaga a da outra.
+    public let guardas = GuardasPorCasa()
     private let meusEstabelecimentos: @Sendable () async throws -> [EstabelecimentoDaConta]
     private let minhaConta: @Sendable () async throws -> Conta
     private var carregando = false
@@ -91,6 +93,21 @@ public final class FluxoDoContratanteViewModel {
         default:
             break
         }
+    }
+
+    /// A casa em uso: a que o perfil da Conta carregou ou, se a leitura do perfil falhou (404 de bloqueio, rede), a escolhida da
+    /// lista de casas. É ela que decide as linhas "Equipe da casa" e "Trocar de casa", que não dependem do perfil.
+    public func casaEmUso(doPerfil casa: EstabelecimentoDaConta?) -> EstabelecimentoDaConta? {
+        casa ?? casas.first { $0.id == escolhidaID }
+    }
+
+    /// O fim da sessão (sair da conta, sessão vencida, outra conta): a casa escolhida, as casas lidas e todas as guardas se vão.
+    /// O modelo é do fluxo, que sai da tela nesses casos; este método deixa a regra escrita e testada.
+    public func encerrarSessao() {
+        escolhidaID = nil
+        casas = []
+        guardas.apagarTudo()
+        estado = .carregando
     }
 
     private static func casa(entre casas: [EstabelecimentoDaConta], preferida: UUID?) -> EstabelecimentoDaConta? {
@@ -196,6 +213,7 @@ public struct FluxoDoContratante: View {
                 fila: fila,
                 estabelecimento: estabelecimento,
                 roteador: roteador,
+                guardas: model.guardas,
                 publicando: $publicando,
                 sair: sair
             )
@@ -215,10 +233,12 @@ public struct FluxoDoContratante: View {
 
     /// As linhas da equipe da casa, do convite e da troca de casa, no topo da Conta.
     private func entradasDaCasa(_ casa: EstabelecimentoDaConta?) -> AnyView {
-        AnyView(
+        // Sem a casa do perfil (a leitura dele falhou, 404 incluso), a da lista de casas segura as linhas da Conta.
+        let emUso = model.casaEmUso(doPerfil: casa)
+        return AnyView(
             EntradasDaCasaNaConta(
                 api: api,
-                casa: casa,
+                casa: emUso,
                 casas: model.casas,
                 aoEscolherCasa: { id in
                     publicando = false
@@ -307,7 +327,7 @@ private struct DestinoDasVagasDoContratante: View {
     /// A escala de evento toma o lugar da lista, como a publicação de uma vaga.
     @State private var escalando = false
     /// Guarda a escala que saiu sem resposta conhecida (com a chave) enquanto a pessoa cancela e reabre a tela.
-    @State private var guardaDaEscala = GuardaDaEscala()
+    @State private var guardaDaEscala: GuardaDaEscala
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     init(
@@ -315,6 +335,7 @@ private struct DestinoDasVagasDoContratante: View {
         fila: (any FilaDeAcoes)?,
         estabelecimento: EstabelecimentoDaConta,
         roteador: RoteadorDoContratante?,
+        guardas: GuardasPorCasa,
         publicando: Binding<Bool>,
         sair: (() -> Void)? = nil,
         abrirPerfil: (() -> Void)? = nil
@@ -328,9 +349,11 @@ private struct DestinoDasVagasDoContratante: View {
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
         let estabelecimentoID = estabelecimento.id
-        _guardaDaBusca = State(initialValue: GuardaDaBuscaDeProfissionais {
+        // As guardas vêm do fluxo, acima do `.id` da casa: trocar de casa e voltar devolve as mesmas, com a chave de antes.
+        _guardaDaBusca = State(initialValue: guardas.busca(de: estabelecimentoID) {
             BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID)
         })
+        _guardaDaEscala = State(initialValue: guardas.escala(de: estabelecimentoID))
     }
 
     var body: some View {

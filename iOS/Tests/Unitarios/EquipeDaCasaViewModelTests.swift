@@ -161,6 +161,23 @@ struct EquipeDaCasaViewModelTests {
         #expect(vm.pendente == ConfirmacaoDeAcaoNaEquipe(acao: .transferir, membroID: marina.id, nome: "Marina Souza"))
     }
 
+    @Test("Pessoa com papel que o app não conhece aparece na lista, mas sem Remover nem Tornar administrador")
+    func papelDesconhecidoSemAcoes() async {
+        let nova = MembroDaCasa(id: UUID(uuidString: "93000000-0000-0000-0000-000000000009")!, nome: "Beto Alves", papel: .operador, papelConhecido: false, desde: nil, eVoce: false)
+        let vm = modelo(ServidorDaEquipe([.success(todos + [nova])]))
+
+        await vm.carregar()
+
+        #expect(vm.lista == .conteudo(todos + [nova]), "a lista não cai por causa de um papel novo")
+        vm.pedirConfirmacao(.remover, membro: nova)
+        #expect(vm.pendente == nil)
+        vm.pedirConfirmacao(.transferir, membro: nova)
+        #expect(vm.pendente == nil)
+        // Quem tem papel conhecido segue com as ações.
+        vm.pedirConfirmacao(.remover, membro: marina)
+        #expect(vm.pendente?.membroID == marina.id)
+    }
+
     // MARK: 403 tira as capacidades
 
     @Test("403 sem details na lista: a pessoa não é (mais) administradora, e somem lista, convite e ações")

@@ -1813,7 +1813,8 @@ enum ContratoAPI {
     struct MembroDoEstabelecimentoDTO: Decodable {
         let membroID: UUID
         let nome: String
-        let papel: PapelMembro
+        /// Texto cru: um papel que o app não conhece não derruba a lista nem vira administrador (`dominio()`).
+        let papel: String
         let desde: String
         let eVoce: Bool
 
@@ -1824,7 +1825,11 @@ enum ContratoAPI {
         }
 
         func dominio() -> MembroDaCasa {
-            MembroDaCasa(id: membroID, nome: nome, papel: papel, desde: ContratoAPI.instante(desde), eVoce: eVoce)
+            let conhecido = PapelMembro(rawValue: papel)
+            return MembroDaCasa(
+                id: membroID, nome: nome, papel: conhecido ?? .operador, papelConhecido: conhecido != nil,
+                desde: ContratoAPI.instante(desde), eVoce: eVoce
+            )
         }
     }
 

@@ -8,6 +8,22 @@ import SwiftUI
 ///
 /// O papel vem da última leitura de `meus_estabelecimentos` (a que o fluxo do contratante guarda). `aoAtualizarCasas` a relê
 /// quando a pessoa perde a administração (um 403 na equipe) ou aceita um convite.
+/// Quais linhas da casa a Conta mostra. Só depende da casa em uso e da lista de casas (a do servidor), não de o perfil ter
+/// carregado: um 404 do perfil (bloqueio) não faz sumir "Equipe da casa" de quem é administrador nem "Trocar de casa" de quem
+/// tem mais de uma casa.
+struct LinhasDaCasaNaConta: Equatable {
+    let equipe: Bool
+    let trocar: Bool
+    /// O papel da casa em uso, com a leitura mais nova da lista de casas.
+    let casaEmUso: EstabelecimentoDaConta?
+
+    init(casa: EstabelecimentoDaConta?, casas: [EstabelecimentoDaConta]) {
+        casaEmUso = casa.flatMap { atual in casas.first { $0.id == atual.id } ?? atual }
+        equipe = casaEmUso?.papel == .administrador
+        trocar = casas.count > 1
+    }
+}
+
 struct EntradasDaCasaNaConta: View {
     let api: any ApiCliente
     let casa: EstabelecimentoDaConta?
@@ -16,15 +32,10 @@ struct EntradasDaCasaNaConta: View {
     let aoAtualizarCasas: () -> Void
     let aoAbrirCasa: (UUID) -> Void
 
-    /// A casa em uso, com o papel da leitura mais nova.
-    private var casaEmUso: EstabelecimentoDaConta? {
-        guard let casa else { return nil }
-        return casas.first { $0.id == casa.id } ?? casa
-    }
-
     var body: some View {
+        let linhas = LinhasDaCasaNaConta(casa: casa, casas: casas)
         VStack(alignment: .leading, spacing: 0) {
-            if let casaEmUso, casaEmUso.papel == .administrador {
+            if linhas.equipe, let casaEmUso = linhas.casaEmUso {
                 NavigationLink {
                     DestinoDaEquipeDaCasa(api: api, casa: casaEmUso, aoPerderAdministracao: aoAtualizarCasas)
                 } label: {
@@ -34,9 +45,9 @@ struct EntradasDaCasaNaConta: View {
                 .accessibilityIdentifier("conta-equipe-da-casa")
                 DivisoriaDeLinha()
             }
-            if casas.count > 1 {
+            if linhas.trocar {
                 NavigationLink {
-                    DestinoDeTrocarDeCasa(api: api, casaEmUso: casaEmUso?.id, aoEscolher: aoEscolherCasa)
+                    DestinoDeTrocarDeCasa(api: api, casaEmUso: linhas.casaEmUso?.id, aoEscolher: aoEscolherCasa)
                 } label: {
                     RotuloDeLinha(TextosDaEquipeDaCasa.entradaTrocar)
                 }

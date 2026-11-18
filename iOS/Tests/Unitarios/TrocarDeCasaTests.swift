@@ -258,6 +258,42 @@ struct TrocarDeCasaTests {
         #expect(lenta.estado == .erro)
     }
 
+    // MARK: As linhas da Conta sem o perfil (P3-b da revisão do #1001)
+
+    @Test("Com o perfil em erro (404 de bloqueio), a casa da lista segura as linhas: Equipe da casa para o admin, Trocar de casa para quem tem duas")
+    func linhasSemOPerfil() async {
+        let casas = CasasDaConta([bistro, cantina])
+        let modelo = fluxo(casas)
+        await modelo.carregar()
+        // O perfil público dessa casa responde 404: a Conta fica com o erro e sem a casa do perfil.
+        let comErro = PerfilEstabelecimentoViewModel(
+            estabelecimentos: { try await casas.ler() }, publico: { _ in throw ErroDaApi(codigo: .naoEncontrado) }
+        )
+        await comErro.carregar()
+        #expect(comErro.mensagemErro != nil)
+        #expect(comErro.estabelecimento == nil)
+
+        let emUso = modelo.casaEmUso(doPerfil: comErro.estabelecimento)
+        #expect(emUso == bistro)
+        let linhas = LinhasDaCasaNaConta(casa: emUso, casas: modelo.casas)
+        #expect(linhas.equipe, "o administrador continua vendo Equipe da casa")
+        #expect(linhas.trocar, "quem tem duas casas continua vendo Trocar de casa")
+    }
+
+    @Test("As linhas seguem o papel e a quantidade de casas: operador sem equipe, uma casa só sem troca, e sem casa nenhuma só o convite")
+    func linhasPorPapelEQuantidade() {
+        let operadora = LinhasDaCasaNaConta(casa: cantina, casas: [cantina])
+        #expect(!operadora.equipe)
+        #expect(!operadora.trocar)
+        // A leitura mais nova da lista de casas vale mais que a casa que a tela já tinha (perdeu a administração).
+        let perdeu = LinhasDaCasaNaConta(casa: bistro, casas: [EstabelecimentoDaConta(id: bistro.id, nome: bistro.nome, papel: .operador), cantina])
+        #expect(!perdeu.equipe)
+        #expect(perdeu.trocar)
+        let semCasa = LinhasDaCasaNaConta(casa: nil, casas: [])
+        #expect(!semCasa.equipe)
+        #expect(!semCasa.trocar)
+    }
+
     // MARK: O perfil da casa escolhida
 
     private func perfil(_ casas: CasasDaConta, porteira: PorteiraDeLeitura? = nil) -> PerfilEstabelecimentoViewModel {

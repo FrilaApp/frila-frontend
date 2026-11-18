@@ -854,7 +854,10 @@ struct RedeRuimEValorNovoTests {
 
         let membros = try await cliente(BackendDeContrato.self).membrosDaCasa(estabelecimentoID: UUID())
 
+        // A lista não cai, a pessoa aparece com o papel de menos permissão e marcada como desconhecida (sem ação de administrador).
         #expect(membros.first?.papel == .operador)
+        #expect(membros.first?.papelConhecido == false)
+        #expect(membros.dropFirst().allSatisfy(\.papelConhecido))
         #expect(membros.count == 3)
     }
 

@@ -16375,6 +16375,17 @@
           }
         }
       }
+    },
+    "Outro papel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro papel"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

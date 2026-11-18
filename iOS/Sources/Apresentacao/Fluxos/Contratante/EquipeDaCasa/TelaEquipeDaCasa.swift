@@ -119,7 +119,7 @@ public struct TelaEquipeDaCasa: View {
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("equipe-membro-\(id)")
             // "Você" não tem Remover nem Tornar administrador: o app não oferece sair da casa por aqui.
-            if modelo.podeGerenciar, !membro.eVoce {
+            if modelo.podeGerenciar, !membro.eVoce, membro.papelConhecido {
                 acoes(de: membro, id: id)
             }
         }
@@ -130,7 +130,7 @@ public struct TelaEquipeDaCasa: View {
 
     /// "Administrador · Você · Desde 14/10/2025".
     private func detalhe(de membro: MembroDaCasa) -> String {
-        var partes = [membro.papel.rotuloDaEquipe]
+        var partes = [membro.papelConhecido ? membro.papel.rotuloDaEquipe : TextosDaEquipeDaCasa.papelDesconhecido]
         if membro.eVoce { partes.append(TextosDaEquipeDaCasa.voce) }
         if let desde = membro.desde { partes.append(String(format: TextosDaEquipeDaCasa.desde, formatador.data(desde))) }
         return partes.joined(separator: " · ")

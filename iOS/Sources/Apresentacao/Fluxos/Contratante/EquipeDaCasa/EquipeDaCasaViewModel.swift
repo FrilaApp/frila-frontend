@@ -235,9 +235,10 @@ public final class EquipeDaCasaViewModel {
 
     // MARK: Remover e tornar administrador
 
-    /// Abre a confirmação. Remover e transferir não valem para a linha de "você", e só um operador vira administrador.
+    /// Abre a confirmação. Remover e transferir não valem para a linha de "você" nem para quem tem um papel que o app não conhece,
+    /// e só um operador vira administrador.
     public func pedirConfirmacao(_ acao: AcaoSobreMembro, membro: MembroDaCasa) {
-        guard podeGerenciar, !ocupado, !membro.eVoce else { return }
+        guard podeGerenciar, !ocupado, !membro.eVoce, membro.papelConhecido else { return }
         if acao == .transferir, membro.papel == .administrador { return }
         pendente = ConfirmacaoDeAcaoNaEquipe(acao: acao, membroID: membro.id, nome: membro.nome)
         erroDaAcao = nil

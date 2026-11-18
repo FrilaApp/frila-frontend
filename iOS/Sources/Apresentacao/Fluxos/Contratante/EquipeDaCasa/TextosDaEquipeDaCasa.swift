@@ -18,6 +18,7 @@ enum TextosDaEquipeDaCasa {
     static let desde = String(localized: "Desde %@", bundle: bundleApresentacao)
     static let papelAdministrador = String(localized: "Administrador", bundle: bundleApresentacao)
     static let papelOperador = String(localized: "Operador", bundle: bundleApresentacao)
+    static let papelDesconhecido = String(localized: "Outro papel", bundle: bundleApresentacao)
 
     // Convidar
     static let convidar = String(localized: "Convidar alguém", bundle: bundleApresentacao)
