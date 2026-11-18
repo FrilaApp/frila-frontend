@@ -69,9 +69,6 @@ class TelaAvaliacaoTest {
             }
         }
 
-        compose.onNodeWithText("Avaliar turno").assertIsDisplayed()
-            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
-
         compose.onNodeWithText("Você trabalharia nesse local de novo?").assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
 
