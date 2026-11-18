@@ -212,11 +212,10 @@ public final class PublicarEscalaViewModel {
             erros.vagas[id]?[.modo] = nil
         }
         if depois.modo != antes.modo { erros.vagas[id]?[.modo] = nil }
-        if depois.valorTexto != antes.valorTexto { erros.vagas[id]?[.valor] = nil }
         if depois.pessoas != antes.pessoas { erros.vagas[id]?[.pessoas] = nil }
-        if depois.responsavelLocal != antes.responsavelLocal { erros.vagas[id]?[.responsavel] = nil }
-        if depois.traje != antes.traje { erros.vagas[id]?[.traje] = nil }
-        if depois.observacoes != antes.observacoes { erros.vagas[id]?[.observacoes] = nil }
+        // A marca de um campo de TEXTO (valor, responsável, traje, observações) não some na primeira letra: com o teclado
+        // aberto, o conteúdo encolheria e o campo pularia debaixo do dedo, e em AX5 o teclado caía. Ela sai na próxima tentativa
+        // de publicar (que confere tudo de novo). As escolhas por toque (função, horário, modo, pessoas) limpam na hora.
         editou()
     }
 
@@ -427,7 +426,8 @@ public final class PublicarEscalaViewModel {
     // MARK: Ajudantes
 
     private func editou(evento campo: CampoDoEventoDaEscala? = nil) {
-        if let campo { erros.evento[campo] = nil }
+        // O nome é de texto: a marca dele fica até a próxima tentativa (ver `atualizar`). O dia é por toque e limpa na hora.
+        if campo == .data { erros.evento[.data] = nil }
         // A mensagem geral fica até a próxima tentativa de publicar: em AX ela está no alto da rolagem, e tirá-la enquanto a
         // pessoa digita encolheria o conteúdo e deslocaria o campo debaixo do dedo (o campo perdia o foco na segunda letra).
     }

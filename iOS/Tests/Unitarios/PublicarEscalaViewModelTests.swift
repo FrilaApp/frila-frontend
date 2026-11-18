@@ -218,7 +218,7 @@ struct PublicarEscalaViewModelTests {
         }
     }
 
-    @Test("Mexer num campo tira a marca de erro dele, e só dele")
+    @Test("A marca de um campo de texto fica enquanto a pessoa digita (para o layout não pular debaixo do dedo) e sai na próxima tentativa; a escolha por toque limpa na hora")
     func editarLimpaOErro() async throws {
         let vm = try modelo(ServidorDeEscala([]))
         await vm.publicar()
@@ -226,13 +226,19 @@ struct PublicarEscalaViewModelTests {
         #expect(vm.erros.evento[.nome] != nil && vm.erros.vagas[id]?[.valor] != nil)
 
         vm.nome = "Formatura"
-        vm.atualizar(id) { $0.valorTexto = "100" }
+        vm.atualizar(id) { $0.valorTexto = "100"; $0.responsavelLocal = "Marina" }
+        #expect(vm.erros.evento[.nome] != nil, "texto: a marca fica")
+        #expect(vm.erros.vagas[id]?[.valor] != nil, "texto: a marca fica")
+        #expect(vm.erros.vagas[id]?[.responsavel] != nil, "texto: a marca fica")
 
+        vm.atualizar(id) { $0.funcaoID = garcom.id }
+        #expect(vm.erros.vagas[id]?[.funcao] == nil, "escolha por toque: limpa na hora")
+        #expect(vm.erros.geral == TextosDaEscala.Erro.temErro, "a mensagem geral fica até a próxima tentativa: tirá-la em AX deslocaria o campo em edição")
+
+        await vm.publicar()
         #expect(vm.erros.evento[.nome] == nil)
         #expect(vm.erros.vagas[id]?[.valor] == nil)
-        #expect(vm.erros.vagas[id]?[.responsavel] != nil)
-        #expect(vm.erros.vagas[id]?[.funcao] != nil)
-        #expect(vm.erros.geral == TextosDaEscala.Erro.temErro, "a mensagem geral fica até a próxima tentativa: tirá-la em AX deslocaria o campo em edição")
+        #expect(vm.erros.vagas[id]?[.responsavel] == nil)
     }
 
     // MARK: Publicar
