@@ -158,12 +158,28 @@ public struct TelaPerfilProfissional: View {
 
     // MARK: - Estado de erro de carga
 
+    /// O mesmo desenho do `EstadoErro` (fato em corpo, dica em apoio, "tentar de novo" em botão secundário), com os
+    /// identificadores que a tela já tinha: o aviso do erro e o botão que carrega de novo.
     private func estadoErroCarga(_ erro: String) -> some View {
-        // O texto do erro vem do ViewModel; o título do estado é a frase fixa da tela.
-        EstadoErro(verbatim: erro) {
-            Task { await viewModel.carregar() }
+        VStack(spacing: FrilaEspaco.item) {
+            Text(verbatim: TextosDoProfissional.Perfil.erroCarregarTela)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(verbatim: erro)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("aviso-erro-perfil")
+            BotaoSecundario(verbatim: TextosDoProfissional.Perfil.tentarDeNovo) {
+                Task { await viewModel.carregar() }
+            }
+            .accessibilityIdentifier("perfil-tentar-carregar")
+            .padding(.top, FrilaEspaco.item)
         }
-        .accessibilityIdentifier("aviso-erro-perfil")
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.respiro)
     }
 
     // MARK: - Subviews do formulário
