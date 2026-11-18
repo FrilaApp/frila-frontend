@@ -89,6 +89,8 @@ final class CapturasR4UITests: XCTestCase {
         let escolher = app.buttons["escolher-horario"]
         if escolher.waitForExistence(timeout: 3) {
             tocarRolando(escolher, app)
+            // Se a linha estava junto do rodapé e o primeiro toque não pegou, toca de novo.
+            if !app.buttons["horario-avancar"].waitForExistence(timeout: 3), escolher.exists, escolher.isHittable { escolher.tap() }
             XCTAssertTrue(app.buttons["horario-avancar"].waitForExistence(timeout: Espera.aparecer), "o editor de horário deve abrir")
             capturar("horarios-editor", ax5: ax5)
         }
