@@ -2735,6 +2735,17 @@
         }
       }
     },
+    "Confirmadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmadas"
+          }
+        }
+      }
+    },
     "CONTRATO": {
       "extractionState": "stale",
       "localizations": {
@@ -8763,6 +8774,17 @@
         }
       }
     },
+    "O estabelecimento escolhe entre os interessados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento escolhe entre os interessados."
+          }
+        }
+      }
+    },
     "O Frila está sem permissão para usar a localização. Você pode liberar nos Ajustes.": {
       "extractionState": "stale",
       "localizations": {
@@ -11500,6 +11522,17 @@
         }
       }
     },
+    "Se aceitar, o turno é seu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se aceitar, o turno é seu."
+          }
+        }
+      }
+    },
     "Se houver uma posição disponível e sua candidatura for válida, o turno é confirmado na hora, sem aprovação do contratante.": {
       "extractionState": "stale",
       "localizations": {
@@ -14132,6 +14165,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista."
+          }
+        }
+      }
+    },
+    "Você se candidatou.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você se candidatou."
           }
         }
       }

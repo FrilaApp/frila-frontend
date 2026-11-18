@@ -32,6 +32,7 @@ enum TextosDaCandidaturaEmSelecao {
     static let titulo = String(localized: "Candidaturas", bundle: bundleApresentacao)
     static let aguardando = String(localized: "Aguardando resposta", bundle: bundleApresentacao)
     static let anteriores = String(localized: "Anteriores", bundle: bundleApresentacao)
+    static let confirmadas = String(localized: "Confirmadas", bundle: bundleApresentacao)
     static let vazioTitulo = String(localized: "Nenhuma candidatura", bundle: bundleApresentacao)
     static let vazioMensagem = String(localized: "As vagas a que você se candidatar aparecem aqui.", bundle: bundleApresentacao)
     static let erroAoCarregar = String(localized: "Não foi possível carregar as candidaturas.", bundle: bundleApresentacao)
@@ -225,7 +226,7 @@ struct CandidaturaEnviada: View {
     private typealias Textos = TextosDaCandidaturaEmSelecao
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: compacta ? FrilaEspaco.item : FrilaEspaco.bloco) {
             if viewModel?.estado == .retirada {
                 situacao(Textos.retiradaTitulo, [Textos.retiradaMensagem], id: "candidatura-retirada")
             } else {
@@ -235,27 +236,21 @@ struct CandidaturaEnviada: View {
                 }
                 if let viewModel {
                     if quadro == nil, let aviso = avisoDaFalha {
-                        AvisoFrila(verbatim: aviso.texto, tom: aviso.tom).accessibilityIdentifier(aviso.id)
+                        MensagemJuntoAoBotao(verbatim: aviso.texto).accessibilityIdentifier(aviso.id)
                     }
                     if viewModel.estado != .indisponivel {
-                        BotaoSecundario(verbatim: Textos.retirar) { viewModel.pedirRetirada() }
-                            .disabled(viewModel.retirando)
-                            .accessibilityHint(viewModel.retirando ? Textos.retirando : "")
-                            .accessibilityIdentifier("retirar-candidatura")
+                        // Retirar é ação de risco: discreta, no fim, uma por linha.
+                        Button { viewModel.pedirRetirada() } label: {
+                            Text(verbatim: Textos.retirar)
+                        }
+                        .buttonStyle(.frilaAcaoDiscreta)
+                        .disabled(viewModel.retirando)
+                        .accessibilityHint(viewModel.retirando ? Textos.retirando : "")
+                        .accessibilityIdentifier("retirar-candidatura")
                     }
                 }
             }
         }
-        .padding(compacta ? 0 : FrilaEspaco.medio)
-        .background(compacta ? Color.clear : FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(
-            Group {
-                if !compacta {
-                    RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                        .strokeBorder(FrilaCor.borda, lineWidth: 1)
-                }
-            }
-        )
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(ConfirmacaoDaRetirada(viewModel: viewModel))
         .onChange(of: viewModel?.estado) { _, novo in
@@ -281,11 +276,15 @@ struct CandidaturaEnviada: View {
     private func situacao(_ titulo: String, _ paragrafos: [String], id: String) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: titulo)
-                .font(compacta ? FrilaTipo.rotuloDoCampo : FrilaTipo.tituloGrande)
+                .font(compacta ? FrilaTipo.nome : FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             ForEach(paragrafos, id: \.self) { paragrafo in
-                Text(verbatim: paragrafo).font(compacta ? FrilaTipo.meta : FrilaTipo.corpo).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: paragrafo)
+                    .font(compacta ? FrilaTipo.apoio : FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -466,7 +465,9 @@ public final class MinhasCandidaturasViewModel {
     }
 }
 
-/// A aba Candidaturas, com cartões do quadro "MeuTurno" do MidFi. O toque numa candidatura leva à vaga dela, ou a Meus turnos se foi confirmada.
+/// A aba Candidaturas: as que esperam resposta primeiro, depois as confirmadas e as anteriores (D-9: a confirmada
+/// não fica mais misturada com as encerradas). Um cartão por candidatura, com o estado num selo. O toque leva à
+/// vaga dela, ou a Meus turnos se foi confirmada. Raiz de aba: abre sem título de página.
 public struct TelaMinhasCandidaturas: View {
     @Bindable private var viewModel: MinhasCandidaturasViewModel
     private let abrir: (Candidatura) -> Void
@@ -480,11 +481,15 @@ public struct TelaMinhasCandidaturas: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) { conteudo }
-                .padding(FrilaEspaco.medio)
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) { conteudo }
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.item)
+                .padding(.bottom, FrilaEspaco.grupo)
         }
         .background(FrilaCor.fundo)
+        // O nome da raiz continua na barra, pequeno e sem repetir a aba, para o sistema e a voz (D-DS-14).
         .navigationTitle(Text(verbatim: Textos.titulo))
+        .navigationBarTitleDisplayMode(.inline)
         .refreshable { await viewModel.atualizar() }
         .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
         .atualizacaoAutomatica(.minhasCandidaturas, recarregar: viewModel.atualizarEmSilencio)
@@ -506,34 +511,51 @@ public struct TelaMinhasCandidaturas: View {
                     .accessibilityIdentifier("candidaturas-vazio")
             } else {
                 secao(Textos.aguardando, viewModel.pendentes)
-                secao(Textos.anteriores, viewModel.anteriores)
+                secao(Textos.confirmadas, confirmadas)
+                secao(Textos.anteriores, encerradas)
             }
         case .semConexao:
-            AvisoFrila(verbatim: TextosDoProfissional.Lista.semConexaoMensagem, tom: .alerta)
-                .accessibilityIdentifier("candidaturas-sem-conexao")
-            BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+            EstadoVazio(
+                verbatim: TextosDoProfissional.Lista.semConexaoTitulo,
+                mensagem: TextosDoProfissional.Lista.semConexaoMensagem,
+                rotuloDaAcao: String(localized: "Tentar novamente", bundle: bundleApresentacao)
+            ) {
+                Task { await viewModel.carregar() }
+            }
+            .accessibilityIdentifier("candidaturas-sem-conexao")
         case .falha:
             EstadoErro(verbatim: Textos.erroAoCarregar) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("candidaturas-erro")
         }
     }
 
+    /// As que a casa escolheu e cujo turno segue de pé: ficam à vista, e não entre as encerradas.
+    private var confirmadas: [Candidatura] {
+        viewModel.anteriores.filter { $0.estado == .aceita && !viewModel.turnoCancelado(para: $0) }
+    }
+
+    /// O resto das que já tiveram desfecho: recusada, retirada, expirada ou com o turno cancelado.
+    private var encerradas: [Candidatura] {
+        viewModel.anteriores.filter { !($0.estado == .aceita && !viewModel.turnoCancelado(para: $0)) }
+    }
+
     @ViewBuilder
     private func secao(_ titulo: String, _ candidaturas: [Candidatura]) -> some View {
         if !candidaturas.isEmpty {
-            Text(verbatim: titulo)
-                .font(FrilaTipo.tituloDoCartao)
-                .foregroundStyle(FrilaCor.texto)
-                .padding(.horizontal, FrilaEspaco.minimo)
-                .accessibilityAddTraits(.isHeader)
-            ForEach(candidaturas) { candidatura in
-                Button { abrir(candidatura) } label: {
-                    CartaoDaCandidatura(candidatura: candidatura, turno: viewModel.turno(de: candidatura))
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                Text(verbatim: titulo)
+                    .font(FrilaTipo.rotuloDeGrupo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                ForEach(candidaturas) { candidatura in
+                    Button { abrir(candidatura) } label: {
+                        CartaoDaCandidatura(candidatura: candidatura, turno: viewModel.turno(de: candidatura))
+                    }
+                    .buttonStyle(EstiloDoCartaoDeVagaDoFeed())
+                    .accessibilityIdentifier("candidatura-\(candidatura.id.uuidString)")
+                    .accessibilityHint(dicaDeAcessibilidade(para: candidatura))
                 }
-                .buttonStyle(.plain)
-                .contentShape(RoundedRectangle(cornerRadius: FrilaRaio.grande, style: .continuous))
-                .accessibilityIdentifier("candidatura-\(candidatura.id.uuidString)")
-                .accessibilityHint(dicaDeAcessibilidade(para: candidatura))
             }
         }
     }
@@ -550,8 +572,10 @@ public struct TelaMinhasCandidaturas: View {
     }
 }
 
+/// O cartão de uma candidatura: a função e o valor, quando e onde, e o estado da candidatura num selo (aguardando em
+/// contorno, confirmada em amarelo, o resto encerrado). Sem ação dentro: o cartão inteiro leva à vaga ou ao turno.
 struct CartaoDaCandidatura: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.cartaoDeVagaPressionado) private var pressionado
     let candidatura: Candidatura
     var turno: Turno? = nil
     private let formatador = FormatadorFrila()
@@ -565,59 +589,44 @@ struct CartaoDaCandidatura: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.faixa) {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    funcao
-                    valor
-                }
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .firstTextBaseline) {
-                        funcao
-                        Spacer()
-                        valor
-                    }
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        funcao
-                        valor
-                    }
-                }
+        let forma = RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: candidatura.vaga.funcao)
+                .font(FrilaTipo.nome)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+            LinhaDeQuandoDaVaga(periodo: candidatura.vaga.periodo)
+            FrilaLinhaDeDado(icone: "mappin.and.ellipse") {
+                Text(verbatim: candidatura.vaga.local)
             }
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                LinhaDoTurnoComIcone(icone: "clock", texto: formatador.intervalo(candidatura.vaga.periodo))
-                LinhaDoTurnoComIcone(icone: "mappin.and.ellipse", texto: candidatura.vaga.local)
-            }
-            Divider().overlay(FrilaCor.borda)
-            Label {
-                Text(verbatim: textoDoEstado).fontWeight(.semibold)
-            } icon: {
-                Image(systemName: icone)
-            }
-            .foregroundStyle(candidatura.estado == .pendente || (candidatura.estado == .aceita && !turnoCancelado) ? FrilaCor.texto : FrilaCor.textoSecundario)
+            Text(verbatim: formatador.dinheiro(candidatura.vaga.valor))
+                .font(FrilaTipo.valorEmDestaque)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityLabel(Text(verbatim: formatador.dinheiroFalado(candidatura.vaga.valor, por: "pessoa")))
+                .padding(.top, FrilaEspaco.item)
+            SeloDeStatus(verbatim: textoDoEstado, estilo: estiloDoSelo, icone: icone)
+                .padding(.top, FrilaEspaco.item)
         }
-        .font(FrilaTipo.meta)
-        .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
+        .padding(FrilaEspaco.bloco)
+        .background(pressionado ? FrilaCor.superficiePressionada : FrilaCor.superficie, in: forma)
+        .overlay(forma.strokeBorder(FrilaCor.divisoria, lineWidth: 1))
+        .contentShape(forma)
         .accessibilityElement(children: .combine)
     }
 
-    private var funcao: some View {
-        Text(verbatim: candidatura.vaga.funcao).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
-    }
-
-    private var valor: some View {
-        FrilaPriceTag(texto: formatador.dinheiro(candidatura.vaga.valor),
-                      leitura: formatador.dinheiroFalado(candidatura.vaga.valor), tamanho: 18)
-    }
-
-    private var icone: String {
+    private var estiloDoSelo: SeloDeStatus.Estilo {
         switch candidatura.estado {
-        case .pendente: "hourglass"
-        case .aceita: turnoCancelado ? "xmark.circle" : "checkmark.circle"
-        case .recusada, .expirada: "xmark.circle"
-        case .retirada: "arrow.uturn.backward.circle"
+        case .pendente, .retirada: .contorno
+        case .aceita: turnoCancelado ? .encerrado : .destaque
+        case .recusada, .expirada: .encerrado
+        }
+    }
+
+    private var icone: String? {
+        switch candidatura.estado {
+        case .aceita: turnoCancelado ? nil : "checkmark"
+        case .pendente, .recusada, .expirada, .retirada: nil
         }
     }
 }

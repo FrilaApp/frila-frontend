@@ -100,13 +100,7 @@ struct CartaoDeVagaDoFeed: View {
             FrilaLinhaDeDado(icone: "briefcase") {
                 Text(verbatim: vaga.funcao.nome)
             }
-            FrilaLinhaDeDado(icone: "calendar") {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(verbatim: FormatoDataVaga.quando(vaga.periodo.inicio, agora: agora))
-                    Text(verbatim: FormatoDataVaga.janela(vaga.periodo))
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                }
-            }
+            LinhaDeQuandoDaVaga(periodo: vaga.periodo, agora: agora)
             FrilaLinhaDeDado(icone: "mappin.and.ellipse") {
                 Text(verbatim: localizacao)
             }
@@ -184,6 +178,23 @@ struct CartaoDeVagaDoFeed: View {
             .background(cores.fundo, in: forma)
             .overlay { if let borda = cores.borda { forma.strokeBorder(borda, lineWidth: 1) } }
             .accessibilityHidden(true)
+    }
+}
+
+/// "Quando", no formato único do app: o dia (com "Hoje" e "Amanhã") e, abaixo, a janela de horário. Vale no feed, no
+/// detalhe, nos resultados e nas candidaturas (D-12: os formatos de data e hora não se misturam mais).
+struct LinhaDeQuandoDaVaga: View {
+    let periodo: Periodo
+    var agora: Date = .now
+
+    var body: some View {
+        FrilaLinhaDeDado(icone: "calendar") {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: FormatoDataVaga.quando(periodo.inicio, agora: agora))
+                Text(verbatim: FormatoDataVaga.janela(periodo, quebraDeLinha: true))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+            }
+        }
     }
 }
 
