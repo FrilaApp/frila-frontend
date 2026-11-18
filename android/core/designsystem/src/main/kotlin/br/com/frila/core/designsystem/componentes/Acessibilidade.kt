@@ -1,7 +1,6 @@
 package br.com.frila.core.designsystem.componentes
 
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,22 +22,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import br.com.frila.core.designsystem.tema.FrilaMetricas
-import br.com.frila.core.designsystem.tema.FrilaRaios
-import br.com.frila.core.designsystem.tema.brandAccent
+import br.com.frila.core.designsystem.tema.FrilaTema
 
 /**
- * Contrato semântico, de toque e de foco dos chips que selecionam uma única opção de filtro
- * — raio 8dp (`FrilaRaios.pequeno`), igual ao `FilterChipDefaults.shape` real do Material 3
- * (BOM 2024.09.00 / material3 1.3.0 — MEDIDO pelo portão de revisão: não é pílula).
+ * Contrato semântico, de toque e de foco dos chips que selecionam uma única opção de filtro.
+ * O chip é cápsula (tudo que se toca é cápsula), e o contorno de foco acompanha essa forma.
  */
 fun Modifier.semanticaDeFiltro(selecionado: Boolean): Modifier =
     sizeIn(
         minWidth = FrilaMetricas.alvoMinimo,
         minHeight = FrilaMetricas.alvoMinimo,
     )
-        .focoAcessivelFrila(forma = RoundedCornerShape(FrilaRaios.pequeno))
+        .focoAcessivelFrila(forma = CircleShape)
         .semantics {
             role = Role.RadioButton
             stateDescription = if (selecionado) "selecionado" else "não selecionado"
@@ -58,20 +55,15 @@ private var SemanticsPropertyReceiver.contornoDeFocoVisivelFrila by ContornoDeFo
  * Indicador visual de foco acessível para teclado físico/D-Pad (RNF10, WCAG 2.1 §1.4.11 e
  * WCAG 2.2 §2.4.13 — contraste mínimo 3,0:1 do indicador de foco contra o fundo adjacente).
  *
- * O contorno é desenhado **fora** dos limites do componente, com uma folga
- * (`distanciaExterna`) entre a borda do componente e o traço — nunca encostado diretamente
- * nele. Essa folga é o que resolve o único caso medido que fica abaixo de 3,0:1: o laranja
- * da marca (`FrilaCores.brandAccentDark`, #F26643) contra o preenchimento quase-branco do
- * `BotaoPrimario` no tema escuro (`#F5F4F0`, 2,82:1) — encostado, falha; com a folga, o
- * traço passa a ser medido contra o fundo da tela por trás do botão
- * (`surfaceDark`/`surfaceElevatedDark`, 6,34:1/5,49:1), que passa com folga. Nos demais casos
- * medidos (claro contra `SurfaceElevated`/fundo agrupado, escuro contra as duas superfícies)
- * o contraste já passava mesmo sem a folga; ela não piora nenhum deles.
+ * O contorno é de 2dp em TINTA, como o foco dos campos no desenho do Fabrício, e é desenhado
+ * **fora** dos limites do componente, com uma folga (`distanciaExterna`) entre a borda do componente
+ * e o traço. Assim ele é sempre medido contra o fundo da tela ou a superfície por trás (tinta contra
+ * `fundo`: 17:1 no claro e no escuro), nunca contra o preenchimento do próprio componente — nem
+ * contra o laranja do `BotaoPrimario`.
  *
- * `forma` deve espelhar a forma geométrica real do componente (cartão com raio 12dp, botão
- * com raio 12dp/pílula, chip) para o contorno acompanhar o contorno visual do componente, não
- * um retângulo genérico. Liga/desliga via `onFocusChanged`; não substitui nem interfere no
- * ripple nativo do Material 3 — os dois convivem no mesmo componente.
+ * `forma` deve espelhar a forma real do componente (cartão de raio 24, botão e chip em cápsula) para
+ * o contorno acompanhar o desenho, não um retângulo genérico. Liga/desliga via `onFocusChanged`; não
+ * substitui nem interfere no ripple nativo do Material 3 — os dois convivem no mesmo componente.
  */
 fun Modifier.focoAcessivelFrila(
     forma: Shape,
@@ -79,7 +71,7 @@ fun Modifier.focoAcessivelFrila(
     distanciaExterna: Dp = 2.dp,
 ): Modifier = composed {
     var focado by remember { mutableStateOf(false) }
-    val cor = MaterialTheme.colorScheme.brandAccent
+    val cor = FrilaTema.cores.tinta
 
     this
         .onFocusChanged { estado -> focado = estado.isFocused }

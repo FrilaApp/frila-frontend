@@ -330,7 +330,7 @@ class TelaMeusTurnosTest {
             }
             compose.waitForIdle()
 
-            compose.onNodeWithText("Fazer check-in").performClick()
+            compose.onNodeWithText("Fazer check-in").performScrollTo().performClick()
             compose.waitForIdle()
 
             // C0-7: o toque pede a permissão ao sistema uma vez; só a recusa leva ao diálogo das Configurações.
@@ -364,7 +364,7 @@ class TelaMeusTurnosTest {
             }
             compose.waitForIdle()
 
-            compose.onNodeWithText("Fazer check-in").performClick()
+            compose.onNodeWithText("Fazer check-in").performScrollTo().performClick()
             compose.waitForIdle()
 
             compose.onNodeWithText("GPS desativado").assertIsDisplayed()
@@ -406,7 +406,7 @@ class TelaMeusTurnosTest {
                 }
             }
             compose.waitForIdle()
-            compose.onNodeWithText("Fazer check-in").performClick()
+            compose.onNodeWithText("Fazer check-in").performScrollTo().performClick()
             compose.waitForIdle()
 
             compose.onNodeWithText("Continuar manual").performClick()
@@ -624,8 +624,8 @@ class TelaMeusTurnosTest {
         }
         compose.waitForIdle()
 
-        compose.onNodeWithText("Check-in verificado").assertIsDisplayed()
-        compose.onNodeWithText("Ver comprovante").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithText("Check-in verificado").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").performScrollTo().assertIsDisplayed().assertHasClickAction()
     }
 
     @Test
@@ -645,8 +645,8 @@ class TelaMeusTurnosTest {
         }
         compose.waitForIdle()
 
-        compose.onNodeWithText("Check-in manual confirmado").assertIsDisplayed()
-        compose.onNodeWithText("Ver comprovante").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithText("Check-in manual confirmado").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").performScrollTo().assertIsDisplayed().assertHasClickAction()
     }
 
     @Test
@@ -666,7 +666,7 @@ class TelaMeusTurnosTest {
         }
         compose.waitForIdle()
 
-        compose.onNodeWithText("Check-in sem verificação").assertIsDisplayed()
-        compose.onNodeWithText("Ver comprovante").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithText("Check-in sem verificação").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").performScrollTo().assertIsDisplayed().assertHasClickAction()
     }
 }

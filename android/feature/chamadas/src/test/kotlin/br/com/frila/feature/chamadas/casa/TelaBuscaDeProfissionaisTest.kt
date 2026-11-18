@@ -46,7 +46,7 @@ import org.robolectric.annotation.Config
 
 /** A tela provisória da busca: estados, seleção de até 3, chamar e o caminho do "Publicar para todos". */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h1200dp")
 class TelaBuscaDeProfissionaisTest {
 
     @get:Rule
@@ -338,7 +338,6 @@ class TelaBuscaDeProfissionaisTest {
     fun ateTresSelecionadosEOAvisoDoQuartoAparece() {
         montar(comResultados(selecionados = listOf("p1", "p2", "p3")) { it.copy(avisoDeLimiteDeSelecao = TextosChamadaCasa.BUSCA_LIMITE_DE_SELECAO) })
 
-        rolarAteTag("busca-chamar")
         rule.onNodeWithText(TextosChamadaCasa.BUSCA_LIMITE_DE_SELECAO).assertIsDisplayed()
         rule.onNodeWithText("3 selecionados de 3").assertIsDisplayed()
         rule.onNodeWithTag("busca-chamar").assertIsEnabled()
@@ -347,7 +346,6 @@ class TelaBuscaDeProfissionaisTest {
     @Test
     fun semSelecaoOBotaoDeChamarFicaDesligado() {
         montar(comResultados())
-        rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").assertIsNotEnabled()
     }
 
@@ -359,7 +357,6 @@ class TelaBuscaDeProfissionaisTest {
         assertEquals(1, chamadas.carregouMais)
 
         estado = comResultados()
-        rolarAteTag("busca-chamar")
         assertEquals(0, rule.onAllNodesWithText(TextosChamadaCasa.BUSCA_CARREGAR_MAIS).fetchSemanticsNodes().size)
     }
 
@@ -367,7 +364,6 @@ class TelaBuscaDeProfissionaisTest {
 
     private fun abrirFolha(inicial: EstadoBusca) {
         montar(inicial)
-        rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").performClick()
     }
 
@@ -433,7 +429,6 @@ class TelaBuscaDeProfissionaisTest {
 
         assertEquals(1, chamadas.confirmouJ7)
         rule.onNodeWithTag("folha-fechar").performScrollTo().performClick()
-        rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").assertExists()
         assertTrue(chamadas.confirmouJ7 == 1)
     }
@@ -467,7 +462,6 @@ class TelaBuscaDeProfissionaisTest {
             it.copy(resultadosDaChamada = mapOf("p1" to ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos(termos)), termosParaConfirmar = termos)
         })
 
-        rolarAteTag("busca-chamar")
         rule.onNodeWithTag("busca-chamar").assertIsEnabled().performClick()
         rule.onNodeWithTag("folha-termos-da-vaga").performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("folha-termos-confirmar").performScrollTo().performClick()

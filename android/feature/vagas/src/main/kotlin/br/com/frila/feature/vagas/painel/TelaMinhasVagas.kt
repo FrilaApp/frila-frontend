@@ -1,44 +1,56 @@
 package br.com.frila.feature.vagas.painel
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
 import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.EstadoVazio
-import br.com.frila.core.designsystem.componentes.IndicadorCarregando
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaDivisoria
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeDado
+import br.com.frila.core.designsystem.componentes.LinkFrila
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.feature.vagas.publicacao.formatarData
 import br.com.frila.feature.vagas.publicacao.formatarHora
 import br.com.frila.feature.vagas.publicacao.formatarReais
@@ -52,7 +64,8 @@ data class AcoesMinhasVagas(
     val aoVerCandidatos: (ItemMinhaVaga) -> Unit = {},
     val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     val aoPublicarVaga: () -> Unit = {},
-    val aoVoltar: () -> Unit = {},
+    /** Nulo é a lista como tela raiz (aba "Minhas vagas"): sem a barra do voltar, e o nome da casa abre a tela no lugar do título. */
+    val aoVoltar: (() -> Unit)? = {},
     /** As três ações da vaga (L2-3). `null` esconde o botão: a tela só oferece o que quem a abriu sabe atender. */
     val aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     val aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
@@ -69,7 +82,7 @@ data class AcoesMinhasVagas(
 @Composable
 fun TelaMinhasVagas(
     viewModel: MinhasVagasViewModel,
-    aoVoltar: () -> Unit,
+    aoVoltar: (() -> Unit)?,
     aoVerCandidatos: (vagaId: String, posicoesAbertas: Int, inicioDaVaga: Instant?) -> Unit,
     aoPublicarVaga: (estabelecimentoId: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -100,8 +113,9 @@ fun TelaMinhasVagas(
 
 /**
  * Minhas vagas do contratante (UC07; paridade com `TelaMinhasVagas` de `MinhasVagas.swift`): seções
- * Precisa de atenção, Hoje, Próximas e Encerradas, cada vaga com período, valor, posições e confirmações.
- * "Publicar vaga" fica na barra quando há vagas, e no estado vazio quando não há.
+ * Precisa de atenção, Hoje, Próximas e Encerradas, cada vaga num cartão com selos, período, local, posições,
+ * confirmações e valor. É tela de escolha: a lista não leva laranja, e o único primário é "Publicar vaga",
+ * ancorado embaixo quando há vagas e quando não há.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,37 +125,21 @@ fun ConteudoMinhasVagas(
     acoes: AcoesMinhasVagas,
     modifier: Modifier = Modifier,
 ) {
+    val cores = FrilaTema.cores
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosMinhasVagas.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
+        containerColor = cores.fundo,
+        topBar = { acoes.aoVoltar?.let { FrilaBarraDeTopo(aoVoltar = it) } },
+        bottomBar = {
+            if (estado.lista is ListaMinhasVagas.Sucesso || estado.lista == ListaMinhasVagas.Vazio) {
+                RodapeAncorado {
+                    BotaoPrimario(
+                        texto = TextosMinhasVagas.PUBLICAR_VAGA,
+                        aoClicar = acoes.aoPublicarVaga,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = acoes.aoVoltar,
-                        modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosMinhasVagas.ROTULO_VOLTAR,
-                        )
-                    }
-                },
-                actions = {
-                    if (estado.lista is ListaMinhasVagas.Sucesso) {
-                        TextButton(
-                            onClick = acoes.aoPublicarVaga,
-                            modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                        ) { Text(TextosMinhasVagas.PUBLICAR_VAGA) }
-                    }
-                },
-            )
+                }
+            }
         },
     ) { preenchimento ->
         PullToRefreshBox(
@@ -156,37 +154,33 @@ fun ConteudoMinhasVagas(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(FrilaEspacamento.medio),
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+                contentPadding = PaddingValues(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
             ) {
-                if (!nomeEstabelecimento.isNullOrBlank()) {
-                    item { Text(text = nomeEstabelecimento, style = MaterialTheme.typography.titleMedium) }
+                if (acoes.aoVoltar != null) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                            TituloDaTela(TextosMinhasVagas.TITULO)
+                            if (!nomeEstabelecimento.isNullOrBlank()) {
+                                Text(text = nomeEstabelecimento, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                            }
+                        }
+                    }
+                } else if (!nomeEstabelecimento.isNullOrBlank()) {
+                    // Raiz: a aba já diz "Minhas vagas"; o que abre a tela é de qual casa são.
+                    item { TituloDaTela(nomeEstabelecimento) }
                 }
                 if (estado.desatualizada) {
-                    item {
-                        Text(
-                            text = TextosMinhasVagas.DESATUALIZADA,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                        )
-                    }
+                    item { AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosMinhasVagas.DESATUALIZADA) }
                 }
                 when (val lista = estado.lista) {
                     ListaMinhasVagas.Carregando -> item {
-                        Box(
-                            Modifier.fillMaxWidth().padding(FrilaEspacamento.grande).semantics {
-                                contentDescription = TextosMinhasVagas.CARREGANDO
-                            },
-                            contentAlignment = Alignment.Center,
-                        ) { IndicadorCarregando() }
+                        EstadoCarregando(modifier = Modifier.semantics { contentDescription = TextosMinhasVagas.CARREGANDO })
                     }
                     ListaMinhasVagas.Vazio -> item {
                         EstadoVazio(
                             titulo = TextosMinhasVagas.VAZIA_TITULO,
                             mensagem = TextosMinhasVagas.VAZIA_MENSAGEM,
-                            textoAcao = TextosMinhasVagas.PUBLICAR_VAGA,
-                            aoClicarAcao = acoes.aoPublicarVaga,
                         )
                     }
                     is ListaMinhasVagas.Erro -> item {
@@ -201,11 +195,7 @@ fun ConteudoMinhasVagas(
                         val itens = lista.daSecao(secao)
                         if (itens.isNotEmpty()) {
                             item(key = "secao-${secao.name}") {
-                                Text(
-                                    text = secao.titulo,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(top = FrilaEspacamento.pequeno).semantics { heading() },
-                                )
+                                RotuloDeGrupo(texto = secao.titulo, modifier = Modifier.padding(top = FrilaEspacamento.bloco))
                             }
                             items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes) }
                         }
@@ -216,115 +206,136 @@ fun ConteudoMinhasVagas(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CartaoDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
+    val cores = FrilaTema.cores
     val aoVerCandidatos = acoes.aoVerCandidatos
     val aoAcompanharTurno = acoes.aoAcompanharTurno
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-            Text(text = item.funcao, style = MaterialTheme.typography.titleMedium)
-            if (item.recemPublicada) {
-                Text(
-                    text = TextosMinhasVagas.RECEM_PUBLICADA,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+    val temSelo = item.recemPublicada || item.oculta || item.selecao || item.comecaEm != null
+    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+            if (temSelo) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+                ) {
+                    item.comecaEm?.let { SeloDeStatus(texto = textoDoInicio(it), estilo = EstiloDoSelo.URGENCIA) }
+                    if (item.recemPublicada) SeloDeStatus(texto = TextosMinhasVagas.RECEM_PUBLICADA, estilo = EstiloDoSelo.CONFIRMADO)
+                    if (item.oculta) SeloDeStatus(texto = TextosMinhasVagas.OCULTA, estilo = EstiloDoSelo.ENCERRADO)
+                    if (item.selecao) SeloDeStatus(texto = TextosMinhasVagas.MODO_SELECAO, estilo = EstiloDoSelo.CONTORNO)
+                }
+            }
+            Text(text = item.funcao, style = FrilaTipo.nome, color = cores.tinta)
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                periodo(item.inicio, item.fim).takeIf { it.isNotBlank() }?.let {
+                    FrilaLinhaDeDado(icone = Icons.Default.DateRange, valor = it)
+                }
+                FrilaLinhaDeDado(icone = Icons.Default.Place, valor = item.local)
+                FrilaLinhaDeDado(
+                    icone = Icons.Default.Person,
+                    valor = "${posicoes(item.totalPosicoes)} · ${confirmadas(item.confirmadas, item.totalPosicoes)}",
                 )
+                if (item.candidatosPendentes > 0) {
+                    FrilaLinhaDeDado(
+                        icone = Icons.Default.Notifications,
+                        valor = if (item.candidatosPendentes == 1) {
+                            TextosMinhasVagas.CANDIDATO_UM
+                        } else {
+                            TextosMinhasVagas.CANDIDATOS_VARIOS.format(item.candidatosPendentes)
+                        },
+                    )
+                }
+                if (item.emAtraso > 0) {
+                    FrilaLinhaDeDado(
+                        icone = Icons.Default.Warning,
+                        valor = if (item.emAtraso == 1) {
+                            TextosMinhasVagas.EM_ATRASO_UM
+                        } else {
+                            TextosMinhasVagas.EM_ATRASO_VARIOS.format(item.emAtraso)
+                        },
+                    )
+                }
             }
-            if (item.oculta) {
-                Text(text = TextosMinhasVagas.OCULTA, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
-            }
-            Text(text = periodo(item.inicio, item.fim), style = MaterialTheme.typography.bodyMedium)
+            FrilaDivisoria()
             Text(
-                text = item.local,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = valorPorPessoa(item.valorCentavos),
+                style = FrilaTipo.valorEmDestaque,
+                color = cores.tinta,
             )
-            Text(
-                text = TextosMinhasVagas.VALOR_POR_PESSOA.format(formatarReais(item.valorCentavos)),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "${posicoes(item.totalPosicoes)} · ${confirmadas(item.confirmadas, item.totalPosicoes)}",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (item.selecao) {
-                Text(
-                    text = TextosMinhasVagas.MODO_SELECAO,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item.comecaEm?.let {
-                Text(
-                    text = textoDoInicio(it),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            if (item.candidatosPendentes > 0) {
-                Text(
-                    text = if (item.candidatosPendentes == 1) {
-                        TextosMinhasVagas.CANDIDATO_UM
-                    } else {
-                        TextosMinhasVagas.CANDIDATOS_VARIOS.format(item.candidatosPendentes)
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                )
-            }
-            if (item.emAtraso > 0) {
-                Text(
-                    text = if (item.emAtraso == 1) TextosMinhasVagas.EM_ATRASO_UM else TextosMinhasVagas.EM_ATRASO_VARIOS.format(item.emAtraso),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            item.turnos.forEach { turno ->
-                val nome = turno.nomeProfissional ?: TextosMinhasVagas.PROFISSIONAL_SEM_NOME
-                BotaoSecundario(
-                    texto = TextosMinhasVagas.ACOMPANHAR_TURNO_DE.format(nome),
-                    aoClicar = { aoAcompanharTurno(item.id, turno.posicaoId) },
-                    modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
-                )
-            }
-            if (item.podeVerCandidatos) {
-                BotaoSecundario(
-                    texto = TextosMinhasVagas.VER_CANDIDATOS,
-                    aoClicar = { aoVerCandidatos(item) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = FrilaEspacamento.pequeno)
-                        .semantics { contentDescription = TextosMinhasVagas.VER_CANDIDATOS_DE.format(item.funcao) },
-                )
+            if (item.turnos.isNotEmpty() || item.podeVerCandidatos) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    item.turnos.forEach { turno ->
+                        val nome = turno.nomeProfissional ?: TextosMinhasVagas.PROFISSIONAL_SEM_NOME
+                        BotaoSecundario(
+                            texto = TextosMinhasVagas.ACOMPANHAR_TURNO_DE.format(nome),
+                            aoClicar = { aoAcompanharTurno(item.id, turno.posicaoId) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (item.podeVerCandidatos) {
+                        BotaoSecundario(
+                            texto = TextosMinhasVagas.VER_CANDIDATOS,
+                            aoClicar = { aoVerCandidatos(item) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = TextosMinhasVagas.VER_CANDIDATOS_DE.format(item.funcao) },
+                        )
+                    }
+                }
             }
             AcoesDaVaga(item, acoes)
         }
     }
 }
 
-/** Republicar posições vazias, republicar com outro horário e cancelar: cada botão só aparece se a vaga permite e há quem atenda. */
+/**
+ * Republicar posições vazias e republicar com outro horário (links: abrem outra tela ou uma confirmação) e
+ * cancelar (ação discreta, no fim). Cada uma só aparece se a vaga permite e há quem atenda.
+ */
 @Composable
 private fun AcoesDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
-    val acima = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno)
+    val temAlguma = (acoes.aoRepublicarPosicoesRestantes != null && item.republicavelEmUrgencia > 0) ||
+        (acoes.aoRepublicarVaga != null && item.podeRepublicar) ||
+        (acoes.aoCancelarVaga != null && item.podeCancelar)
+    if (temAlguma) {
+        Column { AcoesDaVagaEmLinhas(item, acoes) }
+    }
+}
+
+@Composable
+private fun AcoesDaVagaEmLinhas(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
     acoes.aoRepublicarPosicoesRestantes?.takeIf { item.republicavelEmUrgencia > 0 }?.let { aoTocar ->
-        BotaoSecundario(
+        LinkFrila(
             texto = TextosRepublicarPosicoesRestantes.botao(item.republicavelEmUrgencia),
             aoClicar = { aoTocar(item) },
-            modifier = acima,
         )
     }
     acoes.aoRepublicarVaga?.takeIf { item.podeRepublicar }?.let { aoTocar ->
-        BotaoSecundario(
+        LinkFrila(
             texto = TextosRepublicarVaga.TITULO,
             aoClicar = { aoTocar(item) },
-            modifier = acima.semantics { contentDescription = TextosRepublicarVaga.REPUBLICAR_VAGA_DE.format(item.funcao) },
+            modifier = Modifier.semantics { contentDescription = TextosRepublicarVaga.REPUBLICAR_VAGA_DE.format(item.funcao) },
         )
     }
     acoes.aoCancelarVaga?.takeIf { item.podeCancelar }?.let { aoTocar ->
-        BotaoSecundario(
+        AcaoDiscreta(
             texto = TextosCancelarVaga.TITULO,
             aoClicar = { aoTocar(item) },
-            modifier = acima.semantics { contentDescription = TextosCancelarVaga.CANCELAR_VAGA_DE.format(item.funcao) },
+            modifier = Modifier.semantics { contentDescription = TextosCancelarVaga.CANCELAR_VAGA_DE.format(item.funcao) },
         )
+    }
+}
+
+/** "R$ 160,00 por pessoa": o dinheiro em destaque e o resto em apoio, na mesma linha. */
+@Composable
+private fun valorPorPessoa(valorCentavos: Long): AnnotatedString {
+    val reais = formatarReais(valorCentavos)
+    val frase = TextosMinhasVagas.VALOR_POR_PESSOA.format(reais)
+    val apoio = FrilaTipo.apoio.toSpanStyle().copy(fontFamily = FontFamily.Default, color = FrilaTema.cores.tintaSuave)
+    return buildAnnotatedString {
+        append(frase)
+        if (frase.startsWith(reais)) addStyle(apoio, reais.length, frase.length)
     }
 }
 

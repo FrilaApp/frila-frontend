@@ -1,38 +1,20 @@
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 package br.com.frila.feature.chamadas.casa
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,10 +25,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.ChipFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.EstadoErro
+import br.com.frila.core.designsystem.componentes.EstadoVazio
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.IndicadorCarregando
+import br.com.frila.core.designsystem.componentes.LinkFrila
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.CartaoProfissionalDto
 import java.time.Duration
 import java.time.Instant
@@ -98,11 +100,11 @@ fun TelaBuscaDeProfissionais(
 }
 
 /**
- * A busca da casa em Compose/Material3 nativo, sem estilo: filtros (serviço, região e horário opcionais), lista na
- * ordem do servidor com o selo "Disponível nesse horário", seleção de até 3 e a folha de chamar. Provisória, atrás da
- * chave `busca_profissionais`; o desenho do Fabrício substitui esta tela.
+ * A busca da casa: tela de escolha. Filtros (serviço, região e horário opcionais), lista na ordem do servidor com um
+ * cartão por pessoa e o selo "Disponível nesse horário", seleção de até 3 e a folha de chamar. Sem laranja na lista: o
+ * único primário é o "Chamar" do rodapé, que só aparece com resultados (e o "Aceitar", quando faltam os Termos). Atrás
+ * da chave `busca_profissionais`.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConteudoBuscaDeProfissionais(
     estado: EstadoBusca,
@@ -135,57 +137,70 @@ fun ConteudoBuscaDeProfissionais(
         if (estado.termosParaConfirmar != null) aoCancelarTermosDaVaga()
         folhaAberta = false
     }
+    // Busca que já teve envio (serviço e horário): "Chamar" repete o trabalho guardado, sem folha nova nem 2ª vaga.
+    // 0.2.95: com termos da vaga aberta por confirmar (o 409 chegou com a folha já fechada), o botão reabre a folha,
+    // que é onde estão o Confirmar e o Cancelar.
+    val chamar = if (estado.trabalhoEnviadoDaBusca != null && estado.termosParaConfirmar == null) aoReenviar else ({ folhaAberta = true })
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text(TextosChamadaCasa.BUSCA_TITULO, modifier = Modifier.semantics { heading() }) },
-                navigationIcon = {
-                    IconButton(onClick = if (folhaAberta) fecharFolha else aoVoltar) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = TextosChamadaCasa.VOLTAR)
-                    }
-                },
-            )
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
+        bottomBar = {
+            if (estado.estado == EstadoDaBusca.Resultados) {
+                RodapeAncorado {
+                    estado.avisoDeLimiteDeSelecao?.let { MensagemJuntoAoBotao(it, modifier = Modifier.testTag("busca-aviso-limite")) }
+                    Text(
+                        text = TextosChamadaCasa.buscaSelecionados(estado.selecionados.size),
+                        style = FrilaTipo.apoio,
+                        color = FrilaTema.cores.tintaSuave,
+                    )
+                    BotaoPrimario(
+                        texto = TextosChamadaCasa.buscaChamar(estado.selecionados.size),
+                        aoClicar = chamar,
+                        habilitado = estado.podeChamar || estado.termosParaConfirmar != null,
+                        modifier = Modifier.fillMaxWidth().testTag("busca-chamar"),
+                    )
+                }
+            }
         },
     ) { preenchimento ->
-        if (folhaAberta) {
-            FolhaDeChamadaDaBusca(
-                estado = estado,
-                relogio = relogio,
-                aoChamar = aoChamar,
-                aoReenviar = aoReenviar,
-                aoConfirmarJ7 = aoConfirmarJ7,
-                aoFechar = fecharFolha,
-                modifier = Modifier.padding(preenchimento),
-                aoConfirmarTermos = aoConfirmarTermosDaVaga,
-                aoCancelarTermos = aoCancelarTermosDaVaga,
-            )
-        } else {
-            ListaDaBusca(
-                estado = estado,
-                relogio = relogio,
-                aoEscolherFuncao = aoEscolherFuncao,
-                aoEscolherRegiao = aoEscolherRegiao,
-                aoDefinirHorario = aoDefinirHorario,
-                aoBuscar = aoBuscar,
-                aoCarregarMais = aoCarregarMais,
-                aoTentarCatalogosDeNovo = aoTentarCatalogosDeNovo,
-                aoAlternarSelecao = aoAlternarSelecao,
-                aoAbrirPerfil = aoAbrirPerfil,
-                aoPublicarParaTodos = aoPublicarParaTodos,
-                aoAbrirFolha = { folhaAberta = true },
-                aoReenviar = aoReenviar,
-                aoAbrirTermos = aoAbrirTermos,
-                aoAbrirPolitica = aoAbrirPolitica,
-                aoAceitarTermos = aoAceitarTermos,
-                carregarFoto = carregarFoto,
-                modifier = Modifier.padding(preenchimento),
-            )
-        }
+        ListaDaBusca(
+            estado = estado,
+            relogio = relogio,
+            aoEscolherFuncao = aoEscolherFuncao,
+            aoEscolherRegiao = aoEscolherRegiao,
+            aoDefinirHorario = aoDefinirHorario,
+            aoBuscar = aoBuscar,
+            aoCarregarMais = aoCarregarMais,
+            aoTentarCatalogosDeNovo = aoTentarCatalogosDeNovo,
+            aoAlternarSelecao = aoAlternarSelecao,
+            aoAbrirPerfil = aoAbrirPerfil,
+            aoPublicarParaTodos = aoPublicarParaTodos,
+            aoAbrirFolha = { folhaAberta = true },
+            aoReenviar = aoReenviar,
+            aoAbrirTermos = aoAbrirTermos,
+            aoAbrirPolitica = aoAbrirPolitica,
+            aoAceitarTermos = aoAceitarTermos,
+            carregarFoto = carregarFoto,
+            modifier = Modifier.padding(preenchimento),
+        )
+    }
+
+    if (folhaAberta) {
+        FolhaDeChamadaDaBusca(
+            estado = estado,
+            relogio = relogio,
+            aoChamar = aoChamar,
+            aoReenviar = aoReenviar,
+            aoConfirmarJ7 = aoConfirmarJ7,
+            aoFechar = fecharFolha,
+            aoConfirmarTermos = aoConfirmarTermosDaVaga,
+            aoCancelarTermos = aoCancelarTermosDaVaga,
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ListaDaBusca(
     estado: EstadoBusca,
@@ -227,204 +242,174 @@ private fun ListaDaBusca(
     val podeBuscarAgora = estado.podeBuscar && horarioLegivel && horarioNaOrdem
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("busca-lista"),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = FrilaEspacamento.grupo).testTag("busca-lista"),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
     ) {
+        item { TituloDaTela(TextosChamadaCasa.BUSCA_TITULO) }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
                 when {
-                    estado.carregandoCatalogos -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator(modifier = Modifier.padding(4.dp))
-                        Text(TextosChamadaCasa.CARREGANDO)
+                    estado.carregandoCatalogos -> Row(
+                        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IndicadorCarregando(modifier = Modifier.height(20.dp).width(20.dp))
+                        Text(TextosChamadaCasa.CARREGANDO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
                     }
                     estado.falhaDeCatalogos -> {
-                        Text(TextosChamadaCasa.BUSCA_CATALOGO_ERRO, color = MaterialTheme.colorScheme.error)
-                        OutlinedButton(onClick = aoTentarCatalogosDeNovo, modifier = Modifier.testTag("busca-catalogos-de-novo")) {
-                            Text(TextosChamadaCasa.TENTAR_NOVAMENTE)
-                        }
+                        AvisoFrila(tom = TomAviso.ERRO, mensagem = TextosChamadaCasa.BUSCA_CATALOGO_ERRO)
+                        BotaoSecundario(
+                            texto = TextosChamadaCasa.TENTAR_NOVAMENTE,
+                            aoClicar = aoTentarCatalogosDeNovo,
+                            modifier = Modifier.testTag("busca-catalogos-de-novo"),
+                        )
                     }
                 }
 
-                ExposedDropdownMenuBox(expanded = funcaoAberta, onExpandedChange = { funcaoAberta = it }) {
-                    OutlinedTextField(
-                        value = funcaoEscolhida?.nome.orEmpty(),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(TextosChamadaCasa.BUSCA_FUNCAO) },
-                        placeholder = { Text(TextosChamadaCasa.BUSCA_ESCOLHA_FUNCAO) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = funcaoAberta) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
-                            .testTag("busca-funcao"),
-                    )
-                    ExposedDropdownMenu(expanded = funcaoAberta, onDismissRequest = { funcaoAberta = false }) {
-                        estado.funcoes.forEach { funcao ->
-                            DropdownMenuItem(
-                                text = { Text(funcao.nome) },
-                                onClick = {
-                                    aoEscolherFuncao(funcao.id)
-                                    funcaoAberta = false
-                                },
-                            )
-                        }
-                    }
-                }
+                CampoDeEscolha(
+                    rotulo = TextosChamadaCasa.BUSCA_FUNCAO,
+                    valor = funcaoEscolhida?.nome,
+                    dica = TextosChamadaCasa.BUSCA_ESCOLHA_FUNCAO,
+                    aberto = funcaoAberta,
+                    aoMudarAberto = { funcaoAberta = it },
+                    opcoes = estado.funcoes.map { funcao -> OpcaoDeEscolha(funcao.nome) { aoEscolherFuncao(funcao.id) } },
+                    modifier = Modifier.testTag("busca-funcao"),
+                )
 
                 if (estado.regioes.isNotEmpty()) {
-                    ExposedDropdownMenuBox(expanded = regiaoAberta, onExpandedChange = { regiaoAberta = it }) {
-                        OutlinedTextField(
-                            value = regiaoEscolhida?.nome ?: TextosChamadaCasa.BUSCA_QUALQUER_REGIAO,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text(TextosChamadaCasa.BUSCA_REGIAO) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = regiaoAberta) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                                .testTag("busca-regiao"),
-                        )
-                        ExposedDropdownMenu(expanded = regiaoAberta, onDismissRequest = { regiaoAberta = false }) {
-                            DropdownMenuItem(
-                                text = { Text(TextosChamadaCasa.BUSCA_QUALQUER_REGIAO) },
-                                onClick = {
-                                    aoEscolherRegiao(null)
-                                    regiaoAberta = false
-                                },
-                            )
-                            estado.regioes.forEach { regiao ->
-                                DropdownMenuItem(
-                                    text = { Text(regiao.nome) },
-                                    onClick = {
-                                        aoEscolherRegiao(regiao.id)
-                                        regiaoAberta = false
-                                    },
-                                )
-                            }
-                        }
-                    }
+                    CampoDeEscolha(
+                        rotulo = TextosChamadaCasa.BUSCA_REGIAO,
+                        valor = regiaoEscolhida?.nome ?: TextosChamadaCasa.BUSCA_QUALQUER_REGIAO,
+                        dica = TextosChamadaCasa.BUSCA_QUALQUER_REGIAO,
+                        aberto = regiaoAberta,
+                        aoMudarAberto = { regiaoAberta = it },
+                        opcoes = listOf(OpcaoDeEscolha(TextosChamadaCasa.BUSCA_QUALQUER_REGIAO) { aoEscolherRegiao(null) }) +
+                            estado.regioes.map { regiao -> OpcaoDeEscolha(regiao.nome) { aoEscolherRegiao(regiao.id) } },
+                        modifier = Modifier.testTag("busca-regiao"),
+                    )
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = usarHorario,
-                        onCheckedChange = { marcado ->
-                            usarHorario = marcado
-                            if (marcado && inicioTexto.isEmpty()) {
-                                val comeco = relogio().plus(Duration.ofHours(24))
-                                inicioTexto = dataEHora(comeco)
-                                fimTexto = dataEHora(comeco.plus(Duration.ofHours(4)))
-                            }
-                        },
-                        modifier = Modifier.testTag("busca-usar-horario"),
-                    )
-                    Text(TextosChamadaCasa.BUSCA_FILTRAR_HORARIO)
-                }
+                ChipFrila(
+                    texto = TextosChamadaCasa.BUSCA_FILTRAR_HORARIO,
+                    selecionado = usarHorario,
+                    aoClicar = {
+                        usarHorario = !usarHorario
+                        if (usarHorario && inicioTexto.isEmpty()) {
+                            val comeco = relogio().plus(Duration.ofHours(24))
+                            inicioTexto = dataEHora(comeco)
+                            fimTexto = dataEHora(comeco.plus(Duration.ofHours(4)))
+                        }
+                    },
+                    modifier = Modifier.testTag("busca-usar-horario"),
+                )
                 if (usarHorario) {
-                    OutlinedTextField(
-                        value = inicioTexto,
-                        onValueChange = { inicioTexto = it },
-                        label = { Text(TextosChamadaCasa.BUSCA_INICIO) },
-                        isError = inicio == null,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("busca-inicio"),
+                    CampoDeTexto(
+                        valor = inicioTexto,
+                        aoMudar = { inicioTexto = it },
+                        rotulo = TextosChamadaCasa.BUSCA_INICIO,
+                        erro = if (inicio == null) TextosChamadaCasa.BUSCA_DATA_INVALIDA else null,
+                        modifier = Modifier.testTag("busca-inicio"),
                     )
-                    OutlinedTextField(
-                        value = fimTexto,
-                        onValueChange = { fimTexto = it },
-                        label = { Text(TextosChamadaCasa.BUSCA_TERMINO) },
-                        isError = fim == null,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("busca-fim"),
+                    CampoDeTexto(
+                        valor = fimTexto,
+                        aoMudar = { fimTexto = it },
+                        rotulo = TextosChamadaCasa.BUSCA_TERMINO,
+                        erro = when {
+                            inicio == null -> null
+                            fim == null -> TextosChamadaCasa.BUSCA_DATA_INVALIDA
+                            !horarioNaOrdem -> TextosChamadaCasa.BUSCA_HORARIO_INVALIDO
+                            else -> null
+                        },
+                        modifier = Modifier.testTag("busca-fim"),
                     )
-                    when {
-                        !horarioLegivel -> Text(TextosChamadaCasa.BUSCA_DATA_INVALIDA, color = MaterialTheme.colorScheme.error)
-                        !horarioNaOrdem -> Text(TextosChamadaCasa.BUSCA_HORARIO_INVALIDO, color = MaterialTheme.colorScheme.error)
-                    }
                 }
 
                 if (estado.temEnvioPendente) {
-                    Text(
-                        TextosChamadaCasa.BUSCA_ENVIO_PENDENTE,
-                        color = MaterialTheme.colorScheme.error,
+                    AvisoFrila(
+                        tom = TomAviso.ALERTA,
+                        mensagem = TextosChamadaCasa.BUSCA_ENVIO_PENDENTE,
                         modifier = Modifier.testTag("busca-envio-pendente"),
                     )
                 }
-                Button(
-                    onClick = aoBuscar,
-                    enabled = podeBuscarAgora,
+                BotaoSecundario(
+                    texto = TextosChamadaCasa.BUSCA_BUSCAR,
+                    aoClicar = aoBuscar,
+                    habilitado = podeBuscarAgora,
                     modifier = Modifier.fillMaxWidth().testTag("busca-buscar"),
-                ) { Text(TextosChamadaCasa.BUSCA_BUSCAR) }
-                HorizontalDivider()
+                )
             }
         }
 
         if (estado.temEnvioPendente && estado.estado != EstadoDaBusca.Resultados) {
             // Lista em erro, indisponível ou 429 com envio pendente: o reenvio continua ao alcance (não depende da lista).
             item {
-                Button(
-                    onClick = aoAbrirFolha,
-                    enabled = estado.podeChamar,
+                BotaoSecundario(
+                    texto = TextosChamadaCasa.BUSCA_VER_ENVIO_PENDENTE,
+                    aoClicar = aoAbrirFolha,
+                    habilitado = estado.podeChamar,
                     modifier = Modifier.fillMaxWidth().testTag("busca-ver-envio-pendente"),
-                ) { Text(TextosChamadaCasa.BUSCA_VER_ENVIO_PENDENTE) }
+                )
             }
         }
 
         when (val situacao = estado.estado) {
             EstadoDaBusca.Ocioso -> Unit
-            EstadoDaBusca.Carregando -> item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CircularProgressIndicator(modifier = Modifier.padding(4.dp))
-                    Text(TextosChamadaCasa.CARREGANDO)
-                }
-            }
+            EstadoDaBusca.Carregando -> item { EstadoCarregando(mensagem = TextosChamadaCasa.CARREGANDO) }
             EstadoDaBusca.Indisponivel -> item {
-                Text(TextosChamadaCasa.BUSCA_INDISPONIVEL, modifier = Modifier.testTag("busca-indisponivel"))
+                EstadoVazio(titulo = TextosChamadaCasa.BUSCA_INDISPONIVEL, modifier = Modifier.testTag("busca-indisponivel"))
             }
             is EstadoDaBusca.TermosPendentes -> item {
-                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício. A busca só volta depois do aceite.
+                // O aceite vem antes da primeira busca: a busca só volta depois dele.
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
                     modifier = Modifier.testTag("busca-termos-pendentes"),
                 ) {
-                    Text(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO)
-                    OutlinedButton(onClick = aoAbrirTermos, modifier = Modifier.testTag("busca-termos-ler")) {
-                        Text(TextosChamadaCasa.BUSCA_TERMOS_LER)
-                    }
-                    OutlinedButton(onClick = aoAbrirPolitica, modifier = Modifier.testTag("busca-termos-politica")) {
-                        Text(TextosChamadaCasa.BUSCA_TERMOS_POLITICA)
-                    }
-                    situacao.erro?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-termos-erro"))
+                    Text(TextosChamadaCasa.BUSCA_TERMOS_EXPLICACAO, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
+                    Column {
+                        LinkFrila(
+                            texto = TextosChamadaCasa.BUSCA_TERMOS_LER,
+                            aoClicar = aoAbrirTermos,
+                            modifier = Modifier.testTag("busca-termos-ler"),
+                        )
+                        LinkFrila(
+                            texto = TextosChamadaCasa.BUSCA_TERMOS_POLITICA,
+                            aoClicar = aoAbrirPolitica,
+                            modifier = Modifier.testTag("busca-termos-politica"),
+                        )
                     }
                     if (situacao.aceitando) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CircularProgressIndicator(modifier = Modifier.padding(4.dp))
-                            Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO)
-                        }
+                        Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITANDO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
                     }
-                    Button(
-                        onClick = aoAceitarTermos,
-                        enabled = !situacao.aceitando,
+                    situacao.erro?.let { MensagemJuntoAoBotao(it, modifier = Modifier.testTag("busca-termos-erro")) }
+                    BotaoPrimario(
+                        texto = TextosChamadaCasa.BUSCA_TERMOS_ACEITAR,
+                        aoClicar = aoAceitarTermos,
+                        habilitado = !situacao.aceitando,
                         modifier = Modifier.fillMaxWidth().testTag("busca-termos-aceitar"),
-                    ) { Text(TextosChamadaCasa.BUSCA_TERMOS_ACEITAR) }
+                    )
                 }
             }
             is EstadoDaBusca.Erro -> item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(situacao.mensagem, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-erro"))
-                    OutlinedButton(onClick = aoBuscar, enabled = podeBuscarAgora) { Text(TextosChamadaCasa.TENTAR_NOVAMENTE) }
-                }
+                EstadoErro(
+                    titulo = situacao.mensagem,
+                    mensagem = null,
+                    aoTentarNovamente = if (podeBuscarAgora) aoBuscar else null,
+                    modifier = Modifier.testTag("busca-erro"),
+                )
             }
             EstadoDaBusca.Vazio -> item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(TextosChamadaCasa.BUSCA_VAZIO, modifier = Modifier.testTag("busca-vazio"))
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    EstadoVazio(
+                        titulo = TextosChamadaCasa.BUSCA_VAZIO,
+                        mensagem = estado.rascunhoParaPublicarParaTodos?.let { TextosChamadaCasa.PUBLICAR_PARA_TODOS_EXPLICACAO },
+                        modifier = Modifier.testTag("busca-vazio"),
+                    )
                     estado.rascunhoParaPublicarParaTodos?.let { rascunho ->
-                        Text(TextosChamadaCasa.PUBLICAR_PARA_TODOS_EXPLICACAO)
-                        Button(
-                            onClick = { aoPublicarParaTodos(rascunho) },
-                            modifier = Modifier.fillMaxWidth().testTag("busca-publicar-para-todos"),
-                        ) { Text(TextosChamadaCasa.PUBLICAR_PARA_TODOS) }
+                        BotaoSecundario(
+                            texto = TextosChamadaCasa.PUBLICAR_PARA_TODOS,
+                            aoClicar = { aoPublicarParaTodos(rascunho) },
+                            modifier = Modifier.testTag("busca-publicar-para-todos"),
+                        )
                     }
                 }
             }
@@ -440,27 +425,17 @@ private fun ListaDaBusca(
                     )
                 }
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        estado.erroAoCarregarMais?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+                        estado.erroAoCarregarMais?.let { AvisoFrila(tom = TomAviso.ERRO, mensagem = it) }
                         if (estado.temMais) {
-                            OutlinedButton(
-                                onClick = aoCarregarMais,
-                                enabled = !estado.carregandoMais,
+                            BotaoSecundario(
+                                texto = if (estado.carregandoMais) TextosChamadaCasa.CARREGANDO else TextosChamadaCasa.BUSCA_CARREGAR_MAIS,
+                                aoClicar = aoCarregarMais,
+                                habilitado = !estado.carregandoMais,
                                 modifier = Modifier.fillMaxWidth().testTag("busca-carregar-mais"),
-                            ) { Text(if (estado.carregandoMais) TextosChamadaCasa.CARREGANDO else TextosChamadaCasa.BUSCA_CARREGAR_MAIS) }
+                            )
                         }
-                        estado.avisoDeLimiteDeSelecao?.let {
-                            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("busca-aviso-limite"))
-                        }
-                        Text(TextosChamadaCasa.buscaSelecionados(estado.selecionados.size))
-                        // 0.2.95: com termos da vaga aberta por confirmar (o 409 chegou com a folha já fechada), o botão
-                        // reabre a folha, que é onde estão o Confirmar e o Cancelar.
-                        // Busca que já teve envio (serviço e horário): "Chamar" repete o trabalho guardado, sem folha nova nem 2ª vaga.
-                        Button(
-                            onClick = if (estado.trabalhoEnviadoDaBusca != null && estado.termosParaConfirmar == null) aoReenviar else aoAbrirFolha,
-                            enabled = estado.podeChamar || estado.termosParaConfirmar != null,
-                            modifier = Modifier.fillMaxWidth().testTag("busca-chamar"),
-                        ) { Text(TextosChamadaCasa.buscaChamar(estado.selecionados.size)) }
+                        Spacer(Modifier.height(FrilaEspacamento.grupo))
                     }
                 }
             }
@@ -468,6 +443,7 @@ private fun ListaDaBusca(
     }
 }
 
+/** Uma pessoa na lista: foto, nome, serviço, região, reputação (fato escrito) e o selo de disponibilidade. Sem laranja. */
 @Composable
 private fun CartaoDoProfissional(
     cartao: CartaoProfissionalDto,
@@ -477,224 +453,45 @@ private fun CartaoDoProfissional(
     aoAbrirPerfil: () -> Unit,
     carregarFoto: CarregadorDeFoto,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().testTag("busca-cartao-${cartao.id}"),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Checkbox(
-            checked = selecionado,
-            onCheckedChange = { aoAlternarSelecao() },
-            enabled = !travado,
-            modifier = Modifier.testTag("busca-selecionar-${cartao.id}"),
-        )
-        FotoDoCartao(id = cartao.id, nome = cartao.nome, fotoUrl = cartao.fotoUrl, carregar = carregarFoto)
-        Spacer(Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f).clickable(onClick = aoAbrirPerfil).padding(vertical = 8.dp)) {
-            Text(cartao.nome, style = MaterialTheme.typography.titleMedium)
-            Text("${cartao.servico.funcao.nome}: ${resumoDoServico(cartao.servico).orEmpty()}")
-            Text(
-                if (cartao.atendeTodoDf) TextosChamadaCasa.TODO_O_DF else cartao.regioes.joinToString(", ") { it.nome },
-            )
-            Text(TextosChamadaCasa.reputacao(cartao.reputacao.positivas, cartao.reputacao.total))
-            if (cartao.disponivelNoHorario == true) {
-                Text(TextosChamadaCasa.BUSCA_DISPONIVEL, color = MaterialTheme.colorScheme.primary)
-            }
-        }
-    }
-}
-
-/**
- * A folha de chamar os selecionados: valor total com confirmação, horário, responsável e recado, uma vez para
- * todos. Depois do envio mostra o resultado de cada pessoa (enviada, aviso J7 para confirmar ou erro).
- */
-@Composable
-private fun FolhaDeChamadaDaBusca(
-    estado: EstadoBusca,
-    relogio: () -> Instant,
-    aoChamar: (TrabalhoDaChamada, String?) -> Unit,
-    aoReenviar: () -> Unit,
-    aoConfirmarJ7: () -> Unit,
-    aoFechar: () -> Unit,
-    modifier: Modifier = Modifier,
-    aoConfirmarTermos: () -> Unit = {},
-    aoCancelarTermos: () -> Unit = {},
-) {
-    val horarioDoFiltro = estado.horario
-    val comeco = horarioDoFiltro?.inicio ?: relogio().plus(Duration.ofHours(24))
-    val termino = horarioDoFiltro?.fim ?: comeco.plus(Duration.ofHours(4))
-    var valor by rememberSaveable { mutableStateOf("") }
-    var totalConfirmado by rememberSaveable { mutableStateOf(false) }
-    var inicioTexto by rememberSaveable { mutableStateOf(dataEHora(comeco)) }
-    var fimTexto by rememberSaveable { mutableStateOf(dataEHora(termino)) }
-    var responsavel by rememberSaveable { mutableStateOf(estado.casa?.nome.orEmpty()) }
-    var recado by rememberSaveable { mutableStateOf("") }
-    var faltando by rememberSaveable { mutableStateOf<String?>(null) }
-    val travada = estado.enviando || estado.resultadosDaChamada.isNotEmpty()
-
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            TextosChamadaCasa.BUSCA_FOLHA_TITULO,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
-        if (estado.casa == null) {
-            Text(TextosChamadaCasa.BUSCA_SEM_CASA, color = MaterialTheme.colorScheme.error)
-        }
-        OutlinedTextField(
-            value = valor,
-            onValueChange = { valor = ValorEmReais.digitado(it, anterior = valor); totalConfirmado = false },
-            enabled = !travada,
-            label = { Text("${TextosChamadaCasa.VALOR_TOTAL} (${TextosChamadaCasa.MOEDA})") },
-            placeholder = { Text(TextosChamadaCasa.VALOR_EXEMPLO) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("folha-valor"),
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = totalConfirmado,
-                onCheckedChange = { totalConfirmado = it },
-                enabled = !travada,
-                modifier = Modifier.testTag("folha-confirmar-total"),
-            )
-            Text(TextosChamadaCasa.CONFIRMAR_TOTAL, modifier = Modifier.weight(1f))
-        }
-        OutlinedTextField(
-            value = inicioTexto,
-            onValueChange = { inicioTexto = it },
-            enabled = !travada,
-            label = { Text(TextosChamadaCasa.BUSCA_INICIO) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("folha-inicio"),
-        )
-        OutlinedTextField(
-            value = fimTexto,
-            onValueChange = { fimTexto = it },
-            enabled = !travada,
-            label = { Text(TextosChamadaCasa.BUSCA_TERMINO) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("folha-fim"),
-        )
-        OutlinedTextField(
-            value = responsavel,
-            onValueChange = { responsavel = it },
-            enabled = !travada,
-            label = { Text(TextosChamadaCasa.RESPONSAVEL) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("folha-responsavel"),
-        )
-        OutlinedTextField(
-            value = recado,
-            onValueChange = { recado = it },
-            enabled = !travada,
-            label = { Text(TextosChamadaCasa.RECADO) },
-            modifier = Modifier.fillMaxWidth().testTag("folha-recado"),
-        )
-        faltando?.let { motivo ->
-            if (!travada) { Text(motivo, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("folha-falta")) }
-        }
-        if (!travada) {
-            Button(
-                onClick = {
-                    val resultado = validarFolhaDaBusca(
-                        funcaoId = estado.filtroDaBusca?.funcaoId,
-                        casa = estado.casa,
-                        valorTexto = valor,
-                        totalConfirmado = totalConfirmado,
-                        inicioTexto = inicioTexto,
-                        fimTexto = fimTexto,
-                        responsavel = responsavel,
-                        recado = recado,
-                        agora = relogio(),
-                    )
-                    when (resultado) {
-                        is ResultadoDaFolha.Falta -> faltando = resultado.motivo
-                        is ResultadoDaFolha.Pronto -> {
-                            faltando = null
-                            aoChamar(resultado.trabalho, resultado.recado)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().testTag("folha-enviar"),
-            ) { Text(TextosChamadaCasa.BUSCA_FOLHA_ENVIAR) }
-        }
-        if (estado.enviando) {
-            Text(TextosChamadaCasa.CARREGANDO)
-        }
-        if (estado.resultadosDaChamada.isNotEmpty()) {
-            Text(TextosChamadaCasa.RESUMO_DA_CHAMADA, style = MaterialTheme.typography.titleMedium)
-            estado.selecionados.forEach { id ->
-                val nome = estado.resultados.firstOrNull { it.id == id }?.nome ?: id
-                val texto = when (val resultado = estado.resultadosDaChamada[id]) {
-                    is ResultadoDaChamadaDaBusca.Enviada -> TextosChamadaCasa.BUSCA_RESULTADO_ENVIADA
-                    ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia -> TextosChamadaCasa.BUSCA_RESULTADO_J7
-                    ResultadoDaChamadaDaBusca.NaoEnviada -> TextosChamadaCasa.BUSCA_RESULTADO_NAO_ENVIADA
-                    is ResultadoDaChamadaDaBusca.Erro -> resultado.mensagem
-                    is ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos ->
-                        TextosChamadaCasa.buscaTermosDaVagaAberta(linhaDosTermos(resultado.termos))
-                    null -> TextosChamadaCasa.CARREGANDO
-                }
-                Text("$nome: $texto", modifier = Modifier.testTag("folha-resultado-$id"))
-            }
-        }
-        if (estado.podeReenviar) {
-            // Mesmo trabalho e mesma chave: os campos seguem travados para o servidor devolver a chamada já criada.
-            Button(
-                onClick = aoReenviar,
-                modifier = Modifier.fillMaxWidth().testTag("folha-reenviar"),
-            ) { Text(TextosChamadaCasa.BUSCA_REENVIAR) }
-        }
-        if (estado.mostrarJ7) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(TextosChamadaCasa.J7_TITULO, style = MaterialTheme.typography.titleMedium)
-                Text(TextosChamadaCasa.J7_MENSAGEM)
-                // Com envio incerto pendente a vaga pode já existir: confirmar agora poderia criar outra.
-                if (estado.podeReenviar) Text(TextosChamadaCasa.BUSCA_CONFIRMAR_DEPOIS, color = MaterialTheme.colorScheme.error)
-                Button(
-                    onClick = aoConfirmarJ7,
-                    // Com termos da vaga aberta por confirmar, eles vêm primeiro (o J7 não mandaria nada).
-                    enabled = !estado.enviando && !estado.podeReenviar && estado.termosParaConfirmar == null,
-                    modifier = Modifier.fillMaxWidth().testTag("folha-confirmar-j7"),
-                ) { Text(TextosChamadaCasa.J7_CONFIRMAR) }
-            }
-        }
-        estado.termosParaConfirmar?.let { termos ->
-            // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício. 0.2.95: a vaga já aberta do trabalho tem outros
-            // termos; nada sai antes de Confirmar, e Cancelar não manda nada.
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("busca-cartao-${cartao.id}")) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        ) {
+            FotoDoCartao(id = cartao.id, nome = cartao.nome, fotoUrl = cartao.fotoUrl, carregar = carregarFoto)
+            Column(
+                modifier = Modifier.weight(1f).clickable(onClick = aoAbrirPerfil).padding(vertical = FrilaEspacamento.item),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto),
+            ) {
+                Text(cartao.nome, style = FrilaTipo.nome, color = FrilaTema.cores.tinta)
                 Text(
-                    TextosChamadaCasa.buscaTermosDaVagaAberta(linhaDosTermos(termos)),
-                    modifier = Modifier.testTag("folha-termos-da-vaga"),
+                    "${cartao.servico.funcao.nome}: ${resumoDoServico(cartao.servico).orEmpty()}",
+                    style = FrilaTipo.corpo,
+                    color = FrilaTema.cores.tinta,
                 )
-                Button(
-                    onClick = aoConfirmarTermos,
-                    enabled = !estado.enviando,
-                    modifier = Modifier.fillMaxWidth().testTag("folha-termos-confirmar"),
-                ) { Text(TextosChamadaCasa.BUSCA_TERMOS_DA_VAGA_CONFIRMAR) }
-                OutlinedButton(
-                    onClick = aoCancelarTermos,
-                    modifier = Modifier.fillMaxWidth().testTag("folha-termos-cancelar"),
-                ) { Text(TextosChamadaCasa.CANCELAR) }
+                Text(
+                    if (cartao.atendeTodoDf) TextosChamadaCasa.TODO_O_DF else cartao.regioes.joinToString(", ") { it.nome },
+                    style = FrilaTipo.apoio,
+                    color = FrilaTema.cores.tintaSuave,
+                )
+                Text(
+                    TextosChamadaCasa.reputacao(cartao.reputacao.positivas, cartao.reputacao.total),
+                    style = FrilaTipo.apoio,
+                    color = FrilaTema.cores.tintaSuave,
+                )
+                if (cartao.disponivelNoHorario == true) {
+                    SeloDeStatus(texto = TextosChamadaCasa.BUSCA_DISPONIVEL, estilo = EstiloDoSelo.CONTORNO)
+                }
             }
+            Checkbox(
+                checked = selecionado,
+                onCheckedChange = { aoAlternarSelecao() },
+                enabled = !travado,
+                modifier = Modifier
+                    .testTag("busca-selecionar-${cartao.id}")
+                    .semantics { contentDescription = TextosChamadaCasa.buscaSelecionar(cartao.nome) },
+            )
         }
-        OutlinedButton(
-            onClick = aoFechar,
-            modifier = Modifier.fillMaxWidth().testTag("folha-fechar"),
-        ) { Text(if (travada) TextosChamadaCasa.FECHAR else TextosChamadaCasa.CANCELAR) }
     }
-}
-
-/** "R$ 150,00, Refeição inclusa, sem transporte" (e ", Exige material próprio" quando a vaga exige), como no iOS. */
-internal fun linhaDosTermos(termos: TermosDaVagaAberta): String {
-    val refeicaoETransporte = when {
-        termos.incluiRefeicao && termos.incluiTransporte -> TextosChamadaCasa.REFEICAO_E_TRANSPORTE_INCLUSOS
-        termos.incluiRefeicao -> TextosChamadaCasa.REFEICAO_INCLUSA_SEM_TRANSPORTE
-        termos.incluiTransporte -> TextosChamadaCasa.SEM_REFEICAO_TRANSPORTE_INCLUSO
-        else -> TextosChamadaCasa.SEM_REFEICAO_NEM_TRANSPORTE
-    }
-    val material = TextosChamadaCasa.EXIGE_MATERIAL_PROPRIO.takeIf { termos.exigeMaterialProprio }
-    return listOfNotNull(dinheiro(termos.valorCentavos), refeicaoETransporte, material).joinToString(", ")
 }

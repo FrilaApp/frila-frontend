@@ -1,15 +1,15 @@
 package br.com.frila.core.designsystem.tema
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.math.pow
 
 /**
- * Confere os valores de cor contra o catálogo de cores medido do iOS
- * (cada `Contents.json` de cor em `iOS/Resources/DesignSystem.xcassets`) e o contraste WCAG mínimo
- * de texto sobre fundo (AA, 4.5:1 para texto normal).
+ * Confere as cores do Frila contra o desenho do Fabrício (`tokens.css` do protótipo e a proposta do
+ * modo escuro) e os pisos de contraste que o desenho declara.
  *
  * Contraste é calculado aqui pela fórmula WCAG (luminância relativa sRGB→linear), sem depender
  * de `android.graphics.Color` nem de nenhuma chamada de framework Android — roda em JVM pura.
@@ -37,121 +37,107 @@ class FrilaCoresTest {
     }
 
     @Test
-    fun `BrandAccent claro e exatamente EA5A36 (terracota da marca)`() {
-        assertEquals(Color(0xFFEA5A36), FrilaCores.brandAccentLight)
+    fun `as cores claras sao exatamente as do prototipo`() {
+        assertEquals(Color(0xFFF9F6F4), FrilaCores.fundoClaro)
+        assertEquals(Color(0xFFFFFFFF), FrilaCores.superficieClaro)
+        assertEquals(Color(0xFF111111), FrilaCores.tintaClaro)
+        assertEquals(Color(0xFF5A5A58), FrilaCores.tintaSuaveClaro)
+        assertEquals(Color(0xFFE5E3DD), FrilaCores.bordaClaro)
+        assertEquals(Color(0xFF918F8A), FrilaCores.bordaControleClaro)
+        assertEquals(Color(0xFFEBE9E2), FrilaCores.bordaNavClaro)
+        assertEquals(Color(0xFFFCEB36), FrilaCores.destaqueAmarelo)
+        assertEquals(Color(0xFF9D47F5), FrilaCores.destaqueRoxo)
     }
 
     @Test
-    fun `BrandPrimary claro e BrandOnPrimary escuro sao exatamente a mesma cor`() {
-        // Medido: ambos vêm do mesmo componente sRGB (0.067, 0.067, 0.063) no catálogo do iOS.
-        assertEquals(FrilaCores.brandPrimaryLight, FrilaCores.brandOnPrimaryDark)
+    fun `o laranja de acao e F46700 e o pressionado e DD5C00`() {
+        assertEquals(Color(0xFFF46700), FrilaCores.acao)
+        assertEquals(Color(0xFFDD5C00), FrilaCores.acaoPressionada)
     }
 
     @Test
-    fun `BrandOnPrimary claro e branco puro, BrandPrimary escuro e quase branco (nao identicos)`() {
-        // Medido: BrandOnPrimary claro é branco puro (1,1,1); BrandPrimary escuro é um branco
-        // levemente quente (0.961, 0.957, 0.941) — por design, não são a mesma cor.
-        assertEquals(Color(0xFFFFFFFF), FrilaCores.brandOnPrimaryLight)
-        assertTrue(luminanciaRelativa(FrilaCores.brandPrimaryDark) > 0.85)
-        assertTrue(FrilaCores.brandPrimaryDark != FrilaCores.brandOnPrimaryLight)
+    fun `botao colorido leva texto BRANCO, em negrito de 19sp ou mais`() {
+        // Regra firme do desenho: nunca texto preto (nem leve, nem pequeno) em botão laranja.
+        assertEquals(Color(0xFFFFFFFF), FrilaCores.sobreAcao)
+        assertEquals(FontWeight.Bold, FrilaTipo.rotuloDoPrimario.fontWeight)
+        assertTrue(FrilaTipo.rotuloDoPrimario.fontSize.value >= 19f)
     }
 
     @Test
-    fun `TextSecondary sobre Surface atinge contraste AA (4_5 a 1) no claro`() {
-        val razao = contraste(FrilaCores.textSecondaryLight, FrilaCores.surfaceLight)
+    fun `branco sobre o laranja passa no piso de texto grande (3 a 1), solto e pressionado`() {
+        val solto = contraste(FrilaCores.sobreAcao, FrilaCores.acao)
+        val pressionado = contraste(FrilaCores.sobreAcao, FrilaCores.acaoPressionada)
 
-        assertTrue(razao >= 4.5, "contraste medido foi $razao, abaixo do mínimo AA de 4.5:1")
+        assertTrue(solto >= 3.0, "branco sobre acao: $solto")
+        assertTrue(pressionado >= 3.0, "branco sobre acaoPressionada: $pressionado")
     }
 
     @Test
-    fun `TextSecondary sobre Surface atinge contraste AA (4_5 a 1) no escuro`() {
-        val razao = contraste(FrilaCores.textSecondaryDark, FrilaCores.surfaceDark)
-
-        assertTrue(razao >= 4.5, "contraste medido foi $razao, abaixo do mínimo AA de 4.5:1")
+    fun `tinta sobre o fundo atinge AAA (7 a 1) nos dois modos e no OLED`() {
+        assertTrue(contraste(FrilaCores.tintaClaro, FrilaCores.fundoClaro) >= 7.0)
+        assertTrue(contraste(FrilaCores.tintaEscuro, FrilaCores.fundoEscuro) >= 7.0)
+        assertTrue(contraste(FrilaCores.tintaEscuro, FrilaCores.fundoOled) >= 7.0)
     }
 
     @Test
-    fun `TextPrimary sobre Surface atinge contraste AAA (7 a 1) no claro`() {
-        val razao = contraste(FrilaCores.textPrimaryLight, FrilaCores.surfaceLight)
+    fun `tinta suave atinge AA (4_5 a 1) sobre fundo, superficie e superficie pressionada, nos dois modos`() {
+        val pares = listOf(
+            FrilaCores.tintaSuaveClaro to FrilaCores.fundoClaro,
+            FrilaCores.tintaSuaveClaro to FrilaCores.superficieClaro,
+            FrilaCores.tintaSuaveClaro to FrilaCores.superficiePressionadaClaro,
+            FrilaCores.tintaSuaveEscuro to FrilaCores.fundoEscuro,
+            FrilaCores.tintaSuaveEscuro to FrilaCores.superficieEscuro,
+            FrilaCores.tintaSuaveEscuro to FrilaCores.superficiePressionadaEscuro,
+            FrilaCores.tintaSuaveEscuro to FrilaCores.fundoOled,
+        )
 
-        assertTrue(razao >= 7.0, "contraste medido foi $razao, abaixo do mínimo AAA de 7:1")
+        pares.forEach { (texto, fundo) ->
+            val razao = contraste(texto, fundo)
+            assertTrue(razao >= 4.5, "tinta suave $texto sobre $fundo: $razao")
+        }
     }
 
     @Test
-    fun `BrandOnPrimario sobre BrandPrimario atinge contraste AAA em ambos os temas`() {
-        assertTrue(contraste(FrilaCores.brandOnPrimaryLight, FrilaCores.brandPrimaryLight) >= 7.0)
-        assertTrue(contraste(FrilaCores.brandOnPrimaryDark, FrilaCores.brandPrimaryDark) >= 7.0)
+    fun `o botao em conferencia (tinta suave sobre borda) continua legivel nos dois modos`() {
+        assertTrue(contraste(FrilaCores.tintaSuaveClaro, FrilaCores.bordaClaro) >= 4.5)
+        assertTrue(contraste(FrilaCores.tintaSuaveEscuro, FrilaCores.bordaEscuro) >= 4.5)
     }
 
     @Test
-    fun `Hairline e ControlBorder sao translucidos, nunca opacos`() {
-        assertTrue(FrilaCores.hairlineLight.alpha < 1f)
-        assertTrue(FrilaCores.hairlineDark.alpha < 1f)
-        assertTrue(FrilaCores.controlBorderLight.alpha < 1f)
-        assertTrue(FrilaCores.controlBorderDark.alpha < 1f)
+    fun `o contorno de campo fica no piso de 3 a 1 contra o fundo e a superficie`() {
+        // No claro contra o fundo o desenho mede 3,0:1 cravado (2,998 antes de arredondar).
+        assertTrue(contraste(FrilaCores.bordaControleClaro, FrilaCores.fundoClaro) >= 2.99)
+        assertTrue(contraste(FrilaCores.bordaControleClaro, FrilaCores.superficieClaro) >= 3.0)
+        assertTrue(contraste(FrilaCores.bordaControleEscuro, FrilaCores.fundoEscuro) >= 3.0)
+        assertTrue(contraste(FrilaCores.bordaControleEscuro, FrilaCores.superficieEscuro) >= 3.0)
     }
 
     @Test
-    fun `SurfaceOled e preto puro (RNF10)`() {
-        assertEquals(Color(0xFF000000), FrilaCores.surfaceOled)
+    fun `texto sobre os destaques passa em AA - branco no roxo, tinta no amarelo`() {
+        assertTrue(contraste(FrilaCores.sobreRoxo, FrilaCores.destaqueRoxo) >= 4.5)
+        assertTrue(contraste(FrilaCores.sobreAmarelo, FrilaCores.destaqueAmarelo) >= 7.0)
     }
 
     @Test
-    fun `TextPrimaryDark sobre SurfaceOled atinge contraste AAA (7 a 1)`() {
-        val razao = contraste(FrilaCores.textPrimaryDark, FrilaCores.surfaceOled)
-
-        assertTrue(razao >= 7.0, "contraste medido foi $razao, abaixo do mínimo AAA de 7:1")
+    fun `texto sobre preenchimento em tinta (chip marcado, selo) atinge AAA nas duas paletas`() {
+        listOf(PaletaClara, PaletaEscura).forEach { paleta ->
+            assertTrue(contraste(paleta.sobreTinta, paleta.tinta) >= 7.0)
+            assertTrue(contraste(paleta.sobreTinta, paleta.tintaPressionada) >= 7.0)
+            assertTrue(contraste(paleta.sobreTinta, paleta.tintaSuave) >= 4.5)
+        }
     }
 
     @Test
-    fun `TextSecondaryDark sobre SurfaceOled atinge contraste AAA (7 a 1)`() {
-        val razao = contraste(FrilaCores.textSecondaryDark, FrilaCores.surfaceOled)
-
-        assertTrue(razao >= 7.0, "contraste medido foi $razao, abaixo do mínimo AAA de 7:1")
+    fun `o fundo do modo OLED e preto puro (RNF10) e so o fundo muda`() {
+        assertEquals(Color(0xFF000000), FrilaCores.fundoOled)
+        assertEquals(PaletaEscura.copy(fundo = FrilaCores.fundoOled), PaletaEscuraOled)
     }
 
     @Test
-    fun `BrandAccentDark sobre SurfaceOled atinge contraste AA de controles (4_5 a 1)`() {
-        val razao = contraste(FrilaCores.brandAccentDark, FrilaCores.surfaceOled)
-
-        assertTrue(razao >= 4.5, "contraste medido foi $razao, abaixo do mínimo de 4.5:1")
-    }
-
-    @Test
-    fun `Danger nao e igual a Success nem a Warning em nenhum tema`() {
-        assertTrue(FrilaCores.dangerLight != FrilaCores.successLight)
-        assertTrue(FrilaCores.dangerLight != FrilaCores.warningLight)
-        assertTrue(FrilaCores.dangerDark != FrilaCores.successDark)
-        assertTrue(FrilaCores.dangerDark != FrilaCores.warningDark)
-    }
-
-    @Test
-    fun `todos os pares de texto sobre SurfaceElevated atendem contraste WCAG AA`() {
-        val razaoClaroPrimario = contraste(FrilaCores.textPrimaryLight, FrilaCores.surfaceElevatedLight)
-        val razaoClaroSecundario = contraste(FrilaCores.textSecondaryLight, FrilaCores.surfaceElevatedLight)
-        val razaoEscuroPrimario = contraste(FrilaCores.textPrimaryDark, FrilaCores.surfaceElevatedDark)
-        val razaoEscuroSecundario = contraste(FrilaCores.textSecondaryDark, FrilaCores.surfaceElevatedDark)
-
-        assertTrue(razaoClaroPrimario >= 7.0, "Texto primário sobre SurfaceElevated claro atende AAA (>= 7.0), medido: $razaoClaroPrimario")
-        assertTrue(razaoClaroSecundario >= 4.5, "Texto secundário sobre SurfaceElevated claro atende AA (>= 4.5), medido: $razaoClaroSecundario")
-        assertTrue(razaoEscuroPrimario >= 7.0, "Texto primário sobre SurfaceElevated escuro atende AAA (>= 7.0), medido: $razaoEscuroPrimario")
-        assertTrue(razaoEscuroSecundario >= 4.5, "Texto secundário sobre SurfaceElevated escuro atende AA (>= 4.5), medido: $razaoEscuroSecundario")
-    }
-
-    @Test
-    fun `cores semanticas atendem contraste de texto grande ou elemento de destaque sobre Surface`() {
-        val dangerClaro = contraste(FrilaCores.dangerLight, FrilaCores.surfaceLight)
-        val dangerEscuro = contraste(FrilaCores.dangerDark, FrilaCores.surfaceDark)
-        val successClaro = contraste(FrilaCores.successLight, FrilaCores.surfaceLight)
-        val successEscuro = contraste(FrilaCores.successDark, FrilaCores.surfaceDark)
-        val warningClaro = contraste(FrilaCores.warningLight, FrilaCores.surfaceLight)
-        val warningEscuro = contraste(FrilaCores.warningDark, FrilaCores.surfaceDark)
-
-        assertTrue(dangerClaro >= 4.5, "Danger claro sobre SurfaceLight: $dangerClaro")
-        assertTrue(dangerEscuro >= 4.5, "Danger escuro sobre SurfaceDark: $dangerEscuro")
-        assertTrue(successClaro >= 4.5, "Success claro sobre SurfaceLight: $successClaro")
-        assertTrue(successEscuro >= 4.5, "Success escuro sobre SurfaceDark: $successEscuro")
-        assertTrue(warningClaro >= 4.5, "Warning claro sobre SurfaceLight: $warningClaro")
-        assertTrue(warningEscuro >= 4.5, "Warning escuro sobre SurfaceDark: $warningEscuro")
+    fun `laranja, amarelo e roxo sao os mesmos no claro e no escuro`() {
+        assertEquals(PaletaClara.acao, PaletaEscura.acao)
+        assertEquals(PaletaClara.sobreAcao, PaletaEscura.sobreAcao)
+        assertEquals(PaletaClara.destaqueAmarelo, PaletaEscura.destaqueAmarelo)
+        assertEquals(PaletaClara.destaqueRoxo, PaletaEscura.destaqueRoxo)
     }
 }

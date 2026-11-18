@@ -8,28 +8,30 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.designsystem.tema.FrilaTema
 
 /**
- * Cartão de vaga: fundo `SurfaceElevated`, contorno `Hairline` de 1dp, raio 12dp
- * (`FrilaRaios.medio`) — zero-shadow, igual ao `cartaoFrila()` do iOS.
+ * Cartão do Frila: superfície, fio de 1dp em `borda`, raio 24, padding 16, SEM sombra. Todo conteúdo
+ * agrupado sobre o fundo da tela fica num destes. Com `aoClicar`, o cartão inteiro é um alvo só.
  */
 @Composable
-fun CartaoVaga(
+fun CartaoFrila(
     modifier: Modifier = Modifier,
-    forma: Shape = RoundedCornerShape(FrilaRaios.medio),
+    forma: Shape = RoundedCornerShape(FrilaRaios.cartao),
     aoClicar: (() -> Unit)? = null,
     rotuloDaAcao: String? = null,
     conteudo: @Composable () -> Unit,
 ) {
+    val cores = FrilaTema.cores
     val modifierDoCartao = if (aoClicar == null) {
         modifier
     } else {
@@ -39,6 +41,7 @@ fun CartaoVaga(
                 minHeight = FrilaMetricas.alvoMinimo,
             )
             .focoAcessivelFrila(forma = forma)
+            .clip(forma)
             .clickable(
                 onClickLabel = rotuloDaAcao,
                 role = Role.Button,
@@ -48,10 +51,22 @@ fun CartaoVaga(
 
     Column(
         modifier = modifierDoCartao
-            .background(MaterialTheme.colorScheme.surface, shape = forma)
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = forma)
-            .padding(FrilaEspacamento.medio),
+            .background(cores.superficie, shape = forma)
+            .border(BorderStroke(1.dp, cores.borda), shape = forma)
+            .padding(FrilaEspacamento.bloco),
     ) {
         conteudo()
     }
+}
+
+/** O cartão de vaga de antes do redesign: hoje é o [CartaoFrila]. Mantido para as telas que já o usam. */
+@Composable
+fun CartaoVaga(
+    modifier: Modifier = Modifier,
+    forma: Shape = RoundedCornerShape(FrilaRaios.cartao),
+    aoClicar: (() -> Unit)? = null,
+    rotuloDaAcao: String? = null,
+    conteudo: @Composable () -> Unit,
+) {
+    CartaoFrila(modifier, forma, aoClicar, rotuloDaAcao, conteudo)
 }

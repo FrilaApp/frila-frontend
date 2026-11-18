@@ -8,6 +8,9 @@ import FrilaDominio
 ///
 /// Só `sem_rede` cai no cache. Qualquer outro erro sobe: um 401 com o cache aberto mostraria os
 /// turnos de uma conta que acabou de ser encerrada.
+///
+/// A gravação só vale se o cache ainda estiver na época em que a leitura começou: a resposta de uma conta que chega
+/// depois da limpeza da saída (ou da entrada de outra conta) é devolvida a quem pediu, mas não vai para o cache.
 public struct TurnosComCache: TurnoRepositorio {
     private let buscar: @Sendable () async throws -> [Turno]
     private let cache: any CacheLocal
@@ -20,10 +23,11 @@ public struct TurnosComCache: TurnoRepositorio {
     }
 
     public func ler() async throws -> LeituraDeTurnos {
+        let epoca = await cache.epoca()
         do {
             let turnos = try await buscar()
             // Guardar é conveniência: se falhar, a pessoa continua vendo o que veio da rede.
-            try? await cache.salvar(turnos: turnos, em: relogio.agora)
+            try? await cache.salvar(turnos: turnos, em: relogio.agora, seAindaNaEpoca: epoca)
             return LeituraDeTurnos(turnos: turnos, origem: .rede)
         } catch let erro as ErroDaApi where erro.codigo == .semRede {
             return LeituraDeTurnos(turnos: try await cache.turnosValidos(em: relogio.agora), origem: .cache)

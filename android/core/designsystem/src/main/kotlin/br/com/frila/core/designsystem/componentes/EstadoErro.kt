@@ -4,11 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,14 +12,14 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
 /**
- * Componente padronizado de erro de tela inteira ou seção do Frila (RNF10).
- *
- * Comunica falhas de rede, operações não concluídas ou erros de processamento,
- * oferecendo botão acessível com alvo de toque >= 48dp para retentativa.
+ * Erro de tela inteira ou de seção (RNF10), no desenho do Fabrício: o que falhou e o que fazer, em
+ * tinta, sem vermelho e sem ícone de alerta (problema não tem cor). Tentar de novo é botão
+ * SECUNDÁRIO: o laranja fica para a ação que avança ou compromete, e uma tela de erro não é isso.
  */
 @Composable
 fun EstadoErro(
@@ -34,42 +29,42 @@ fun EstadoErro(
     textoBotao: String = "Tentar novamente",
     aoTentarNovamente: (() -> Unit)? = null,
 ) {
+    val cores = FrilaTema.cores
     val descricaoErro = mensagem ?: titulo
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(FrilaEspacamento.grande)
+            .padding(
+                start = FrilaEspacamento.grupo,
+                end = FrilaEspacamento.grupo,
+                top = FrilaEspacamento.respiro,
+                bottom = FrilaEspacamento.grupo,
+            )
             .semantics { error(descricaoErro) },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item, Alignment.CenterVertically),
     ) {
-        Icon(
-            imageVector = Icons.Default.Warning,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(48.dp),
-        )
         Text(
             text = titulo,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
+            style = FrilaTipo.corpo,
+            color = cores.tinta,
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics { heading() },
         )
         if (!mensagem.isNullOrBlank()) {
             Text(
                 text = mensagem,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = FrilaTipo.apoio,
+                color = cores.tintaSuave,
                 textAlign = TextAlign.Center,
             )
         }
         if (aoTentarNovamente != null) {
-            BotaoPrimario(
+            BotaoSecundario(
                 texto = textoBotao,
                 aoClicar = aoTentarNovamente,
-                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+                modifier = Modifier.padding(top = FrilaEspacamento.item),
             )
         }
     }

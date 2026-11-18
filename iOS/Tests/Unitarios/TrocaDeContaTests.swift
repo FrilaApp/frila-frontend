@@ -480,6 +480,14 @@ private final class CacheComFalhaNaSessao: CacheLocal, @unchecked Sendable {
         try await subjacente.salvar(turnos: turnos, em: instante)
     }
 
+    func epoca() async -> UInt64 {
+        await subjacente.epoca()
+    }
+
+    func salvar(turnos: [Turno], em instante: Date, seAindaNaEpoca epoca: UInt64) async throws -> Bool {
+        try await subjacente.salvar(turnos: turnos, em: instante, seAindaNaEpoca: epoca)
+    }
+
     func turnosValidos(em instante: Date) async throws -> [Turno] {
         try await subjacente.turnosValidos(em: instante)
     }

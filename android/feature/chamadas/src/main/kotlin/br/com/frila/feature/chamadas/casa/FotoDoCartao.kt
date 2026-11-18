@@ -1,4 +1,3 @@
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 package br.com.frila.feature.chamadas.casa
 
 import android.graphics.BitmapFactory
@@ -7,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +18,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.CancellationException
@@ -60,7 +60,7 @@ private const val PRAZO_DA_FOTO_MS = 10_000
 internal fun inicialDoNome(nome: String): String = nome.trim().firstOrNull()?.uppercase() ?: "?"
 
 /**
- * A foto circular de ~40 dp no cartão da busca: a imagem quando há [fotoUrl] e ela carrega; senão a inicial do nome.
+ * A foto circular de 48 dp no cartão da busca: a imagem quando há [fotoUrl] e ela carrega; senão a inicial do nome.
  * Decorativa para o leitor de tela (o nome já está no texto do cartão).
  */
 @Composable
@@ -84,7 +84,7 @@ internal fun FotoDoCartao(
             }
         }
     }
-    val recorte = modifier.size(40.dp).clip(CircleShape)
+    val recorte = modifier.size(48.dp).clip(CircleShape)
     val carregada = imagem
     if (carregada != null) {
         Image(
@@ -95,10 +95,10 @@ internal fun FotoDoCartao(
         )
     } else {
         Box(
-            modifier = recorte.background(MaterialTheme.colorScheme.secondaryContainer).testTag("busca-inicial-$id"),
+            modifier = recorte.background(FrilaTema.cores.superficiePressionada).testTag("busca-inicial-$id"),
             contentAlignment = Alignment.Center,
         ) {
-            Text(inicialDoNome(nome), style = MaterialTheme.typography.titleMedium)
+            Text(inicialDoNome(nome), style = FrilaTipo.nome, color = FrilaTema.cores.tinta)
         }
     }
 }
