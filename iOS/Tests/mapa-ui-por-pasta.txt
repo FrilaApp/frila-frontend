@@ -78,7 +78,7 @@ Sources/Apresentacao/Fluxos/Suporte/ = SuporteTurnoUITests
 
 # --- Design system e arquivos soltos de Apresentacao
 Sources/Apresentacao/DesignSystem/ = @visual
-Sources/Apresentacao/DesignSystem/CatalogoDesignSystem.swift = AcessibilidadeDoCatalogoUITests
+Sources/Apresentacao/DesignSystem/CatalogoDesignSystem.swift = AcessibilidadeDoCatalogoUITests, CapturasR0FundacaoUITests
 Sources/Apresentacao/DesignSystem/Componentes/FrilaSearchBar.swift = FrilaSearchBarUITests
 Sources/Apresentacao/DesignSystem/Componentes/FrilaSearchCapsule.swift = FrilaSearchBarUITests
 Sources/Apresentacao/DesignSystem/Componentes/FrilaProposalBar.swift = BarraAceitarTurnoUITests, DetalheVagaBarraInferiorUITests
