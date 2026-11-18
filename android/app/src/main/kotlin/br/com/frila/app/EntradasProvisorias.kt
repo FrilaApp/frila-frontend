@@ -14,10 +14,9 @@ import androidx.compose.ui.unit.dp
 
 // L2-8: onde cada tela do Lote 2 do Android entra no app. As telas do Lote 2 são PROVISÓRIAS e as telas que já existem (Perfil, Feed) não têm
 // lugar para elas, então a entrada é uma linha de texto sob a tela, montada aqui. Os rótulos são os títulos das próprias telas (nenhum texto
-// novo). Onde o iOS as põe (para o Fabrício escolher o lugar de verdade): Candidaturas é uma aba; "Pessoas e locais bloqueados" fica em
+// novo). Candidaturas já virou aba da raiz (`AbasDaRaiz.kt`). Onde o iOS põe as outras: "Pessoas e locais bloqueados" fica em
 // "Conta e dados" do Perfil, para os dois papéis; "Contestar" fica dentro de "Por que recebo vagas" (que o Android só terá no Lote 3), no Perfil do profissional.
 
-internal const val ENTRADA_CANDIDATURAS = "entrada-candidaturas"
 internal const val ENTRADA_BLOQUEIOS = "entrada-bloqueios"
 internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
 

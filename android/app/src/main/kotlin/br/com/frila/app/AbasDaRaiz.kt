@@ -5,10 +5,15 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import br.com.frila.core.designsystem.componentes.AbaFrila
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeAbas
 import br.com.frila.core.designsystem.componentes.IconeMaleta
@@ -58,14 +63,54 @@ internal fun papelPelaRota(padraoAtual: String?): PapelDaRaiz? = when (padraoAtu
     else -> null
 }
 
+/** Guarda o papel entre recriações da tela (girar o aparelho, voltar do segundo plano). */
+internal val SalvadorDoPapelDaRaiz: Saver<PapelDaRaiz?, String> = Saver(
+    save = { papel ->
+        when (papel) {
+            null -> ""
+            PapelDaRaiz.Profissional -> "profissional"
+            is PapelDaRaiz.Contratante -> "casa:" + papel.rotaDeMinhasVagas
+        }
+    },
+    restore = { texto ->
+        when {
+            texto == "profissional" -> PapelDaRaiz.Profissional
+            texto.startsWith("casa:") -> PapelDaRaiz.Contratante(texto.removePrefix("casa:"))
+            else -> null
+        }
+    },
+)
+
 /**
- * A barra de abas, para o `bottomBar` da raiz do app. Trocar de aba troca a raiz da pilha (guardando e devolvendo o
- * estado de cada uma), então "voltar" numa raiz sai do app em vez de passear pelas abas já visitadas.
+ * O padrão da rota do topo da pilha, lido do próprio controlador a cada mudança. Não usa o destino que o aviso de
+ * mudança traz: quando um guarda redireciona de dentro de outro aviso (o do desbloqueio faz isso), os avisos chegam
+ * fora de ordem e o último a chegar é o da tela que NÃO ficou; a barra de abas apareceria por cima do desbloqueio.
  */
 @Composable
-internal fun BarraDaRaiz(navController: NavHostController, papel: PapelDaRaiz?) {
-    val entrada by navController.currentBackStackEntryAsState()
-    val padraoAtual = entrada?.destination?.route ?: return
+internal fun padraoDoTopoDaPilha(navController: NavHostController): String? {
+    var padrao by remember(navController) { mutableStateOf(navController.currentDestination?.route) }
+    DisposableEffect(navController) {
+        val aoMudar = NavController.OnDestinationChangedListener { controlador, _, _ -> padrao = controlador.currentDestination?.route }
+        navController.addOnDestinationChangedListener(aoMudar)
+        onDispose { navController.removeOnDestinationChangedListener(aoMudar) }
+    }
+    return padrao
+}
+
+/** Há barra de abas nesta tela? Só nas raízes do papel; quem desenha a tela usa isto para não recuar duas vezes embaixo. */
+internal fun temBarraDaRaiz(papel: PapelDaRaiz?, padraoAtual: String?): Boolean {
+    val abas = abasDaRaiz(papel ?: papelPelaRota(padraoAtual) ?: return false)
+    return abaDaRota(abas, padraoAtual) != null
+}
+
+/**
+ * A barra de abas da raiz do app. A primeira aba é o chão da pilha: trocar de aba volta até ela (guardando o estado
+ * da aba que sai) e abre a escolhida por cima, então "voltar" numa outra aba leva à primeira, e "voltar" na primeira
+ * sai do app. Se a primeira aba não está na pilha (link que abriu direto noutra raiz), a aba atual é que dá lugar.
+ */
+@Composable
+internal fun BarraDaRaiz(navController: NavHostController, papel: PapelDaRaiz?, padraoAtual: String?) {
+    if (padraoAtual == null) return
     val abas = abasDaRaiz(papel ?: papelPelaRota(padraoAtual) ?: return)
     val atual = abaDaRota(abas, padraoAtual) ?: return
 
@@ -74,10 +119,16 @@ internal fun BarraDaRaiz(navController: NavHostController, papel: PapelDaRaiz?) 
         selecionada = atual,
         aoSelecionar = { indice ->
             if (indice != atual) {
+                val chao = abas.first().padrao
+                val chaoNaPilha = runCatching { navController.getBackStackEntry(chao) }.isSuccess
                 navController.navigate(abas[indice].rota) {
-                    popUpTo(padraoAtual) {
-                        inclusive = true
-                        saveState = true
+                    if (chaoNaPilha) {
+                        popUpTo(chao) { saveState = true }
+                    } else {
+                        popUpTo(padraoAtual) {
+                            inclusive = true
+                            saveState = true
+                        }
                     }
                     launchSingleTop = true
                     restoreState = true

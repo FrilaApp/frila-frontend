@@ -93,6 +93,8 @@ fun TelaMeusTurnos(
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
     /** L2-1: "Estou a caminho" no turno confirmado. Nulo esconde o botão (a fiação é o L2-8); a regra da janela é do [podeAvisarACaminho]. */
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
+    /** Falso na tela raiz (aba "Meus turnos"): a aba já diz onde a pessoa está, e a lista é o primeiro elemento. */
+    comTitulo: Boolean = true,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -121,14 +123,16 @@ fun TelaMeusTurnos(
                 },
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                TituloDaTela(
-                    texto = "Meus Turnos",
-                    modifier = Modifier.padding(
-                        start = FrilaEspacamento.grupo,
-                        end = FrilaEspacamento.grupo,
-                        top = FrilaEspacamento.bloco,
-                    ),
-                )
+                if (comTitulo) {
+                    TituloDaTela(
+                        texto = "Meus Turnos",
+                        modifier = Modifier.padding(
+                            start = FrilaEspacamento.grupo,
+                            end = FrilaEspacamento.grupo,
+                            top = FrilaEspacamento.bloco,
+                        ),
+                    )
+                }
                 // Agendados e Histórico: as duas faixas são um filtro da mesma lista, uma marcada por vez.
                 Row(
                     modifier = Modifier

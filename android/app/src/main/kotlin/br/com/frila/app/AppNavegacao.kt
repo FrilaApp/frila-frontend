@@ -5,6 +5,10 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -326,10 +331,20 @@ fun AppNavegacao(
         onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
 
+    // RN: o papel da conta diz que abas a raiz mostra. Vem da abertura; quando só a rota diz quem é (link que cai direto
+    // numa raiz do profissional, grafo sem a abertura), a rota decide, e o papel fica lembrado para a aba Conta.
+    var papelDaRaiz by rememberSaveable(stateSaver = SalvadorDoPapelDaRaiz) { mutableStateOf<PapelDaRaiz?>(null) }
+    val padraoAtual = padraoDoTopoDaPilha(navController)
+    LaunchedEffect(padraoAtual) {
+        if (papelDaRaiz == null) papelPelaRota(padraoAtual)?.let { papelDaRaiz = it }
+    }
+    val comBarraDaRaiz = temBarraDaRaiz(papelDaRaiz, padraoAtual)
+
     // C0-8: toda saída da sessão (Sair, exclusão, 401 na abertura, outra conta, sessão que caiu) termina aqui, numa
     // navegação só: quem chega com a pilha já reduzida à entrada não navega de novo.
     fun irParaEntrada() {
         guardaBiometrico.liberarAposLimparSessao()
+        papelDaRaiz = null
         if (navController.currentDestination?.route == Rotas.ENTRADA && navController.previousBackStackEntry == null) return
         navController.navigate(Rotas.ENTRADA) {
             popUpTo(0) { inclusive = true }
@@ -361,7 +376,14 @@ fun AppNavegacao(
     // dumpsys connectivity continuava mostrando os registros depois de +15s/+24s em background).
     val statusConectividade by monitorDeConectividade.status.collectAsStateWithLifecycle()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            // Com a barra de abas embaixo, é ela que recua para a barra de navegação do sistema: a tela não recua de novo.
+            .then(if (comBarraDaRaiz) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier),
+    ) {
         NavHost(navController = navController, startDestination = destinoInicial) {
             composable(Rotas.ENTRADA) {
                 val viewModel: EntradaViewModel = koinViewModel()
@@ -404,6 +426,7 @@ fun AppNavegacao(
                                     }
                                     navController.navigate(destino.rota())
                                 } else {
+                                    if (destino == DestinoDaConta.Profissional) papelDaRaiz = PapelDaRaiz.Profissional
                                     navController.navigate(destino.rota()) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
@@ -442,18 +465,12 @@ fun AppNavegacao(
                             aoPronto?.invoke()
                         }
                     }
-                    // L2-4: no iOS, Candidaturas é uma aba; aqui é uma linha sob o feed (ver `EntradasProvisorias.kt`).
-                    ComEntradasProvisorias(
-                        listOf(EntradaProvisoria(ENTRADA_CANDIDATURAS, TextosCandidaturas.TITULO) { navController.navigate(Rotas.MINHAS_CANDIDATURAS) }),
-                    ) {
-                        TelaFeedVagas(
-                            viewModel = viewModel,
-                            aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
-                            aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
-                            aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
-                            aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
-                        )
-                    }
+                    // Meus turnos, Candidaturas e Conta são abas da raiz (`AbasDaRaiz.kt`), como no iOS.
+                    TelaFeedVagas(
+                        viewModel = viewModel,
+                        aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
+                        aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
+                    )
                 }
             }
 
@@ -631,6 +648,8 @@ fun AppNavegacao(
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
                             aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
+                            // Raiz com aba: abre sem título de página (a aba já diz onde a pessoa está).
+                            comTitulo = false,
                         )
                     }
                 }
@@ -1042,7 +1061,8 @@ fun AppNavegacao(
                     var retirando by remember { mutableStateOf<ItemCandidatura?>(null) }
                     TelaMinhasCandidaturas(
                         viewModel = viewModel,
-                        aoVoltar = { navController.popBackStack() },
+                        // Raiz com aba: sem voltar e sem título de página.
+                        aoVoltar = null,
                         aoAbrir = { destino ->
                             when (destino) {
                                 is DestinoDaCandidatura.Vaga -> navController.navigate(Rotas.detalhe(destino.vagaId))
@@ -1196,6 +1216,8 @@ fun AppNavegacao(
             status = statusConectividade,
             modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
         )
+    }
+    BarraDaRaiz(navController = navController, papel = papelDaRaiz, padraoAtual = padraoAtual)
     }
 }
 

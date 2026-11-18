@@ -409,11 +409,11 @@ class AppNavegacaoLote2Test {
     }
 
     @Test
-    fun `no feed a entrada Candidaturas abre Minhas candidaturas e Retirar abre a pergunta`() {
+    fun `no feed a aba Candidaturas abre Minhas candidaturas e Retirar abre a pergunta`() {
         montar(Rotas.FEED)
 
-        esperarTag(ENTRADA_CANDIDATURAS)
-        rule.onNodeWithTag(ENTRADA_CANDIDATURAS).performClick()
+        esperarTexto(TextosCandidaturas.TITULO)
+        rule.onNodeWithText(TextosCandidaturas.TITULO).performClick()
         esperarTexto(TextosCandidaturas.RETIRAR)
         rule.onNodeWithText(TextosCandidaturas.RETIRAR).performScrollTo().performClick()
 

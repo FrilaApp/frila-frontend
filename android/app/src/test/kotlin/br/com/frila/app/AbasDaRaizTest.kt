@@ -3,6 +3,9 @@ package br.com.frila.app
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import androidx.compose.runtime.saveable.SaverScope
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 /** As abas das telas raiz espelham o iOS: quatro para o profissional, duas para a casa. */
 class AbasDaRaizTest {
@@ -46,5 +49,25 @@ class AbasDaRaizTest {
         assertNull(papelPelaRota(Rotas.PERFIL))
         assertNull(papelPelaRota(Rotas.MINHAS_VAGAS))
         assertNull(papelPelaRota(null))
+    }
+
+    @Test
+    fun `a barra so aparece nas raizes do papel, e o papel lembrado vale onde a rota nao diz quem e`() {
+        assertTrue(temBarraDaRaiz(null, Rotas.FEED))
+        assertTrue("a Conta do profissional tem barra quando o papel já é conhecido", temBarraDaRaiz(PapelDaRaiz.Profissional, Rotas.PERFIL))
+        assertFalse("sem papel, o Perfil não diz quem é: sem barra", temBarraDaRaiz(null, Rotas.PERFIL))
+        assertFalse(temBarraDaRaiz(PapelDaRaiz.Profissional, Rotas.DETALHE))
+        assertFalse(temBarraDaRaiz(PapelDaRaiz.Profissional, Rotas.ENTRADA))
+        assertTrue(temBarraDaRaiz(casa, Rotas.MINHAS_VAGAS))
+        assertFalse(temBarraDaRaiz(casa, Rotas.FEED))
+    }
+
+    @Test
+    fun `o papel guardado volta igual depois de a tela ser recriada`() {
+        val guardar: (PapelDaRaiz?) -> String? = { papel -> with(SalvadorDoPapelDaRaiz) { SaverScope { true }.save(papel) } }
+
+        assertEquals(PapelDaRaiz.Profissional, SalvadorDoPapelDaRaiz.restore(guardar(PapelDaRaiz.Profissional)!!))
+        assertEquals(casa, SalvadorDoPapelDaRaiz.restore(guardar(casa)!!))
+        assertNull(SalvadorDoPapelDaRaiz.restore(guardar(null)!!))
     }
 }

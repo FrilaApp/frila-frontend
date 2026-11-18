@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
@@ -55,12 +56,15 @@ import br.com.frila.feature.vagas.publicacao.formatarReais
 
 /** A lista de candidaturas do profissional e a confirmação de retirar. */
 
-/** Tudo o que a lista pode pedir a quem a abriu. `aoRetirar` nulo esconde o botão de retirar. */
+/**
+ * Tudo o que a lista pode pedir a quem a abriu. `aoRetirar` nulo esconde o botão de retirar. `aoVoltar` nulo é a
+ * lista como tela raiz (aba): sem a barra do voltar e sem título de página, porque a aba já diz onde a pessoa está.
+ */
 data class AcoesMinhasCandidaturas(
     val aoCarregar: () -> Unit = {},
     val aoAtualizar: () -> Unit = {},
     val aoAbrir: (DestinoDaCandidatura) -> Unit = {},
-    val aoVoltar: () -> Unit = {},
+    val aoVoltar: (() -> Unit)? = {},
     val aoRetirar: ((ItemCandidatura) -> Unit)? = null,
 )
 
@@ -68,7 +72,7 @@ data class AcoesMinhasCandidaturas(
 @Composable
 fun TelaMinhasCandidaturas(
     viewModel: MinhasCandidaturasViewModel,
-    aoVoltar: () -> Unit,
+    aoVoltar: (() -> Unit)?,
     aoAbrir: (DestinoDaCandidatura) -> Unit,
     modifier: Modifier = Modifier,
     aoRetirar: ((ItemCandidatura) -> Unit)? = null,
@@ -94,7 +98,7 @@ fun ConteudoMinhasCandidaturas(estado: EstadoMinhasCandidaturas, acoes: AcoesMin
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = FrilaTema.cores.fundo,
-        topBar = { FrilaBarraDeTopo(aoVoltar = acoes.aoVoltar) },
+        topBar = { acoes.aoVoltar?.let { FrilaBarraDeTopo(aoVoltar = it) } },
     ) { preenchimento ->
         PullToRefreshBox(
             isRefreshing = estado.atualizando,
@@ -105,10 +109,10 @@ fun ConteudoMinhasCandidaturas(estado: EstadoMinhasCandidaturas, acoes: AcoesMin
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = FrilaEspacamento.grupo),
+                contentPadding = PaddingValues(top = if (acoes.aoVoltar == null) FrilaEspacamento.bloco else 0.dp, bottom = FrilaEspacamento.grupo),
                 verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
             ) {
-                item(key = "titulo") { TituloDaTela(TextosCandidaturas.TITULO, modifier = margem) }
+                if (acoes.aoVoltar != null) item(key = "titulo") { TituloDaTela(TextosCandidaturas.TITULO, modifier = margem) }
                 if (estado.desatualizada) {
                     item(key = "desatualizada") {
                         AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosCandidaturas.DESATUALIZADA, modifier = margem)

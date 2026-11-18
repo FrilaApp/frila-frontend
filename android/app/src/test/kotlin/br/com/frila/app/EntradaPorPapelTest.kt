@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.app.Application
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,6 +23,7 @@ import br.com.frila.core.seguranca.Sessao
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
+import br.com.frila.feature.vagas.candidaturas.TextosCandidaturas
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
@@ -42,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -280,14 +283,61 @@ class EntradaPorPapelTest {
     }
 
     @Test
-    fun `C0-9 - do feed da profissional chega-se a Meus turnos`() {
+    fun `C0-9 - do feed da profissional chega-se a Meus turnos pela aba`() {
         montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.FEED && chamadas.any { it.endsWith("/rpc/vagas_abertas") } }
 
-        rule.onNodeWithText("Meus turnos").performClick()
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
 
-        assertTrue("o botão do feed não levou a Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
-        assertEquals("Meus turnos abre por cima do feed", Rotas.FEED, rotaAbaixo())
+        assertTrue("a aba não levou a Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
+        assertEquals("a primeira aba (Vagas) é o chão da pilha: voltar em Meus turnos leva ao feed", Rotas.FEED, rotaAbaixo())
+    }
+
+    // ───────────────── RN: abas das telas raiz do profissional ─────────────────
+
+    @Test
+    fun `RN - a profissional ve as quatro abas no feed e a aba Conta leva ao Perfil, ainda com a barra`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+
+        listOf(TextosDasAbas.VAGAS, TextosDasAbas.MEUS_TURNOS, TextosCandidaturas.TITULO, TextosDasAbas.CONTA).forEach {
+            rule.onNodeWithText(it).assertIsDisplayed()
+        }
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+
+        assertTrue("a aba Conta não levou ao Perfil (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PERFIL })
+        rule.onNodeWithText(TextosDasAbas.VAGAS).assertIsDisplayed()
+        assertEquals("o feed fica embaixo: voltar na Conta leva às vagas", Rotas.FEED, rotaAbaixo())
+    }
+
+    @Test
+    fun `RN - trocar de aba nao empilha - a pilha fica na primeira aba e na escolhida, e voltar leva as vagas`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        assertTrue(aguardar { rotaAtual() == Rotas.PERFIL })
+        assertEquals("Meus turnos saiu da pilha ao trocar de aba", Rotas.FEED, rotaAbaixo())
+
+        voltarDoSistema()
+
+        assertEquals(Rotas.FEED, rotaAtual())
+        assertNull("a primeira aba é o chão: voltar nela sai do app", rotaAbaixo())
+    }
+
+    @Test
+    fun `RN - tela aberta por cima de uma raiz nao tem barra de abas`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+        rule.onNodeWithText(TextosDasAbas.CONTA).assertIsDisplayed()
+
+        rule.runOnUiThread { nav.navigate(Rotas.AJUDA) }
+        aguardar { rotaAtual() == Rotas.AJUDA }
+
+        rule.onNodeWithText(TextosDasAbas.CONTA).assertDoesNotExist()
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).assertDoesNotExist()
     }
 
     // ───────────────── Revisão do #785: a casa nunca fica presa na tela inicial ─────────────────

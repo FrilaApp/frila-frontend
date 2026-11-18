@@ -38,7 +38,6 @@ import br.com.frila.core.designsystem.componentes.ChipFrila
 import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.EstadoVazio
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
-import br.com.frila.core.designsystem.componentes.LinkFrila
 import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
@@ -56,16 +55,12 @@ fun TelaFeedVagas(
     viewModel: FeedVagasViewModel,
     aoAbrirDetalhe: (String) -> Unit,
     modifier: Modifier = Modifier,
-    aoAbrirPerfil: () -> Unit = {},
-    /** C0-9: sem este caminho, "Meus turnos" não tinha entrada no app. Nulo esconde o botão. */
-    aoAbrirMeusTurnos: (() -> Unit)? = null,
     /** Abre a tela do ponto base quando o servidor recusa a lista por falta dele. Nulo deixa o erro comum, com "Tentar novamente". */
     aoDefinirPontoBase: (() -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
-    // Tela raiz: abre sem título de página, com a busca no alto. "Meus turnos" e "Perfil" ficam como links no
-    // topo só até as abas da raiz existirem (a navegação raiz é de outro lote).
+    // Tela raiz: abre sem título de página, com a busca no alto. Meus turnos, Candidaturas e Conta são abas da raiz.
     Scaffold(modifier = modifier, containerColor = FrilaTema.cores.fundo) { paddingInterno ->
         PullToRefreshBox(
             isRefreshing = estado.atualizando,
@@ -81,9 +76,6 @@ fun TelaFeedVagas(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = FrilaEspacamento.grupo),
             ) {
-                item(key = "atalhos") {
-                    AtalhosDoTopo(aoAbrirPerfil = aoAbrirPerfil, aoAbrirMeusTurnos = aoAbrirMeusTurnos)
-                }
                 if (estado.emCache) {
                     item(key = "aviso-de-cache") {
                         AvisoFrila(
@@ -136,24 +128,6 @@ fun TelaFeedVagas(
             aoAplicar = viewModel::aoFecharFiltrosAvancados,
             aoLimpar = viewModel::aoLimparFiltrosAvancados,
             aoFechar = viewModel::aoFecharFiltrosAvancados,
-        )
-    }
-}
-
-@Composable
-private fun AtalhosDoTopo(aoAbrirPerfil: () -> Unit, aoAbrirMeusTurnos: (() -> Unit)?) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = FrilaEspacamento.grupo),
-        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo, Alignment.End),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        aoAbrirMeusTurnos?.let { LinkFrila(texto = "Meus turnos", aoClicar = it) }
-        LinkFrila(
-            texto = "Perfil",
-            aoClicar = aoAbrirPerfil,
-            modifier = Modifier.semantics { contentDescription = "Meu perfil" },
         )
     }
 }
