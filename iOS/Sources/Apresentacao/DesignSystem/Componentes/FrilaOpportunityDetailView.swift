@@ -14,6 +14,7 @@ public struct FrilaOpportunityDetailView: View {
     public let onApply: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let typography = FrilaTypography()
 
@@ -74,7 +75,7 @@ public struct FrilaOpportunityDetailView: View {
 
             // Card 1: Quando, Horário, Valor e Posições (2x2 Grid)
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
+                linhaDaGrade {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Quando", tableName: "Estudio", bundle: bundleApresentacao)
                             .font(FrilaTypography.caption)
@@ -96,7 +97,7 @@ public struct FrilaOpportunityDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(alignment: .top) {
+                linhaDaGrade {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Valor", tableName: "Estudio", bundle: bundleApresentacao)
                             .font(FrilaTypography.caption)
@@ -219,12 +220,29 @@ public struct FrilaOpportunityDetailView: View {
     }
 
     @ViewBuilder
+    /// A grade "Quando | Horário" e "Valor | Posições": duas colunas no tamanho padrão, uma coluna em tamanho de
+    /// acessibilidade (a palavra "Posições" quebrava letra a letra numa coluna estreita).
+    private var linhaDaGrade: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+            : AnyLayout(HStackLayout(alignment: .top))
+    }
+
     private var headerSubtitleView: some View {
         let segments = headerSubtitleSegments
         if segments.isEmpty {
             Text("Local a definir", tableName: "Estudio", bundle: bundleApresentacao)
                 .font(FrilaTypography.caption)
                 .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+        } else if dynamicTypeSize.isAccessibilitySize {
+            // Em tamanho de acessibilidade o nome da casa fica acima do endereço, sem a vírgula solta.
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    Text(verbatim: segment.text)
+                        .font(segment.isPrimary ? FrilaTypography.captionMedium : FrilaTypography.caption)
+                        .foregroundColor(segment.isPrimary ? FrilaColor.dynamicTextPrimary(isDark: isDark) : FrilaColor.dynamicTextMuted(isDark: isDark))
+                }
+            }
         } else {
             HStack(spacing: 4) {
                 ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in

@@ -457,6 +457,9 @@ public struct FrilaJobCreationStudioView: View {
 
                 continuousFormView
             }
+            // Em tamanho de acessibilidade algum filho pedia mais que a tela e alargava o estúdio todo (texto cortado
+            // na esquerda, botões encostando nas bordas): a largura do estúdio é a da tela.
+            .containerRelativeFrame(.horizontal)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
