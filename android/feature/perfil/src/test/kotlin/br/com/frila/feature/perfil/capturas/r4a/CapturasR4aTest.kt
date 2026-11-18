@@ -10,7 +10,18 @@ import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.rede.FuncaoDto
+import br.com.frila.core.rede.MidiaDto
+import br.com.frila.feature.perfil.ConteudoPontoBase
 import br.com.frila.feature.perfil.DisponibilidadeBiometrica
+import br.com.frila.feature.perfil.EstadoPontoBase
+import br.com.frila.feature.perfil.EtapaDaFoto
+import br.com.frila.feature.perfil.MotivoDeBloqueioLocal
+import br.com.frila.feature.perfil.OpcaoDePontoBase
+import br.com.frila.feature.perfil.TelaAjudaPerfil
+import br.com.frila.feature.perfil.TelaFotoDePerfil
+import br.com.frila.feature.perfil.TextosDaFotoDePerfil
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaPerfil
 import io.ktor.client.engine.mock.MockEngine
@@ -242,5 +253,136 @@ class CapturasR4aTest {
             }
         }
         compose.capturar("r4a-perfil-10-notificacoes-desligadas")
+    }
+
+    // ---- Foto de perfil ----
+
+    @Composable
+    private fun Foto(etapa: EtapaDaFoto) = TelaFotoDePerfil(
+        etapa = etapa,
+        aoEscolherFoto = {},
+        aoEnviarMesmoAssim = {},
+        aoEscolherOutra = {},
+        aoTentarDeNovo = {},
+        aoVoltar = {},
+    )
+
+    @Test
+    fun `foto - parada`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.Parada) } }
+        compose.capturar("r4a-foto-01-parada")
+    }
+
+    @Test
+    fun `foto - aviso sem rosto`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.AvisoSemRosto) } }
+        compose.capturar("r4a-foto-02-sem-rosto")
+    }
+
+    @Test
+    fun `foto - enviando`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.Enviando) } }
+        compose.capturar("r4a-foto-03-enviando")
+    }
+
+    @Test
+    fun `foto - em analise`() {
+        val midia = MidiaDto(id = "m", tipo = "foto_perfil", estado = "em_analise", podePedirNovaAnalise = false)
+        compose.setContent { FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.Enviada(midia)) } }
+        compose.capturar("r4a-foto-04-em-analise")
+    }
+
+    @Test
+    fun `foto - falha`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.Falhou(TextosDaFotoDePerfil.ERRO_SEM_REDE)) } }
+        compose.capturar("r4a-foto-05-falha")
+    }
+
+    @Test
+    fun `foto - bloqueada`() {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.Bloqueada(MotivoDeBloqueioLocal.MULTIPLOS_ROSTOS)) }
+        }
+        compose.capturar("r4a-foto-06-bloqueada")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `foto - fonte 2x`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { Foto(EtapaDaFoto.AvisoSemRosto) } }
+        compose.capturar("r4a-foto-07-fonte-2x")
+    }
+
+    // ---- Ponto base ----
+
+    private val regioes = listOf("Plano Piloto", "Gama", "Taguatinga", "Brazlândia", "Sobradinho", "Planaltina", "Guará", "Ceilândia")
+        .map { OpcaoDePontoBase(it, Coordenada(-15.79, -47.88)) }
+
+    @Composable
+    private fun PontoBase(estado: EstadoPontoBase) = ConteudoPontoBase(
+        estado = estado,
+        aoEscolher = {},
+        aoAlternarFuncao = {},
+        aoSalvar = {},
+        aoVoltar = {},
+    )
+
+    @Test
+    fun `ponto base - com perfil`() {
+        val estado = EstadoPontoBase(opcoes = regioes, escolhida = regioes[2], temPontoBaseSalvo = true)
+        compose.setContent { FrilaTheme(temaEscuro = false) { PontoBase(estado) } }
+        compose.capturar("r4a-pontobase-01-com-perfil")
+    }
+
+    @Test
+    fun `ponto base - sem perfil, com funcoes e erro`() {
+        val funcoes = listOf("Garçom", "Barman", "Cozinheiro", "Auxiliar de cozinha", "Caixa", "Copeiro")
+            .mapIndexed { i, nome -> FuncaoDto("f$i", nome, "Cat") }
+        val estado = EstadoPontoBase(
+            opcoes = regioes,
+            semPerfil = true,
+            funcoes = funcoes,
+            funcoesEscolhidas = setOf("f1"),
+            erro = "Informe o ponto base.",
+        )
+        compose.setContent { FrilaTheme(temaEscuro = false) { PontoBase(estado) } }
+        compose.capturar("r4a-pontobase-02-sem-perfil-erro")
+    }
+
+    @Test
+    fun `ponto base - salvando`() {
+        val estado = EstadoPontoBase(opcoes = regioes, escolhida = regioes[0], salvando = true)
+        compose.setContent { FrilaTheme(temaEscuro = false) { PontoBase(estado) } }
+        compose.capturar("r4a-pontobase-03-salvando")
+    }
+
+    @Test
+    fun `ponto base - carregando`() {
+        val estado = EstadoPontoBase(opcoes = regioes, carregando = true)
+        compose.setContent { FrilaTheme(temaEscuro = false) { PontoBase(estado) } }
+        compose.capturar("r4a-pontobase-04-carregando")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `ponto base - fonte 2x`() {
+        val estado = EstadoPontoBase(opcoes = regioes, escolhida = regioes[2], temPontoBaseSalvo = true)
+        compose.setContent { FrilaTheme(temaEscuro = false) { PontoBase(estado) } }
+        compose.capturar("r4a-pontobase-05-fonte-2x")
+    }
+
+    // ---- Ajuda ----
+
+    @Test
+    fun `ajuda`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { TelaAjudaPerfil(aoVoltar = {}) } }
+        compose.capturar("r4a-ajuda-01")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `ajuda - fonte 2x`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { TelaAjudaPerfil(aoVoltar = {}) } }
+        compose.capturar("r4a-ajuda-02-fonte-2x")
     }
 }
