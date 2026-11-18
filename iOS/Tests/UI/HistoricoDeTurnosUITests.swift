@@ -23,7 +23,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         let app = abrir(cenario: "contratante", item: "estabelecimento-historico-turnos")
         let mesPassado = app.buttons["historico-mes-passado"]
         tocar(mesPassado)
-        tocar(app.segmentedControls["historico-formato"].buttons["PDF"])
+        tocar(app.buttons["historico-formato-pdf"])
         esperarSelecionado(mesPassado, true)
         XCTAssertTrue(mesPassado.isSelected)
         anexar(app, "historico-contratante")
@@ -99,8 +99,8 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         XCTAssertTrue(folhaDeCompartilharApareceu(app), "O intervalo livre também exporta")
     }
 
-    /// O controle segmentado do sistema não acompanha o Dynamic Type: em AX5 os formatos viram
-    /// pílulas que crescem com o texto (QA de 04/10, achado 4).
+    /// Redesenho (R7): o formato é uma lista com visto (escolha única), que cresce com o texto em qualquer tamanho; o
+    /// controle segmentado do sistema, que não acompanhava o Dynamic Type, saiu (QA de 04/10, achado 4).
     func testEmAX5OFormatoViraPilulasQueCrescemComOTexto() {
         let app = abrir(
             cenario: "success", item: "perfil-historico-turnos",
@@ -108,7 +108,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         )
         let csv = app.buttons["historico-formato-csv"]
         let pdf = app.buttons["historico-formato-pdf"]
-        XCTAssertTrue(csv.waitForExistence(timeout: 5), "Em AX5 o formato aparece em pílulas")
+        XCTAssertTrue(csv.waitForExistence(timeout: 5), "Em AX5 o formato aparece na lista com visto")
         XCTAssertFalse(app.segmentedControls["historico-formato"].exists)
         XCTAssertTrue(csv.isSelected, "CSV é o formato inicial")
         for _ in 0..<6 where !pdf.isHittable { app.swipeUp() }
@@ -119,7 +119,7 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         esperarSelecionado(csv, false)
         XCTAssertTrue(pdf.isSelected)
         XCTAssertFalse(csv.isSelected)
-        XCTAssertGreaterThan(pdf.frame.height, 44 + 8, "Em AX5 a pílula cresce além do mínimo de 44 pt")
+        XCTAssertGreaterThan(pdf.frame.height, 44 + 8, "Em AX5 a linha cresce além do mínimo de 44 pt")
         anexar(app, "historico-formato-ax5")
     }
 

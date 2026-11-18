@@ -88,13 +88,13 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(enviar, em: app)
         esperarHabilitado(enviar, false)
         XCTAssertFalse(enviar.isEnabled)
-        let motivo = app.buttons["motivo-denuncia"]
-        trazerParaATela(motivo, em: app)
-        motivo.tap()
+        // O motivo é uma lista com visto (escolha única): as quatro opções já estão na folha, sem abrir outra tela.
         for opcao in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
             XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: Espera.aparecer))
         }
+        trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()
+        XCTAssertTrue(app.buttons["Risco à segurança"].isSelected, "o motivo escolhido fica marcado")
         let aviso = app.staticTexts["aviso-risco-imediato"]
         trazerParaATela(aviso, em: app)
         XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))
@@ -196,9 +196,7 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(enviar, em: app)
         XCTAssertFalse(enviar.isEnabled)
 
-        let motivo = app.buttons["motivo-denuncia"]
-        trazerParaATela(motivo, em: app)
-        motivo.tap()
+        trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()
         let aviso = app.staticTexts["aviso-risco-imediato"]
         trazerParaATela(aviso, em: app)
