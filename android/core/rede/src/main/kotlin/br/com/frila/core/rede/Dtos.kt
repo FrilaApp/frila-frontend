@@ -1256,3 +1256,36 @@ data class CandidaturaDto(
 data class MinhasCandidaturasParametrosDto(
     @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("estado") val estado: String? = null,
 )
+
+/**
+ * Resposta de `situacao_da_conta` (schema `SituacaoDaConta`, RF24/RN13). `estado` vale `ativa` ou `suspensa`;
+ * `suspensao` é nula na conta ativa.
+ */
+@Serializable
+data class SituacaoDaContaDto(
+    @SerialName("estado") val estado: String,
+    @SerialName("suspensao") val suspensao: SuspensaoDaContaDto? = null,
+)
+
+/**
+ * A suspensão em vigor (objeto de `SituacaoDaConta.suspensao`). `contestacao` é o protocolo da contestação já aberta,
+ * em análise ou respondida (0.2.36); nula se o titular ainda não contestou. O resultado da análise não vem ao app.
+ */
+@Serializable
+data class SuspensaoDaContaDto(
+    @SerialName("motivo") val motivo: String,
+    @SerialName("desde") val desde: String,
+    @SerialName("contestacao") val contestacao: ProtocoloDto? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/contestar_suspensao` (RN13). `relato` tem no mínimo 10 caracteres. */
+@Serializable
+data class ContestarSuspensaoDto(
+    @SerialName("relato") val relato: String,
+)
+
+/** Corpo de `POST /rest/v1/rpc/pedir_revisao_despacho` (RF27). `relato` tem no mínimo 10 caracteres. */
+@Serializable
+data class PedirRevisaoDespachoDto(
+    @SerialName("relato") val relato: String,
+)
