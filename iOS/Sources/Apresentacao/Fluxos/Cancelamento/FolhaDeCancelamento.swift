@@ -1,9 +1,10 @@
 import FrilaDominio
 import SwiftUI
 
-/// A folha que pede o motivo e avisa o efeito antes de cancelar, igual para os dois lados (#20).
+/// A folha que pede o motivo e avisa o efeito antes de cancelar, igual para os dois lados (#20; T4b do protótipo).
 /// Sem motivo, o botão não habilita. Depois da resposta, mostra o desfecho e só deixa fechar.
-/// Segue o quadro "CancelarTurno" do MidFi do Fabrício: motivos num cartão agrupado, com divisórias e visto.
+/// O título, a consequência, o motivo em lista de escolha única com visto e os botões ancorados no pé: o "Confirmar" é o
+/// primário (em conferência até haver motivo) e o "Voltar", o secundário. Sem vermelho: a consequência vem escrita.
 public struct FolhaDeCancelamento: View {
     @Bindable private var viewModel: CancelamentoViewModel
     private let fechar: () -> Void
@@ -18,27 +19,29 @@ public struct FolhaDeCancelamento: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                FolhaFrila(verbatim: TextosDoCancelamento.titulo(lado: viewModel.lado, alvo: viewModel.alvo)) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                    Text(verbatim: TextosDoCancelamento.titulo(lado: viewModel.lado, alvo: viewModel.alvo))
+                        .font(FrilaTipo.tituloDaTela)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
                     switch viewModel.estado {
                     case .pronto, .enviando, .falha:
                         formulario
-                        if dynamicTypeSize.isAccessibilitySize {
-                            botoesDeAcao
-                        }
                     case let .concluido(desfecho):
                         desfechoView(desfecho)
-                        if dynamicTypeSize.isAccessibilitySize {
-                            botoesDeAcao
-                        }
+                    }
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
                     }
                 }
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.grupo)
+                .padding(.bottom, FrilaEspaco.grupo)
             }
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom) {
-                if !dynamicTypeSize.isAccessibilitySize {
-                    botoesDeAcao
-                }
-            }
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .modifier(RodapeDaFolha(ancorar: !dynamicTypeSize.isAccessibilitySize) { rodape })
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -51,8 +54,9 @@ public struct FolhaDeCancelamento: View {
                     .accessibilityIdentifier("recolher-teclado")
                 }
             }
-            .background(FrilaCor.fundo.ignoresSafeArea())
         }
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
         .frilaKeyboardDismissScope()
         .accessibilityIdentifier("folha-de-cancelamento")
         .interactiveDismissDisabled(viewModel.estado == .enviando)
@@ -62,24 +66,11 @@ public struct FolhaDeCancelamento: View {
         AvisoFrila(verbatim: viewModel.aviso, tom: viewModel.contaComoFalta ? .alerta : .informativo)
             .accessibilityIdentifier("aviso-do-cancelamento")
 
-        Text(verbatim: TextosDoCancelamento.motivoTitulo)
-            .font(FrilaTipo.rotuloDoCampo)
-            .foregroundStyle(FrilaCor.textoSecundario)
-            .accessibilityAddTraits(.isHeader)
-        VStack(spacing: 0) {
-            ForEach(Array(viewModel.motivos.enumerated()), id: \.element.id) { indice, motivo in
-                if indice > 0 {
-                    Rectangle()
-                        .fill(FrilaCor.divisoria)
-                        .frame(height: 1)
-                        .padding(.leading, FrilaEspaco.medio)
-                        .accessibilityHidden(true)
-                }
+        FrilaGrupoDeLinhas(verbatim: TextosDoCancelamento.motivoTitulo, linhasComIcone: false) {
+            ForEach(viewModel.motivos) { motivo in
                 opcao(motivo)
             }
         }
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("motivos-do-cancelamento")
 
@@ -87,110 +78,62 @@ public struct FolhaDeCancelamento: View {
             // O rótulo do campo é o mesmo do título: obrigatório em "Outro motivo", opcional nos demais.
             let rotulo = motivo.exigeDetalhes ? TextosDoCancelamento.detalhesObrigatorios : TextosDoCancelamento.detalhesTitulo
             let prompt = motivo.exigeDetalhes ? Text(verbatim: TextosDoCancelamento.placeholderDetalhes).foregroundStyle(FrilaCor.textoSecundario) : nil
-            Text(verbatim: rotulo)
-                .font(FrilaTipo.rotuloDoCampo)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            TextField(text: $viewModel.detalhes, prompt: prompt, axis: .vertical) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                 Text(verbatim: rotulo)
+                    .font(FrilaTipo.rotuloDeGrupo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField(text: $viewModel.detalhes, prompt: prompt, axis: .vertical) {
+                    Text(verbatim: rotulo)
+                }
+                .lineLimit(2...5)
+                .focused($focoNosDetalhes)
+                .textFieldStyle(.plain)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .caixaDoCampoFrila(emFoco: focoNosDetalhes)
+                .accessibilityIdentifier("detalhes-do-cancelamento")
+                .frilaFormField(id: "cancelamento-detalhes", isFocused: focoNosDetalhes, onDismiss: { focoNosDetalhes = false })
             }
-            .lineLimit(2...5)
-            .focused($focoNosDetalhes)
-            .textFieldStyle(.plain)
-            .font(FrilaTipo.valorDoCampo)
-            .padding(FrilaEspaco.medio)
-            .frame(minHeight: FrilaMetrica.alvoMinimo)
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
-            .accessibilityIdentifier("detalhes-do-cancelamento")
-            .frilaFormField(id: "cancelamento-detalhes", isFocused: focoNosDetalhes, onDismiss: { focoNosDetalhes = false })
         } else {
             Text(verbatim: TextosDoCancelamento.motivoObrigatorio)
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("motivo-obrigatorio")
         }
-
-        if case let .falha(mensagem) = viewModel.estado {
-            AvisoFrila(verbatim: mensagem, tom: .erro)
-                .accessibilityIdentifier("falha-do-cancelamento")
-        }
     }
 
-    @ViewBuilder private var botoesDeAcao: some View {
+    /// A falha da ação, em tinta e logo acima dos botões, e os botões: o "Confirmar" (primário) e o "Voltar" (secundário);
+    /// depois do desfecho, só o "Fechar".
+    @ViewBuilder private var rodape: some View {
         switch viewModel.estado {
         case .pronto, .enviando, .falha:
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Button {
-                    Task { await viewModel.confirmar() }
-                } label: {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        if viewModel.estado == .enviando {
-                            ProgressView()
-                                .tint(FrilaCor.sobrePrimaria)
-                                .accessibilityHidden(true)
-                        }
-                        Text(verbatim: TextosDoCancelamento.confirmar)
-                            .font(FrilaTipo.botao)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, FrilaEspaco.grande)
-                    .padding(.vertical, FrilaEspaco.pequeno)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                    .foregroundStyle(viewModel.podeConfirmar ? FrilaCor.sobrePrimaria : FrilaCor.textoSecundario)
-                    .background(
-                        RoundedRectangle(cornerRadius: FrilaMetrica.alturaDoCampo / 2, style: .continuous)
-                            .fill(viewModel.podeConfirmar ? FrilaCor.perigo : FrilaCor.controle)
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: FrilaMetrica.alturaDoCampo / 2, style: .continuous))
-                }
-                .buttonStyle(.tatil)
-                .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
-                .accessibilityIdentifier("confirmar-cancelamento")
-                .accessibilityLabel(Text(verbatim: TextosDoCancelamento.confirmar))
-                .accessibilityValue(viewModel.estado == .enviando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
+            if case let .falha(mensagem) = viewModel.estado {
+                MensagemJuntoAoBotao(verbatim: mensagem)
+                    .accessibilityIdentifier("falha-do-cancelamento")
+            }
+            BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {
+                Task { await viewModel.confirmar() }
+            }
+            .disabled(!viewModel.podeConfirmar || viewModel.estado == .enviando)
+            .accessibilityIdentifier("confirmar-cancelamento")
 
-                BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
-                    .disabled(viewModel.estado == .enviando)
-                    .accessibilityIdentifier("voltar-do-cancelamento")
-            }
-            .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
-            .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
+            BotaoSecundario(verbatim: TextosDoCancelamento.voltar, acao: fechar)
+                .disabled(viewModel.estado == .enviando)
+                .accessibilityIdentifier("voltar-do-cancelamento")
         case .concluido:
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
-                    .accessibilityIdentifier("fechar-cancelamento")
-            }
-            .padding(dynamicTypeSize.isAccessibilitySize ? 0 : FrilaEspaco.medio)
-            .background(dynamicTypeSize.isAccessibilitySize ? Color.clear : FrilaCor.fundo)
+            BotaoPrimario(verbatim: TextosDoCancelamento.fechar, acao: fechar)
+                .accessibilityIdentifier("fechar-cancelamento")
         }
     }
 
+    /// Uma linha de escolha única: o visto em tinta só na escolhida, sem cor e sem fundo de cor.
     private func opcao(_ motivo: MotivoDeCancelamento) -> some View {
         let escolhido = viewModel.motivo == motivo
-        return Button {
+        return FrilaLinhaDeOpcao(titulo: TextosDoCancelamento.motivo(motivo), remate: .marcada(escolhido)) {
             viewModel.motivo = motivo
-        } label: {
-            HStack(spacing: FrilaEspaco.compacto) {
-                Text(verbatim: TextosDoCancelamento.motivo(motivo))
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-                // Decorativo: o estado vai pelo traço `.isSelected` do botão.
-                Image(systemName: "checkmark")
-                    .font(FrilaTipo.rotuloDoCampo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .opacity(escolhido ? 1 : 0)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(escolhido ? [.isSelected] : [])
         .accessibilityValue(FrilaAcessibilidade.textoSelecao(selecionado: escolhido))
         .accessibilityIdentifier("motivo-\(motivo.rawValue)")
     }
@@ -200,9 +143,30 @@ public struct FolhaDeCancelamento: View {
             .accessibilityIdentifier("desfecho-do-cancelamento")
         if case let .posicao(resultado) = desfecho, viewModel.lado == .profissional {
             Text(verbatim: resultado.falta ? TextosDoProfissional.Turnos.cancelamentoComFalta : TextosDoProfissional.Turnos.cancelamentoSemFalta)
-                .font(FrilaTipo.meta)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("falta-do-cancelamento")
+        }
+    }
+}
+
+/// Os botões da folha ancorados no pé; com texto de acessibilidade eles ficam no fim do conteúdo, para não tomar a tela.
+private struct RodapeDaFolha<Rodape: View>: ViewModifier {
+    let ancorar: Bool
+    let rodape: Rodape
+
+    init(ancorar: Bool, @ViewBuilder rodape: () -> Rodape) {
+        self.ancorar = ancorar
+        self.rodape = rodape()
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if ancorar {
+            content.rodapeAncorado { rodape }
+        } else {
+            content
         }
     }
 }

@@ -176,4 +176,74 @@ final class CapturasR3UITests: XCTestCase {
 
     func testCartaoDeAvaliacaoNoTamanhoPadrao() { cartaoDeAvaliacao(ax5: false) }
     func testCartaoDeAvaliacaoEmAX5() { cartaoDeAvaliacao(ax5: true) }
+
+    // MARK: Digitar o código da casa
+
+    private func codigoDaCasa(ax5: Bool) {
+        let turnoDoProfissional = "24000000-0000-0000-0000-000000000001"
+        let app = iniciar(cenario: "checkin-por-codigo", localizacao: "codigo-perto",
+                          extras: ["-FRILA_PUSH", "turno_nao_verificado", "-FRILA_PUSH_ID", turnoDoProfissional], ax5: ax5)
+        let fazerCheckin = app.buttons["fazer-checkin"]
+        XCTAssertTrue(fazerCheckin.waitForExistence(timeout: 20), "o aviso abre o Meu turno")
+        tocar(fazerCheckin)
+        XCTAssertTrue(app.descendants(matching: .any)["explicacao-localizacao"].waitForExistence(timeout: Espera.aparecer))
+        tocar(app.buttons["permitir-localizacao"])
+        let ler = app.buttons["ler-codigo-da-casa"]
+        XCTAssertTrue(ler.waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-presenca-pendente-\(sufixo(ax5))")
+        tocar(ler)
+        let campo = app.textFields["campo-codigo-checkin"]
+        XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-codigo-vazio-\(sufixo(ax5))")
+        campo.tap()
+        campo.typeText("000001")
+        capturar("r3-codigo-digitado-\(sufixo(ax5))")
+        let confirmar = app.buttons["confirmar-codigo-checkin"]
+        tocarFechandoTeclado(confirmar, em: app)
+        XCTAssertTrue(app.descendants(matching: .any)["codigo-invalido"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-codigo-invalido-\(sufixo(ax5))")
+    }
+
+    func testCodigoDaCasaNoTamanhoPadrao() { codigoDaCasa(ax5: false) }
+    func testCodigoDaCasaEmAX5() { codigoDaCasa(ax5: true) }
+
+    // MARK: Avaliar o turno
+
+    private func avaliacao(ax5: Bool) {
+        let app = iniciar(cenario: "turno-encerrado", extras: ["-FRILA_ABRIR_AVALIACAO_UI_TEST"], ax5: ax5)
+        XCTAssertTrue(app.staticTexts["pergunta-avaliacao"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-avaliacao-vazia-\(sufixo(ax5))")
+        tocar(app.buttons["resposta-sim"])
+        capturar("r3-avaliacao-sim-\(sufixo(ax5))")
+        tocar(app.buttons["botao-enviar-avaliacao"])
+        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-avaliacao"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-avaliacao-enviada-\(sufixo(ax5))")
+    }
+
+    func testAvaliacaoNoTamanhoPadrao() { avaliacao(ax5: false) }
+    func testAvaliacaoEmAX5() { avaliacao(ax5: true) }
+
+    // MARK: Cancelar turno
+
+    private func cancelamento(ax5: Bool) {
+        let app = iniciar(cenario: "turno-confirmado-perto", ax5: ax5)
+        abrirListaDeTurnos(app)
+        tocar(app.buttons["meu-turno-23000000-0000-0000-0000-000000000001"])
+        let cancelar = app.buttons["cancelar-turno"]
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
+        for _ in 0..<8 where !cancelar.isHittable { app.swipeUp() }
+        capturar("r3-meu-turno-fim-\(sufixo(ax5))")
+        tocar(cancelar)
+        XCTAssertTrue(app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch.waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-cancelamento-vazio-\(sufixo(ax5))")
+        tocar(app.buttons["motivo-saude"])
+        capturar("r3-cancelamento-motivo-\(sufixo(ax5))")
+        let confirmar = app.buttons["confirmar-cancelamento"]
+        tocar(confirmar)
+        XCTAssertTrue(app.descendants(matching: .any)["desfecho-do-cancelamento"].firstMatch.waitForExistence(timeout: Espera.aparecer))
+        capturar("r3-cancelamento-desfecho-\(sufixo(ax5))")
+    }
+
+    func testCancelamentoNoTamanhoPadrao() { cancelamento(ax5: false) }
+    func testCancelamentoEmAX5() { cancelamento(ax5: true) }
 }
