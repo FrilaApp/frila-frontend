@@ -4,9 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,7 +21,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.IndicadorCarregando
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,10 +55,9 @@ fun CartaoDoCodigoDaCasa(viewModel: CodigoDaCasaViewModel, modifier: Modifier = 
 }
 
 /**
- * O código de chegada na tela do turno da casa: seis dígitos legíveis, a validade que resta e os estados
- * informativos (sem QR nesta etapa, como o iOS).
+ * O código de chegada na tela do turno da casa: cartão com seis dígitos grandes, legíveis de longe, a validade que
+ * resta e os estados informativos (sem QR nesta etapa, como o iOS). A casa só mostra o código: nada de laranja aqui.
  */
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 @Composable
 fun ConteudoDoCartaoDoCodigo(
     estado: EstadoCartaoDoCodigo,
@@ -64,76 +66,72 @@ fun ConteudoDoCartaoDoCodigo(
 ) {
     // `Indisponivel` (chave desligada) e `JaVerificado` (a tela do turno já mostra o selo): nada a mostrar.
     if (estado.estado == EstadoDoCodigoDaCasa.Indisponivel || estado.estado == EstadoDoCodigoDaCasa.JaVerificado) return
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-    ) {
-        Text(
-            text = TextosCodigoDaCasa.TITULO,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.semantics { heading() },
-        )
-        when (val atual = estado.estado) {
-            EstadoDoCodigoDaCasa.Carregando -> Progresso(TextosCodigoDaCasa.CARREGANDO)
-            EstadoDoCodigoDaCasa.SemCodigoParaEsteCheckin -> Informativo(TextosCodigoDaCasa.SEM_CODIGO_PARA_ESTE_CHECKIN)
-            is EstadoDoCodigoDaCasa.Mostrando -> {
-                Text(
-                    text = TextosCodigoDaCasa.EXPLICACAO,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = atual.codigo,
-                    style = MaterialTheme.typography.displayMedium,
-                    letterSpacing = 4.sp,
-                    maxLines = 1,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = TextosCodigoDaCasa.codigoPorExtenso(atual.codigo) },
-                )
-                if (estado.renovando) {
-                    Progresso(TextosCodigoDaCasa.GERANDO_OUTRO)
-                } else {
+    CartaoFrila(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        ) {
+            Text(
+                text = TextosCodigoDaCasa.TITULO,
+                style = FrilaTipo.nome,
+                color = FrilaTema.cores.tinta,
+                modifier = Modifier.semantics { heading() },
+            )
+            when (val atual = estado.estado) {
+                EstadoDoCodigoDaCasa.Carregando -> Progresso(TextosCodigoDaCasa.CARREGANDO)
+                EstadoDoCodigoDaCasa.SemCodigoParaEsteCheckin -> Informativo(TextosCodigoDaCasa.SEM_CODIGO_PARA_ESTE_CHECKIN)
+                is EstadoDoCodigoDaCasa.Mostrando -> {
+                    Text(text = TextosCodigoDaCasa.EXPLICACAO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
                     Text(
-                        text = TextosCodigoDaCasa.VALIDADE.format(CodigoDaCasaViewModel.formatar(estado.segundosRestantes)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = atual.codigo,
+                        style = FrilaTipo.valorEmDestaque.copy(letterSpacing = 6.sp),
+                        color = FrilaTema.cores.tinta,
+                        maxLines = 1,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = FrilaEspacamento.item)
+                            .semantics { contentDescription = TextosCodigoDaCasa.codigoPorExtenso(atual.codigo) },
+                    )
+                    if (estado.renovando) {
+                        Progresso(TextosCodigoDaCasa.GERANDO_OUTRO)
+                    } else {
+                        Text(
+                            text = TextosCodigoDaCasa.VALIDADE.format(CodigoDaCasaViewModel.formatar(estado.segundosRestantes)),
+                            style = FrilaTipo.apoio,
+                            color = FrilaTema.cores.tintaSuave,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                EstadoDoCodigoDaCasa.ForaDaJanela -> Informativo(TextosCodigoDaCasa.FORA_DA_JANELA)
+                EstadoDoCodigoDaCasa.Encerrado -> Informativo(TextosCodigoDaCasa.ENCERRADO)
+                EstadoDoCodigoDaCasa.Falhou -> {
+                    Text(text = TextosCodigoDaCasa.FALHOU, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
+                    BotaoSecundario(
+                        texto = TextosCodigoDaCasa.TENTAR_DE_NOVO,
+                        aoClicar = aoTentarDeNovo,
                     )
                 }
+                EstadoDoCodigoDaCasa.Indisponivel, EstadoDoCodigoDaCasa.JaVerificado -> Unit
             }
-            EstadoDoCodigoDaCasa.ForaDaJanela -> Informativo(TextosCodigoDaCasa.FORA_DA_JANELA)
-            EstadoDoCodigoDaCasa.Encerrado -> Informativo(TextosCodigoDaCasa.ENCERRADO)
-            EstadoDoCodigoDaCasa.Falhou -> {
-                Text(
-                    text = TextosCodigoDaCasa.FALHOU,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                BotaoSecundario(
-                    texto = TextosCodigoDaCasa.TENTAR_DE_NOVO,
-                    aoClicar = aoTentarDeNovo,
-                )
-            }
-            EstadoDoCodigoDaCasa.Indisponivel, EstadoDoCodigoDaCasa.JaVerificado -> Unit
         }
     }
 }
 
 @Composable
 private fun Informativo(texto: String) {
-    Text(text = texto, style = MaterialTheme.typography.bodyMedium)
+    Text(text = texto, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
 }
 
 @Composable
 private fun Progresso(texto: String) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-        Text(text = texto, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        IndicadorCarregando(modifier = Modifier.size(20.dp))
+        Text(text = texto, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
     }
 }
