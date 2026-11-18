@@ -171,14 +171,14 @@ fun ConteudoContestarDespacho(
                         Modifier.fillMaxWidth(),
                         habilitado = !estado.enviando,
                     )
-                } else {
-                    BotaoSecundario(
-                        TextosContestarDespacho.VOLTAR,
-                        aoVoltar,
-                        Modifier.fillMaxWidth(),
-                        habilitado = !estado.enviando,
-                    )
                 }
+                // A saída sem contestar continua explícita, como na main: sempre presente, desligada só durante o envio.
+                BotaoSecundario(
+                    TextosContestarDespacho.VOLTAR,
+                    aoVoltar,
+                    Modifier.fillMaxWidth(),
+                    habilitado = !estado.enviando,
+                )
             }
         },
     ) { preenchimento ->
