@@ -241,7 +241,7 @@ class TelaFeedVagasTest {
             }
 
             compose.waitForIdle()
-            val campoBusca = compose.onNodeWithContentDescription("Buscar vagas por função ou estabelecimento")
+            val campoBusca = compose.onNodeWithContentDescription("Buscar função ou estabelecimento")
             campoBusca.assertIsDisplayed()
             campoBusca.performTextInput("Barista")
             compose.waitForIdle()
