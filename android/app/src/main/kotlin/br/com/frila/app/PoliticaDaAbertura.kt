@@ -10,20 +10,23 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * - voltar do segundo plano não cria a Activity de novo, e recriá-la (rotação, tema, o sistema que a reconstrói) chega com
  *   estado salvo: nenhum dos dois toca;
- * - abrir o app de novo com o processo ainda vivo (saiu pelo voltar e voltou) também não: a abertura é do processo, e o
- *   sinal [ProcessoJaTocou] vive tanto quanto ele;
+ * - um processo que começou com a Activity restaurada (Android 9 a 11) gasta a vez dele sem tocar: abrir o app de novo
+ *   pelo ícone nesse mesmo processo também não toca, nem a reabertura depois do primeiro toque (saiu pelo voltar e voltou);
+ *   o sinal [ProcessoJaTocou] vive tanto quanto o processo;
  * - os testes (de interface e de unidade) desligam a abertura pela chave [EXTRA_PULAR_ABERTURA] no Intent de lançamento.
  */
 internal class PoliticaDaAbertura(private val jaTocou: AtomicBoolean = ProcessoJaTocou) {
 
     /**
-     * Decide se esta criação da Activity toca a abertura e, se sim, reserva a vez do processo: só uma criação a recebe.
-     * `primeiraCriacao` é "sem estado salvo" (`savedInstanceState == null`).
+     * Decide se esta criação da Activity toca a abertura. A primeira criação de Activity do processo gasta a vez dele,
+     * toque ou não: a abertura toca no máximo uma vez por processo, e só se o processo começou sem estado salvo (abertura
+     * a frio de verdade). Processo novo com Activity restaurada (`primeiraCriacao` falso), recriação e reabertura no mesmo
+     * processo nunca tocam. `primeiraCriacao` é "sem estado salvo" (`savedInstanceState == null`).
      */
     fun deveTocar(intent: Intent?, primeiraCriacao: Boolean): Boolean {
+        val primeiraDoProcesso = jaTocou.compareAndSet(false, true)
         if (intent?.getBooleanExtra(EXTRA_PULAR_ABERTURA, false) == true) return false
-        if (!primeiraCriacao) return false
-        return jaTocou.compareAndSet(false, true)
+        return primeiraDoProcesso && primeiraCriacao
     }
 
     companion object {

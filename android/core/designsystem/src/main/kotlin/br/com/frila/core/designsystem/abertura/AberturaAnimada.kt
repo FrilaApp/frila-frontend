@@ -107,6 +107,9 @@ fun AberturaAnimada(
         } else {
             conduzir(roteiro, tempo, escalaDoApp) { haptico.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
         }
+        // O assento do app (350 ms ao pular) pode ser mais longo que o esmaecimento (250 ms): sair da cena cancelaria a
+        // animação no meio e deixaria o app em 0,998 para sempre. O app termina em 1 exato, sempre.
+        escalaDoApp.snapTo(1f)
         ativa = false
         aoTerminarAtual()
     }
