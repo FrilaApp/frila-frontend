@@ -108,7 +108,7 @@ final class CapturasR7UITests: XCTestCase {
     func testFolhaDeSuporteNoTamanhoPadrao() { folhaDeSuporte(ax5: false) }
     func testFolhaDeSuporteEmAX5() { folhaDeSuporte(ax5: true) }
 
-    // MARK: - Parte 2: denúncia, bloqueio e perfil público
+    // MARK: - Parte 2: denúncia, bloqueio, perfil público, bloqueados, histórico, exportar, aparência e licenças
 
     private let vagaID = "40000000-0000-0000-0000-000000000001"
 
@@ -201,8 +201,8 @@ final class CapturasR7UITests: XCTestCase {
     func testFolhaDeDenunciaNoTamanhoPadrao() { folhaDeDenuncia(ax5: false) }
     func testFolhaDeDenunciaEmAX5() { folhaDeDenuncia(ax5: true) }
 
-    /// Bloquear (o alerta) e o perfil que fica indisponível.
-    private func bloqueioNoPerfil(ax5: Bool) {
+    /// Bloquear (o alerta), o perfil que fica indisponível, a lista de bloqueados e o desbloqueio.
+    private func bloqueioEListaDeBloqueados(ax5: Bool) {
         let app = abrirPerfilDaCasa(ax5: ax5)
         let bloquear = app.buttons["bloquear"]
         rolarAteVer(bloquear, em: app)
@@ -213,8 +213,121 @@ final class CapturasR7UITests: XCTestCase {
         confirmar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["perfil-indisponivel"].waitForExistence(timeout: Espera.aparecer))
         capturar("r7-perfil-indisponivel", ax5: ax5)
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-nao-encontrada"].waitForExistence(timeout: Espera.aparecer))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        let abaConta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(abaConta.waitForExistence(timeout: Espera.aparecer))
+        abaConta.tap()
+        let linkBloqueios = app.buttons["perfil-bloqueios"]
+        XCTAssertTrue(linkBloqueios.waitForExistence(timeout: Espera.aparecer))
+        rolarAteVer(linkBloqueios, em: app)
+        linkBloqueios.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-bloqueios"].waitForExistence(timeout: Espera.aparecer))
+        let desbloquear = app.buttons["desbloquear-30000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(desbloquear.waitForExistence(timeout: Espera.aparecer))
+        conferirBotao(desbloquear, "Desbloquear")
+        capturar("r7-bloqueados-lista", ax5: ax5)
+
+        desbloquear.tap()
+        let confirmarDesbloqueio = app.alerts.buttons["confirmar-desbloqueio"].firstMatch
+        XCTAssertTrue(confirmarDesbloqueio.waitForExistence(timeout: Espera.aparecer))
+        capturar("r7-desbloquear-alerta", ax5: ax5)
+        confirmarDesbloqueio.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["bloqueios-vazio"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r7-bloqueados-vazio", ax5: ax5)
     }
 
-    func testBloqueioNoPerfilNoTamanhoPadrao() { bloqueioNoPerfil(ax5: false) }
-    func testBloqueioNoPerfilEmAX5() { bloqueioNoPerfil(ax5: true) }
+    func testBloqueioEListaDeBloqueadosNoTamanhoPadrao() { bloqueioEListaDeBloqueados(ax5: false) }
+    func testBloqueioEListaDeBloqueadosEmAX5() { bloqueioEListaDeBloqueados(ax5: true) }
+
+    /// Abre a aba Conta e rola até a entrada.
+    private func abrirPelaConta(_ app: XCUIApplication, entrada identificador: String) {
+        let aba = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(aba.waitForExistence(timeout: 15))
+        aba.tap()
+        let entrada = app.buttons[identificador]
+        XCTAssertTrue(entrada.waitForExistence(timeout: Espera.aparecer), "a entrada \(identificador) está na Conta")
+        rolarAteVer(entrada, em: app, tentativas: 8)
+        entrada.tap()
+    }
+
+    private func historicoDeTurnos(ax5: Bool) {
+        let app = iniciar(["-FRILA_RELOGIO_AGORA", "2026-10-15T12:00:00Z"], cacheVazio: false, ax5: ax5)
+        abrirPelaConta(app, entrada: "perfil-historico-turnos")
+        let exportar = app.buttons["historico-exportar"]
+        XCTAssertTrue(exportar.waitForExistence(timeout: Espera.aparecer))
+        conferirBotao(exportar, "Exportar")
+        conferirBotao(app.buttons["historico-este-mes"], "Este mês")
+        capturar("r7-historico", ax5: ax5)
+
+        let intervalo = app.buttons["historico-intervalo"]
+        rolarAteVer(intervalo, em: app)
+        intervalo.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["historico-de"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r7-historico-datas", ax5: ax5)
+    }
+
+    func testHistoricoDeTurnosNoTamanhoPadrao() { historicoDeTurnos(ax5: false) }
+    func testHistoricoDeTurnosEmAX5() { historicoDeTurnos(ax5: true) }
+
+    private func exportarMeusDados(ax5: Bool) {
+        let app = iniciar([], cacheVazio: false, ax5: ax5)
+        let aba = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(aba.waitForExistence(timeout: 15))
+        aba.tap()
+        let item = app.buttons["perfil-exportar-dados"]
+        XCTAssertTrue(item.waitForExistence(timeout: Espera.aparecer))
+        rolarAteVer(item, em: app, tentativas: 8)
+        conferirBotao(item, "Exportar meus dados")
+        XCTAssertTrue(app.staticTexts["perfil-exportar-dados-explicacao"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r7-exportar-dados", ax5: ax5)
+    }
+
+    func testExportarMeusDadosNoTamanhoPadrao() { exportarMeusDados(ax5: false) }
+    func testExportarMeusDadosEmAX5() { exportarMeusDados(ax5: true) }
+
+    private func aparencia(ax5: Bool) {
+        let app = iniciar(["-FRILA_ABA_CONTA"], cacheVazio: false, ax5: ax5)
+        let linha = app.buttons["perfil-aparencia"]
+        XCTAssertTrue(linha.waitForExistence(timeout: 15))
+        rolarAteVer(linha, em: app, tentativas: 8)
+        linha.tap()
+        let claro = app.buttons["aparencia-claro"]
+        XCTAssertTrue(claro.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(claro.isSelected, "Claro é o padrão")
+        conferirBotao(claro, "Claro")
+        conferirBotao(app.buttons["aparencia-escuro"], "Escuro")
+        capturar("r7-aparencia", ax5: ax5)
+    }
+
+    func testAparenciaNoTamanhoPadrao() { aparencia(ax5: false) }
+    func testAparenciaEmAX5() { aparencia(ax5: true) }
+
+    private func licencas(ax5: Bool) {
+        let app = iniciar([], cacheVazio: false, ax5: ax5)
+        let aba = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(aba.waitForExistence(timeout: 15))
+        aba.tap()
+        let ajuda = app.buttons["perfil-ajuda"]
+        XCTAssertTrue(ajuda.waitForExistence(timeout: Espera.aparecer))
+        rolarAteVer(ajuda, em: app, tentativas: 8)
+        ajuda.tap()
+        let entrada = app.descendants(matching: .any)["perfil-licencas"]
+        XCTAssertTrue(entrada.waitForExistence(timeout: Espera.aparecer))
+        rolarAteVer(entrada, em: app, tentativas: 12)
+        entrada.tap()
+        let pacote = app.buttons["licenca-abseil-cpp-binary"]
+        XCTAssertTrue(pacote.waitForExistence(timeout: Espera.aparecer))
+        conferirBotao(pacote, "primeiro pacote")
+        capturar("r7-licencas-lista", ax5: ax5)
+        pacote.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-detalhe-da-licenca"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r7-licencas-detalhe", ax5: ax5)
+    }
+
+    func testLicencasNoTamanhoPadrao() { licencas(ax5: false) }
+    func testLicencasEmAX5() { licencas(ax5: true) }
 }
