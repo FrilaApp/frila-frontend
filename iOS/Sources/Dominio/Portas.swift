@@ -478,6 +478,12 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada
     /// 0.2.41: Republica em urgência as posições restantes de uma vaga de seleção que fechou (D1-C).
     func republicarPosicoesRestantes(vagaID: UUID, chave: UUID) async throws -> VagaPublicada
+    /// 0.2.96 (`POST /rpc/publicar_escala`): um evento e de 1 a 10 vagas de uma vez, tudo ou nada. A `chave` é uma só
+    /// para a escala inteira: reenviar devolve a mesma escala, sem publicar de novo, e uma escala recusada não gasta a
+    /// chave. Recusas: `campoObrigatorio` e `campoInvalido` com o caminho do campo em `detalhes` (`evento.nome`,
+    /// `vagas[2].valor_centavos`, `vagas`, `posicoes`), `horarioInvalido` e `selecaoSemAntecedencia` com `vagas[i]`,
+    /// `perfilIncompativel`, `semPermissao` (também `conta_suspensa`) e `limiteExcedido`.
+    func publicarEscala(_ escala: PublicacaoEscala) async throws -> EscalaPublicada
     func vagasAbertas(_ filtro: FiltroVagas) async throws -> [VagaNaLista]
     func detalheDaVaga(id: UUID) async throws -> Vaga
     func candidatar(vagaID: UUID) async throws -> ResultadoCandidatura
@@ -614,6 +620,7 @@ public extension ApiCliente {
     func fazerCheckin(turnoID: UUID, distanciaMetros: Int?, registradoEm: Date, sinais: SinaisDoCheckin?) async throws -> ResultadoRegistro {
         try await fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
+    func publicarEscala(_ escala: PublicacaoEscala) async throws -> EscalaPublicada { throw ErroDaApi(codigo: .respostaInvalida) }
     func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin { throw ErroDaApi(codigo: .respostaInvalida) }
     func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro {
         throw ErroDaApi(codigo: .respostaInvalida)

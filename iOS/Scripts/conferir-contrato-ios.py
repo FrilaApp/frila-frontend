@@ -236,7 +236,6 @@ def conferir_rpcs(
             ),
             "Contrato 0.2.73: múltiplos membros por estabelecimento com papéis; pendente de adoção no app iOS.",
         ),
-        "publicar_escala": "Contrato 0.2.96: escala de evento em lote; pendente de adoção no app iOS (pedido 18-02, PR da escala).",
         "membros_do_estabelecimento": "Contrato 0.2.103: lista da equipe da casa; pendente de adoção no app iOS (pedido 18-02, PR da equipe).",
         "vaga_publica": "Contrato 0.2.100: página pública da vaga, sem login, que só a web lê; o app não a consome.",
         **dict.fromkeys(
@@ -526,9 +525,6 @@ def conferir_dtos(
             "pendente de adoção no cliente iOS."
         ),
         "PreferenciaChamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
-        "NovaEscala": "Corpo de publicar_escala (0.2.96); pendente de adoção no app iOS (pedido 18-02, PR da escala).",
-        "ItemEscala": "Item de NovaEscala (0.2.96); pendente de adoção no app iOS (pedido 18-02, PR da escala).",
-        "EscalaPublicada": "Resposta de publicar_escala (0.2.96); pendente de adoção no app iOS (pedido 18-02, PR da escala).",
         "MembroDoEstabelecimento": "Resposta de membros_do_estabelecimento (0.2.103); pendente de adoção no app iOS (pedido 18-02, PR da equipe).",
         "VagaPublica": "Resposta de vaga_publica (0.2.100); só a web lê, o app não consome.",
     }

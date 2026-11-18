@@ -236,6 +236,8 @@ private struct DestinoDasVagasDoContratante: View {
     /// (DINHEIRO: sem ela, a busca recomeçaria limpa e a folha nova abriria uma 2ª vaga).
     @State private var guardaDaBusca: GuardaDaBuscaDeProfissionais
     @Binding private var publicando: Bool
+    /// A escala de evento toma o lugar da lista, como a publicação de uma vaga.
+    @State private var escalando = false
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     init(
@@ -263,7 +265,11 @@ private struct DestinoDasVagasDoContratante: View {
 
     var body: some View {
         Group {
-            if publicando, let fila {
+            if escalando {
+                DestinoDePublicarEscala(
+                    api: api, modelo: publicacao, aoConcluir: { escalando = false }, aoCancelar: { escalando = false }
+                )
+            } else if publicando, let fila {
                 DestinoDePublicarVaga(
                     api: api, fila: fila, modelo: publicacao, rascunhoDaBusca: rascunhoDaBusca, sair: sair ?? {},
                     cancelar: { publicando = false; rascunhoDaBusca = nil },
@@ -285,6 +291,7 @@ private struct DestinoDasVagasDoContratante: View {
                     fila: fila,
                     roteador: roteador,
                     publicarVaga: fila == nil ? nil : { rascunhoDaBusca = nil; publicando = true },
+                    publicarEscala: { escalando = true },
                     // Sem o banco local não há fila para publicar: a busca vazia não oferece "Publicar para todos".
                     publicarParaTodosDaBusca: fila == nil ? nil : { rascunho in
                         rascunhoDaBusca = rascunho

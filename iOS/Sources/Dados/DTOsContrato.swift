@@ -1226,6 +1226,105 @@ enum ContratoAPI {
         func dominio() -> VagaPublicada { VagaPublicada(vagaID: vagaID, posicoes: posicoes) }
     }
 
+    /// Corpo de `publicar_escala` (0.2.96): o evento, de 1 a 10 vagas e a chave da escala.
+    struct NovaEscala: Encodable {
+        let estabelecimentoID: UUID
+        let evento: EventoDaNovaEscala
+        let vagas: [ItemEscala]
+        let chave: UUID
+
+        init(_ escala: PublicacaoEscala) {
+            estabelecimentoID = escala.estabelecimentoID
+            evento = EventoDaNovaEscala(escala.evento)
+            vagas = escala.vagas.map(ItemEscala.init)
+            chave = escala.chave
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case evento, vagas, chave
+            case estabelecimentoID = "estabelecimento_id"
+        }
+    }
+
+    /// O objeto `evento` de `NovaEscala`: nome, dia (`yyyy-MM-dd`, horário de Brasília) e o lugar das vagas.
+    struct EventoDaNovaEscala: Encodable {
+        let nome: String
+        let data: String
+        let local: String
+        let regiaoAdministrativa: String
+        let ponto: CoordenadaDTO
+
+        init(_ evento: EventoDaEscala) {
+            nome = evento.nome
+            data = evento.data.contrato
+            local = evento.local
+            regiaoAdministrativa = evento.regiaoAdministrativa
+            ponto = CoordenadaDTO(evento.ponto)
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case nome, data, local, ponto
+            case regiaoAdministrativa = "regiao_administrativa"
+        }
+    }
+
+    /// Uma vaga da escala: os campos de `NovaVaga`, menos o estabelecimento, a chave e o endereço.
+    struct ItemEscala: Encodable {
+        let funcaoID: UUID
+        let inicioEm: String
+        let fimEm: String
+        let valorCentavos: Int
+        let posicoes: Int
+        let incluiRefeicao: Bool
+        let incluiTransporte: Bool
+        let exigeMaterialProprio: Bool
+        let responsavelLocal: String
+        let traje: String?
+        let participaRateio: Bool?
+        let observacoes: String?
+        let modo: ModoPreenchimento
+        let alertaAntecedenciaMin: Int?
+
+        init(_ vaga: VagaDaEscala) {
+            funcaoID = vaga.funcaoID
+            inicioEm = ContratoAPI.texto(vaga.periodo.inicio)
+            fimEm = ContratoAPI.texto(vaga.periodo.fim)
+            valorCentavos = vaga.valor.centavos
+            posicoes = vaga.posicoes
+            incluiRefeicao = vaga.inclusos.refeicao
+            incluiTransporte = vaga.inclusos.transporte
+            exigeMaterialProprio = vaga.inclusos.exigeMaterialProprio
+            responsavelLocal = vaga.responsavelLocal
+            traje = vaga.traje
+            participaRateio = vaga.participaRateio
+            observacoes = vaga.observacoes
+            modo = vaga.modo
+            alertaAntecedenciaMin = vaga.alertaAntecedenciaMinutos
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case posicoes, traje, observacoes, modo
+            case funcaoID = "funcao_id"
+            case inicioEm = "inicio_em"
+            case fimEm = "fim_em"
+            case valorCentavos = "valor_centavos"
+            case incluiRefeicao = "inclui_refeicao"
+            case incluiTransporte = "inclui_transporte"
+            case exigeMaterialProprio = "exige_material_proprio"
+            case responsavelLocal = "responsavel_local"
+            case participaRateio = "participa_rateio"
+            case alertaAntecedenciaMin = "alerta_antecedencia_min"
+        }
+    }
+
+    /// Resposta de `publicar_escala`: o evento e uma vaga publicada por item do pedido, na mesma ordem.
+    struct EscalaPublicadaDTO: Decodable {
+        let eventoID: UUID
+        let vagas: [VagaPublicadaDTO]
+        enum CodingKeys: String, CodingKey { case eventoID = "evento_id"; case vagas }
+        func dominio() -> EscalaPublicada { EscalaPublicada(eventoID: eventoID, vagas: vagas.map { $0.dominio() }) }
+    }
+
     struct RepublicarVaga: Encodable {
         let vagaID: UUID
         let inicioEm: String

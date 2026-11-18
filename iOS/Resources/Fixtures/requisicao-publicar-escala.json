@@ -1,0 +1,42 @@
+{
+  "estabelecimento_id": "30000000-0000-0000-0000-000000000001",
+  "evento": {
+    "nome": "Formatura de Direito",
+    "data": "2026-12-12",
+    "local": "CLS 405, Asa Sul, Brasília - DF",
+    "regiao_administrativa": "Plano Piloto",
+    "ponto": {
+      "latitude": -15.8121,
+      "longitude": -47.8997
+    }
+  },
+  "vagas": [
+    {
+      "funcao_id": "20000000-0000-0000-0000-000000000001",
+      "inicio_em": "2026-12-12T21:00:00Z",
+      "fim_em": "2026-12-13T02:00:00Z",
+      "valor_centavos": 16000,
+      "posicoes": 6,
+      "inclui_refeicao": true,
+      "inclui_transporte": false,
+      "exige_material_proprio": false,
+      "responsavel_local": "Marina",
+      "participa_rateio": false,
+      "modo": "urgencia"
+    },
+    {
+      "funcao_id": "20000000-0000-0000-0000-000000000002",
+      "inicio_em": "2026-12-12T20:00:00Z",
+      "fim_em": "2026-12-13T02:00:00Z",
+      "valor_centavos": 18000,
+      "posicoes": 2,
+      "inclui_refeicao": true,
+      "inclui_transporte": false,
+      "exige_material_proprio": false,
+      "responsavel_local": "Marina",
+      "participa_rateio": false,
+      "modo": "urgencia"
+    }
+  ],
+  "chave": "90000000-0000-0000-0000-000000000002"
+}
