@@ -88,6 +88,7 @@ import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
+import br.com.frila.feature.perfil.AtalhoDaConta
 import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.PontoBaseViewModel
@@ -125,6 +126,10 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /** Rotas da navegação declarativa. Única fonte de verdade dos destinos possíveis do app. */
+/** Marcas de teste das duas linhas que o app põe no grupo da conta do Perfil. */
+internal const val ENTRADA_BLOQUEIOS = "entrada-bloqueios"
+internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
+
 object Rotas {
     const val ENTRADA = "entrada"
     const val CODIGO = "codigo/{email}"
@@ -158,7 +163,7 @@ object Rotas {
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
-    // Lote 2 do Android (L2-8). Telas PROVISÓRIAS; o lugar de cada entrada está em `EntradasProvisorias.kt`.
+    // Lote 2 do Android (L2-8).
     const val CANCELAR_VAGA = "cancelar_vaga/{vagaId}?inicioDaVaga={inicioDaVaga}"
     const val REPUBLICAR_VAGA = "republicar_vaga/{vagaId}?selecao={selecao}&duracaoMin={duracaoMin}"
     const val MINHAS_CANDIDATURAS = "minhas_candidaturas"
@@ -736,78 +741,74 @@ fun AppNavegacao(
                     var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
                     LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
                     val primeiraCasa = casas as? CasasDaConta.Primeira
-                    // L2-5 e L2-6: sem lugar nas telas de hoje, as duas entradas são linhas sob o perfil (ver `EntradasProvisorias.kt`).
-                    // Bloqueados é dos dois papéis; contestar o despacho é só do profissional (mesma regra de `casas` das outras entradas dele).
-                    ComEntradasProvisorias(
-                        listOfNotNull(
-                            EntradaProvisoria(ENTRADA_BLOQUEIOS, TextosBloqueios.TITULO) { navController.navigate(Rotas.BLOQUEIOS) },
-                            if (casas == CasasDaConta.Desconhecidas) {
-                                EntradaProvisoria(ENTRADA_CONTESTAR_DESPACHO, TextosContestarDespacho.TITULO) {
-                                    navController.navigate(Rotas.CONTESTAR_DESPACHO)
-                                }
-                            } else {
-                                null
-                            },
-                        ),
-                    ) {
-                        TelaPerfil(
-                            viewModel = viewModel,
-                            manterAtalhosDeContratanteNoErro = primeiraCasa != null,
-                            recursoSeloHabilitado = recursoSeloHabilitado,
-                            verificacaoIdentidade = estadoSelo?.verificacao,
-                            podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
-                            aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
-                            aoDeslogar = { irParaEntrada() },
-                            aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
-                            aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
-                            aoAbrirEquipe = primeiraCasa?.let { casa ->
-                                { navController.navigate(Rotas.equipe(casa.id)) }
-                            },
-                            aoPublicarVaga = primeiraCasa?.let { casa ->
-                                { navController.navigate(Rotas.publicarVaga(casa.id)) }
-                            },
-                            // Com as abas da casa, "Minhas vagas" é a primeira aba: o atalho do Perfil sai.
-                            aoMinhasVagas = primeiraCasa?.takeIf { papelDaRaiz !is PapelDaRaiz.Contratante }?.let { casa ->
-                                { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
-                            },
-                            aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
-                                { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
-                            } else {
-                                null
-                            },
-                            // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
-                            aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
-                                { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
-                            } else {
-                                null
-                            },
-                            // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
-                            // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
-                            // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
-                            aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
-                            } else {
-                                null
-                            },
-                            // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
-                            aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(Rotas.APRESENTACAO) }
-                            } else {
-                                null
-                            },
-                            aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(Rotas.FOTO_DE_PERFIL) }
-                            } else {
-                                null
-                            },
-                            // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
-                            aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(Rotas.PONTO_BASE) }
-                            } else {
-                                null
-                            },
-                        )
-                    }
+                    // L2-5 e L2-6: "Pessoas e locais bloqueados" é dos dois papéis; contestar o despacho é só do profissional
+                    // (mesma regra de `casas` das outras entradas dele). São linhas do grupo da conta, no Perfil.
+                    val atalhosDaConta = listOfNotNull(
+                        if (casas == CasasDaConta.Desconhecidas) {
+                            AtalhoDaConta(TextosContestarDespacho.TITULO, ENTRADA_CONTESTAR_DESPACHO) { navController.navigate(Rotas.CONTESTAR_DESPACHO) }
+                        } else {
+                            null
+                        },
+                        AtalhoDaConta(TextosBloqueios.TITULO, ENTRADA_BLOQUEIOS) { navController.navigate(Rotas.BLOQUEIOS) },
+                    )
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        atalhosExtras = atalhosDaConta,
+                        manterAtalhosDeContratanteNoErro = primeiraCasa != null,
+                        recursoSeloHabilitado = recursoSeloHabilitado,
+                        verificacaoIdentidade = estadoSelo?.verificacao,
+                        podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
+                        aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
+                        aoDeslogar = { irParaEntrada() },
+                        aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
+                        aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
+                        aoAbrirEquipe = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.equipe(casa.id)) }
+                        },
+                        aoPublicarVaga = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.publicarVaga(casa.id)) }
+                        },
+                        // Com as abas da casa, "Minhas vagas" é a primeira aba: o atalho do Perfil sai.
+                        aoMinhasVagas = primeiraCasa?.takeIf { papelDaRaiz !is PapelDaRaiz.Contratante }?.let { casa ->
+                            { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
+                        },
+                        aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
+                            { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
+                        } else {
+                            null
+                        },
+                        // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
+                        aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
+                            { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
+                        } else {
+                            null
+                        },
+                        // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
+                        // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
+                        // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
+                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
+                        } else {
+                            null
+                        },
+                        // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
+                        aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.APRESENTACAO) }
+                        } else {
+                            null
+                        },
+                        aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.FOTO_DE_PERFIL) }
+                        } else {
+                            null
+                        },
+                        // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
+                        aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.PONTO_BASE) }
+                        } else {
+                            null
+                        },
+                    )
                 }
             }
 
