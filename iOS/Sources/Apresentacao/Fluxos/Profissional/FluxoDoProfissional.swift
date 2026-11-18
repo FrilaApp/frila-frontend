@@ -72,8 +72,12 @@ public final class RoteadorDoProfissional {
         aba = .vagas
     }
 
-    /// A conta saiu ou outra entrou. Por enquanto só volta para a lista (o conserto vem no commit seguinte).
+    /// A conta saiu, a sessão caiu ou outra conta entrou. Além de voltar para a lista, solta a candidatura que ainda
+    /// estiver em voo: o roteador é do app, não da conta, e sem isto o resultado da conta anterior (com a vaga dela)
+    /// reabria para a conta seguinte. `voltarParaLista` não faz isso de propósito: dentro da mesma conta, a pessoa
+    /// sai do detalhe e o resultado da própria candidatura ainda tem de abrir.
     public func reiniciarParaOutraConta() {
+        candidaturaEmAndamento = nil
         voltarParaLista()
     }
 

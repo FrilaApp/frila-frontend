@@ -97,6 +97,25 @@ struct TurnosEntreContasTests {
         #expect(try await cache.sessao()?.usuarioID == contaB, "a sessão de B continua guardada")
     }
 
+    @Test("A época do cache muda a cada limpeza, e a gravação com a época antiga é recusada sem guardar nada")
+    func gravacaoComEpocaAntigaERecusada() async throws {
+        let cache = try armazenamentoEmMemoria()
+        let turno = try turnoSintetico(da: "Casa sintética A", inicio: agora)
+        let antes = await cache.epoca()
+
+        try await cache.limpar()
+        let depois = await cache.epoca()
+        #expect(depois != antes)
+
+        let gravouComAAntiga = try await cache.salvar(turnos: [turno], em: agora, seAindaNaEpoca: antes)
+        #expect(!gravouComAAntiga)
+        #expect(try await cache.turnosValidos(em: agora).isEmpty)
+
+        let gravouComAAtual = try await cache.salvar(turnos: [turno], em: agora, seAindaNaEpoca: depois)
+        #expect(gravouComAAtual)
+        #expect(try await cache.turnosValidos(em: agora) == [turno])
+    }
+
     @Test("A leitura que começa depois da limpeza continua guardando: B com rede e depois sem rede vê os próprios turnos")
     func leituraDepoisDaLimpezaGuardaNormalmente() async throws {
         let cache = try armazenamentoEmMemoria()
