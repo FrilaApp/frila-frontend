@@ -267,7 +267,7 @@ class AppNavegacaoContaSuporteEquipeTest {
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_AO_TURNO).performScrollTo().assertExists()
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_A_CHAMADA).performScrollTo().assertExists()
         rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Relato com mais de dez caracteres.")
-        rule.onNodeWithText(TextosSuporte.ENVIAR).performScrollTo().performClick()
+        rule.onNodeWithText(TextosSuporte.ENVIAR).performClick()
 
         rule.runOnIdle {
             val corpo = denuncias.single()
@@ -286,7 +286,7 @@ class AppNavegacaoContaSuporteEquipeTest {
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_AO_TURNO).assertDoesNotExist()
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_A_CHAMADA).assertDoesNotExist()
         rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Relato com mais de dez caracteres.")
-        rule.onNodeWithText(TextosSuporte.ENVIAR).performScrollTo().performClick()
+        rule.onNodeWithText(TextosSuporte.ENVIAR).performClick()
 
         rule.runOnIdle {
             assertEquals("profissional", denuncias.single().alvoTipo)
