@@ -1,9 +1,7 @@
 package br.com.frila.app
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,7 +11,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.IndicadorCarregando
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -236,26 +233,24 @@ internal fun RotaTurnoDoContratante(
                 viewModel.atualizarContexto(atual.contexto)
             }
             val codigoDaCasa = codigoDaCasaDoTurno(checkinPorCodigoHabilitado, atual.contexto.turnoId) { tentativa++ }
-            // L2-6: só com a presença verificada (a condição de `incluir_na_equipe`; o servidor confere de novo), como o iOS. TELA PROVISÓRIA: o
-            // bloco fica sob o turno, que ainda não tem lugar para ele.
+            // L2-6: só com a presença verificada (a condição de `incluir_na_equipe`; o servidor confere de novo), como o iOS.
+            // O bloco entra na própria tela do turno, depois da chegada.
             val profissional = atual.contexto.profissional?.takeIf { atual.contexto.verificacao == "verificado" }
-            Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f)) {
-                    TelaTurnoDoContratante(
-                        viewModel = viewModel,
-                        aoVoltar = aoVoltar,
-                        aoDenunciarProfissional = aoDenunciarProfissional,
-                        codigoDaCasa = codigoDaCasa,
-                    )
-                }
-                if (profissional != null) {
-                    val incluir: IncluirNaEquipeViewModel = koinViewModel(
-                        key = "incluir-${profissional.id}",
-                        parameters = { parametersOf(estabelecimentoId, profissional.id) },
-                    )
-                    IncluirNaEquipe(viewModel = incluir, nome = profissional.nome, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                }
-            }
+            TelaTurnoDoContratante(
+                viewModel = viewModel,
+                aoVoltar = aoVoltar,
+                aoDenunciarProfissional = aoDenunciarProfissional,
+                codigoDaCasa = codigoDaCasa,
+                depoisDaChegada = profissional?.let {
+                    {
+                        val incluir: IncluirNaEquipeViewModel = koinViewModel(
+                            key = "incluir-${it.id}",
+                            parameters = { parametersOf(estabelecimentoId, it.id) },
+                        )
+                        IncluirNaEquipe(viewModel = incluir, nome = it.nome)
+                    }
+                },
+            )
         }
     }
 }
