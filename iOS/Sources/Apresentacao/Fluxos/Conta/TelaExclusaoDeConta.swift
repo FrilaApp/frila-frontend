@@ -49,7 +49,8 @@ public struct TelaExclusaoDeConta: View {
     private var confirmacaoFinal: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
-                Text(verbatim: TextosExclusaoDeConta.dialogoTitulo)
+                Text(verbatim: Self.tituloComHifen(TextosExclusaoDeConta.dialogoTitulo))
+                    .accessibilityLabel(Text(verbatim: TextosExclusaoDeConta.dialogoTitulo))
                     .font(FrilaTipo.tituloDaTela)
                     .foregroundStyle(FrilaCor.texto)
                     .lineLimit(nil)
@@ -86,6 +87,12 @@ public struct TelaExclusaoDeConta: View {
         .presentationDetents([.large])
         .presentationCornerRadius(FrilaRaio.folha)
         .presentationDragIndicator(.visible)
+    }
+
+    /// Em texto grande a palavra mais longa do título não cabe na linha e quebrava no meio, sem hífen. O hífen
+    /// opcional (U+00AD) só aparece onde a palavra precisa quebrar, e o rótulo falado segue sem ele.
+    private static func tituloComHifen(_ titulo: String) -> String {
+        titulo.replacingOccurrences(of: "definitivamente", with: "definitiva\u{00AD}mente")
     }
 
     private var avisoPrincipal: some View {
