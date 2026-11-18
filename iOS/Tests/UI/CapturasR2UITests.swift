@@ -108,8 +108,7 @@ final class CapturasR2UITests: XCTestCase {
         for ax5 in [false, true] {
             let app = abrirDetalhe("success", ax5: ax5)
             capturar("detalhe-urgencia-topo", ax5: ax5)
-            let preco = elemento("candidatura-valor", em: app)
-            for _ in 0..<10 where !preco.exists { app.swipeUp() }
+            for _ in 0..<4 { app.swipeUp(velocity: .fast) }
             capturar("detalhe-urgencia-fim", ax5: ax5)
             app.terminate()
         }
@@ -119,8 +118,7 @@ final class CapturasR2UITests: XCTestCase {
         for ax5 in [false, true] {
             let app = abrirDetalhe("vaga-em-selecao", ax5: ax5)
             capturar("detalhe-selecao-topo", ax5: ax5)
-            let preco = elemento("candidatura-valor", em: app)
-            for _ in 0..<10 where !preco.exists { app.swipeUp() }
+            for _ in 0..<4 { app.swipeUp(velocity: .fast) }
             capturar("detalhe-selecao-fim", ax5: ax5)
             app.terminate()
         }

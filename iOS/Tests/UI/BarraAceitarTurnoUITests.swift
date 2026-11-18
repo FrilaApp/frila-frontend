@@ -18,7 +18,7 @@ final class BarraAceitarTurnoUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: 10), .completed)
         // Rodapé em dois estados (R2): rolando, só o botão; no fim da rolagem, o valor e o apoio entram acima dele.
         let preco = app.descendants(matching: .any)["candidatura-valor"].firstMatch
-        for _ in 0..<8 where !preco.exists { app.swipeUp() }
+        for _ in 0..<4 { app.swipeUp(velocity: .fast) }
         XCTAssertTrue(preco.waitForExistence(timeout: 5), "no fim da rolagem o valor aparece no rodapé")
         let apoio = app.staticTexts.matching(NSPredicate(
             format: "label CONTAINS %@ AND label CONTAINS %@", "por pessoa", "23h30"
