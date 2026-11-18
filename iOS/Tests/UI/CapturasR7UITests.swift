@@ -94,14 +94,14 @@ final class CapturasR7UITests: XCTestCase {
     private func folhaDeSuporte(ax5: Bool) {
         let app = iniciar(["-FRILA_ABRIR_SUPORTE_TURNO"], ax5: ax5)
         XCTAssertTrue(app.descendants(matching: .any)["folha-suporte-turno"].waitForExistence(timeout: 10))
-        conferirBotao(app.buttons["botao-enviar-email-suporte"], "Abrir e-mail de suporte")
+        conferirBotao(app.descendants(matching: .any)["botao-enviar-email-suporte"].firstMatch, "Abrir e-mail de suporte")
         capturar("r7-suporte-padrao", ax5: ax5)
 
         let risco = app.descendants(matching: .any)["opcao-motivo-risco_seguranca"]
         XCTAssertTrue(risco.waitForExistence(timeout: Espera.aparecer))
         risco.tap()
-        conferirBotao(app.buttons["botao-ligar-190"], "Ligar 190")
-        conferirBotao(app.buttons["botao-ligar-180"], "Ligar 180")
+        conferirBotao(app.descendants(matching: .any)["botao-ligar-190"].firstMatch, "Ligar 190")
+        conferirBotao(app.descendants(matching: .any)["botao-ligar-180"].firstMatch, "Ligar 180")
         capturar("r7-suporte-risco", ax5: ax5)
     }
 
@@ -114,6 +114,13 @@ final class CapturasR7UITests: XCTestCase {
 
     private func rolarAteVer(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
         for _ in 0..<tentativas where !(elemento.exists && elemento.isHittable) { app.swipeUp() }
+    }
+
+    /// Rola até o elemento ficar na metade de cima da tela: com o botão ancorado embaixo (e mais ainda em AX5), um
+    /// elemento "tocável" no pé da tela pode estar atrás do grupo ancorado.
+    private func rolarAteFicarAcima(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 14) {
+        let altura = app.windows.firstMatch.frame.height
+        for _ in 0..<tentativas where !(elemento.exists && elemento.isHittable && elemento.frame.midY < altura * 0.55) { app.swipeUp() }
     }
 
     /// O perfil público da casa, aberto pelo detalhe da vaga.
@@ -264,7 +271,7 @@ final class CapturasR7UITests: XCTestCase {
         capturar("r7-historico", ax5: ax5)
 
         let intervalo = app.buttons["historico-intervalo"]
-        rolarAteVer(intervalo, em: app)
+        rolarAteFicarAcima(intervalo, em: app)
         intervalo.tap()
         XCTAssertTrue(app.descendants(matching: .any)["historico-de"].waitForExistence(timeout: Espera.aparecer))
         capturar("r7-historico-datas", ax5: ax5)
