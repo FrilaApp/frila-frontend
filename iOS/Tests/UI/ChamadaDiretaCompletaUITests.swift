@@ -27,8 +27,12 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
     }
 
     private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication) {
-        let altura = app.windows.firstMatch.frame.height
         for _ in 0..<10 {
+            // O rodapé fixo da chamada recebida (Aceitar e Recusar) cobre o pé da rolagem e o XCUITest ainda vê o elemento
+            // coberto como tocável: o limite de baixo é o topo do rodapé, quando ele existe.
+            var altura = app.windows.firstMatch.frame.height
+            let rodape = app.buttons["aceitar-chamada"]
+            if rodape.exists, elemento.identifier != "aceitar-chamada", elemento.identifier != "recusar-chamada" { altura = min(altura, rodape.frame.minY - 16 + 40) }
             if elemento.exists, elemento.isHittable, elemento.frame.minY > 100, elemento.frame.maxY < altura - 40 { return }
             if elemento.exists, elemento.frame.minY <= 100 { app.swipeDown() } else { app.swipeUp() }
         }
@@ -156,7 +160,6 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertTrue(denunciar.exists, "CD-RF12: denunciar a partir da chamada")
         XCTAssertTrue(app.buttons["bloquear-chamada"].exists, "CD-RF12: bloquear a partir da chamada")
 
-        // O rodapé fixo (Aceitar e Recusar) cobre o pé da rolagem: leva o botão até um ponto que o toque alcança.
         rolarAte(app.buttons["bloquear-chamada"], em: app)
         app.buttons["bloquear-chamada"].tap()
         // O botão do alerta aparece duas vezes na árvore, como em SegurancaUITests.

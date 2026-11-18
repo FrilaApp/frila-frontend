@@ -267,19 +267,4 @@ final class CapturasR4UITests: XCTestCase {
     func testPreferenciasDeChamadaEmAX5() { preferenciasDeChamada(ax5: true) }
     func testChamadaRecebidaNoTamanhoPadrao() { chamadaRecebida(ax5: false) }
     func testChamadaRecebidaEmAX5() { chamadaRecebida(ax5: true) }
-
-    func testDiagEspecialidades() {
-        let app = iniciar(ax5: false)
-        abrirContaProfissional(app)
-        tocarRolando(app.buttons["perfil-funcoes-horarios"], app)
-        tocarRolando(app.buttons["editar-servicos"], app)
-        XCTAssertTrue(app.buttons["salvar-servicos"].waitForExistence(timeout: 15))
-        for nome in ["Serviço à francesa", "Serviço à inglesa", "Buffet", "Eventos corporativos", "Casamentos", "Coquetéis", "Café da manhã", "Recepção"] {
-            let alvo = app.switches[nome]
-            tocarRolando(alvo, app)
-            print("DIAG", nome, alvo.value as? String ?? "?", alvo.frame)
-        }
-        for s in app.switches.allElementsBoundByIndex { print("DIAGSW", s.label, s.value as? String ?? "?", s.isEnabled) }
-        capturar("diag-especialidades", ax5: false)
-    }
 }
