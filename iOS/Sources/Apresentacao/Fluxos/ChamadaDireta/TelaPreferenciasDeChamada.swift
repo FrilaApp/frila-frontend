@@ -29,8 +29,8 @@ public struct TelaPreferenciasDeChamada: View {
                 }
 
                 bloco(nota: TextosChamadaDireta.receberDeQuemJaTrabalhouSubtitulo) {
-                    linhaDeInterruptor(TextosChamadaDireta.receberDeQuemJaTrabalhou, ligado: $viewModel.aceitaDeQuemJaTrabalhou,
-                                       id: "toggle-receber-chamadas")
+                    linhaDeInterruptor(TextosChamadaDireta.receberDeQuemJaTrabalhou, ligado: $viewModel.aceitaDeQuemJaTrabalhou)
+                        .accessibilityIdentifier("toggle-receber-chamadas")
                 }
 
                 if viewModel.buscaHabilitada { aceitoChamadasDiretas }
@@ -45,6 +45,7 @@ public struct TelaPreferenciasDeChamada: View {
                         .accessibilityIdentifier("antecedencia-chamada-\(horas)h")
                     }
                 }
+                .accessibilityIdentifier("picker-antecedencia-chamada")
 
                 FrilaGrupoDeLinhas(verbatim: TextosChamadaDireta.quemPodeChamar, linhasComIcone: false) {
                     FrilaLinhaDeOpcao(titulo: TextosChamadaDireta.quemTodos, remate: .marcada(viewModel.aceitaDe == .todos)) {
@@ -56,6 +57,7 @@ public struct TelaPreferenciasDeChamada: View {
                     }
                     .accessibilityIdentifier("quem-pode-chamar-so-cnpj")
                 }
+                .accessibilityIdentifier("picker-quem-pode-chamar")
 
                 Text(verbatim: TextosChamadaDireta.avisoChamadasExistentes)
                     .font(FrilaTipo.apoio)
@@ -92,8 +94,8 @@ public struct TelaPreferenciasDeChamada: View {
     private var aceitoChamadasDiretas: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             FrilaGrupoDeLinhas(linhasComIcone: false) {
-                linhaDeInterruptor(TextosBuscaDeProfissionais.aceitoChamadas, ligado: $viewModel.aceitaChamadas,
-                                   id: "toggle-aceito-chamadas-diretas")
+                linhaDeInterruptor(TextosBuscaDeProfissionais.aceitoChamadas, ligado: $viewModel.aceitaChamadas)
+                    .accessibilityIdentifier("toggle-aceito-chamadas-diretas")
             }
             Text(verbatim: TextosBuscaDeProfissionais.aceitoChamadasExplicacao)
                 .font(FrilaTipo.apoio)
@@ -126,7 +128,8 @@ public struct TelaPreferenciasDeChamada: View {
     private var pausa: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             FrilaGrupoDeLinhas(linhasComIcone: false) {
-                linhaDeInterruptor(TextosChamadaDireta.pausarChamadas, ligado: $viewModel.pausarChamadas, id: "toggle-pausa-chamadas")
+                linhaDeInterruptor(TextosChamadaDireta.pausarChamadas, ligado: $viewModel.pausarChamadas)
+                    .accessibilityIdentifier("toggle-pausa-chamadas")
                 if viewModel.pausarChamadas {
                     DatePicker(
                         TextosChamadaDireta.pausarAteData,
@@ -161,7 +164,7 @@ public struct TelaPreferenciasDeChamada: View {
     }
 
     /// A linha de um interruptor nativo, com a margem e o alvo das linhas do sistema.
-    private func linhaDeInterruptor(_ titulo: String, ligado: Binding<Bool>, id: String) -> some View {
+    private func linhaDeInterruptor(_ titulo: String, ligado: Binding<Bool>) -> some View {
         Toggle(isOn: ligado) {
             Text(verbatim: titulo)
                 .font(FrilaTipo.rotuloSecundario)
@@ -171,7 +174,6 @@ public struct TelaPreferenciasDeChamada: View {
         .padding(.horizontal, FrilaMedidaDeLinha.margem)
         .padding(.vertical, FrilaEspaco.item)
         .frame(minHeight: FrilaMetrica.alvo)
-        .accessibilityIdentifier(id)
     }
 
     private static func antecedencia(_ horas: Int) -> String {

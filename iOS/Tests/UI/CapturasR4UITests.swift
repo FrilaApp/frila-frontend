@@ -219,4 +219,50 @@ final class CapturasR4UITests: XCTestCase {
     func testSairOuExcluirEmAX5() { sairOuExcluir(ax5: true) }
     func testContaDoEstabelecimentoNoTamanhoPadrao() { contaDoEstabelecimento(ax5: false) }
     func testContaDoEstabelecimentoEmAX5() { contaDoEstabelecimento(ax5: true) }
+
+    // MARK: - Parte 3: por que recebo vagas, preferências de chamadas e chamada recebida
+
+    private func porQueReceboVagas(ax5: Bool) {
+        let app = iniciar(ax5: ax5)
+        abrirContaProfissional(app)
+        tocarRolando(app.buttons["perfil-por-que-recebo"], app)
+        XCTAssertTrue(app.descendants(matching: .any)["tela-por-que-recebo"].waitForExistence(timeout: Espera.aparecer), "a folha deve abrir")
+        capturar("por-que-recebo-topo", ax5: ax5)
+        tocarRolando(app.buttons["botao-contestar-despacho"], app)
+        XCTAssertTrue(app.buttons["botao-enviar-revisao"].waitForExistence(timeout: Espera.aparecer), "o formulário deve abrir")
+        capturar("por-que-recebo-formulario", ax5: ax5)
+    }
+
+    private func preferenciasDeChamada(ax5: Bool) {
+        let app = iniciar(cenario: "chamada-recebida", ax5: ax5)
+        abrirContaProfissional(app)
+        tocarRolando(app.buttons["perfil-preferencias-chamada"], app)
+        XCTAssertTrue(app.switches["toggle-receber-chamadas"].waitForExistence(timeout: Espera.aparecer), "as preferências devem abrir")
+        capturar("preferencias-topo", ax5: ax5)
+        conferirBotoes(app, tela: "preferências de chamadas")
+        for indice in 1...2 {
+            app.swipeUp()
+            capturar("preferencias-\(indice)", ax5: ax5)
+        }
+    }
+
+    private func chamadaRecebida(ax5: Bool) {
+        let app = iniciar(cenario: "chamada-recebida", extra: ["-FRILA_PUSH", "chamada_recebida",
+                          "-FRILA_PUSH_CHAMADA_ID", "c2000000-0000-0000-0000-000000000001"], ax5: ax5)
+        XCTAssertTrue(app.buttons["aceitar-chamada"].waitForExistence(timeout: 15), "a chamada recebida deve abrir")
+        capturar("chamada-recebida-topo", ax5: ax5)
+        conferirBotoes(app, tela: "chamada recebida")
+        app.swipeUp()
+        capturar("chamada-recebida-fim", ax5: ax5)
+        app.buttons["recusar-chamada"].tap()
+        XCTAssertTrue(app.buttons["confirmar-recusa-chamada"].waitForExistence(timeout: 5), "a folha de recusa deve abrir")
+        capturar("chamada-recebida-recusa", ax5: ax5)
+    }
+
+    func testPorQueReceboVagasNoTamanhoPadrao() { porQueReceboVagas(ax5: false) }
+    func testPorQueReceboVagasEmAX5() { porQueReceboVagas(ax5: true) }
+    func testPreferenciasDeChamadaNoTamanhoPadrao() { preferenciasDeChamada(ax5: false) }
+    func testPreferenciasDeChamadaEmAX5() { preferenciasDeChamada(ax5: true) }
+    func testChamadaRecebidaNoTamanhoPadrao() { chamadaRecebida(ax5: false) }
+    func testChamadaRecebidaEmAX5() { chamadaRecebida(ax5: true) }
 }
