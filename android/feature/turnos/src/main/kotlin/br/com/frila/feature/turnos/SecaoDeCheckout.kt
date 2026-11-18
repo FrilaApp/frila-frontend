@@ -3,10 +3,6 @@ package br.com.frila.feature.turnos
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,13 +12,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.CaixasDeCodigo
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import java.time.Instant
 
 /**
@@ -33,40 +29,37 @@ val LocalCriarValidacaoDoCodigo = staticCompositionLocalOf<(@Composable (turno: 
 
 /**
  * O check-out do turno (L1-4). Aparece com o check-in feito e o check-out ainda não, até 60 min depois do fim; feito,
- * só diz que foi registrado. TELA PROVISÓRIA: substituir pelo high-fi do Fabrício.
+ * só diz que foi registrado. O botão é o primário só quando [destaque] (nenhum outro laranja no cartão); enquanto o
+ * check-out é registrado, fica no lugar, desligado, sem indicador girando. O erro vem logo acima do botão.
  */
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 @Composable
 internal fun SecaoDeCheckout(
     turno: ItemTurno,
-    criarCheckinViewModel: @Composable (turno: ItemTurno) -> CheckinViewModel,
+    viewModel: CheckinViewModel,
     agora: Instant,
+    destaque: Boolean = true,
 ) {
-    val viewModel = criarCheckinViewModel(turno)
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val feito = turno.checkoutEm != null || estado.checkout == StatusCheckout.FEITO
     val checkinFeito = estado.comprovante != null || turno.comprovante != null
-    Column(
-        modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
         when {
-            feito -> Text(TextosCheckoutECodigo.CHECKOUT_FEITO, style = MaterialTheme.typography.bodySmall)
-            estado.checkout == StatusCheckout.REGISTRANDO ->
-                Text(TextosCheckoutECodigo.CHECKOUT_REGISTRANDO, style = MaterialTheme.typography.bodySmall)
+            feito -> Text(TextosCheckoutECodigo.CHECKOUT_FEITO, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
+            estado.checkout == StatusCheckout.REGISTRANDO -> BotaoDeAcaoDoTurno(
+                texto = TextosCheckoutECodigo.CHECKOUT_REGISTRANDO,
+                aoClicar = {},
+                destaque = destaque,
+                habilitado = false,
+            )
             RegraDePresenca.podeFazerCheckout(checkinFeito, checkoutFeito = false, fim = turno.fim, agora = agora) -> {
                 val comErro = estado.checkout == StatusCheckout.ERRO
                 if (comErro) {
-                    Text(
-                        text = estado.mensagemErroCheckout ?: TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                    )
+                    MensagemDeAcao(texto = estado.mensagemErroCheckout ?: TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO)
                 }
-                BotaoSecundario(
+                BotaoDeAcaoDoTurno(
                     texto = if (comErro) TextosCheckoutECodigo.BOTAO_CHECKOUT_TENTAR_DE_NOVO else TextosCheckoutECodigo.BOTAO_CHECKOUT,
                     aoClicar = { viewModel.fazerCheckout() },
+                    destaque = destaque,
                 )
             }
         }
@@ -74,10 +67,10 @@ internal fun SecaoDeCheckout(
 }
 
 /**
- * Campo para digitar o código da casa, com o check-in manual pendente (L1-4). Só aparece se a tela recebeu
- * [LocalCriarValidacaoDoCodigo]. TELA PROVISÓRIA: substituir pelo high-fi do Fabrício.
+ * Digitar o código da casa, com o check-in manual pendente (L1-4). Só aparece se a tela recebeu
+ * [LocalCriarValidacaoDoCodigo]. O resultado (código errado, longe do local, bloqueio) vem escrito logo acima do botão,
+ * e o botão é o primário do cartão: confirmar o código é o que fecha a presença.
  */
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 @Composable
 internal fun CampoDoCodigo(turno: ItemTurno) {
     val criar = LocalCriarValidacaoDoCodigo.current ?: return
@@ -85,29 +78,24 @@ internal fun CampoDoCodigo(turno: ItemTurno) {
     val resultado by viewModel.estado.collectAsStateWithLifecycle()
     var texto by rememberSaveable(turno.turnoId) { mutableStateOf("") }
     val enviando = resultado == ResultadoDaValidacao.Enviando
-    Column(
-        modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-    ) {
-        Text(TextosCheckoutECodigo.CODIGO_EXPLICACAO, style = MaterialTheme.typography.bodySmall)
-        OutlinedTextField(
-            value = texto,
-            onValueChange = { novo -> texto = novo.filter { it in '0'..'9' }.take(6) },
-            label = { Text(TextosCheckoutECodigo.CODIGO_ROTULO) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth().testTag("campo-do-codigo"),
+    val comErro = resultado == ResultadoDaValidacao.Invalido || resultado == ResultadoDaValidacao.FormatoInvalido
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        Text(TextosCheckoutECodigo.CODIGO_EXPLICACAO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
+        CaixasDeCodigo(
+            codigo = texto,
+            aoMudar = { novo -> texto = novo.filter { it in '0'..'9' }.take(6) },
+            modifier = Modifier.testTag("campo-do-codigo"),
+            comErro = comErro,
+            habilitado = !enviando,
+            rotulo = TextosCheckoutECodigo.CODIGO_ROTULO,
         )
         textoDoResultado(resultado)?.let { mensagem ->
-            Text(
-                text = mensagem,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
+            MensagemJuntoAoBotao(texto = mensagem)
         }
-        BotaoSecundario(
+        BotaoPrimario(
             texto = if (enviando) TextosCheckoutECodigo.CODIGO_ENVIANDO else TextosCheckoutECodigo.BOTAO_CONFIRMAR_CODIGO,
             aoClicar = { viewModel.validar(texto) },
+            modifier = Modifier.fillMaxWidth(),
             habilitado = !enviando && RegraDePresenca.formatoDoCodigoValido(texto),
         )
     }
