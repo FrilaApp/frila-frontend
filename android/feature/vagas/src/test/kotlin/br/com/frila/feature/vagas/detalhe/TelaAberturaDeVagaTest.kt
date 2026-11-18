@@ -114,7 +114,7 @@ class TelaAberturaDeVagaTest {
         rule.onNodeWithText("Responsável no local: Procure a gerente no balcão").assertIsDisplayed()
         rule.onNodeWithText("Traje: Camisa preta").assertIsDisplayed()
         rule.onNodeWithText("Observações: Chegar 15 minutos antes").assertIsDisplayed()
-        rule.onNode(hasText("Distância:", substring = true)).assertIsDisplayed()
+        rule.onNode(hasText("de distância", substring = true)).assertIsDisplayed()
     }
 
     @Test
@@ -122,7 +122,7 @@ class TelaAberturaDeVagaTest {
         detalhe(vagaDoServidor(distanciaKm = null, traje = null, observacoes = " "))
 
         rule.onNodeWithText("Responsável no local: Procure a gerente no balcão").assertIsDisplayed()
-        assertEquals(0, rule.onAllNodes(hasText("Distância:", substring = true)).fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodes(hasText("de distância", substring = true)).fetchSemanticsNodes().size)
         assertEquals(0, rule.onAllNodes(hasText("Traje:", substring = true)).fetchSemanticsNodes().size)
         assertEquals(0, rule.onAllNodes(hasText("Observações:", substring = true)).fetchSemanticsNodes().size)
     }

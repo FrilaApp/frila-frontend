@@ -11,6 +11,13 @@ object TextosTurnoDoContratante {
     /** Como o iOS (`AcoesDeSeguranca.swift:46`): "Denunciar <nome>". */
     const val DENUNCIAR_ROTULO = "Denunciar %s"
     const val CHEGADA = "Chegada"
+
+    /** As quatro etapas do turno, como na tela do profissional (e o selo que repete a etapa atual). */
+    const val ETAPA_CONFIRMADO = "Confirmado"
+    const val ETAPA_A_CAMINHO = "A caminho"
+    const val ETAPA_PRESENCA = "Presença"
+    const val ETAPA_CONCLUIDO = "Concluído"
+    const val SELO_PRESENCA_MARCADA = "Presença marcada"
     const val AGUARDANDO = "Aguardando o profissional chegar."
     const val A_CAMINHO = "%s está a caminho desde as %s."
     const val EM_ATRASO = "Passaram 15 minutos do início e o check-in não chegou. Você pode esperar ou reabrir a posição."

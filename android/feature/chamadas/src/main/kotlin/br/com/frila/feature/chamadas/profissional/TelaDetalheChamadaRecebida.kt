@@ -2,37 +2,49 @@ package br.com.frila.feature.chamadas.profissional
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
+import br.com.frila.core.designsystem.componentes.FrilaDivisoria
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeDado
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.ChamadaDetalheDto
 import br.com.frila.core.rede.PerfilPublicoDto
 
@@ -65,10 +77,12 @@ fun TelaDetalheChamadaRecebida(
 }
 
 /**
- * Chamada recebida (CD-I5b; paridade com `TelaDetalheChamadaRecebida.swift`): quem chamou, função, valor total,
- * horário, região e faixa de distância, recado, o que está incluso, até quando responder e o aviso de segurança.
- * Aceitar e recusar (com motivo opcional numa folha) só aparecem com a chamada aberta; depois do aceite a tela
- * mostra o local e o responsável liberados (RN36). Nunca mostra telefone nem endereço antes do aceite.
+ * Chamada recebida (CD-I5b; paridade com `TelaDetalheChamadaRecebida.swift`): tela de decisão. Quem chamou,
+ * função, horário, região e faixa de distância e o valor total num cartão; recado, o que está incluso, o aviso de
+ * segurança e o prazo para responder. "Aceitar chamada" (o único laranja) e "Recusar chamada" (com motivo
+ * opcional numa folha) ficam no rodapé ancorado, só com a chamada aberta; enquanto responde, o aceite fica
+ * desligado no lugar. Depois do aceite a tela mostra o local e o responsável liberados (RN36). Nunca mostra
+ * telefone nem endereço antes do aceite.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,39 +99,64 @@ fun ConteudoDaChamadaRecebida(
     modifier: Modifier = Modifier,
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
 ) {
+    val detalhe = tela.detalhe
+    val resultado = tela.resultado
+    val aceita = resultado != null && resultado.chamada.estado == "aceita"
+    val recusada = resultado != null && resultado.chamada.estado == "recusada"
+    // Decidindo: a chamada está aberta e sem resposta. Respondendo, o aceite continua no lugar, só desligado.
+    val decidindo = detalhe != null && !aceita && !recusada &&
+        (tela.podeResponder || (tela.respondendo && detalhe.estado == "aberta" && tela.mensagemDeConcorrencia == null))
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { BarraDoTopoChamada(TextosChamadaProfissional.RECEBIDA_TITULO, aoVoltar) },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
+        bottomBar = {
+            if (decidindo) {
+                RodapeAncorado {
+                    tela.erro?.let { MensagemJuntoAoBotao(it) }
+                    BotaoPrimario(
+                        texto = TextosChamadaProfissional.ACEITAR_CHAMADA,
+                        aoClicar = aoAceitar,
+                        habilitado = !tela.respondendo,
+                        modifier = Modifier.fillMaxWidth().testTag("aceitar-chamada"),
+                    )
+                    BotaoSecundario(
+                        texto = TextosChamadaProfissional.RECUSAR_CHAMADA,
+                        aoClicar = aoAbrirRecusa,
+                        habilitado = !tela.respondendo,
+                        modifier = Modifier.fillMaxWidth().testTag("recusar-chamada"),
+                    )
+                }
+            } else if (aceita && resultado?.turnoId != null) {
+                RodapeAncorado {
+                    BotaoPrimario(
+                        texto = TextosChamadaProfissional.VER_TURNO,
+                        aoClicar = { aoAbrirTurno(resultado.turnoId!!) },
+                        modifier = Modifier.fillMaxWidth().testTag("ver-turno-aceito"),
+                    )
+                }
+            }
+        },
     ) { preenchimento ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
-            val detalhe = tela.detalhe
-            val resultado = tela.resultado
-            tela.erro?.let { erro ->
-                AvisoFrila(tom = TomAviso.ERRO, mensagem = erro, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
-            }
+            TituloDaTela(TextosChamadaProfissional.RECEBIDA_TITULO)
             when {
-                tela.carregando -> Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = FrilaEspacamento.grande),
-                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Text(text = TextosChamadaProfissional.CARREGANDO, style = MaterialTheme.typography.bodyMedium)
-                }
-                detalhe == null -> BotaoPrimario(
-                    texto = TextosChamadaProfissional.TENTAR_NOVAMENTE,
-                    aoClicar = aoTentarNovamente,
-                    modifier = Modifier.testTag("tentar-novamente-chamada"),
+                tela.carregando -> EstadoCarregando(mensagem = TextosChamadaProfissional.CARREGANDO)
+                detalhe == null -> ErroDeCargaChamada(
+                    mensagem = tela.erro ?: TextosChamadaProfissional.ERRO,
+                    aoTentarNovamente = aoTentarNovamente,
+                    modifierDoBotao = Modifier.testTag("tentar-novamente-chamada"),
                 )
-                resultado != null && resultado.chamada.estado == "aceita" -> Aceita(resultado.local, resultado.responsavelLocal, resultado.turnoId, aoAbrirTurno)
-                resultado != null && resultado.chamada.estado == "recusada" -> {
+                aceita -> Aceita(resultado!!.local, resultado.responsavelLocal)
+                recusada -> {
                     AvisoFrila(
                         tom = TomAviso.INFORMATIVO,
                         mensagem = TextosChamadaProfissional.CHAMADA_RECUSADA,
@@ -134,18 +173,6 @@ fun ConteudoDaChamadaRecebida(
                         )
                     }
                     Resumo(detalhe)
-                    if (tela.podeResponder) {
-                        BotaoPrimario(
-                            texto = TextosChamadaProfissional.ACEITAR_CHAMADA,
-                            aoClicar = aoAceitar,
-                            modifier = Modifier.fillMaxWidth().testTag("aceitar-chamada"),
-                        )
-                        BotaoSecundario(
-                            texto = TextosChamadaProfissional.RECUSAR_CHAMADA,
-                            aoClicar = aoAbrirRecusa,
-                            modifier = Modifier.fillMaxWidth().testTag("recusar-chamada"),
-                        )
-                    }
                     acoesDeSeguranca?.invoke(detalhe.outraParte)
                 }
             }
@@ -162,130 +189,110 @@ fun ConteudoDaChamadaRecebida(
     }
 }
 
+/** Depois do aceite: o aviso e, num cartão, o local e o responsável liberados pela RN36. "Ver meu turno" vai no rodapé. */
 @Composable
-private fun Aceita(local: String?, responsavel: String?, turnoId: String?, aoAbrirTurno: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio)) {
-        AvisoFrila(
-            tom = TomAviso.SUCESSO,
-            mensagem = TextosChamadaProfissional.CHAMADA_ACEITA,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("chamada-aceita"),
-        )
-        if (local != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                Text(
-                    text = TextosChamadaProfissional.ENDERECO_DO_TURNO,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(text = local, style = MaterialTheme.typography.titleMedium)
+private fun Aceita(local: String?, responsavel: String?) {
+    val cores = FrilaTema.cores
+    AvisoFrila(
+        tom = TomAviso.SUCESSO,
+        mensagem = TextosChamadaProfissional.CHAMADA_ACEITA,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("chamada-aceita"),
+    )
+    if (local != null || responsavel != null) {
+        CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+                if (local != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                        Text(text = TextosChamadaProfissional.ENDERECO_DO_TURNO, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                        Text(text = local, style = FrilaTipo.nome, color = cores.tinta)
+                    }
+                }
+                if (responsavel != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                        Text(text = TextosChamadaProfissional.RESPONSAVEL_NO_LOCAL, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                        Text(text = responsavel, style = FrilaTipo.corpo, color = cores.tinta)
+                    }
+                }
             }
-        }
-        if (responsavel != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                Text(
-                    text = TextosChamadaProfissional.RESPONSAVEL_NO_LOCAL,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(text = responsavel, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-        if (turnoId != null) {
-            BotaoPrimario(
-                texto = TextosChamadaProfissional.VER_TURNO,
-                aoClicar = { aoAbrirTurno(turnoId) },
-                modifier = Modifier.fillMaxWidth().testTag("ver-turno-aceito"),
-            )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Resumo(detalhe: ChamadaDetalheDto) {
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    val cores = FrilaTema.cores
+    val contaNova = detalhe.contaNova == true
+
+    // Selos informam e não se tocam: o prazo para responder e, se for o caso, a casa sem turnos concluídos.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+    ) {
+        SeloDeStatus(
+            texto = "${TextosChamadaProfissional.RESPONDER_ATE} ${FormatoChamada.hora(detalhe.expiraEm)}",
+            estilo = EstiloDoSelo.CONTORNO,
+            modifier = Modifier.testTag("responder-ate"),
+        )
+        if (contaNova) {
+            SeloDeStatus(texto = TextosChamadaProfissional.CONTA_NOVA_BADGE, estilo = EstiloDoSelo.CONTORNO)
+        }
+    }
+
+    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
             Text(
                 text = detalhe.outraParte.nome,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f).semantics { heading() },
+                style = FrilaTipo.nome,
+                color = cores.tinta,
+                modifier = Modifier.semantics { heading() },
             )
-            if (detalhe.contaNova == true) {
-                Text(
-                    text = TextosChamadaProfissional.CONTA_NOVA_BADGE,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
+            Text(text = detalhe.funcao.nome, style = FrilaTipo.corpo, color = cores.tinta)
+            if (contaNova) {
+                Text(text = TextosChamadaProfissional.CONTA_NOVA_AVISO, style = FrilaTipo.apoio, color = cores.tintaSuave)
             }
-        }
-        if (detalhe.contaNova == true) {
+            FrilaLinhaDeDado(
+                icone = Icons.Default.DateRange,
+                valor = TextosChamadaProfissional.intervalo(
+                    inicio = FormatoChamada.dataEHora(detalhe.inicioEm),
+                    fim = FormatoChamada.hora(detalhe.fimEm),
+                ),
+            )
+            val faixa = detalhe.distanciaFaixa?.let(TextosChamadaProfissional::faixaDeDistancia)
+            val lugar = listOfNotNull(detalhe.regiaoAdministrativa, faixa).joinToString(" • ")
+            if (lugar.isNotEmpty()) {
+                FrilaLinhaDeDado(icone = Icons.Default.Place, valor = lugar)
+            }
+            FrilaDivisoria(modifier = Modifier.padding(vertical = FrilaEspacamento.item))
             Text(
-                text = TextosChamadaProfissional.CONTA_NOVA_AVISO,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = FormatoChamada.dinheiro(detalhe.valorCentavos),
+                style = FrilaTipo.valorEmDestaque,
+                color = cores.tinta,
             )
         }
-        Text(text = detalhe.funcao.nome, style = MaterialTheme.typography.titleMedium)
-        Text(text = FormatoChamada.dinheiro(detalhe.valorCentavos), style = MaterialTheme.typography.headlineMedium)
-        Text(
-            text = TextosChamadaProfissional.intervalo(
-                inicio = FormatoChamada.dataEHora(detalhe.inicioEm),
-                fim = FormatoChamada.hora(detalhe.fimEm),
-            ),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        val faixa = detalhe.distanciaFaixa?.let(TextosChamadaProfissional::faixaDeDistancia)
-        Text(
-            text = listOfNotNull(detalhe.regiaoAdministrativa, faixa).joinToString(" • "),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 
     detalhe.recado?.takeIf { it.isNotBlank() }?.let { recado ->
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Text(
-            text = TextosChamadaProfissional.RECADO_DO_CONTRATANTE,
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(text = recado, style = MaterialTheme.typography.bodyLarge)
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+            RotuloDeGrupo(TextosChamadaProfissional.RECADO_DO_CONTRATANTE)
+            Text(text = recado, style = FrilaTipo.corpo, color = cores.tinta)
+        }
     }
 
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    Text(
-        text = TextosChamadaProfissional.INCLUSOS,
-        style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.semantics { heading() },
-    )
-    if (detalhe.incluiRefeicao) Text(TextosChamadaProfissional.REFEICAO_INCLUSA, style = MaterialTheme.typography.bodyLarge)
-    if (detalhe.incluiTransporte) Text(TextosChamadaProfissional.TRANSPORTE_INCLUSO, style = MaterialTheme.typography.bodyLarge)
-    if (detalhe.exigeMaterialProprio) Text(TextosChamadaProfissional.EXIGE_MATERIAL_PROPRIO, style = MaterialTheme.typography.bodyLarge)
-    if (!detalhe.incluiRefeicao && !detalhe.incluiTransporte && !detalhe.exigeMaterialProprio) {
-        Text(
-            text = TextosChamadaProfissional.NENHUM_BENEFICIO,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        RotuloDeGrupo(TextosChamadaProfissional.INCLUSOS)
+        if (detalhe.incluiRefeicao) FrilaLinhaDeDado(Icons.Default.Check, TextosChamadaProfissional.REFEICAO_INCLUSA)
+        if (detalhe.incluiTransporte) FrilaLinhaDeDado(Icons.Default.Check, TextosChamadaProfissional.TRANSPORTE_INCLUSO)
+        if (detalhe.exigeMaterialProprio) FrilaLinhaDeDado(Icons.Default.Check, TextosChamadaProfissional.EXIGE_MATERIAL_PROPRIO)
+        if (!detalhe.incluiRefeicao && !detalhe.incluiTransporte && !detalhe.exigeMaterialProprio) {
+            Text(text = TextosChamadaProfissional.NENHUM_BENEFICIO, style = FrilaTipo.apoio, color = cores.tintaSuave)
+        }
     }
 
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    Text(
-        text = "${TextosChamadaProfissional.RESPONDER_ATE} ${FormatoChamada.hora(detalhe.expiraEm)}",
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.tertiary,
-        modifier = Modifier.testTag("responder-ate"),
-    )
-    Text(
-        text = TextosChamadaProfissional.AVISO_SEGURANCA,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    AvisoFrila(tom = TomAviso.INFORMATIVO, mensagem = TextosChamadaProfissional.AVISO_SEGURANCA)
 }
 
+/** Folha da recusa: o motivo (opcional) numa lista com check, "Recusar chamada" e "Cancelar". */
 @Composable
 private fun FolhaDeRecusa(
     tela: EstadoChamadaRecebida,
@@ -294,8 +301,11 @@ private fun FolhaDeRecusa(
     aoCancelar: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
     ) {
         EscolhaUnica(
             titulo = TextosChamadaProfissional.MOTIVO_TITULO,
@@ -306,16 +316,18 @@ private fun FolhaDeRecusa(
             habilitado = !tela.respondendo,
             modifier = Modifier.testTag("motivos-recusa"),
         )
-        BotaoPrimario(
-            texto = TextosChamadaProfissional.RECUSAR_CHAMADA,
-            aoClicar = aoConfirmar,
-            habilitado = !tela.respondendo,
-            modifier = Modifier.fillMaxWidth().testTag("confirmar-recusa-chamada"),
-        )
-        BotaoSecundario(
-            texto = TextosChamadaProfissional.CANCELAR,
-            aoClicar = aoCancelar,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+            BotaoPrimario(
+                texto = TextosChamadaProfissional.RECUSAR_CHAMADA,
+                aoClicar = aoConfirmar,
+                habilitado = !tela.respondendo,
+                modifier = Modifier.fillMaxWidth().testTag("confirmar-recusa-chamada"),
+            )
+            BotaoSecundario(
+                texto = TextosChamadaProfissional.CANCELAR,
+                aoClicar = aoCancelar,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }

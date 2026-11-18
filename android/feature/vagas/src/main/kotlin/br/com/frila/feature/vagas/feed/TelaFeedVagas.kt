@@ -1,35 +1,24 @@
 package br.com.frila.feature.vagas.feed
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,23 +26,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.error
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CampoDeBusca
+import br.com.frila.core.designsystem.componentes.ChipFrila
+import br.com.frila.core.designsystem.componentes.EstadoErro
+import br.com.frila.core.designsystem.componentes.EstadoVazio
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
-import br.com.frila.core.designsystem.componentes.CartaoVaga
-import br.com.frila.core.designsystem.componentes.FrilaSkeleton
-import br.com.frila.core.designsystem.componentes.semanticaDeFiltro
-import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.designsystem.componentes.LinkFrila
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import kotlin.math.roundToInt
+
+/** O leitor de tela diz "selecionado" ou "não selecionado" no chip de filtro, como sempre disse. */
+private fun Modifier.estadoDoChip(selecionado: Boolean): Modifier =
+    semantics { stateDescription = if (selecionado) "selecionado" else "não selecionado" }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,36 +64,9 @@ fun TelaFeedVagas(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(if (estado.emCache) "Vagas salvas" else "Vagas abertas", modifier = Modifier.semantics { heading() }) },
-                actions = {
-                    // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-                    aoAbrirMeusTurnos?.let { abrir ->
-                        TextButton(
-                            onClick = abrir,
-                            modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                        ) {
-                            Text("Meus turnos")
-                        }
-                    }
-                    TextButton(
-                        onClick = aoAbrirPerfil,
-                        modifier = Modifier
-                            .sizeIn(
-                                minWidth = FrilaMetricas.alvoMinimo,
-                                minHeight = FrilaMetricas.alvoMinimo,
-                            )
-                            .semantics { contentDescription = "Meu perfil" },
-                    ) {
-                        Text("Perfil")
-                    }
-                },
-            )
-        },
-    ) { paddingInterno ->
+    // Tela raiz: abre sem título de página, com a busca no alto. "Meus turnos" e "Perfil" ficam como links no
+    // topo só até as abas da raiz existirem (a navegação raiz é de outro lote).
+    Scaffold(modifier = modifier, containerColor = FrilaTema.cores.fundo) { paddingInterno ->
         PullToRefreshBox(
             isRefreshing = estado.atualizando,
             onRefresh = viewModel::atualizar,
@@ -109,33 +77,49 @@ fun TelaFeedVagas(
                     contentDescription = if (estado.atualizando) "Atualizando vagas abertas" else if (estado.emCache) "Feed de vagas salvas" else "Feed de vagas abertas"
                 },
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = FrilaEspacamento.grupo),
             ) {
+                item(key = "atalhos") {
+                    AtalhosDoTopo(aoAbrirPerfil = aoAbrirPerfil, aoAbrirMeusTurnos = aoAbrirMeusTurnos)
+                }
                 if (estado.emCache) {
-                    Text(
-                        text = "Exibindo vagas salvas. Disponibilidade não confirmada; conecte-se para verificar se ainda estão abertas.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(FrilaEspacamento.compacto)
-                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    item(key = "aviso-de-cache") {
+                        AvisoFrila(
+                            tom = TomAviso.INFORMATIVO,
+                            mensagem = "Exibindo vagas salvas. Disponibilidade não confirmada; conecte-se para verificar se ainda estão abertas.",
+                            modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
+                        )
+                    }
+                }
+                item(key = "busca") {
+                    CampoBuscaVagas(
+                        texto = estado.textoBusca,
+                        aoAlterarTexto = viewModel::aoAlterarTextoBusca,
                     )
                 }
-                CampoBuscaVagas(
-                    texto = estado.textoBusca,
-                    aoAlterarTexto = viewModel::aoAlterarTextoBusca,
-                    aoLimpar = viewModel::aoLimparBusca,
-                )
-                LinhaDeFiltros(estado = estado, viewModel = viewModel)
+                item(key = "filtros") { LinhaDeFiltros(estado = estado, viewModel = viewModel) }
+                item(key = "cabecalho") { CabecalhoDaLista(estado = estado) }
 
                 when (estado.status) {
-                    StatusFeed.CARREGANDO -> SkeletonFeedVagas()
-                    StatusFeed.ERRO -> if (estado.semPontoBase && aoDefinirPontoBase != null) {
-                        SemPontoBaseFeed(aoDefinirPontoBase = aoDefinirPontoBase)
-                    } else {
-                        ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
+                    StatusFeed.CARREGANDO -> item(key = "carregando") { SkeletonFeedVagas() }
+                    StatusFeed.ERRO -> item(key = "erro") {
+                        if (estado.semPontoBase && aoDefinirPontoBase != null) {
+                            SemPontoBaseFeed(aoDefinirPontoBase = aoDefinirPontoBase)
+                        } else {
+                            ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
+                        }
                     }
-                    StatusFeed.VAZIO -> VazioFeed(textoBusca = estado.textoBusca)
-                    StatusFeed.SUCESSO -> ListaDeVagas(vagas = estado.vagas, aoAbrirDetalhe = aoAbrirDetalhe)
+                    StatusFeed.VAZIO -> item(key = "vazio") { VazioFeed(textoBusca = estado.textoBusca) }
+                    StatusFeed.SUCESSO -> items(estado.vagas, key = { it.id }) { vaga ->
+                        CartaoDeVagaDoFeed(
+                            vaga = vaga,
+                            emDestaque = vaga.id == estado.vagas.first().id,
+                            aoAbrir = { aoAbrirDetalhe(vaga.id) },
+                            modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
+                        )
+                    }
                 }
             }
         }
@@ -157,122 +141,104 @@ fun TelaFeedVagas(
 }
 
 @Composable
-private fun CampoBuscaVagas(
-    texto: String,
-    aoAlterarTexto: (String) -> Unit,
-    aoLimpar: () -> Unit,
-) {
-    OutlinedTextField(
-        value = texto,
-        onValueChange = aoAlterarTexto,
+private fun AtalhosDoTopo(aoAbrirPerfil: () -> Unit, aoAbrirMeusTurnos: (() -> Unit)?) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = FrilaEspacamento.medio,
-                end = FrilaEspacamento.medio,
-                top = FrilaEspacamento.pequeno,
-            )
-            .semantics {
-                contentDescription = "Buscar vagas por função ou estabelecimento"
-            },
-        placeholder = { Text("Buscar função ou estabelecimento") },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-            )
-        },
-        trailingIcon = if (texto.isNotEmpty()) {
-            {
-                IconButton(
-                    onClick = aoLimpar,
-                    modifier = Modifier
-                        .sizeIn(
-                            minWidth = FrilaMetricas.alvoMinimo,
-                            minHeight = FrilaMetricas.alvoMinimo,
-                        )
-                        .semantics { contentDescription = "Limpar busca" },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = null,
-                    )
-                }
-            }
-        } else {
-            null
-        },
-        singleLine = true,
-    )
+            .padding(horizontal = FrilaEspacamento.grupo),
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        aoAbrirMeusTurnos?.let { LinkFrila(texto = "Meus turnos", aoClicar = it) }
+        LinkFrila(
+            texto = "Perfil",
+            aoClicar = aoAbrirPerfil,
+            modifier = Modifier.semantics { contentDescription = "Meu perfil" },
+        )
+    }
 }
 
 @Composable
+private fun CampoBuscaVagas(texto: String, aoAlterarTexto: (String) -> Unit) {
+    CampoDeBusca(
+        texto = texto,
+        aoMudar = aoAlterarTexto,
+        dica = "Buscar função ou estabelecimento",
+        modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
+    )
+}
+
+/** Quantos filtros da folha estão valendo: o número vai no texto do botão, nunca num selo de pendência. */
+private fun EstadoFeed.filtrosAvancadosAplicados(): Int =
+    listOf(
+        filtroRemuneracao != FiltroRemuneracao.QUALQUER,
+        filtroPeriodo != FiltroPeriodo.QUALQUER,
+        faixaRemuneracaoHora.ativa,
+    ).count { it }
+
+@Composable
 private fun LinhaDeFiltros(estado: EstadoFeed, viewModel: FeedVagasViewModel) {
-    Column(
-        modifier = Modifier.padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-    ) {
-        TextButton(
-            onClick = viewModel::aoAbrirFiltrosAvancados,
+    val aplicados = estado.filtrosAvancadosAplicados()
+
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        BotaoSecundario(
+            texto = if (aplicados > 0) "Filtros ($aplicados)" else "Filtros",
+            aoClicar = viewModel::aoAbrirFiltrosAvancados,
             modifier = Modifier
-                .align(Alignment.End)
-                .sizeIn(
-                    minWidth = FrilaMetricas.alvoMinimo,
-                    minHeight = FrilaMetricas.alvoMinimo,
-                )
-                .semantics { contentDescription = "Abrir filtros avançados" },
-        ) {
-            Text("Filtros")
-        }
+                .padding(horizontal = FrilaEspacamento.grupo)
+                .semantics {
+                    contentDescription = if (aplicados > 0) "Abrir filtros avançados, $aplicados aplicados" else "Abrir filtros avançados"
+                },
+        )
 
         Text(
             text = "Ordenar por:",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
+            style = FrilaTipo.rotuloDeGrupo,
+            color = FrilaTema.cores.tintaSuave,
+            modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo),
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
+        FileiraDeChips {
             items(OpcaoOrdenacaoVagas.entries.toList()) { opcao ->
-                FilterChip(
-                    selected = estado.opcaoOrdenacao == opcao,
-                    onClick = { viewModel.aoSelecionarOrdenacao(opcao) },
-                    label = { Text(opcao.rotulo) },
-                    modifier = Modifier.semanticaDeFiltro(estado.opcaoOrdenacao == opcao),
+                ChipFrila(
+                    texto = opcao.rotulo,
+                    selecionado = estado.opcaoOrdenacao == opcao,
+                    aoClicar = { viewModel.aoSelecionarOrdenacao(opcao) },
+                    escolhaUnica = true,
+                    modifier = Modifier.estadoDoChip(estado.opcaoOrdenacao == opcao),
                 )
             }
         }
 
-        LazyRow(
-            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-        ) {
+        FileiraDeChips {
             items(FiltroDistancia.entries.toList()) { filtro ->
-                FilterChip(
-                    selected = estado.filtroDistancia == filtro,
-                    onClick = { viewModel.aoSelecionarFiltroDistancia(filtro) },
-                    label = { Text(filtro.rotulo) },
-                    modifier = Modifier.semanticaDeFiltro(estado.filtroDistancia == filtro),
+                ChipFrila(
+                    texto = filtro.rotulo,
+                    selecionado = estado.filtroDistancia == filtro,
+                    aoClicar = { viewModel.aoSelecionarFiltroDistancia(filtro) },
+                    escolhaUnica = true,
+                    modifier = Modifier.estadoDoChip(estado.filtroDistancia == filtro),
                 )
             }
         }
 
         if (estado.funcoesDisponiveis.isNotEmpty()) {
-            LazyRow(
-                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-            ) {
+            FileiraDeChips {
                 item {
-                    FilterChip(
-                        selected = estado.filtroFuncao == null,
-                        onClick = { viewModel.aoSelecionarFiltroFuncao(null) },
-                        label = { Text("Todas as funções") },
-                        modifier = Modifier.semanticaDeFiltro(estado.filtroFuncao == null),
+                    ChipFrila(
+                        texto = "Todas as funções",
+                        selecionado = estado.filtroFuncao == null,
+                        aoClicar = { viewModel.aoSelecionarFiltroFuncao(null) },
+                        escolhaUnica = true,
+                        modifier = Modifier.estadoDoChip(estado.filtroFuncao == null),
                     )
                 }
                 items(estado.funcoesDisponiveis) { funcao ->
-                    FilterChip(
-                        selected = estado.filtroFuncao == funcao,
-                        onClick = { viewModel.aoSelecionarFiltroFuncao(funcao) },
-                        label = { Text(funcao) },
-                        modifier = Modifier.semanticaDeFiltro(estado.filtroFuncao == funcao),
+                    ChipFrila(
+                        texto = funcao,
+                        selecionado = estado.filtroFuncao == funcao,
+                        aoClicar = { viewModel.aoSelecionarFiltroFuncao(funcao) },
+                        escolhaUnica = true,
+                        modifier = Modifier.estadoDoChip(estado.filtroFuncao == funcao),
                     )
                 }
             }
@@ -280,8 +246,46 @@ private fun LinhaDeFiltros(estado: EstadoFeed, viewModel: FeedVagasViewModel) {
     }
 }
 
-/** Folha Material 3 dos filtros adicionais do RF05/RF10/RN01. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Fileira de chips que rola na horizontal e sangra até a borda da tela. */
+@Composable
+private fun FileiraDeChips(conteudo: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = FrilaEspacamento.grupo),
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        content = conteudo,
+    )
+}
+
+/** O que a lista é (abertas ou salvas) e, quando há vagas, quantas. Apoio, não título de página. */
+@Composable
+private fun CabecalhoDaLista(estado: EstadoFeed) {
+    val cores = FrilaTema.cores
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = FrilaEspacamento.grupo, end = FrilaEspacamento.grupo, top = FrilaEspacamento.bloco),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (estado.emCache) "Vagas salvas" else "Vagas abertas",
+            style = FrilaTipo.apoio,
+            color = cores.tintaSuave,
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        if (estado.status == StatusFeed.SUCESSO && estado.vagas.isNotEmpty()) {
+            val total = estado.vagas.size
+            Text(
+                text = if (total == 1) "1 vaga" else "$total vagas",
+                style = FrilaTipo.apoio,
+                color = cores.tintaSuave,
+            )
+        }
+    }
+}
+
+/** Folha dos filtros adicionais do RF05/RF10/RN01. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun FiltrosAvancadosVagas(
     filtroRemuneracao: FiltroRemuneracao,
@@ -298,32 +302,23 @@ fun FiltrosAvancadosVagas(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(
-                    start = FrilaEspacamento.medio,
-                    end = FrilaEspacamento.medio,
-                    bottom = FrilaEspacamento.medio,
+                    start = FrilaEspacamento.grupo,
+                    end = FrilaEspacamento.grupo,
+                    bottom = FrilaEspacamento.grupo,
                 ),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
         ) {
             // RF05/RN01: RangeSlider para faixa de remuneração líquida por hora
             val minFormatado = faixaRemuneracaoHora.minima.roundToInt()
             val maxFormatado = faixaRemuneracaoHora.maxima.roundToInt()
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Remuneração por hora (líquida)",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = "R$ $minFormatado/h a R$ $maxFormatado/h",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            RotuloDeGrupo(texto = "Remuneração por hora (líquida)")
+            Text(
+                text = "R$ $minFormatado/h a R$ $maxFormatado/h",
+                style = FrilaTipo.apoio,
+                color = FrilaTema.cores.tintaSuave,
+            )
             RangeSlider(
                 value = faixaRemuneracaoHora.minima..faixaRemuneracaoHora.maxima,
                 onValueChange = { range ->
@@ -338,81 +333,47 @@ fun FiltrosAvancadosVagas(
                     },
             )
 
-            Text(
-                text = "Remuneração mínima",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-                items(FiltroRemuneracao.entries.toList()) { filtro ->
+            RotuloDeGrupo(texto = "Remuneração mínima", modifier = Modifier.padding(top = FrilaEspacamento.item))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                FiltroRemuneracao.entries.forEach { filtro ->
                     val selecionado = filtroRemuneracao == filtro
-                    FilterChip(
-                        selected = selecionado,
-                        onClick = { aoSelecionarRemuneracao(filtro) },
-                        label = { Text(filtro.rotulo) },
-                        modifier = Modifier.semanticaDeFiltro(selecionado),
+                    ChipFrila(
+                        texto = filtro.rotulo,
+                        selecionado = selecionado,
+                        aoClicar = { aoSelecionarRemuneracao(filtro) },
+                        escolhaUnica = true,
+                        modifier = Modifier.estadoDoChip(selecionado),
                     )
                 }
             }
-            Text(
-                text = "Período do dia",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-                items(FiltroPeriodo.entries.toList()) { filtro ->
+            RotuloDeGrupo(texto = "Período do dia", modifier = Modifier.padding(top = FrilaEspacamento.item))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                FiltroPeriodo.entries.forEach { filtro ->
                     val selecionado = filtroPeriodo == filtro
-                    FilterChip(
-                        selected = selecionado,
-                        onClick = { aoSelecionarPeriodo(filtro) },
-                        label = { Text(filtro.rotulo) },
-                        modifier = Modifier.semanticaDeFiltro(selecionado),
+                    ChipFrila(
+                        texto = filtro.rotulo,
+                        selecionado = selecionado,
+                        aoClicar = { aoSelecionarPeriodo(filtro) },
+                        escolhaUnica = true,
+                        modifier = Modifier.estadoDoChip(selecionado),
                     )
                 }
             }
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.minimo),
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+                    .padding(top = FrilaEspacamento.bloco),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
             ) {
                 BotaoPrimario(
                     texto = "Aplicar filtros",
                     aoClicar = aoAplicar,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 BotaoSecundario(
                     texto = "Limpar",
                     aoClicar = aoLimpar,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ListaDeVagas(vagas: List<ItemVaga>, aoAbrirDetalhe: (String) -> Unit) {
-    LazyColumn(
-        contentPadding = PaddingValues(FrilaEspacamento.medio),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
-    ) {
-        items(vagas, key = { it.id }) { vaga ->
-            CartaoVaga(
-                modifier = Modifier.fillMaxWidth(),
-                aoClicar = { aoAbrirDetalhe(vaga.id) },
-                rotuloDaAcao = "Abrir detalhes da vaga de ${vaga.funcaoNome}",
-            ) {
-                Text(
-                    text = vaga.funcaoNome,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(text = vaga.estabelecimentoNome, style = MaterialTheme.typography.bodyMedium)
-                Text(text = vaga.horarioFormatado, style = MaterialTheme.typography.bodySmall)
-                Text(
-                    text = "${vaga.valorFormatado} · ${"%.1f".format(vaga.distanciaKm)} km",
-                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -420,101 +381,58 @@ private fun ListaDeVagas(vagas: List<ItemVaga>, aoAbrirDetalhe: (String) -> Unit
 }
 
 /**
- * RNF10/RNF04: skeleton do feed enquanto carrega, em vez de um spinner genérico sem geometria.
- * Replica os 4 cartões de [CartaoVaga] (título, estabelecimento, horário, valor+distância) para
- * já indicar o formato do conteúdo que está vindo. Container único com `liveRegion` — os ossos
- * individuais ([FrilaSkeleton]) são `clearAndSetSemantics {}`, então o TalkBack anuncia só isto,
- * uma vez, em vez de uma vez por osso (MEDIDO, Byakugan: 16 anúncios antes desta correção).
+ * RNF10/RNF04: esqueleto do feed enquanto carrega, em vez de um indicador genérico sem geometria. Replica o
+ * cartão de vaga para já indicar o formato do que está vindo. Container único com `liveRegion`: os ossos
+ * ([br.com.frila.core.designsystem.componentes.FrilaSkeleton]) são `clearAndSetSemantics {}`, então o TalkBack
+ * anuncia só isto, uma vez, em vez de uma vez por osso (MEDIDO, Byakugan: 16 anúncios antes desta correção).
  */
 @Composable
-private fun SkeletonFeedVagas(quantidade: Int = 4) {
-    LazyColumn(
-        contentPadding = PaddingValues(FrilaEspacamento.medio),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+private fun SkeletonFeedVagas(quantidade: Int = 3) {
+    Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item)
             .semantics {
                 liveRegion = LiveRegionMode.Polite
                 contentDescription = "Carregando lista de vagas..."
             },
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
     ) {
-        items(quantidade) {
-            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto)) {
-                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.6f).height(20.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
-                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.8f).height(16.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
-                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.45f).height(14.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
-                    FrilaSkeleton(modifier = Modifier.fillMaxWidth(0.45f).height(14.dp), shape = RoundedCornerShape(FrilaRaios.pequeno))
-                }
-            }
-        }
+        repeat(quantidade) { CartaoDeVagaEsqueleto() }
     }
 }
 
 @Composable
 private fun VazioFeed(textoBusca: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.grande),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = if (textoBusca.isNotBlank()) {
-                "Nenhuma vaga encontrada para \"${textoBusca.trim()}\"."
-            } else {
-                "Nenhuma vaga encontrada com esses filtros."
-            },
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
+    if (textoBusca.isNotBlank()) {
+        EstadoVazio(
+            titulo = "Nenhuma vaga encontrada para \"${textoBusca.trim()}\".",
+            mensagem = "Tente outra busca ou mude os filtros.",
+        )
+    } else {
+        EstadoVazio(
+            titulo = "Nenhuma vaga encontrada com esses filtros.",
+            mensagem = "Tente mudar os filtros.",
         )
     }
 }
 
 /** Sem ponto base o servidor não tem de onde medir a distância: a saída é defini-lo. Textos iguais aos do iOS. */
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 @Composable
 private fun SemPontoBaseFeed(aoDefinirPontoBase: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.grande),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
-    ) {
-        Text(
-            text = "Falta o seu ponto base",
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = "Sem ele, não dá para medir a distância até as vagas nem avisar você das que ficam perto.",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-        )
-        BotaoPrimario(texto = "Definir ponto base", aoClicar = aoDefinirPontoBase)
-    }
+    EstadoVazio(
+        titulo = "Falta o seu ponto base",
+        mensagem = "Sem ele, não dá para medir a distância até as vagas nem avisar você das que ficam perto.",
+        textoAcao = "Definir ponto base",
+        aoClicarAcao = aoDefinirPontoBase,
+    )
 }
 
 @Composable
 private fun ErroFeed(mensagem: String?, aoTentarNovamente: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.grande),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
-    ) {
-        Text(
-            text = mensagem ?: "Não foi possível carregar as vagas.",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { error(mensagem ?: "Não foi possível carregar as vagas.") },
-        )
-        BotaoSecundario(texto = "Tentar novamente", aoClicar = aoTentarNovamente)
-    }
+    EstadoErro(
+        titulo = mensagem ?: "Não foi possível carregar as vagas.",
+        mensagem = null,
+        aoTentarNovamente = aoTentarNovamente,
+    )
 }

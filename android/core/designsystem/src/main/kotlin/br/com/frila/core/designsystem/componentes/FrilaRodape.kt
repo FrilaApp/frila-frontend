@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -84,7 +87,7 @@ fun MensagemJuntoAoBotao(texto: String, modifier: Modifier = Modifier) {
 /**
  * Barra de topo das telas abertas por cima de uma raiz: só o voltar e, se houver, ações à direita,
  * sobre o fundo da tela. Sem título por padrão: o título é conteúdo da tela ([TituloDaTela]). As
- * telas raiz não têm barra nem título de página.
+ * telas raiz não têm barra nem título de página. Já recua para baixo da barra de status.
  */
 @Composable
 fun FrilaBarraDeTopo(
@@ -98,6 +101,8 @@ fun FrilaBarraDeTopo(
         modifier = modifier
             .fillMaxWidth()
             .background(cores.fundo)
+            // O app desenha de borda a borda no Android 15+: a barra recua para baixo da barra de status, como a do Material.
+            .windowInsetsPadding(WindowInsets.statusBars)
             .heightIn(min = FrilaMetricas.alvoMinimo)
             // 12 + (48 − 24) / 2 = 24: o desenho da seta alinha com a margem lateral da tela.
             .padding(horizontal = FrilaEspacamento.compacto),
