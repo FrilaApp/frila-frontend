@@ -459,7 +459,7 @@ public struct FrilaJobCreationStudioView: View {
             }
             // Em tamanho de acessibilidade algum filho pedia mais que a tela e alargava o estúdio todo (texto cortado
             // na esquerda, botões encostando nas bordas): a largura do estúdio é a da tela.
-            .containerRelativeFrame(.horizontal)
+            .modifier(LarguraDaTelaEmAcessibilidade(ativo: dynamicTypeSize.isAccessibilitySize))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -1022,6 +1022,23 @@ private struct FrilaJobFormSectionTrackingModifier: ViewModifier {
                     blurStrength = 1
                     overhangFraction = 1
                 }
+        }
+    }
+}
+
+/// Em tamanho de acessibilidade fixa a largura do conteúdo na do espaço que a tela recebeu: o que pedir mais que isso
+/// transborda sozinho, em vez de alargar o cabeçalho, a barra de etapas e os botões.
+private struct LarguraDaTelaEmAcessibilidade: ViewModifier {
+    let ativo: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if ativo {
+            GeometryReader { geo in
+                content.frame(width: geo.size.width, height: geo.size.height)
+            }
+        } else {
+            content
         }
     }
 }
