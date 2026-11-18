@@ -108,7 +108,10 @@ São mínimos: o texto cresce com o tamanho de fonte do sistema e o componente c
 
 ## 6. Componentes (`componentes/`)
 
-`BotaoPrimario`, `BotaoSecundario`, `CartaoFrila`, `AvisoFrila`, `EstadoVazio`, `EstadoErro`, `EstadoCarregando`,
+`BotaoPrimario`, `BotaoSecundario`, `LinkFrila`, `AcaoDiscreta`, `CartaoFrila`, `AvisoFrila`, `SeloDeStatus`,
+`ChipFrila`, `CampoDeTexto`, `CampoDeBusca`, `CaixasDeCodigo`, `TituloDaTela`, `RotuloDeGrupo`, `FrilaGrupoDeLinhas`
+com `FrilaLinhaDeOpcao`/`FrilaLinhaDeNavegacao`, `FrilaLinhaDeDado`, `FrilaDivisoria`, `LinhaDeEtapas`,
+`FrilaBarraDeTopo`, `RodapeAncorado` com `MensagemJuntoAoBotao`, `EstadoVazio`, `EstadoErro`, `EstadoCarregando`,
 `FrilaBottomSheet`, `FrilaSkeleton`. Cada um tem a regra de uso no comentário do próprio arquivo.
 
 Movimento: quem anima respeita a redução de movimento do sistema (`animacoesAtivadas()` em `FrilaSkeleton.kt`).
