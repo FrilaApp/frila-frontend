@@ -12,6 +12,14 @@ public enum FrilaMedidaDeLinha {
     public static let areaDoIcone: CGFloat = 40
     /// Da área do ícone até o texto. Com o glifo de 24 pt centrado em 40, o vão visível fica em 16.
     public static let espacoAteOTexto = FrilaEspaco.item
+    /// Teto da área do ícone com texto grande. O ícone é enfeite: ele cresce com o Dynamic Type até aqui e, daí em
+    /// diante, a largura fica para o texto (em AX5 a área de 40 passaria de 120 pt e o título quebrava sílaba a sílaba).
+    public static let areaMaximaDoIcone: CGFloat = 56
+    /// O maior tamanho de texto que o ícone e a marca do fim da linha acompanham; o texto da linha segue até AX5.
+    public static let tetoDoSimbolo: DynamicTypeSize = .accessibility1
+
+    /// A área do ícone depois do Dynamic Type, já com o teto.
+    public static func areaDoIcone(escalada: CGFloat) -> CGFloat { min(escalada, areaMaximaDoIcone) }
 }
 
 /// Cartão de grupo: linhas num cartão em `superficie`, raio 16, contorno em `borda`, sem sombra, com uma divisória de
@@ -49,7 +57,9 @@ public struct FrilaGrupoDeLinhas<Conteudo: View>: View {
     }
 
     private var recuo: CGFloat {
-        linhasComIcone ? FrilaMedidaDeLinha.margem + areaDoIcone + FrilaMedidaDeLinha.espacoAteOTexto : FrilaMedidaDeLinha.margem
+        linhasComIcone
+            ? FrilaMedidaDeLinha.margem + FrilaMedidaDeLinha.areaDoIcone(escalada: areaDoIcone) + FrilaMedidaDeLinha.espacoAteOTexto
+            : FrilaMedidaDeLinha.margem
     }
 }
 
@@ -80,10 +90,12 @@ public struct FrilaIconeDeLinha: View {
     public init(_ simbolo: String) { self.simbolo = simbolo }
 
     public var body: some View {
+        let lado = FrilaMedidaDeLinha.areaDoIcone(escalada: area)
         Image(systemName: simbolo)
             .font(.title3)
+            .dynamicTypeSize(...FrilaMedidaDeLinha.tetoDoSimbolo)
             .foregroundStyle(FrilaCor.texto)
-            .frame(width: area, height: area)
+            .frame(width: lado, height: lado)
             .accessibilityHidden(true)
     }
 }
@@ -160,11 +172,13 @@ public struct FrilaLinhaDeOpcao: View {
         case .marcada(true):
             Image(systemName: "checkmark")
                 .font(FrilaTipo.corpo.weight(.semibold))
+                .dynamicTypeSize(...FrilaMedidaDeLinha.tetoDoSimbolo)
                 .foregroundStyle(FrilaCor.texto)
                 .accessibilityHidden(true)
         case .navega:
             Image(systemName: "chevron.forward")
                 .font(FrilaTipo.apoio.weight(.semibold))
+                .dynamicTypeSize(...FrilaMedidaDeLinha.tetoDoSimbolo)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityHidden(true)
         case .marcada(false), .nenhum:

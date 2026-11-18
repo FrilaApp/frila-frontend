@@ -71,6 +71,16 @@ struct FundacaoDoRedesignTests {
         #expect(pressionado.rotulo == FrilaCor.texto)
     }
 
+    @Test("O ícone da linha cresce com o texto até o teto de 56 pt; daí em diante a largura é do texto")
+    func areaDoIconeDaLinhaTemTeto() {
+        #expect(FrilaMedidaDeLinha.areaDoIcone(escalada: 40) == 40)
+        #expect(FrilaMedidaDeLinha.areaDoIcone(escalada: 52) == 52)
+        // Em AX5 a área de 40 escala para mais de 120 pt: sem o teto, o título da linha quebrava sílaba a sílaba.
+        #expect(FrilaMedidaDeLinha.areaDoIcone(escalada: 124) == 56)
+        #expect(FrilaMedidaDeLinha.areaMaximaDoIcone >= FrilaMetrica.alvoMinimo)
+        #expect(FrilaMedidaDeLinha.tetoDoSimbolo == .accessibility1)
+    }
+
     @Test("O laranja pressionado é #DD5C00 e a superfície pressionada é #EFECEA no claro e #2A2826 no escuro")
     func coresPressionadas() {
         #expect(Self.hex(FrilaCor.acaoPressionada, estilo: .light) == 0xDD5C00)
