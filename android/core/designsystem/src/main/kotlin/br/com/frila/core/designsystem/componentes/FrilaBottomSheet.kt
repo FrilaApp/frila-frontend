@@ -32,9 +32,11 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.tema.FrilaCores
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.designsystem.tema.FrilaTema
 
 /**
  * Puxador visual de arrastar do [FrilaBottomSheet] (RNF10). Decorativo: `clearAndSetSemantics { }`
@@ -60,7 +62,7 @@ fun FrilaDragHandle(modifier: Modifier = Modifier) {
                 .width(36.dp)
                 .height(5.dp)
                 .background(
-                    color = MaterialTheme.colorScheme.outlineVariant,
+                    color = FrilaTema.cores.tintaSuave.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(FrilaRaios.total),
                 ),
         )
@@ -95,9 +97,9 @@ fun FrilaBottomSheet(
         bottomStart = 0.dp,
         bottomEnd = 0.dp,
     ),
-    corContainer: Color = MaterialTheme.colorScheme.surface,
-    corConteudo: Color = MaterialTheme.colorScheme.onSurface,
-    corScrim: Color = Color.Black.copy(alpha = 0.4f),
+    corContainer: Color = FrilaTema.cores.fundo,
+    corConteudo: Color = FrilaTema.cores.tinta,
+    corScrim: Color = FrilaCores.tintaClaro.copy(alpha = 0.4f),
     elevacaoTonal: Dp = 0.dp,
     conteudo: @Composable ColumnScope.() -> Unit,
 ) {
