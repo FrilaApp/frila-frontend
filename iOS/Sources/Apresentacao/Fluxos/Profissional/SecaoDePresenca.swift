@@ -117,7 +117,9 @@ public struct SecaoDePresenca: View {
                     identificador: "botao-a-caminho",
                     avisando: turno?.avisandoACaminho == true
                 )
-            } else if turno?.podeTentarAvisarDeNovo == true {
+            } else if RegrasDeTelaDaPresenca.mostraTentarDeNovoDoACaminho(
+                estado: viewModel.etapa, erro: turno?.mensagemErroACaminho, podeTentar: turno?.podeTentarAvisarDeNovo == true
+            ) {
                 botaoACaminho(
                     verbatim: TextosDoProfissional.Turnos.tentarDeNovo,
                     identificador: "tentar-a-caminho-de-novo",
@@ -326,5 +328,13 @@ private struct BotaoDePresenca: View {
         }
         .buttonStyle(EstiloDoBotaoFrila(papel: .primario, emConferencia: !habilitado, alturaMinima: altura))
         .accessibilityLabel(Text(verbatim: titulo))
+    }
+}
+
+/// Condições de tela da presença que valem testar sem desenhar a view.
+enum RegrasDeTelaDaPresenca {
+    /// O "Tentar de novo" do aviso "a caminho": com o erro na tela e o ViewModel dizendo que dá para tentar.
+    static func mostraTentarDeNovoDoACaminho(estado: PresencaDoTurnoViewModel.Etapa, erro: String?, podeTentar: Bool) -> Bool {
+        estado == .parada && erro != nil && podeTentar
     }
 }
