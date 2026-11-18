@@ -742,8 +742,10 @@ public struct TelaAjudaPerfil: View {
             ScrollView {
                 FrilaGrupoDeLinhas(linhasComIcone: false) {
                     suporte
-                    linkExterno(TextosPerfilConta.termos, destino: enderecos.termosDeUso, id: "perfil-termos")
-                    linkExterno(TextosPerfilConta.privacidade, destino: enderecos.politicaDePrivacidade, id: "perfil-privacidade")
+                    linkExterno(TextosPerfilConta.termos, destino: enderecos.termosDeUso)
+                        .accessibilityIdentifier("perfil-termos")
+                    linkExterno(TextosPerfilConta.privacidade, destino: enderecos.politicaDePrivacidade)
+                        .accessibilityIdentifier("perfil-privacidade")
                     FrilaLinhaDeOpcao(titulo: TextosPerfilConta.licencas, remate: .navega) { abrirLicencas = true }
                         .accessibilityIdentifier("perfil-licencas")
                 }
@@ -821,7 +823,7 @@ public struct TelaAjudaPerfil: View {
         .padding(.horizontal, FrilaMedidaDeLinha.margem)
     }
 
-    private func linkExterno(_ titulo: String, destino: URL, id: String) -> some View {
+    private func linkExterno(_ titulo: String, destino: URL) -> some View {
         Link(destination: destino) {
             HStack {
                 Text(verbatim: titulo)
@@ -840,7 +842,6 @@ public struct TelaAjudaPerfil: View {
         }
         .accessibilityLabel(Text(verbatim: titulo))
         .accessibilityAddTraits(.isLink)
-        .accessibilityIdentifier(id)
     }
 }
 
