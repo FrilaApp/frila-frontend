@@ -2370,6 +2370,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
         if let daBusca = profissionalNaBusca(id) { return perfilPublicoDaBusca(daBusca) }
+        // A casa da conta que ainda não publicou vaga também tem perfil público (a Conta o lê ao trocar de casa).
+        if let casa = estabelecimentos.first(where: { $0.id == id }) { return perfilDo(casa) }
         guard let perfil = vagas.map(\.estabelecimento).first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         return perfil
     }
