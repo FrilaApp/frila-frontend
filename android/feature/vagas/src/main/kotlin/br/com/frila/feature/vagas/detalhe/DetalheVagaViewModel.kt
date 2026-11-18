@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import br.com.frila.core.rede.VagaDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -17,19 +18,22 @@ import kotlinx.coroutines.launch
 
 /**
  * Detalhe de uma vaga e candidatura (RF08/RF09/RN10/RN19/RN21). `vaga` chega inteira da tela de
- * feed, que já tem o DTO carregado — não refaz a chamada de rede só para mostrar o detalhe.
+ * feed, que já tem o DTO carregado — não refaz a chamada de rede só para mostrar o detalhe. Aberta
+ * pelo id, quem a leu foi o `AberturaDeVagaViewModel`, e o `detalhe` traz o que a lista não tem.
  *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel`.
  */
 class DetalheVagaViewModel(
     vaga: VagaAbertaDto,
     private val servicoVagas: ServicoVagas,
+    /** O detalhe lido por `detalhe_vaga`, quando a vaga foi aberta pelo id (link ou aviso). */
+    detalhe: VagaDto? = null,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
-    private val _estado = MutableStateFlow(EstadoDetalheVaga(vaga = vaga))
+    private val _estado = MutableStateFlow(EstadoDetalheVaga(vaga = vaga, detalhe = detalhe))
     val estado: StateFlow<EstadoDetalheVaga> = _estado.asStateFlow()
 
     fun candidatar(): Job {
