@@ -74,6 +74,7 @@ class CapturasR4aTest {
     private fun criarViewModel(
         perfil: String = perfilJson,
         status: HttpStatusCode = HttpStatusCode.OK,
+        conta: String = contaJson,
     ) = PerfilViewModel(
         servicoPerfil = ServicoPerfil(cliente(perfil, status)),
         servicoTurnos = ServicoTurnos(cliente("[]")),
@@ -81,7 +82,7 @@ class CapturasR4aTest {
         escopo = CoroutineScope(Dispatchers.Default),
         preferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
         obterAvatarSalvo = { null },
-        servicoConta = ServicoConta(cliente(contaJson)),
+        servicoConta = ServicoConta(cliente(conta)),
     )
 
     @Composable
@@ -175,5 +176,71 @@ class CapturasR4aTest {
         runBlocking { viewModel.carregar().join() }
         compose.setContent { FrilaTheme(temaEscuro = true) { Perfil(viewModel, verificacao = aprovada()) } }
         compose.capturar("r4a-perfil-07-escuro")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h1400dp-xxhdpi")
+    fun `perfil - da casa`() {
+        val viewModel = criarViewModel(
+            perfil = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+            status = HttpStatusCode.NotFound,
+            conta = contaJson.replace("profissional", "contratante").replace("Juliana Ramos", "Casa Exemplo"),
+        )
+        runBlocking { viewModel.carregar().join() }
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                TelaPerfil(
+                    viewModel = viewModel,
+                    aoDeslogar = {},
+                    aoAbrirEquipe = {},
+                    aoMinhasVagas = {},
+                    aoPublicarVaga = {},
+                    aoEncontrarProfissional = {},
+                    verificarNotificacoesDoSistema = { true },
+                )
+            }
+        }
+        compose.capturar("r4a-perfil-08-da-casa")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h1400dp-xxhdpi")
+    fun `perfil - erro com atalhos da casa`() {
+        val viewModel = criarViewModel(perfil = """{"code":"erro","message":"falhou"}""", status = HttpStatusCode.InternalServerError)
+        runBlocking { viewModel.carregar().join() }
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                TelaPerfil(
+                    viewModel = viewModel,
+                    aoDeslogar = {},
+                    aoAbrirEquipe = {},
+                    aoMinhasVagas = {},
+                    aoPublicarVaga = {},
+                    manterAtalhosDeContratanteNoErro = true,
+                )
+            }
+        }
+        compose.capturar("r4a-perfil-09-erro-com-atalhos")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h2600dp-xxhdpi")
+    fun `perfil - notificacoes do sistema desligadas`() {
+        val viewModel = criarViewModel()
+        runBlocking { viewModel.carregar().join() }
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                TelaPerfil(
+                    viewModel = viewModel,
+                    aoDeslogar = {},
+                    aoAbrirApresentacao = {},
+                    aoAbrirFotoDePerfil = {},
+                    aoAbrirPontoBase = {},
+                    aoAbrirChamadasDiretas = {},
+                    verificarNotificacoesDoSistema = { false },
+                )
+            }
+        }
+        compose.capturar("r4a-perfil-10-notificacoes-desligadas")
     }
 }

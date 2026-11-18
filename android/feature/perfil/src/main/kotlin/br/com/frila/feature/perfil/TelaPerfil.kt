@@ -16,24 +16,26 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.EscopoDoGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.EstadoErro
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeNavegacao
+import br.com.frila.core.designsystem.tema.FrilaRaios
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -67,10 +69,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -78,7 +78,6 @@ import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
 import br.com.frila.core.designsystem.componentes.CartaoFrila
-import br.com.frila.core.designsystem.componentes.CartaoVaga
 import br.com.frila.core.designsystem.componentes.ChipFrila
 import br.com.frila.core.designsystem.componentes.EstiloDoSelo
 import br.com.frila.core.designsystem.componentes.FrilaDivisoria
@@ -518,7 +517,6 @@ private fun ConteudoDoPerfil(
  * 404). Mostra o nome da conta e o bloco de conta com os atalhos da casa, sem os blocos do profissional; as
  * preferências de chamada são do profissional e nunca aparecem aqui.
  */
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 @Composable
 private fun ConteudoDaCasa(
     nome: String,
@@ -539,16 +537,19 @@ private fun ConteudoDaCasa(
 ) {
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.medio),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+            .padding(start = FrilaEspacamento.grupo, end = FrilaEspacamento.grupo, top = FrilaEspacamento.item, bottom = FrilaEspacamento.grupo),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
     ) {
-        Text(
-            text = nome,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
+        CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = nome,
+                style = FrilaTipo.nome,
+                color = FrilaTema.cores.tinta,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
         BlocoDeConta(
             aoDeslogar = aoDeslogar,
             aoAbrirExclusao = aoAbrirExclusao,
@@ -585,63 +586,41 @@ private fun BlocoDeNotificacoes(
     notificacoesDoSistemaAtivadas: Boolean,
 ) {
     val contexto = LocalContext.current
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Notificações",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = FrilaEspacamento.pequeno)
-                .testTag("status-notificacoes-sistema"),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Permissão no sistema",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = if (notificacoesDoSistemaAtivadas) "Ativadas" else "Desativadas",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (notificacoesDoSistemaAtivadas) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                modifier = Modifier.semantics {
-                    stateDescription = if (notificacoesDoSistemaAtivadas) "ativado" else "desativado"
-                },
-            )
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        FrilaGrupoDeLinhas(titulo = "Notificações") {
+            linha {
+                LinhaDeValor(
+                    rotulo = "Permissão no sistema",
+                    valor = if (notificacoesDoSistemaAtivadas) "Ativadas" else "Desativadas",
+                    modifier = Modifier.testTag("status-notificacoes-sistema"),
+                    modificadorDoValor = Modifier.semantics {
+                        stateDescription = if (notificacoesDoSistemaAtivadas) "ativado" else "desativado"
+                    },
+                )
+            }
+            linha { LinhaDeNotificacao("Vagas urgentes", GerenciadorDeCanais.CANAL_URGENCIA, urgenciaAtivada, aoAlternar) }
+            linha { LinhaDeNotificacao("Turnos", GerenciadorDeCanais.CANAL_TURNOS, turnosAtivada, aoAlternar) }
+            linha { LinhaDeNotificacao("Geral", GerenciadorDeCanais.CANAL_SISTEMA, sistemaAtivada, aoAlternar) }
+            linha {
+                FrilaLinhaDeNavegacao(
+                    titulo = "Configurações de notificação do sistema",
+                    aoClicar = {
+                        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, contexto.packageName)
+                        contexto.startActivity(intent)
+                    },
+                )
+            }
         }
-
         if (!notificacoesDoSistemaAtivadas) {
             AvisoFrila(
                 tom = TomAviso.ALERTA,
                 mensagem = "Notificações desativadas no Android. Ative nas configurações do sistema para receber alertas de vagas e turnos.",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
                     .testTag("aviso-notificacoes-desativadas-sistema"),
             )
         }
-
-        LinhaDeNotificacao("Vagas urgentes", GerenciadorDeCanais.CANAL_URGENCIA, urgenciaAtivada, aoAlternar)
-        LinhaDeNotificacao("Turnos", GerenciadorDeCanais.CANAL_TURNOS, turnosAtivada, aoAlternar)
-        LinhaDeNotificacao("Geral", GerenciadorDeCanais.CANAL_SISTEMA, sistemaAtivada, aoAlternar)
-        BotaoSecundario(
-            texto = "Configurações de notificação do sistema",
-            aoClicar = {
-                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                    .putExtra(Settings.EXTRA_APP_PACKAGE, contexto.packageName)
-                contexto.startActivity(intent)
-            },
-            modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
-        )
     }
 }
 
@@ -652,26 +631,14 @@ private fun LinhaDeNotificacao(
     ativada: Boolean,
     aoAlternar: (canal: String, ativado: Boolean) -> Unit,
 ) {
-    Row(
+    LinhaDeInterruptor(
+        rotulo = rotulo,
+        ativada = ativada,
+        aoAlternar = { novoValor -> aoAlternar(canal, novoValor) },
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = FrilaEspacamento.pequeno)
-            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-            .toggleable(
-                value = ativada,
-                role = Role.Switch,
-                onValueChange = { novoValor -> aoAlternar(canal, novoValor) },
-            )
             .testTag("toggle-notificacao-$canal")
-            .semantics {
-                stateDescription = if (ativada) "ativado" else "desativado"
-            },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = rotulo, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Switch(checked = ativada, onCheckedChange = null)
-    }
+            .semantics { stateDescription = if (ativada) "ativado" else "desativado" },
+    )
 }
 
 /**
@@ -936,7 +903,7 @@ private fun BlocoDeBioProfissional(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RotuloDeGrupo("Biografia profissional")
+                RotuloDeGrupo("Biografia profissional", modifier = Modifier.weight(1f).padding(end = FrilaEspacamento.item))
                 LinkFrila(texto = if (bio.isBlank()) "Adicionar" else "Editar", aoClicar = aoIniciarEdicao)
             }
             CartaoFrila(modifier = Modifier.fillMaxWidth()) {
@@ -1003,6 +970,49 @@ private fun BlocoDeFuncoes(funcoes: List<FuncaoDto>) {
     }
 }
 
+/**
+ * Atalhos da casa, na ordem em que aparecem: cada um só entra se quem abriu a tela informou o callback (as chaves e as
+ * condições de cada atalho são do chamador). O mesmo conjunto vale no perfil carregado e no perfil em erro.
+ */
+private fun EscopoDoGrupoDeLinhas.atalhosDaCasa(
+    aoAbrirEquipe: (() -> Unit)?,
+    aoMinhasVagas: (() -> Unit)?,
+    aoPublicarVaga: (() -> Unit)?,
+    aoCadastrarEstabelecimento: (() -> Unit)?,
+    aoEncontrarProfissional: (() -> Unit)?,
+) {
+    if (aoAbrirEquipe != null) {
+        linha { FrilaLinhaDeNavegacao("Equipe de confiança", aoAbrirEquipe, Modifier.testTag("perfil-equipe")) }
+    }
+    if (aoMinhasVagas != null) {
+        linha { FrilaLinhaDeNavegacao("Minhas vagas", aoMinhasVagas, Modifier.testTag("perfil-minhas-vagas")) }
+    }
+    if (aoPublicarVaga != null) {
+        linha { FrilaLinhaDeNavegacao("Publicar vaga", aoPublicarVaga, Modifier.testTag("perfil-publicar-vaga")) }
+    }
+    if (aoCadastrarEstabelecimento != null) {
+        linha {
+            FrilaLinhaDeNavegacao("Cadastrar estabelecimento", aoCadastrarEstabelecimento, Modifier.testTag("perfil-cadastrar-estabelecimento"))
+        }
+    }
+    if (aoEncontrarProfissional != null) {
+        linha { FrilaLinhaDeNavegacao("Encontrar profissional", aoEncontrarProfissional, Modifier.testTag("perfil-encontrar-profissional")) }
+    }
+}
+
+/** Sair e excluir a conta: ações discretas no fim da tela, uma por linha. Excluir tem a sua confirmação própria. */
+@Composable
+private fun AcoesDeEncerrarConta(aoDeslogar: () -> Unit, aoAbrirExclusao: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        AcaoDiscreta(texto = "Sair da conta", aoClicar = aoDeslogar)
+        AcaoDiscreta(texto = "Excluir conta", aoClicar = aoAbrirExclusao)
+    }
+}
+
+/**
+ * Os atalhos da conta num grupo de linhas e, 32dp abaixo, sair e excluir como ações discretas. Cada atalho só entra
+ * quando o chamador informa o callback; a lista e as condições não mudam com o desenho.
+ */
 @Composable
 private fun BlocoDeConta(
     aoDeslogar: () -> Unit,
@@ -1021,56 +1031,56 @@ private fun BlocoDeConta(
     /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
     aoAbrirApresentacao: (() -> Unit)? = null,
     aoAbrirFotoDePerfil: (() -> Unit)? = null,
-    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
 ) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Conta",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-        // C0-11: o iOS não tem desbloqueio por biometria; só aparece com a trava ligada, que nada no app liga.
-        if (mostrarBiometria) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Desbloqueio rápido por biometria",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                Switch(
-                    checked = biometriaAtivada,
-                    onCheckedChange = aoAlternarBiometria,
-                    // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
-                    // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
-                    enabled = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
-                    modifier = Modifier
-                        .testTag("toggle-biometria")
-                        .semantics {
-                            contentDescription = "Desbloqueio rápido por biometria"
-                        },
-                )
+    val cores = FrilaTema.cores
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.secao)) {
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+            FrilaGrupoDeLinhas {
+                // C0-11: o iOS não tem desbloqueio por biometria; só aparece com a trava ligada, que nada no app liga.
+                if (mostrarBiometria) {
+                    linha {
+                        LinhaDeInterruptor(
+                            rotulo = "Desbloqueio rápido por biometria",
+                            ativada = biometriaAtivada,
+                            aoAlternar = aoAlternarBiometria,
+                            // MEDIDO (Shisui, PR #591): desligar precisa ser sempre possível, mesmo se o
+                            // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
+                            habilitada = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
+                            modifier = Modifier.testTag("toggle-biometria"),
+                        )
+                    }
+                }
+                atalhosDaCasa(aoAbrirEquipe, aoMinhasVagas, aoPublicarVaga, aoCadastrarEstabelecimento, aoEncontrarProfissional)
+                if (aoAbrirPontoBase != null) {
+                    linha { FrilaLinhaDeNavegacao(TextosPontoBase.TITULO, aoAbrirPontoBase, Modifier.testTag("perfil-ponto-base")) }
+                }
+                if (aoAbrirApresentacao != null) {
+                    linha { FrilaLinhaDeNavegacao(TextosApresentacaoERegioes.TITULO, aoAbrirApresentacao, Modifier.testTag("perfil-apresentacao")) }
+                }
+                if (aoAbrirFotoDePerfil != null) {
+                    linha { FrilaLinhaDeNavegacao(TextosDaFotoDePerfil.TITULO, aoAbrirFotoDePerfil, Modifier.testTag("perfil-foto")) }
+                }
+                if (aoAbrirChamadasDiretas != null) {
+                    linha { FrilaLinhaDeNavegacao("Preferências de chamadas", aoAbrirChamadasDiretas, Modifier.testTag("perfil-chamadas-diretas")) }
+                }
+                linha { FrilaLinhaDeNavegacao("Ajuda", aoAbrirAjuda, Modifier.testTag("perfil-ajuda")) }
             }
-            if (disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
+            if (mostrarBiometria && disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
                 Text(
                     text = textoIndisponibilidadeBiometrica(disponibilidadeBiometrica),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = FrilaTipo.apoio,
+                    color = cores.tintaSuave,
                 )
             }
-            if (mensagemErroBiometria != null) {
+            if (mostrarBiometria && mensagemErroBiometria != null) {
+                // Problema não tem cor: o erro vai escrito em tinta, e o leitor de tela o anuncia na hora.
                 Text(
                     text = mensagemErroBiometria,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
                     modifier = Modifier.semantics {
                         liveRegion = LiveRegionMode.Assertive
                         error(mensagemErroBiometria)
@@ -1078,114 +1088,7 @@ private fun BlocoDeConta(
                 )
             }
         }
-        BotaoSecundario(
-            texto = "Ajuda",
-            aoClicar = aoAbrirAjuda,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = FrilaEspacamento.pequeno)
-                .testTag("perfil-ajuda"),
-        )
-        if (aoAbrirEquipe != null) {
-            BotaoSecundario(
-                texto = "Equipe de confiança",
-                aoClicar = aoAbrirEquipe,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-equipe"),
-            )
-        }
-        if (aoMinhasVagas != null) {
-            BotaoSecundario(
-                texto = "Minhas vagas",
-                aoClicar = aoMinhasVagas,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-minhas-vagas"),
-            )
-        }
-        if (aoPublicarVaga != null) {
-            BotaoSecundario(
-                texto = "Publicar vaga",
-                aoClicar = aoPublicarVaga,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-publicar-vaga"),
-            )
-        }
-        if (aoCadastrarEstabelecimento != null) {
-            BotaoSecundario(
-                texto = "Cadastrar estabelecimento",
-                aoClicar = aoCadastrarEstabelecimento,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-cadastrar-estabelecimento"),
-            )
-        }
-        if (aoEncontrarProfissional != null) {
-            BotaoSecundario(
-                texto = "Encontrar profissional",
-                aoClicar = aoEncontrarProfissional,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-encontrar-profissional"),
-            )
-        }
-        if (aoAbrirPontoBase != null) {
-            BotaoSecundario(
-                texto = TextosPontoBase.TITULO,
-                aoClicar = aoAbrirPontoBase,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-ponto-base"),
-            )
-        }
-        if (aoAbrirApresentacao != null) {
-            BotaoSecundario(
-                texto = TextosApresentacaoERegioes.TITULO,
-                aoClicar = aoAbrirApresentacao,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-apresentacao"),
-            )
-        }
-        if (aoAbrirFotoDePerfil != null) {
-            BotaoSecundario(
-                texto = TextosDaFotoDePerfil.TITULO,
-                aoClicar = aoAbrirFotoDePerfil,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-foto"),
-            )
-        }
-        if (aoAbrirChamadasDiretas != null) {
-            BotaoSecundario(
-                texto = "Preferências de chamadas",
-                aoClicar = aoAbrirChamadasDiretas,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .testTag("perfil-chamadas-diretas"),
-            )
-        }
-        BotaoSecundario(
-            texto = "Sair da conta",
-            aoClicar = aoDeslogar,
-            modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
-        )
-        BotaoDestrutivo(
-            texto = "Excluir conta",
-            aoClicar = aoAbrirExclusao,
-            modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno),
-        )
+        AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
     }
 }
 
@@ -1197,38 +1100,21 @@ private fun textoIndisponibilidadeBiometrica(disponibilidade: DisponibilidadeBio
 }
 
 /**
- * Botão de ação destrutiva: cores `error`/`onError` do tema, mesmo alvo mínimo 48dp dos
- * demais botões do design system (RNF10). Não há um componente de design system para isto
- * ainda — só `BotaoPrimario`/`BotaoSecundario`, nenhum em tom de perigo.
+ * RF25/UC16: a única confirmação de excluir a conta, nativa, com a consequência escrita (irreversível, turnos futuros
+ * cancelados e dados apagados em até 15 dias, como pede a LGPD). Sem vermelho: problema não tem cor.
  */
 @Composable
-private fun BotaoDestrutivo(texto: String, aoClicar: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        onClick = aoClicar,
-        modifier = modifier
-            .sizeIn(
-                minWidth = FrilaMetricas.alvoMinimo,
-                minHeight = FrilaMetricas.alvoMinimo,
-            )
-            .heightIn(min = FrilaMetricas.alturaBotao)
-            .widthIn(min = FrilaMetricas.alvoMinimo),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.error,
-            contentColor = MaterialTheme.colorScheme.onError,
-        ),
-    ) {
-        Text(text = texto, style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-/** RF25/UC16: confirmação explícita, com o alerta de irreversibilidade exigido pela LGPD. */
-@Composable
 private fun DialogoConfirmarExclusao(aoConfirmar: () -> Unit, aoCancelar: () -> Unit) {
+    val cores = FrilaTema.cores
     AlertDialog(
         onDismissRequest = aoCancelar,
+        containerColor = cores.superficie,
+        shape = RoundedCornerShape(FrilaRaios.cartao),
         title = {
             Text(
                 "Excluir conta definitivamente?",
+                style = FrilaTipo.nome,
+                color = cores.tinta,
                 modifier = Modifier.semantics { heading() },
             )
         },
@@ -1237,39 +1123,38 @@ private fun DialogoConfirmarExclusao(aoConfirmar: () -> Unit, aoCancelar: () -> 
                 "Esta ação não pode ser desfeita. Seus turnos futuros serão cancelados sem " +
                     "penalidade para você, e seus dados pessoais serão apagados em até 15 dias, " +
                     "conforme a LGPD.",
+                style = FrilaTipo.corpo,
+                color = cores.tinta,
             )
         },
         confirmButton = {
             TextButton(
                 onClick = aoConfirmar,
-                modifier = Modifier.sizeIn(
-                    minWidth = FrilaMetricas.alvoMinimo,
-                    minHeight = FrilaMetricas.alvoMinimo,
-                ),
+                modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
             ) {
-                Text("Sim, excluir minha conta", color = MaterialTheme.colorScheme.error)
+                Text("Sim, excluir minha conta", style = FrilaTipo.rotuloSecundario, color = cores.tinta)
             }
         },
         dismissButton = {
             TextButton(
                 onClick = aoCancelar,
-                modifier = Modifier.sizeIn(
-                    minWidth = FrilaMetricas.alvoMinimo,
-                    minHeight = FrilaMetricas.alvoMinimo,
-                ),
-            ) { Text("Cancelar") }
+                modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
+            ) { Text("Cancelar", style = FrilaTipo.rotuloSecundario, color = cores.tinta) }
         },
     )
 }
 
 @Composable
 private fun DialogoExcluindo() {
+    val cores = FrilaTema.cores
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Excluindo conta…", modifier = Modifier.semantics { heading() }) },
+        containerColor = cores.superficie,
+        shape = RoundedCornerShape(FrilaRaios.cartao),
+        title = { Text("Excluindo conta…", style = FrilaTipo.nome, color = cores.tinta, modifier = Modifier.semantics { heading() }) },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                IndicadorCarregando()
             }
         },
         confirmButton = {},
@@ -1278,11 +1163,16 @@ private fun DialogoExcluindo() {
 
 @Composable
 private fun DialogoErroExclusao(mensagem: String?, aoFechar: () -> Unit) {
+    val cores = FrilaTema.cores
     AlertDialog(
         onDismissRequest = aoFechar,
+        containerColor = cores.superficie,
+        shape = RoundedCornerShape(FrilaRaios.cartao),
         title = {
             Text(
                 "Não foi possível excluir a conta",
+                style = FrilaTipo.nome,
+                color = cores.tinta,
                 modifier = Modifier.semantics { heading() },
             )
         },
@@ -1290,6 +1180,8 @@ private fun DialogoErroExclusao(mensagem: String?, aoFechar: () -> Unit) {
             val textoErro = mensagem ?: "Tente de novo em instantes."
             Text(
                 text = textoErro,
+                style = FrilaTipo.corpo,
+                color = cores.tinta,
                 modifier = Modifier.semantics {
                     liveRegion = LiveRegionMode.Assertive
                     error(textoErro)
@@ -1299,23 +1191,15 @@ private fun DialogoErroExclusao(mensagem: String?, aoFechar: () -> Unit) {
         confirmButton = {
             TextButton(
                 onClick = aoFechar,
-                modifier = Modifier.sizeIn(
-                    minWidth = FrilaMetricas.alvoMinimo,
-                    minHeight = FrilaMetricas.alvoMinimo,
-                ),
-            ) { Text("Entendi") }
+                modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
+            ) { Text("Entendi", style = FrilaTipo.rotuloSecundario, color = cores.tinta) }
         },
     )
 }
 
 @Composable
 private fun Carregando(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator()
-    }
+    EstadoCarregando(modifier = modifier)
 }
 
 @Composable
@@ -1330,64 +1214,33 @@ private fun Erro(
     aoAbrirExclusao: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             // Com os atalhos da casa mais sair e excluir, a coluna passa da altura da tela em fonte grande.
-            .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.grande),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
+            .verticalScroll(rememberScrollState()),
     ) {
         val textoErro = mensagem ?: "Não foi possível carregar seu perfil."
-        Text(
-            text = textoErro,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics {
-                liveRegion = LiveRegionMode.Assertive
-                error(textoErro)
-            },
+        EstadoErro(
+            titulo = textoErro,
+            mensagem = null,
+            aoTentarNovamente = aoTentarNovamente,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
         )
-        BotaoSecundario(texto = "Tentar novamente", aoClicar = aoTentarNovamente)
-        if (aoAbrirEquipe != null) {
-            BotaoSecundario(
-                texto = "Equipe de confiança",
-                aoClicar = aoAbrirEquipe,
-                modifier = Modifier.fillMaxWidth().testTag("perfil-equipe"),
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = FrilaEspacamento.grupo, end = FrilaEspacamento.grupo, bottom = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.secao),
+        ) {
+            if (temAtalhos) {
+                FrilaGrupoDeLinhas {
+                    atalhosDaCasa(aoAbrirEquipe, aoMinhasVagas, aoPublicarVaga, null, aoEncontrarProfissional)
+                }
+            }
+            // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
+            AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
         }
-        if (aoMinhasVagas != null) {
-            BotaoSecundario(
-                texto = "Minhas vagas",
-                aoClicar = aoMinhasVagas,
-                modifier = Modifier.fillMaxWidth().testTag("perfil-minhas-vagas"),
-            )
-        }
-        if (aoPublicarVaga != null) {
-            BotaoSecundario(
-                texto = "Publicar vaga",
-                aoClicar = aoPublicarVaga,
-                modifier = Modifier.fillMaxWidth().testTag("perfil-publicar-vaga"),
-            )
-        }
-        if (aoEncontrarProfissional != null) {
-            BotaoSecundario(
-                texto = "Encontrar profissional",
-                aoClicar = aoEncontrarProfissional,
-                modifier = Modifier.fillMaxWidth().testTag("perfil-encontrar-profissional"),
-            )
-        }
-        // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
-        BotaoSecundario(
-            texto = "Sair da conta",
-            aoClicar = aoDeslogar,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        BotaoDestrutivo(
-            texto = "Excluir conta",
-            aoClicar = aoAbrirExclusao,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
