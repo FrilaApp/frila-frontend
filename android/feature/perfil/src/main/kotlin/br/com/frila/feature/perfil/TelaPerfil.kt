@@ -6,7 +6,6 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,22 +25,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -84,7 +76,19 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.ChipFrila
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaDivisoria
+import br.com.frila.core.designsystem.componentes.IndicadorCarregando
+import br.com.frila.core.designsystem.componentes.LinkFrila
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import androidx.core.content.FileProvider
@@ -96,12 +100,11 @@ import kotlin.math.roundToInt
 
 /**
  * Perfil do profissional (RF02/RF03/RF16/RF25/RN15/RNF08, UC09/UC16):
- * - RF02: Bio profissional limitada a 280 caracteres com contador e especialidades em FlowRow com FilterChip.
+ * - RF02: Bio profissional limitada a 280 caracteres com contador e especialidades em FlowRow com ChipFrila.
  * - Reputação sempre com denominador (RN08), nunca uma média sem contexto (RN07).
  * - Logout e exclusão de conta locais primeiro (RN15) — a sessão só é limpa depois da confirmação
  *   (logout) ou do sucesso da Edge Function (exclusão), nunca antes.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TelaPerfil(
     viewModel: PerfilViewModel,
@@ -228,135 +231,119 @@ fun TelaPerfil(
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Meu Perfil", modifier = Modifier.semantics { heading() }) },
-                actions = {
-                    IconButton(
-                        onClick = aoAbrirAjuda,
-                        modifier = Modifier
-                            .sizeIn(
-                                minWidth = FrilaMetricas.alvoMinimo,
-                                minHeight = FrilaMetricas.alvoMinimo,
-                            )
-                            .testTag("botao-ajuda-barra"),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Ajuda",
-                        )
-                    }
-                },
-            )
-        },
+        containerColor = FrilaTema.cores.fundo,
     ) { paddingInterno ->
-        // A casa não tem perfil profissional: o perfil dela é a conta (`minha_conta`) e os atalhos da casa, como o iOS.
-        if (estado.status == StatusPerfil.SUCESSO && estado.ehContratante) {
-            ConteudoDaCasa(
-                nome = estado.conta?.nome.orEmpty(),
-                paddingValues = paddingInterno,
-                aoDeslogar = {
-                    viewModel.aoDeslogar()
-                    aoDeslogar()
-                },
-                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
-                biometriaAtivada = estado.biometriaAtivada,
-                disponibilidadeBiometrica = disponibilidadeBiometrica,
-                mensagemErroBiometria = mensagemErroBiometria,
-                aoAlternarBiometria = alternarBiometria,
-                mostrarBiometria = recursoBiometriaHabilitado,
-                aoAbrirAjuda = aoAbrirAjuda,
-                aoAbrirEquipe = aoAbrirEquipe,
-                aoPublicarVaga = aoPublicarVaga,
-                aoMinhasVagas = aoMinhasVagas,
-                aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
-                aoEncontrarProfissional = aoEncontrarProfissional,
-            )
-        } else when (estado.status) {
-            StatusPerfil.CARREGANDO -> Carregando(paddingInterno)
-            StatusPerfil.ERRO -> Erro(
-                mensagem = estado.mensagemErro,
-                aoTentarNovamente = viewModel::carregar,
-                paddingValues = paddingInterno,
-                aoAbrirEquipe = aoAbrirEquipe.takeIf { manterAtalhosDeContratanteNoErro },
-                aoPublicarVaga = aoPublicarVaga.takeIf { manterAtalhosDeContratanteNoErro },
-                aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
-                // Com o perfil em erro (sem rede, por exemplo), a busca da casa continua acessível.
-                aoEncontrarProfissional = aoEncontrarProfissional.takeIf { manterAtalhosDeContratanteNoErro },
-                // Sair e excluir a conta não dependem do perfil ter carregado: mesmos caminhos do perfil carregado.
-                aoDeslogar = {
-                    viewModel.aoDeslogar()
-                    aoDeslogar()
-                },
-                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
-            )
-            StatusPerfil.SUCESSO -> ConteudoDoPerfil(
-                fotoLocalPath = estado.fotoLocalPath,
-                statusFoto = estado.statusFoto,
-                mensagemErroFoto = estado.mensagemErroFoto,
-                aoSelecionarFoto = { uri -> viewModel.selecionarFoto(contexto, uri) },
-                funcoes = estado.perfil?.funcoes.orEmpty(),
-                reputacao = estado.perfil?.reputacao,
-                resumoFinanceiro = estado.resumoFinanceiro,
-                aoExportarExtrato = {
-                    // DEDUZIDO: PerfilProfissionalDto não traz nome do profissional (só id,
-                    // usuario_id, funcoes, ponto_base, disponibilidades, reputacao — MEDIDO em
-                    // Dtos.kt:282-289). Sem esse campo no contrato, o cabeçalho do PDF usa um
-                    // rótulo neutro em vez de inventar uma fonte de nome fora de escopo.
-                    val arquivo = viewModel.exportarExtratoPdf(contexto.cacheDir, "Profissional")
-                    if (arquivo != null) {
-                        val uri = FileProvider.getUriForFile(contexto, "${contexto.packageName}.fileprovider", arquivo)
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "application/pdf"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            putExtra(Intent.EXTRA_SUBJECT, "Extrato de Remunerações Frila")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        Column(modifier = Modifier.fillMaxSize().padding(paddingInterno)) {
+            CabecalhoDoPerfil(aoAbrirAjuda = aoAbrirAjuda)
+            // A casa não tem perfil profissional: o perfil dela é a conta (`minha_conta`) e os atalhos da casa, como o iOS.
+            if (estado.status == StatusPerfil.SUCESSO && estado.ehContratante) {
+                ConteudoDaCasa(
+                    nome = estado.conta?.nome.orEmpty(),
+                    aoDeslogar = {
+                        viewModel.aoDeslogar()
+                        aoDeslogar()
+                    },
+                    aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
+                    biometriaAtivada = estado.biometriaAtivada,
+                    disponibilidadeBiometrica = disponibilidadeBiometrica,
+                    mensagemErroBiometria = mensagemErroBiometria,
+                    aoAlternarBiometria = alternarBiometria,
+                    mostrarBiometria = recursoBiometriaHabilitado,
+                    aoAbrirAjuda = aoAbrirAjuda,
+                    aoAbrirEquipe = aoAbrirEquipe,
+                    aoPublicarVaga = aoPublicarVaga,
+                    aoMinhasVagas = aoMinhasVagas,
+                    aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+                    aoEncontrarProfissional = aoEncontrarProfissional,
+                    modifier = Modifier.weight(1f),
+                )
+            } else when (estado.status) {
+                StatusPerfil.CARREGANDO -> Carregando(Modifier.weight(1f))
+                StatusPerfil.ERRO -> Erro(
+                    mensagem = estado.mensagemErro,
+                    aoTentarNovamente = viewModel::carregar,
+                    aoAbrirEquipe = aoAbrirEquipe.takeIf { manterAtalhosDeContratanteNoErro },
+                    aoPublicarVaga = aoPublicarVaga.takeIf { manterAtalhosDeContratanteNoErro },
+                    aoMinhasVagas = aoMinhasVagas.takeIf { manterAtalhosDeContratanteNoErro },
+                    // Com o perfil em erro (sem rede, por exemplo), a busca da casa continua acessível.
+                    aoEncontrarProfissional = aoEncontrarProfissional.takeIf { manterAtalhosDeContratanteNoErro },
+                    // Sair e excluir a conta não dependem do perfil ter carregado: mesmos caminhos do perfil carregado.
+                    aoDeslogar = {
+                        viewModel.aoDeslogar()
+                        aoDeslogar()
+                    },
+                    aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
+                    modifier = Modifier.weight(1f),
+                )
+                StatusPerfil.SUCESSO -> ConteudoDoPerfil(
+                    nome = estado.conta?.nome,
+                    fotoLocalPath = estado.fotoLocalPath,
+                    statusFoto = estado.statusFoto,
+                    mensagemErroFoto = estado.mensagemErroFoto,
+                    aoSelecionarFoto = { uri -> viewModel.selecionarFoto(contexto, uri) },
+                    funcoes = estado.perfil?.funcoes.orEmpty(),
+                    reputacao = estado.perfil?.reputacao,
+                    resumoFinanceiro = estado.resumoFinanceiro,
+                    aoExportarExtrato = {
+                        // DEDUZIDO: PerfilProfissionalDto não traz nome do profissional (só id,
+                        // usuario_id, funcoes, ponto_base, disponibilidades, reputacao — MEDIDO em
+                        // Dtos.kt:282-289). Sem esse campo no contrato, o cabeçalho do PDF usa um
+                        // rótulo neutro em vez de inventar uma fonte de nome fora de escopo.
+                        val arquivo = viewModel.exportarExtratoPdf(contexto.cacheDir, "Profissional")
+                        if (arquivo != null) {
+                            val uri = FileProvider.getUriForFile(contexto, "${contexto.packageName}.fileprovider", arquivo)
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                putExtra(Intent.EXTRA_SUBJECT, "Extrato de Remunerações Frila")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            contexto.startActivity(Intent.createChooser(intent, "Compartilhar extrato em PDF"))
                         }
-                        contexto.startActivity(Intent.createChooser(intent, "Compartilhar extrato em PDF"))
-                    }
-                },
-                bio = estado.bio,
-                bioEmEdicao = estado.bioEmEdicao,
-                estaEditandoBio = estado.estaEditandoBio,
-                caracteresRestantesBio = estado.caracteresRestantesBio,
-                especialidadesDisponiveis = estado.especialidadesDisponiveis,
-                especialidadesSelecionadas = estado.especialidadesSelecionadas,
-                aoIniciarEdicaoBio = viewModel::iniciarEdicaoBio,
-                aoAtualizarBioEmEdicao = viewModel::atualizarBioEmEdicao,
-                aoSalvarBio = viewModel::salvarBio,
-                aoCancelarEdicaoBio = viewModel::cancelarEdicaoBio,
-                aoAlternarEspecialidade = viewModel::alternarEspecialidade,
-                aoDeslogar = {
-                    viewModel.aoDeslogar()
-                    aoDeslogar()
-                },
-                aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
-                biometriaAtivada = estado.biometriaAtivada,
-                disponibilidadeBiometrica = disponibilidadeBiometrica,
-                mensagemErroBiometria = mensagemErroBiometria,
-                aoAlternarBiometria = alternarBiometria,
-                mostrarBiometria = recursoBiometriaHabilitado,
-                mostrarRemuneracoes = recursoRemuneracoesHabilitado,
-                notificacaoUrgenciaAtivada = estado.notificacaoUrgenciaAtivada,
-                notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
-                notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
-                aoAlternarNotificacao = viewModel::definirNotificacaoAtivada,
-                notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
-                paddingValues = paddingInterno,
-                aoAbrirAjuda = aoAbrirAjuda,
-                aoAbrirEquipe = aoAbrirEquipe,
-                aoPublicarVaga = aoPublicarVaga,
-                aoMinhasVagas = aoMinhasVagas,
-                aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
-                aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
-                aoAbrirApresentacao = aoAbrirApresentacao,
-                aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
-                aoAbrirPontoBase = aoAbrirPontoBase,
-                aoEncontrarProfissional = aoEncontrarProfissional,
-                verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
-                podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
-                aoAbrirSelo = aoAbrirSelo,
-            )
+                    },
+                    bio = estado.bio,
+                    bioEmEdicao = estado.bioEmEdicao,
+                    estaEditandoBio = estado.estaEditandoBio,
+                    caracteresRestantesBio = estado.caracteresRestantesBio,
+                    especialidadesDisponiveis = estado.especialidadesDisponiveis,
+                    especialidadesSelecionadas = estado.especialidadesSelecionadas,
+                    aoIniciarEdicaoBio = viewModel::iniciarEdicaoBio,
+                    aoAtualizarBioEmEdicao = viewModel::atualizarBioEmEdicao,
+                    aoSalvarBio = viewModel::salvarBio,
+                    aoCancelarEdicaoBio = viewModel::cancelarEdicaoBio,
+                    aoAlternarEspecialidade = viewModel::alternarEspecialidade,
+                    aoDeslogar = {
+                        viewModel.aoDeslogar()
+                        aoDeslogar()
+                    },
+                    aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
+                    biometriaAtivada = estado.biometriaAtivada,
+                    disponibilidadeBiometrica = disponibilidadeBiometrica,
+                    mensagemErroBiometria = mensagemErroBiometria,
+                    aoAlternarBiometria = alternarBiometria,
+                    mostrarBiometria = recursoBiometriaHabilitado,
+                    mostrarRemuneracoes = recursoRemuneracoesHabilitado,
+                    notificacaoUrgenciaAtivada = estado.notificacaoUrgenciaAtivada,
+                    notificacaoTurnosAtivada = estado.notificacaoTurnosAtivada,
+                    notificacaoSistemaAtivada = estado.notificacaoSistemaAtivada,
+                    aoAlternarNotificacao = viewModel::definirNotificacaoAtivada,
+                    notificacoesDoSistemaAtivadas = notificacoesDoSistemaAtivadas,
+                    aoAbrirAjuda = aoAbrirAjuda,
+                    aoAbrirEquipe = aoAbrirEquipe,
+                    aoPublicarVaga = aoPublicarVaga,
+                    aoMinhasVagas = aoMinhasVagas,
+                    aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
+                    aoAbrirChamadasDiretas = aoAbrirChamadasDiretas,
+                    aoAbrirApresentacao = aoAbrirApresentacao,
+                    aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
+                    aoAbrirPontoBase = aoAbrirPontoBase,
+                    aoEncontrarProfissional = aoEncontrarProfissional,
+                    verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
+                    podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
+                    aoAbrirSelo = aoAbrirSelo,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         when (estado.statusExclusao) {
@@ -374,8 +361,46 @@ fun TelaPerfil(
     }
 }
 
+/**
+ * Título e ajuda no alto do perfil. A tela é raiz de aba: não há barra de navegação nem seta de voltar, só o título
+ * da tela e o atalho da ajuda, que continua sendo um ícone com alvo de 48dp.
+ */
+@Composable
+private fun CabecalhoDoPerfil(aoAbrirAjuda: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = FrilaEspacamento.grupo, end = FrilaEspacamento.compacto, top = FrilaEspacamento.item, bottom = FrilaEspacamento.item),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TituloDaTela("Meu Perfil", modifier = Modifier.weight(1f))
+        IconButton(
+            onClick = aoAbrirAjuda,
+            modifier = Modifier
+                .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo)
+                .testTag("botao-ajuda-barra"),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Ajuda",
+                tint = FrilaTema.cores.tinta,
+            )
+        }
+    }
+}
+
+/** Uma seção do perfil: o nome do grupo (cabeçalho para o leitor de tela) e, embaixo, o conteúdo dela. */
+@Composable
+private fun SecaoDoPerfil(titulo: String, conteudo: @Composable () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        RotuloDeGrupo(titulo)
+        conteudo()
+    }
+}
+
 @Composable
 private fun ConteudoDoPerfil(
+    nome: String?,
     fotoLocalPath: String?,
     statusFoto: StatusFotoPerfil,
     mensagemErroFoto: String?,
@@ -408,7 +433,7 @@ private fun ConteudoDoPerfil(
     notificacaoSistemaAtivada: Boolean,
     aoAlternarNotificacao: (canal: String, ativado: Boolean) -> Unit,
     notificacoesDoSistemaAtivadas: Boolean,
-    paddingValues: PaddingValues,
+    modifier: Modifier = Modifier,
     aoAbrirAjuda: () -> Unit = {},
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
@@ -418,7 +443,7 @@ private fun ConteudoDoPerfil(
     /** L1-7c: atalhos do profissional para "Apresentação e regiões" e "Foto de perfil". Nulo esconde o atalho (chaves `perfil_rico` e `foto_de_perfil`). */
     aoAbrirApresentacao: (() -> Unit)? = null,
     aoAbrirFotoDePerfil: (() -> Unit)? = null,
-    /** Atalho do profissional para o ponto base (tela provisória). Nulo esconde o atalho. */
+    /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
@@ -426,14 +451,14 @@ private fun ConteudoDoPerfil(
     aoAbrirSelo: () -> Unit = {},
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
+        modifier = modifier
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.medio),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+            .padding(start = FrilaEspacamento.grupo, end = FrilaEspacamento.grupo, top = FrilaEspacamento.item, bottom = FrilaEspacamento.grupo),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
     ) {
         BlocoDeAvatar(
+            nome = nome,
             fotoLocalPath = fotoLocalPath,
             statusFoto = statusFoto,
             mensagemErroFoto = mensagemErroFoto,
@@ -497,7 +522,6 @@ private fun ConteudoDoPerfil(
 @Composable
 private fun ConteudoDaCasa(
     nome: String,
-    paddingValues: PaddingValues,
     aoDeslogar: () -> Unit,
     aoAbrirExclusao: () -> Unit,
     biometriaAtivada: Boolean,
@@ -511,11 +535,11 @@ private fun ConteudoDaCasa(
     aoMinhasVagas: (() -> Unit)?,
     aoCadastrarEstabelecimento: (() -> Unit)?,
     aoEncontrarProfissional: (() -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(paddingValues)
             .verticalScroll(rememberScrollState())
             .padding(FrilaEspacamento.medio),
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
@@ -658,21 +682,23 @@ private fun LinhaDeNotificacao(
  */
 @Composable
 private fun BlocoDeAvatar(
+    nome: String?,
     fotoLocalPath: String?,
     statusFoto: StatusFotoPerfil,
     mensagemErroFoto: String?,
     aoSelecionarFoto: (Uri) -> Unit,
 ) {
+    val cores = FrilaTema.cores
     val lancadorDeSelecao = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri -> if (uri != null) aoSelecionarFoto(uri) }
 
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
+    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
-            Box(modifier = Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(TAMANHO_DO_AVATAR), contentAlignment = Alignment.Center) {
                 // DEDUZIDO: decodificar o arquivo inteiro aqui é seguro porque ele já foi
                 // comprimido para no máximo 512px por CompressorDeFotoPerfil — não é a imagem
                 // original de origem desconhecida que motivou a subamostragem defensiva (RNF04).
@@ -684,51 +710,51 @@ private fun BlocoDeAvatar(
                         bitmap = imagemAvatar,
                         contentDescription = "Foto de perfil do profissional",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(72.dp).clip(CircleShape),
+                        modifier = Modifier.size(TAMANHO_DO_AVATAR).clip(CircleShape),
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(TAMANHO_DO_AVATAR)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .background(cores.superficiePressionada),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Person,
                             contentDescription = "Sem foto de perfil cadastrada",
-                            modifier = Modifier.size(40.dp),
+                            tint = cores.tintaSuave,
+                            modifier = Modifier.size(32.dp),
                         )
                     }
                 }
                 if (statusFoto == StatusFotoPerfil.COMPRIMINDO) {
-                    CircularProgressIndicator(
+                    IndicadorCarregando(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(TAMANHO_DO_AVATAR)
                             .semantics { contentDescription = "Processando foto de perfil" },
                     )
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                TextButton(
-                    onClick = {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                if (!nome.isNullOrBlank()) {
+                    Text(text = nome, style = FrilaTipo.nome, color = cores.tinta)
+                }
+                LinkFrila(
+                    texto = "Alterar foto de perfil",
+                    aoClicar = {
                         lancadorDeSelecao.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                         )
                     },
-                    modifier = Modifier.sizeIn(
-                        minWidth = FrilaMetricas.alvoMinimo,
-                        minHeight = FrilaMetricas.alvoMinimo,
-                    ),
-                ) {
-                    Text("Alterar foto de perfil")
-                }
+                )
                 if (statusFoto == StatusFotoPerfil.ERRO) {
                     val textoErro = mensagemErroFoto ?: "Não foi possível processar a foto."
+                    // Problema não tem cor: o erro vai escrito em tinta, e o leitor de tela o anuncia na hora.
                     Text(
                         text = textoErro,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                        style = FrilaTipo.apoio,
+                        color = cores.tinta,
                         modifier = Modifier.semantics {
                             liveRegion = LiveRegionMode.Assertive
                             error(textoErro)
@@ -740,34 +766,34 @@ private fun BlocoDeAvatar(
     }
 }
 
+private val TAMANHO_DO_AVATAR = 64.dp
+
 /** RN07/RN08: binária com denominador obrigatório. Nunca nota, nunca média sem "de quantas". */
 @Composable
 private fun BlocoDeReputacao(reputacao: ReputacaoDto?) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Reputação",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-        Column(
-            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-        ) {
-            if (reputacao == null || reputacao.total == 0) {
-                Text(text = "Sem histórico de avaliações", style = MaterialTheme.typography.bodyMedium)
-            } else {
-                Text(
-                    text = "${reputacao.positivas} de ${reputacao.total} recomendariam de novo",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = "Taxa de comparecimento: ${formatarTaxa(reputacao.taxaComparecimento)}",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(
-                    text = "${reputacao.turnosRealizados} turnos realizados",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+    val cores = FrilaTema.cores
+    SecaoDoPerfil("Reputação") {
+        CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                if (reputacao == null || reputacao.total == 0) {
+                    Text(text = "Sem histórico de avaliações", style = FrilaTipo.corpo, color = cores.tinta)
+                } else {
+                    Text(
+                        text = "${reputacao.positivas} de ${reputacao.total} recomendariam de novo",
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
+                    )
+                    Text(
+                        text = "Taxa de comparecimento: ${formatarTaxa(reputacao.taxaComparecimento)}",
+                        style = FrilaTipo.apoio,
+                        color = cores.tintaSuave,
+                    )
+                    Text(
+                        text = "${reputacao.turnosRealizados} turnos realizados",
+                        style = FrilaTipo.apoio,
+                        color = cores.tintaSuave,
+                    )
+                }
             }
         }
     }
@@ -786,43 +812,35 @@ private fun BlocoDeSeloConfianca(
 ) {
     if (verificacao == null) return
     when {
-        verificacao.status == StatusVerificacaoIdentidade.APROVADA -> Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        verificacao.status == StatusVerificacaoIdentidade.APROVADA -> SeloDeStatus(
+            texto = "Identidade Verificada",
+            estilo = EstiloDoSelo.CONFIRMADO,
             modifier = Modifier.testTag("selo-identidade-verificada"),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = FrilaEspacamento.compacto, vertical = FrilaEspacamento.pequeno),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-            ) {
-                Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                Text(text = "Identidade Verificada", style = MaterialTheme.typography.labelLarge)
-            }
-        }
-        verificacao.status == StatusVerificacaoIdentidade.EM_ANALISE -> Text(
-            text = "Verificação de identidade em análise",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        verificacao.status == StatusVerificacaoIdentidade.EM_ANALISE -> SeloDeStatus(
+            texto = "Verificação de identidade em análise",
+            estilo = EstiloDoSelo.CONTORNO,
             modifier = Modifier.testTag("selo-em-analise"),
         )
-        podeSolicitar -> CartaoVaga(modifier = Modifier.fillMaxWidth().testTag("selo-convite")) {
-            Text(
-                text = "Selo de confiança",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = "Verifique sua identidade, se quiser, e mostre o selo \"Identidade Verificada\" no seu perfil.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = FrilaEspacamento.pequeno),
-            )
-            BotaoSecundario(
-                texto = "Obter selo de confiança",
-                aoClicar = aoAbrirSelo,
-                modifier = Modifier.fillMaxWidth().testTag("selo-obter"),
-            )
+        podeSolicitar -> CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("selo-convite")) {
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                Text(
+                    text = "Selo de confiança",
+                    style = FrilaTipo.nome,
+                    color = FrilaTema.cores.tinta,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = "Verifique sua identidade, se quiser, e mostre o selo \"Identidade Verificada\" no seu perfil.",
+                    style = FrilaTipo.corpo,
+                    color = FrilaTema.cores.tinta,
+                )
+                BotaoSecundario(
+                    texto = "Obter selo de confiança",
+                    aoClicar = aoAbrirSelo,
+                    modifier = Modifier.fillMaxWidth().testTag("selo-obter"),
+                )
+            }
         }
     }
 }
@@ -837,51 +855,48 @@ private fun formatarTaxa(taxa: Double?): String =
  */
 @Composable
 private fun BlocoDeRemuneracoes(resumo: ResumoFinanceiroPerfil?, aoExportarExtrato: () -> Unit) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Remunerações acordadas",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = "Valores combinados diretamente com os estabelecimentos (RN09)",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Column(
-            modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-        ) {
-            if (resumo == null || !resumo.temHistorico) {
+    val cores = FrilaTema.cores
+    SecaoDoPerfil("Remunerações acordadas") {
+        CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                 Text(
-                    text = "Nenhum turno realizado ou agendado ainda",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Valores combinados diretamente com os estabelecimentos (RN09)",
+                    style = FrilaTipo.apoio,
+                    color = cores.tintaSuave,
                 )
-            } else {
-                Text(
-                    text = "Concluído: ${resumo.totalConcluidoFormatado} (${resumo.turnosCumpridosQtd} turnos cumpridos)",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = "Pendente: ${resumo.totalPendenteFormatado} (${resumo.turnosAgendadosQtd} turnos agendados)",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = "Total acumulado: ${resumo.totalGeralFormatado}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                BotaoSecundario(
-                    texto = "Exportar extrato em PDF",
-                    aoClicar = aoExportarExtrato,
-                    modifier = Modifier
-                        .padding(top = FrilaEspacamento.pequeno)
-                        .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                )
+                if (resumo == null || !resumo.temHistorico) {
+                    Text(text = "Nenhum turno realizado ou agendado ainda", style = FrilaTipo.corpo, color = cores.tinta)
+                } else {
+                    Text(
+                        text = "Concluído: ${resumo.totalConcluidoFormatado} (${resumo.turnosCumpridosQtd} turnos cumpridos)",
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
+                    )
+                    Text(
+                        text = "Pendente: ${resumo.totalPendenteFormatado} (${resumo.turnosAgendadosQtd} turnos agendados)",
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
+                    )
+                    Text(
+                        text = "Total acumulado: ${resumo.totalGeralFormatado}",
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
+                    )
+                    BotaoSecundario(
+                        texto = "Exportar extrato em PDF",
+                        aoClicar = aoExportarExtrato,
+                        modifier = Modifier.padding(top = FrilaEspacamento.item),
+                    )
+                }
             }
         }
     }
 }
 
-/** RF02: Biografia profissional com limite estrito de 280 caracteres e contador acessível. */
+/**
+ * RF02: Biografia profissional com limite estrito de 280 caracteres e contador acessível. Edição no lugar: "Editar"
+ * troca o texto pelo campo, e "Salvar"/"Cancelar" aparecem só enquanto se edita.
+ */
 @Composable
 private fun BlocoDeBioProfissional(
     bio: String,
@@ -893,84 +908,49 @@ private fun BlocoDeBioProfissional(
     aoSalvar: () -> Unit,
     aoCancelar: () -> Unit,
 ) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Biografia profissional",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            if (!estaEditandoBio) {
-                TextButton(
-                    onClick = aoIniciarEdicao,
-                    modifier = Modifier.sizeIn(
-                        minWidth = FrilaMetricas.alvoMinimo,
-                        minHeight = FrilaMetricas.alvoMinimo,
-                    ),
-                ) {
-                    Text(if (bio.isBlank()) "Adicionar" else "Editar")
-                }
-            }
-        }
-
+    val cores = FrilaTema.cores
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
         if (estaEditandoBio) {
-            OutlinedTextField(
-                value = bioEmEdicao,
-                onValueChange = aoAtualizarBio,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno)
-                    .semantics {
-                        contentDescription = "Campo de edição da biografia profissional. Limite de 280 caracteres."
-                    },
-                placeholder = {
-                    Text("Ex.: Bartender com 5 anos de experiência em coquetelaria e grandes eventos no DF.")
-                },
-                minLines = 3,
-                maxLines = 5,
-                supportingText = {
-                    Text(
-                        text = "$caracteresRestantes caracteres restantes",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Restam $caracteresRestantes de 280 caracteres"
-                        },
-                    )
+            CampoDeTexto(
+                valor = bioEmEdicao,
+                aoMudar = aoAtualizarBio,
+                rotulo = "Biografia profissional",
+                dica = "Ex.: Bartender com 5 anos de experiência em coquetelaria e grandes eventos no DF.",
+                apoio = "$caracteresRestantes caracteres restantes",
+                umaLinha = false,
+                linhasMinimas = 3,
+                modifier = Modifier.semantics {
+                    contentDescription = "Campo de edição da biografia profissional. Limite de 280 caracteres."
                 },
             )
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.pequeno),
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+                modifier = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.item),
+                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
             ) {
-                BotaoPrimario(
-                    texto = "Salvar",
-                    aoClicar = aoSalvar,
-                    modifier = Modifier.weight(1f),
-                )
-                BotaoSecundario(
-                    texto = "Cancelar",
-                    aoClicar = aoCancelar,
-                    modifier = Modifier.weight(1f),
-                )
+                BotaoPrimario(texto = "Salvar", aoClicar = aoSalvar, modifier = Modifier.weight(1f))
+                BotaoSecundario(texto = "Cancelar", aoClicar = aoCancelar, modifier = Modifier.weight(1f))
             }
         } else {
-            Text(
-                text = bio.ifBlank { "Nenhuma biografia cadastrada ainda. Apresente sua trajetória aos estabelecimentos." },
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (bio.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RotuloDeGrupo("Biografia profissional")
+                LinkFrila(texto = if (bio.isBlank()) "Adicionar" else "Editar", aoClicar = aoIniciarEdicao)
+            }
+            CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = bio.ifBlank { "Nenhuma biografia cadastrada ainda. Apresente sua trajetória aos estabelecimentos." },
+                    style = FrilaTipo.corpo,
+                    color = if (bio.isBlank()) cores.tintaSuave else cores.tinta,
+                )
+            }
         }
     }
 }
 
-/** RF02: Seleção de especialidades com FilterChip Material 3 em FlowRow. */
+/** RF02: seleção de especialidades em chips (seleção múltipla), com a escolha dita ao leitor de tela. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BlocoDeEspecialidades(
@@ -978,77 +958,44 @@ private fun BlocoDeEspecialidades(
     selecionadas: Set<String>,
     aoAlternar: (String) -> Unit,
 ) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Especialidades",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
+    SecaoDoPerfil("Especialidades") {
         Text(
             text = "Destaque suas habilidades para estabelecimentos parceiros:",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = FrilaEspacamento.minimo),
+            style = FrilaTipo.apoio,
+            color = FrilaTema.cores.tintaSuave,
         )
         FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = FrilaEspacamento.pequeno),
-            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
         ) {
             especialidades.forEach { especialidade ->
                 val selecionada = selecionadas.contains(especialidade)
-                FilterChip(
-                    selected = selecionada,
-                    onClick = { aoAlternar(especialidade) },
-                    label = { Text(especialidade) },
-                    modifier = Modifier
-                        .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-                        .semantics {
-                            stateDescription = if (selecionada) "selecionada" else "não selecionada"
-                        },
+                ChipFrila(
+                    texto = especialidade,
+                    selecionado = selecionada,
+                    aoClicar = { aoAlternar(especialidade) },
+                    modifier = Modifier.semantics {
+                        stateDescription = if (selecionada) "selecionada" else "não selecionada"
+                    },
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** As funções do perfil, só para ler: quem edita as funções é a tela de preferências e serviços. */
 @Composable
 private fun BlocoDeFuncoes(funcoes: List<FuncaoDto>) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Funções cadastradas",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-        if (funcoes.isEmpty()) {
-            Text(
-                text = "Nenhuma função cadastrada ainda.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-            )
-        } else {
-            FlowRow(
-                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-            ) {
-                funcoes.forEach { funcao ->
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text(
-                            text = funcao.nome,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(
-                                horizontal = FrilaEspacamento.pequeno,
-                                vertical = FrilaEspacamento.minimo,
-                            ),
-                        )
+    val cores = FrilaTema.cores
+    SecaoDoPerfil("Funções cadastradas") {
+        CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+            if (funcoes.isEmpty()) {
+                Text(text = "Nenhuma função cadastrada ainda.", style = FrilaTipo.corpo, color = cores.tintaSuave)
+            } else {
+                Column {
+                    funcoes.forEachIndexed { indice, funcao ->
+                        if (indice > 0) FrilaDivisoria(modifier = Modifier.padding(vertical = FrilaEspacamento.item))
+                        Text(text = funcao.nome, style = FrilaTipo.corpo, color = cores.tinta)
                     }
                 }
             }
@@ -1362,9 +1309,9 @@ private fun DialogoErroExclusao(mensagem: String?, aoFechar: () -> Unit) {
 }
 
 @Composable
-private fun Carregando(paddingValues: PaddingValues) {
+private fun Carregando(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(paddingValues),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator()
@@ -1375,18 +1322,17 @@ private fun Carregando(paddingValues: PaddingValues) {
 private fun Erro(
     mensagem: String?,
     aoTentarNovamente: () -> Unit,
-    paddingValues: PaddingValues,
     aoAbrirEquipe: (() -> Unit)? = null,
     aoPublicarVaga: (() -> Unit)? = null,
     aoMinhasVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     aoDeslogar: () -> Unit = {},
     aoAbrirExclusao: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(paddingValues)
             // Com os atalhos da casa mais sair e excluir, a coluna passa da altura da tela em fonte grande.
             .verticalScroll(rememberScrollState())
             .padding(FrilaEspacamento.grande),
