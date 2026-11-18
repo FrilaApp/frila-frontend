@@ -156,6 +156,8 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertTrue(denunciar.exists, "CD-RF12: denunciar a partir da chamada")
         XCTAssertTrue(app.buttons["bloquear-chamada"].exists, "CD-RF12: bloquear a partir da chamada")
 
+        // O rodapé fixo (Aceitar e Recusar) cobre o pé da rolagem: leva o botão até um ponto que o toque alcança.
+        rolarAte(app.buttons["bloquear-chamada"], em: app)
         app.buttons["bloquear-chamada"].tap()
         // O botão do alerta aparece duas vezes na árvore, como em SegurancaUITests.
         let confirmar = app.alerts.buttons["confirmar-bloqueio-chamada"].firstMatch
