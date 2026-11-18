@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -74,6 +75,8 @@ fun TelaAtualizacaoObrigatoria(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                // Sem barra de topo: o app desenha de borda a borda no Android 15+, então o conteúdo recua da barra de status.
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(
                     start = FrilaEspacamento.grupo,

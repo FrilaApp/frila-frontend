@@ -19,9 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -134,7 +136,11 @@ fun TelaCodigo(
                     comErro = estado.erro != null,
                     habilitado = !estado.carregando,
                     rotulo = "Código de 6 dígitos",
-                    modifier = Modifier.focusRequester(focoDoCodigo),
+                    // Dica de preenchimento automático (Compose 1.8): o teclado e o serviço de preenchimento do aparelho
+                    // podem sugerir o código recebido, sem a pessoa copiar.
+                    modifier = Modifier
+                        .focusRequester(focoDoCodigo)
+                        .semantics { contentType = ContentType.SmsOtpCode },
                 )
             }
 
