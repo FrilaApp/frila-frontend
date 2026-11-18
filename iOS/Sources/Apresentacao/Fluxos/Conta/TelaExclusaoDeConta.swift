@@ -7,6 +7,7 @@ import SwiftUI
 public struct TelaExclusaoDeConta: View {
     @State private var viewModel: ExclusaoDeContaViewModel
     @State private var mostrarDialogoConfirmacao = false
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     private let formatador = FormatadorFrila()
 
     public init(viewModel: ExclusaoDeContaViewModel) {
@@ -49,7 +50,10 @@ public struct TelaExclusaoDeConta: View {
     private var confirmacaoFinal: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
-                Text(verbatim: Self.tituloComHifen(TextosExclusaoDeConta.dialogoTitulo))
+                // Só com texto grande: no tamanho padrão a palavra desce inteira para a linha de baixo, sem hífen.
+                Text(verbatim: tamanhoDoTexto.isAccessibilitySize
+                    ? Self.tituloComHifen(TextosExclusaoDeConta.dialogoTitulo)
+                    : TextosExclusaoDeConta.dialogoTitulo)
                     .accessibilityLabel(Text(verbatim: TextosExclusaoDeConta.dialogoTitulo))
                     .font(FrilaTipo.tituloDaTela)
                     .foregroundStyle(FrilaCor.texto)
