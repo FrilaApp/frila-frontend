@@ -1,6 +1,9 @@
 package br.com.frila.feature.vagas.capturas.r5
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.feature.vagas.painel.AcoesMinhasVagas
 import br.com.frila.feature.vagas.painel.ConteudoMinhasVagas
@@ -10,6 +13,14 @@ import br.com.frila.feature.vagas.painel.ItemMinhaVaga
 import br.com.frila.feature.vagas.painel.ListaMinhasVagas
 import br.com.frila.feature.vagas.painel.SecaoMinhasVagas
 import br.com.frila.feature.vagas.painel.TurnoDoItem
+import br.com.frila.feature.vagas.publicacao.AcoesPublicarVaga
+import br.com.frila.feature.vagas.publicacao.CampoPublicacao
+import br.com.frila.feature.vagas.publicacao.ConteudoPublicarVaga
+import br.com.frila.feature.vagas.publicacao.ErroGlobalPublicacao
+import br.com.frila.feature.vagas.publicacao.EstadoPublicarVaga
+import br.com.frila.feature.vagas.publicacao.ModoDaVaga
+import br.com.frila.feature.vagas.publicacao.TextosPublicarVaga
+import br.com.frila.core.rede.FuncaoDto
 import java.time.Duration
 import java.time.Instant
 import org.junit.Rule
@@ -116,5 +127,95 @@ class CapturasR5Test {
     fun `minhas vagas com fonte do sistema em 200 por cento`() {
         montar(EstadoMinhasVagas(lista = ListaMinhasVagas.Sucesso(vagas)))
         compose.capturar("minhas-07-fonte-200-claro")
+    }
+
+    // ---- Publicar vaga ----
+
+    private val base: Instant = Instant.parse("2026-11-10T15:00:00Z")
+
+    private fun estadoDePublicar(mudar: EstadoPublicarVaga.() -> EstadoPublicarVaga = { this }) = EstadoPublicarVaga(
+        funcoes = listOf(FuncaoDto("f1", "Garçom", "Salão"), FuncaoDto("f2", "Cozinheiro", "Cozinha"), FuncaoDto("f3", "Barman", "Bar")),
+        inicio = base.plus(Duration.ofHours(48)),
+        fim = base.plus(Duration.ofHours(54)),
+        local = "CLS 408, Bloco B",
+        agora = base,
+    ).mudar()
+
+    private fun montarPublicar(estado: EstadoPublicarVaga) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { ConteudoPublicarVaga(estado = estado, acoes = AcoesPublicarVaga()) }
+        }
+    }
+
+    @Test
+    fun `publicar vaga vazio - claro`() {
+        montarPublicar(estadoDePublicar())
+        compose.capturar("publicar-01-vazio-claro")
+    }
+
+    @Test
+    fun `publicar vaga preenchido, meio do formulario - claro`() {
+        montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", posicoes = "2", incluiRefeicao = true, modo = ModoDaVaga.SELECAO) })
+        compose.onNodeWithText(TextosPublicarVaga.VALOR).performScrollTo()
+        compose.capturar("publicar-02-preenchido-meio-claro")
+    }
+
+    @Test
+    fun `publicar vaga, posicoes e total - claro`() {
+        montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", posicoes = "2", errosDeCampo = mapOf(CampoPublicacao.POSICOES to TextosPublicarVaga.POSICOES_CAMPO)) })
+        compose.onNodeWithText("Total da vaga: R$ 280,00").performScrollTo()
+        compose.capturar("publicar-09-posicoes-e-total-claro")
+    }
+
+    @Test
+    fun `publicar vaga, inclusos e mais opcoes - claro`() {
+        montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", incluiRefeicao = true, incluiTransporte = true, participaRateio = true) })
+        compose.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+        compose.onNodeWithText(TextosPublicarVaga.OBSERVACOES).performScrollTo()
+        compose.capturar("publicar-03-inclusos-mais-opcoes-claro")
+    }
+
+    @Test
+    fun `publicar vaga com erros de campo e erro global - claro`() {
+        montarPublicar(
+            estadoDePublicar {
+                copy(
+                    errosDeCampo = mapOf(
+                        CampoPublicacao.FUNCAO to TextosPublicarVaga.FUNCAO_CAMPO,
+                        CampoPublicacao.VALOR to TextosPublicarVaga.VALOR_CAMPO,
+                        CampoPublicacao.RESPONSAVEL to TextosPublicarVaga.RESPONSAVEL_CAMPO,
+                    ),
+                    erro = ErroGlobalPublicacao.CONFIRA_CAMPOS,
+                )
+            },
+        )
+        compose.capturar("publicar-04-erros-claro")
+    }
+
+    @Test
+    fun `publicar vaga enviando - claro`() {
+        montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", responsavelLocal = "Lia", enviando = true) })
+        compose.capturar("publicar-05-enviando-claro")
+    }
+
+    @Test
+    fun `publicar vaga carregando as funcoes e falha - claro`() {
+        montarPublicar(estadoDePublicar { copy(funcoes = emptyList(), falhaAoCarregarFuncoes = true) })
+        compose.capturar("publicar-06-funcoes-falha-claro")
+    }
+
+    @Test
+    fun `publicar vaga com a folha de funcao aberta - claro`() {
+        montarPublicar(estadoDePublicar { copy(funcaoId = "f2") })
+        compose.onNodeWithText("Cozinheiro").performClick()
+        compose.capturarJanela("publicar-07-funcao-aberta-claro", janela = 1)
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `publicar vaga com fonte do sistema em 200 por cento`() {
+        montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", posicoes = "2") })
+        compose.onNodeWithText(TextosPublicarVaga.VALOR).performScrollTo()
+        compose.capturar("publicar-08-fonte-200-claro")
     }
 }
