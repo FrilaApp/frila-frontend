@@ -64,6 +64,8 @@ data class ItemMinhaVaga(
     val comecaEm: Duration?,
     /** As posições com turno, para "Acompanhar turno". Vazia se ninguém foi confirmado. */
     val turnos: List<TurnoDoItem> = emptyList(),
+    /** A casa ainda pode cancelar a vaga inteira: nem cancelada, nem encerrada, e antes do início (RN12). */
+    val podeCancelar: Boolean = false,
 )
 
 sealed interface ListaMinhasVagas {
@@ -209,6 +211,7 @@ class MinhasVagasViewModel(
             turnos = posicoes
                 .filter { it.turnoId != null && (it.estado == POSICAO_CONFIRMADA || it.estado == POSICAO_CUMPRIDA) }
                 .map { TurnoDoItem(posicaoId = it.id, nomeProfissional = it.profissional?.nome) },
+            podeCancelar = estado != VAGA_CANCELADA && estado != VAGA_ENCERRADA && inicio != null && inicio.isAfter(agora),
         )
     }
 
@@ -217,6 +220,8 @@ class MinhasVagasViewModel(
         const val JANELA_EM_DIAS = 365L
         private const val MODO_SELECAO = "selecao"
         private const val VAGA_PUBLICADA = "publicada"
+        private const val VAGA_ENCERRADA = "encerrada"
+        private const val VAGA_CANCELADA = "cancelada"
         private const val POSICAO_ABERTA = "aberta"
         private const val POSICAO_CONFIRMADA = "confirmada"
         private const val POSICAO_CUMPRIDA = "cumprida"

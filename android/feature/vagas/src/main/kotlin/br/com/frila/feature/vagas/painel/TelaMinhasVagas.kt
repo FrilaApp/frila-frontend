@@ -53,6 +53,8 @@ data class AcoesMinhasVagas(
     val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     val aoPublicarVaga: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
+    /** Ação da vaga (L2-3). `null` esconde o botão: a tela só oferece o que quem a abriu sabe atender. */
+    val aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
 )
 
 /**
@@ -70,6 +72,7 @@ fun TelaMinhasVagas(
     aoPublicarVaga: (estabelecimentoId: String) -> Unit,
     modifier: Modifier = Modifier,
     aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
+    aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -83,6 +86,7 @@ fun TelaMinhasVagas(
             aoAcompanharTurno = aoAcompanharTurno,
             aoPublicarVaga = { aoPublicarVaga(viewModel.estabelecimentoId) },
             aoVoltar = aoVoltar,
+            aoCancelarVaga = aoCancelarVaga,
         ),
         modifier = modifier,
     )
@@ -197,7 +201,7 @@ fun ConteudoMinhasVagas(
                                     modifier = Modifier.padding(top = FrilaEspacamento.pequeno).semantics { heading() },
                                 )
                             }
-                            items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes.aoVerCandidatos, acoes.aoAcompanharTurno) }
+                            items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes) }
                         }
                     }
                 }
@@ -207,11 +211,9 @@ fun ConteudoMinhasVagas(
 }
 
 @Composable
-private fun CartaoDaVaga(
-    item: ItemMinhaVaga,
-    aoVerCandidatos: (ItemMinhaVaga) -> Unit,
-    aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit,
-) {
+private fun CartaoDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
+    val aoVerCandidatos = acoes.aoVerCandidatos
+    val aoAcompanharTurno = acoes.aoAcompanharTurno
     CartaoVaga(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
             Text(text = item.funcao, style = MaterialTheme.typography.titleMedium)
@@ -288,7 +290,21 @@ private fun CartaoDaVaga(
                         .semantics { contentDescription = TextosMinhasVagas.VER_CANDIDATOS_DE.format(item.funcao) },
                 )
             }
+            AcoesDaVaga(item, acoes)
         }
+    }
+}
+
+/** Cancelar a vaga: o botão só aparece se a vaga permite e há quem atenda. */
+@Composable
+private fun AcoesDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
+    val acima = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno)
+    acoes.aoCancelarVaga?.takeIf { item.podeCancelar }?.let { aoTocar ->
+        BotaoSecundario(
+            texto = TextosCancelarVaga.TITULO,
+            aoClicar = { aoTocar(item) },
+            modifier = acima.semantics { contentDescription = TextosCancelarVaga.CANCELAR_VAGA_DE.format(item.funcao) },
+        )
     }
 }
 
