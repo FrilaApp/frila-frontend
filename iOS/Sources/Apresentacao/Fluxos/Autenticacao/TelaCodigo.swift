@@ -231,14 +231,7 @@ public struct TelaCodigo: View {
                     .frame(minHeight: FrilaMetrica.alvo, alignment: .leading)
                     .accessibilityIdentifier("codigo-reenviar-aguarde")
             } else {
-                Button(action: {
-                    Task {
-                        await viewModel.reenviarCodigo()
-                        if let anuncio = viewModel.anuncioDoReenvio {
-                            UIAccessibility.post(notification: .announcement, argument: anuncio)
-                        }
-                    }
-                }) {
+                Button(action: reenviar) {
                     Text("Reenviar código", bundle: bundleApresentacao)
                 }
                 .buttonStyle(.frilaLink)
@@ -271,6 +264,15 @@ public struct TelaCodigo: View {
         BotaoPrimario("Entrar", carregando: viewModel.carregando, acao: confirmar)
             .disabled(!viewModel.codigoValido || viewModel.carregando)
             .accessibilityIdentifier("codigo-entrar")
+    }
+
+    private func reenviar() {
+        Task {
+            await viewModel.reenviarCodigo()
+            if let anuncio = viewModel.anuncioDoReenvio {
+                UIAccessibility.post(notification: .announcement, argument: anuncio)
+            }
+        }
     }
 
     private func confirmar() {

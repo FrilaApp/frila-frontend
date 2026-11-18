@@ -47,15 +47,7 @@ public struct TelaCadastro: View {
                 }
 
                 BotaoPrimario("Continuar", carregando: viewModel.carregando) {
-                    Task {
-                        if let destino = await viewModel.criarConta() {
-                            aoConcluir(destino)
-                        } else if let campo = viewModel.campoComErro {
-                            withAnimation(FrilaMovimento.animacao(reduzir: reduzirMovimento)) {
-                                proxy.scrollTo(campo, anchor: .center)
-                            }
-                        }
-                    }
+                    continuar(rolandoCom: proxy)
                 }
                 .disabled(viewModel.carregando || viewModel.ehMenorDeIdade)
                 .accessibilityIdentifier("cadastro-continuar")
@@ -86,6 +78,19 @@ public struct TelaCadastro: View {
             }
         }
         .frilaKeyboardDismissScope()
+    }
+
+    /// Cria a conta; se um campo falhou, leva a tela até ele.
+    private func continuar(rolandoCom proxy: ScrollViewProxy) {
+        Task {
+            if let destino = await viewModel.criarConta() {
+                aoConcluir(destino)
+            } else if let campo = viewModel.campoComErro {
+                withAnimation(FrilaMovimento.animacao(reduzir: reduzirMovimento)) {
+                    proxy.scrollTo(campo, anchor: .center)
+                }
+            }
+        }
     }
 
     // MARK: - Partes da tela
