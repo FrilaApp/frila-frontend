@@ -118,30 +118,6 @@ public struct CatalogoDesignSystem: View {
                         secao("Paleta") { paleta }
                         secao("Tipografia") { tipografia }
                         secao("Botões") { BotaoPrimario("Continuar") {}; BotaoSecundario("Voltar") {} }
-                        secao("Botão em conferência e presença") {
-                            BotaoPrimario(verbatim: amostraAceitar, carregando: true) {}
-                            BotaoPrimario(verbatim: amostraReceberCodigo) {}.disabled(true)
-                            BotaoPrimario(verbatim: amostraPresenca, alturaMinima: FrilaMetrica.alturaDoBotaoDePresenca) {}
-                        }
-                        secao("Link e ação discreta") {
-                            Button {} label: { Text(verbatim: amostraLink) }.buttonStyle(.frilaLink)
-                            Button {} label: { Text(verbatim: amostraAcaoDiscreta) }.buttonStyle(.frilaAcaoDiscreta)
-                        }
-                        secao("Grupo de linhas") {
-                            FrilaGrupoDeLinhas(verbatim: amostraGrupo) {
-                                FrilaLinhaDeOpcao(icone: "house", titulo: amostraLinhaCasa, subtitulo: amostraLinhaEndereco, remate: .marcada(true)) {}
-                                FrilaLinhaDeOpcao(icone: "briefcase", titulo: amostraLinhaTrabalho, remate: .marcada(false)) {}
-                                FrilaLinhaDeOpcao(icone: "bell", titulo: amostraLinhaAvisos, remate: .navega) {}
-                            }
-                        }
-                        secao("Linha de dado e mensagem junto ao botão") {
-                            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
-                                FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: amostraDadoFuncao) }
-                                FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: amostraDadoQuando) }
-                            }
-                            .cartaoFrila()
-                            MensagemJuntoAoBotao(verbatim: amostraMensagemDoBotao)
-                        }
                         secao("Botões do Estúdio") { botoesDoEstudio }
                         secao("Chips do Estúdio") { chipsDoEstudio }
                         secao("Toque tátil") {
@@ -236,6 +212,36 @@ public struct CatalogoDesignSystem: View {
                         .foregroundStyle(FrilaCor.primaria)
                         .overlay(RoundedRectangle(cornerRadius: FrilaRaio.medio).stroke(FrilaCor.primaria, lineWidth: 1.5))
                         .accessibilityIdentifier("abrir-licencas")
+                        // Fundação do redesign (R0). Fica DEPOIS do fim do percurso dos testes de acessibilidade do catálogo
+                        // (o botão de licenças): com as seções no meio, o percurso em AX5 passava do limite de tempo por teste
+                        // da CI. `-FRILA_CATALOGO_FUNDACAO` abre o catálogo já aqui, e o `CapturasR0FundacaoUITests` confere.
+                        VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                            secao("Botão em conferência e presença") {
+                                BotaoPrimario(verbatim: amostraAceitar, carregando: true) {}
+                                BotaoPrimario(verbatim: amostraReceberCodigo) {}.disabled(true)
+                                BotaoPrimario(verbatim: amostraPresenca, alturaMinima: FrilaMetrica.alturaDoBotaoDePresenca) {}
+                            }
+                            secao("Link e ação discreta") {
+                                Button {} label: { Text(verbatim: amostraLink) }.buttonStyle(.frilaLink)
+                                Button {} label: { Text(verbatim: amostraAcaoDiscreta) }.buttonStyle(.frilaAcaoDiscreta)
+                            }
+                            secao("Grupo de linhas") {
+                                FrilaGrupoDeLinhas(verbatim: amostraGrupo) {
+                                    FrilaLinhaDeOpcao(icone: "house", titulo: amostraLinhaCasa, subtitulo: amostraLinhaEndereco, remate: .marcada(true)) {}
+                                    FrilaLinhaDeOpcao(icone: "briefcase", titulo: amostraLinhaTrabalho, remate: .marcada(false)) {}
+                                    FrilaLinhaDeOpcao(icone: "bell", titulo: amostraLinhaAvisos, remate: .navega) {}
+                                }
+                            }
+                            secao("Linha de dado e mensagem junto ao botão") {
+                                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                                    FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: amostraDadoFuncao) }
+                                    FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: amostraDadoQuando) }
+                                }
+                                .cartaoFrila()
+                                MensagemJuntoAoBotao(verbatim: amostraMensagemDoBotao)
+                            }
+                        }
+                        .id("catalogo-fundacao")
                     }
                     .padding(FrilaEspaco.medio)
                     .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
@@ -245,6 +251,10 @@ public struct CatalogoDesignSystem: View {
                     if ProcessInfo.processInfo.arguments.contains("-FRILA_CATALOGO_SEM_AVALIACOES") {
                         await Task.yield()
                         proxy.scrollTo("catalogo-cartao-sem-avaliacoes", anchor: .top)
+                    }
+                    if ProcessInfo.processInfo.arguments.contains("-FRILA_CATALOGO_FUNDACAO") {
+                        await Task.yield()
+                        proxy.scrollTo("catalogo-fundacao", anchor: .top)
                     }
                 }
             }
