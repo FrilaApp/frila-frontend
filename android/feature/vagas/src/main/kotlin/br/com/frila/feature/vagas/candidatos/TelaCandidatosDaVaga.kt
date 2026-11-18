@@ -5,27 +5,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,22 +33,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
-import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
 import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.EstadoVazio
-import br.com.frila.core.designsystem.componentes.IndicadorCarregando
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeDado
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.CandidatoDto
 import br.com.frila.feature.vagas.publicacao.formatarData
 import br.com.frila.feature.vagas.publicacao.formatarHora
@@ -102,9 +106,11 @@ fun TelaCandidatosDaVaga(
 
 /**
  * Gestão de candidatos pelo contratante (UC04; paridade com `TelaCandidatosDaVaga` de
- * `CandidatosDaVaga.swift`). A lista fica na ordem em que o servidor a entrega (RN06): o selo "Da sua
- * equipe" nunca reordena. Puxar atualiza; erro de releitura com candidatos na tela só avisa que a lista
- * pode estar velha.
+ * `CandidatosDaVaga.swift`). É uma decisão: cada pessoa num cartão (nome, selo "Da sua equipe", funções e
+ * reputação como fato), "Escolher" no cartão e a confirmação da escolha, com o único primário, numa folha. A
+ * lista fica na ordem em que o servidor a entrega (RN06): o selo nunca reordena. Puxar atualiza; erro de
+ * releitura com candidatos na tela só avisa que a lista pode estar velha. O resultado e a recusa da última
+ * escolha ficam ancorados embaixo, em tinta.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,29 +120,20 @@ fun ConteudoCandidatosDaVaga(
     modifier: Modifier = Modifier,
     carregarFoto: suspend (String) -> ImageBitmap? = { null },
 ) {
+    val cores = FrilaTema.cores
+    val mensagemDaAcao = estado.falha?.let(::mensagemDaFalha)
+        ?: estado.resultado?.let { resultado ->
+            (if (resultado.vagaPreenchida) TextosCandidatosDaVaga.CONFIRMADO_E_VAGA_PREENCHIDA else TextosCandidatosDaVaga.CONFIRMADO)
+                .format(resultado.nome)
+        }
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosCandidatosDaVaga.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = acoes.aoVoltar,
-                        modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosCandidatosDaVaga.ROTULO_VOLTAR,
-                        )
-                    }
-                },
-            )
+        containerColor = cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = acoes.aoVoltar) },
+        bottomBar = {
+            if (mensagemDaAcao != null) {
+                RodapeAncorado { MensagemJuntoAoBotao(mensagemDaAcao) }
+            }
         },
     ) { preenchimento ->
         PullToRefreshBox(
@@ -151,15 +148,12 @@ fun ConteudoCandidatosDaVaga(
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(FrilaEspacamento.medio),
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+                contentPadding = PaddingValues(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
             ) {
+                item { TituloDaTela(TextosCandidatosDaVaga.TITULO) }
                 when (estado.lista) {
-                    EstadoDosCandidatos.Carregando -> item {
-                        Box(Modifier.fillMaxWidth().padding(FrilaEspacamento.grande), contentAlignment = Alignment.Center) {
-                            IndicadorCarregando()
-                        }
-                    }
+                    EstadoDosCandidatos.Carregando -> item { EstadoCarregando() }
                     EstadoDosCandidatos.SemConexao -> item {
                         EstadoErro(
                             titulo = TextosCandidatosDaVaga.FALHA_TITULO,
@@ -204,76 +198,54 @@ fun ConteudoCandidatosDaVaga(
 
     estado.emConfirmacao?.let { candidato ->
         val nome = candidato.profissional.nome
-        AlertDialog(
+        FrilaBottomSheet(
             onDismissRequest = acoes.aoDesistirDaEscolha,
-            title = { Text(TextosCandidatosDaVaga.PERGUNTA_DA_ESCOLHA, modifier = Modifier.semantics { heading() }) },
-            text = {
+            titulo = TextosCandidatosDaVaga.PERGUNTA_DA_ESCOLHA,
+            aoFechar = null,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
+            ) {
                 Text(
-                    if (estado.ultimaPosicao) {
+                    text = if (estado.ultimaPosicao) {
                         TextosCandidatosDaVaga.AVISO_DA_ULTIMA_POSICAO.format(nome)
                     } else {
                         TextosCandidatosDaVaga.AVISO_DA_ESCOLHA.format(nome)
                     },
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = acoes.aoConfirmarEscolha,
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosCandidatosDaVaga.CONFIRMAR) }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = acoes.aoDesistirDaEscolha,
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosCandidatosDaVaga.CANCELAR) }
-            },
-        )
+                BotaoPrimario(
+                    texto = TextosCandidatosDaVaga.CONFIRMAR,
+                    aoClicar = acoes.aoConfirmarEscolha,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                AcaoDiscreta(texto = TextosCandidatosDaVaga.CANCELAR, aoClicar = acoes.aoDesistirDaEscolha)
+            }
+        }
     }
 }
 
-/** Explicação, prazo de escolha (RN24), lista possivelmente velha, e o resultado ou a falha da última escolha. */
+/** Explicação, prazo de escolha (RN24) e lista possivelmente velha. O resultado e a falha da escolha ficam no rodapé. */
 @Composable
 private fun Avisos(estado: EstadoCandidatosDaVaga) {
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-        Text(
-            text = TextosCandidatosDaVaga.EXPLICACAO,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        Text(text = TextosCandidatosDaVaga.EXPLICACAO, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
         estado.prazoDeEscolha?.let { prazo ->
-            Text(
-                text = if (estado.prazoPassou) {
+            AvisoFrila(
+                tom = TomAviso.INFORMATIVO,
+                mensagem = if (estado.prazoPassou) {
                     TextosCandidatosDaVaga.PRAZO_PASSOU
                 } else {
                     TextosCandidatosDaVaga.PRAZO_DE_ESCOLHA.format(prazoPorExtenso(prazo))
                 },
-                style = MaterialTheme.typography.titleSmall,
             )
         }
         if (estado.desatualizada) {
-            Text(
-                text = TextosCandidatosDaVaga.DESATUALIZADA,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-        estado.resultado?.let { resultado ->
-            Text(
-                text = (if (resultado.vagaPreenchida) TextosCandidatosDaVaga.CONFIRMADO_E_VAGA_PREENCHIDA else TextosCandidatosDaVaga.CONFIRMADO)
-                    .format(resultado.nome),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-        estado.falha?.let { falha ->
-            Text(
-                text = mensagemDaFalha(falha),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-            )
+            AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosCandidatosDaVaga.DESATUALIZADA)
         }
     }
 }
@@ -305,40 +277,35 @@ private fun CartaoDoCandidato(
     carregarFoto: suspend (String) -> ImageBitmap?,
 ) {
     val perfil = candidato.profissional
-    CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto), verticalAlignment = Alignment.CenterVertically) {
+    val cores = FrilaTema.cores
+    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco), verticalAlignment = Alignment.CenterVertically) {
                 Foto(nome = perfil.nome, fotoUrl = perfil.fotoUrl, carregarFoto = carregarFoto)
                 Column(
                     modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {},
-                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio),
+                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
                 ) {
-                    Text(text = perfil.nome, style = MaterialTheme.typography.titleMedium)
+                    Text(text = perfil.nome, style = FrilaTipo.nome, color = cores.tinta)
+                    // Texto e ícone, nunca só cor (D7). O selo não altera a ordem da lista (RN06).
                     if (candidato.daEquipe) {
-                        // Texto e ícone, nunca só cor (D7). O selo não altera a ordem da lista (RN06).
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                            Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text(
-                                text = TextosCandidatosDaVaga.DA_EQUIPE,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
+                        SeloDeStatus(texto = TextosCandidatosDaVaga.DA_EQUIPE, estilo = EstiloDoSelo.CONTORNO, icone = Icons.Filled.Star)
                     }
-                    perfil.funcoes?.takeIf { it.isNotEmpty() }?.let { funcoes ->
-                        Text(
-                            text = TextosCandidatosDaVaga.FUNCOES.format(funcoes.joinToString(", ")),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    Text(
-                        text = textoDaReputacao(candidato),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
-            BotaoPrimario(
+            Column(
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+            ) {
+                perfil.funcoes?.takeIf { it.isNotEmpty() }?.let { funcoes ->
+                    FrilaLinhaDeDado(
+                        icone = Icons.Filled.Person,
+                        valor = TextosCandidatosDaVaga.FUNCOES.format(funcoes.joinToString(", ")),
+                    )
+                }
+                FrilaLinhaDeDado(icone = Icons.Filled.Star, valor = textoDaReputacao(candidato))
+            }
+            BotaoSecundario(
                 texto = if (escolhendoEste) TextosCandidatosDaVaga.ESCOLHENDO else TextosCandidatosDaVaga.ESCOLHER,
                 aoClicar = aoEscolher,
                 habilitado = podeEscolher,
@@ -388,14 +355,14 @@ private fun Foto(nome: String, fotoUrl: String?, carregarFoto: suspend (String) 
             modifier = Modifier
                 .size(tamanho)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .background(FrilaTema.cores.superficiePressionada)
                 .testTag("inicial-do-candidato"),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = nome.trim().take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = FrilaTipo.nome,
+                color = FrilaTema.cores.tinta,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.clearAndSetSemantics {},
             )

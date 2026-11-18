@@ -7,6 +7,7 @@ import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PerfilProfissionalDetalhadoDto
 import br.com.frila.core.rede.RegiaoAdministrativaDto
 import br.com.frila.core.rede.ReputacaoDto
+import java.util.Collections
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,9 +55,11 @@ class ApresentacaoERegioesViewModelTest {
         var respostaApresentacao: Result<PerfilProfissionalDetalhadoDto>? = null,
         var respostaRegioes: Result<PerfilProfissionalDetalhadoDto>? = null,
     ) {
-        val chamadas = mutableListOf<String>()
-        val apresentacoes = mutableListOf<ApresentacaoDoProfissionalDto>()
-        val regioesEnviadas = mutableListOf<DefinirRegioesAtendidasDto>()
+        // #940: o view model chama carregarPerfil e carregarRegioes em 2 `async` ao mesmo tempo, em threads do
+        // Dispatchers.Default; lista sem trava perdia ou quebrava o `add` e o teste falhava de vez em quando.
+        val chamadas: MutableList<String> = Collections.synchronizedList(mutableListOf())
+        val apresentacoes: MutableList<ApresentacaoDoProfissionalDto> = Collections.synchronizedList(mutableListOf())
+        val regioesEnviadas: MutableList<DefinirRegioesAtendidasDto> = Collections.synchronizedList(mutableListOf())
         var antesDeSalvar: suspend () -> Unit = {}
 
         fun viewModel() = ApresentacaoERegioesViewModel(
@@ -136,6 +139,25 @@ class ApresentacaoERegioesViewModelTest {
 
             assertEquals(mensagem, vm.estado.value.erroGeral)
             assertFalse(vm.estado.value.carregando)
+        }
+    }
+
+    /**
+     * #940: o dublê é chamado por 2 `async` ao mesmo tempo, em threads do `Dispatchers.Default`. Com listas sem trava, um `add`
+     * podia lançar no meio do crescimento da lista; o `runCatching` do view model engolia e a tela mostrava erro ou ficava sem
+     * o perfil. Repetir o carregar pega a corrida (antes do conserto, falhava em parte das rodadas).
+     */
+    @Test
+    fun `carregar repetido nunca perde o perfil nem o catalogo`() = runBlocking {
+        repeat(REPETICOES_DA_CORRIDA) { rodada ->
+            val r = rede()
+            val vm = r.viewModel()
+
+            vm.carregar().join()
+
+            assertNull(vm.estado.value.erroGeral, "rodada $rodada")
+            assertEquals("Garçom há 8 anos", vm.estado.value.sobreMim, "rodada $rodada")
+            assertEquals(setOf("perfil", "catalogo"), r.chamadas.toSet(), "rodada $rodada")
         }
     }
 
@@ -417,5 +439,8 @@ class ApresentacaoERegioesViewModelTest {
 
         assertEquals(1, r.apresentacoes.size)
         assertEquals(1, r.regioesEnviadas.size)
+    }
+    private companion object {
+        const val REPETICOES_DA_CORRIDA = 2_000
     }
 }

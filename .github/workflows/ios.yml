@@ -353,4 +353,5 @@ jobs:
     with:
       com_release: false
       iteracoes: 2
-      limite_por_teste: 1800
+      # 2400 s (era 1800): o percurso do catálogo em AX5 leva ~1300–1400 s e estoura com as 5 máquinas cheias. Dividir o teste depois da 1.2.0: issue #991.
+      limite_por_teste: 2400

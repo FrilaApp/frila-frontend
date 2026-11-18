@@ -1,40 +1,43 @@
 package br.com.frila.feature.turnos
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.error
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
+
+private const val PERGUNTA = "Você trabalharia nesse local de novo?"
+private const val SIM = "Sim, trabalharia"
+private const val NAO = "Não trabalharia"
 
 /**
- * Avaliação binária de turno (RF15/RN07/RNF10): "Você trabalharia nesse local de novo?". Sim
- * ou não, nunca nota — e os dois botões respeitam o alvo mínimo de toque de 48dp
- * (`BotaoPrimario`/`BotaoSecundario` já embutem `FrilaMetricas.alvoMinimo`).
+ * Avaliação binária de turno (RF15/RN07/RNF10, T5 do desenho): a pergunta é o título e a resposta é a ação, então a
+ * tela não tem botão laranja. Sim ou não, nunca nota; a escolha grava no toque e tem um voto por lado do turno
+ * (depois de gravada, uma resposta diferente é recusada). Cada opção respeita o alvo mínimo de 48dp.
+ *
+ * O desenho põe o cartão de status do turno abaixo da escolha; esta tela só recebe o `turnoId`, sem os dados do
+ * turno, então o cartão fica de fora até a rota passar o turno.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaAvaliacao(
     turnoId: String,
@@ -43,123 +46,75 @@ fun TelaAvaliacao(
     modifier: Modifier = Modifier,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    // A opção tocada fica marcada enquanto o voto é enviado (sem indicador girando); sem envio, nada marcado.
+    var emEnvio by remember { mutableStateOf<Boolean?>(null) }
+    val avaliar = { resposta: Boolean ->
+        emEnvio = resposta
+        viewModel.avaliar(turnoId, resposta)
+        Unit
+    }
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Avaliar turno", modifier = Modifier.semantics { heading() }) },
-            )
-        },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
     ) { paddingInterno ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingInterno)
                 .verticalScroll(rememberScrollState())
-                .padding(FrilaEspacamento.grande),
-            contentAlignment = Alignment.Center,
+                .padding(horizontal = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
             when (estado.status) {
-                StatusAvaliacao.ENVIANDO -> CircularProgressIndicator()
                 StatusAvaliacao.SUCESSO -> ConfirmacaoDeAvaliacao(resposta = estado.respostaRegistrada, aoVoltar = aoVoltar)
-                StatusAvaliacao.ERRO -> ErroDeAvaliacao(
-                    mensagem = estado.mensagemErro,
-                    aoTentarNovamente = { resposta -> viewModel.avaliar(turnoId, resposta) },
+                StatusAvaliacao.ERRO -> PerguntaDeAvaliacao(
+                    escolha = null,
+                    aoResponder = avaliar,
+                    mensagemErro = estado.mensagemErro ?: "Não foi possível registrar sua avaliação.",
                 )
-                StatusAvaliacao.OCIOSO -> PerguntaDeAvaliacao(
-                    aoResponder = { resposta -> viewModel.avaliar(turnoId, resposta) },
-                )
+                StatusAvaliacao.ENVIANDO -> PerguntaDeAvaliacao(escolha = emEnvio, aoResponder = {}, habilitada = false)
+                StatusAvaliacao.OCIOSO -> PerguntaDeAvaliacao(escolha = null, aoResponder = avaliar)
             }
         }
     }
 }
 
 @Composable
-private fun PerguntaDeAvaliacao(aoResponder: (Boolean) -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-    ) {
-        Text(
-            text = "Você trabalharia nesse local de novo?",
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = "A avaliação é só sim ou não, e é anônima para o estabelecimento.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-        )
-        BotaoPrimario(
-            texto = "Sim, trabalharia",
-            aoClicar = { aoResponder(true) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        BotaoSecundario(
-            texto = "Não trabalharia",
-            aoClicar = { aoResponder(false) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+private fun PerguntaDeAvaliacao(
+    escolha: Boolean?,
+    aoResponder: (Boolean) -> Unit,
+    mensagemErro: String? = null,
+    habilitada: Boolean = true,
+) {
+    TituloDaTela(PERGUNTA)
+    Text(
+        text = "A avaliação é só sim ou não, e é anônima para o estabelecimento.",
+        style = FrilaTipo.apoio,
+        color = FrilaTema.cores.tintaSuave,
+    )
+    EscolhaBinaria(
+        rotuloSim = SIM,
+        rotuloNao = NAO,
+        escolha = escolha,
+        aoEscolher = aoResponder,
+        habilitada = habilitada,
+    )
+    // Erro de uma ação: escrito logo abaixo da escolha que o disparou; tocar de novo tenta outra vez.
+    mensagemErro?.let { MensagemDeAcao(texto = it) }
 }
 
 @Composable
 private fun ConfirmacaoDeAvaliacao(resposta: Boolean?, aoVoltar: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-    ) {
-        Text(
-            text = "Avaliação registrada",
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = if (resposta == true) "Você recomendou este local." else "Você não recomendou este local.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics {
-                liveRegion = LiveRegionMode.Polite
-            },
-        )
-        BotaoPrimario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun ErroDeAvaliacao(mensagem: String?, aoTentarNovamente: (Boolean) -> Unit) {
-    val textoErro = mensagem ?: "Não foi possível registrar sua avaliação."
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-    ) {
-        Text(
-            text = textoErro,
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics {
-                liveRegion = LiveRegionMode.Assertive
-                error(textoErro)
-            },
-        )
-        Text(
-            text = "Você trabalharia nesse local de novo?",
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() },
-        )
-        BotaoPrimario(
-            texto = "Sim, trabalharia",
-            aoClicar = { aoTentarNovamente(true) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        BotaoSecundario(
-            texto = "Não trabalharia",
-            aoClicar = { aoTentarNovamente(false) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    TituloDaTela("Avaliação registrada")
+    Text(
+        text = if (resposta == true) "Você recomendou este local." else "Você não recomendou este local.",
+        style = FrilaTipo.corpo,
+        color = FrilaTema.cores.tinta,
+        modifier = Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
+    BotaoSecundario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
 }

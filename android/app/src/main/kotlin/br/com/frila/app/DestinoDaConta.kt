@@ -4,6 +4,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.EstabelecimentoDaContaDto
 import br.com.frila.core.rede.PerfilProfissionalDto
+import br.com.frila.core.rede.SituacaoDaContaDto
 import br.com.frila.core.rede.UsuarioDto
 import java.io.File
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -29,6 +30,9 @@ sealed interface DestinoDaConta {
 
     /** Contratante: Minhas vagas da primeira casa, ou o cadastro do estabelecimento se ainda não tem casa. */
     data class Contratante(val casa: CasaDoContratante?) : DestinoDaConta
+
+    /** L2-5: a conta existe e está suspensa. Nunca vai para o destino guardado: a abertura sem rede de depois volta ao último destino bom. */
+    data object ContaSuspensa : DestinoDaConta
 }
 
 /** Rota de cada destino. */
@@ -37,10 +41,12 @@ fun DestinoDaConta.rota(): String = when (this) {
     DestinoDaConta.Profissional -> Rotas.FEED
     is DestinoDaConta.Contratante ->
         casa?.let { Rotas.minhasVagas(it.id, it.nome) } ?: Rotas.CADASTRO_ESTABELECIMENTO
+    DestinoDaConta.ContaSuspensa -> Rotas.contaSuspensa()
 }
 
 /**
- * `minha_conta` → `404` é cadastro; perfil `contratante` → primeira casa de `meus_estabelecimentos`;
+ * `minha_conta` → `404` é cadastro; com a conta, `situacao_da_conta` (L2-5, como o iOS): suspensa vai para [DestinoDaConta.ContaSuspensa].
+ * Perfil `contratante` → primeira casa de `meus_estabelecimentos`;
  * perfil `profissional` → `meu_perfil_profissional` (`404` é cadastro, `200` é o feed). Erro de rede ou do
  * servidor sobe para quem chamou ([AvaliadorDeDestino] decide o que fazer).
  */
@@ -48,6 +54,8 @@ suspend fun avaliarDestinoDaConta(
     buscarConta: suspend () -> UsuarioDto,
     buscarPerfilProfissional: suspend () -> PerfilProfissionalDto,
     listarCasas: suspend () -> List<EstabelecimentoDaContaDto>,
+    /** Nulo (grafo sem o serviço) pula a conferência: a abertura fica como era antes do L2-5. */
+    buscarSituacao: (suspend () -> SituacaoDaContaDto)? = null,
 ): DestinoDaConta {
     val conta = try {
         buscarConta()
@@ -55,6 +63,7 @@ suspend fun avaliarDestinoDaConta(
         if (erro.codigo == CodigoErroAPI.NAO_ENCONTRADO) return DestinoDaConta.Cadastro
         throw erro
     }
+    if (buscarSituacao != null && buscarSituacao().estado == ESTADO_SUSPENSA) return DestinoDaConta.ContaSuspensa
     return when (conta.perfil) {
         "contratante" -> DestinoDaConta.Contratante(
             listarCasas().firstOrNull()?.let { CasaDoContratante(it.id, it.nome) },
@@ -68,6 +77,8 @@ suspend fun avaliarDestinoDaConta(
         else -> throw IllegalStateException("Perfil de conta desconhecido: ${conta.perfil}")
     }
 }
+
+private const val ESTADO_SUSPENSA = "suspensa"
 
 /** Resultado da abertura: um destino, ou o motivo de não haver. */
 sealed interface ResultadoDaAbertura {
@@ -111,7 +122,11 @@ class AvaliadorDeDestino(
 ) {
     suspend fun avaliar(): ResultadoDaAbertura = try {
         val destino = withTimeout(prazo) { descobrir() }
-        if (destino is DestinoDaConta.Cadastro) guardado.limpar() else guardado.salvar(destino)
+        when (destino) {
+            DestinoDaConta.Cadastro -> guardado.limpar()
+            DestinoDaConta.ContaSuspensa -> Unit
+            else -> guardado.salvar(destino)
+        }
         ResultadoDaAbertura.Destino(destino)
     } catch (_: TimeoutCancellationException) {
         semConexao()
@@ -185,6 +200,7 @@ internal class DestinoGuardadoEmArquivo(
         fun codificar(destino: DestinoDaConta): String = when (destino) {
             DestinoDaConta.Cadastro -> "cadastro"
             DestinoDaConta.Profissional -> "profissional"
+            DestinoDaConta.ContaSuspensa -> "conta_suspensa" // nunca é gravado (o avaliador não o guarda); `decodificar` o ignora
             is DestinoDaConta.Contratante -> destino.casa
                 ?.let { "contratante\n${it.id}\n${it.nome}" }
                 ?: "contratante"
