@@ -57,6 +57,8 @@ public struct TelaPublicarEscala: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 cabecalho
+                // Em tamanho de acessibilidade a mensagem junto ao botão ocuparia a tela inteira: vai para a rolagem, no alto.
+                if dynamicTypeSize.isAccessibilitySize { mensagens }
                 secaoDoEvento
                 secaoDasVagas
             }
@@ -408,18 +410,24 @@ public struct TelaPublicarEscala: View {
 
     // MARK: Rodapé
 
+    /// A falha das funções e a mensagem geral da ação: no rodapé, junto ao botão; em AX, no alto da rolagem.
+    @ViewBuilder
+    private var mensagens: some View {
+        if modelo.funcoesIndisponiveis {
+            MensagemJuntoAoBotao(verbatim: TextosDaEscala.funcoesIndisponiveis)
+                .accessibilityIdentifier("escala-funcoes-indisponiveis")
+            BotaoSecundario(verbatim: TextosDaEscala.tentarNovamente) { Task { await modelo.carregarFuncoes() } }
+                .accessibilityIdentifier("escala-recarregar-funcoes")
+        }
+        if let geral = modelo.erros.geral {
+            MensagemJuntoAoBotao(verbatim: geral)
+                .accessibilityIdentifier("escala-mensagem")
+        }
+    }
+
     private var rodape: some View {
         VStack(spacing: FrilaEspaco.item) {
-            if modelo.funcoesIndisponiveis {
-                MensagemJuntoAoBotao(verbatim: TextosDaEscala.funcoesIndisponiveis)
-                    .accessibilityIdentifier("escala-funcoes-indisponiveis")
-                BotaoSecundario(verbatim: TextosDaEscala.tentarNovamente) { Task { await modelo.carregarFuncoes() } }
-                    .accessibilityIdentifier("escala-recarregar-funcoes")
-            }
-            if let geral = modelo.erros.geral {
-                MensagemJuntoAoBotao(verbatim: geral)
-                    .accessibilityIdentifier("escala-mensagem")
-            }
+            if !dynamicTypeSize.isAccessibilitySize { mensagens }
             BotaoPrimario(verbatim: tituloDoBotao, carregando: modelo.enviando) {
                 foco = nil
                 Task { await modelo.publicar() }
