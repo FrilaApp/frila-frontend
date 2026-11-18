@@ -2340,6 +2340,17 @@
         }
       }
     },
+    "Ativa no Feed": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativa no Feed"
+          }
+        }
+      }
+    },
     "Ativar notificações": {
       "extractionState": "stale",
       "localizations": {

@@ -145,4 +145,54 @@ final class CapturasR5UITests: XCTestCase {
     func testRepublicarVagaEmAX5() { republicar(ax5: true) }
     func testCancelarVagaNoTamanhoPadrao() { cancelarVaga(ax5: false) }
     func testCancelarVagaEmAX5() { cancelarVaga(ax5: true) }
+
+    // MARK: - Parte 3: publicar vaga (Estúdio), prévia e vaga publicada
+
+    private func abrirEstudio(ax5: Bool) -> XCUIApplication {
+        let app = iniciar(["-FRILA_SCENARIO", "contratante", "-FRILA_CACHE_VAZIO_UI_TEST", "-FRILA_CADASTRO_UI_TEST"], ax5: ax5)
+        let entrada = app.buttons["publicar-vaga-entrada"]
+        XCTAssertTrue(entrada.waitForExistence(timeout: 20), "Minhas vagas abre com a entrada de publicar")
+        entrada.tap()
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app), "o Estúdio de criação abre")
+        return app
+    }
+
+    private func estudio(ax5: Bool) {
+        let app = abrirEstudio(ax5: ax5)
+        confirmarAlvo(app.buttons["publicar-vaga-botao"], "o botão de publicar")
+        confirmarAlvo(app.buttons["previa-vaga-botao"], "o botão de prévia")
+        capturar("estudio", ax5: ax5)
+    }
+
+    private func previa(ax5: Bool) {
+        let app = abrirEstudio(ax5: ax5)
+        let botao = app.buttons["previa-vaga-botao"]
+        XCTAssertTrue(botao.waitForExistence(timeout: Espera.aparecer))
+        botao.tap()
+        XCTAssertTrue(app.buttons["Fechar"].waitForExistence(timeout: Espera.aparecer), "a prévia tem o Fechar na barra")
+        capturar("previa", ax5: ax5)
+    }
+
+    private func vagaPublicada(ax5: Bool) {
+        let app = abrirEstudio(ax5: ax5)
+        let responsavel = app.textFields["responsavel-local-campo"]
+        rolarAte(responsavel, em: app)
+        responsavel.tap()
+        responsavel.typeText("Marina")
+        fecharTeclado(app)
+        ajustarValorPorTurno(app, para: 160)
+        let publicar = app.buttons["publicar-vaga-botao"]
+        rolarAte(publicar, em: app)
+        publicar.tap()
+        XCTAssertTrue(app.buttons["celebracao-concluir"].waitForExistence(timeout: 20), "a celebração da vaga publicada abre")
+        confirmarAlvo(app.buttons["celebracao-ver-vaga"], "Ver Detalhes da Vaga")
+        capturar("vaga-publicada", ax5: ax5)
+    }
+
+    func testEstudioNoTamanhoPadrao() { estudio(ax5: false) }
+    func testEstudioEmAX5() { estudio(ax5: true) }
+    func testPreviaNoTamanhoPadrao() { previa(ax5: false) }
+    func testPreviaEmAX5() { previa(ax5: true) }
+    func testVagaPublicadaNoTamanhoPadrao() { vagaPublicada(ax5: false) }
+    func testVagaPublicadaEmAX5() { vagaPublicada(ax5: true) }
 }

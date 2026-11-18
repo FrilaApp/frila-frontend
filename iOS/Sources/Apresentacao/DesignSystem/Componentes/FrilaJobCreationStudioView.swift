@@ -276,6 +276,7 @@ struct FrilaStudioHostHooks {
 
 public struct FrilaJobCreationStudioView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let isDark: Bool
@@ -468,7 +469,7 @@ public struct FrilaJobCreationStudioView: View {
                             Image(systemName: "xmark")
                                 .font(FrilaFonteDoSistema.fonte(size: 13, weight: .bold))
                                 .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
-                                .frame(width: 30, height: 30)
+                                .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
                                 .contentShape(Circle())
                         }
                         .disabled(enviando)
@@ -775,47 +776,40 @@ public struct FrilaJobCreationStudioView: View {
     /// Prévia e Publicar. Com obrigatório faltando, Publicar leva à primeira seção incompleta.
     private func continuousFormDock(scrollProxy: ScrollViewProxy) -> some View {
         let missing = FrilaJobFormSection.firstIncomplete(in: draft)
-        return HStack(spacing: FrilaGeometry.space10) {
-            Button(action: { showingPreviewSheet = true }) {
-                Label(String(localized: "Prévia", table: "Estudio", bundle: bundleApresentacao), systemImage: "eye")
-                    .font(FrilaTypography.button)
-                    .padding(.horizontal, FrilaGeometry.space20)
-                    .frame(height: FrilaGeometry.buttonHeightProminent)
-            }
-            .buttonStyle(FrilaPillButtonStyle(variant: .outline, isDark: isDark))
-            .accessibilityIdentifier("previa-vaga-botao")
+        let previa = Button(action: { showingPreviewSheet = true }) {
+            Label(String(localized: "Prévia", table: "Estudio", bundle: bundleApresentacao), systemImage: "eye")
+        }
+        .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
+        .accessibilityIdentifier("previa-vaga-botao")
 
-            Button(action: {
-                if let missing {
-                    showsMissingFields = true
-                    missingTapTrigger += 1
-                    jump(to: missing, scrollProxy: scrollProxy)
-                } else {
-                    publishOpportunity()
-                }
-            }) {
-                HStack(spacing: FrilaGeometry.space8) {
-                    // Enxerto: com publicação pendente, o app diz "Tentar novamente"
-                    if let publishLabel = hooks.publishLabel?() {
-                        Text(verbatim: publishLabel)
-                            .font(FrilaTypography.button)
-                    } else {
-                        Text("Publicar vaga", tableName: "Estudio", bundle: bundleApresentacao)
-                            .font(FrilaTypography.button)
-                    }
-                    Image(systemName: "paperplane.fill")
-                        .font(FrilaTypography.captionBold)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: FrilaGeometry.buttonHeightProminent)
+        // O único laranja da tela: publicar (ou tentar de novo, com publicação pendente). Com campo faltando, o toque
+        // leva à primeira seção incompleta, como antes.
+        let publicar = BotaoPrimario(
+            verbatim: hooks.publishLabel?() ?? String(localized: "Publicar vaga", table: "Estudio", bundle: bundleApresentacao),
+            carregando: enviando
+        ) {
+            if let missing {
+                showsMissingFields = true
+                missingTapTrigger += 1
+                jump(to: missing, scrollProxy: scrollProxy)
+            } else {
+                publishOpportunity()
             }
-            .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
-            .disabled(enviando)
-            .opacity(missing == nil && !enviando ? 1 : 0.55)
-            .sensoryFeedback(.warning, trigger: missingTapTrigger)
-            .accessibilityLabel(hooks.publishLabel?() ?? String(localized: "Publicar vaga de \(draft.role)", table: "Estudio", bundle: bundleApresentacao))
-            .accessibilityHint(missing.map { String(localized: "Falta preencher \($0.title). Toque duas vezes para ir até a seção.", table: "Estudio", bundle: bundleApresentacao) } ?? "")
-            .accessibilityIdentifier("publicar-vaga-botao")
+        }
+        .sensoryFeedback(.warning, trigger: missingTapTrigger)
+        .accessibilityLabel(hooks.publishLabel?() ?? String(localized: "Publicar vaga de \(draft.role)", table: "Estudio", bundle: bundleApresentacao))
+        .accessibilityHint(missing.map { String(localized: "Falta preencher \($0.title). Toque duas vezes para ir até a seção.", table: "Estudio", bundle: bundleApresentacao) } ?? "")
+        .accessibilityIdentifier("publicar-vaga-botao")
+
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: FrilaGeometry.space10) { publicar; previa }
+            } else {
+                HStack(spacing: FrilaGeometry.space10) {
+                    previa.fixedSize(horizontal: true, vertical: false)
+                    publicar
+                }
+            }
         }
         .padding(.horizontal, FrilaGeometry.space20)
         .padding(.top, FrilaGeometry.space12)
@@ -867,36 +861,37 @@ public struct FrilaJobCelebrationSheet: View {
 
     public var body: some View {
         ScrollView {
-            VStack(spacing: FrilaGeometry.space20) {
-                // Ícone de Sucesso
-                ZStack {
-                    Circle()
-                        .fill(FrilaColor.dynamicVerifiedBg(isDark: isDark))
-                        .frame(width: 72, height: 72)
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(FrilaFonteDoSistema.fonte(size: 36, weight: .medium))
-                        .foregroundColor(FrilaColor.dynamicVerified(isDark: isDark))
-                }
-                .padding(.top, FrilaGeometry.space16)
+            VStack(spacing: FrilaEspaco.grupo) {
+                // Sucesso não tem cor: o selo em tinta sobre o preenchimento neutro.
+                Image(systemName: "checkmark.seal.fill")
+                    .font(FrilaFonteDoSistema.fonte(size: 36, weight: .medium))
+                    .foregroundStyle(FrilaCor.texto)
+                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
+                    .background(FrilaCor.controle, in: Circle())
+                    .accessibilityHidden(true)
+                    .padding(.top, FrilaEspaco.bloco)
 
-                VStack(spacing: 6) {
+                VStack(spacing: FrilaEspaco.item) {
                     Text("Vaga Publicada!", tableName: "Estudio", bundle: bundleApresentacao)
-                        .font(FrilaTypography.titleLarge)
-                        .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
+                        .font(FrilaTipo.tituloDaTela)
+                        .foregroundStyle(FrilaCor.texto)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text("Sua vaga já está visível para profissionais perto de você no Frila.", tableName: "Estudio", bundle: bundleApresentacao)
-                        .font(FrilaTypography.caption)
-                        .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                // Alerta Enviado aos Candidatos (Screenshot 2)
-                VStack(alignment: .leading, spacing: 6) {
+                // Alerta enviado aos profissionais
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                     Text("NOTIFICAÇÃO ENVIADA AOS PROFISSIONAIS", tableName: "Estudio", bundle: bundleApresentacao)
-                        .font(FrilaTypography.microBold)
-                        .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                        .tracking(FrilaTypography.trackingMicro)
+                        .font(FrilaTipo.rotuloDeGrupo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     FrilaShiftNotificationBanner(
                         appTitle: "FRILA",
@@ -910,75 +905,47 @@ public struct FrilaJobCelebrationSheet: View {
                         action: onViewDetail
                     )
                 }
-                .padding(.horizontal, FrilaGeometry.space16)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Card Resumo da Vaga
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(verbatim: item.client.uppercased())
-                            .font(FrilaTypography.microBold)
-                            .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                        Spacer()
-                        FrilaStatusChip("Ativa no Feed", style: .verified, systemImage: "sparkles", isDark: isDark)
-                    }
+                // Cartão da vaga
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                    SeloDeStatus(verbatim: String(localized: "Ativa no Feed", bundle: bundleApresentacao), estilo: .contorno, icone: "sparkles")
+
+                    Text(verbatim: item.client.uppercased())
+                        .font(FrilaTipo.rotuloDeGrupo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(verbatim: item.role.isEmpty ? item.title : item.role)
-                        .font(FrilaTypography.placard)
-                        .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
-                        .lineLimit(2)
+                        .font(FrilaTipo.nome)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                    HStack(spacing: 8) {
-                        FrilaPriceTag(texto: "\(FrilaMoney.total(item.payPerPosition)) \(item.paymentUnitLabel)", tamanho: 13, isDark: isDark)
-                            .font(FrilaTypography.captionBold)
-                            .foregroundColor(FrilaColor.dynamicBrandAccent(isDark: isDark))
-
-                        Text(verbatim: item.shiftDate)
-                            .font(FrilaTypography.caption)
-                            .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-
-                        Spacer()
-
-                        Text(verbatim: item.location)
-                            .font(FrilaTypography.caption)
-                            .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+                    FrilaLinhaDeDado(icone: "banknote") {
+                        Text(verbatim: "\(FrilaMoney.total(item.payPerPosition)) \(item.paymentUnitLabel)")
+                            .font(FrilaTipo.rotuloSecundario)
                     }
+                    FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: item.shiftDate) }
+                    FrilaLinhaDeDado(icone: "mappin.and.ellipse") { Text(verbatim: item.location) }
                 }
-                .padding(FrilaGeometry.space16)
-                .background(FrilaColor.dynamicFormCardSurface(isDark: isDark))
-                .clipShape(RoundedRectangle(cornerRadius: FrilaGeometry.radiusCard, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: FrilaGeometry.radiusCard, style: .continuous)
-                        .strokeBorder(FrilaColor.dynamicFormCardBorder(isDark: isDark), lineWidth: 1)
-                }
-                .frilaFormLift(isDark: isDark)
-                .padding(.horizontal, FrilaGeometry.space16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cartaoFrila()
 
-                // Ações
-                VStack(spacing: 12) {
-                    Button(action: onViewDetail) {
-                        Text("Ver Detalhes da Vaga", tableName: "Estudio", bundle: bundleApresentacao)
-                            .font(FrilaTypography.button)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: FrilaGeometry.buttonHeightStandard)
-                    }
-                    .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
-                    .accessibilityIdentifier("celebracao-ver-vaga")
+                // Ações: um laranja (ver a vaga) e "Concluir" secundário.
+                VStack(spacing: FrilaEspaco.item) {
+                    BotaoPrimario(verbatim: String(localized: "Ver Detalhes da Vaga", table: "Estudio", bundle: bundleApresentacao), acao: onViewDetail)
+                        .accessibilityIdentifier("celebracao-ver-vaga")
 
                     // Enxerto: sem o botão "Ver Alerta no Lock Screen" (tela de bloqueio fora do escopo).
-                    Button(action: onFinish) {
-                        Text("Concluir", tableName: "Estudio", bundle: bundleApresentacao)
-                            .font(FrilaTypography.captionBold)
-                            .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
-                            .padding(.vertical, 8)
-                    }
-                    .frilaHitbox()
-                    .accessibilityIdentifier("celebracao-concluir")
+                    BotaoSecundario(verbatim: String(localized: "Concluir", table: "Estudio", bundle: bundleApresentacao), acao: onFinish)
+                        .accessibilityIdentifier("celebracao-concluir")
                 }
-                .padding(.horizontal, FrilaGeometry.space20)
-                .padding(.bottom, FrilaGeometry.space16)
             }
-            .padding(.vertical, 8)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
         }
+        .background(FrilaCor.fundo.ignoresSafeArea())
+        .presentationBackground(FrilaCor.fundo)
         .presentationDetents([.fraction(0.85), .large])
         .presentationDragIndicator(.visible)
     }

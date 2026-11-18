@@ -166,21 +166,16 @@ public struct FrilaOpportunityDetailView: View {
             // Card 3 & 4: Métricas de Reputação e Urgência
             metricsSectionView
 
-            // Botão Principal de Candidatura (100% Capsule)
-            Button(action: {
+            // Botão principal: o único laranja da folha (publicar, na prévia da casa).
+            BotaoPrimario(verbatim: applyTitle) {
                 if let onApply = onApply {
                     onApply()
                 } else {
                     dismiss()
                 }
-            }) {
-                Text(verbatim: applyTitle)
-                    .font(FrilaTypography.button)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: FrilaGeometry.buttonHeightProminent)
             }
-            .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
             .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : item.client.isEmpty ? String(localized: "Candidatar-me para a vaga", table: "Estudio", bundle: bundleApresentacao) : String(localized: "Candidatar-me para a vaga de \(item.role) no \(item.client)", table: "Estudio", bundle: bundleApresentacao))
+            .accessibilityIdentifier("publicar-da-previa-botao")
 
             // Ações Secundárias no Rodapé. Na prévia do contratante o anúncio é dele mesmo e os dois
             // botões não têm ação (denúncia e bloqueio moram no perfil do estabelecimento): botão
@@ -496,21 +491,14 @@ public struct FrilaOpportunityDetailView: View {
 
             Spacer()
 
-            Button(action: {
+            BotaoPrimario(verbatim: applyTitle) {
                 if let onApply = onApply {
                     onApply()
                 } else {
                     dismiss()
                 }
-            }) {
-                HStack(spacing: 8) {
-                    Text(verbatim: applyTitle)
-                        .font(FrilaTypography.button)
-                    Image(systemName: "arrow.up.right")
-                        .font(FrilaFonteDoSistema.fonte(size: 13, weight: .bold))
-                }
             }
-            .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : String(localized: "Candidatar-me à vaga de \(item.client)", table: "Estudio", bundle: bundleApresentacao))
         }
         .padding(.top, 10)

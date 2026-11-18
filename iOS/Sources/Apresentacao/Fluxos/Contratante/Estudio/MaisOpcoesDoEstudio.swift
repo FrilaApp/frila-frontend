@@ -117,8 +117,8 @@ struct MaisOpcoesDoEstudio: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: FrilaGeometry.radiusInput, style: .continuous)
                             .strokeBorder(
-                                vaga.erros[.observacoes] == nil ? FrilaColor.dynamicFormFieldBorder(isDark: isDark) : FrilaColor.dynamicError(isDark: isDark),
-                                lineWidth: vaga.erros[.observacoes] == nil ? 1 : 1.5
+                                vaga.erros[.observacoes] == nil ? FrilaColor.dynamicFormFieldBorder(isDark: isDark) : FrilaColor.dynamicTextPrimary(isDark: isDark),
+                                lineWidth: vaga.erros[.observacoes] == nil ? 1 : 2
                             )
                     }
                     .frilaFormField(id: "observacoes-vaga-campo", isFocused: observacoesEmFoco, onDismiss: { observacoesEmFoco = false })
@@ -144,9 +144,11 @@ struct MaisOpcoesDoEstudio: View {
     @ViewBuilder
     private func erro(_ texto: String?, id: String) -> some View {
         if let texto {
-            Label(texto, systemImage: "exclamationmark.circle.fill")
+            // Problema não tem cor: o erro vai em tinta, junto do campo.
+            Text(verbatim: texto)
                 .frilaType(FrilaFormType.detail, dynamic: true)
-                .foregroundStyle(FrilaColor.dynamicError(isDark: isDark))
+                .foregroundStyle(FrilaColor.dynamicTextPrimary(isDark: isDark))
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier(id)
         }
     }
