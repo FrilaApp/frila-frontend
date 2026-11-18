@@ -72,6 +72,11 @@ public final class RoteadorDoProfissional {
         aba = .vagas
     }
 
+    /// A conta saiu ou outra entrou. Por enquanto só volta para a lista (o conserto vem no commit seguinte).
+    public func reiniciarParaOutraConta() {
+        voltarParaLista()
+    }
+
     public func ajustarFuncoes(vagaID: UUID, resultado: ResultadoDaCandidatura) {
         guard case .inelegivel(.funcaoIncompativel) = resultado else { return }
         caminho.append(.ajustarFuncoes(vagaID: vagaID))
