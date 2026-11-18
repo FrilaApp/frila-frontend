@@ -5,7 +5,25 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import br.com.frila.core.designsystem.tema.FrilaTheme
+import br.com.frila.feature.vagas.candidatos.AcoesCandidatosDaVaga
+import br.com.frila.feature.vagas.candidatos.ConteudoCandidatosDaVaga
+import br.com.frila.feature.vagas.candidatos.EstadoCandidatosDaVaga
+import br.com.frila.feature.vagas.candidatos.EstadoDosCandidatos
+import br.com.frila.feature.vagas.candidatos.FalhaDaEscolha
+import br.com.frila.feature.vagas.candidatos.ResultadoDaEscolha
 import br.com.frila.feature.vagas.painel.AcoesMinhasVagas
+import br.com.frila.feature.vagas.painel.ConteudoCancelarVaga
+import br.com.frila.feature.vagas.painel.ConteudoRepublicarVaga
+import br.com.frila.feature.vagas.painel.DialogoRepublicarPosicoesRestantes
+import br.com.frila.feature.vagas.painel.EstadoCancelarVaga
+import br.com.frila.feature.vagas.painel.EstadoRepublicarPosicoesRestantes
+import br.com.frila.feature.vagas.painel.EstadoRepublicarVaga
+import br.com.frila.feature.vagas.painel.MotivoDeCancelamentoDaVaga
+import br.com.frila.feature.vagas.painel.TextosCancelarVaga
+import br.com.frila.feature.vagas.painel.TextosRepublicarVaga
+import br.com.frila.core.rede.CandidatoDto
+import br.com.frila.core.rede.PerfilPublicoDto
+import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.feature.vagas.painel.ConteudoMinhasVagas
 import br.com.frila.feature.vagas.painel.EstadoMinhasVagas
 import br.com.frila.feature.vagas.painel.ErroMinhasVagas
@@ -217,5 +235,180 @@ class CapturasR5Test {
         montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", posicoes = "2") })
         compose.onNodeWithText(TextosPublicarVaga.VALOR).performScrollTo()
         compose.capturar("publicar-08-fonte-200-claro")
+    }
+
+    // ---- Candidatos da vaga ----
+
+    private fun candidato(id: String, nome: String, daEquipe: Boolean = false, funcoes: List<String>? = listOf("garçom", "barman"), total: Int = 5) =
+        CandidatoDto(
+            candidaturaId = id,
+            profissional = PerfilPublicoDto(
+                id = "p-$id", tipo = "profissional", nome = nome, funcoes = funcoes,
+                reputacao = ReputacaoDto(positivas = 4, total = total, taxaComparecimento = if (total == 0) null else 0.9, turnosConsiderados = total, turnosRealizados = total),
+                fotoUrl = null,
+            ),
+            criadaEm = "2026-11-10T12:00:00Z",
+            daEquipe = daEquipe,
+        )
+
+    private val ana = candidato("c1", "Ana Souza", daEquipe = true)
+    private val beto = candidato("c2", "Beto Lima", total = 0, funcoes = null)
+
+    private fun montarCandidatos(estado: EstadoCandidatosDaVaga) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { ConteudoCandidatosDaVaga(estado = estado, acoes = AcoesCandidatosDaVaga()) }
+        }
+    }
+
+    private fun estadoDeCandidatos(
+        lista: EstadoDosCandidatos = EstadoDosCandidatos.Carregados(listOf(ana, beto, candidato("c3", "Carla Dias"))),
+        mudar: EstadoCandidatosDaVaga.() -> EstadoCandidatosDaVaga = { this },
+    ) = EstadoCandidatosDaVaga(lista = lista, agora = base).mudar()
+
+    @Test
+    fun `candidatos com dados e prazo - claro`() {
+        montarCandidatos(estadoDeCandidatos { copy(prazoDeEscolha = Instant.parse("2026-11-11T18:00:00Z")) })
+        compose.capturar("candidatos-01-com-dados-claro")
+    }
+
+    @Test
+    fun `candidatos com escolha em voo e resultado - claro`() {
+        montarCandidatos(estadoDeCandidatos { copy(escolhendo = "c1", resultado = ResultadoDaEscolha("Ana Souza", vagaPreenchida = false), desatualizada = true) })
+        compose.capturar("candidatos-02-escolhendo-resultado-claro")
+    }
+
+    @Test
+    fun `candidatos vazio - claro`() {
+        montarCandidatos(estadoDeCandidatos(lista = EstadoDosCandidatos.Vazio))
+        compose.capturar("candidatos-03-vazio-claro")
+    }
+
+    @Test
+    fun `candidatos carregando - claro`() {
+        montarCandidatos(estadoDeCandidatos(lista = EstadoDosCandidatos.Carregando))
+        compose.capturar("candidatos-04-carregando-claro")
+    }
+
+    @Test
+    fun `candidatos com erro - claro`() {
+        montarCandidatos(estadoDeCandidatos(lista = EstadoDosCandidatos.SemConexao))
+        compose.capturar("candidatos-05-sem-conexao-claro")
+    }
+
+    @Test
+    fun `candidatos com falha da escolha - claro`() {
+        montarCandidatos(estadoDeCandidatos { copy(falha = FalhaDaEscolha.TurnoSobreposto("Ana Souza")) })
+        compose.capturar("candidatos-06-falha-claro")
+    }
+
+    @Test
+    fun `candidatos com a confirmacao aberta - claro`() {
+        montarCandidatos(estadoDeCandidatos { copy(emConfirmacao = ana, posicoesAbertas = 1) })
+        compose.capturarJanela("candidatos-07-confirmacao-claro", janela = 1)
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `candidatos com fonte do sistema em 200 por cento`() {
+        montarCandidatos(estadoDeCandidatos())
+        compose.capturar("candidatos-08-fonte-200-claro")
+    }
+
+    // ---- Cancelar vaga ----
+
+    private val motivos = MotivoDeCancelamentoDaVaga.entries
+
+    private fun montarCancelar(estado: EstadoCancelarVaga) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { ConteudoCancelarVaga(estado, motivos, {}, {}, {}, {}) }
+        }
+    }
+
+    private val avisoDoCancelamento = "Faltam 5 h para o início. ${TextosCancelarVaga.EFEITO}"
+
+    @Test
+    fun `cancelar vaga sem motivo - claro`() {
+        montarCancelar(EstadoCancelarVaga(aviso = avisoDoCancelamento))
+        compose.capturar("cancelar-01-sem-motivo-claro")
+    }
+
+    @Test
+    fun `cancelar vaga com motivo e recusa - claro`() {
+        montarCancelar(
+            EstadoCancelarVaga(aviso = avisoDoCancelamento, motivo = MotivoDeCancelamentoDaVaga.OUTRO, detalhes = "Obra no salão", erro = TextosCancelarVaga.VAGA_JA_FECHADA),
+        )
+        compose.capturar("cancelar-02-com-motivo-recusa-claro")
+    }
+
+    @Test
+    fun `cancelar vaga enviando - claro`() {
+        montarCancelar(EstadoCancelarVaga(aviso = avisoDoCancelamento, motivo = MotivoDeCancelamentoDaVaga.MOVIMENTO_MENOR, enviando = true))
+        compose.capturar("cancelar-03-enviando-claro")
+    }
+
+    @Test
+    fun `cancelar vaga concluida - claro`() {
+        montarCancelar(EstadoCancelarVaga(aviso = avisoDoCancelamento, concluida = true))
+        compose.capturar("cancelar-04-concluida-claro")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `cancelar vaga com fonte do sistema em 200 por cento`() {
+        montarCancelar(EstadoCancelarVaga(aviso = avisoDoCancelamento, motivo = MotivoDeCancelamentoDaVaga.OUTRO))
+        compose.capturar("cancelar-05-fonte-200-claro")
+    }
+
+    // ---- Republicar vaga ----
+
+    private val inicioRepublicar = Instant.parse("2026-11-20T21:00:00Z")
+    private val fimRepublicar = Instant.parse("2026-11-21T03:00:00Z")
+
+    private fun montarRepublicar(estado: EstadoRepublicarVaga) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { ConteudoRepublicarVaga(estado, {}, {}, {}, {}) }
+        }
+    }
+
+    @Test
+    fun `republicar vaga - claro`() {
+        montarRepublicar(EstadoRepublicarVaga(inicioRepublicar, fimRepublicar))
+        compose.capturar("republicar-01-formulario-claro")
+    }
+
+    @Test
+    fun `republicar vaga com erro de campo e falha de rede - claro`() {
+        montarRepublicar(
+            EstadoRepublicarVaga(
+                inicioRepublicar, fimRepublicar, erroFim = TextosRepublicarVaga.TURNO_CURTO,
+                camposBloqueados = true, mensagemErro = TextosRepublicarVaga.SEM_REDE,
+            ),
+        )
+        compose.capturar("republicar-02-erros-claro")
+    }
+
+    @Test
+    fun `republicar vaga republicada - claro`() {
+        montarRepublicar(EstadoRepublicarVaga(inicioRepublicar, fimRepublicar, vagaPublicadaId = "nova"))
+        compose.capturar("republicar-03-republicada-claro")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `republicar vaga com fonte do sistema em 200 por cento`() {
+        montarRepublicar(EstadoRepublicarVaga(inicioRepublicar, fimRepublicar))
+        compose.capturar("republicar-04-fonte-200-claro")
+    }
+
+    @Test
+    fun `republicar posicoes restantes, folha de confirmacao - claro`() {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                DialogoRepublicarPosicoesRestantes(
+                    EstadoRepublicarPosicoesRestantes(posicoesRestantes = 2, erro = "O turno desta vaga já começou."), {}, {},
+                )
+            }
+        }
+        compose.capturarJanela("republicar-05-posicoes-restantes-claro", janela = 1)
     }
 }
