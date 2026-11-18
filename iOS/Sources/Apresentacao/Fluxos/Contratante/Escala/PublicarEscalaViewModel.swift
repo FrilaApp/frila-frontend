@@ -428,7 +428,8 @@ public final class PublicarEscalaViewModel {
 
     private func editou(evento campo: CampoDoEventoDaEscala? = nil) {
         if let campo { erros.evento[campo] = nil }
-        if tentativaIncerta == nil, erros.geral != nil, !enviando { erros.geral = nil }
+        // A mensagem geral fica até a próxima tentativa de publicar: em AX ela está no alto da rolagem, e tirá-la enquanto a
+        // pessoa digita encolheria o conteúdo e deslocaria o campo debaixo do dedo (o campo perdia o foco na segunda letra).
     }
 
     private func deslocarVagas(de antigo: Date, para novo: Date) {

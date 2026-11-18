@@ -232,6 +232,7 @@ struct PublicarEscalaViewModelTests {
         #expect(vm.erros.vagas[id]?[.valor] == nil)
         #expect(vm.erros.vagas[id]?[.responsavel] != nil)
         #expect(vm.erros.vagas[id]?[.funcao] != nil)
+        #expect(vm.erros.geral == TextosDaEscala.Erro.temErro, "a mensagem geral fica até a próxima tentativa: tirá-la em AX deslocaria o campo em edição")
     }
 
     // MARK: Publicar
