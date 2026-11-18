@@ -1,7 +1,6 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
-import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import java.io.File
 import java.io.IOException
@@ -27,7 +26,7 @@ fun VagaAbertaDto.aindaDisponivelEm(instante: Instant): Boolean =
 class RepositorioVagas(
     private val arquivoCache: File?,
     private val agora: () -> Instant = Instant::now,
-    private val buscarNaRede: suspend (Coordenada?) -> List<VagaAbertaDto>,
+    private val buscarNaRede: suspend () -> List<VagaAbertaDto>,
 ) {
     private val mutex = Mutex()
     private val bloqueio = Any()
@@ -59,10 +58,10 @@ class RepositorioVagas(
         }
     }
 
-    suspend fun listar(coordenada: Coordenada? = null): ResultadoVagas = mutex.withLock {
+    suspend fun listar(): ResultadoVagas = mutex.withLock {
         synchronized(bloqueio) { verificarValidade() }
         val vagas = try {
-            buscarNaRede(coordenada)
+            buscarNaRede()
         } catch (erro: ErroDaApi) {
             if (erro.codigo != CodigoErroAPI.SEM_REDE) throw erro
             return@withLock obterCache() ?: throw erro
