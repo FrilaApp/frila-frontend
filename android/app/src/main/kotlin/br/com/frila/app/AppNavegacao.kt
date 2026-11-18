@@ -957,6 +957,10 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // Denúncia sem turno associado: o alvo é o perfil público do membro da equipe.
+                        aoDenunciar = { profissional ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                        },
                     )
                 }
             }
