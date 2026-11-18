@@ -226,7 +226,7 @@ class AppNavegacaoChamadaProfissionalTest {
         rule.waitUntil(5_000) { chamadasPedidas.isNotEmpty() }
         assertEquals(listOf("chamada-7"), chamadasPedidas)
         rule.onNodeWithText("Bistrô Aurora").assertExists()
-        rule.onNodeWithTag("aceitar-chamada").performScrollTo().assertExists()
+        rule.onNodeWithTag("aceitar-chamada").assertExists()
     }
 
     @Test
