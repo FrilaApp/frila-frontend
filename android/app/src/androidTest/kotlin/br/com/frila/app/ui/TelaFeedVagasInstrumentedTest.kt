@@ -7,8 +7,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import br.com.frila.core.designsystem.tema.FrilaTheme
-import br.com.frila.core.dominio.modelo.Coordenada
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
@@ -36,14 +34,6 @@ class TelaFeedVagasInstrumentedTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
-
-    private class ProvedorDeLocalizacaoFake(
-        private val coordenada: Coordenada? = Coordenada(-15.7942, -47.8822),
-    ) : ProvedorDeLocalizacao {
-        override suspend fun obterCoordenadaAtual(): Coordenada? = coordenada
-        override fun temPermissaoDeLocalizacao(): Boolean = true
-        override fun isGpsAtivado(): Boolean = true
-    }
 
     private fun vagaJson(
         id: String = "11111111-1111-1111-1111-111111111111",
@@ -91,7 +81,6 @@ class TelaFeedVagasInstrumentedTest {
         )
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(cliente),
-            provedorDeLocalizacao = ProvedorDeLocalizacaoFake(),
             escopo = CoroutineScope(Dispatchers.Default),
         )
     }

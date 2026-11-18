@@ -7,7 +7,6 @@ import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.dominio.modelo.RegraCancelamentoTurno
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
-import br.com.frila.core.rede.TurnoDto
 import java.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,13 +32,6 @@ class MeusTurnosViewModel(
     private val servicoTurnos: ServicoTurnos,
     private val relogio: Clock = Clock.systemUTC(),
     escopo: CoroutineScope? = null,
-    /**
-     * RN06 (geofencing passivo de aproximação, cartão Uu04zAt4). `null` por padrão: nulo
-     * significa "recurso desligado", nunca "instância divergente" — evita a classe de bug de
-     * Koin que fez o PR #596 cair numa instância diferente de uma dependência registrada à
-     * parte (MEDIDO: `ModulosKoin.kt`, revisão do Shisui).
-     */
-    private val monitorizador: MonitorizadorDeTurnosProximos? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -63,7 +55,6 @@ class MeusTurnosViewModel(
                         paginaHistorico = 1,
                     )
                 }
-                avaliarTurnosProximos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusMeusTurnos.ERRO, mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {
@@ -79,11 +70,6 @@ class MeusTurnosViewModel(
                 }
             }
         }
-    }
-
-    /** O alerta de aproximação é um extra: se falhar, a lista de turnos que já carregou continua na tela. */
-    private fun avaliarTurnosProximos(turnos: List<TurnoDto>) {
-        runCatching { monitorizador?.avaliarTurnos(turnos) }
     }
 
     fun tentarNovamente(): Job = carregar()
@@ -126,7 +112,6 @@ class MeusTurnosViewModel(
                         mensagemErro = null,
                     )
                 }
-                avaliarTurnosProximos(turnos)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {
@@ -202,8 +187,6 @@ class MeusTurnosViewModel(
                         },
                     )
                 }
-                // RNF04: turno cancelado não precisa mais do alerta de aproximação.
-                monitorizador?.removerAlerta(cancelado.turnoId)
             } catch (erro: ErroDaApi) {
                 _estado.update { atual ->
                     atual.copy(

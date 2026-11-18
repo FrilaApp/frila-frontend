@@ -187,6 +187,7 @@ public final class BuscaDeProfissionaisViewModel {
     /// reenvio dessa busca (Tentar de novo, Chamar selecionados de novo, J7, a mesma busca refeita) repete ESTE trabalho,
     /// sem folha nova: um trabalho diferente (horário que muda a cada abertura, outro valor) faria quem ainda não foi
     /// chamado abrir uma 2ª vaga. Outro serviço ou outro horário buscado é outro trabalho: abre a folha e guarda o seu.
+    /// Se o 1º envio foi recusado de vez para todos e o trabalho não tem vaga, nada existe no servidor: o guardado sai.
     private var enviadosPorBusca: [BuscaFeita: (trabalho: PublicacaoVaga, recado: String?)] = [:]
     private let estabelecimentoID: UUID
     private let fonte: any FonteDaBuscaDeProfissionais
@@ -504,7 +505,8 @@ public final class BuscaDeProfissionaisViewModel {
             if case .enviada = resultadosDaChamada[id] { return false }
             return !primeiros.contains(id) && (!confirmoRecorrencia || pendentes.contains(id))
         }
-        if enviadosPorBusca[busca] == nil {
+        let gravouOEnvioDaBusca = enviadosPorBusca[busca] == nil
+        if gravouOEnvioDaBusca {
             enviadosPorBusca[busca] = (trabalho, recado)
         }
         enviando = true
@@ -551,6 +553,18 @@ public final class BuscaDeProfissionaisViewModel {
                 }
                 break
             }
+        }
+        // Só o envio que guardou o trabalho da busca pode soltá-lo, e só se TODOS foram recusados de vez (nada criado) e o
+        // trabalho não tem vaga: aí a busca volta a abrir a folha e a correção sai com o trabalho e o recado novos, cada
+        // pessoa com chave nova. DINHEIRO: enviada, incerto, quem não saiu, J7, termos a confirmar ou vaga conhecida mantêm
+        // o guardado; o reenvio (que não guardou) nunca solta.
+        let recusadosDeVez = !alvos.isEmpty && alvos.allSatisfy { id in
+            guard case .erro = resultadosDaChamada[id] else { return false }
+            return !incertos.contains(chaveDe(id))
+        }
+        if gravouOEnvioDaBusca, recusadosDeVez, confirmacaoDosTermos == nil, vagaReutilizavel(para: trabalho) == nil {
+            enviadosPorBusca[busca] = nil
+            for id in alvos { tentativas[chaveDe(id)] = nil }
         }
         // Com termos da vaga aberta pendentes, a folha deles vem primeiro: o J7 não manda nada antes de a casa responder
         // (`podeChamar`), e volta ao confirmar ou cancelar.

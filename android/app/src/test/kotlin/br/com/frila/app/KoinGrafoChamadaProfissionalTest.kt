@@ -1,6 +1,5 @@
 package br.com.frila.app
 
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoChamadaDireta
@@ -35,7 +34,6 @@ import org.koin.test.get
 
 private val moduloLocalizacaoDoTeste = module {
     single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
-    single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
 }
 
 /** O grafo real monta o serviço e os três ViewModels do profissional na chamada direta, e a fiação chega à rota certa. */
