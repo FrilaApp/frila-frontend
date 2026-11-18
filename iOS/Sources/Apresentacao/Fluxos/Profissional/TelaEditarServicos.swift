@@ -32,6 +32,8 @@ public struct TelaEditarServicos: View {
         .font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto).background(FrilaCor.fundo)
         .navigationTitle(Text("Editar serviços", bundle: bundleApresentacao))
         .scrollDismissesKeyboard(.interactively).frilaKeyboardDismissScope()
+        // O identificador da tela fica na rolagem, antes do rodapé: posto depois, ele cobria o do botão "Salvar alterações".
+        .accessibilityIdentifier("tela-editar-servicos")
         .rodapeAncorado {
             if let erro = modelo.erro, modelo.carregou {
                 MensagemJuntoAoBotao(verbatim: MensagemDoErroAPI.texto(erro))
@@ -52,7 +54,6 @@ public struct TelaEditarServicos: View {
         .disabled(modelo.salvando)
         .task { await modelo.carregar() }
         .onChange(of: modelo.rascunhos) { _, _ in modelo.limparSucesso() }
-        .accessibilityIdentifier("tela-editar-servicos")
     }
 }
 
