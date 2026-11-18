@@ -16,6 +16,17 @@ import br.com.frila.feature.chamadas.casa.ConteudoBuscaDeProfissionais
 import br.com.frila.feature.chamadas.casa.EstadoBusca
 import br.com.frila.feature.chamadas.casa.EstadoDaBusca
 import br.com.frila.feature.chamadas.casa.TextosChamadaCasa
+import br.com.frila.core.rede.ChamadaDto
+import br.com.frila.core.rede.ChamadaResumoDto
+import br.com.frila.core.rede.PerfilPublicoDto
+import br.com.frila.feature.chamadas.casa.AcoesChamadaDireta
+import br.com.frila.feature.chamadas.casa.ConteudoAcompanharChamadas
+import br.com.frila.feature.chamadas.casa.ConteudoChamadaDireta
+import br.com.frila.feature.chamadas.casa.ConteudoPerfilPublico
+import br.com.frila.feature.chamadas.casa.EstadoAcompanharChamadas
+import br.com.frila.feature.chamadas.casa.EstadoChamadaDireta
+import br.com.frila.feature.chamadas.casa.EstadoPerfilPublico
+import java.time.Duration
 import java.time.Instant
 import org.junit.Rule
 import org.junit.Test
@@ -146,5 +157,181 @@ class CapturasR6Test {
     fun `busca com resultados - fonte do sistema em 200 por cento`() {
         busca(base { copy(estado = EstadoDaBusca.Resultados, resultados = tresPessoas, selecionados = listOf("p1")) })
         compose.capturar("r6-30-busca-resultados-fonte-200")
+    }
+
+    // --- Perfil público ---------------------------------------------------------------------------------
+
+    private val perfil = PerfilPublicoDto(
+        id = "p1", tipo = "profissional", nome = "Maria S.", funcoes = listOf("Garçom"), reputacao = reputacao,
+        apresentacao = "Dez anos de salão", experienciaFaixa = "de_5_a_10_anos", cursos = listOf("Boas práticas"),
+        idiomas = listOf("portugues", "ingles"),
+        servicos = listOf(ServicoNoPerfilDto(funcao = garcom, unidade = "diaria", valorCentavos = 15000, horasIncluidas = 8)),
+        regioes = listOf(RegiaoAdministrativaDto(1, "I", "Plano Piloto")),
+        atendeTodoDf = false,
+    )
+
+    private fun perfilPublico(estado: EstadoPerfilPublico, comChamar: Boolean = true) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                ConteudoPerfilPublico(estado, aoTentarNovamente = {}, aoVoltar = {}, aoChamar = if (comChamar) ({ }) else null)
+            }
+        }
+    }
+
+    @Test
+    fun `perfil publico carregado - claro`() {
+        perfilPublico(EstadoPerfilPublico.Carregado(perfil))
+        compose.capturar("r6-40-perfil-publico-claro")
+    }
+
+    @Test
+    fun `perfil publico carregando - claro`() {
+        perfilPublico(EstadoPerfilPublico.Carregando)
+        compose.capturar("r6-41-perfil-publico-carregando-claro")
+    }
+
+    @Test
+    fun `perfil publico indisponivel - claro`() {
+        perfilPublico(EstadoPerfilPublico.Indisponivel)
+        compose.capturar("r6-42-perfil-publico-indisponivel-claro")
+    }
+
+    @Test
+    fun `perfil publico com falha - claro`() {
+        perfilPublico(EstadoPerfilPublico.Falha(TextosChamadaCasa.SEM_REDE))
+        compose.capturar("r6-43-perfil-publico-falha-claro")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `perfil publico carregado - fonte do sistema em 200 por cento`() {
+        perfilPublico(EstadoPerfilPublico.Carregado(perfil))
+        compose.capturar("r6-44-perfil-publico-fonte-200")
+    }
+
+    // --- Chamar profissional ------------------------------------------------------------------------------
+
+    private fun formulario(ajuste: EstadoChamadaDireta.() -> EstadoChamadaDireta = { this }): EstadoChamadaDireta {
+        val inicio = agora.plus(Duration.ofHours(24))
+        return EstadoChamadaDireta(
+            funcoes = listOf(garcom, barman), funcaoId = "f1", local = "SCS Quadra 2", inicio = inicio, fim = inicio.plus(Duration.ofHours(4)),
+            responsavel = "Bistrô Ipê", recursoHabilitado = true, agora = agora,
+            pontoDaCasa = CoordenadaDto(-15.79, -47.88),
+        ).ajuste()
+    }
+
+    private fun chamadaDireta(tela: EstadoChamadaDireta) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                ConteudoChamadaDireta(
+                    tela = tela, acoes = AcoesChamadaDireta(aoAcompanhar = { }),
+                    inicioMinimo = { agora.plus(Duration.ofHours(2)) },
+                    faixaDoTermino = { tela.inicio.plus(Duration.ofHours(2))..tela.inicio.plus(Duration.ofHours(16)) },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `chamada direta com o botao desligado e o que falta - claro`() {
+        chamadaDireta(formulario())
+        compose.capturar("r6-50-chamada-direta-vazia-claro")
+    }
+
+    @Test
+    fun `chamada direta pronta para enviar - claro`() {
+        chamadaDireta(formulario { copy(valorTexto = "180", totalConfirmado = true, refeicao = true, recado = "Traga avental") })
+        compose.capturar("r6-51-chamada-direta-pronta-claro")
+    }
+
+    @Test
+    fun `chamada direta enviando - claro`() {
+        chamadaDireta(formulario { copy(valorTexto = "180", totalConfirmado = true, enviando = true, travado = true) })
+        compose.capturar("r6-52-chamada-direta-enviando-claro")
+    }
+
+    @Test
+    fun `chamada direta com recado longo - claro`() {
+        chamadaDireta(formulario { copy(valorTexto = "180", totalConfirmado = true, recado = "a".repeat(301)) })
+        compose.capturar("r6-53-chamada-direta-recado-longo-claro")
+    }
+
+    @Test
+    fun `chamada direta enviada com o resumo - claro`() {
+        val chamada = ChamadaDto(
+            id = "c1", vagaId = "v1", profissionalId = "p1", estabelecimentoId = "e1", estado = "aberta",
+            expiraEm = "2026-11-17T12:00:00Z", criadaEm = "2026-11-16T15:00:00Z",
+        )
+        chamadaDireta(formulario { copy(valorTexto = "180", totalConfirmado = true, resultado = chamada, travado = true) })
+        compose.capturar("r6-54-chamada-direta-enviada-claro")
+    }
+
+    @Test
+    fun `chamada direta com o recurso desligado - claro`() {
+        chamadaDireta(formulario { copy(recursoHabilitado = false, erro = TextosChamadaCasa.DESLIGADO) })
+        compose.capturar("r6-55-chamada-direta-desligada-claro")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `chamada direta pronta para enviar - fonte do sistema em 200 por cento`() {
+        chamadaDireta(formulario { copy(valorTexto = "180", totalConfirmado = true) })
+        compose.capturar("r6-56-chamada-direta-fonte-200")
+    }
+
+    // --- Acompanhar chamadas ------------------------------------------------------------------------------
+
+    private fun resumo(id: String, estado: String, nome: String, motivo: String? = null) = ChamadaResumoDto(
+        id = id, vagaId = "v1", profissionalId = "p1", estabelecimentoId = "e1", estado = estado, motivoRecusa = motivo,
+        expiraEm = "2026-11-17T12:00:00Z", criadaEm = "2026-11-16T15:00:00Z", funcao = garcom,
+        inicioEm = "2026-11-20T22:00:00Z", fimEm = "2026-11-21T02:00:00Z", valorCentavos = 18000,
+        outraParte = PerfilPublicoDto(id = "p1", tipo = "profissional", nome = nome, reputacao = reputacao),
+    )
+
+    private fun acompanhar(tela: EstadoAcompanharChamadas) {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) {
+                ConteudoAcompanharChamadas(tela = tela, aoCancelar = {}, aoPublicarParaTodos = {}, aoVoltar = {}, aoVerVagaPublicada = {})
+            }
+        }
+    }
+
+    @Test
+    fun `acompanhar chamadas com os estados - claro`() {
+        acompanhar(
+            EstadoAcompanharChamadas(
+                chamadas = listOf(
+                    resumo("a", "aberta", "Maria S."),
+                    resumo("b", "aceita", "Joana P."),
+                    resumo("c", "recusada", "Ana L.", motivo = "valor"),
+                    resumo("d", "expirada", "Rui T."),
+                ),
+            ),
+        )
+        compose.capturar("r6-60-acompanhar-estados-claro")
+    }
+
+    @Test
+    fun `acompanhar chamadas terminadas sem aceite com publicar para todos - claro`() {
+        acompanhar(EstadoAcompanharChamadas(chamadas = listOf(resumo("a", "recusada", "Maria S.", "agenda"), resumo("b", "expirada", "Ana L."))))
+        compose.capturar("r6-61-acompanhar-publicar-claro")
+    }
+
+    @Test
+    fun `acompanhar chamadas vazio com vaga publicada - claro`() {
+        acompanhar(EstadoAcompanharChamadas(vagaPublicadaId = "nova", sucesso = TextosChamadaCasa.VAGA_PUBLICADA_SUCESSO))
+        compose.capturar("r6-62-acompanhar-vazio-claro")
+    }
+
+    @Test
+    fun `acompanhar chamadas carregando - claro`() {
+        acompanhar(EstadoAcompanharChamadas(carregando = true))
+        compose.capturar("r6-63-acompanhar-carregando-claro")
+    }
+
+    @Test
+    fun `acompanhar chamadas com erro - claro`() {
+        acompanhar(EstadoAcompanharChamadas(erro = TextosChamadaCasa.ERRO_GENERICO, chamadas = listOf(resumo("a", "aberta", "Maria S."))))
+        compose.capturar("r6-64-acompanhar-erro-claro")
     }
 }
