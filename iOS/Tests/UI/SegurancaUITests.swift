@@ -88,13 +88,17 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(enviar, em: app)
         esperarHabilitado(enviar, false)
         XCTAssertFalse(enviar.isEnabled)
-        // O motivo é uma lista com visto (escolha única): as quatro opções já estão na folha, sem abrir outra tela.
+        // O motivo é uma lista com visto (escolha única): o grupo `motivo-denuncia` já traz as quatro opções, sem abrir
+        // outra tela. Antes, o toque em `motivo-denuncia` abria o seletor e mostrava as opções.
+        XCTAssertTrue(app.descendants(matching: .any)["motivo-denuncia"].waitForExistence(timeout: Espera.aparecer), "o grupo do motivo está na folha")
         for opcao in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
             XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: Espera.aparecer))
+            XCTAssertFalse(app.buttons[opcao].isSelected, "\(opcao): nenhum motivo vem marcado antes da escolha")
         }
         trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()
         XCTAssertTrue(app.buttons["Risco à segurança"].isSelected, "o motivo escolhido fica marcado")
+        XCTAssertFalse(app.buttons["Assédio"].isSelected, "e só ele: a escolha é única")
         let aviso = app.staticTexts["aviso-risco-imediato"]
         trazerParaATela(aviso, em: app)
         XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))
@@ -196,8 +200,10 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(enviar, em: app)
         XCTAssertFalse(enviar.isEnabled)
 
+        XCTAssertTrue(app.descendants(matching: .any)["motivo-denuncia"].waitForExistence(timeout: Espera.aparecer), "o grupo do motivo está na folha")
         trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()
+        XCTAssertTrue(app.buttons["Risco à segurança"].isSelected, "o motivo escolhido fica marcado")
         let aviso = app.staticTexts["aviso-risco-imediato"]
         trazerParaATela(aviso, em: app)
         XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))

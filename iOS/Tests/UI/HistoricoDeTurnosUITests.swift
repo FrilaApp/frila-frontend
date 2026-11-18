@@ -23,7 +23,12 @@ final class HistoricoDeTurnosUITests: XCTestCase {
         let app = abrir(cenario: "contratante", item: "estabelecimento-historico-turnos")
         let mesPassado = app.buttons["historico-mes-passado"]
         tocar(mesPassado)
+        // O formato é um grupo (`historico-formato`) de duas linhas com visto, no lugar do controle segmentado.
+        XCTAssertTrue(app.descendants(matching: .any)["historico-formato"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["historico-formato-csv"].isSelected, "CSV é o formato inicial")
         tocar(app.buttons["historico-formato-pdf"])
+        esperarSelecionado(app.buttons["historico-formato-pdf"], true)
+        XCTAssertFalse(app.buttons["historico-formato-csv"].isSelected, "a escolha é única")
         esperarSelecionado(mesPassado, true)
         XCTAssertTrue(mesPassado.isSelected)
         anexar(app, "historico-contratante")

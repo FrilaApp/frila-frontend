@@ -52,6 +52,16 @@ public struct ItemExportarDados: View {
             .accessibilityLabel(TextosExportarDados.titulo)
             .accessibilityHint(TextosExportarDados.dicaAcessibilidade)
 
+            if viewModel.estaCarregando {
+                // O "em andamento" do toque: sem indicador girando, a linha esmaece e este elemento mínimo avisa o
+                // leitor de tela e os testes de que o arquivo está sendo gerado.
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text("Carregando", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("progresso-exportar-dados")
+            }
+
             Text(verbatim: TextosExportarDados.explicacao)
                 .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)

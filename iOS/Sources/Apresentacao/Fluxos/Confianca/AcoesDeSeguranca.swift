@@ -173,6 +173,8 @@ public struct FolhaDeDenuncia: View {
                 .accessibilityIdentifier("motivo-denuncia-\(motivo.rawValue)")
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("motivo-denuncia")
         .disabled(model.enviando)
 
         if model.podeDenunciarFoto {
@@ -195,7 +197,7 @@ public struct FolhaDeDenuncia: View {
         relato
 
         if model.motivo == .riscoSeguranca {
-            emergencia(textoId: "aviso-risco-imediato")
+            emergencia(naConfirmacao: false)
         }
     }
 
@@ -226,6 +228,14 @@ public struct FolhaDeDenuncia: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: FrilaEspaco.item)
+                if model.relatoValido {
+                    // O visto de "relato válido", em tinta (sem verde): decorativo, o estado também vai no rótulo do contador.
+                    Image(systemName: "checkmark")
+                        .font(FrilaTipo.legenda.weight(.semibold))
+                        .foregroundStyle(FrilaCor.texto)
+                        .accessibilityHidden(true)
+                        .accessibilityIdentifier("icone-relato-valido-denuncia")
+                }
                 Text(verbatim: "\(contagem)/10")
                     .font(FrilaTipo.legenda.monospacedDigit())
                     .foregroundStyle(model.relatoValido ? FrilaCor.texto : FrilaCor.textoSecundario)
@@ -276,24 +286,33 @@ public struct FolhaDeDenuncia: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
 
-        emergencia(textoId: "aviso-risco-imediato-confirmacao")
+        emergencia(naConfirmacao: true)
     }
 
     // MARK: - Emergência
 
     /// O aviso de risco imediato e os dois atalhos de ligação, em botão secundário (sem vermelho). O aviso é de bloco,
-    /// neutro; o toque abre a ligação do sistema.
-    private func emergencia(textoId: String) -> some View {
+    /// neutro; o toque abre a ligação do sistema. Na confirmação do envio o mesmo aviso aparece com o outro identificador.
+    private func emergencia(naConfirmacao: Bool) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
-            Text(verbatim: TextosDaSeguranca.emergencia)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier(textoId)
+            avisoDeRiscoImediato(naConfirmacao: naConfirmacao)
             atalhoDeEmergencia(TextosDaSeguranca.policia, numero: "190")
             atalhoDeEmergencia(TextosDaSeguranca.mulher, numero: "180")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func avisoDeRiscoImediato(naConfirmacao: Bool) -> some View {
+        let texto = Text(verbatim: TextosDaSeguranca.emergencia)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .fixedSize(horizontal: false, vertical: true)
+        if naConfirmacao {
+            texto.accessibilityIdentifier("aviso-risco-imediato-confirmacao")
+        } else {
+            texto.accessibilityIdentifier("aviso-risco-imediato")
+        }
     }
 
     private func atalhoDeEmergencia(_ titulo: String, numero: String) -> some View {
@@ -361,7 +380,7 @@ public struct TelaPerfilPublico: View {
                 cabecalhoDoProfissional(perfil, reputacao: reputacao)
 
                 if !perfil.servicos.isEmpty {
-                    secao(String(localized: "Serviços oferecidos", bundle: bundleApresentacao), identificador: "perfil-publico-servicos", agrupar: false) {
+                    secao(String(localized: "Serviços oferecidos", bundle: bundleApresentacao), agrupar: false) {
                         ForEach(perfil.servicos) { servico in
                             VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                                 Text(verbatim: servico.funcao.nome)
@@ -389,19 +408,21 @@ public struct TelaPerfilPublico: View {
                             .cartaoFrila()
                         }
                     }
+                    .accessibilityIdentifier("perfil-publico-servicos")
                 }
 
                 if let apresentacao = perfil.apresentacao, !apresentacao.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    secao(TextosApresentacaoERegioes.sobreMimTitulo, identificador: "perfil-publico-sobre-mim") {
+                    secao(TextosApresentacaoERegioes.sobreMimTitulo) {
                         Text(verbatim: apresentacao)
                             .font(FrilaTipo.corpo)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .accessibilityIdentifier("perfil-publico-sobre-mim")
                 }
 
                 if perfil.experienciaFaixa != nil || (perfil.ondeTrabalhei != nil && !perfil.ondeTrabalhei!.isEmpty) {
-                    secao(TextosApresentacaoERegioes.experienciaTitulo, identificador: "perfil-publico-experiencia") {
+                    secao(TextosApresentacaoERegioes.experienciaTitulo) {
                         if let faixa = perfil.experienciaFaixa {
                             Text(verbatim: TextosApresentacaoERegioes.textoExperiencia(faixa))
                                 .font(FrilaTipo.corpo)
@@ -414,10 +435,11 @@ public struct TelaPerfilPublico: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .accessibilityIdentifier("perfil-publico-experiencia")
                 }
 
                 if !perfil.cursos.isEmpty {
-                    secao(TextosApresentacaoERegioes.cursosTitulo, identificador: "perfil-publico-cursos") {
+                    secao(TextosApresentacaoERegioes.cursosTitulo) {
                         ForEach(perfil.cursos, id: \.self) { curso in
                             Text(verbatim: "• \(curso)")
                                 .font(FrilaTipo.corpo)
@@ -425,24 +447,27 @@ public struct TelaPerfilPublico: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .accessibilityIdentifier("perfil-publico-cursos")
                 }
 
                 if !perfil.idiomas.isEmpty {
-                    secao(TextosApresentacaoERegioes.idiomasTitulo, identificador: "perfil-publico-idiomas") {
+                    secao(TextosApresentacaoERegioes.idiomasTitulo) {
                         Text(verbatim: perfil.idiomas.map { TextosApresentacaoERegioes.textoIdioma($0) }.joined(separator: ", "))
                             .font(FrilaTipo.corpo)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .accessibilityIdentifier("perfil-publico-idiomas")
                 }
 
                 if perfil.atendeTodoDF || !perfil.regioes.isEmpty {
-                    secao(TextosApresentacaoERegioes.regioesTitulo, identificador: "perfil-publico-regioes") {
+                    secao(TextosApresentacaoERegioes.regioesTitulo) {
                         Text(verbatim: perfil.atendeTodoDF ? TextosApresentacaoERegioes.todoODF : perfil.regioes.map(\.nome).joined(separator: ", "))
                             .font(FrilaTipo.corpo)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .accessibilityIdentifier("perfil-publico-regioes")
                 }
             }
         }
@@ -534,7 +559,6 @@ public struct TelaPerfilPublico: View {
     @ViewBuilder
     private func secao<Conteudo: View>(
         _ titulo: String,
-        identificador: String,
         agrupar: Bool = true,
         @ViewBuilder conteudo: () -> Conteudo
     ) -> some View {
@@ -548,13 +572,9 @@ public struct TelaPerfilPublico: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         if agrupar {
-            miolo
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier(identificador)
+            miolo.accessibilityElement(children: .combine)
         } else {
-            miolo
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier(identificador)
+            miolo.accessibilityElement(children: .contain)
         }
     }
 

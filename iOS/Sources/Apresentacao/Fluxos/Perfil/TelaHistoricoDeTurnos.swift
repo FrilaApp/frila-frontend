@@ -136,6 +136,8 @@ public struct TelaHistoricoDeTurnos: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("historico-formato")
         .disabled(model.estaCarregando)
     }
 
