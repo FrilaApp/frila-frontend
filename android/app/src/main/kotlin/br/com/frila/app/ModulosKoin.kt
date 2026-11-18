@@ -343,7 +343,8 @@ val moduloFeatures = module {
             convidar = membros::convidarMembro,
             remover = membros::removerMembro,
             transferir = membros::transferirAdministracao,
-            montarLink = EnderecosOficiais.padrao::linkDoConvite,
+            // A web do MESMO ambiente do app: o debug (Supabase DEV) abre a web DEV, o release abre a web Prod.
+            montarLink = { token -> EnderecosOficiais.padrao.copy(origemDaWeb = OrigemDaWeb.doAmbiente()).linkDoConvite(token) },
         )
     }
     /** "Tenho um convite": cola o link ou o código e aceita (`aceitar_convite_membro`). */

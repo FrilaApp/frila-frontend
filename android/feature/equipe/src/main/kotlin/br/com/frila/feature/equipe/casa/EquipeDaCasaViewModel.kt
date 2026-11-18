@@ -129,8 +129,11 @@ class EquipeDaCasaViewModel(
             } catch (erro: ErroDaApi) {
                 _estado.update { atual ->
                     when {
-                        erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes != "conta_suspensa" ->
-                            atual.copy(lista = ListaDaEquipe.SoAdministrador)
+                        // 403 sem `details`: a pessoa não é (mais) administrador. Some a lista e somem as ações.
+                        erro.ehRecusaDeAdministrador -> atual.semAcessoDeAdministrador()
+                        // Conta suspensa: nada da casa se administra agora; a lista antiga não fica na tela.
+                        erro.codigo == CodigoErroAPI.CONTA_SUSPENSA || erro.detalhes == "conta_suspensa" ->
+                            atual.copy(lista = ListaDaEquipe.Erro(TextosEquipeDaCasa.CONTA_SUSPENSA))
                         // Com a lista antiga na tela, a falha da releitura não a apaga.
                         silencioso && atual.lista is ListaDaEquipe.Conteudo -> atual
                         else -> atual.copy(lista = ListaDaEquipe.Erro(mensagemDaLista(erro)))
@@ -182,7 +185,13 @@ class EquipeDaCasaViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                _estado.update { aplicarErroDoConvite(it.copy(gerandoConvite = false), erro) }
+                _estado.update {
+                    if (erro.ehRecusaDeAdministrador) {
+                        it.semAcessoDeAdministrador(erroDoConvite = TextosEquipeDaCasa.SO_ADMINISTRADOR)
+                    } else {
+                        aplicarErroDoConvite(it.copy(gerandoConvite = false), erro)
+                    }
+                }
             } catch (_: Exception) {
                 _estado.update { it.copy(gerandoConvite = false, erroDoConvite = TextosEquipeDaCasa.ERRO) }
             }
@@ -220,12 +229,45 @@ class EquipeDaCasaViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(agindoEm = null, erroDaAcao = mensagemDaAcao(erro)) }
+                if (erro.ehRecusaDeAdministrador) {
+                    _estado.update { it.semAcessoDeAdministrador(erroDaAcao = TextosEquipeDaCasa.SO_ADMINISTRADOR) }
+                } else {
+                    _estado.update { it.copy(agindoEm = null, erroDaAcao = mensagemDaAcao(erro)) }
+                    // A ação recusada pode ter perdido o sentido (quem foi removido por outro administrador, por exemplo):
+                    // a lista que vale é a do servidor.
+                    carregar(silencioso = true).join()
+                }
             } catch (_: Exception) {
                 _estado.update { it.copy(agindoEm = null, erroDaAcao = TextosEquipeDaCasa.ERRO) }
+                carregar(silencioso = true).join()
             }
         }
     }
+
+    /** `403 sem_permissao` sem `details`: o servidor diz que quem chama não é administrador desta casa. */
+    private val ErroDaApi.ehRecusaDeAdministrador: Boolean
+        get() = codigo == CodigoErroAPI.SEM_PERMISSAO && detalhes != "conta_suspensa"
+
+    /**
+     * Depois de um 403 a tela deixa de se comportar como administrador: o papel que ela tinha cai, a lista, o convite e a
+     * confirmação aberta somem, e nenhuma ação chega mais ao servidor. A mensagem certa é a do "só o administrador".
+     */
+    private fun EstadoEquipeDaCasa.semAcessoDeAdministrador(
+        erroDoConvite: String? = null,
+        erroDaAcao: String? = null,
+    ) = copy(
+        papel = null,
+        lista = ListaDaEquipe.SoAdministrador,
+        email = "",
+        erroDoEmail = null,
+        gerandoConvite = false,
+        convite = null,
+        pendente = null,
+        agindoEm = null,
+        aviso = null,
+        erroDoConvite = erroDoConvite,
+        erroDaAcao = erroDaAcao,
+    )
 
     private fun aplicarErroDoConvite(estado: EstadoEquipeDaCasa, erro: ErroDaApi): EstadoEquipeDaCasa = when {
         erro.codigo == CodigoErroAPI.CAMPO_INVALIDO && erro.detalhes == "email" -> estado.copy(erroDoEmail = TextosEquipeDaCasa.EMAIL_INVALIDO)

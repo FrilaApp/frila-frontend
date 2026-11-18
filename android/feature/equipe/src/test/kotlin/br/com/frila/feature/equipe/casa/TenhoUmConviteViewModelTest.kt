@@ -37,11 +37,12 @@ class TenhoUmConviteViewModelTest {
     }
 
     @Test
-    fun `extrai o token do codigo puro, com espaco, quebra de linha e maiuscula em volta`() {
+    fun `extrai o token do codigo puro, com espaco e quebra de linha em volta, e aceita maiuscula`() {
         assertEquals(token, extrairTokenDoConvite(token))
         assertEquals(token, extrairTokenDoConvite("  $token \n"))
         assertEquals(token, extrairTokenDoConvite(token.uppercase()))
-        assertEquals(token, extrairTokenDoConvite("Convite: https://frilabr.com/app/convite#$token\nValido por 7 dias."))
+        assertEquals(token, extrairTokenDoConvite("  https://frilabr.com/app/convite#$token\n"))
+        assertEquals(token, extrairTokenDoConvite("https://frila-web-dev.frilabr.workers.dev/app/convite#$token"))
     }
 
     @Test
@@ -53,6 +54,40 @@ class TenhoUmConviteViewModelTest {
         assertNull(extrairTokenDoConvite(token.dropLast(1)))
         assertNull(extrairTokenDoConvite(token + "a"))
         assertNull(extrairTokenDoConvite("g".repeat(64)))
+    }
+
+    // Parecer do Lince Codex no #998: só vale o link do convite inteiro ou só o código, nada recortado de um texto maior.
+
+    @Test
+    fun `token no miolo de um identificador maior nao e convite`() {
+        assertNull(extrairTokenDoConvite("zz${token}zz"))
+        assertNull(extrairTokenDoConvite("zz$token"))
+        assertNull(extrairTokenDoConvite("${token}zz"))
+    }
+
+    @Test
+    fun `dois codigos diferentes nao escolhem um em silencio`() {
+        val outro = "ab".repeat(32)
+        assertNull(extrairTokenDoConvite("$token $outro"))
+        assertNull(extrairTokenDoConvite("$token\n$outro"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token https://frilabr.com/app/convite#$outro"))
+    }
+
+    @Test
+    fun `texto com mais caracteres em volta do link ou do codigo nao e convite`() {
+        assertNull(extrairTokenDoConvite("Convite: https://frilabr.com/app/convite#$token\nValido por 7 dias."))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#${token}zz"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token&x=1"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token#outro"))
+        assertNull(extrairTokenDoConvite("codigo: $token"))
+        assertNull(extrairTokenDoConvite("${token.take(32)} ${token.drop(32)}"))
+    }
+
+    @Test
+    fun `link que nao e de convite nao vale mesmo com 64 hex no fim`() {
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/entrar#$token"))
+        assertNull(extrairTokenDoConvite("frilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("javascript:alert(1)//convite#$token"))
     }
 
     // ---- Aceitar ----
@@ -72,6 +107,20 @@ class TenhoUmConviteViewModelTest {
         assertFalse(vm.estado.value.enviando)
         assertNull(vm.estado.value.erro)
         assertEquals("", vm.estado.value.texto)
+    }
+
+    @Test
+    fun `texto ambiguo ou recortado nunca chega a rede`() = runBlocking {
+        val outro = "ab".repeat(32)
+        listOf("zz${token}zz", "$token $outro", "Convite: https://frilabr.com/app/convite#$token ate sexta").forEach { colado ->
+            val tokens = mutableListOf<String>()
+            val vm = viewModel(tokens)
+            vm.editar(colado)
+            vm.aceitarConvite().join()
+            assertTrue(tokens.isEmpty(), colado)
+            assertEquals(TextosEquipeDaCasa.CONVITE_INVALIDO, vm.estado.value.erro, colado)
+            assertNull(vm.estado.value.aceito)
+        }
     }
 
     @Test

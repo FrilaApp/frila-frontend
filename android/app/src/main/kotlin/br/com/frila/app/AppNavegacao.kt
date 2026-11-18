@@ -1085,11 +1085,21 @@ fun AppNavegacao(
                 arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
                     RotaEscalaDeEvento(
-                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        estabelecimentoId = estabelecimentoId,
                         servicoMembros = servicoMembros,
                         aoVoltar = { navController.popBackStack() },
-                        aoConcluir = { navController.popBackStack() },
+                        // "Ver minhas vagas" abre Minhas vagas sempre, também quando a escala veio do Perfil: com a lista na
+                        // pilha, volta até ela; sem a lista (rota aberta direto), abre a da casa no lugar da escala.
+                        aoConcluir = {
+                            if (!navController.popBackStack(Rotas.MINHAS_VAGAS, inclusive = false)) {
+                                navController.navigate(Rotas.minhasVagas(estabelecimentoId)) {
+                                    popUpTo(Rotas.PUBLICAR_ESCALA) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
                     )
                 }
             }

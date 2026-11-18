@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
@@ -13,10 +14,13 @@ import androidx.navigation.compose.rememberNavController
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.CoordenadaDto
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.EscalaPublicadaDto
 import br.com.frila.core.rede.EstabelecimentoDaContaDto
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.MeuEstabelecimentoDto
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
+import br.com.frila.core.rede.PainelDto
+import br.com.frila.core.rede.VagaPublicadaDto
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
@@ -26,6 +30,7 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
 import br.com.frila.feature.vagas.escala.TextosEscala
+import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import io.mockk.coEvery
 import io.mockk.every
@@ -85,7 +90,23 @@ class AppNavegacaoEscalaDeEventoTest {
                             EscalaDeEventoViewModel(
                                 estabelecimento = estabelecimento,
                                 buscarFuncoes = { listOf(FuncaoDto("f1", "Garçom", "Salão")) },
-                                enviarEscala = { error("não deveria publicar") },
+                                enviarEscala = { corpo -> EscalaPublicadaDto("ev1", corpo.vagas.map { VagaPublicadaDto("v", listOf("p")) }) },
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            ).also { vm ->
+                                // Formulário pronto, para o teste só tocar em "Publicar escala".
+                                val id = vm.estado.value.itens.single().id
+                                vm.editarNome("Formatura de Direito")
+                                vm.escolherFuncao(id, "f1")
+                                vm.editarValor(id, "180")
+                                vm.editarResponsavel(id, "Lia")
+                            }
+                        }
+                        viewModel { (estabelecimentoId: String, nome: String?, recemPublicadaId: String?) ->
+                            MinhasVagasViewModel(
+                                estabelecimentoId = estabelecimentoId,
+                                nomeEstabelecimento = nome,
+                                vagaRecemPublicadaId = recemPublicadaId,
+                                buscarPainel = { id, _, _ -> Result.success(PainelDto(id, emptyList(), emptyList())) },
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
@@ -181,5 +202,57 @@ class AppNavegacaoEscalaDeEventoTest {
 
         esperarTexto(TextosEscala.TITULO)
         assertEquals(2, chamadas)
+    }
+
+    // ---- "Ver minhas vagas" depois de publicar (parecer do Lince Codex no #997) ----
+
+    private fun publicarEVerMinhasVagas() {
+        esperarTexto(TextosEscala.PUBLICAR)
+        rule.onNodeWithText(TextosEscala.PUBLICAR).performClick()
+        esperarTexto(TextosEscala.VER_MINHAS_VAGAS)
+        rule.onNodeWithText(TextosEscala.VER_MINHAS_VAGAS).performClick()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun verMinhasVagasDepoisDePublicarPeloPerfilAbreMinhasVagasEnaoOPerfil() {
+        montar(contratanteCom("casa-1"), Rotas.minhasVagas("casa-1", "Casa casa-1"))
+        rule.runOnIdle { nav.navigate(Rotas.PERFIL) }
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(ENTRADA_PUBLICAR_ESCALA).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(ENTRADA_PUBLICAR_ESCALA).performScrollTo().performClick()
+
+        publicarEVerMinhasVagas()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.MINHAS_VAGAS, nav.currentDestination?.route)
+            assertEquals("casa-1", nav.currentBackStackEntry?.arguments?.getString("estabelecimentoId"))
+            assertTrue(nav.currentBackStack.value.none { it.destination.route == Rotas.PUBLICAR_ESCALA })
+        }
+    }
+
+    @Test
+    fun verMinhasVagasDepoisDePublicarPelaListaDeVagasVoltaParaAListaSemDuplicala() {
+        montar(contratanteCom("casa-1"), Rotas.minhasVagas("casa-1", "Casa casa-1"))
+        rule.runOnIdle { nav.navigate(Rotas.publicarEscala("casa-1")) }
+
+        publicarEVerMinhasVagas()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.MINHAS_VAGAS, nav.currentDestination?.route)
+            assertEquals(1, nav.currentBackStack.value.count { it.destination.route == Rotas.MINHAS_VAGAS })
+        }
+    }
+
+    @Test
+    fun verMinhasVagasSemAListaNaPilhaAbreAListaDaCasa() {
+        montar(contratanteCom("casa-1"), Rotas.PERFIL)
+        rule.runOnIdle { nav.navigate(Rotas.publicarEscala("casa-1")) }
+
+        publicarEVerMinhasVagas()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.MINHAS_VAGAS, nav.currentDestination?.route)
+            assertEquals("casa-1", nav.currentBackStackEntry?.arguments?.getString("estabelecimentoId"))
+        }
     }
 }

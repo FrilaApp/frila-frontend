@@ -33,7 +33,8 @@ object TextosEquipeDaCasa {
     const val LINK_DO_CONVITE = "Link do convite"
     const val COMPARTILHAR = "Compartilhar convite"
     const val COMPARTILHAR_TITULO = "Convite para a casa no Frila"
-    const val COMPARTILHAR_TEXTO = "Você foi convidado para usar o Frila por uma casa. Abra o link e aceite: %s"
+    /** Só o link: quem recebe pode copiar a mensagem inteira e colar em "Tenho um convite" sem sobrar texto. */
+    const val COMPARTILHAR_TEXTO = "%s"
 
     // Ações sobre a pessoa
     const val REMOVER = "Remover"

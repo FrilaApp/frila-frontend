@@ -199,7 +199,6 @@ class EquipeDaCasaViewModelTest {
     @Test
     fun `recusas do convite viram mensagem do Frila`() = runBlocking {
         val casos = listOf(
-            erro(CodigoErroAPI.SEM_PERMISSAO) to TextosEquipeDaCasa.SO_ADMINISTRADOR,
             erro(CodigoErroAPI.SEM_PERMISSAO, "conta_suspensa") to TextosEquipeDaCasa.CONTA_SUSPENSA,
             erro(CodigoErroAPI.NAO_ENCONTRADO) to TextosEquipeDaCasa.INDISPONIVEL,
             erro(CodigoErroAPI.CAMPO_OBRIGATORIO, "papel") to TextosEquipeDaCasa.PAPEL_INVALIDO,
@@ -336,11 +335,9 @@ class EquipeDaCasaViewModelTest {
     }
 
     @Test
-    fun `recusas de remover e transferir viram mensagem, a lista antiga fica e nada fica preso`() = runBlocking {
+    fun `recusas de remover e transferir que nao sao 403 viram mensagem e a lista e relida do servidor`() = runBlocking {
         val casos = listOf(
             erro(CodigoErroAPI.ULTIMO_ADMINISTRADOR) to TextosEquipeDaCasa.ULTIMO_ADMINISTRADOR,
-            erro(CodigoErroAPI.SEM_PERMISSAO) to TextosEquipeDaCasa.SO_ADMINISTRADOR,
-            erro(CodigoErroAPI.SEM_PERMISSAO, "conta_suspensa") to TextosEquipeDaCasa.CONTA_SUSPENSA,
             erro(CodigoErroAPI.NAO_ENCONTRADO) to TextosEquipeDaCasa.INDISPONIVEL,
             erro(CodigoErroAPI.SEM_REDE) to TextosEquipeDaCasa.SEM_REDE,
             erro(CodigoErroAPI.DESCONHECIDO) to TextosEquipeDaCasa.ERRO,
@@ -352,16 +349,98 @@ class EquipeDaCasaViewModelTest {
                 val vm = viewModel(servidor)
                 vm.carregar().join()
                 vm.pedirConfirmacao(acao, beto.paraTela())
+                // Enquanto a ação falha, o servidor já mudou: quem tinha sido removido por outro admin não está mais na lista.
+                servidor.membros = listOf(ana, carla)
 
                 vm.confirmar().join()
 
                 assertEquals(mensagem, vm.estado.value.erroDaAcao, "$acao $falha")
                 assertNull(vm.estado.value.aviso)
                 assertNull(vm.estado.value.agindoEm)
-                assertEquals(3, (vm.estado.value.lista as ListaDaEquipe.Conteudo).membros.size)
-                assertEquals(1, servidor.leituras.size)
+                assertEquals(2, servidor.leituras.size, "$acao $falha: a lista é relida depois da recusa")
+                assertEquals(listOf("Ana Souza", "Carla Dias"), (vm.estado.value.lista as ListaDaEquipe.Conteudo).membros.map { it.nome }, "$acao $falha")
+                assertTrue(vm.estado.value.podeGerenciar)
             }
         }
+    }
+
+    // Parecer do Lince Codex no #998: 403 sem_permissao é "você não é (mais) administrador".
+
+    @Test
+    fun `403 da lista tira a capacidade de administrador e o convite nao chega a rede`() = runBlocking {
+        val servidor = servidorComEquipe().apply { falhaDaLista = erro(CodigoErroAPI.SEM_PERMISSAO) }
+        val vm = viewModel(servidor)
+
+        vm.carregar().join()
+        vm.editarEmail("novo@bar.com")
+        vm.gerarConvite().join()
+
+        assertFalse(vm.estado.value.podeGerenciar)
+        assertEquals(ListaDaEquipe.SoAdministrador, vm.estado.value.lista)
+        assertTrue(servidor.convites.isEmpty())
+        assertNull(vm.estado.value.convite)
+    }
+
+    @Test
+    fun `403 de convidar tira a capacidade, a lista e o convite`() = runBlocking {
+        val servidor = servidorComEquipe().apply { falhaDoConvite = erro(CodigoErroAPI.SEM_PERMISSAO) }
+        val vm = viewModel(servidor)
+        vm.carregar().join()
+        vm.editarEmail("novo@bar.com")
+
+        vm.gerarConvite().join()
+
+        val estado = vm.estado.value
+        assertFalse(estado.podeGerenciar)
+        assertEquals(ListaDaEquipe.SoAdministrador, estado.lista)
+        assertNull(estado.convite)
+        assertNull(estado.pendente)
+        assertEquals("", estado.email)
+        // Sem capacidade, nem um segundo convite nem uma ação sobre alguém chegam ao servidor.
+        vm.editarEmail("outro@bar.com")
+        vm.gerarConvite().join()
+        vm.pedirConfirmacao(AcaoSobreMembro.REMOVER, beto.paraTela())
+        vm.confirmar().join()
+        assertEquals(1, servidor.convites.size)
+        assertTrue(servidor.remocoes.isEmpty())
+    }
+
+    @Test
+    fun `403 de remover ou transferir some com a lista e nao deixa repetir a chamada`() = runBlocking {
+        AcaoSobreMembro.entries.forEach { acao ->
+            val servidor = servidorComEquipe().apply { falhaDaAcao = erro(CodigoErroAPI.SEM_PERMISSAO) }
+            val vm = viewModel(servidor)
+            vm.carregar().join()
+            vm.pedirConfirmacao(acao, beto.paraTela())
+
+            vm.confirmar().join()
+
+            val estado = vm.estado.value
+            assertFalse(estado.podeGerenciar, "$acao")
+            assertEquals(ListaDaEquipe.SoAdministrador, estado.lista, "$acao")
+            assertEquals(TextosEquipeDaCasa.SO_ADMINISTRADOR, estado.erroDaAcao, "$acao")
+            assertNull(estado.pendente)
+            assertNull(estado.agindoEm)
+            vm.pedirConfirmacao(acao, beto.paraTela())
+            assertNull(vm.estado.value.pendente, "$acao: sem capacidade não abre confirmação")
+            vm.confirmar().join()
+            assertEquals(1, servidor.remocoes.size + servidor.transferencias.size, "$acao chamada só uma vez")
+        }
+    }
+
+    @Test
+    fun `403 de conta suspensa na acao mostra a mensagem certa e tira a lista em vez de conservar a antiga`() = runBlocking {
+        val servidor = servidorComEquipe().apply { falhaDaAcao = erro(CodigoErroAPI.SEM_PERMISSAO, "conta_suspensa") }
+        val vm = viewModel(servidor)
+        vm.carregar().join()
+        vm.pedirConfirmacao(AcaoSobreMembro.REMOVER, beto.paraTela())
+        // A releitura do servidor também recusa pela mesma razão.
+        servidor.falhaDaLista = erro(CodigoErroAPI.SEM_PERMISSAO, "conta_suspensa")
+
+        vm.confirmar().join()
+
+        assertEquals(TextosEquipeDaCasa.CONTA_SUSPENSA, vm.estado.value.erroDaAcao)
+        assertEquals(ListaDaEquipe.Erro(TextosEquipeDaCasa.CONTA_SUSPENSA), vm.estado.value.lista)
     }
 
     @Test

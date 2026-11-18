@@ -15,14 +15,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** O token do convite: 64 caracteres hexadecimais, uma sequência inteira (nada colado antes nem depois). */
-private val TOKEN_DO_CONVITE = Regex("(?<![0-9a-fA-F])[0-9a-fA-F]{64}(?![0-9a-fA-F])")
+/** Só o código: 64 caracteres hexadecimais, nada mais. */
+private val SO_O_CODIGO = Regex("^[0-9a-fA-F]{64}$")
+
+/** O link do convite inteiro: `https://<web>/.../convite#<64 hex>`, e nada depois do código. */
+private val LINK_DO_CONVITE = Regex("^https://[^\\s/#?]+(?:/[^\\s#?]*)?/convite#([0-9a-fA-F]{64})$")
 
 /**
- * Tira o token do que a pessoa colou: o link inteiro (`https://frilabr.com/app/convite#<token>`), o link com espaço ou
- * quebra de linha em volta, ou só o código. Devolve o token em minúsculas, como a web, ou `null` se não há token no texto.
+ * Tira o token do que a pessoa colou. Vale **só** (a) o link do convite inteiro, `.../convite#<token>`, ou (b) só o
+ * código de 64 hex, depois de aparar os espaços das pontas. Qualquer outra coisa devolve `null` e não chega ao servidor:
+ * texto com mais caracteres em volta, código no miolo de um identificador maior, hex de outro tamanho e mais de um código
+ * (o app nunca escolhe um em silêncio). O token sai em minúsculas, como a web.
  */
-fun extrairTokenDoConvite(texto: String): String? = TOKEN_DO_CONVITE.find(texto)?.value?.lowercase()
+fun extrairTokenDoConvite(texto: String): String? {
+    val colado = texto.trim()
+    if (SO_O_CODIGO.matches(colado)) return colado.lowercase()
+    return LINK_DO_CONVITE.matchEntire(colado)?.groupValues?.get(1)?.lowercase()
+}
 
 data class EstadoTenhoUmConvite(
     val texto: String = "",
