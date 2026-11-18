@@ -14,6 +14,7 @@ import { contratantePerfil } from "./contratante-perfil";
 import { contratanteModeracao } from "./contratante-moderacao";
 import { contratanteTurno } from "./contratante-turno";
 import { profissional } from "./profissional";
+import { profissionalCadastro } from "./profissional-cadastro";
 import { publico } from "./publico";
 import { pwa } from "./pwa";
 import { relatorioTurnos } from "./relatorio-turnos";
@@ -33,6 +34,8 @@ export const textos = {
   vagaPublica,
   // Lado do profissional (arquivo próprio: o lado do contratante tem o seu).
   profissional,
+  // Cadastro do profissional em passos (arquivo próprio).
+  profissionalCadastro,
   // Dia do turno do lado da casa (arquivo próprio).
   contratanteTurno,
   // Perfil do profissional visto pela casa (arquivo próprio).
@@ -66,18 +69,7 @@ export const textos = {
   },
   inicio: {
     titulo: "Olá",
-    corpo: "A fundação da web do Frila está no ar.",
     tituloDaAba: "Frila",
-    ambiente: "Ambiente",
-    configuracao: "Configuração do app no servidor",
-    estadoDaConfiguracao: {
-      ok: "lida",
-      sem_configuracao: "ainda não existe para a web",
-      indisponivel: "servidor indisponível",
-      nao_configurado: "endereço do servidor não configurado neste ambiente",
-      chave_recusada: "a chave configurada neste ambiente foi recusada",
-    },
-    versaoMinima: "Versão mínima",
   },
   entrar: {
     tituloDaAba: "Entrar no Frila",
@@ -118,6 +110,7 @@ export const textos = {
     entrar: "Entrar",
     completarCadastro: "Completar cadastro",
     verVagas: "Ver vagas",
+    verPainel: "Painel da casa",
     termosMudaram: "Os Termos de Uso e a Política de Privacidade mudaram. Leia e aceite para continuar usando o Frila.",
     aceitarTermos: "Li e aceito",
     aceiteFalhou: "Não deu para registrar o aceite agora. Tente de novo em instantes.",

@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.componentes.AuditoriaSemanticaAcessibilidade
 import br.com.frila.core.designsystem.tema.FrilaTheme
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import io.ktor.client.engine.mock.MockEngine
@@ -17,8 +16,6 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -80,11 +77,8 @@ class AuditoriaSemanticaFeedVagasTest {
                 )
             },
         )
-        val provedorDeLocalizacao = mockk<ProvedorDeLocalizacao>()
-        coEvery { provedorDeLocalizacao.obterCoordenadaAtual() } returns null
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(cliente),
-            provedorDeLocalizacao = provedorDeLocalizacao,
             escopo = CoroutineScope(Dispatchers.Default),
         )
     }

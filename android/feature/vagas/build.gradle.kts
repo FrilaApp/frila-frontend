@@ -52,7 +52,6 @@ dependencies {
     implementation(project(":core:rede"))
     implementation(project(":core:seguranca"))
     implementation(project(":core:designsystem"))
-    implementation(project(":core:localizacao"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 

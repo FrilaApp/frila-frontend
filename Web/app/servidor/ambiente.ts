@@ -41,3 +41,8 @@ export function ehChaveDeServico(chave: string): boolean {
     return false;
   }
 }
+
+/** Lista de e-mails de demonstração a partir do texto do segredo (separado por vírgula). Sem o segredo, a lista é vazia. */
+export function listaDeEmailsDeDemonstracao(bruto: string | undefined): Set<string> {
+  return new Set((bruto ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
+}
