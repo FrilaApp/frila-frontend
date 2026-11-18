@@ -183,10 +183,22 @@ public struct TelaChamadaDireta: View {
                 .caixaDoCampoFrila()
             }
             FrilaGrupoDeLinhas(linhasComIcone: false) {
-                Toggle(isOn: $viewModel.totalConfirmado) {
-                    Text(verbatim: TextosChamadaDireta.total).font(FrilaTipo.corpo)
+                // O interruptor é só o controle (o quadro dele não leva o texto): o `ConferenciaVisualLote1e4UITests` lê a cor do
+                // trilho dentro do quadro do interruptor, e o texto em tinta ali contava como trilho ligado. O texto fica ao
+                // lado, com a mesma ação, e o leitor de tela lê o rótulo no próprio interruptor.
+                HStack(spacing: FrilaEspaco.enorme) {
+                    Text(verbatim: TextosChamadaDireta.total)
+                        .font(FrilaTipo.corpo)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture { viewModel.totalConfirmado.toggle() }
+                        .accessibilityHidden(true)
+                    Toggle(isOn: $viewModel.totalConfirmado) { Text(verbatim: TextosChamadaDireta.total) }
+                        .labelsHidden()
+                        .accessibilityIdentifier("confirmar-total-chamada")
                 }
-                .accessibilityIdentifier("confirmar-total-chamada")
                 .modifier(LinhaDeControleDaCasa())
             }
             FrilaGrupoDeLinhas(verbatim: TextosChamadaDireta.inclusosSecao, linhasComIcone: false) {
