@@ -95,7 +95,6 @@ class AuditoriaSemanticaFeedVagasTest {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirPerfil = {},
                     )
                 }
             }
@@ -122,7 +121,6 @@ class AuditoriaSemanticaFeedVagasTest {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirPerfil = {},
                     )
                 }
             }
@@ -153,7 +151,6 @@ class AuditoriaSemanticaFeedVagasTest {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirPerfil = {},
                     )
                 }
             }

@@ -5,6 +5,10 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -83,6 +88,7 @@ import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
+import br.com.frila.feature.perfil.AtalhoDaConta
 import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.PontoBaseViewModel
@@ -120,6 +126,10 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /** Rotas da navegação declarativa. Única fonte de verdade dos destinos possíveis do app. */
+/** Marcas de teste das duas linhas que o app põe no grupo da conta do Perfil. */
+internal const val ENTRADA_BLOQUEIOS = "entrada-bloqueios"
+internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
+
 object Rotas {
     const val ENTRADA = "entrada"
     const val CODIGO = "codigo/{email}"
@@ -153,7 +163,7 @@ object Rotas {
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
-    // Lote 2 do Android (L2-8). Telas PROVISÓRIAS; o lugar de cada entrada está em `EntradasProvisorias.kt`.
+    // Lote 2 do Android (L2-8).
     const val CANCELAR_VAGA = "cancelar_vaga/{vagaId}?inicioDaVaga={inicioDaVaga}"
     const val REPUBLICAR_VAGA = "republicar_vaga/{vagaId}?selecao={selecao}&duracaoMin={duracaoMin}"
     const val MINHAS_CANDIDATURAS = "minhas_candidaturas"
@@ -326,13 +336,32 @@ fun AppNavegacao(
         onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
 
+    // RN: o papel da conta diz que abas a raiz mostra. Vem da abertura; quando só a rota diz quem é (link que cai direto
+    // numa raiz do profissional, grafo sem a abertura), a rota decide, e o papel fica lembrado para a aba Conta.
+    var papelDaRaiz by rememberSaveable(stateSaver = SalvadorDoPapelDaRaiz) { mutableStateOf<PapelDaRaiz?>(null) }
+    val padraoAtual = padraoDoTopoDaPilha(navController)
+    LaunchedEffect(padraoAtual) {
+        if (papelDaRaiz == null) papelPelaRota(padraoAtual)?.let { papelDaRaiz = it }
+    }
+    val comBarraDaRaiz = temBarraDaRaiz(papelDaRaiz, padraoAtual)
+
     // C0-8: toda saída da sessão (Sair, exclusão, 401 na abertura, outra conta, sessão que caiu) termina aqui, numa
     // navegação só: quem chega com a pilha já reduzida à entrada não navega de novo.
     fun irParaEntrada() {
         guardaBiometrico.liberarAposLimparSessao()
+        papelDaRaiz = null
         if (navController.currentDestination?.route == Rotas.ENTRADA && navController.previousBackStackEntry == null) return
         navController.navigate(Rotas.ENTRADA) {
             popUpTo(0) { inclusive = true }
+        }
+    }
+
+    // RN: o voltar do detalhe da vaga. Aberto por link, sem tela embaixo, leva às vagas em vez de esvaziar a pilha.
+    val voltarDoDetalhe: () -> Unit = {
+        if (navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        } else {
+            navController.navigate(Rotas.FEED) { popUpTo(Rotas.DETALHE) { inclusive = true } }
         }
     }
 
@@ -361,7 +390,14 @@ fun AppNavegacao(
     // dumpsys connectivity continuava mostrando os registros depois de +15s/+24s em background).
     val statusConectividade by monitorDeConectividade.status.collectAsStateWithLifecycle()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            // Com a barra de abas embaixo, é ela que recua para a barra de navegação do sistema: a tela não recua de novo.
+            .then(if (comBarraDaRaiz) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier),
+    ) {
         NavHost(navController = navController, startDestination = destinoInicial) {
             composable(Rotas.ENTRADA) {
                 val viewModel: EntradaViewModel = koinViewModel()
@@ -386,6 +422,8 @@ fun AppNavegacao(
                             popUpTo(Rotas.ENTRADA) { inclusive = true }
                         }
                     },
+                    // "Trocar e-mail" volta para a entrada, que está embaixo; se não estiver, a entrada vira a raiz.
+                    aoTrocarEmail = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }
 
@@ -395,15 +433,19 @@ fun AppNavegacao(
                         RotaDeAbertura(
                             avaliador = avaliadorDeDestino,
                             aoDecidir = { destino ->
-                                if (destino is DestinoDaConta.Contratante) {
-                                    // A casa não tem feed para voltar: o Perfil (Sair, Equipe, Excluir conta) fica
-                                    // como raiz da pilha, e a tela inicial da casa entra por cima dele. "Voltar" da
-                                    // tela inicial leva ao Perfil; "Voltar" no Perfil sai do app (pilha nunca vazia).
+                                val casa = (destino as? DestinoDaConta.Contratante)?.casa
+                                if (destino is DestinoDaConta.Contratante && casa == null) {
+                                    // Contratante ainda sem casa não tem abas: o Perfil (Sair, Excluir conta) fica como
+                                    // raiz da pilha e o cadastro da casa entra por cima dele. "Voltar" do cadastro leva
+                                    // ao Perfil; "Voltar" no Perfil sai do app (pilha nunca vazia).
                                     navController.navigate(Rotas.PERFIL) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
                                     navController.navigate(destino.rota())
                                 } else {
+                                    // Profissional e casa abrem na primeira aba; a Conta (Sair, Equipe) é a última aba.
+                                    if (destino == DestinoDaConta.Profissional) papelDaRaiz = PapelDaRaiz.Profissional
+                                    if (casa != null) papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(casa.id, casa.nome))
                                     navController.navigate(destino.rota()) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
@@ -442,18 +484,12 @@ fun AppNavegacao(
                             aoPronto?.invoke()
                         }
                     }
-                    // L2-4: no iOS, Candidaturas é uma aba; aqui é uma linha sob o feed (ver `EntradasProvisorias.kt`).
-                    ComEntradasProvisorias(
-                        listOf(EntradaProvisoria(ENTRADA_CANDIDATURAS, TextosCandidaturas.TITULO) { navController.navigate(Rotas.MINHAS_CANDIDATURAS) }),
-                    ) {
-                        TelaFeedVagas(
-                            viewModel = viewModel,
-                            aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
-                            aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
-                            aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
-                            aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
-                        )
-                    }
+                    // Meus turnos, Candidaturas e Conta são abas da raiz (`AbasDaRaiz.kt`), como no iOS.
+                    TelaFeedVagas(
+                        viewModel = viewModel,
+                        aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
+                        aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
+                    )
                 }
             }
 
@@ -477,7 +513,7 @@ fun AppNavegacao(
                                 "Disponibilidade não confirmada. Conecte-se e atualize o feed antes de se candidatar.",
                                 modifier = Modifier.padding(16.dp),
                             )
-                            TelaDetalheVaga(viewModel = viewModel)
+                            TelaDetalheVaga(viewModel = viewModel, aoVoltar = voltarDoDetalhe)
                         }
                     } else {
                         // L2-4: a vaga fora da lista (link, aviso, candidatura) é lida do servidor pelo id; 404 é "não encontrada".
@@ -491,7 +527,7 @@ fun AppNavegacao(
                             },
                         ) { detalhe ->
                             val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(detalhe.paraVagaAberta(), detalhe) })
-                            TelaDetalheVaga(viewModel = viewModel)
+                            TelaDetalheVaga(viewModel = viewModel, aoVoltar = voltarDoDetalhe)
                         }
                     }
                 }
@@ -631,6 +667,8 @@ fun AppNavegacao(
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
                             aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
+                            // Raiz com aba: abre sem título de página (a aba já diz onde a pessoa está).
+                            comTitulo = false,
                         )
                     }
                 }
@@ -703,77 +741,74 @@ fun AppNavegacao(
                     var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
                     LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
                     val primeiraCasa = casas as? CasasDaConta.Primeira
-                    // L2-5 e L2-6: sem lugar nas telas de hoje, as duas entradas são linhas sob o perfil (ver `EntradasProvisorias.kt`).
-                    // Bloqueados é dos dois papéis; contestar o despacho é só do profissional (mesma regra de `casas` das outras entradas dele).
-                    ComEntradasProvisorias(
-                        listOfNotNull(
-                            EntradaProvisoria(ENTRADA_BLOQUEIOS, TextosBloqueios.TITULO) { navController.navigate(Rotas.BLOQUEIOS) },
-                            if (casas == CasasDaConta.Desconhecidas) {
-                                EntradaProvisoria(ENTRADA_CONTESTAR_DESPACHO, TextosContestarDespacho.TITULO) {
-                                    navController.navigate(Rotas.CONTESTAR_DESPACHO)
-                                }
-                            } else {
-                                null
-                            },
-                        ),
-                    ) {
-                        TelaPerfil(
-                            viewModel = viewModel,
-                            manterAtalhosDeContratanteNoErro = primeiraCasa != null,
-                            recursoSeloHabilitado = recursoSeloHabilitado,
-                            verificacaoIdentidade = estadoSelo?.verificacao,
-                            podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
-                            aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
-                            aoDeslogar = { irParaEntrada() },
-                            aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
-                            aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
-                            aoAbrirEquipe = primeiraCasa?.let { casa ->
-                                { navController.navigate(Rotas.equipe(casa.id)) }
-                            },
-                            aoPublicarVaga = primeiraCasa?.let { casa ->
-                                { navController.navigate(Rotas.publicarVaga(casa.id)) }
-                            },
-                            aoMinhasVagas = primeiraCasa?.let { casa ->
-                                { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
-                            },
-                            aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
-                                { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
-                            } else {
-                                null
-                            },
-                            // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
-                            aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
-                                { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
-                            } else {
-                                null
-                            },
-                            // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
-                            // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
-                            // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
-                            aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
-                            } else {
-                                null
-                            },
-                            // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
-                            aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(Rotas.APRESENTACAO) }
-                            } else {
-                                null
-                            },
-                            aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(Rotas.FOTO_DE_PERFIL) }
-                            } else {
-                                null
-                            },
-                            // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
-                            aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
-                                { navController.navigate(Rotas.PONTO_BASE) }
-                            } else {
-                                null
-                            },
-                        )
-                    }
+                    // L2-5 e L2-6: "Pessoas e locais bloqueados" é dos dois papéis; contestar o despacho é só do profissional
+                    // (mesma regra de `casas` das outras entradas dele). São linhas do grupo da conta, no Perfil.
+                    val atalhosDaConta = listOfNotNull(
+                        if (casas == CasasDaConta.Desconhecidas) {
+                            AtalhoDaConta(TextosContestarDespacho.TITULO, ENTRADA_CONTESTAR_DESPACHO) { navController.navigate(Rotas.CONTESTAR_DESPACHO) }
+                        } else {
+                            null
+                        },
+                        AtalhoDaConta(TextosBloqueios.TITULO, ENTRADA_BLOQUEIOS) { navController.navigate(Rotas.BLOQUEIOS) },
+                    )
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        atalhosExtras = atalhosDaConta,
+                        manterAtalhosDeContratanteNoErro = primeiraCasa != null,
+                        recursoSeloHabilitado = recursoSeloHabilitado,
+                        verificacaoIdentidade = estadoSelo?.verificacao,
+                        podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
+                        aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
+                        aoDeslogar = { irParaEntrada() },
+                        aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
+                        aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
+                        aoAbrirEquipe = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.equipe(casa.id)) }
+                        },
+                        aoPublicarVaga = primeiraCasa?.let { casa ->
+                            { navController.navigate(Rotas.publicarVaga(casa.id)) }
+                        },
+                        // Com as abas da casa, "Minhas vagas" é a primeira aba: o atalho do Perfil sai.
+                        aoMinhasVagas = primeiraCasa?.takeIf { papelDaRaiz !is PapelDaRaiz.Contratante }?.let { casa ->
+                            { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
+                        },
+                        aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
+                            { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
+                        } else {
+                            null
+                        },
+                        // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
+                        aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
+                            { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
+                        } else {
+                            null
+                        },
+                        // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
+                        // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
+                        // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
+                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
+                        } else {
+                            null
+                        },
+                        // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
+                        aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.APRESENTACAO) }
+                        } else {
+                            null
+                        },
+                        aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.FOTO_DE_PERFIL) }
+                        } else {
+                            null
+                        },
+                        // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
+                        aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.PONTO_BASE) }
+                        } else {
+                            null
+                        },
+                    )
                 }
             }
 
@@ -937,6 +972,8 @@ fun AppNavegacao(
                         // Recém-cadastrada, a casa segue direto para a primeira vaga; "Voltar" da
                         // publicação leva ao perfil, não de volta ao formulário já concluído.
                         aoConcluir = { criado ->
+                            // A casa acabou de nascer: a partir daqui a raiz tem as abas dela.
+                            papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(criado.id, criado.nome))
                             navController.navigate(Rotas.publicarVaga(criado.id)) {
                                 popUpTo(Rotas.CADASTRO_ESTABELECIMENTO) { inclusive = true }
                             }
@@ -978,7 +1015,8 @@ fun AppNavegacao(
                     var restantesDe by remember { mutableStateOf<ItemMinhaVaga?>(null) }
                     TelaMinhasVagas(
                         viewModel = viewModel,
-                        aoVoltar = { navController.popBackStack() },
+                        // Com as abas da casa, Minhas vagas é raiz: sem voltar. Sem elas (aberta pelo Perfil), volta.
+                        aoVoltar = if (papelDaRaiz is PapelDaRaiz.Contratante) null else ({ navController.popBackStack() }),
                         aoCancelarVaga = { item -> navController.navigate(Rotas.cancelarVaga(item.id, item.inicio)) },
                         aoRepublicarVaga = { item ->
                             navController.navigate(Rotas.republicarVaga(item.id, item.selecao, duracaoDaVagaEmMinutos(item.inicio, item.fim)))
@@ -1042,7 +1080,8 @@ fun AppNavegacao(
                     var retirando by remember { mutableStateOf<ItemCandidatura?>(null) }
                     TelaMinhasCandidaturas(
                         viewModel = viewModel,
-                        aoVoltar = { navController.popBackStack() },
+                        // Raiz com aba: sem voltar e sem título de página.
+                        aoVoltar = null,
                         aoAbrir = { destino ->
                             when (destino) {
                                 is DestinoDaCandidatura.Vaga -> navController.navigate(Rotas.detalhe(destino.vagaId))
@@ -1196,6 +1235,8 @@ fun AppNavegacao(
             status = statusConectividade,
             modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
         )
+    }
+    BarraDaRaiz(navController = navController, papel = papelDaRaiz, padraoAtual = padraoAtual)
     }
 }
 

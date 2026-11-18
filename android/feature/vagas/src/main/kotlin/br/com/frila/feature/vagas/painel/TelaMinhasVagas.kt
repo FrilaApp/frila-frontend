@@ -64,7 +64,8 @@ data class AcoesMinhasVagas(
     val aoVerCandidatos: (ItemMinhaVaga) -> Unit = {},
     val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     val aoPublicarVaga: () -> Unit = {},
-    val aoVoltar: () -> Unit = {},
+    /** Nulo é a lista como tela raiz (aba "Minhas vagas"): sem a barra do voltar, e o nome da casa abre a tela no lugar do título. */
+    val aoVoltar: (() -> Unit)? = {},
     /** As três ações da vaga (L2-3). `null` esconde o botão: a tela só oferece o que quem a abriu sabe atender. */
     val aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     val aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
@@ -81,7 +82,7 @@ data class AcoesMinhasVagas(
 @Composable
 fun TelaMinhasVagas(
     viewModel: MinhasVagasViewModel,
-    aoVoltar: () -> Unit,
+    aoVoltar: (() -> Unit)?,
     aoVerCandidatos: (vagaId: String, posicoesAbertas: Int, inicioDaVaga: Instant?) -> Unit,
     aoPublicarVaga: (estabelecimentoId: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -128,7 +129,7 @@ fun ConteudoMinhasVagas(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = cores.fundo,
-        topBar = { FrilaBarraDeTopo(aoVoltar = acoes.aoVoltar) },
+        topBar = { acoes.aoVoltar?.let { FrilaBarraDeTopo(aoVoltar = it) } },
         bottomBar = {
             if (estado.lista is ListaMinhasVagas.Sucesso || estado.lista == ListaMinhasVagas.Vazio) {
                 RodapeAncorado {
@@ -156,13 +157,18 @@ fun ConteudoMinhasVagas(
                 contentPadding = PaddingValues(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
                 verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
             ) {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
-                        TituloDaTela(TextosMinhasVagas.TITULO)
-                        if (!nomeEstabelecimento.isNullOrBlank()) {
-                            Text(text = nomeEstabelecimento, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                if (acoes.aoVoltar != null) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                            TituloDaTela(TextosMinhasVagas.TITULO)
+                            if (!nomeEstabelecimento.isNullOrBlank()) {
+                                Text(text = nomeEstabelecimento, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                            }
                         }
                     }
+                } else if (!nomeEstabelecimento.isNullOrBlank()) {
+                    // Raiz: a aba já diz "Minhas vagas"; o que abre a tela é de qual casa são.
+                    item { TituloDaTela(nomeEstabelecimento) }
                 }
                 if (estado.desatualizada) {
                     item { AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosMinhasVagas.DESATUALIZADA) }

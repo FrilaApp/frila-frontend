@@ -104,10 +104,15 @@ import kotlin.math.roundToInt
  * - Logout e exclusão de conta locais primeiro (RN15) — a sessão só é limpa depois da confirmação
  *   (logout) ou do sucesso da Edge Function (exclusão), nunca antes.
  */
+/** Um atalho da conta que vem de outro módulo (o app dá o rótulo, a marca de teste e para onde vai). */
+data class AtalhoDaConta(val rotulo: String, val tag: String, val aoAbrir: () -> Unit)
+
 @Composable
 fun TelaPerfil(
     viewModel: PerfilViewModel,
     modifier: Modifier = Modifier,
+    /** Atalhos de outros módulos (bloqueados, contestar o despacho), como linhas do grupo da conta, antes da "Ajuda". */
+    atalhosExtras: List<AtalhoDaConta> = emptyList(),
     aoDeslogar: () -> Unit = {},
     aoAbrirAjuda: () -> Unit = {},
     /**
@@ -255,6 +260,7 @@ fun TelaPerfil(
                     aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                     aoEncontrarProfissional = aoEncontrarProfissional,
                     modifier = Modifier.weight(1f),
+                    atalhosExtras = atalhosExtras,
                 )
             } else when (estado.status) {
                 StatusPerfil.CARREGANDO -> Carregando(Modifier.weight(1f))
@@ -273,6 +279,7 @@ fun TelaPerfil(
                     },
                     aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                     modifier = Modifier.weight(1f),
+                    atalhosExtras = atalhosExtras,
                 )
                 StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                     nome = estado.conta?.nome,
@@ -341,6 +348,7 @@ fun TelaPerfil(
                     podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
                     aoAbrirSelo = aoAbrirSelo,
                     modifier = Modifier.weight(1f),
+                    atalhosExtras = atalhosExtras,
                 )
             }
         }
@@ -448,6 +456,7 @@ private fun ConteudoDoPerfil(
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
+    atalhosExtras: List<AtalhoDaConta> = emptyList(),
 ) {
     Column(
         modifier = modifier
@@ -508,6 +517,7 @@ private fun ConteudoDoPerfil(
             aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
             aoAbrirPontoBase = aoAbrirPontoBase,
             aoEncontrarProfissional = aoEncontrarProfissional,
+            atalhosExtras = atalhosExtras,
         )
     }
 }
@@ -534,6 +544,7 @@ private fun ConteudoDaCasa(
     aoCadastrarEstabelecimento: (() -> Unit)?,
     aoEncontrarProfissional: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    atalhosExtras: List<AtalhoDaConta> = emptyList(),
 ) {
     Column(
         modifier = modifier
@@ -567,6 +578,7 @@ private fun ConteudoDaCasa(
             aoAbrirApresentacao = null,
             aoAbrirFotoDePerfil = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
+            atalhosExtras = atalhosExtras,
         )
     }
 }
@@ -1034,6 +1046,7 @@ private fun BlocoDeConta(
     /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
+    atalhosExtras: List<AtalhoDaConta> = emptyList(),
 ) {
     val cores = FrilaTema.cores
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.secao)) {
@@ -1065,6 +1078,9 @@ private fun BlocoDeConta(
                 }
                 if (aoAbrirChamadasDiretas != null) {
                     linha { FrilaLinhaDeNavegacao("Preferências de chamadas", aoAbrirChamadasDiretas, Modifier.testTag("perfil-chamadas-diretas")) }
+                }
+                atalhosExtras.forEach { atalho ->
+                    linha { FrilaLinhaDeNavegacao(atalho.rotulo, atalho.aoAbrir, Modifier.testTag(atalho.tag)) }
                 }
                 linha { FrilaLinhaDeNavegacao("Ajuda", aoAbrirAjuda, Modifier.testTag("perfil-ajuda")) }
             }
@@ -1213,8 +1229,11 @@ private fun Erro(
     aoDeslogar: () -> Unit = {},
     aoAbrirExclusao: () -> Unit = {},
     modifier: Modifier = Modifier,
+    /** Bloqueados e contestar não dependem do perfil ter carregado: continuam ao alcance com o perfil em erro. */
+    atalhosExtras: List<AtalhoDaConta> = emptyList(),
 ) {
-    val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null
+    val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null ||
+        atalhosExtras.isNotEmpty()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1237,6 +1256,9 @@ private fun Erro(
             if (temAtalhos) {
                 FrilaGrupoDeLinhas {
                     atalhosDaCasa(aoAbrirEquipe, aoMinhasVagas, aoPublicarVaga, null, aoEncontrarProfissional)
+                    atalhosExtras.forEach { atalho ->
+                        linha { FrilaLinhaDeNavegacao(atalho.rotulo, atalho.aoAbrir, Modifier.testTag(atalho.tag)) }
+                    }
                 }
             }
             // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.

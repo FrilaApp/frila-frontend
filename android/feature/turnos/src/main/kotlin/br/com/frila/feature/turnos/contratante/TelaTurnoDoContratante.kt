@@ -66,6 +66,8 @@ fun TelaTurnoDoContratante(
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
     /** L1-5: nulo (chave `checkin_por_codigo` desligada, ou ainda sem fiação) esconde o código de chegada. */
     codigoDaCasa: CodigoDaCasaViewModel? = null,
+    /** O que o app põe depois da chegada e antes das ações de risco (incluir na equipe de confiança). Nulo não põe nada. */
+    depoisDaChegada: (@Composable () -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
@@ -80,6 +82,7 @@ fun TelaTurnoDoContratante(
         ),
         modifier = modifier,
         cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
+        depoisDaChegada = depoisDaChegada,
     )
 }
 
@@ -96,6 +99,7 @@ fun ConteudoTurnoDoContratante(
     acoes: AcoesTurnoDoContratante,
     modifier: Modifier = Modifier,
     cartaoDoCodigo: (@Composable () -> Unit)? = null,
+    depoisDaChegada: (@Composable () -> Unit)? = null,
 ) {
     val contexto = estado.contexto
     val pendente = estado.presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE
@@ -160,6 +164,8 @@ fun ConteudoTurnoDoContratante(
             estado.avisoDaReabertura?.let { aviso ->
                 AvisoFrila(tom = if (aviso.erro) TomAviso.ERRO else TomAviso.INFORMATIVO, mensagem = aviso.mensagem)
             }
+
+            depoisDaChegada?.invoke()
 
             // Ações de risco no fim da tela, uma por linha.
             val reabrirVisivel = estado.presenca == PresencaDoTurno.EM_ATRASO &&

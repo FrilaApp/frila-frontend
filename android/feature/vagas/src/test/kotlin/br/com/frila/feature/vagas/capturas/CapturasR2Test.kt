@@ -122,7 +122,6 @@ class CapturasR2Test {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirMeusTurnos = {},
                         aoDefinirPontoBase = aoDefinirPontoBase,
                     )
                 }
