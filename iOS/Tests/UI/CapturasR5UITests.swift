@@ -87,4 +87,62 @@ final class CapturasR5UITests: XCTestCase {
     func testMinhasVagasVazioEmAX5() { minhasVagasVazio(ax5: true) }
     func testDetalheDaVagaNoTamanhoPadrao() { detalheDaVaga(ax5: false) }
     func testDetalheDaVagaEmAX5() { detalheDaVaga(ax5: true) }
+
+    // MARK: - Parte 2: candidatos, republicar e cancelar
+
+    private func rolarAte(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 10) {
+        for _ in 0..<tentativas where !(elemento.exists && elemento.isHittable) { app.swipeUp() }
+    }
+
+    private func candidatos(ax5: Bool) {
+        let app = iniciar(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "selecao-com-candidatos", "-FRILA_CAPTURA", "vaga-aberta"], ax5: ax5)
+        XCTAssertTrue(app.descendants(matching: .any)["candidatos-da-vaga"].waitForExistence(timeout: 20))
+        let escolher = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'escolher-candidato-'")).firstMatch
+        XCTAssertTrue(escolher.waitForExistence(timeout: 15))
+        rolarAte(escolher, em: app)
+        XCTAssertGreaterThanOrEqual(escolher.frame.height, 44, "Escolher tem alvo de ao menos 44 pt")
+        capturar("candidatos", ax5: ax5)
+    }
+
+    private func confirmarEscolha(ax5: Bool) {
+        let app = iniciar(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "selecao-com-candidatos", "-FRILA_CAPTURA", "vaga-aberta"], ax5: ax5)
+        let escolher = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'escolher-candidato-'")).firstMatch
+        XCTAssertTrue(escolher.waitForExistence(timeout: 20))
+        rolarAte(escolher, em: app)
+        escolher.tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: Espera.aparecer), "o alerta Confirmar a escolha abre")
+        capturar("confirmar-escolha", ax5: ax5)
+    }
+
+    private func republicar(ax5: Bool) {
+        let app = iniciar(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "vaga-encerrada-contratante"], ax5: ax5)
+        let botao = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "republicar-vaga-")).firstMatch
+        XCTAssertTrue(botao.waitForExistence(timeout: 15))
+        rolarAte(botao, em: app)
+        botao.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForExistence(timeout: Espera.aparecer))
+        confirmarAlvo(app.buttons["botao-confirmar-republicacao"], "o botão de confirmar")
+        capturar("republicar-vaga", ax5: ax5)
+    }
+
+    private func cancelarVaga(ax5: Bool) {
+        let app = iniciar(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "painel-contratante", "-FRILA_CAPTURA", "vaga-aberta"], ax5: ax5)
+        XCTAssertTrue(app.descendants(matching: .any)["detalhe-vaga-contratante"].waitForExistence(timeout: 15))
+        let cancelar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'cancelar-vaga-'")).firstMatch
+        XCTAssertTrue(cancelar.waitForExistence(timeout: Espera.aparecer))
+        rolarAte(cancelar, em: app)
+        capturar("detalhe-acao-discreta", ax5: ax5)
+        cancelar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["folha-de-cancelamento"].firstMatch.waitForExistence(timeout: Espera.aparecer))
+        capturar("cancelar-vaga", ax5: ax5)
+    }
+
+    func testCandidatosNoTamanhoPadrao() { candidatos(ax5: false) }
+    func testCandidatosEmAX5() { candidatos(ax5: true) }
+    func testConfirmarEscolhaNoTamanhoPadrao() { confirmarEscolha(ax5: false) }
+    func testConfirmarEscolhaEmAX5() { confirmarEscolha(ax5: true) }
+    func testRepublicarVagaNoTamanhoPadrao() { republicar(ax5: false) }
+    func testRepublicarVagaEmAX5() { republicar(ax5: true) }
+    func testCancelarVagaNoTamanhoPadrao() { cancelarVaga(ax5: false) }
+    func testCancelarVagaEmAX5() { cancelarVaga(ax5: true) }
 }

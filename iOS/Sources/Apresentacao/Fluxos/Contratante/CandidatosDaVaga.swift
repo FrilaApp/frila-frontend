@@ -396,17 +396,17 @@ public struct SecaoDeCandidatos: View {
     private var situacao: SituacaoDaSelecao { SituacaoDaSelecao(vaga) }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.secao).foregroundStyle(FrilaCor.texto)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: TextosDosCandidatos.titulo).font(FrilaTipo.rotuloDeGrupo).foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             avisos
             switch situacao {
             case .aberta:
-                Text(verbatim: TextosDosCandidatos.explicacao).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: TextosDosCandidatos.explicacao).font(FrilaTipo.apoio).foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: TextosDosCandidatos.prazoDeEscolha(inicio: vaga.vaga.periodo.inicio))
-                    .font(FrilaTipo.meta.weight(.semibold))
+                    .font(FrilaTipo.rotuloSecundario)
                     .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("prazo-de-escolha")
@@ -479,8 +479,10 @@ public struct SecaoDeCandidatos: View {
                 .accessibilityIdentifier("candidatos-vazio")
             botaoDeAtualizar(TextosDosCandidatos.atualizar)
         case let .carregados(candidatos):
-            ForEach(candidatos) { candidato in
-                cartao(candidato, podeEscolher: podeEscolher)
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                ForEach(candidatos) { candidato in
+                    cartao(candidato, podeEscolher: podeEscolher)
+                }
             }
             botaoDeAtualizar(TextosDosCandidatos.atualizar)
         }
@@ -491,10 +493,11 @@ public struct SecaoDeCandidatos: View {
             .accessibilityIdentifier("atualizar-candidatos")
     }
 
+    /// O cartão do candidato: a lista é o primário, então "Escolher" é secundário; o laranja fica para a confirmação.
     private func cartao(_ candidato: Candidato, podeEscolher: Bool) -> some View {
         let perfil = candidato.profissional
-        return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
+        return VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            HStack(alignment: .top, spacing: FrilaEspaco.item) {
                 if let fotoURL = perfil.fotoURL {
                     AsyncImage(url: fotoURL) { fase in
                         switch fase {
@@ -504,40 +507,29 @@ public struct SecaoDeCandidatos: View {
                                 .scaledToFill()
                         default:
                             Image(systemName: "person.fill")
-                                .font(FrilaTipo.meta)
+                                .font(FrilaTipo.apoio)
                                 .foregroundStyle(FrilaCor.textoSecundario)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(FrilaCor.controle)
                         }
                     }
-                    .frame(width: 44, height: 44)
+                    .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
                     .clipShape(Circle())
                     .overlay(Circle().strokeBorder(FrilaCor.divisoria, lineWidth: 1))
                     .accessibilityHidden(true)
                 }
 
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: perfil.nome).font(FrilaTipo.resumo)
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                    Text(verbatim: perfil.nome).font(FrilaTipo.nome)
                         .fixedSize(horizontal: false, vertical: true)
                     if candidato.daEquipe {
                         // O selo tem texto e ícone: não é só cor (D7). Fica junto dos dados, para o
                         // leitor de tela dizê-lo com o nome. Não muda a ordem da lista (RN06).
-                        Label {
-                            Text(verbatim: TextosDosCandidatos.daEquipe)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } icon: {
-                            Image(systemName: "checkmark.seal.fill")
-                        }
-                        .font(FrilaTipo.nota.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                        .padding(.horizontal, FrilaEspaco.compacto)
-                        .padding(.vertical, FrilaEspaco.minimo)
-                        .background(FrilaCor.marca.opacity(0.12), in: Capsule())
-                        .overlay(Capsule().strokeBorder(FrilaCor.marca.opacity(0.3), lineWidth: 1))
+                        SeloDeStatus(verbatim: TextosDosCandidatos.daEquipe, estilo: .contorno, icone: "checkmark.seal.fill")
                     }
                     if !perfil.funcoes.isEmpty {
                         Text(verbatim: String(format: TextosDosCandidatos.funcoes, perfil.funcoes.joined(separator: ", ")))
-                            .font(FrilaTipo.meta)
+                            .font(FrilaTipo.apoio)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -551,25 +543,14 @@ public struct SecaoDeCandidatos: View {
             blocoPerfilRico(perfil: perfil, candidatoID: candidato.id)
 
             Button { abrirPerfil(perfil) } label: {
-                HStack {
-                    Text(verbatim: TextosDosCandidatos.verPerfil)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(FrilaTipo.microRotulo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityHidden(true)
-                }
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .contentShape(Rectangle())
+                Text(verbatim: TextosDosCandidatos.verPerfil)
             }
-            .buttonStyle(.tatil)
+            .buttonStyle(.frilaLink)
             .accessibilityLabel(Text(verbatim: String(format: TextosDosCandidatos.verPerfilDe, perfil.nome)))
             .accessibilityIdentifier("perfil-do-candidato-\(candidato.id)")
 
             if podeEscolher {
-                BotaoPrimario(verbatim: TextosDosCandidatos.escolher, carregando: viewModel.escolhendo == candidato.id) {
+                BotaoSecundario(verbatim: TextosDosCandidatos.escolher) {
                     viewModel.pedirEscolha(candidato)
                 }
                 .disabled(viewModel.escolhendo != nil)
@@ -590,19 +571,19 @@ public struct SecaoDeCandidatos: View {
                 ForEach(perfil.servicos) { servico in
                     if let resumo = TextosDosServicos.resumoDoServico(servico.servico) {
                         Text(verbatim: resumo)
-                            .font(FrilaTipo.meta.weight(.semibold))
+                            .font(FrilaTipo.rotuloSecundario)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if let inclui = servico.servico.itensInclusos, !inclui.isEmpty {
                         Text(verbatim: inclui)
-                            .font(FrilaTipo.nota)
+                            .font(FrilaTipo.apoio)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !servico.especialidades.isEmpty {
                         Text(verbatim: servico.especialidades.map(\.nome).joined(separator: ", "))
-                            .font(FrilaTipo.nota)
+                            .font(FrilaTipo.apoio)
                             .foregroundStyle(FrilaCor.textoSecundario)
                     }
                 }
@@ -624,12 +605,12 @@ public struct SecaoDeCandidatos: View {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 if let faixa = perfil.experienciaFaixa {
                     Text(verbatim: TextosApresentacaoERegioes.textoExperiencia(faixa))
-                        .font(FrilaTipo.nota.weight(.medium))
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.texto)
                 }
                 if let onde = perfil.ondeTrabalhei, !onde.isEmpty {
                     Text(verbatim: onde)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .lineLimit(2)
                 }
@@ -640,7 +621,7 @@ public struct SecaoDeCandidatos: View {
 
         if !perfil.cursos.isEmpty {
             Text(verbatim: perfil.cursos.joined(separator: " • "))
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .lineLimit(2)
                 .accessibilityIdentifier("cursos-do-candidato-\(candidatoID)")
@@ -648,14 +629,14 @@ public struct SecaoDeCandidatos: View {
 
         if !perfil.idiomas.isEmpty {
             Text(verbatim: perfil.idiomas.map { TextosApresentacaoERegioes.textoIdioma($0) }.joined(separator: ", "))
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("idiomas-do-candidato-\(candidatoID)")
         }
 
         if perfil.atendeTodoDF || !perfil.regioes.isEmpty {
             Text(verbatim: perfil.atendeTodoDF ? TextosApresentacaoERegioes.todoODF : perfil.regioes.map(\.nome).joined(separator: ", "))
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("regioes-do-candidato-\(candidatoID)")
         }

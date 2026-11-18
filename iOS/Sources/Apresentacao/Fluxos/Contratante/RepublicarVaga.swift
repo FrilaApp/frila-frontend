@@ -300,8 +300,8 @@ public final class RepublicarVagaViewModel {
     }
 }
 
-/// Republicação de uma vaga com os dados da anterior, nos quadros "RepetirVaga" e "PublicarCopia" do MidFi do
-/// Fabrício: cartão com o que foi copiado, o novo período e a confirmação.
+/// Republicação de uma vaga com os dados da anterior: cartão com o que foi copiado, o novo período e a confirmação
+/// (um botão laranja, ancorado embaixo; "Cancelar" ou "Fechar" na barra da folha).
 public struct TelaRepublicarVaga: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel: RepublicarVagaViewModel
@@ -321,19 +321,17 @@ public struct TelaRepublicarVaga: View {
 
     public var body: some View {
         ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 cabecalho
                 cartaoDadosCopiados
                 secaoPeriodo
                 if let recusa = viewModel.recusaDaFila {
-                    AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
-                        .accessibilityIdentifier("aviso-republicacao-recusada")
-                    BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila() } }
-                        .accessibilityIdentifier("fechar-aviso-republicacao-recusada")
-                }
-                if let erro = viewModel.mensagemErro {
-                    AvisoFrila(verbatim: erro, tom: .erro)
-                        .accessibilityIdentifier("aviso-erro-republicacao")
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                        AvisoFrila(verbatim: TextosDaFila.texto(recusa.tipo), tom: .informativo)
+                            .accessibilityIdentifier("aviso-republicacao-recusada")
+                        BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila() } }
+                            .accessibilityIdentifier("fechar-aviso-republicacao-recusada")
+                    }
                 }
                 if viewModel.republicacaoPendente != nil {
                     AvisoFrila(verbatim: TextosRepublicarVaga.tentativaContinua, tom: .informativo)
@@ -344,14 +342,24 @@ public struct TelaRepublicarVaga: View {
                         Task { await viewModel.restaurarTentativaPendente() }
                     }
                 }
-                botoesAcao
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
             .containerRelativeFrame(.horizontal)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
+        .rodapeAncorado { rodape }
         .navigationTitle(TextosRepublicarVaga.titulo)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Folha que só age no botão: "Cancelar" ou "Fechar" fica à esquerda, em tinta.
+            ToolbarItem(placement: .cancellationAction) {
+                Button(viewModel.textoAoFechar) { fechar() }
+                    .tint(FrilaCor.texto)
+                    .disabled(viewModel.enviando || viewModel.restaurandoTentativa)
+                    .accessibilityIdentifier("botao-cancelar-republicacao")
+            }
+        }
         .onChange(of: viewModel.resultado) { _, novo in
             if novo != nil {
                 fechar()
@@ -368,56 +376,40 @@ public struct TelaRepublicarVaga: View {
     }
 
     private var cabecalho: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosRepublicarVaga.titulo)
                 .font(FrilaTipo.tituloDaTela)
-                .minimumScaleFactor(0.75)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosRepublicarVaga.subtitulo)
-                .font(FrilaTipo.meta)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var cartaoDadosCopiados: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: viewModel.vagaOriginal.vaga.funcao)
-                        .font(FrilaTipo.resumo)
-                    FrilaPriceTag(texto: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor), leitura: formatador.dinheiroFalado(viewModel.vagaOriginal.vaga.valor), tamanho: 18)
-                }
+        let original = viewModel.vagaOriginal
+        return VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            if original.modo == .selecao {
+                SeloDeStatus(verbatim: TextosRepublicarVaga.modoSelecao, estilo: .contorno)
             } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(FrilaTipo.resumo)
-                        Spacer(minLength: FrilaEspaco.pequeno)
-                        FrilaPriceTag(texto: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor), leitura: formatador.dinheiroFalado(viewModel.vagaOriginal.vaga.valor), tamanho: 18)
-                    }
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                        Text(verbatim: viewModel.vagaOriginal.vaga.funcao).font(FrilaTipo.resumo)
-                        FrilaPriceTag(texto: formatador.dinheiro(viewModel.vagaOriginal.vaga.valor), leitura: formatador.dinheiroFalado(viewModel.vagaOriginal.vaga.valor), tamanho: 18)
-                    }
-                }
+                SeloDeStatus(verbatim: TextosRepublicarVaga.modoUrgencia, estilo: .urgencia, icone: "bolt.fill")
             }
-
-            Text(verbatim: viewModel.vagaOriginal.vaga.local)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-
-            if !viewModel.vagaOriginal.vaga.regiaoAdministrativa.isEmpty {
-                Text(verbatim: viewModel.vagaOriginal.vaga.regiaoAdministrativa)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: original.vaga.funcao)
+                .font(FrilaTipo.nome)
+                .fixedSize(horizontal: false, vertical: true)
+            FrilaLinhaDeDado(icone: "banknote") {
+                Text(verbatim: formatador.dinheiro(original.vaga.valor))
+                    .font(FrilaTipo.rotuloSecundario)
+                    .accessibilityLabel(Text(verbatim: formatador.dinheiroFalado(original.vaga.valor)))
             }
-
-            Text(verbatim: viewModel.vagaOriginal.modo == .selecao ? TextosRepublicarVaga.modoSelecao : TextosRepublicarVaga.modoUrgencia)
-                .font(FrilaTipo.nota.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-                .padding(.horizontal, FrilaEspaco.compacto)
-                .padding(.vertical, FrilaEspaco.minimo)
-                .background(FrilaCor.controle, in: Capsule())
+            FrilaLinhaDeDado(icone: "mappin.and.ellipse") {
+                Text(verbatim: original.vaga.regiaoAdministrativa.isEmpty
+                     ? original.vaga.local
+                     : "\(original.vaga.local), \(original.vaga.regiaoAdministrativa)")
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
@@ -426,45 +418,50 @@ public struct TelaRepublicarVaga: View {
     }
 
     private var secaoPeriodo: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosRepublicarVaga.novoPeriodo)
-                .font(FrilaTipo.tituloDoCartao)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                seletorPeriodo(
-                    titulo: TextosRepublicarVaga.dataInicio,
-                    data: $viewModel.inicio,
-                    campoID: "campo-inicio-republicacao"
-                )
-                .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                    seletorPeriodo(
+                        titulo: TextosRepublicarVaga.dataInicio,
+                        data: $viewModel.inicio,
+                        campoID: "campo-inicio-republicacao"
+                    )
+                    .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
 
-                if let erroInicio = viewModel.erros[.inicio] {
-                    Text(verbatim: erroInicio)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.perigo)
-                        .accessibilityIdentifier("erro-inicio-republicacao")
+                    if let erroInicio = viewModel.erros[.inicio] {
+                        Text(verbatim: erroInicio)
+                            .font(FrilaTipo.apoio)
+                            .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("erro-inicio-republicacao")
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                    seletorPeriodo(
+                        titulo: TextosRepublicarVaga.dataFim,
+                        data: $viewModel.fim,
+                        campoID: "campo-fim-republicacao"
+                    )
+                    .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
+
+                    if let erroFim = viewModel.erros[.fim] {
+                        Text(verbatim: erroFim)
+                            .font(FrilaTipo.apoio)
+                            .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("erro-fim-republicacao")
+                    }
                 }
             }
-
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                seletorPeriodo(
-                    titulo: TextosRepublicarVaga.dataFim,
-                    data: $viewModel.fim,
-                    campoID: "campo-fim-republicacao"
-                )
-                .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
-
-                if let erroFim = viewModel.erros[.fim] {
-                    Text(verbatim: erroFim)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.perigo)
-                        .accessibilityIdentifier("erro-fim-republicacao")
-                }
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cartaoFrila()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
     }
 
     @ViewBuilder
@@ -472,7 +469,8 @@ public struct TelaRepublicarVaga: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                 Text(verbatim: titulo)
-                    .font(FrilaTipo.rotuloDoCampo)
+                    .font(FrilaTipo.rotuloDeGrupo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                 DatePicker(
                     titulo,
                     selection: data,
@@ -480,6 +478,7 @@ public struct TelaRepublicarVaga: View {
                 )
                 .labelsHidden()
                 .datePickerStyle(.wheel)
+                .tint(FrilaCor.texto)
                 .accessibilityIdentifier(campoID)
             }
         } else {
@@ -488,12 +487,18 @@ public struct TelaRepublicarVaga: View {
                 selection: data,
                 displayedComponents: [.date, .hourAndMinute]
             )
+            .tint(FrilaCor.texto)
             .accessibilityIdentifier(campoID)
         }
     }
 
-    private var botoesAcao: some View {
-        VStack(spacing: FrilaEspaco.pequeno) {
+    /// O erro da ação fica logo acima do botão que o provocou; o botão laranja é o único da folha.
+    private var rodape: some View {
+        VStack(spacing: FrilaEspaco.item) {
+            if let erro = viewModel.mensagemErro {
+                MensagemJuntoAoBotao(verbatim: erro)
+                    .accessibilityIdentifier("aviso-erro-republicacao")
+            }
             if viewModel.camposBloqueados {
                 BotaoPrimario(verbatim: TextosRepublicarVaga.tentarNovamente, carregando: viewModel.enviando) {
                     Task { await viewModel.republicar() }
@@ -507,14 +512,7 @@ public struct TelaRepublicarVaga: View {
                 .disabled(!viewModel.podeConfirmar)
                 .accessibilityIdentifier("botao-confirmar-republicacao")
             }
-
-            BotaoSecundario(verbatim: viewModel.textoAoFechar) {
-                fechar()
-            }
-            .disabled(viewModel.enviando || viewModel.restaurandoTentativa)
-            .accessibilityIdentifier("botao-cancelar-republicacao")
         }
-        .padding(.top, FrilaEspaco.pequeno)
     }
 }
 
