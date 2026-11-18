@@ -119,33 +119,42 @@ public struct EntradaDoCodigo: View {
                 .accessibilityIdentifier("codigo-enviando")
         case .formatoInvalido:
             MensagemJuntoAoBotao(verbatim: Textos.formatoInvalido)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.formatoInvalido, tom: .alerta)))
                 .accessibilityIdentifier("codigo-formato-invalido")
         case .invalido:
             MensagemJuntoAoBotao(verbatim: Textos.invalido)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.invalido, tom: .erro)))
                 .accessibilityIdentifier("codigo-invalido")
         case .foraDoRaio:
             MensagemJuntoAoBotao(verbatim: Textos.foraDoRaio)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.foraDoRaio, tom: .alerta)))
                 .accessibilityIdentifier("codigo-fora-do-raio")
         case let .chegueMaisPerto(metros):
             MensagemJuntoAoBotao(verbatim: Textos.chegueMaisPerto(metros))
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.chegueMaisPerto(metros), tom: .alerta)))
                 .accessibilityIdentifier("chegue-mais-perto")
         case .semLocalizacao:
             MensagemJuntoAoBotao(verbatim: Textos.semLocalizacao)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.semLocalizacao, tom: .alerta)))
                 .accessibilityIdentifier("codigo-sem-localizacao")
         case .bloqueado(.temporario):
             MensagemJuntoAoBotao(verbatim: Textos.bloqueadoPorUmTempo)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.bloqueadoPorUmTempo, tom: .alerta)))
                 .accessibilityIdentifier("codigo-bloqueado-temporario")
         case .bloqueado(.encerrado):
             MensagemJuntoAoBotao(verbatim: Textos.encerrado)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.encerrado, tom: .alerta)))
                 .accessibilityIdentifier("codigo-bloqueado-encerrado")
         case .recursoDesligado:
             MensagemJuntoAoBotao(verbatim: Textos.indisponivel)
                 .accessibilityIdentifier("codigo-indisponivel")
         case .respostaPerdida:
             MensagemJuntoAoBotao(verbatim: Textos.respostaPerdida)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.respostaPerdida, tom: .alerta)))
                 .accessibilityIdentifier("codigo-resposta-perdida")
         case let .falhou(erro):
             MensagemJuntoAoBotao(verbatim: MensagemDoErroAPI.texto(erro))
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: MensagemDoErroAPI.texto(erro), tom: .erro)))
                 .accessibilityIdentifier("codigo-falhou")
         }
     }

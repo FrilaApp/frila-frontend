@@ -111,6 +111,7 @@ public struct FolhaDeCancelamento: View {
         case .pronto, .enviando, .falha:
             if case let .falha(mensagem) = viewModel.estado {
                 MensagemJuntoAoBotao(verbatim: mensagem)
+                    .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: mensagem, tom: .erro)))
                     .accessibilityIdentifier("falha-do-cancelamento")
             }
             BotaoPrimario(verbatim: TextosDoCancelamento.confirmar, carregando: viewModel.estado == .enviando) {

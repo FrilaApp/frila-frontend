@@ -112,6 +112,7 @@ public struct TelaAvaliacao: View {
 
         if let erro = viewModel.mensagemDeErro {
             MensagemJuntoAoBotao(verbatim: erro)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: erro, tom: .erro)))
                 .accessibilityIdentifier("aviso-erro-avaliacao")
             if viewModel.recusaDaFila != nil {
                 BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila() } }

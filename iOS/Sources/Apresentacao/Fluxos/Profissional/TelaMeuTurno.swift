@@ -302,7 +302,7 @@ public struct TelaMeuTurno: View {
                 }
                 VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                     if let erro = viewModel.mensagemErroACaminho {
-                        MensagemJuntoAoBotao(verbatim: erro).accessibilityIdentifier("a-caminho-erro")
+                        MensagemJuntoAoBotao(verbatim: erro).accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: erro, tom: .erro))).accessibilityIdentifier("a-caminho-erro")
                     }
                     if viewModel.podeTentarAvisarDeNovo {
                         BotaoPrimario(verbatim: TextosDoProfissional.Turnos.tentarDeNovo, carregando: viewModel.avisandoACaminho) {

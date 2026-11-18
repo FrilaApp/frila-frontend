@@ -88,10 +88,10 @@ public struct SecaoDePresenca: View {
     @ViewBuilder
     private var mensagens: some View {
         if let erro = viewModel.mensagemDeErro {
-            MensagemJuntoAoBotao(verbatim: erro).accessibilityIdentifier("presenca-erro")
+            MensagemJuntoAoBotao(verbatim: erro).accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: erro, tom: .erro))).accessibilityIdentifier("presenca-erro")
         }
         if let erro = turno?.mensagemErroACaminho {
-            MensagemJuntoAoBotao(verbatim: erro).accessibilityIdentifier("a-caminho-erro")
+            MensagemJuntoAoBotao(verbatim: erro).accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: erro, tom: .erro))).accessibilityIdentifier("a-caminho-erro")
         }
     }
 
