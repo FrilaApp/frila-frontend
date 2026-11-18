@@ -195,7 +195,7 @@ final class CapturasR3UITests: XCTestCase {
         let campo = app.textFields["campo-codigo-checkin"]
         XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer))
         capturar("r3-codigo-vazio-\(sufixo(ax5))")
-        campo.tap()
+        campo.garantirFocoDoTeclado()
         campo.typeText("000001")
         capturar("r3-codigo-digitado-\(sufixo(ax5))")
         let confirmar = app.buttons["confirmar-codigo-checkin"]
@@ -216,8 +216,10 @@ final class CapturasR3UITests: XCTestCase {
         tocar(app.buttons["resposta-sim"])
         capturar("r3-avaliacao-sim-\(sufixo(ax5))")
         tocar(app.buttons["botao-enviar-avaliacao"])
-        XCTAssertTrue(app.descendants(matching: .any)["aviso-sucesso-avaliacao"].waitForExistence(timeout: Espera.aparecer))
+        let confirmacao = app.descendants(matching: .any)["aviso-sucesso-avaliacao"]
+        _ = confirmacao.waitForExistence(timeout: Espera.aparecer)
         capturar("r3-avaliacao-enviada-\(sufixo(ax5))")
+        XCTAssertTrue(confirmacao.exists)
     }
 
     func testAvaliacaoNoTamanhoPadrao() { avaliacao(ax5: false) }

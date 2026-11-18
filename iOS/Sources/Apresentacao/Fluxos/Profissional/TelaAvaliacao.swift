@@ -6,6 +6,7 @@ import SwiftUI
 /// ancorado no pé, com o resultado em tinta acima dele; depois de gravada, a resposta não troca.
 public struct TelaAvaliacao: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @Bindable private var viewModel: AvaliacaoTurnoViewModel
 
     public init(viewModel: AvaliacaoTurnoViewModel) {
@@ -42,6 +43,12 @@ public struct TelaAvaliacao: View {
                 cabecalho
                 areaDeEscolha
                 cartaoExplicacao
+                if tamanhoDoTexto.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                        avisosDeEstado
+                        botaoDeAcao
+                    }
+                }
             }
             .padding(.horizontal, FrilaEspaco.grupo)
             .padding(.top, FrilaEspaco.item)
@@ -50,17 +57,19 @@ public struct TelaAvaliacao: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
-        .rodapeAncorado {
+        // O identificador fica no conteúdo, antes do rodapé: num rodapé ancorado dentro dele, o identificador da tela
+        // tomava o dos botões e o dos avisos.
+        .accessibilityIdentifier("tela-avaliacao")
+        .modifier(RodapeAncoradoForaDeAX {
             avisosDeEstado
             botaoDeAcao
-        }
+        })
         .navigationTitle(Text(verbatim: TextosDoProfissional.Avaliacao.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.carregar() }
         .onReceive(NotificationCenter.default.publisher(for: .filaDeAcoesAtualizada)) { _ in
             Task { await viewModel.carregar() }
         }
-        .accessibilityIdentifier("tela-avaliacao")
     }
 
     private var cabecalho: some View {

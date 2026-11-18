@@ -41,7 +41,7 @@ public struct FolhaDeCancelamento: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
-            .modifier(RodapeDaFolha(ancorar: !dynamicTypeSize.isAccessibilitySize) { rodape })
+            .modifier(RodapeAncoradoForaDeAX { rodape })
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -147,26 +147,6 @@ public struct FolhaDeCancelamento: View {
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("falta-do-cancelamento")
-        }
-    }
-}
-
-/// Os botões da folha ancorados no pé; com texto de acessibilidade eles ficam no fim do conteúdo, para não tomar a tela.
-private struct RodapeDaFolha<Rodape: View>: ViewModifier {
-    let ancorar: Bool
-    let rodape: Rodape
-
-    init(ancorar: Bool, @ViewBuilder rodape: () -> Rodape) {
-        self.ancorar = ancorar
-        self.rodape = rodape()
-    }
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if ancorar {
-            content.rodapeAncorado { rodape }
-        } else {
-            content
         }
     }
 }

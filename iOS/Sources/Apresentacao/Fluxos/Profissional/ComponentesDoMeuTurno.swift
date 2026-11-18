@@ -187,3 +187,23 @@ struct BlocoComRotuloDeGrupo<Conteudo: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+/// O grupo ancorado no pé (`rodapeAncorado`) só fora dos tamanhos de acessibilidade: com texto grande ele tomaria a tela e
+/// cobriria o campo ou o conteúdo. Nesses tamanhos quem monta a tela põe o mesmo conteúdo no fim da rolagem.
+struct RodapeAncoradoForaDeAX<Rodape: View>: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
+    private let rodape: Rodape
+
+    init(@ViewBuilder rodape: () -> Rodape) {
+        self.rodape = rodape()
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if tamanhoDoTexto.isAccessibilitySize {
+            content
+        } else {
+            content.rodapeAncorado { rodape }
+        }
+    }
+}

@@ -15,6 +15,7 @@ public struct EntradaDoCodigo: View {
     @State private var validacao: ValidacaoDoCodigoViewModel
     @State private var codigo = ""
     @Environment(\.dismiss) private var fechar
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @FocusState private var campoEmFoco: Bool
 
     public init(presenca: PresencaDoTurnoViewModel) {
@@ -38,21 +39,17 @@ public struct EntradaDoCodigo: View {
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("aviso-casa-confirma")
+
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
+                    }
                 }
                 .padding(.horizontal, FrilaEspaco.grupo)
                 .padding(.top, FrilaEspaco.bloco)
                 .padding(.bottom, FrilaEspaco.grupo)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
-            .rodapeAncorado {
-                mensagem
-                BotaoPrimario(verbatim: Textos.confirmar, carregando: ocupado) {
-                    campoEmFoco = false
-                    Task { await validacao.validarMedindo(codigo: codigo) }
-                }
-                .disabled(!ValidacaoDoCodigoViewModel.formatoValido(codigo) || ocupado)
-                .accessibilityIdentifier("confirmar-codigo-checkin")
-            }
+            .modifier(RodapeAncoradoForaDeAX { rodape })
             .navigationTitle(Textos.titulo)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -96,6 +93,18 @@ public struct EntradaDoCodigo: View {
     }
 
     // MARK: Resultado
+
+    /// O resultado e o botão: ancorados no pé, ou no fim da rolagem com texto de acessibilidade.
+    @ViewBuilder
+    private var rodape: some View {
+        mensagem
+        BotaoPrimario(verbatim: Textos.confirmar, carregando: ocupado) {
+            campoEmFoco = false
+            Task { await validacao.validarMedindo(codigo: codigo) }
+        }
+        .disabled(!ValidacaoDoCodigoViewModel.formatoValido(codigo) || ocupado)
+        .accessibilityIdentifier("confirmar-codigo-checkin")
+    }
 
     private var ocupado: Bool { validacao.resultado == .enviando }
 
