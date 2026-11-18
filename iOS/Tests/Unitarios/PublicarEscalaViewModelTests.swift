@@ -381,6 +381,57 @@ struct PublicarEscalaViewModelTests {
         #expect(vm.resultado != nil)
     }
 
+    @Test("No REENVIO de uma tentativa incerta, 429, 401, 403 e perfil NÃO soltam a chave (o servidor confere permissão e limite antes da chave): mostram a mensagem e o próximo envio reusa a mesma", arguments: [
+        ErroDaApi(codigo: .limiteExcedido), ErroDaApi(codigo: .naoAutenticado), ErroDaApi(codigo: .semPermissao),
+        ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"), ErroDaApi(codigo: .contaSuspensa), ErroDaApi(codigo: .perfilIncompativel),
+        ErroDaApi(codigo: .naoEncontrado),
+    ])
+    func reenvioRecusadoPeloQueNaoEDoConteudoMantemAChave(recusa: ErroDaApi) async throws {
+        let servidor = ServidorDeEscala([.failure(ErroDaApi(codigo: .semRede)), .failure(recusa), .success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+
+        await vm.publicar() // sem rede: incerta
+        await vm.publicar() // o reenvio é recusado por permissão, limite ou sessão
+        #expect(vm.tentativaIncerta != nil, "a chave segue guardada: nada prova que a primeira tentativa não gravou")
+        #expect(vm.camposBloqueados, "os campos seguem travados: a escala pendente é a mesma")
+        #expect(vm.erros.geral != nil && vm.erros.geral != TextosDaEscala.Erro.incerta, "mostra a mensagem da recusa")
+
+        await vm.publicar()
+        let enviadas = await servidor.recebidas
+        #expect(enviadas.count == 3)
+        #expect(enviadas[0].chave == enviadas[1].chave && enviadas[1].chave == enviadas[2].chave, "os três envios levam a MESMA chave")
+        #expect(vm.resultado != nil)
+    }
+
+    @Test("No reenvio, a recusa do CONTEÚDO (campo, horário, seleção, função) prova que nada foi gravado: solta a chave, destrava os campos e o próximo envio leva chave nova", arguments: [
+        ErroDaApi(codigo: .campoInvalido, detalhes: "evento.nome"), ErroDaApi(codigo: .campoObrigatorio, detalhes: "vagas[0].responsavel_local"),
+        ErroDaApi(codigo: .horarioInvalido, detalhes: "vagas[0]"), ErroDaApi(codigo: .selecaoSemAntecedencia, detalhes: "vagas[1]"),
+        ErroDaApi(codigo: .funcaoIncompativel, detalhes: "vagas[1]"),
+    ])
+    func reenvioRecusadoPeloConteudoSoltaAChave(recusa: ErroDaApi) async throws {
+        let servidor = ServidorDeEscala([.failure(ErroDaApi(codigo: .semRede)), .failure(recusa), .success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+
+        await vm.publicar()
+        await vm.publicar()
+        #expect(vm.tentativaIncerta == nil)
+        #expect(vm.camposBloqueados == false)
+
+        vm.nome = "Formatura de Medicina"
+        await vm.publicar()
+        let enviadas = await servidor.recebidas
+        #expect(enviadas.count == 3)
+        #expect(enviadas[0].chave != enviadas[2].chave, "depois da recusa de conteúdo, a escala nova leva chave nova")
+        #expect(vm.resultado != nil)
+    }
+
+    @Test("A mensagem do resultado incerto avisa para conferir em Minhas vagas se o app for fechado")
+    func incertaAvisaDeFecharOApp() {
+        #expect(TextosDaEscala.Erro.incerta.contains("Se fechar o app, confira em Minhas vagas antes de publicar de novo."))
+    }
+
     @Test("Erro que não é do ErroDaApi (a rede crua) também guarda a escala")
     func erroCru() async throws {
         let servidor = ServidorDeEscala([.failure(URLError(.networkConnectionLost))])
