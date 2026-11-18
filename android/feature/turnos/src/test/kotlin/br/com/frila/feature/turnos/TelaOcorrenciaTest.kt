@@ -82,7 +82,7 @@ class TelaOcorrenciaTest {
         compose.onNodeWithText("O que aconteceu?").assertIsDisplayed()
 
         MotivoOcorrencia.entries.forEach { motivo ->
-            compose.onNodeWithText(motivo.descricao).assertIsDisplayed()
+            compose.onNodeWithText(motivo.descricao).performScrollTo().assertIsDisplayed()
         }
 
         compose.onNodeWithText("Enviar").assertIsNotEnabled()
@@ -187,6 +187,7 @@ class TelaOcorrenciaTest {
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton) and
                     hasText(motivo.descricao),
             )
+                .performScrollTo()
                 .assertIsDisplayed()
                 .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         }
@@ -215,7 +216,7 @@ class TelaOcorrenciaTest {
             compose.onNode(
                 SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive),
                 useUnmergedTree = true,
-            ).performScrollTo().assertIsDisplayed()
+            ).assertIsDisplayed()
         }
     }
 }
