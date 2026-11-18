@@ -141,6 +141,31 @@ class TelasDaEquipeDaCasaTest {
     }
 
     @Test
+    fun `depois de um 403 ao convidar o botao de convidar e as acoes de administrador somem da tela`() {
+        val vm = EquipeDaCasaViewModel(
+            estabelecimentoId = casa,
+            papel = PapelMembro.ADMINISTRADOR,
+            listar = { membros.toList() },
+            convidar = { _, _, _ -> throw br.com.frila.core.rede.ErroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", null, "x") },
+            remover = { _, _ -> error("não deveria") },
+            transferir = { _, _ -> error("não deveria") },
+            montarLink = { "https://frilabr.com/app/convite#$it" },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme(temaEscuro = false) { TelaEquipeDaCasa(viewModel = vm, nomeDaCasa = "Bar da Lia", aoVoltar = {}, aoCompartilhar = {}) }
+        }
+
+        rule.onNodeWithText(TextosEquipeDaCasa.EMAIL).performTextInput("novo@bar.com")
+        rule.onNodeWithText(TextosEquipeDaCasa.GERAR_CONVITE).performScrollTo().performClick()
+
+        rule.onNodeWithText(TextosEquipeDaCasa.SO_ADMINISTRADOR).assertIsDisplayed()
+        rule.onAllNodesWithText(TextosEquipeDaCasa.GERAR_CONVITE).assertCountEquals(0)
+        rule.onAllNodesWithText(TextosEquipeDaCasa.REMOVER).assertCountEquals(0)
+        rule.onAllNodesWithText("Beto Lima").assertCountEquals(0)
+    }
+
+    @Test
     fun `e-mail invalido mostra o erro no campo e nao gera convite`() {
         montarEquipe(PapelMembro.ADMINISTRADOR)
 

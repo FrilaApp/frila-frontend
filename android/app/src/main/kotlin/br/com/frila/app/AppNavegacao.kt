@@ -372,6 +372,8 @@ fun AppNavegacao(
     fun irParaEntrada() {
         guardaBiometrico.liberarAposLimparSessao()
         papelDaRaiz = null
+        // A casa escolhida em "Trocar de casa" é da conta que saiu: a próxima abertura vale a padrão do servidor.
+        casaEscolhidaId = null
         if (navController.currentDestination?.route == Rotas.ENTRADA && navController.previousBackStackEntry == null) return
         navController.navigate(Rotas.ENTRADA) {
             popUpTo(0) { inclusive = true }
@@ -455,6 +457,8 @@ fun AppNavegacao(
                         RotaDeAbertura(
                             avaliador = avaliadorDeDestino,
                             aoDecidir = { destino ->
+                                // Cada abertura decide a casa pelo servidor; uma escolha de antes não vale para esta conta.
+                                casaEscolhidaId = null
                                 val casa = (destino as? DestinoDaConta.Contratante)?.casa
                                 if (destino is DestinoDaConta.Contratante && casa == null) {
                                     // Contratante ainda sem casa não tem abas: o Perfil (Sair, Excluir conta) fica como

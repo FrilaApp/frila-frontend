@@ -75,8 +75,11 @@ class AppNavegacaoEquipeDaCasaTest {
     private val remocoes = mutableListOf<String>()
     private val aceitos = mutableListOf<String>()
     private val vagasAbertasDe = mutableListOf<String>()
+    // Sem sessão guardada: o grafo abre na Entrada, como nos outros testes; o aviso de sessão encerrada vale por isso.
+    private val autenticado = false
+    private val encerramentos = MutableStateFlow(0)
     private val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
-        every { estaAutenticado() } returns false
+        every { estaAutenticado() } answers { autenticado }
         every { isBiometriaAtivada() } returns false
     }
     private var papelAoAceitar = "operador"
@@ -146,6 +149,7 @@ class AppNavegacaoEquipeDaCasaTest {
                     navController = nav,
                     biometriaHabilitada = true,
                     servicoMembros = servicoMembros,
+                    encerramentosDaSessao = encerramentos,
                 )
             }
         }
@@ -322,5 +326,56 @@ class AppNavegacaoEquipeDaCasaTest {
         rule.waitForIdle()
 
         rule.runOnIdle { assertEquals(Rotas.DESBLOQUEIO, nav.currentDestination?.route) }
+    }
+
+    // ---- A casa escolhida não sobrevive à saída da conta (parecer do Lince Opus no #998) ----
+
+    private fun trocarParaCasa2NoPerfil() {
+        esperarTag(ENTRADA_TROCAR_DE_CASA)
+        rule.onNodeWithTag(ENTRADA_TROCAR_DE_CASA).performScrollTo().performClick()
+        esperarTexto("Casa casa-2")
+        rule.onNodeWithText("Casa casa-2").performClick()
+        rule.waitUntil(5_000) { nav.currentDestination?.route == Rotas.MINHAS_VAGAS }
+        rule.runOnIdle { nav.navigate(Rotas.PERFIL) }
+        esperarTag(ENTRADA_PUBLICAR_ESCALA)
+    }
+
+    /** A linha "Publicar escala do evento" do Perfil aponta para a casa em uso; abre a rota e devolve o id que ela recebeu. */
+    private fun casaDaEscalaNoPerfil(): String? {
+        esperarTag(ENTRADA_PUBLICAR_ESCALA)
+        rule.onNodeWithTag(ENTRADA_PUBLICAR_ESCALA).performScrollTo().performClick()
+        rule.waitUntil(5_000) { nav.currentDestination?.route == Rotas.PUBLICAR_ESCALA }
+        var id: String? = null
+        rule.runOnIdle { id = nav.currentBackStackEntry?.arguments?.getString("estabelecimentoId") }
+        return id
+    }
+
+    @Test
+    fun sairDaContaEEntrarDeNovoVoltaParaACasaPadraoDoServidor() {
+        montar(membrosDe(casa("casa-1"), casa("casa-2", "operador")), Rotas.PERFIL)
+        trocarParaCasa2NoPerfil()
+        assertEquals("casa-2", casaDaEscalaNoPerfil())
+        rule.runOnIdle { nav.popBackStack() }
+
+        rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.waitUntil(5_000) { nav.currentDestination?.route == Rotas.ENTRADA }
+        // Entra de novo (a abertura decide a casa pelo servidor) e cai no Perfil.
+        rule.runOnIdle { nav.navigate(Rotas.PERFIL) }
+
+        assertEquals("casa-1", casaDaEscalaNoPerfil())
+    }
+
+    @Test
+    fun sessaoQueVenceVoltaParaACasaPadraoDoServidor() {
+        montar(membrosDe(casa("casa-1"), casa("casa-2", "operador")), Rotas.PERFIL)
+        trocarParaCasa2NoPerfil()
+        assertEquals("casa-2", casaDaEscalaNoPerfil())
+        rule.runOnIdle { nav.popBackStack() }
+
+        rule.runOnIdle { encerramentos.value += 1 }
+        rule.waitUntil(5_000) { nav.currentDestination?.route == Rotas.ENTRADA }
+        rule.runOnIdle { nav.navigate(Rotas.PERFIL) }
+
+        assertEquals("casa-1", casaDaEscalaNoPerfil())
     }
 }
