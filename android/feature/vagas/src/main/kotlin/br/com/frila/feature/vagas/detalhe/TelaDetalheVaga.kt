@@ -11,15 +11,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -28,18 +36,34 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import br.com.frila.core.designsystem.componentes.BotaoPrimario
-import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaDivisoria
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeDado
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.feature.vagas.feed.IconeCamisa
+import br.com.frila.feature.vagas.feed.IconeFuncao
+import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val FUSO_BRASILIA: ZoneId = ZoneId.of("America/Sao_Paulo")
-private val FORMATO_HORARIO: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+private val PT_BR: Locale = Locale("pt", "BR")
+private val FORMATO_DATA_POR_EXTENSO: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy", PT_BR)
+private val FORMATO_HORA: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", PT_BR)
 
 @Composable
 fun TelaDetalheVaga(
@@ -58,6 +82,8 @@ fun TelaDetalheVaga(
     jaPediuNaSessao: () -> Boolean = { ControleSessaoNotificacao.jaPediuNaSessao },
     marcarPediuNaSessao: () -> Unit = { ControleSessaoNotificacao.marcarComoPedida() },
     aoResultadoPermissao: (Boolean) -> Unit = {},
+    /** Nulo (o padrão) deixa a tela sem a barra de topo: quem a abre ainda volta pelo gesto do sistema. */
+    aoVoltar: (() -> Unit)? = null,
 ) {
     val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -99,119 +125,161 @@ fun TelaDetalheVaga(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(FrilaEspacamento.grande),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-    ) {
-        Text(
-            text = vaga.funcao.nome,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(text = vaga.estabelecimento.nome, style = MaterialTheme.typography.titleSmall)
-        Text(
-            text = if (estado.ehModoUrgencia) "Modo urgência: confirmação na hora" else "Modo seleção: contratante escolhe depois",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    val rolagem = rememberScrollState()
+    // O cartão inteiro já apareceu: o rodapé vira barra, com o valor ao lado do botão.
+    val noFim by remember { derivedStateOf { !rolagem.canScrollForward } }
+    val candidaturaJaEnviada = estado.statusCandidatura == StatusCandidatura.CONFIRMADA ||
+        estado.statusCandidatura == StatusCandidatura.PENDENTE
+    val inicio = instanteDoServidor(vaga.inicioEm).atZone(FUSO_BRASILIA)
+    val fim = instanteDoServidor(vaga.fimEm).atZone(FUSO_BRASILIA)
+    val duracao = Duration.between(inicio, fim)
 
-        CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-            LinhaDetalhe(rotulo = "Local", valor = vaga.local)
-            LinhaDetalhe(rotulo = "Região", valor = vaga.regiaoAdministrativa)
-            LinhaDetalhe(rotulo = "Início", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.inicioEm)))
-            LinhaDetalhe(rotulo = "Fim", valor = FORMATO_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.fimEm)))
-            LinhaDetalhe(rotulo = "Valor", valor = Dinheiro(vaga.valorCentavos).formatado())
-            if (estado.mostraDistancia) {
-                LinhaDetalhe(rotulo = "Distância", valor = "${"%.1f".format(vaga.distanciaKm)} km")
-            }
-        }
-
-        // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-        estado.detalhe?.let { detalhe ->
-            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = TextosAberturaDeVaga.DETALHES,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                LinhaDetalhe(
-                    rotulo = TextosAberturaDeVaga.POSICOES_ABERTAS,
-                    valor = TextosAberturaDeVaga.POSICOES_DE.format(detalhe.posicoesAbertas, detalhe.posicoes),
-                )
-                LinhaDetalhe(rotulo = TextosAberturaDeVaga.RESPONSAVEL_NO_LOCAL, valor = detalhe.responsavelLocal)
-                detalhe.traje?.takeIf { it.isNotBlank() }?.let { LinhaDetalhe(rotulo = TextosAberturaDeVaga.TRAJE, valor = it) }
-                detalhe.observacoes?.takeIf { it.isNotBlank() }?.let { LinhaDetalhe(rotulo = TextosAberturaDeVaga.OBSERVACOES, valor = it) }
-            }
-        }
-
-        CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Inclui",
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            LinhaBeneficio("Refeição", vaga.inclusos.incluiRefeicao)
-            LinhaBeneficio("Transporte", vaga.inclusos.incluiTransporte)
-            LinhaBeneficio("Material próprio exigido", vaga.inclusos.exigeMaterialProprio)
-        }
-
-        estado.contato?.let { contato ->
-            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Contato confirmado",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                LinhaDetalhe(rotulo = "Nome", valor = contato.nome)
-                LinhaDetalhe(rotulo = "Telefone", valor = contato.telefone)
-            }
-        }
-
-        estado.mensagem?.let { mensagem ->
-            Text(
-                text = mensagem,
-                style = MaterialTheme.typography.bodyMedium,
-                color = when (estado.statusCandidatura) {
-                    StatusCandidatura.ERRO -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.onSurface
+    Scaffold(
+        modifier = modifier,
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { if (aoVoltar != null) FrilaBarraDeTopo(aoVoltar = aoVoltar) },
+        bottomBar = {
+            RodapeDoDetalheDaVaga(
+                valor = Dinheiro(vaga.valorCentavos).formatado(),
+                periodo = periodoDoRodape(duracao, inicio.hour),
+                noFim = noFim,
+                textoDoBotao = when (estado.statusCandidatura) {
+                    StatusCandidatura.ENVIANDO -> "Enviando…"
+                    StatusCandidatura.CONFIRMADA -> "Candidatura confirmada"
+                    StatusCandidatura.PENDENTE -> "Candidatura enviada"
+                    else -> "Candidatar-se"
                 },
-                modifier = Modifier.semantics {
-                    when (estado.statusCandidatura) {
-                        StatusCandidatura.ERRO -> {
-                            liveRegion = LiveRegionMode.Assertive
-                            error(mensagem)
-                        }
-                        StatusCandidatura.CONFIRMADA, StatusCandidatura.PENDENTE -> {
-                            liveRegion = LiveRegionMode.Polite
-                        }
-                        else -> Unit
+                aoClicar = viewModel::candidatar,
+                habilitado = estado.statusCandidatura != StatusCandidatura.ENVIANDO && !candidaturaJaEnviada,
+                mensagem = estado.mensagem?.let { mensagem ->
+                    {
+                        MensagemJuntoAoBotao(
+                            texto = mensagem,
+                            modifier = Modifier.semantics {
+                                when (estado.statusCandidatura) {
+                                    StatusCandidatura.ERRO -> {
+                                        liveRegion = LiveRegionMode.Assertive
+                                        error(mensagem)
+                                    }
+                                    StatusCandidatura.CONFIRMADA, StatusCandidatura.PENDENTE -> {
+                                        liveRegion = LiveRegionMode.Polite
+                                    }
+                                    else -> Unit
+                                }
+                            },
+                        )
                     }
                 },
             )
+        },
+    ) { preenchimento ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(preenchimento)
+                .verticalScroll(rolagem)
+                .padding(horizontal = FrilaEspacamento.grupo)
+                .padding(top = FrilaEspacamento.item, bottom = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+        ) {
+            // A casa em caixa alta; o leitor de tela lê o nome como ele é.
+            TituloDaTela(
+                texto = vaga.estabelecimento.nome.uppercase(PT_BR),
+                modifier = Modifier.clearAndSetSemantics {
+                    heading()
+                    text = AnnotatedString(vaga.estabelecimento.nome)
+                },
+            )
+
+            // A faixa do modo, sobre o fundo, sem cartão: o que o toque no botão vai fazer.
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                if (estado.ehModoUrgencia) {
+                    SeloDeStatus(texto = "Urgência", estilo = EstiloDoSelo.URGENCIA)
+                } else {
+                    SeloDeStatus(texto = "Por seleção", estilo = EstiloDoSelo.CONTORNO)
+                }
+                Text(
+                    text = if (estado.ehModoUrgencia) "Modo urgência: confirmação na hora" else "Modo seleção: contratante escolhe depois",
+                    style = FrilaTipo.fraseDoModo,
+                    color = FrilaTema.cores.tinta,
+                )
+            }
+
+            CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    // Dá para ir?
+                    FrilaLinhaDeDado(icone = IconeFuncao, valor = vaga.funcao.nome)
+                    FrilaLinhaDeDado(
+                        icone = Icons.Default.DateRange,
+                        valor = dataPorExtenso(inicio.toLocalDate()) + "\ndas ${FORMATO_HORA.format(inicio)} às ${FORMATO_HORA.format(fim)}",
+                        qualificador = "(${duracaoCurta(duracao)} de turno)",
+                    )
+                    FrilaLinhaDeDado(
+                        icone = Icons.Default.Place,
+                        valor = if (estado.mostraDistancia) {
+                            "${vaga.local}, ${vaga.regiaoAdministrativa}\n${"%.1f km".format(PT_BR, vaga.distanciaKm)}"
+                        } else {
+                            "${vaga.local}, ${vaga.regiaoAdministrativa}"
+                        },
+                        qualificador = if (estado.mostraDistancia) "de distância" else null,
+                    )
+                    estado.detalhe?.traje?.takeIf { it.isNotBlank() }?.let { traje ->
+                        FrilaLinhaDeDado(icone = IconeCamisa, valor = "${TextosAberturaDeVaga.TRAJE}: $traje")
+                    }
+                }
+
+                FrilaDivisoria(modifier = Modifier.padding(vertical = FrilaEspacamento.bloco))
+
+                // Compensa?
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                    Text(
+                        text = Dinheiro(vaga.valorCentavos).formatado(),
+                        style = FrilaTipo.valorEmDestaque,
+                        color = FrilaTema.cores.tinta,
+                    )
+                    RotuloDeGrupo(texto = "Inclui", modifier = Modifier.padding(top = FrilaEspacamento.item))
+                    LinhaBeneficio("Refeição", vaga.inclusos.incluiRefeicao)
+                    LinhaBeneficio("Transporte", vaga.inclusos.incluiTransporte)
+                    LinhaBeneficio("Material próprio exigido", vaga.inclusos.exigeMaterialProprio)
+                }
+            }
+
+            estado.detalhe?.let { detalhe ->
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(texto = TextosAberturaDeVaga.DETALHES)
+                    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                            LinhaDeTexto(
+                                TextosAberturaDeVaga.POSICOES_ABERTAS,
+                                TextosAberturaDeVaga.POSICOES_DE.format(detalhe.posicoesAbertas, detalhe.posicoes),
+                            )
+                            LinhaDeTexto(TextosAberturaDeVaga.RESPONSAVEL_NO_LOCAL, detalhe.responsavelLocal)
+                            detalhe.observacoes?.takeIf { it.isNotBlank() }?.let {
+                                LinhaDeTexto(TextosAberturaDeVaga.OBSERVACOES, it)
+                            }
+                        }
+                    }
+                }
+            }
+
+            estado.contato?.let { contato ->
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(texto = "Contato confirmado")
+                    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                            LinhaDeTexto("Nome", contato.nome)
+                            LinhaDeTexto("Telefone", contato.telefone)
+                        }
+                    }
+                }
+            }
         }
-
-        val candidaturaJaEnviada = estado.statusCandidatura == StatusCandidatura.CONFIRMADA ||
-            estado.statusCandidatura == StatusCandidatura.PENDENTE
-
-        BotaoPrimario(
-            texto = when (estado.statusCandidatura) {
-                StatusCandidatura.ENVIANDO -> "Enviando…"
-                StatusCandidatura.CONFIRMADA -> "Candidatura confirmada"
-                StatusCandidatura.PENDENTE -> "Candidatura enviada"
-                else -> "Candidatar-se"
-            },
-            aoClicar = viewModel::candidatar,
-            habilitado = estado.statusCandidatura != StatusCandidatura.ENVIANDO && !candidaturaJaEnviada,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 
 @Composable
-private fun LinhaDetalhe(rotulo: String, valor: String) {
-    Text(text = "$rotulo: $valor", style = MaterialTheme.typography.bodyMedium)
+private fun LinhaDeTexto(rotulo: String, valor: String) {
+    Text(text = "$rotulo: $valor", style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
 }
 
 @Composable
@@ -219,9 +287,31 @@ private fun LinhaBeneficio(rotulo: String, incluido: Boolean) {
     val estado = if (incluido) "incluído" else "não incluído"
     Text(
         text = "${if (incluido) "✓" else "—"} $rotulo",
-        style = MaterialTheme.typography.bodySmall,
+        style = FrilaTipo.corpo,
+        color = if (incluido) FrilaTema.cores.tinta else FrilaTema.cores.tintaSuave,
         modifier = Modifier.clearAndSetSemantics {
             contentDescription = "$rotulo: $estado"
         },
     )
+}
+
+/** "Sábado, 21 de novembro de 2026". */
+private fun dataPorExtenso(data: java.time.LocalDate): String =
+    FORMATO_DATA_POR_EXTENSO.format(data).replaceFirstChar { it.titlecase(PT_BR) }
+
+/** "6 h" ou "6 h 30 min". */
+private fun duracaoCurta(duracao: Duration): String {
+    val horas = duracao.toHours()
+    val minutos = duracao.toMinutesPart()
+    return if (minutos == 0) "$horas h" else "$horas h $minutos min"
+}
+
+/** "6 h à noite": a duração e em que parte do dia o turno começa. */
+private fun periodoDoRodape(duracao: Duration, horaDeInicio: Int): String {
+    val parteDoDia = when (horaDeInicio) {
+        in 5..11 -> "de manhã"
+        in 12..17 -> "à tarde"
+        else -> "à noite"
+    }
+    return "${duracaoCurta(duracao)} $parteDoDia"
 }
