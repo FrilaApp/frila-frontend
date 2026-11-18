@@ -2,30 +2,19 @@ package br.com.frila.core.designsystem.componentes
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
 /** Textos normativos em português brasileiro (guia de voz Frila). */
 object TextosAtualizacaoObrigatoria {
@@ -63,8 +52,11 @@ object ComparadorDeVersao {
 }
 
 /**
- * Tela de bloqueio por atualização obrigatória (Cartão v1.2 / Paridade com `AtualizacaoObrigatoria.swift`).
+ * Tela de bloqueio por atualização obrigatória (paridade com `AtualizacaoObrigatoria.swift`).
  * Exibida quando a versão mínima exigida pela plataforma/backend é superior à versão instalada.
+ *
+ * No desenho do Fabrício é uma tela de entrada: o título e o motivo em cima, alinhados à margem, e a
+ * única saída (o botão primário) ancorada embaixo. Sem ícone e sem outra ação: não há como seguir sem atualizar.
  */
 @Composable
 fun TelaAtualizacaoObrigatoria(
@@ -72,60 +64,41 @@ fun TelaAtualizacaoObrigatoria(
     modifier: Modifier = Modifier,
     mensagem: String = TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO,
 ) {
-    Box(
+    val cores = FrilaTema.cores
+
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(FrilaEspacamento.grande),
-        contentAlignment = Alignment.Center,
+            .background(cores.fundo),
     ) {
         Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grande),
+                // Sem barra de topo: o app desenha de borda a borda no Android 15+, então o conteúdo recua da barra de status.
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = FrilaEspacamento.grupo,
+                    end = FrilaEspacamento.grupo,
+                    top = FrilaEspacamento.respiro,
+                    bottom = FrilaEspacamento.grupo,
+                ),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, shape = CircleShape)
-                    .clearAndSetSemantics { },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(40.dp),
-                )
-            }
+            TituloDaTela(TextosAtualizacaoObrigatoria.TITULO)
+            Text(
+                text = mensagem,
+                style = FrilaTipo.corpo,
+                color = cores.tintaSuave,
+            )
+        }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
-            ) {
-                Text(
-                    text = TextosAtualizacaoObrigatoria.TITULO,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-
+        RodapeAncorado {
             BotaoPrimario(
                 texto = TextosAtualizacaoObrigatoria.BOTAO_ATUALIZAR,
                 aoClicar = aoAtualizar,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.medio),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
