@@ -348,6 +348,8 @@ public struct TelaRepublicarVaga: View {
             .containerRelativeFrame(.horizontal)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
+        // O identificador da tela fica na rolagem: no fim da cadeia ele passava por cima do botão do rodapé.
+        .accessibilityIdentifier("tela-republicar-vaga")
         .rodapeAncorado { rodape }
         .navigationTitle(TextosRepublicarVaga.titulo)
         .navigationBarTitleDisplayMode(.inline)
@@ -372,7 +374,6 @@ public struct TelaRepublicarVaga: View {
             await viewModel.restaurarTentativaPendente()
         }
         .interactiveDismissDisabled(viewModel.enviando || viewModel.restaurandoTentativa)
-        .accessibilityIdentifier("tela-republicar-vaga")
     }
 
     private var cabecalho: some View {
