@@ -67,7 +67,7 @@ class BuscaTextualVagasTest {
             }
         }
 
-        val campo = compose.onNodeWithContentDescription("Buscar vagas por função ou estabelecimento")
+        val campo = compose.onNodeWithContentDescription("Buscar função ou estabelecimento")
         campo
             .assertIsDisplayed()
             .assertHeightIsAtLeast(48.dp)

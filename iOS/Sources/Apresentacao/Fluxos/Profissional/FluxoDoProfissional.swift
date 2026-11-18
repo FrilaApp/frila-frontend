@@ -72,6 +72,15 @@ public final class RoteadorDoProfissional {
         aba = .vagas
     }
 
+    /// A conta saiu, a sessão caiu ou outra conta entrou. Além de voltar para a lista, solta a candidatura que ainda
+    /// estiver em voo: o roteador é do app, não da conta, e sem isto o resultado da conta anterior (com a vaga dela)
+    /// reabria para a conta seguinte. `voltarParaLista` não faz isso de propósito: dentro da mesma conta, a pessoa
+    /// sai do detalhe e o resultado da própria candidatura ainda tem de abrir.
+    public func reiniciarParaOutraConta() {
+        candidaturaEmAndamento = nil
+        voltarParaLista()
+    }
+
     public func ajustarFuncoes(vagaID: UUID, resultado: ResultadoDaCandidatura) {
         guard case .inelegivel(.funcaoIncompativel) = resultado else { return }
         caminho.append(.ajustarFuncoes(vagaID: vagaID))
@@ -212,6 +221,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         }
                     }
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(TextosDoProfissional.Lista.titulo, systemImage: "briefcase")
             }
@@ -225,6 +235,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                     destinoDoMeuTurno(turno)
                 }
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(TextosDoProfissional.Turnos.tituloMeusTurnos, systemImage: "calendar")
             }
@@ -248,6 +259,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         }
                     }
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(TextosDaCandidaturaEmSelecao.titulo, systemImage: "paperplane")
             }
@@ -256,11 +268,15 @@ public struct FluxoDoProfissional<Barra: View>: View {
             NavigationStack {
                 TelaMeuPerfilProfissional(api: api, sair: sair)
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(String(localized: "Conta", bundle: bundleApresentacao), systemImage: "person.crop.circle")
             }
             .tag(AbaDoProfissional.conta)
         }
+        // Barra de abas do desenho do Fabrício: o ícone da aba ativa vai na cor de ação. Cada aba devolve a tinta ao
+        // seu conteúdo (`.tint(FrilaCor.primaria)` acima), para link e controle nativo não virarem texto laranja.
+        .tint(FrilaCor.acao)
         .environment(feed.bloqueios)
         .task { await descobrirContaDeDemonstracao() }
         .onChange(of: feed.bloqueios.alvos) {

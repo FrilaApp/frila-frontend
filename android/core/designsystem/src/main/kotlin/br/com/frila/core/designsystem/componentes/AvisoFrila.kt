@@ -1,7 +1,5 @@
 package br.com.frila.core.designsystem.componentes
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +14,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,10 +25,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import br.com.frila.core.designsystem.tema.FrilaCores
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
 /**
  * Tons de alerta e feedback do Frila (paridade direta com `AvisoFrila` do iOS / Cartão nliiRfQg).
@@ -44,9 +42,9 @@ enum class TomAviso {
 }
 
 /**
- * Faixa / banner de aviso contextual para mensagens transientes ou inline (RNF10).
- *
- * Utiliza 12% de opacidade da cor do tom no fundo, contorno hairline e ícones padronizados.
+ * Bloco de aviso contextual (RNF10), no desenho do Fabrício: preenchimento neutro, raio 16, ícone e
+ * texto em tinta. Problema não tem cor: o tom vai no ícone e no prefixo falado, nunca em vermelho,
+ * verde ou amarelo lavado. Erro de uma ação fica junto ao botão ([MensagemJuntoAoBotao]), não aqui.
  */
 @Composable
 fun AvisoFrila(
@@ -56,16 +54,7 @@ fun AvisoFrila(
     titulo: String? = null,
     aoDispensar: (() -> Unit)? = null,
 ) {
-    val escuro = isSystemInDarkTheme()
-    val corDestaque = when (tom) {
-        TomAviso.ERRO -> if (escuro) FrilaCores.dangerDark else FrilaCores.dangerLight
-        TomAviso.ALERTA -> if (escuro) FrilaCores.warningDark else FrilaCores.warningLight
-        TomAviso.SUCESSO -> if (escuro) FrilaCores.successDark else FrilaCores.successLight
-        TomAviso.INFORMATIVO -> if (escuro) FrilaCores.brandAccentDark else FrilaCores.brandAccentLight
-    }
-
-    val corFundo = corDestaque.copy(alpha = 0.12f)
-    val corBorda = corDestaque.copy(alpha = 0.25f)
+    val cores = FrilaTema.cores
 
     val iconePadrao: ImageVector = when (tom) {
         TomAviso.ERRO -> Icons.Default.Warning
@@ -88,38 +77,37 @@ fun AvisoFrila(
                 liveRegion = LiveRegionMode.Polite
                 contentDescription = "$prefixoAcessibilidade${titulo?.let { "$it. " } ?: ""}$mensagem"
             },
-        shape = RoundedCornerShape(FrilaRaios.medio),
-        color = corFundo,
-        border = BorderStroke(1.dp, corBorda),
+        shape = RoundedCornerShape(FrilaRaios.interno),
+        color = cores.superficiePressionada,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(FrilaEspacamento.compacto),
+                .padding(FrilaEspacamento.bloco),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
         ) {
             Icon(
                 imageVector = iconePadrao,
                 contentDescription = null,
-                tint = corDestaque,
+                tint = cores.tinta,
                 modifier = Modifier.size(24.dp),
             )
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto),
             ) {
                 if (!titulo.isNullOrBlank()) {
                     Text(
                         text = titulo,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = FrilaTipo.rotuloSecundario,
+                        color = cores.tinta,
                     )
                 }
                 Text(
                     text = mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
                 )
             }
             if (aoDispensar != null) {
@@ -130,7 +118,7 @@ fun AvisoFrila(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Fechar aviso",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = cores.tintaSuave,
                     )
                 }
             }

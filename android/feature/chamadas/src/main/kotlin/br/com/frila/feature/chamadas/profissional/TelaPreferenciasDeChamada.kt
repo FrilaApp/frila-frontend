@@ -2,19 +2,14 @@ package br.com.frila.feature.chamadas.profissional
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
@@ -27,19 +22,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
-import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeNavegacao
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -77,7 +74,8 @@ fun TelaPreferenciasDeChamada(
 /**
  * Preferências de chamada (CD-I5d; paridade com `TelaPreferenciasDeChamada.swift`, mais o "Aceito chamadas
  * diretas" e as pendências da busca, CD-P10 a CD-P12): mesma ordem de campos do iOS, com o pedido do titular
- * no topo. Pausa por data (diálogo de data), antecedência e "quem pode me chamar" em escolhas de uma opção.
+ * no topo. Interruptores nativos em linhas de grupo; pausa por data (diálogo de data), antecedência e "quem pode
+ * me chamar" em listas com check. "Salvar preferências" fica no rodapé ancorado, com o erro e o "salvo" acima.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,32 +96,47 @@ fun ConteudoPreferenciasDeChamada(
     hoje: LocalDate = LocalDate.now(FormatoChamada.fuso),
 ) {
     var escolhendoData by rememberSaveable { mutableStateOf(false) }
+    val formularioPronto = tela.carregou && !tela.carregando
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { BarraDoTopoChamada(TextosChamadaProfissional.PREFERENCIAS_TITULO, aoVoltar) },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
+        bottomBar = {
+            if (formularioPronto) {
+                RodapeAncorado {
+                    tela.erro?.let { MensagemJuntoAoBotao(it) }
+                    if (tela.sucesso) {
+                        MensagemJuntoAoBotao(
+                            texto = TextosChamadaProfissional.PREFERENCIAS_SALVAS,
+                            modifier = Modifier.testTag("preferencias-sucesso"),
+                        )
+                    }
+                    BotaoPrimario(
+                        texto = TextosChamadaProfissional.PREFERENCIAS_SALVAR,
+                        aoClicar = aoSalvar,
+                        habilitado = !tela.salvando,
+                        modifier = Modifier.fillMaxWidth().testTag("salvar-preferencias-chamada"),
+                    )
+                }
+            }
+        },
     ) { preenchimento ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
+            TituloDaTela(TextosChamadaProfissional.PREFERENCIAS_TITULO)
             when {
-                tela.carregando -> Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = FrilaEspacamento.grande),
-                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Text(text = TextosChamadaProfissional.CARREGANDO, style = MaterialTheme.typography.bodyMedium)
-                }
-                !tela.carregou -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio)) {
-                    tela.erro?.let { AvisoFrila(tom = TomAviso.ERRO, mensagem = it) }
-                    BotaoPrimario(texto = TextosChamadaProfissional.TENTAR_NOVAMENTE, aoClicar = aoTentarNovamente)
-                }
+                tela.carregando -> EstadoCarregando(mensagem = TextosChamadaProfissional.CARREGANDO)
+                !tela.carregou -> ErroDeCargaChamada(
+                    mensagem = tela.erro ?: TextosChamadaProfissional.ERRO,
+                    aoTentarNovamente = aoTentarNovamente,
+                )
                 else -> Formulario(
                     tela = tela,
                     aoAlternarAceitaChamadas = aoAlternarAceitaChamadas,
@@ -132,7 +145,6 @@ fun ConteudoPreferenciasDeChamada(
                     aoAbrirData = { escolhendoData = true },
                     aoEscolherAntecedencia = aoEscolherAntecedencia,
                     aoEscolherQuemPodeChamar = aoEscolherQuemPodeChamar,
-                    aoSalvar = aoSalvar,
                     aoEditarServicos = aoEditarServicos,
                     buscaProfissionaisHabilitada = buscaProfissionaisHabilitada,
                 )
@@ -176,114 +188,92 @@ private fun Formulario(
     aoAbrirData: () -> Unit,
     aoEscolherAntecedencia: (Int) -> Unit,
     aoEscolherQuemPodeChamar: (String) -> Unit,
-    aoSalvar: () -> Unit,
     aoEditarServicos: (() -> Unit)?,
     buscaProfissionaisHabilitada: Boolean,
 ) {
     val livre = !tela.salvando
-    tela.erro?.let { erro ->
-        AvisoFrila(tom = TomAviso.ERRO, mensagem = erro, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
-    }
-    if (tela.sucesso) {
-        AvisoFrila(
-            tom = TomAviso.INFORMATIVO,
-            mensagem = TextosChamadaProfissional.PREFERENCIAS_SALVAS,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("preferencias-sucesso"),
-        )
-    }
+    val cores = FrilaTema.cores
 
     if (buscaProfissionaisHabilitada) {
         // "Aceito chamadas diretas" (CD-P10 a CD-P12): o pedido do titular, sem "autorizo" nem "consinto" (J1).
-        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-            Text(
-                text = TextosChamadaProfissional.ACEITO_TITULO,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            LinhaComChave(
-                titulo = TextosChamadaProfissional.ACEITO_TEXTO,
-                ligado = tela.aceitaChamadas,
-                aoMudar = aoAlternarAceitaChamadas,
-                habilitado = livre,
-                modifier = Modifier.testTag("chave-aceita-chamadas"),
-            )
-            Text(
-                text = TextosChamadaProfissional.ACEITO_O_QUE_APARECE,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = TextosChamadaProfissional.ACEITO_DESLIGAR,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+            FrilaGrupoDeLinhas(titulo = TextosChamadaProfissional.ACEITO_TITULO) {
+                linha {
+                    LinhaComChave(
+                        titulo = TextosChamadaProfissional.ACEITO_TEXTO,
+                        ligado = tela.aceitaChamadas,
+                        aoMudar = aoAlternarAceitaChamadas,
+                        habilitado = livre,
+                        modifier = Modifier.testTag("chave-aceita-chamadas"),
+                    )
+                }
+            }
+            Text(text = TextosChamadaProfissional.ACEITO_O_QUE_APARECE, style = FrilaTipo.apoio, color = cores.tintaSuave)
+            Text(text = TextosChamadaProfissional.ACEITO_DESLIGAR, style = FrilaTipo.apoio, color = cores.tintaSuave)
             val pendencias = tela.pendencias.mapNotNull(TextosChamadaProfissional::pendencia)
             if (tela.aceitaChamadas && pendencias.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.testTag("pendencias-busca"),
-                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo),
-                ) {
-                    Text(
-                        text = TextosChamadaProfissional.PENDENCIAS_TITULO,
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    pendencias.forEach { Text(text = "• $it", style = MaterialTheme.typography.bodyMedium) }
+                CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("pendencias-busca")) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                        RotuloDeGrupo(TextosChamadaProfissional.PENDENCIAS_TITULO)
+                        pendencias.forEach { Text(text = "• $it", style = FrilaTipo.corpo, color = cores.tinta) }
+                    }
                 }
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 
     // Serviços com preço são da chamada direta (existem no iOS), não da busca: não dependem da chave `busca_profissionais`.
     if (aoEditarServicos != null) {
-        BotaoSecundario(
-            texto = TextosChamadaProfissional.EDITAR_SERVICOS,
-            aoClicar = aoEditarServicos,
-            modifier = Modifier.fillMaxWidth().testTag("editar-servicos"),
-        )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        FrilaGrupoDeLinhas {
+            linha {
+                FrilaLinhaDeNavegacao(
+                    titulo = TextosChamadaProfissional.EDITAR_SERVICOS,
+                    aoClicar = aoEditarServicos,
+                    modifier = Modifier.testTag("editar-servicos"),
+                )
+            }
+        }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-        LinhaComChave(
-            titulo = TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU,
-            ligado = tela.aceitaDeQuemJaTrabalhou,
-            aoMudar = aoAlternarAceitaDeQuemJaTrabalhou,
-            habilitado = livre,
-            modifier = Modifier.testTag("toggle-receber-chamadas"),
-        )
-        Text(
-            text = TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU_SUBTITULO,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-        LinhaComChave(
-            titulo = TextosChamadaProfissional.PAUSAR_CHAMADAS,
-            ligado = tela.pausar,
-            aoMudar = aoAlternarPausa,
-            habilitado = livre,
-            modifier = Modifier.testTag("toggle-pausa-chamadas"),
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        FrilaGrupoDeLinhas {
+            linha {
+                LinhaComChave(
+                    titulo = TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU,
+                    subtitulo = TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU_SUBTITULO,
+                    ligado = tela.aceitaDeQuemJaTrabalhou,
+                    aoMudar = aoAlternarAceitaDeQuemJaTrabalhou,
+                    habilitado = livre,
+                    modifier = Modifier.testTag("toggle-receber-chamadas"),
+                )
+            }
+            linha {
+                LinhaComChave(
+                    titulo = TextosChamadaProfissional.PAUSAR_CHAMADAS,
+                    ligado = tela.pausar,
+                    aoMudar = aoAlternarPausa,
+                    habilitado = livre,
+                    modifier = Modifier.testTag("toggle-pausa-chamadas"),
+                )
+            }
+            if (tela.pausar) {
+                linha {
+                    FrilaLinhaDeNavegacao(
+                        titulo = "${TextosChamadaProfissional.PAUSAR_ATE_DATA}: ${FormatoChamada.data(tela.pausadoAte)}",
+                        aoClicar = { if (livre) aoAbrirData() },
+                        modifier = Modifier.testTag("data-pausa-chamadas"),
+                    )
+                }
+            }
+        }
         if (tela.pausar) {
-            BotaoSecundario(
-                texto = "${TextosChamadaProfissional.PAUSAR_ATE_DATA}: ${FormatoChamada.data(tela.pausadoAte)}",
-                aoClicar = aoAbrirData,
-                habilitado = livre,
-                modifier = Modifier.fillMaxWidth().testTag("data-pausa-chamadas"),
-            )
             Text(
                 text = TextosChamadaProfissional.retomadaDaPausa(FormatoChamada.data(tela.diaDaRetomada)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = FrilaTipo.apoio,
+                color = cores.tintaSuave,
             )
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
     EscolhaUnica(
         titulo = TextosChamadaProfissional.ANTECEDENCIA_MINIMA,
@@ -298,7 +288,6 @@ private fun Formulario(
         habilitado = livre,
         modifier = Modifier.testTag("picker-antecedencia-chamada"),
     )
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
     EscolhaUnica(
         titulo = TextosChamadaProfissional.QUEM_PODE_CHAMAR,
@@ -311,17 +300,10 @@ private fun Formulario(
         habilitado = livre,
         modifier = Modifier.testTag("picker-quem-pode-chamar"),
     )
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
     Text(
         text = TextosChamadaProfissional.AVISO_CHAMADAS_EXISTENTES,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    BotaoPrimario(
-        texto = TextosChamadaProfissional.PREFERENCIAS_SALVAR,
-        aoClicar = aoSalvar,
-        habilitado = livre,
-        modifier = Modifier.fillMaxWidth().testTag("salvar-preferencias-chamada"),
+        style = FrilaTipo.apoio,
+        color = cores.tintaSuave,
     )
 }

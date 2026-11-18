@@ -41,20 +41,29 @@ import br.com.frila.core.rede.RepositorioVerificacaoIdentidade
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
+import br.com.frila.core.rede.VagaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.LeitorDeAmbiente
 import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
+import br.com.frila.feature.conta.ContaSuspensaViewModel
+import br.com.frila.feature.conta.ContestarDespachoViewModel
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
+import br.com.frila.feature.vagas.candidaturas.MinhasCandidaturasViewModel
+import br.com.frila.feature.vagas.candidaturas.RetirarCandidaturaViewModel
+import br.com.frila.feature.vagas.detalhe.AberturaDeVagaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltro
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroEmMemoria
 import br.com.frila.feature.vagas.feed.ArmazenamentoPreferenciasFiltroDataStore
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.feature.vagas.painel.CancelarVagaViewModel
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
+import br.com.frila.feature.vagas.painel.RepublicarPosicoesRestantesViewModel
+import br.com.frila.feature.vagas.painel.RepublicarVagaViewModel
 import br.com.frila.feature.chamadas.profissional.ChamadaRecebidaViewModel
 import br.com.frila.feature.chamadas.profissional.EditarServicosViewModel
 import br.com.frila.feature.chamadas.profissional.PreferenciasChamadaViewModel
@@ -65,6 +74,7 @@ import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.chamadas.casa.ServicoDeRegioes
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
+import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
@@ -79,6 +89,7 @@ import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.PreparadorDeJpegDoAparelho
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.suporte.BloqueiosViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
@@ -89,6 +100,7 @@ import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
 import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
+import java.time.Duration
 import java.time.Instant
 import org.koin.androidx.viewmodel.dsl.viewModel
 import kotlinx.coroutines.CoroutineScope
@@ -252,7 +264,8 @@ val moduloFeatures = module {
     }
     viewModel { CadastroViewModel(get()) }
     viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
-    viewModel { (vaga: VagaAbertaDto) -> DetalheVagaViewModel(vaga, get()) }
+    /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
+    viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>()) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
         CheckinViewModel(turnoId, coordenadaDaVaga, get(), get())
@@ -344,7 +357,12 @@ val moduloFeatures = module {
      */
     viewModel { (contexto: ContextoDoTurnoContratante) ->
         val turnos = get<ServicoTurnos>()
-        AcompanhamentoContratanteViewModel(contexto = contexto, confirmar = turnos::confirmarCheckinManual)
+        // L2-2: `reabrir` liga o botão "Reabrir vaga" (a tela a pergunta antes: reabrir registra a falta e não tem volta).
+        AcompanhamentoContratanteViewModel(
+            contexto = contexto,
+            confirmar = turnos::confirmarCheckinManual,
+            reabrir = turnos::reabrirPorAtraso,
+        )
     }
     /**
      * Lado da casa na chamada direta (UC de contratação direta, 0.2.88). As chaves `chamada_direta` e
@@ -454,6 +472,60 @@ val moduloFeatures = module {
     /** Código de chegada, lado da casa (L1-5): `gerar_codigo_checkin`; `aoConfirmar` avisa a tela quando a presença foi verificada. */
     viewModel { (turnoId: String, aoConfirmar: (() -> Unit)?) ->
         CodigoDaCasaViewModel(turnoId = turnoId, gerar = get<ServicoTurnos>()::gerarCodigoCheckin, aoConfirmar = aoConfirmar)
+    }
+    /**
+     * Lote 2 do Android (L2-8): as telas provisórias ligadas. Cada ViewModel recebe a chamada do serviço por função; os parâmetros vêm da rota.
+     * L2-3: a casa cancela a vaga inteira e a republica (inteira ou só as posições que a seleção deixou vazias).
+     */
+    viewModel { (vagaId: String, inicioDaVaga: Instant?) ->
+        CancelarVagaViewModel(vagaId = vagaId, inicioDaVaga = inicioDaVaga, cancelar = get<ServicoVagas>()::cancelarVaga)
+    }
+    viewModel { (vagaId: String, selecao: Boolean, duracaoOriginal: Duration) ->
+        RepublicarVagaViewModel(vagaId = vagaId, selecao = selecao, duracaoOriginal = duracaoOriginal, republicar = get<ServicoVagas>()::republicarVaga)
+    }
+    viewModel { (vagaId: String, posicoesRestantes: Int, aoRepublicar: (String) -> Unit, aoMudarOPainel: () -> Unit) ->
+        RepublicarPosicoesRestantesViewModel(
+            vagaId = vagaId,
+            posicoesRestantes = posicoesRestantes,
+            republicar = get<ServicoVagas>()::republicarPosicoesRestantes,
+            aoRepublicar = aoRepublicar,
+            aoMudarOPainel = aoMudarOPainel,
+        )
+    }
+    /** L2-4: a vaga aberta pelo id (`detalhe_vaga`); as candidaturas da conta e a retirada de uma (`aoRetirar` avisa a lista). */
+    viewModel { (vagaId: String) -> AberturaDeVagaViewModel(vagaId = vagaId, buscarDetalhe = get<ServicoVagas>()::detalheVaga) }
+    viewModel {
+        val vagas = get<ServicoVagas>()
+        MinhasCandidaturasViewModel(buscar = { vagas.minhasCandidaturas() })
+    }
+    viewModel { (candidaturaId: String, aoRetirar: () -> Unit) ->
+        val vagas = get<ServicoVagas>()
+        RetirarCandidaturaViewModel(
+            candidaturaId = candidaturaId,
+            retirar = vagas::retirarCandidatura,
+            minhasCandidaturas = { vagas.minhasCandidaturas() },
+            aoRetirar = aoRetirar,
+        )
+    }
+    /** L2-5: a situação da conta e a contestação da suspensão (`aoReativar` reavalia a abertura); o pedido de revisão do despacho. */
+    viewModel { (aoReativar: () -> Unit) ->
+        val conta = get<ServicoConta>()
+        ContaSuspensaViewModel(buscarSituacao = conta::situacaoDaConta, contestar = conta::contestarSuspensao, aoReativar = aoReativar)
+    }
+    viewModel { ContestarDespachoViewModel(pedirRevisao = get<ServicoConta>()::pedirRevisaoDespacho) }
+    /** L2-6: bloqueios da conta (listar e desfazer) e "Incluir na equipe" do profissional que cumpriu turno. */
+    viewModel {
+        val confianca = get<ServicoConfianca>()
+        BloqueiosViewModel(listar = confianca::listarBloqueios, desfazer = confianca::desbloquear)
+    }
+    viewModel { (estabelecimentoId: String, profissionalId: String) ->
+        val confianca = get<ServicoConfianca>()
+        IncluirNaEquipeViewModel(
+            estabelecimentoId = estabelecimentoId,
+            profissionalId = profissionalId,
+            listar = confianca::equipeDeConfianca,
+            incluirMembro = confianca::incluirNaEquipe,
+        )
     }
     /** Chamada direta, lado do profissional (contrato 0.2.88): serviços com preço, preferências e chamada recebida. */
     viewModel {

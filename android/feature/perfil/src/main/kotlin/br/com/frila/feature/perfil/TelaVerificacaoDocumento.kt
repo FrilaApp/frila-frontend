@@ -10,25 +10,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,20 +29,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.EstadoErro
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaDivisoria
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.dominio.modelo.StatusVerificacaoIdentidade
 import br.com.frila.core.dominio.modelo.TipoDocumentoIdentidade
 import br.com.frila.core.dominio.modelo.TipoParteEvidencia
@@ -64,6 +63,7 @@ internal object TextosVerificacaoDocumento {
     const val TITULO = "Selo de confiança"
     const val ROTULO_VOLTAR = "Voltar"
     const val CARREGANDO = "Carregando a verificação"
+    const val ERRO_PADRAO = "Não foi possível carregar a verificação."
     const val TENTAR_NOVAMENTE = "Tentar novamente"
     const val APROVADA = "Sua identidade foi verificada. O selo \"Identidade Verificada\" aparece no seu perfil."
     const val EM_ANALISE = "Recebemos seus documentos. A moderação está analisando e você será avisado do resultado."
@@ -73,6 +73,7 @@ internal object TextosVerificacaoDocumento {
         "Escolha o tipo de documento e envie três fotos nítidas, com boa luz e sem cortar as bordas: " +
             "frente, verso e uma selfie. Cada foto pode ter até 5 MB."
     const val DOCUMENTO = "Tipo de documento"
+    const val FOTOS = "Fotos"
     const val ESCOLHER = "Escolher foto"
     const val TROCAR = "Trocar foto"
     const val ENVIAR = "Enviar para análise"
@@ -95,8 +96,10 @@ internal object TextosVerificacaoDocumento {
  * documento e três fotos, depois o envio. A tela só mostra o estado que o servidor devolve; não
  * decide aprovação. Ler o estado não manda biometria, então roda ao abrir; o envio só sai com o
  * consentimento registrado (garantido também no [VerificacaoIdentidadeViewModel]).
+ *
+ * No desenho do Fabrício: o "Enviar para análise" é o único primário e fica no rodapé ancorado, com o erro
+ * logo acima; o tipo de documento é uma lista com check; as três fotos ficam num cartão.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaVerificacaoDocumento(
     viewModel: VerificacaoIdentidadeViewModel,
@@ -132,43 +135,59 @@ fun TelaVerificacaoDocumento(
         return
     }
 
+    val formularioAberto = estado.carga == StatusCargaVerificacao.PRONTO && estado.podeSolicitar
     Scaffold(
         modifier = modifier,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosVerificacaoDocumento.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = aoVoltar,
-                        modifier = Modifier
-                            .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo)
-                            .testTag("verificacao-voltar"),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosVerificacaoDocumento.ROTULO_VOLTAR,
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar, modifier = Modifier.testTag("verificacao-voltar")) },
+        bottomBar = {
+            if (formularioAberto) {
+                RodapeAncorado {
+                    estado.mensagemErro?.let { mensagem ->
+                        MensagemJuntoAoBotao(
+                            texto = mensagem,
+                            modifier = Modifier
+                                .semantics { liveRegion = LiveRegionMode.Assertive }
+                                .testTag("verificacao-erro"),
                         )
                     }
-                },
-            )
+                    val enviando = estado.envio == StatusEnvioVerificacao.ENVIANDO
+                    BotaoPrimario(
+                        texto = if (enviando) TextosVerificacaoDocumento.ENVIANDO else TextosVerificacaoDocumento.ENVIAR,
+                        aoClicar = { viewModel.enviar() },
+                        habilitado = estado.podeEnviar,
+                        modifier = Modifier.fillMaxWidth().testTag("verificacao-enviar"),
+                    )
+                }
+            }
         },
     ) { paddingInterno ->
         when (estado.carga) {
-            StatusCargaVerificacao.CARREGANDO -> Box(
-                modifier = Modifier.fillMaxSize().padding(paddingInterno),
-                contentAlignment = Alignment.Center,
+            StatusCargaVerificacao.CARREGANDO -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingInterno)
+                    .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.semantics { contentDescription = TextosVerificacaoDocumento.CARREGANDO },
+                TituloDaTela(TextosVerificacaoDocumento.TITULO)
+                EstadoCarregando(mensagem = TextosVerificacaoDocumento.CARREGANDO)
+            }
+            StatusCargaVerificacao.ERRO -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingInterno)
+                    .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
+            ) {
+                TituloDaTela(TextosVerificacaoDocumento.TITULO)
+                // O texto do erro é a própria mensagem (a do servidor ou a padrão); o botão refaz a leitura.
+                EstadoErro(
+                    modifier = Modifier.testTag("verificacao-tentar-novamente"),
+                    titulo = estado.mensagemErro ?: TextosVerificacaoDocumento.ERRO_PADRAO,
+                    mensagem = null,
+                    textoBotao = TextosVerificacaoDocumento.TENTAR_NOVAMENTE,
+                    aoTentarNovamente = viewModel::carregar,
                 )
             }
-            StatusCargaVerificacao.ERRO -> ErroDeCarga(estado.mensagemErro, viewModel::carregar, paddingInterno)
             StatusCargaVerificacao.PRONTO -> ConteudoVerificacao(
                 estado = estado,
                 paddingValues = paddingInterno,
@@ -177,98 +196,82 @@ fun TelaVerificacaoDocumento(
                     parteEmEscolha = parte
                     seletor.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
-                aoEnviar = { viewModel.enviar() },
             )
         }
-    }
-}
-
-@Composable
-private fun ErroDeCarga(mensagem: String?, aoTentarNovamente: () -> Unit, paddingValues: PaddingValues) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(paddingValues).padding(FrilaEspacamento.grande),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
-    ) {
-        Text(
-            text = mensagem ?: "Não foi possível carregar a verificação.",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-        )
-        BotaoSecundario(
-            texto = TextosVerificacaoDocumento.TENTAR_NOVAMENTE,
-            aoClicar = aoTentarNovamente,
-            modifier = Modifier.testTag("verificacao-tentar-novamente"),
-        )
     }
 }
 
 @Composable
 private fun ConteudoVerificacao(
     estado: EstadoVerificacaoIdentidade,
-    paddingValues: PaddingValues,
+    paddingValues: androidx.compose.foundation.layout.PaddingValues,
     aoEscolherDocumento: (TipoDocumentoIdentidade) -> Unit,
     aoEscolherParte: (TipoParteEvidencia) -> Unit,
-    aoEnviar: () -> Unit,
 ) {
+    val cores = FrilaTema.cores
     val verificacao = estado.verificacao
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
             .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.medio),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+            .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
     ) {
+        TituloDaTela(TextosVerificacaoDocumento.TITULO)
+
         if (verificacao != null) BlocoDeSituacao(verificacao)
 
-        estado.mensagemErro?.let { mensagem ->
-            AvisoFrila(
-                tom = TomAviso.ERRO,
-                mensagem = mensagem,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { liveRegion = LiveRegionMode.Assertive }
-                    .testTag("verificacao-erro"),
-            )
+        // Com o formulário aberto, o erro vai junto ao botão de enviar (rodapé); sem ele, fica aqui.
+        if (!estado.podeSolicitar) {
+            estado.mensagemErro?.let { mensagem ->
+                AvisoFrila(
+                    tom = TomAviso.ERRO,
+                    mensagem = mensagem,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { liveRegion = LiveRegionMode.Assertive }
+                        .testTag("verificacao-erro"),
+                )
+            }
         }
 
         if (estado.podeSolicitar) {
-            Text(TextosVerificacaoDocumento.ORIENTACAO, style = MaterialTheme.typography.bodyMedium)
+            Text(TextosVerificacaoDocumento.ORIENTACAO, style = FrilaTipo.corpo, color = cores.tinta)
 
-            Text(
-                text = TextosVerificacaoDocumento.DOCUMENTO,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-                TipoDocumentoIdentidade.entries.forEach { tipo ->
-                    FilterChip(
-                        selected = estado.documento == tipo,
-                        onClick = { aoEscolherDocumento(tipo) },
-                        label = { Text(TextosVerificacaoDocumento.rotuloDocumento(tipo)) },
-                        modifier = Modifier
-                            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-                            .testTag("documento-${tipo.name.lowercase()}"),
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosVerificacaoDocumento.DOCUMENTO)
+                FrilaGrupoDeLinhas {
+                    TipoDocumentoIdentidade.entries.forEach { tipo ->
+                        linha {
+                            FrilaLinhaDeOpcao(
+                                titulo = TextosVerificacaoDocumento.rotuloDocumento(tipo),
+                                marcada = estado.documento == tipo,
+                                aoClicar = { aoEscolherDocumento(tipo) },
+                                modifier = Modifier.testTag("documento-${tipo.name.lowercase()}"),
+                            )
+                        }
+                    }
                 }
             }
 
-            TipoParteEvidencia.entries.forEach { parte ->
-                LinhaDeParte(
-                    parte = parte,
-                    escolhida = parte in estado.partesEscolhidas,
-                    aoEscolher = { aoEscolherParte(parte) },
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosVerificacaoDocumento.FOTOS)
+                CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        TipoParteEvidencia.entries.forEachIndexed { indice, parte ->
+                            if (indice > 0) {
+                                FrilaDivisoria(modifier = Modifier.padding(vertical = FrilaEspacamento.bloco))
+                            }
+                            LinhaDeParte(
+                                parte = parte,
+                                escolhida = parte in estado.partesEscolhidas,
+                                aoEscolher = { aoEscolherParte(parte) },
+                            )
+                        }
+                    }
+                }
             }
-
-            val enviando = estado.envio == StatusEnvioVerificacao.ENVIANDO
-            BotaoPrimario(
-                texto = if (enviando) TextosVerificacaoDocumento.ENVIANDO else TextosVerificacaoDocumento.ENVIAR,
-                aoClicar = aoEnviar,
-                habilitado = estado.podeEnviar,
-                modifier = Modifier.fillMaxWidth().testTag("verificacao-enviar"),
-            )
         }
     }
 }
@@ -292,34 +295,59 @@ private fun BlocoDeSituacao(verificacao: VerificacaoIdentidade) {
     )
 }
 
+/**
+ * Uma das três fotos: nome e situação à esquerda, botão à direita. Com a fonte do sistema bem grande o botão desce para
+ * baixo do texto, para o nome da parte não ser espremido.
+ */
 @Composable
 private fun LinhaDeParte(parte: TipoParteEvidencia, escolhida: Boolean, aoEscolher: () -> Unit) {
-    CartaoVaga(modifier = Modifier.fillMaxWidth().testTag("parte-${parte.name.lowercase()}")) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(TextosVerificacaoDocumento.rotuloParte(parte), style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = if (escolhida) "Foto escolhida" else "Falta escolher",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            val acao = if (escolhida) TextosVerificacaoDocumento.TROCAR else TextosVerificacaoDocumento.ESCOLHER
-            BotaoSecundario(
-                texto = acao,
-                aoClicar = aoEscolher,
-                modifier = Modifier
-                    // O texto visível é igual nas três linhas; o leitor de tela precisa saber a parte.
-                    .semantics { contentDescription = "$acao: ${TextosVerificacaoDocumento.rotuloParte(parte)}" }
-                    .testTag("escolher-${parte.name.lowercase()}"),
+    val cores = FrilaTema.cores
+    val rotulo = TextosVerificacaoDocumento.rotuloParte(parte)
+    val acao = if (escolhida) TextosVerificacaoDocumento.TROCAR else TextosVerificacaoDocumento.ESCOLHER
+    val situacao: @Composable (Modifier) -> Unit = { moduloDoTexto ->
+        Column(modifier = moduloDoTexto, verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio)) {
+            Text(rotulo, style = FrilaTipo.rotuloSecundario, color = cores.tinta)
+            Text(
+                text = if (escolhida) "Foto escolhida" else "Falta escolher",
+                style = FrilaTipo.apoio,
+                color = cores.tintaSuave,
             )
         }
     }
+    val botao: @Composable (Modifier) -> Unit = { moduloDoBotao ->
+        BotaoSecundario(
+            texto = acao,
+            aoClicar = aoEscolher,
+            modifier = moduloDoBotao
+                // O texto visível é igual nas três linhas; o leitor de tela precisa saber a parte.
+                .semantics { contentDescription = "$acao: $rotulo" }
+                .testTag("escolher-${parte.name.lowercase()}"),
+        )
+    }
+
+    val empilhar = LocalDensity.current.fontScale > FONTE_PARA_EMPILHAR
+    if (empilhar) {
+        Column(
+            modifier = Modifier.fillMaxWidth().testTag("parte-${parte.name.lowercase()}"),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        ) {
+            situacao(Modifier.fillMaxWidth())
+            botao(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth().testTag("parte-${parte.name.lowercase()}"),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        ) {
+            situacao(Modifier.weight(1f))
+            botao(Modifier)
+        }
+    }
 }
+
+/** Acima desta escala de fonte do sistema, o botão da foto passa para baixo do texto. */
+private const val FONTE_PARA_EMPILHAR = 1.3f
 
 /** Sobe a cadeia de [ContextWrapper] até a [Activity] que hospeda a composição; `null` se não houver. */
 internal fun Context.encontrarActivity(): Activity? {

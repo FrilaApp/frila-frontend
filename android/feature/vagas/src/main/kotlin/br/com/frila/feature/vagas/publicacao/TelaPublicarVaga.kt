@@ -1,41 +1,26 @@
 package br.com.frila.feature.vagas.publicacao
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,18 +30,36 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.ChipFrila
+import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
+import br.com.frila.core.designsystem.componentes.IndicadorCarregando
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.VagaPublicadaDto
 import java.time.Instant
 
@@ -125,10 +128,12 @@ fun TelaPublicarVaga(
 
 /**
  * Publicação de vaga pelo contratante (RF04, RN02, RN24, UC01; paridade com `TelaPublicarVaga` de
- * `PublicarVaga.swift`). Cada campo mostra o próprio erro; o erro global e o botão ficam juntos no fim.
+ * `PublicarVaga.swift`). Tela de formulário: título, seções com rótulo, campos com o rótulo acima, escolha
+ * única em lista com check, seleção múltipla em chips e UM botão primário ancorado embaixo. Cada campo mostra
+ * o próprio erro; o erro global e o aviso de publicação pendente ficam juntos do botão.
  * Com uma publicação pendente o formulário trava e o botão vira "Tentar novamente".
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ConteudoPublicarVaga(
     estado: EstadoPublicarVaga,
@@ -137,269 +142,25 @@ fun ConteudoPublicarVaga(
 ) {
     var seletorDeFuncaoAberto by rememberSaveable { mutableStateOf(false) }
     var maisOpcoesAberto by rememberSaveable { mutableStateOf(false) }
+    val cores = FrilaTema.cores
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = cores.fundo,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosPublicarVaga.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = acoes.aoVoltar,
-                        enabled = !estado.enviando,
-                        modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosPublicarVaga.ROTULO_VOLTAR,
-                        )
-                    }
-                },
+            BarraDeTopoDoFormulario(
+                aoVoltar = acoes.aoVoltar,
+                rotuloDoVoltar = TextosPublicarVaga.ROTULO_VOLTAR,
+                habilitado = !estado.enviando,
             )
         },
-    ) { preenchimento ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(preenchimento)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-        ) {
-            // Função
-            Titulo(TextosPublicarVaga.FUNCAO)
-            when {
-                estado.carregandoFuncoes -> Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Text(TextosPublicarVaga.FUNCOES_CARREGANDO, style = MaterialTheme.typography.bodyMedium)
+        bottomBar = {
+            RodapeAncorado {
+                estado.erro?.let { MensagemJuntoAoBotao(it.mensagem) }
+                if (estado.pendente != null && !estado.enviando && !estado.concluida) {
+                    MensagemJuntoAoBotao(TextosPublicarVaga.PENDENTE)
                 }
-                estado.falhaAoCarregarFuncoes -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-                    Text(
-                        text = TextosPublicarVaga.FUNCOES_FALHA,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                    )
-                    BotaoSecundario(texto = TextosPublicarVaga.TENTAR_NOVAMENTE, aoClicar = acoes.aoCarregarFuncoes)
-                }
-                else -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                    BotaoSecundario(
-                        texto = estado.funcoes.firstOrNull { it.id == estado.funcaoId }?.nome ?: TextosPublicarVaga.FUNCAO_SELECIONAR,
-                        aoClicar = { seletorDeFuncaoAberto = true },
-                        habilitado = estado.podeEditar,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    estado.errosDeCampo[CampoPublicacao.FUNCAO]?.let { TextoDeErro(it) }
-                }
-            }
-
-            // Quando
-            Titulo(TextosPublicarVaga.QUANDO)
-            SeletorDeInstante(
-                titulo = TextosPublicarVaga.INICIO,
-                rotuloData = TextosPublicarVaga.DATA_DO_INICIO,
-                rotuloHora = TextosPublicarVaga.HORA_DO_INICIO,
-                instante = estado.inicio,
-                erro = estado.errosDeCampo[CampoPublicacao.INICIO],
-                habilitado = estado.podeEditar,
-                aoMudar = acoes.aoEditarInicio,
-            )
-            SeletorDeInstante(
-                titulo = TextosPublicarVaga.FIM,
-                rotuloData = TextosPublicarVaga.DATA_DO_FIM,
-                rotuloHora = TextosPublicarVaga.HORA_DO_FIM,
-                instante = estado.fim,
-                erro = estado.errosDeCampo[CampoPublicacao.FIM],
-                habilitado = estado.podeEditar,
-                aoMudar = acoes.aoEditarFim,
-            )
-            if (estado.duracao.toMinutes() > 0) {
-                Text(
-                    text = TextosPublicarVaga.DURACAO.format(formatarDuracao(estado.duracao)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // Modo
-            Titulo(TextosPublicarVaga.MODO)
-            Column(modifier = Modifier.selectableGroup()) {
-                OpcaoDeModo(
-                    rotulo = TextosPublicarVaga.MODO_URGENCIA,
-                    explicacao = TextosPublicarVaga.MODO_URGENCIA_EXPLICACAO,
-                    selecionado = estado.modo == ModoDaVaga.URGENCIA,
-                    habilitado = estado.podeEditar,
-                    aoEscolher = { acoes.aoEscolherModo(ModoDaVaga.URGENCIA) },
-                )
-                OpcaoDeModo(
-                    rotulo = TextosPublicarVaga.MODO_SELECAO,
-                    explicacao = if (estado.selecaoDisponivel) {
-                        TextosPublicarVaga.MODO_SELECAO_EXPLICACAO
-                    } else {
-                        TextosPublicarVaga.MODO_SELECAO_SO_COM_ANTECEDENCIA
-                    },
-                    selecionado = estado.modo == ModoDaVaga.SELECAO,
-                    habilitado = estado.podeEditar && estado.selecaoDisponivel,
-                    aoEscolher = { acoes.aoEscolherModo(ModoDaVaga.SELECAO) },
-                )
-            }
-            estado.errosDeCampo[CampoPublicacao.MODO]?.let { TextoDeErro(it) }
-
-            // Local, valor e posições
-            Campo(
-                rotulo = TextosPublicarVaga.LOCAL,
-                valor = estado.local,
-                aoMudar = acoes.aoEditarLocal,
-                erro = estado.errosDeCampo[CampoPublicacao.LOCAL] ?: estado.errosDeCampo[CampoPublicacao.ESTABELECIMENTO],
-                habilitado = estado.podeEditar,
-                ajuda = TextosPublicarVaga.LOCAL_AJUDA,
-            )
-            Campo(
-                rotulo = TextosPublicarVaga.VALOR,
-                valor = estado.valor,
-                aoMudar = acoes.aoEditarValor,
-                erro = estado.errosDeCampo[CampoPublicacao.VALOR],
-                habilitado = estado.podeEditar,
-                ajuda = TextosPublicarVaga.VALOR_AJUDA,
-                teclado = KeyboardType.Decimal,
-            )
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-            ) {
-                BotaoSecundario(
-                    texto = "−",
-                    aoClicar = acoes.aoMenosUmaPosicao,
-                    habilitado = estado.podeEditar,
-                    modifier = Modifier.semantics { contentDescription = TextosPublicarVaga.MENOS_UMA_POSICAO },
-                )
-                Campo(
-                    rotulo = TextosPublicarVaga.POSICOES,
-                    valor = estado.posicoes,
-                    aoMudar = acoes.aoEditarPosicoes,
-                    erro = estado.errosDeCampo[CampoPublicacao.POSICOES],
-                    habilitado = estado.podeEditar,
-                    ajuda = TextosPublicarVaga.POSICOES_AJUDA,
-                    teclado = KeyboardType.Number,
-                    modifier = Modifier.weight(1f),
-                )
-                BotaoSecundario(
-                    texto = "+",
-                    aoClicar = acoes.aoMaisUmaPosicao,
-                    habilitado = estado.podeEditar,
-                    modifier = Modifier.semantics { contentDescription = TextosPublicarVaga.MAIS_UMA_POSICAO },
-                )
-            }
-            estado.valorTotalCentavos?.let { total ->
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio),
-                    modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-                ) {
-                    Text(
-                        text = TextosPublicarVaga.TOTAL_DA_VAGA.format(formatarReais(total)),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    val posicoes = estado.posicoesNumero ?: 1
-                    Text(
-                        text = if (posicoes == 1) TextosPublicarVaga.TOTAL_SINGULAR else TextosPublicarVaga.TOTAL_PLURAL.format(posicoes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    estado.valorPorHoraCentavos?.let {
-                        Text(
-                            text = TextosPublicarVaga.VALOR_POR_HORA.format(formatarReais(it)),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            // Inclusos
-            Titulo(TextosPublicarVaga.INCLUSOS)
-            LinhaComChave(TextosPublicarVaga.REFEICAO, estado.incluiRefeicao, estado.podeEditar, acoes.aoAlternarRefeicao)
-            LinhaComChave(TextosPublicarVaga.TRANSPORTE, estado.incluiTransporte, estado.podeEditar, acoes.aoAlternarTransporte)
-            LinhaComChave(TextosPublicarVaga.MATERIAL, estado.exigeMaterialProprio, estado.podeEditar, acoes.aoAlternarMaterial)
-            Campo(
-                rotulo = TextosPublicarVaga.RESPONSAVEL,
-                valor = estado.responsavelLocal,
-                aoMudar = acoes.aoEditarResponsavel,
-                erro = estado.errosDeCampo[CampoPublicacao.RESPONSAVEL],
-                habilitado = estado.podeEditar,
-            )
-
-            // Mais opções
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-                    .toggleable(
-                        value = maisOpcoesAberto,
-                        role = Role.Switch,
-                        onValueChange = { maisOpcoesAberto = it },
-                    ),
-            ) {
-                Text(TextosPublicarVaga.MAIS_OPCOES, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    TextosPublicarVaga.MAIS_OPCOES_AJUDA,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (maisOpcoesAberto) {
-                Campo(
-                    rotulo = TextosPublicarVaga.TRAJE,
-                    valor = estado.traje,
-                    aoMudar = acoes.aoEditarTraje,
-                    erro = estado.errosDeCampo[CampoPublicacao.TRAJE],
-                    habilitado = estado.podeEditar,
-                )
-                LinhaComChave(TextosPublicarVaga.RATEIO, estado.participaRateio, estado.podeEditar, acoes.aoAlternarRateio)
-                Campo(
-                    rotulo = TextosPublicarVaga.OBSERVACOES,
-                    valor = estado.observacoes,
-                    aoMudar = acoes.aoEditarObservacoes,
-                    erro = estado.errosDeCampo[CampoPublicacao.OBSERVACOES],
-                    habilitado = estado.podeEditar,
-                    ajuda = TextosPublicarVaga.OBSERVACOES_AJUDA,
-                    umaLinha = false,
-                )
-            }
-
-            // Resultado
-            estado.erro?.let { erro ->
-                Text(
-                    text = erro.mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                )
-            }
-            if (estado.pendente != null && !estado.enviando && !estado.concluida) {
-                Text(
-                    text = TextosPublicarVaga.PENDENTE,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-            if (estado.concluida) {
-                Text(
-                    text = TextosPublicarVaga.CONCLUIDA,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
+                if (estado.concluida) MensagemJuntoAoBotao(TextosPublicarVaga.CONCLUIDA)
                 BotaoPrimario(
                     texto = when {
                         estado.enviando -> TextosPublicarVaga.PUBLICANDO
@@ -408,207 +169,310 @@ fun ConteudoPublicarVaga(
                     },
                     aoClicar = acoes.aoPublicar,
                     habilitado = !estado.enviando && !estado.concluida,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+    ) { preenchimento ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(preenchimento)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+        ) {
+            TituloDaTela(TextosPublicarVaga.TITULO)
+
+            // Função
+            when {
+                estado.carregandoFuncoes -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(TextosPublicarVaga.FUNCAO)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+                    ) {
+                        IndicadorCarregando(modifier = Modifier.size(24.dp))
+                        Text(TextosPublicarVaga.FUNCOES_CARREGANDO, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                    }
+                }
+                estado.falhaAoCarregarFuncoes -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(TextosPublicarVaga.FUNCAO)
+                    AvisoFrila(tom = TomAviso.ERRO, mensagem = TextosPublicarVaga.FUNCOES_FALHA)
+                    BotaoSecundario(texto = TextosPublicarVaga.TENTAR_NOVAMENTE, aoClicar = acoes.aoCarregarFuncoes)
+                }
+                else -> CampoDeSelecao(
+                    rotulo = TextosPublicarVaga.FUNCAO,
+                    valor = estado.funcoes.firstOrNull { it.id == estado.funcaoId }?.nome ?: TextosPublicarVaga.FUNCAO_SELECIONAR,
+                    aoClicar = { seletorDeFuncaoAberto = true },
+                    habilitado = estado.podeEditar,
+                    erro = estado.errosDeCampo[CampoPublicacao.FUNCAO],
+                )
+            }
+
+            // Quando
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+                RotuloDeGrupo(TextosPublicarVaga.QUANDO)
+                SeletorDeInstante(
+                    titulo = TextosPublicarVaga.INICIO,
+                    rotuloData = TextosPublicarVaga.DATA_DO_INICIO,
+                    rotuloHora = TextosPublicarVaga.HORA_DO_INICIO,
+                    instante = estado.inicio,
+                    erro = estado.errosDeCampo[CampoPublicacao.INICIO],
+                    habilitado = estado.podeEditar,
+                    textoDeConfirmar = TextosPublicarVaga.CONFIRMAR,
+                    textoDeCancelar = TextosPublicarVaga.CANCELAR,
+                    aoMudar = acoes.aoEditarInicio,
+                )
+                SeletorDeInstante(
+                    titulo = TextosPublicarVaga.FIM,
+                    rotuloData = TextosPublicarVaga.DATA_DO_FIM,
+                    rotuloHora = TextosPublicarVaga.HORA_DO_FIM,
+                    instante = estado.fim,
+                    erro = estado.errosDeCampo[CampoPublicacao.FIM],
+                    habilitado = estado.podeEditar,
+                    textoDeConfirmar = TextosPublicarVaga.CONFIRMAR,
+                    textoDeCancelar = TextosPublicarVaga.CANCELAR,
+                    aoMudar = acoes.aoEditarFim,
+                )
+                if (estado.duracao.toMinutes() > 0) {
+                    Text(
+                        text = TextosPublicarVaga.DURACAO.format(formatarDuracao(estado.duracao)),
+                        style = FrilaTipo.apoio,
+                        color = cores.tintaSuave,
+                    )
+                }
+            }
+
+            // Modo
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                FrilaGrupoDeLinhas(titulo = TextosPublicarVaga.MODO) {
+                    linha {
+                        FrilaLinhaDeOpcao(
+                            titulo = TextosPublicarVaga.MODO_URGENCIA,
+                            subtitulo = TextosPublicarVaga.MODO_URGENCIA_EXPLICACAO,
+                            marcada = estado.modo == ModoDaVaga.URGENCIA,
+                            aoClicar = { acoes.aoEscolherModo(ModoDaVaga.URGENCIA) },
+                            habilitada = estado.podeEditar,
+                        )
+                    }
+                    linha {
+                        FrilaLinhaDeOpcao(
+                            titulo = TextosPublicarVaga.MODO_SELECAO,
+                            subtitulo = if (estado.selecaoDisponivel) {
+                                TextosPublicarVaga.MODO_SELECAO_EXPLICACAO
+                            } else {
+                                TextosPublicarVaga.MODO_SELECAO_SO_COM_ANTECEDENCIA
+                            },
+                            marcada = estado.modo == ModoDaVaga.SELECAO,
+                            aoClicar = { acoes.aoEscolherModo(ModoDaVaga.SELECAO) },
+                            habilitada = estado.podeEditar && estado.selecaoDisponivel,
+                        )
+                    }
+                }
+                estado.errosDeCampo[CampoPublicacao.MODO]?.let { Text(text = it, style = FrilaTipo.apoio, color = cores.tinta) }
+            }
+
+            // Local, valor e posições
+            CampoDeTexto(
+                valor = estado.local,
+                aoMudar = acoes.aoEditarLocal,
+                rotulo = TextosPublicarVaga.LOCAL,
+                apoio = TextosPublicarVaga.LOCAL_AJUDA,
+                erro = estado.errosDeCampo[CampoPublicacao.LOCAL] ?: estado.errosDeCampo[CampoPublicacao.ESTABELECIMENTO],
+                habilitado = estado.podeEditar,
+            )
+            CampoDeTexto(
+                valor = estado.valor,
+                aoMudar = acoes.aoEditarValor,
+                rotulo = TextosPublicarVaga.VALOR,
+                apoio = TextosPublicarVaga.VALOR_AJUDA,
+                erro = estado.errosDeCampo[CampoPublicacao.VALOR],
+                habilitado = estado.podeEditar,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+            // Os botões − e + descem até a caixa do campo (a altura do rótulo acompanha a fonte do sistema).
+            val alturaDoRotulo = with(LocalDensity.current) { FrilaTipo.rotuloDeGrupo.lineHeight.toDp() }
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+            ) {
+                BotaoSecundario(
+                    texto = "−",
+                    aoClicar = acoes.aoMenosUmaPosicao,
+                    habilitado = estado.podeEditar,
+                    modifier = Modifier
+                        .padding(top = alturaDoRotulo + FrilaEspacamento.item)
+                        .semantics { contentDescription = TextosPublicarVaga.MENOS_UMA_POSICAO },
+                )
+                CampoDeTexto(
+                    valor = estado.posicoes,
+                    aoMudar = acoes.aoEditarPosicoes,
+                    rotulo = TextosPublicarVaga.POSICOES,
+                    apoio = TextosPublicarVaga.POSICOES_AJUDA,
+                    erro = estado.errosDeCampo[CampoPublicacao.POSICOES],
+                    habilitado = estado.podeEditar,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f),
                 )
-                if (estado.enviando) CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                BotaoSecundario(
+                    texto = "+",
+                    aoClicar = acoes.aoMaisUmaPosicao,
+                    habilitado = estado.podeEditar,
+                    modifier = Modifier
+                        .padding(top = alturaDoRotulo + FrilaEspacamento.item)
+                        .semantics { contentDescription = TextosPublicarVaga.MAIS_UMA_POSICAO },
+                )
+            }
+            estado.valorTotalCentavos?.let { total ->
+                CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto),
+                        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+                    ) {
+                        Text(text = totalDaVaga(formatarReais(total)), style = FrilaTipo.valorEmDestaque, color = cores.tinta)
+                        val posicoes = estado.posicoesNumero ?: 1
+                        Text(
+                            text = if (posicoes == 1) TextosPublicarVaga.TOTAL_SINGULAR else TextosPublicarVaga.TOTAL_PLURAL.format(posicoes),
+                            style = FrilaTipo.apoio,
+                            color = cores.tintaSuave,
+                        )
+                        estado.valorPorHoraCentavos?.let {
+                            Text(
+                                text = TextosPublicarVaga.VALOR_POR_HORA.format(formatarReais(it)),
+                                style = FrilaTipo.apoio,
+                                color = cores.tintaSuave,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Inclusos
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosPublicarVaga.INCLUSOS)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    ChipFrila(
+                        texto = TextosPublicarVaga.REFEICAO,
+                        selecionado = estado.incluiRefeicao,
+                        aoClicar = { acoes.aoAlternarRefeicao(!estado.incluiRefeicao) },
+                        habilitado = estado.podeEditar,
+                    )
+                    ChipFrila(
+                        texto = TextosPublicarVaga.TRANSPORTE,
+                        selecionado = estado.incluiTransporte,
+                        aoClicar = { acoes.aoAlternarTransporte(!estado.incluiTransporte) },
+                        habilitado = estado.podeEditar,
+                    )
+                    ChipFrila(
+                        texto = TextosPublicarVaga.MATERIAL,
+                        selecionado = estado.exigeMaterialProprio,
+                        aoClicar = { acoes.aoAlternarMaterial(!estado.exigeMaterialProprio) },
+                        habilitado = estado.podeEditar,
+                    )
+                }
+            }
+            CampoDeTexto(
+                valor = estado.responsavelLocal,
+                aoMudar = acoes.aoEditarResponsavel,
+                rotulo = TextosPublicarVaga.RESPONSAVEL,
+                erro = estado.errosDeCampo[CampoPublicacao.RESPONSAVEL],
+                habilitado = estado.podeEditar,
+            )
+
+            // Mais opções
+            FrilaGrupoDeLinhas {
+                linha {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = FrilaMetricas.alvoMinimo)
+                            .clickable(role = Role.Button) { maisOpcoesAberto = !maisOpcoesAberto }
+                            .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.item),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio)) {
+                            Text(TextosPublicarVaga.MAIS_OPCOES, style = FrilaTipo.rotuloSecundario, color = cores.tinta)
+                            Text(TextosPublicarVaga.MAIS_OPCOES_AJUDA, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                        }
+                        Icon(
+                            imageVector = if (maisOpcoesAberto) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = cores.tintaSuave,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
+            }
+            if (maisOpcoesAberto) {
+                CampoDeTexto(
+                    valor = estado.traje,
+                    aoMudar = acoes.aoEditarTraje,
+                    rotulo = TextosPublicarVaga.TRAJE,
+                    erro = estado.errosDeCampo[CampoPublicacao.TRAJE],
+                    habilitado = estado.podeEditar,
+                )
+                FlowRow {
+                    ChipFrila(
+                        texto = TextosPublicarVaga.RATEIO,
+                        selecionado = estado.participaRateio,
+                        aoClicar = { acoes.aoAlternarRateio(!estado.participaRateio) },
+                        habilitado = estado.podeEditar,
+                    )
+                }
+                CampoDeTexto(
+                    valor = estado.observacoes,
+                    aoMudar = acoes.aoEditarObservacoes,
+                    rotulo = TextosPublicarVaga.OBSERVACOES,
+                    apoio = TextosPublicarVaga.OBSERVACOES_AJUDA,
+                    erro = estado.errosDeCampo[CampoPublicacao.OBSERVACOES],
+                    habilitado = estado.podeEditar,
+                    umaLinha = false,
+                    linhasMinimas = 3,
+                )
             }
         }
     }
 
     if (seletorDeFuncaoAberto) {
-        AlertDialog(
+        FrilaBottomSheet(
             onDismissRequest = { seletorDeFuncaoAberto = false },
-            title = { Text(text = TextosPublicarVaga.FUNCAO_ESCOLHA, modifier = Modifier.semantics { heading() }) },
-            text = {
-                LazyColumn(modifier = Modifier.selectableGroup()) {
-                    items(estado.funcoes, key = { it.id }) { funcao ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-                                .selectable(
-                                    selected = estado.funcaoId == funcao.id,
-                                    role = Role.RadioButton,
-                                    onClick = {
-                                        acoes.aoEscolherFuncao(funcao.id)
-                                        seletorDeFuncaoAberto = false
-                                    },
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                        ) {
-                            RadioButton(selected = estado.funcaoId == funcao.id, onClick = null)
-                            Column {
-                                Text(text = funcao.nome, style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    text = funcao.categoria,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+            titulo = TextosPublicarVaga.FUNCAO_ESCOLHA,
+            aoFechar = null,
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+            ) {
+                FrilaGrupoDeLinhas {
+                    estado.funcoes.forEach { funcao ->
+                        linha {
+                            FrilaLinhaDeOpcao(
+                                titulo = funcao.nome,
+                                subtitulo = funcao.categoria,
+                                marcada = estado.funcaoId == funcao.id,
+                                aoClicar = {
+                                    acoes.aoEscolherFuncao(funcao.id)
+                                    seletorDeFuncaoAberto = false
+                                },
+                            )
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { seletorDeFuncaoAberto = false },
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosPublicarVaga.CANCELAR) }
-            },
-        )
-    }
-}
-
-@Composable
-private fun Titulo(texto: String) {
-    Text(text = texto, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-}
-
-@Composable
-private fun TextoDeErro(texto: String) {
-    Text(text = texto, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-}
-
-@Composable
-private fun OpcaoDeModo(
-    rotulo: String,
-    explicacao: String,
-    selecionado: Boolean,
-    habilitado: Boolean,
-    aoEscolher: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-            .selectable(selected = selecionado, enabled = habilitado, role = Role.RadioButton, onClick = aoEscolher),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-    ) {
-        // O clique é do Row (selectable): o botão de rádio só reflete o estado.
-        RadioButton(selected = selecionado, onClick = null, enabled = habilitado)
-        Column {
-            Text(text = rotulo, style = MaterialTheme.typography.bodyLarge)
-            Text(text = explicacao, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
 
+/** "Total da vaga: R$ 280,00": o dinheiro em destaque e o rótulo em apoio, na mesma linha. */
 @Composable
-private fun LinhaComChave(rotulo: String, ligada: Boolean, habilitada: Boolean, aoMudar: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-            .toggleable(value = ligada, enabled = habilitada, role = Role.Switch, onValueChange = aoMudar),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(text = rotulo, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Switch(checked = ligada, onCheckedChange = null, enabled = habilitada)
+private fun totalDaVaga(reais: String): AnnotatedString {
+    val frase = TextosPublicarVaga.TOTAL_DA_VAGA.format(reais)
+    val apoio = FrilaTipo.apoio.toSpanStyle().copy(fontFamily = FontFamily.Default, color = FrilaTema.cores.tintaSuave)
+    return buildAnnotatedString {
+        append(frase)
+        if (frase.endsWith(reais)) addStyle(apoio, 0, frase.length - reais.length)
     }
-}
-
-/** Data e hora de um instante, cada uma num botão que abre o seletor do Material 3. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SeletorDeInstante(
-    titulo: String,
-    rotuloData: String,
-    rotuloHora: String,
-    instante: Instant,
-    erro: String?,
-    habilitado: Boolean,
-    aoMudar: (Instant) -> Unit,
-) {
-    var escolhendoData by rememberSaveable { mutableStateOf(false) }
-    var escolhendoHora by rememberSaveable { mutableStateOf(false) }
-    val data = formatarData(instante)
-    val hora = formatarHora(instante)
-
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-        Text(text = titulo, style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-            BotaoSecundario(
-                texto = data,
-                aoClicar = { escolhendoData = true },
-                habilitado = habilitado,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = "$rotuloData: $data" },
-            )
-            BotaoSecundario(
-                texto = hora,
-                aoClicar = { escolhendoHora = true },
-                habilitado = habilitado,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = "$rotuloHora: $hora" },
-            )
-        }
-        erro?.let { TextoDeErro(it) }
-    }
-
-    if (escolhendoData) {
-        val estadoDoSeletor = rememberDatePickerState(initialSelectedDateMillis = dataParaSeletorUtcMs(instante))
-        DatePickerDialog(
-            onDismissRequest = { escolhendoData = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        estadoDoSeletor.selectedDateMillis?.let { aoMudar(trocarData(instante, it)) }
-                        escolhendoData = false
-                    },
-                ) { Text(TextosPublicarVaga.CONFIRMAR) }
-            },
-            dismissButton = { TextButton(onClick = { escolhendoData = false }) { Text(TextosPublicarVaga.CANCELAR) } },
-        ) {
-            DatePicker(state = estadoDoSeletor, title = { Text(rotuloData, modifier = Modifier.padding(FrilaEspacamento.medio)) })
-        }
-    }
-
-    if (escolhendoHora) {
-        val local = instante.atZone(FUSO_DA_VAGA)
-        val estadoDoSeletor = rememberTimePickerState(initialHour = local.hour, initialMinute = local.minute, is24Hour = true)
-        AlertDialog(
-            onDismissRequest = { escolhendoHora = false },
-            title = { Text(rotuloHora, modifier = Modifier.semantics { heading() }) },
-            text = { TimePicker(state = estadoDoSeletor) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        aoMudar(trocarHora(instante, estadoDoSeletor.hour, estadoDoSeletor.minute))
-                        escolhendoHora = false
-                    },
-                ) { Text(TextosPublicarVaga.CONFIRMAR) }
-            },
-            dismissButton = { TextButton(onClick = { escolhendoHora = false }) { Text(TextosPublicarVaga.CANCELAR) } },
-        )
-    }
-}
-
-@Composable
-private fun Campo(
-    rotulo: String,
-    valor: String,
-    aoMudar: (String) -> Unit,
-    erro: String?,
-    habilitado: Boolean,
-    modifier: Modifier = Modifier,
-    ajuda: String? = null,
-    teclado: KeyboardType = KeyboardType.Text,
-    umaLinha: Boolean = true,
-) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = aoMudar,
-        enabled = habilitado,
-        label = { Text(rotulo) },
-        isError = erro != null,
-        supportingText = (erro ?: ajuda)?.let { texto -> { Text(texto) } },
-        singleLine = umaLinha,
-        keyboardOptions = KeyboardOptions(keyboardType = teclado),
-        modifier = modifier.fillMaxWidth(),
-    )
 }

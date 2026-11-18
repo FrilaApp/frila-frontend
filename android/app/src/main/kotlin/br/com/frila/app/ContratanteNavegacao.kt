@@ -17,6 +17,8 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PainelDto
 import br.com.frila.core.rede.ServicoMembros
+import br.com.frila.feature.equipe.IncluirNaEquipe
+import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.contratante.TelaTurnoDoContratante
@@ -231,11 +233,23 @@ internal fun RotaTurnoDoContratante(
                 viewModel.atualizarContexto(atual.contexto)
             }
             val codigoDaCasa = codigoDaCasaDoTurno(checkinPorCodigoHabilitado, atual.contexto.turnoId) { tentativa++ }
+            // L2-6: só com a presença verificada (a condição de `incluir_na_equipe`; o servidor confere de novo), como o iOS.
+            // O bloco entra na própria tela do turno, depois da chegada.
+            val profissional = atual.contexto.profissional?.takeIf { atual.contexto.verificacao == "verificado" }
             TelaTurnoDoContratante(
                 viewModel = viewModel,
                 aoVoltar = aoVoltar,
                 aoDenunciarProfissional = aoDenunciarProfissional,
                 codigoDaCasa = codigoDaCasa,
+                depoisDaChegada = profissional?.let {
+                    {
+                        val incluir: IncluirNaEquipeViewModel = koinViewModel(
+                            key = "incluir-${it.id}",
+                            parameters = { parametersOf(estabelecimentoId, it.id) },
+                        )
+                        IncluirNaEquipe(viewModel = incluir, nome = it.nome)
+                    }
+                },
             )
         }
     }

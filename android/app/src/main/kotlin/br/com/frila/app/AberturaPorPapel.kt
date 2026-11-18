@@ -90,6 +90,8 @@ internal val moduloDestinoDaConta: Module = module {
                     buscarConta = conta::minhaConta,
                     buscarPerfilProfissional = perfil::obterMeuPerfilProfissional,
                     listarCasas = membros::listarMeusEstabelecimentos,
+                    // L2-5: conta suspensa abre a tela da suspensão, como o iOS.
+                    buscarSituacao = conta::situacaoDaConta,
                 )
             },
             guardado = get(),

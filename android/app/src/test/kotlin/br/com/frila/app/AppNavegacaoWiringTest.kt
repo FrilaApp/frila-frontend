@@ -189,6 +189,7 @@ class AppNavegacaoWiringTest {
 
         // Interceptado para DESBLOQUEIO; conteúdo protegido não foi renderizado
         assertEquals(Rotas.DESBLOQUEIO, navController.currentDestination?.route)
+        // Nem a tela nem a aba "Meus turnos": a barra de abas não aparece por cima do desbloqueio.
         rule.onNodeWithText("Meus turnos").assertDoesNotExist()
         rule.onNodeWithText("Confirme sua identidade para continuar").assertExists()
     }

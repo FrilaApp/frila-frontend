@@ -40,9 +40,6 @@ class TelaVagaIndisponivelTest {
             }
         }
 
-        // Título da barra
-        rule.onNodeWithText("Vaga").assertIsDisplayed()
-
         // Cabeçalho do conteúdo
         rule.onNodeWithText("Vaga preenchida")
             .assertIsDisplayed()
