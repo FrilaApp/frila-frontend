@@ -2,8 +2,8 @@
  * Vários membros na mesma casa (3.16) e o link de convite (5.7): o administrador convida por e-mail e papel
  * (`convidar_membro`, token de uso único, 7 dias) e quem recebeu o link aceita (`aceitar_convite_membro`). O token é
  * um segredo de portador: vai no fragmento do link (`#…`, que o navegador não manda ao servidor) e no corpo do POST,
- * nunca em URL de pedido, cookie ou log. Remover e transferir a administração pedem a lista dos membros, que o
- * contrato ainda não tem.
+ * nunca em URL de pedido, cookie ou log. A lista e as mudanças de membros são restritas ao administrador;
+ * quem decide a permissão e a proteção do último administrador é o servidor do Frila.
  */
 import type { components } from "../../contrato/tipos.gerado";
 import type { Api } from "../api";
@@ -47,6 +47,44 @@ export async function aceitarConvite(api: Api | null, token: string): Promise<Ac
     if (response.status === 401) return { ok: false, motivo: "sem_sessao" };
     if (response.status === 422 && error?.code === "perfil_incompativel") return { ok: false, motivo: "perfil_incompativel" };
     if (response.status === 422) return { ok: false, motivo: "convite_invalido" };
+    return { ok: false, motivo: "indisponivel" };
+  } catch {
+    return { ok: false, motivo: "indisponivel" };
+  }
+}
+
+export type MembroDaCasa = components["schemas"]["MembroDoEstabelecimento"];
+type FalhaDaLista = "so_administrador" | "conta_suspensa" | "sem_sessao" | "indisponivel";
+export type ListaDeMembros = { estado: "ok"; membros: MembroDaCasa[] } | { estado: FalhaDaLista; membros: [] };
+
+export async function lerMembros(api: Api | null, casaId: string): Promise<ListaDeMembros> {
+  if (!api) return { estado: "indisponivel", membros: [] };
+  try {
+    const { data, error, response } = await api.GET("/rpc/membros_do_estabelecimento", { params: { query: { estabelecimento_id: casaId } }, signal: prazo() });
+    if (data) return { estado: "ok", membros: data.map(({ membro_id, nome, papel, desde, e_voce }) => ({ membro_id, nome, papel, desde, e_voce })) };
+    if (response.status === 401) return { estado: "sem_sessao", membros: [] };
+    if (response.status === 403) return { estado: error?.details === "conta_suspensa" ? "conta_suspensa" : "so_administrador", membros: [] };
+    return { estado: "indisponivel", membros: [] };
+  } catch {
+    return { estado: "indisponivel", membros: [] };
+  }
+}
+
+export type MudancaDeMembro = { ok: true } | { ok: false; motivo: "so_administrador" | "nao_encontrado" | "ultimo_administrador" | "sem_sessao" | "indisponivel" };
+
+/** Sem inferir permissão pela tela: cada POST pode receber 403, inclusive após uma lista bem-sucedida. */
+export async function mudarMembro(api: Api | null, casaId: string, membroId: string, intencao: "remover" | "transferir"): Promise<MudancaDeMembro> {
+  if (!ehUuid(casaId) || !ehUuid(membroId)) return { ok: false, motivo: "nao_encontrado" };
+  if (!api) return { ok: false, motivo: "indisponivel" };
+  try {
+    const { data, error, response } = intencao === "remover"
+      ? await api.POST("/rpc/remover_membro", { body: { estabelecimento_id: casaId, membro_id: membroId }, signal: prazo() })
+      : await api.POST("/rpc/transferir_administracao", { body: { estabelecimento_id: casaId, novo_admin_id: membroId }, signal: prazo() });
+    if (data) return { ok: true };
+    if (response.status === 401) return { ok: false, motivo: "sem_sessao" };
+    if (response.status === 403) return { ok: false, motivo: "so_administrador" };
+    if (response.status === 404) return { ok: false, motivo: "nao_encontrado" };
+    if (response.status === 422 && error?.code === "ultimo_administrador") return { ok: false, motivo: "ultimo_administrador" };
     return { ok: false, motivo: "indisponivel" };
   } catch {
     return { ok: false, motivo: "indisponivel" };

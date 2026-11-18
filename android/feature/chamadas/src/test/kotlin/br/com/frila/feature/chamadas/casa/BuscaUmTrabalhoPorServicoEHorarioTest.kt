@@ -295,4 +295,57 @@ class BuscaUmTrabalhoPorServicoEHorarioTest {
         assertEquals("original", rede.chamadas().last().corpo["recado"]?.jsonPrimitive?.content)
     }
 
+    @Test
+    fun `um unico incerto no primeiro envio preserva o trabalho sem NaoEnviada`() = runBlocking {
+        val rede = rede()
+        rede.rota("chamar_profissional") { throw java.io.IOException("sem rede") }
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.chamar(trabalho(sexta), "original").join()
+
+        assertEquals(setOf("p1"), vm.estado.value.resultadosDaChamada.keys)
+        assertTrue((vm.estado.value.resultadosDaChamada["p1"] as ResultadoDaChamadaDaBusca.Erro).incerto)
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca, "o único incerto mantém o guardado mesmo sem NaoEnviada")
+        val primeiro = rede.chamadas().single().corpo
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertEquals(2, rede.chamadas().size)
+        assertEquals(primeiro, rede.chamadas().last().corpo, "o reenvio preserva trabalho, recado e chave")
+    }
+
+    @Test
+    fun `409 com termos iguais e recusa pelo vaga_id preserva o trabalho conhecido`() = runBlocking {
+        val rede = rede()
+        val vaga = "55555555-5555-4555-8555-555555555555"
+        val base = """"id":"c1","vaga_id":"$vaga","profissional_id":"p1","estabelecimento_id":"$casa","estado":"aberta","expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z","funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"p1","tipo":"profissional","nome":"Pessoa","reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
+        rede.ok("minhas_chamadas", """{"itens":[{$base}],"proximo_cursor":null}""")
+        rede.ok("detalhe_chamada", """{$base,"regiao_administrativa":"Plano Piloto","inclui_refeicao":false,"inclui_transporte":false,"exige_material_proprio":false}""")
+        rede.rota("chamar_profissional") { pedido ->
+            if ("vaga_id" !in pedido.corpo) {
+                respond("""{"code":"trabalho_ja_aberto","message":"x","details":"$vaga"}""", HttpStatusCode.Conflict, json)
+            } else {
+                respond("""{"code":"campo_invalido","message":"recusado"}""", HttpStatusCode.UnprocessableEntity, json)
+            }
+        }
+        val vm = viewModelCom(rede)
+        vm.buscarPara(garcom, sexta)
+        vm.alternarSelecao("p1")
+        vm.chamar(trabalho(sexta), "original").join()
+
+        assertEquals(2, rede.chamadas().size, "o 409 com termos iguais repete pela vaga conhecida")
+        assertTrue("valor_centavos" in rede.chamadas().first().corpo)
+        assertEquals(vaga, rede.chamadas().last().corpo["vaga_id"]?.jsonPrimitive?.content)
+        assertEquals(setOf("p1"), vm.estado.value.resultadosDaChamada.keys)
+        assertFalse((vm.estado.value.resultadosDaChamada["p1"] as ResultadoDaChamadaDaBusca.Erro).incerto)
+        assertNull(vm.estado.value.termosParaConfirmar)
+        assertEquals(trabalho(sexta), vm.estado.value.trabalhoEnviadoDaBusca, "a vaga identificada mantém o guardado mesmo após recusa definitiva")
+
+        vm.chamar(trabalho(sexta, valor = 99900), "alterado").join()
+        assertEquals(3, rede.chamadas().size)
+        val reenvio = rede.chamadas().last().corpo
+        assertEquals(vaga, reenvio["vaga_id"]?.jsonPrimitive?.content)
+        assertEquals("original", reenvio["recado"]?.jsonPrimitive?.content)
+        assertFalse("valor_centavos" in reenvio, "não abre outro trabalho após identificar a vaga")
+    }
+
 }

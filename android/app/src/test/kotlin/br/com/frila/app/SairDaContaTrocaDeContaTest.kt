@@ -2,7 +2,6 @@ package br.com.frila.app
 
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.Sessao
@@ -45,7 +44,6 @@ class SairDaContaTrocaDeContaTest : KoinTest {
 
     private val moduloLocalizacaoFalso = module {
         single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
-        single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
     }
 
     /** O mesmo gestor do `moduloRede`, só com o motor falso. Carregado depois, sobrescreve o de produção. */

@@ -586,6 +586,33 @@ class TelaPerfilTest {
         }
     }
 
+    /**
+     * O app não declara a permissão de biometria (o recurso está desligado), e consultar o hardware sem ela lança em aparelho
+     * real. Com o recurso desligado, abrir o perfil não pode nem perguntar se há biometria.
+     */
+    @Test
+    fun perfilComABiometriaDesligadaNaoConsultaOHardware() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+            var consultas = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        verificarDisponibilidadeBiometrica = { consultas++; DisponibilidadeBiometrica.DISPONIVEL },
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().assertIsDisplayed()
+            assertEquals("o perfil consultou o hardware de biometria com o recurso desligado", 0, consultas)
+        }
+    }
+
     @Test
     fun c011PerfilDaCasaNaoMostraBiometria() {
         runBlocking {

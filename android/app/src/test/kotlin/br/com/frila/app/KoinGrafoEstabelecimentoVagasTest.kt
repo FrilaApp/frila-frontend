@@ -1,6 +1,5 @@
 package br.com.frila.app
 
-import br.com.frila.core.localizacao.GerenciadorGeofencingTurnos
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.CoordenadaDto
@@ -43,7 +42,6 @@ import org.koin.test.get
 
 private val moduloLocalizacaoDoGrafoDeEstabelecimento = module {
     single<ProvedorDeLocalizacao> { mockk(relaxed = true) }
-    single<GerenciadorGeofencingTurnos> { mockk(relaxed = true) }
 }
 
 /**

@@ -1,6 +1,5 @@
 package br.com.frila.feature.vagas.feed
 
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ServicoVagas
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -19,9 +18,7 @@ class PreferenciasFeedTest {
     private fun criar(armazenamento: ArmazenamentoPreferenciasFiltro, escopo: CoroutineScope): FeedVagasViewModel {
         val servico = mockk<ServicoVagas>()
         coEvery { servico.listarVagasAbertas(any()) } returns emptyList()
-        val localizacao = mockk<ProvedorDeLocalizacao>()
-        coEvery { localizacao.obterCoordenadaAtual() } returns null
-        return FeedVagasViewModel(servico, localizacao, armazenamento, escopo)
+        return FeedVagasViewModel(servico, armazenamento, escopo)
     }
 
     @Test fun `leitura antiga que termina depois do toque nao desfaz filtro escolhido`() = runTest {

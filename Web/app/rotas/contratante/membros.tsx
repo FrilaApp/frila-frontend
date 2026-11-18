@@ -1,7 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { escolherCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
-import { type Convite, convidarMembro, PAPEIS } from "../../servidor/contratante/membros";
+import { type Convite, convidarMembro, lerMembros, type MudancaDeMembro, mudarMembro, PAPEIS } from "../../servidor/contratante/membros";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
@@ -22,15 +22,37 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Sem casa, conta de profissional ou servidor fora: o painel explica cada caso.
   const casa = leitura.estado === "ok" ? escolherCasa(leitura.casas, new URL(request.url).searchParams.get("casa")) : null;
   if (!casa) throw redirect("/painel");
-  return { casa: { id: casa.id, nome: casa.nome, administrador: casa.papel === "administrador" } };
+  const lista = casa.papel === "administrador" ? await lerMembros(apiDoUsuario(sessao.acesso), casa.id) : { estado: "so_administrador" as const, membros: [] };
+  const estado = lista.estado;
+  if (estado === "sem_sessao") throw redirect("/entrar");
+  const consulta = new URL(request.url).searchParams;
+  return {
+    casa: { id: casa.id, nome: casa.nome, administrador: casa.papel === "administrador" },
+    ...lista,
+    estado,
+    aviso: consulta.has("removido") ? t.removido : consulta.has("transferido") ? t.transferido : null,
+  };
 }
 
-type Retorno = { link: string; ate: string } | { falha: Exclude<Extract<Convite, { ok: false }>["motivo"], "sem_sessao">; email: string; papel: string };
+type Retorno = { link: string; ate: string } | { falha: Exclude<Extract<Convite | MudancaDeMembro, { ok: false }>["motivo"], "sem_sessao"> | "confirmacao"; email?: string; papel?: string };
 
 /** O link leva o token no fragmento (`#…`): abrir o link não manda o token a servidor nenhum. */
 export async function action({ request, context }: Route.ActionArgs): Promise<Retorno> {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
+  const intencao = String(formulario.get("intencao") ?? "convidar");
+  if (intencao !== "convidar") {
+    if (intencao !== "remover" && intencao !== "transferir") return { falha: "indisponivel" };
+    if (formulario.get("confirmado") !== "sim") return { falha: "confirmacao" };
+    const casaId = String(formulario.get("casa") ?? "");
+    const resultado = await mudarMembro(apiDoUsuario(sessao.acesso), casaId, String(formulario.get("membro_id") ?? ""), intencao);
+    if (!resultado.ok) {
+      if (resultado.motivo === "sem_sessao") throw redirect("/entrar");
+      return { falha: resultado.motivo };
+    }
+    // O redirect volta ao loader: lista e papel da conta são relidos, inclusive ao remover a si próprio.
+    throw redirect(`/casa/membros?casa=${casaId}&${intencao === "remover" ? "removido" : "transferido"}=1`);
+  }
   const email = String(formulario.get("email") ?? "").trim();
   const papel = String(formulario.get("papel") ?? "");
   const convite = await convidarMembro(apiDoUsuario(sessao.acesso), String(formulario.get("casa") ?? ""), email, papel);
@@ -49,7 +71,7 @@ const classeDoLink = "inline-flex min-h-11 items-center font-semibold underline 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 export default function MembrosDaCasa({ loaderData, actionData }: Route.ComponentProps) {
   const gerando = useNavigation().state !== "idle";
-  const { casa } = loaderData;
+  const { casa, membros, estado, aviso } = loaderData;
   const falha = actionData && "falha" in actionData ? actionData : null;
   const pronto = actionData && "link" in actionData ? actionData : null;
   return (
@@ -59,20 +81,46 @@ export default function MembrosDaCasa({ loaderData, actionData }: Route.Componen
       </Link>
       <p className="font-titulo text-xl font-bold">{casa.nome}</p>
       <h1 className="font-titulo text-3xl font-bold">{t.titulo}</h1>
+      {falha ? <p id="falha-membros" role="alert" className="font-semibold">{t.erros[falha.falha]}</p> : null}
+      {aviso ? <p role="status">{aviso}</p> : null}
+      <section className="flex flex-col gap-4" aria-labelledby="lista-de-membros">
+        <h2 id="lista-de-membros" className="font-titulo text-xl font-bold">{t.lista}</h2>
+        {estado !== "ok" ? <p role="status">{t.falhasDaLista[estado]}</p> : membros.length === 0 ? <p>{t.vazia}</p> : (
+          <ul className="flex flex-col gap-4">
+            {membros.map((membro) => (
+              <li key={membro.membro_id} className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4">
+                <p className="font-semibold">{membro.nome}</p>
+                <p>{t.papeis[membro.papel]}{membro.e_voce ? ` · ${t.voce}` : ""}</p>
+                {casa.administrador ? (["remover", "transferir"] as const).filter((intencao) => intencao === "remover" || !membro.e_voce).map((intencao) => (
+                  <details key={intencao}>
+                    <summary className="min-h-11 cursor-pointer py-2 font-semibold underline underline-offset-4">{preencher(t[intencao], { nome: membro.nome })}</summary>
+                    <Form method="post" className="flex flex-col gap-3" aria-busy={gerando}>
+                      <input type="hidden" name="casa" value={casa.id} />
+                      <input type="hidden" name="membro_id" value={membro.membro_id} />
+                      <input type="hidden" name="intencao" value={intencao} />
+                      <label className="flex min-h-12 items-center gap-3">
+                        <input type="checkbox" required name="confirmado" value="sim" className="size-5 shrink-0" />
+                        <span>{intencao === "remover" ? t.confirmarRemocao : t.confirmarTransferencia}</span>
+                      </label>
+                      <button type="submit" disabled={gerando} aria-label={preencher(t[intencao], { nome: membro.nome })} className={classeDoBotao}>{gerando ? t.enviando : t.confirmar}</button>
+                    </Form>
+                  </details>
+                )) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <p>{t.explicacao}</p>
       {!casa.administrador ? (
         <p role="status">{t.soAdministrador}</p>
       ) : (
         <Form method="post" className="flex flex-col gap-4">
           <input type="hidden" name="casa" value={casa.id} />
-          {falha ? (
-            <p role="alert" className="font-semibold">
-              {t.erros[falha.falha]}
-            </p>
-          ) : null}
+          <input type="hidden" name="intencao" value="convidar" />
           <label className={classeDoRotulo}>
             {t.email}
-            <input name="email" type="email" required autoComplete="off" defaultValue={falha?.email ?? ""} className={classeDoCampo} aria-invalid={falha?.falha === "email" ? true : undefined} />
+            <input name="email" type="email" required autoComplete="off" defaultValue={falha?.email ?? ""} className={classeDoCampo} aria-invalid={falha?.falha === "email" ? true : undefined} aria-describedby={falha?.falha === "email" ? "falha-membros" : undefined} />
           </label>
           <fieldset className="flex flex-col gap-2">
             <legend className="font-semibold">{t.papel}</legend>
