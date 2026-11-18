@@ -29,6 +29,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.compose.KoinApplication
 import org.koin.dsl.module
@@ -81,6 +82,10 @@ class CodigoDaCasaAtualizaPresencaTest {
                     confirmados += id
                     confirmar(id)
                 }).also { acompanhamento = it }
+            }
+            // L2-8: com a presença verificada o turno da casa mostra "Incluir na equipe"; este teste não olha para ele.
+            viewModel { (estabelecimentoId: String, profissionalId: String) ->
+                IncluirNaEquipeViewModel(estabelecimentoId, profissionalId, listar = { emptyList() }, incluirMembro = { _, _ -> error("não inclui") })
             }
             viewModel { (id: String, aoConfirmar: (() -> Unit)?) ->
                 codigosCriados++

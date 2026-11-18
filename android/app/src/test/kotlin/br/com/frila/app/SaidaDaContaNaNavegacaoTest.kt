@@ -36,6 +36,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import br.com.frila.core.rede.SituacaoDaContaDto
+import br.com.frila.feature.conta.ContaSuspensaViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.compose.KoinApplication
 import org.koin.dsl.module
@@ -91,6 +93,14 @@ class SaidaDaContaNaNavegacaoTest {
                         single { CoordenadorDeLogout(armazenamentoDeSessao = get(), gestorClienteKtor = gestor) }
                         viewModel { EntradaViewModel(get()) }
                         viewModel { feedViewModel }
+                        // L2-5: a tela da suspensão lê a situação da conta.
+                        viewModel { (aoReativar: () -> Unit) ->
+                            ContaSuspensaViewModel(
+                                buscarSituacao = { SituacaoDaContaDto(estado = "suspensa") },
+                                contestar = { error("o teste não contesta") },
+                                aoReativar = aoReativar,
+                            )
+                        }
                     },
                 )
             }) {

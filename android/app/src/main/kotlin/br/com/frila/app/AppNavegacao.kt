@@ -31,6 +31,7 @@ import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoVagas
@@ -38,7 +39,11 @@ import br.com.frila.core.rede.StatusConectividade
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
-import br.com.frila.feature.conta.TelaContaSuspensa
+import br.com.frila.feature.conta.ContaSuspensaViewModel
+import br.com.frila.feature.conta.ContestarDespachoViewModel
+import br.com.frila.feature.conta.TelaContaSuspensaComContestacao
+import br.com.frila.feature.conta.TelaContestarDespacho
+import br.com.frila.feature.conta.TextosContestarDespacho
 import br.com.frila.feature.conta.TelaExclusaoDeConta
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.cadastro.TelaCadastro
@@ -48,15 +53,32 @@ import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.candidatos.TelaCandidatosDaVaga
+import br.com.frila.feature.vagas.candidaturas.DestinoDaCandidatura
+import br.com.frila.feature.vagas.candidaturas.ItemCandidatura
+import br.com.frila.feature.vagas.candidaturas.MinhasCandidaturasViewModel
+import br.com.frila.feature.vagas.candidaturas.RetirarCandidaturaViewModel
+import br.com.frila.feature.vagas.candidaturas.TelaMinhasCandidaturas
+import br.com.frila.feature.vagas.candidaturas.TelaRetirarCandidatura
+import br.com.frila.feature.vagas.candidaturas.TextosCandidaturas
+import br.com.frila.feature.vagas.detalhe.AberturaDeVagaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
+import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
+import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.vagas.painel.CancelarVagaViewModel
+import br.com.frila.feature.vagas.painel.ItemMinhaVaga
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
+import br.com.frila.feature.vagas.painel.RepublicarPosicoesRestantesViewModel
+import br.com.frila.feature.vagas.painel.RepublicarVagaViewModel
+import br.com.frila.feature.vagas.painel.TelaCancelarVaga
 import br.com.frila.feature.vagas.painel.TelaMinhasVagas
+import br.com.frila.feature.vagas.painel.TelaRepublicarPosicoesRestantes
+import br.com.frila.feature.vagas.painel.TelaRepublicarVaga
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
@@ -74,7 +96,10 @@ import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.perfil.TelaVerificacaoDocumento
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.suporte.BloqueiosViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
+import br.com.frila.feature.suporte.TelaBloqueios
+import br.com.frila.feature.suporte.TextosBloqueios
 import br.com.frila.feature.suporte.TelaDenuncia
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
@@ -84,6 +109,7 @@ import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
 import br.com.frila.feature.turnos.TelaOcorrencia
 import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
+import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
@@ -127,13 +153,20 @@ object Rotas {
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
+    // Lote 2 do Android (L2-8). Telas PROVISÓRIAS; o lugar de cada entrada está em `EntradasProvisorias.kt`.
+    const val CANCELAR_VAGA = "cancelar_vaga/{vagaId}?inicioDaVaga={inicioDaVaga}"
+    const val REPUBLICAR_VAGA = "republicar_vaga/{vagaId}?selecao={selecao}&duracaoMin={duracaoMin}"
+    const val MINHAS_CANDIDATURAS = "minhas_candidaturas"
+    const val BLOQUEIOS = "bloqueios"
+    const val CONTESTAR_DESPACHO = "contestar_despacho"
+
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
     fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
     fun turnoAviso(turnoId: String) = "meus_turnos/$turnoId"
 
-    /** `motivo` e `desde` são opcionais e já formatados para exibição (o Android ainda não lê `situacao_da_conta`). */
+    /** `motivo` e `desde` ficaram só por compatibilidade com links antigos: desde o L2-5 a tela lê `situacao_da_conta` e mostra o que o servidor diz. */
     fun contaSuspensa(motivo: String? = null, desde: String? = null): String {
         val parametros = listOfNotNull(
             motivo?.let { "motivo=${Uri.encode(it)}" },
@@ -153,6 +186,16 @@ object Rotas {
     }
 
     fun equipe(estabelecimentoId: String) = "equipe/$estabelecimentoId"
+
+    /** `inicioDaVaga` (ISO-8601 UTC) só serve ao aviso do que o cancelamento causa; sem ele a tela fica sem o aviso de prazo. */
+    fun cancelarVaga(vagaId: String, inicioDaVaga: Instant? = null): String {
+        val base = "cancelar_vaga/${Uri.encode(vagaId)}"
+        return inicioDaVaga?.let { "$base?inicioDaVaga=${Uri.encode(it.toString())}" } ?: base
+    }
+
+    /** `duracaoMin` é a duração da vaga de origem, em minutos: o novo horário sugerido a mantém. */
+    fun republicarVaga(vagaId: String, selecao: Boolean, duracaoMin: Long) =
+        "republicar_vaga/${Uri.encode(vagaId)}?selecao=$selecao&duracaoMin=$duracaoMin"
 
     fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
 
@@ -399,13 +442,18 @@ fun AppNavegacao(
                             aoPronto?.invoke()
                         }
                     }
-                    TelaFeedVagas(
-                        viewModel = viewModel,
-                        aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
-                        aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
-                        aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
-                        aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
-                    )
+                    // L2-4: no iOS, Candidaturas é uma aba; aqui é uma linha sob o feed (ver `EntradasProvisorias.kt`).
+                    ComEntradasProvisorias(
+                        listOf(EntradaProvisoria(ENTRADA_CANDIDATURAS, TextosCandidaturas.TITULO) { navController.navigate(Rotas.MINHAS_CANDIDATURAS) }),
+                    ) {
+                        TelaFeedVagas(
+                            viewModel = viewModel,
+                            aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
+                            aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
+                            aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
+                            aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
+                        )
+                    }
                 }
             }
 
@@ -415,7 +463,8 @@ fun AppNavegacao(
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
-                    val feedAnterior = navController.previousBackStackEntry?.let {
+                    // Só o feed conhece a lista de vagas; de qualquer outro lugar (candidaturas, link, aviso) a vaga é lida do servidor.
+                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
                         koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
                     }
                     val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
@@ -431,14 +480,19 @@ fun AppNavegacao(
                             TelaDetalheVaga(viewModel = viewModel)
                         }
                     } else {
-                        TelaVagaIndisponivel(
-                            motivo = MotivoIndisponibilidadeVaga.NAO_ENCONTRADA,
+                        // L2-4: a vaga fora da lista (link, aviso, candidatura) é lida do servidor pelo id; 404 é "não encontrada".
+                        val abertura: AberturaDeVagaViewModel = koinViewModel(parameters = { parametersOf(vagaId) })
+                        TelaAberturaDeVaga(
+                            viewModel = abertura,
                             aoVoltarParaFeed = {
                                 navController.navigate(Rotas.FEED) {
                                     popUpTo(Rotas.FEED) { inclusive = true }
                                 }
                             },
-                        )
+                        ) { detalhe ->
+                            val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(detalhe.paraVagaAberta(), detalhe) })
+                            TelaDetalheVaga(viewModel = viewModel)
+                        }
                     }
                 }
             }
@@ -510,6 +564,7 @@ fun AppNavegacao(
                                         },
                                         aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                         aoDenunciarEstabelecimento = denunciarCasa,
+                                        aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                     )
                                 }
                             } else {
@@ -547,6 +602,7 @@ fun AppNavegacao(
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                     aoDenunciarEstabelecimento = denunciarCasa,
+                                    aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                 )
                             }
                         }
@@ -574,6 +630,7 @@ fun AppNavegacao(
                             },
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
+                            aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                         )
                     }
                 }
@@ -646,62 +703,77 @@ fun AppNavegacao(
                     var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
                     LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
                     val primeiraCasa = casas as? CasasDaConta.Primeira
-                    TelaPerfil(
-                        viewModel = viewModel,
-                        manterAtalhosDeContratanteNoErro = primeiraCasa != null,
-                        recursoSeloHabilitado = recursoSeloHabilitado,
-                        verificacaoIdentidade = estadoSelo?.verificacao,
-                        podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
-                        aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
-                        aoDeslogar = { irParaEntrada() },
-                        aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
-                        aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
-                        aoAbrirEquipe = primeiraCasa?.let { casa ->
-                            { navController.navigate(Rotas.equipe(casa.id)) }
-                        },
-                        aoPublicarVaga = primeiraCasa?.let { casa ->
-                            { navController.navigate(Rotas.publicarVaga(casa.id)) }
-                        },
-                        aoMinhasVagas = primeiraCasa?.let { casa ->
-                            { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
-                        },
-                        aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
-                            { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
-                        } else {
-                            null
-                        },
-                        // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
-                        aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
-                            { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
-                        } else {
-                            null
-                        },
-                        // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
-                        // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
-                        // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
-                        aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
-                            { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
-                        } else {
-                            null
-                        },
-                        // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
-                        aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
-                            { navController.navigate(Rotas.APRESENTACAO) }
-                        } else {
-                            null
-                        },
-                        aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
-                            { navController.navigate(Rotas.FOTO_DE_PERFIL) }
-                        } else {
-                            null
-                        },
-                        // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
-                        aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
-                            { navController.navigate(Rotas.PONTO_BASE) }
-                        } else {
-                            null
-                        },
-                    )
+                    // L2-5 e L2-6: sem lugar nas telas de hoje, as duas entradas são linhas sob o perfil (ver `EntradasProvisorias.kt`).
+                    // Bloqueados é dos dois papéis; contestar o despacho é só do profissional (mesma regra de `casas` das outras entradas dele).
+                    ComEntradasProvisorias(
+                        listOfNotNull(
+                            EntradaProvisoria(ENTRADA_BLOQUEIOS, TextosBloqueios.TITULO) { navController.navigate(Rotas.BLOQUEIOS) },
+                            if (casas == CasasDaConta.Desconhecidas) {
+                                EntradaProvisoria(ENTRADA_CONTESTAR_DESPACHO, TextosContestarDespacho.TITULO) {
+                                    navController.navigate(Rotas.CONTESTAR_DESPACHO)
+                                }
+                            } else {
+                                null
+                            },
+                        ),
+                    ) {
+                        TelaPerfil(
+                            viewModel = viewModel,
+                            manterAtalhosDeContratanteNoErro = primeiraCasa != null,
+                            recursoSeloHabilitado = recursoSeloHabilitado,
+                            verificacaoIdentidade = estadoSelo?.verificacao,
+                            podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
+                            aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
+                            aoDeslogar = { irParaEntrada() },
+                            aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
+                            aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },
+                            aoAbrirEquipe = primeiraCasa?.let { casa ->
+                                { navController.navigate(Rotas.equipe(casa.id)) }
+                            },
+                            aoPublicarVaga = primeiraCasa?.let { casa ->
+                                { navController.navigate(Rotas.publicarVaga(casa.id)) }
+                            },
+                            aoMinhasVagas = primeiraCasa?.let { casa ->
+                                { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
+                            },
+                            aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
+                                { navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO) }
+                            } else {
+                                null
+                            },
+                            // Busca de profissionais (tela provisória): só para quem é membro de uma casa e com a chave ligada.
+                            aoEncontrarProfissional = if (buscaProfissionaisHabilitada && primeiraCasa != null) {
+                                { navController.navigate(RotasChamadaCasa.buscar(primeiraCasa.id)) }
+                            } else {
+                                null
+                            },
+                            // Preferências de chamada são do profissional (como `suportaChamadaDireta` no iOS): quem tem
+                            // casa, ou pode cadastrar uma, é contratante e não vê o atalho. Só `Desconhecidas` (conta de
+                            // profissional recebe `perfil_incompativel` da lista de casas) o mostra.
+                            aoAbrirChamadasDiretas = if (chamadaDiretaHabilitada && casas == CasasDaConta.Desconhecidas) {
+                                { navController.navigate(RotasChamadaProfissional.PREFERENCIAS) }
+                            } else {
+                                null
+                            },
+                            // L1-7c: apresentação e foto são do profissional, como as preferências de chamada (mesma regra de `casas`).
+                            aoAbrirApresentacao = if (perfilRicoHabilitado && casas == CasasDaConta.Desconhecidas) {
+                                { navController.navigate(Rotas.APRESENTACAO) }
+                            } else {
+                                null
+                            },
+                            aoAbrirFotoDePerfil = if (fotoDePerfilHabilitada && casas == CasasDaConta.Desconhecidas) {
+                                { navController.navigate(Rotas.FOTO_DE_PERFIL) }
+                            } else {
+                                null
+                            },
+                            // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
+                            aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
+                                { navController.navigate(Rotas.PONTO_BASE) }
+                            } else {
+                                null
+                            },
+                        )
+                    }
                 }
             }
 
@@ -752,9 +824,17 @@ fun AppNavegacao(
                     navArgument("motivo") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("desde") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
-            ) { entrada ->
+            ) {
                 val contexto = LocalContext.current
-                TelaContaSuspensa(
+                // L2-5: a tela lê `situacao_da_conta` (motivo, data, contestação já aberta). Conta reativada: reavalia a abertura, que a leva ao destino de sempre.
+                val aoReativar: () -> Unit = {
+                    navController.navigate(if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.FEED) {
+                        popUpTo(Rotas.CONTA_SUSPENSA) { inclusive = true }
+                    }
+                }
+                val viewModel: ContaSuspensaViewModel = koinViewModel(parameters = { parametersOf(aoReativar) })
+                TelaContaSuspensaComContestacao(
+                    viewModel = viewModel,
                     emailSuporte = EnderecosOficiais.padrao.emailSuporte,
                     aoContatarSuporte = { email ->
                         try {
@@ -768,9 +848,21 @@ fun AppNavegacao(
                         armazenamentoDeSessao.limparSessao()
                         irParaEntrada()
                     },
-                    motivo = entrada.arguments?.getString("motivo"),
-                    desde = entrada.arguments?.getString("desde"),
                 )
+            }
+
+            composable(Rotas.CONTESTAR_DESPACHO) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: ContestarDespachoViewModel = koinViewModel()
+                    TelaContestarDespacho(viewModel = viewModel, aoVoltar = { navController.popBackStack() })
+                }
+            }
+
+            composable(Rotas.BLOQUEIOS) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: BloqueiosViewModel = koinViewModel()
+                    TelaBloqueios(viewModel = viewModel, aoVoltar = { navController.popBackStack() })
+                }
             }
 
             composable(
@@ -882,9 +974,16 @@ fun AppNavegacao(
                     val viewModel: MinhasVagasViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId, nomeEstabelecimento, vagaRecemPublicadaId) },
                     )
+                    // L2-3: "Republicar posições em urgência" é uma confirmação na própria lista; cancelar e republicar são telas.
+                    var restantesDe by remember { mutableStateOf<ItemMinhaVaga?>(null) }
                     TelaMinhasVagas(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        aoCancelarVaga = { item -> navController.navigate(Rotas.cancelarVaga(item.id, item.inicio)) },
+                        aoRepublicarVaga = { item ->
+                            navController.navigate(Rotas.republicarVaga(item.id, item.selecao, duracaoDaVagaEmMinutos(item.inicio, item.fim)))
+                        },
+                        aoRepublicarPosicoesRestantes = { item -> restantesDe = item },
                         aoVerCandidatos = { vagaId, posicoesAbertas, inicioDaVaga ->
                             navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
                         },
@@ -893,6 +992,74 @@ fun AppNavegacao(
                             navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
                         },
                     )
+                    restantesDe?.let { item ->
+                        val republicar: RepublicarPosicoesRestantesViewModel = koinViewModel(
+                            key = "restantes-${item.id}",
+                            parameters = { parametersOf(item.id, item.republicavelEmUrgencia, { _: String -> }, { viewModel.carregar() }) },
+                        )
+                        TelaRepublicarPosicoesRestantes(viewModel = republicar, aoFechar = { restantesDe = null })
+                    }
+                }
+            }
+
+            composable(
+                route = Rotas.CANCELAR_VAGA,
+                arguments = listOf(
+                    navArgument("vagaId") { type = NavType.StringType },
+                    navArgument("inicioDaVaga") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                    val viewModel: CancelarVagaViewModel = koinViewModel(parameters = { parametersOf(vagaId, inicioDaVaga) })
+                    TelaCancelarVaga(viewModel = viewModel, aoFechar = { navController.popBackStack() })
+                }
+            }
+
+            composable(
+                route = Rotas.REPUBLICAR_VAGA,
+                arguments = listOf(
+                    navArgument("vagaId") { type = NavType.StringType },
+                    navArgument("selecao") { type = NavType.StringType; defaultValue = "false" },
+                    navArgument("duracaoMin") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val selecao = entrada.arguments?.getString("selecao") == "true"
+                    val duracao = Duration.ofMinutes(
+                        entrada.arguments?.getString("duracaoMin")?.toLongOrNull() ?: RepublicarVagaViewModel.DURACAO_MINIMA.toMinutes(),
+                    )
+                    val viewModel: RepublicarVagaViewModel = koinViewModel(parameters = { parametersOf(vagaId, selecao, duracao) })
+                    TelaRepublicarVaga(viewModel = viewModel, aoFechar = { navController.popBackStack() })
+                }
+            }
+
+            composable(Rotas.MINHAS_CANDIDATURAS) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: MinhasCandidaturasViewModel = koinViewModel()
+                    var retirando by remember { mutableStateOf<ItemCandidatura?>(null) }
+                    TelaMinhasCandidaturas(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoAbrir = { destino ->
+                            when (destino) {
+                                is DestinoDaCandidatura.Vaga -> navController.navigate(Rotas.detalhe(destino.vagaId))
+                                is DestinoDaCandidatura.Turno -> navController.navigate(Rotas.turnoAviso(destino.turnoId))
+                                DestinoDaCandidatura.MeusTurnos -> navController.navigate(Rotas.MEUS_TURNOS)
+                            }
+                        },
+                        aoRetirar = { item -> retirando = item },
+                    )
+                    retirando?.let { item ->
+                        // Um ViewModel por candidatura: a pergunta fecha e reabre sem perder o que o servidor já respondeu.
+                        val retirar: RetirarCandidaturaViewModel = koinViewModel(
+                            key = "retirar-${item.id}",
+                            parameters = { parametersOf(item.id, { viewModel.carregar() }) },
+                        )
+                        TelaRetirarCandidatura(viewModel = retirar, aoFechar = { retirando = null; viewModel.carregar() })
+                    }
                 }
             }
 
@@ -933,7 +1100,7 @@ fun AppNavegacao(
                     // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
                     // só perde o aviso da última posição e o prazo, nunca recebe lixo.
                     val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
-                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { instanteDoServidor(it) }.getOrNull() }
                     val viewModel: CandidatosDaVagaViewModel = koinViewModel(
                         parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
                     )
@@ -1030,6 +1197,14 @@ fun AppNavegacao(
             modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
         )
     }
+}
+
+/** A duração da vaga de origem, em minutos, dentro do que a republicação aceita (2 a 16 h). Sem os dois instantes, o mínimo. */
+private fun duracaoDaVagaEmMinutos(inicio: Instant?, fim: Instant?): Long {
+    val minima = RepublicarVagaViewModel.DURACAO_MINIMA
+    val maxima = RepublicarVagaViewModel.DURACAO_MAXIMA
+    if (inicio == null || fim == null) return minima.toMinutes()
+    return minOf(maxOf(Duration.between(inicio, fim), minima), maxima).toMinutes()
 }
 
 /** Extraído para ser testável sozinho, sem montar o grafo Koin/NavHost completo. */
