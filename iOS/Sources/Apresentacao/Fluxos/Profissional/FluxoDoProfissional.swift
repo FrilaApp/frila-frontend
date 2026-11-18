@@ -212,6 +212,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         }
                     }
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(TextosDoProfissional.Lista.titulo, systemImage: "briefcase")
             }
@@ -225,6 +226,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                     destinoDoMeuTurno(turno)
                 }
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(TextosDoProfissional.Turnos.tituloMeusTurnos, systemImage: "calendar")
             }
@@ -248,6 +250,7 @@ public struct FluxoDoProfissional<Barra: View>: View {
                         }
                     }
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(TextosDaCandidaturaEmSelecao.titulo, systemImage: "paperplane")
             }
@@ -256,11 +259,15 @@ public struct FluxoDoProfissional<Barra: View>: View {
             NavigationStack {
                 TelaMeuPerfilProfissional(api: api, sair: sair)
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(String(localized: "Conta", bundle: bundleApresentacao), systemImage: "person.crop.circle")
             }
             .tag(AbaDoProfissional.conta)
         }
+        // Barra de abas do desenho do Fabrício: o ícone da aba ativa vai na cor de ação. Cada aba devolve a tinta ao
+        // seu conteúdo (`.tint(FrilaCor.primaria)` acima), para link e controle nativo não virarem texto laranja.
+        .tint(FrilaCor.acao)
         .environment(feed.bloqueios)
         .task { await descobrirContaDeDemonstracao() }
         .onChange(of: feed.bloqueios.alvos) {
