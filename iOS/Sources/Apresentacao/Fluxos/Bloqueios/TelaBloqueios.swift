@@ -3,8 +3,6 @@ import SwiftUI
 
 /// Tela "Pessoas e locais bloqueados" (decisão A8 da PO, RF26, contrato v0.2.51).
 /// Lista quem o usuário bloqueou e permite desfazer o bloqueio com confirmação.
-/// Desenho do sistema do Fabrício (extrapolado: a tela não está no protótipo): tela de leitura, sem laranja; a lista
-/// num grupo de linhas e "Desbloquear" em link, porque desfazer o bloqueio leva a uma confirmação nativa.
 public struct TelaBloqueios: View {
     @State private var viewModel: BloqueiosViewModel
     @State private var itemADesbloquear: ItemBloqueio?
@@ -19,11 +17,10 @@ public struct TelaBloqueios: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 Text(verbatim: TextosBloqueios.explicacao)
-                    .font(FrilaTipo.apoio)
+                    .font(FrilaTipo.meta)
                     .foregroundStyle(FrilaCor.textoSecundario)
-                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("bloqueios-explicacao")
 
@@ -38,10 +35,7 @@ public struct TelaBloqueios: View {
 
                 conteudo
             }
-            .padding(.horizontal, FrilaEspaco.grupo)
-            .padding(.vertical, FrilaEspaco.bloco)
-            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(FrilaEspaco.medio)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosBloqueios.titulo))
@@ -88,36 +82,38 @@ public struct TelaBloqueios: View {
     }
 
     private func lista(_ itens: [ItemBloqueio]) -> some View {
-        FrilaGrupoDeLinhas(linhasComIcone: false) {
+        VStack(spacing: 0) {
             ForEach(itens) { item in
                 linha(item)
+                Divider().overlay(FrilaCor.divisoria)
             }
         }
     }
 
     private func linha(_ item: ItemBloqueio) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
             Text(verbatim: item.nome)
-                .font(FrilaTipo.nome)
+                .font(FrilaTipo.tituloDoCartao.weight(.bold))
                 .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
             Text(verbatim: item.alvo.tipo == .estabelecimento ? TextosBloqueios.tipoEstabelecimento : TextosBloqueios.tipoProfissional)
-                .font(FrilaTipo.apoio)
+                .font(FrilaTipo.meta)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
-            // Link: abre a confirmação nativa que explica o que volta a acontecer. Enquanto um desbloqueio roda, os
-            // outros ficam desligados, sem indicador girando.
-            Button { itemADesbloquear = item } label: { Text(verbatim: TextosBloqueios.desbloquear) }
-                .buttonStyle(.frilaLink)
-                .disabled(viewModel.desbloqueandoID != nil)
-                .accessibilityLabel(Text(verbatim: "\(TextosBloqueios.desbloquear) \(item.nome)"))
-                .accessibilityIdentifier("desbloquear-\(item.id)")
+            BotaoSecundario(verbatim: TextosBloqueios.desbloquear) {
+                itemADesbloquear = item
+            }
+            .disabled(viewModel.desbloqueandoID != nil)
+            .accessibilityLabel(Text(verbatim: "\(TextosBloqueios.desbloquear) \(item.nome)"))
+            .accessibilityIdentifier("desbloquear-\(item.id)")
+
+            if viewModel.desbloqueandoID == item.id {
+                ProgressView()
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, FrilaMedidaDeLinha.margem)
-        .padding(.vertical, FrilaEspaco.item)
+        .padding(.vertical, FrilaEspaco.medio)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("item-bloqueio-\(item.id)")
     }
