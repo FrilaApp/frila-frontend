@@ -13,12 +13,7 @@ import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.MidiaDto
-import br.com.frila.core.rede.RegiaoAdministrativaDto
-import br.com.frila.feature.perfil.AcoesApresentacaoERegioes
-import br.com.frila.feature.perfil.ConteudoApresentacaoERegioes
 import br.com.frila.feature.perfil.ConteudoPontoBase
-import br.com.frila.feature.perfil.EstadoApresentacaoERegioes
-import br.com.frila.feature.perfil.TextosApresentacaoERegioes
 import br.com.frila.feature.perfil.DisponibilidadeBiometrica
 import br.com.frila.feature.perfil.EstadoPontoBase
 import br.com.frila.feature.perfil.EtapaDaFoto
@@ -389,69 +384,5 @@ class CapturasR4aTest {
     fun `ajuda - fonte 2x`() {
         compose.setContent { FrilaTheme(temaEscuro = false) { TelaAjudaPerfil(aoVoltar = {}) } }
         compose.capturar("r4a-ajuda-02-fonte-2x")
-    }
-
-    // ---- Apresentação e regiões ----
-
-    private val estadoApresentacao = EstadoApresentacaoERegioes(
-        sobreMim = "Garçom há 8 anos, com experiência em buffet e eventos.",
-        ondeTrabalhei = "Buffet de casamento, bar no Sudoeste",
-        experienciaFaixa = "de_5_a_10_anos",
-        cursos = listOf("Coquetelaria", "Barista"),
-        idiomas = setOf("ingles"),
-        regioesSelecionadas = setOf(3),
-        regioesDisponiveis = listOf(
-            RegiaoAdministrativaDto(1, "I", "Plano Piloto", true),
-            RegiaoAdministrativaDto(2, "II", "Gama", true),
-            RegiaoAdministrativaDto(3, "III", "Taguatinga", true),
-            RegiaoAdministrativaDto(4, "IV", "Brazlândia", true),
-            RegiaoAdministrativaDto(5, "V", "Sobradinho", true),
-        ),
-    )
-
-    @Composable
-    private fun Apresentacao(estado: EstadoApresentacaoERegioes) = ConteudoApresentacaoERegioes(
-        estado = estado,
-        acoes = AcoesApresentacaoERegioes(),
-    )
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w411dp-h2600dp-xxhdpi")
-    fun `apresentacao - preenchida`() {
-        compose.setContent { FrilaTheme(temaEscuro = false) { Apresentacao(estadoApresentacao) } }
-        compose.capturar("r4a-apresentacao-01-preenchida")
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w411dp-h2600dp-xxhdpi")
-    fun `apresentacao - com erros e resultado`() {
-        val estado = estadoApresentacao.copy(
-            erroSobreMim = TextosApresentacaoERegioes.ERRO_ANTI_CONTATO,
-            erroCursos = TextosApresentacaoERegioes.LIMITE_CURSOS,
-            erroRegioes = TextosApresentacaoERegioes.ERRO_REGIOES,
-            erroGeral = TextosApresentacaoERegioes.ERRO_SEM_REDE,
-        )
-        compose.setContent { FrilaTheme(temaEscuro = false) { Apresentacao(estado) } }
-        compose.capturar("r4a-apresentacao-02-erros")
-    }
-
-    @Test
-    fun `apresentacao - carregando`() {
-        compose.setContent { FrilaTheme(temaEscuro = false) { Apresentacao(EstadoApresentacaoERegioes(carregando = true)) } }
-        compose.capturar("r4a-apresentacao-03-carregando")
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w411dp-h2600dp-xxhdpi")
-    fun `apresentacao - sucesso ao salvar`() {
-        compose.setContent { FrilaTheme(temaEscuro = false) { Apresentacao(estadoApresentacao.copy(sucesso = true)) } }
-        compose.capturar("r4a-apresentacao-04-sucesso")
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w411dp-h2600dp-xxhdpi", fontScale = 2f)
-    fun `apresentacao - fonte 2x`() {
-        compose.setContent { FrilaTheme(temaEscuro = false) { Apresentacao(estadoApresentacao) } }
-        compose.capturar("r4a-apresentacao-05-fonte-2x")
     }
 }

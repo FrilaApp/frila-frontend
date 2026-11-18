@@ -26,3 +26,23 @@ fun ComposeContentTestRule.capturar(nome: String): File? {
     arquivo.outputStream().use { imagem.compress(Bitmap.CompressFormat.PNG, 100, it) }
     return arquivo
 }
+
+/**
+ * Como [capturar], mas de uma janela que não é a principal (a folha modal e o diálogo vivem em janela própria, e
+ * `onRoot()` reclama de mais de uma raiz). `indice` conta as raízes na ordem em que o Compose as devolve; a última é
+ * a janela mais ao alto.
+ */
+fun ComposeContentTestRule.capturarJanela(nome: String, indice: Int = -1): File? {
+    waitForIdle()
+    val raizes = onAllNodes(androidx.compose.ui.test.isRoot()).fetchSemanticsNodes()
+    val raiz = if (indice < 0) raizes[raizes.size + indice] else raizes[indice]
+    val vista = (raiz.root as ViewRootForTest).view
+    val imagem = Bitmap.createBitmap(vista.width, vista.height, Bitmap.Config.ARGB_8888)
+    vista.draw(Canvas(imagem))
+
+    val pasta = System.getenv("FRILA_CAPTURAS_DIR")?.takeIf { it.isNotBlank() } ?: return null
+    val arquivo = File(pasta, "$nome.png")
+    arquivo.parentFile?.mkdirs()
+    arquivo.outputStream().use { imagem.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    return arquivo
+}
