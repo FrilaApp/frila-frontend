@@ -107,6 +107,14 @@ public protocol CacheLocal: Sendable {
     func salvar(sessao: SessaoUsuario) async throws
     func sessao() async throws -> SessaoUsuario?
     func salvar(turnos: [Turno], em instante: Date) async throws
+    /// A época do cache: muda a cada `limpar()`. Quem vai guardar o resultado de uma leitura anota a época ANTES de
+    /// ler e grava com `salvar(turnos:em:seAindaNaEpoca:)`: a resposta que chega depois de uma limpeza (a conta saiu,
+    /// outra entrou) não pode repovoar o cache da conta seguinte.
+    func epoca() async -> UInt64
+    /// Guarda os turnos só se o cache ainda estiver na época em que a leitura começou. Devolve `false`, sem gravar
+    /// nada, quando houve uma limpeza no meio. A conferência e a gravação são uma operação só.
+    @discardableResult
+    func salvar(turnos: [Turno], em instante: Date, seAindaNaEpoca epoca: UInt64) async throws -> Bool
     func turnosValidos(em instante: Date) async throws -> [Turno]
     func salvar(contato: Contato, doTurno turnoID: UUID) async throws
     func contato(doTurno turnoID: UUID, em instante: Date) async throws -> Contato?
