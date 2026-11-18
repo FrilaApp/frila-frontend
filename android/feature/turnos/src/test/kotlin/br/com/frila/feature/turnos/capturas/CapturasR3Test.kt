@@ -12,6 +12,17 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.dominio.modelo.MotivoOcorrencia
+import br.com.frila.core.rede.ProtocoloDto
+import br.com.frila.feature.turnos.AvaliacaoViewModel
+import br.com.frila.feature.turnos.EstadoAvaliacao
+import br.com.frila.feature.turnos.EstadoOcorrencia
+import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.feature.turnos.StatusAvaliacao
+import br.com.frila.feature.turnos.StatusOcorrencia
+import br.com.frila.feature.turnos.TelaAvaliacao
+import br.com.frila.feature.turnos.TelaOcorrencia
+import br.com.frila.feature.turnos.TelaTurnoNaoEncontrado
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.DialogoCancelamentoTurno
 import br.com.frila.feature.turnos.DialogoDefensivoLocalizacao
@@ -312,6 +323,113 @@ class CapturasR3Test {
             checkin = EstadoCheckin(dialogoDefensivo = DialogoDefensivoLocalizacao.PERMISSAO_NEGADA),
         )
         compose.capturar("r3-17-dialogo-permissao", daJanela = true)
+    }
+
+    // ---- Parte 2: turno não encontrado, avaliação e ocorrência ----
+
+    @Test
+    fun `20 turno nao encontrado`() {
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { TelaTurnoNaoEncontrado(aoVoltar = {}, aoVerMeusTurnos = {}) }
+        }
+        compose.capturar("r3-20-turno-nao-encontrado")
+    }
+
+    private fun avaliacao(estado: EstadoAvaliacao, enviarAoToque: Boolean = false) {
+        val vm = mockk<AvaliacaoViewModel>(relaxed = true)
+        val fluxo = MutableStateFlow(estado)
+        every { vm.estado } returns fluxo
+        if (enviarAoToque) {
+            every { vm.avaliar(any(), any()) } answers {
+                fluxo.value = EstadoAvaliacao(status = StatusAvaliacao.ENVIANDO)
+                mockk(relaxed = true)
+            }
+        }
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { TelaAvaliacao(turnoId = "t1", viewModel = vm, aoVoltar = {}) }
+        }
+    }
+
+    @Test
+    fun `21 avaliacao, pergunta`() {
+        avaliacao(EstadoAvaliacao())
+        compose.capturar("r3-21-avaliacao-pergunta")
+    }
+
+    @Test
+    fun `22 avaliacao, depois do toque`() {
+        avaliacao(EstadoAvaliacao(), enviarAoToque = true)
+        compose.onNodeWithText("Sim, trabalharia").performClick()
+        compose.capturar("r3-22-avaliacao-escolhida-e-enviando")
+    }
+
+    @Test
+    fun `23 avaliacao, erro`() {
+        avaliacao(EstadoAvaliacao(status = StatusAvaliacao.ERRO, mensagemErro = "Esta avaliação já foi registrada."))
+        compose.capturar("r3-23-avaliacao-erro")
+    }
+
+    @Test
+    fun `24 avaliacao, registrada`() {
+        avaliacao(EstadoAvaliacao(status = StatusAvaliacao.SUCESSO, respostaRegistrada = true))
+        compose.capturar("r3-24-avaliacao-registrada")
+    }
+
+    private fun ocorrencia(estado: EstadoOcorrencia) {
+        val vm = mockk<OcorrenciaTurnoViewModel>(relaxed = true)
+        every { vm.estado } returns MutableStateFlow(estado)
+        compose.setContent {
+            FrilaTheme(temaEscuro = false) { TelaOcorrencia(viewModel = vm) }
+        }
+    }
+
+    @Test
+    fun `25 ocorrencia, formulario vazio`() {
+        ocorrencia(EstadoOcorrencia())
+        compose.capturar("r3-25-ocorrencia-formulario")
+    }
+
+    @Test
+    fun `26 ocorrencia, motivo e relato`() {
+        ocorrencia(EstadoOcorrencia(motivo = MotivoOcorrencia.PROBLEMA_NO_LOCAL, relato = "A porta lateral estava fechada.", anexoUri = "x"))
+        compose.capturar("r3-26-ocorrencia-motivo-e-relato")
+    }
+
+    @Test
+    fun `27 ocorrencia, erro ao enviar`() {
+        ocorrencia(
+            EstadoOcorrencia(
+                motivo = MotivoOcorrencia.OUTRO,
+                status = StatusOcorrencia.ERRO,
+                mensagemErro = "Você já abriu o máximo de chamados hoje. Tente de novo amanhã.",
+            ),
+        )
+        compose.capturar("r3-27-ocorrencia-erro")
+    }
+
+    @Test
+    fun `28 ocorrencia, chamado aberto`() {
+        ocorrencia(
+            EstadoOcorrencia(
+                status = StatusOcorrencia.SUCESSO,
+                protocolo = ProtocoloDto("6f1c2a4e-1111-2222-3333-444455556666", "ocorrencia", "2026-11-14T22:00:00Z", "2026-11-17T22:00:00Z"),
+            ),
+        )
+        compose.capturar("r3-28-ocorrencia-chamado-aberto")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `29 ocorrencia, fonte em 200 por cento`() {
+        ocorrencia(EstadoOcorrencia(motivo = MotivoOcorrencia.ATRASO_OU_IMPREVISTO))
+        compose.capturar("r3-29-ocorrencia-fonte-200")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `30 avaliacao, fonte em 200 por cento`() {
+        avaliacao(EstadoAvaliacao())
+        compose.capturar("r3-30-avaliacao-fonte-200")
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTextSize(texto: String): Int =
