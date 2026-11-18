@@ -703,8 +703,9 @@ struct RotuloDaSelecao: View {
     var body: some View {
         if vaga.modo == .selecao {
             Text(verbatim: "\(TextosDosCandidatos.rotuloSelecao) · \(Self.detalhe(vaga))")
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

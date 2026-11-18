@@ -37,6 +37,7 @@ enum TextosMinhasVagas {
     static let publicarVaga = String(localized: "Publicar vaga", bundle: bundleMinhasVagas)
     static let republicar = String(localized: "Publicar de novo", bundle: bundleMinhasVagas)
     static let detalhesPublicados = String(localized: "DETALHES PUBLICADOS", bundle: bundleMinhasVagas)
+    static let detalhesPublicadosTitulo = String(localized: "Detalhes publicados", bundle: bundleMinhasVagas)
     static let valorPorPessoa = String(localized: "Valor por pessoa", bundle: bundleMinhasVagas)
     static let local = String(localized: "Local", bundle: bundleMinhasVagas)
     static let abertaNinguemAceitou = String(localized: "Aberta, ninguém aceitou ainda", bundle: bundleMinhasVagas)
@@ -293,9 +294,7 @@ public final class MinhasVagasViewModel {
 /// Minhas vagas do contratante: seções de vagas em cartões brancos sobre o fundo agrupado, como nos quadros
 /// "Acompanhar" e "Preenchida" do MidFi do Fabrício.
 public struct TelaMinhasVagas: View {
-    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var larguraDoIcone: CGFloat = 24
     @State private var bloqueios = BloqueiosDaSessao()
     @State private var viewModel: MinhasVagasViewModel
     @State private var acompanhamento: AcompanhamentoViewModel
@@ -351,7 +350,6 @@ public struct TelaMinhasVagas: View {
 
     public var body: some View {
         conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
             .sheet(isPresented: $mostrandoBusca, onDismiss: { guardaDaBusca.aoFechar() }) {
                 if let publicarParaTodosDaBusca, let buscaViewModel = guardaDaBusca.viewModel {
                     NavigationStack {
@@ -380,12 +378,14 @@ public struct TelaMinhasVagas: View {
         @Bindable var roteador = roteador
         NavigationStack(path: $roteador.caminho) {
             ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.enorme) {
-                    // O título grande é o da barra; o nome do estabelecimento fica abaixo em resumo/texto.
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                    // A raiz abre sem título de página (D-DS-14): o nome da casa é o primeiro elemento. O nome da tela
+                    // fica na barra, pequeno, para os testes e para o leitor de tela.
                     Text(verbatim: viewModel.nomeEstabelecimento)
-                        .font(FrilaTipo.resumo)
+                        .font(FrilaTipo.tituloDaTela)
                         .foregroundStyle(FrilaCor.texto)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
 
                     if republicacaoConcluida {
                         AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
@@ -394,13 +394,14 @@ public struct TelaMinhasVagas: View {
 
                     AvisoDePermissaoDePush(perfil: .contratante)
 
-                    // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
                     if buscaHabilitada {
-                        Button { _ = guardaDaBusca.aoAbrir(); mostrandoBusca = true } label: {
-                            Label(TextosBuscaDeProfissionais.titulo, systemImage: "magnifyingglass")
-                                .frame(minHeight: 44)
+                        FrilaGrupoDeLinhas {
+                            FrilaLinhaDeOpcao(icone: "magnifyingglass", titulo: TextosBuscaDeProfissionais.titulo, remate: .navega) {
+                                _ = guardaDaBusca.aoAbrir()
+                                mostrandoBusca = true
+                            }
+                            .accessibilityIdentifier("encontrar-profissional")
                         }
-                        .accessibilityIdentifier("encontrar-profissional")
                     }
 
                     if viewModel.vagas.isEmpty {
@@ -417,21 +418,7 @@ public struct TelaMinhasVagas: View {
                         }
 
                         if let erro = viewModel.erro {
-                            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .foregroundStyle(FrilaCor.texto)
-                                Text(verbatim: erro)
-                                    .font(FrilaTipo.meta)
-                                    .foregroundStyle(FrilaCor.texto)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(FrilaEspaco.medio)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: FrilaRaio.aviso)
-                                    .stroke(FrilaCor.texto, lineWidth: 1)
-                            )
+                            AvisoFrila(verbatim: erro, tom: .erro)
                         }
 
                         if viewModel.erro != nil || executandoTentativa {
@@ -453,7 +440,8 @@ public struct TelaMinhasVagas: View {
                         }
                     }
                 }
-                .padding(FrilaEspaco.medio)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.vertical, FrilaEspaco.bloco)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
             // A leitura corre numa tarefa própria: o gesto de puxar cancela a tarefa dele, e isso não pode
@@ -463,7 +451,7 @@ public struct TelaMinhasVagas: View {
             // da pilha também relê; com ele em voo, a releitura em silêncio não sai.
             .atualizacaoAutomatica(.minhasVagas, recarregar: atualizarEmSilencio)
             .navigationTitle(Text(verbatim: TextosMinhasVagas.titulo))
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if let publicarVaga, !viewModel.vagas.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -530,79 +518,34 @@ public struct TelaMinhasVagas: View {
     }
 
     private var estadoCarregandoSemDados: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            ProgressView()
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
             Text(verbatim: TextosListaMinhasVagas.carregando)
-                .font(FrilaTipo.corpo)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
+            EstadoCarregando()
         }
-        .frame(maxWidth: .infinity, minHeight: 160)
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var estadoErroSemDados: some View {
         let ocupado = executandoTentativa || viewModel.carregando
-        return VStack(spacing: FrilaEspaco.medio) {
-            VStack(spacing: FrilaEspaco.compacto) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(FrilaTipo.secao)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                    .background(FrilaCor.controle, in: Circle())
-                    .accessibilityHidden(true)
-                VStack(spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: TextosListaMinhasVagas.erroTitulo)
-                        .font(FrilaTipo.secao)
-                        .foregroundStyle(FrilaCor.texto)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(verbatim: TextosListaMinhasVagas.erroCorpo)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            BotaoPrimario(
-                verbatim: ocupado ? TextosListaMinhasVagas.tentandoDeNovo : TextosListaMinhasVagas.tentarDeNovo,
-                acao: tentarNovamente
-            )
+        return EstadoErro(verbatim: "\(TextosListaMinhasVagas.erroTitulo) \(TextosListaMinhasVagas.erroCorpo)",
+                          tentarNovamente: tentarNovamente)
             .disabled(ocupado)
-        }
-        .padding(.vertical, FrilaEspaco.grande)
-        .frame(maxWidth: .infinity, minHeight: 160)
-        .accessibilityElement(children: .contain)
     }
 
+    /// Vazio de primeira vez: o fato, a dica e o próximo passo. O botão fica fora do `EstadoVazio` para guardar o
+    /// identificador que os testes usam, e é secundário: a lista e o vazio não decidem nada.
     private var estadoVazio: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            VStack(spacing: FrilaEspaco.compacto) {
-                Image(systemName: "briefcase")
-                    .font(FrilaTipo.secao)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                    .background(FrilaCor.controle, in: Circle())
-                    .accessibilityHidden(true)
-                VStack(spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: TextosMinhasVagas.vaziaTitulo)
-                        .font(FrilaTipo.secao)
-                        .foregroundStyle(FrilaCor.texto)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(verbatim: TextosMinhasVagas.vaziaMensagem)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+        VStack(spacing: 0) {
+            EstadoVazio(verbatim: TextosMinhasVagas.vaziaTitulo, mensagem: TextosMinhasVagas.vaziaMensagem)
             if let publicarVaga {
-                BotaoPrimario(verbatim: TextosMinhasVagas.publicarVaga, acao: publicarVaga)
+                BotaoSecundario(verbatim: TextosMinhasVagas.publicarVaga, acao: publicarVaga)
+                    .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
                     .accessibilityIdentifier("publicar-vaga-entrada")
             }
         }
-        .padding(.vertical, FrilaEspaco.grande)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("estado-vazio-minhas-vagas")
@@ -629,23 +572,23 @@ public struct TelaMinhasVagas: View {
 
     @ViewBuilder
     private func conteudoSecao(secao: SecaoMinhasVagas, itens: [VagaNoPainel]) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: secao.titulo)
-                .font(FrilaTipo.secao)
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
             // Lazy apenas nas encerradas: o painel traz as vagas de um ano (±365 dias).
             // As seções ativas têm poucas vagas e usam VStack para o Dynamic Type escalar sem recriar células.
             if secao == .encerradas {
-                LazyVStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                LazyVStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                     ForEach(itens, id: \.vaga.id) { vaga in
                         itemVaga(vaga, secao: secao)
                     }
                 }
             } else {
-                VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                     ForEach(itens, id: \.vaga.id) { vaga in
                         itemVaga(vaga, secao: secao)
                     }
@@ -654,97 +597,67 @@ public struct TelaMinhasVagas: View {
         }
     }
 
+    /// Um cartão por vaga. A lista é o primário, então não há laranja: o botão de dentro do cartão é secundário.
     @ViewBuilder
     private func itemVaga(_ vaga: VagaNoPainel, secao: SecaoMinhasVagas) -> some View {
-        if secao == .emAlerta {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) {
-                    cartao(vaga, secao: secao)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
-                .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
-
-                BotaoRepublicarPosicoesRestantes(
-                    vagaID: vaga.vaga.id,
-                    posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
-                    api: api,
-                    podeRepublicar: vaga.podeRepublicarEmUrgencia,
-                    aoNavegarParaVaga: { roteador.abrirVaga(id: $0) },
-                    atualizarPainel: { await carregar() },
-                    idAcessibilidade: "republicar-urgencia-vaga-\(vaga.vaga.id)"
-                )
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) {
+                cartao(vaga, secao: secao)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cartaoFrila()
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                    .strokeBorder(FrilaCor.texto, lineWidth: 2)
+            .buttonStyle(.plain)
+            .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
+            .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
+
+            if secao == .encerradas {
+                BotaoSecundario(verbatim: TextosMinhasVagas.republicar) { vagaParaRepublicar = vaga }
+                    .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
+            }
+
+            BotaoRepublicarPosicoesRestantes(
+                vagaID: vaga.vaga.id,
+                posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
+                api: api,
+                podeRepublicar: vaga.podeRepublicarEmUrgencia,
+                aoNavegarParaVaga: { roteador.abrirVaga(id: $0) },
+                atualizarPainel: { await carregar() },
+                idAcessibilidade: "republicar-urgencia-vaga-\(vaga.vaga.id)"
             )
-        } else {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) {
-                    cartao(vaga, secao: secao)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
-                .accessibilityIdentifier("vaga-contratante-\(vaga.vaga.id)")
-
-                if secao == .encerradas {
-                    BotaoPublicarDeNovo { vagaParaRepublicar = vaga }
-                        .accessibilityIdentifier("republicar-vaga-\(vaga.vaga.id)")
-                }
-
-                BotaoRepublicarPosicoesRestantes(
-                    vagaID: vaga.vaga.id,
-                    posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
-                    api: api,
-                    podeRepublicar: vaga.podeRepublicarEmUrgencia,
-                    aoNavegarParaVaga: { roteador.abrirVaga(id: $0) },
-                    atualizarPainel: { await carregar() },
-                    idAcessibilidade: "republicar-urgencia-vaga-\(vaga.vaga.id)"
-                )
-            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
     }
 
     @ViewBuilder
     private func cartao(_ vaga: VagaNoPainel, secao: SecaoMinhasVagas) -> some View {
         let confirmadas = viewModel.confirmadas(vaga)
         let total = vaga.posicoes.count
-        let conteudo = VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             if secao == .emAlerta {
                 let tempo = String(format: TextosMinhasVagas.alertaComeca, viewModel.tempoAteInicio(vaga))
-                Label {
-                    Text(verbatim: tempo).fixedSize(horizontal: false, vertical: true)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle")
-                }
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityIdentifier("tempo-alerta-\(vaga.vaga.id)")
-
-                Divider()
-                    .overlay(FrilaCor.divisoria)
+                SeloDeStatus(verbatim: tempo, estilo: .contorno, icone: "clock")
+                    .accessibilityIdentifier("tempo-alerta-\(vaga.vaga.id)")
             }
-            Text(verbatim: vaga.vaga.funcao).font(FrilaTipo.tituloDoCartao)
+            Text(verbatim: vaga.vaga.funcao)
+                .font(FrilaTipo.nome)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
-            LinhaDeVaga(icone: "calendar", texto: periodo(vaga.vaga.periodo))
-            LinhaDeVaga(icone: "mappin.and.ellipse", texto: vaga.vaga.local)
-            LinhaDeVaga(icone: "banknote", texto: formatador.dinheiro(vaga.vaga.valor), numerico: true)
+            FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: periodo(vaga.vaga.periodo)) }
+            FrilaLinhaDeDado(icone: "mappin.and.ellipse") { Text(verbatim: vaga.vaga.local) }
+            FrilaLinhaDeDado(icone: "banknote") {
+                Text(verbatim: formatador.dinheiro(vaga.vaga.valor)).font(FrilaTipo.rotuloSecundario)
+            }
             BarraProgressoPosicoes(posicoes: vaga.posicoes)
+                .padding(.top, FrilaEspaco.junto)
             Text(verbatim: textoConfirmadas(confirmadas: confirmadas, total: total))
-                .font(FrilaTipo.meta.weight(.semibold))
+                .font(FrilaTipo.rotuloSecundario)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
             if confirmadas > 0 {
                 let nomes = nomesConfirmados(vaga)
                 if !nomes.isEmpty {
                     Text(verbatim: nomes)
-                        .font(FrilaTipo.meta)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
-                        .padding(.leading, larguraDoIcone + FrilaEspaco.pequeno)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -752,13 +665,6 @@ public struct TelaMinhasVagas: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-
-        if secao == .emAlerta {
-            conteudo
-        } else {
-            conteudo
-                .cartaoFrila()
-        }
     }
 
     private func textoConfirmadas(confirmadas: Int, total: Int) -> String {
@@ -780,95 +686,18 @@ public struct TelaMinhasVagas: View {
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
     }
-
-    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
-    private var confirmacaoDeSaida: some View {
-        ScrollView {
-            Text("Sair da conta?", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDeEstado)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
-                    mostrarConfirmacaoDeSaida = false
-                }
-                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
-                    mostrarConfirmacaoDeSaida = false
-                    sair?()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
-                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
-            }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
-        }
-        .background(FrilaCor.fundo)
-        .presentationDetents([.large])
-        .presentationCornerRadius(FrilaRaio.folha)
-        .presentationDragIndicator(.visible)
-    }
 }
 
-/// Linha de dados da vaga: ícone em coluna de largura fixa e texto de apoio, como nos cartões do MidFi.
-private struct LinhaDeVaga: View {
-    @ScaledMetric(relativeTo: .body) private var larguraDoIcone: CGFloat = 24
-    let icone: String
-    let texto: String
-    var numerico = false
-    var destaque = false
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-            Image(systemName: icone)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .frame(width: larguraDoIcone)
-                .accessibilityHidden(true)
-            if texto.contains("R$") {
-                FrilaPriceTag(texto: texto, tamanho: 15)
-            } else {
-                Text(verbatim: texto)
-                    .font(fonte)
-                    .foregroundStyle(destaque ? FrilaCor.texto : FrilaCor.textoSecundario)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private var fonte: Font {
-        let base = destaque ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta
-        return numerico ? base.monospacedDigit() : base
-    }
-}
-
-/// Barra horizontal de 4 pt com um segmento por posição.
+/// Barra horizontal de 4 pt com um segmento por posição: tinta nas confirmadas, `borda` nas abertas.
 private struct BarraProgressoPosicoes: View {
     let posicoes: [PosicaoNoPainel]
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: FrilaEspaco.junto) {
             ForEach(posicoes) { posicao in
                 let confirmada = posicao.estado == .confirmada || posicao.estado == .cumprida
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(confirmada ? FrilaCor.texto : FrilaCor.controle)
+                Capsule()
+                    .fill(confirmada ? FrilaCor.texto : FrilaCor.borda)
                     .frame(height: 4)
             }
         }
@@ -876,73 +705,44 @@ private struct BarraProgressoPosicoes: View {
     }
 }
 
-/// Linha de detalhe publicado na tela de detalhe da vaga.
-private struct LinhaDetalhePublicado: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let rotulo: String
-    let valor: String
-    var comDivisoria: Bool = true
-
-    var body: some View {
-        VStack(spacing: 0) {
-            let layout = dynamicTypeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: FrilaEspaco.minimo))
-                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: FrilaEspaco.compacto))
-            layout {
-                Text(verbatim: rotulo)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .fixedSize(horizontal: false, vertical: true)
-                if !dynamicTypeSize.isAccessibilitySize {
-                    Spacer(minLength: FrilaEspaco.pequeno)
-                }
-                if valor.contains("R$") {
-                    FrilaPriceTag(texto: valor, tamanho: 15)
-                } else {
-                    Text(verbatim: valor)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .padding(.trailing, FrilaEspaco.medio)
-
-            if comDivisoria {
-                Divider()
-                    .overlay(FrilaCor.divisoria)
-            }
-        }
-    }
-}
-
-/// Primeiro cartão na tela de detalhe com a barra e o estado da vaga.
+/// Primeiro cartão na tela de detalhe com a barra e o estado da vaga (o card de status do turno, sem etapas).
+/// Os estados finais viram selo; a vaga aberta diz o fato em texto, porque a frase é longa demais para um selo.
 private struct CartaoEstadoVaga: View {
     let vaga: VagaNoPainel
 
     var body: some View {
         let (titulo, corpo) = textosEstado
-        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            BarraProgressoPosicoes(posicoes: vaga.posicoes)
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            if let selo {
+                SeloDeStatus(verbatim: titulo, estilo: selo.estilo, icone: selo.icone)
+            } else {
                 Text(verbatim: titulo)
-                    .font(FrilaTipo.resumo)
+                    .font(FrilaTipo.nome)
                     .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
-                if let corpo {
-                    Text(verbatim: corpo)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
             }
+            if let corpo {
+                Text(verbatim: corpo)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            BarraProgressoPosicoes(posicoes: vaga.posicoes)
+                .padding(.top, FrilaEspaco.junto)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
     }
 
     private var textosEstado: (String, String?) { TextosMinhasVagas.estadoDoDetalhe(vaga) }
+
+    private var selo: (estilo: SeloDeStatus.Estilo, icone: String?)? {
+        if vaga.estado == .cancelada || vaga.estado == .encerrada { return (.encerrado, nil) }
+        if vaga.posicoes.count > 0, vaga.posicoes.allSatisfy({ $0.estado == .confirmada || $0.estado == .cumprida }) {
+            return (.destaque, "checkmark")
+        }
+        return nil
+    }
 }
 
 extension TextosMinhasVagas {
@@ -973,31 +773,6 @@ extension TextosMinhasVagas {
             return (String(format: TextosMinhasVagas.posicoesConfirmadasSingular, total), TextosMinhasVagas.abertasContinuamNaLista)
         }
         return (String(format: TextosMinhasVagas.posicoesConfirmadasPlural, confirmadas, total), TextosMinhasVagas.abertasContinuamNaLista)
-    }
-}
-
-/// Botão "Publicar de novo" em pílula escura, como o botão principal do MidFi, com alvo de 44 pt.
-private struct BotaoPublicarDeNovo: View {
-    let acao: () -> Void
-
-    var body: some View {
-        Button(action: acao) {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                Image(systemName: "arrow.clockwise")
-                    .accessibilityHidden(true)
-                Text(verbatim: TextosMinhasVagas.republicar)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .font(FrilaTipo.meta.weight(.semibold))
-            .foregroundStyle(FrilaCor.sobrePrimaria)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-            .background(FrilaCor.primaria, in: Capsule())
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.tatil)
     }
 }
 
@@ -1035,7 +810,7 @@ private struct DestinoDaVagaDoContratante: View {
             )
         } else if acompanhamento.falhouAoCarregar {
             // Sem leitura que tenha dado certo, não dá para dizer que a vaga não existe.
-            VStack(spacing: FrilaEspaco.medio) {
+            VStack(spacing: FrilaEspaco.bloco) {
                 AvisoFrila(verbatim: TextosDoAcompanhamento.falhaAoCarregarVaga, tom: .erro)
                 BotaoSecundario("Tentar novamente") {
                     Task {
@@ -1045,21 +820,20 @@ private struct DestinoDaVagaDoContratante: View {
                 }
                 .accessibilityIdentifier("tentar-de-novo-vaga")
             }
-            .padding(FrilaEspaco.medio)
+            .padding(FrilaEspaco.grupo)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("vaga-contratante-falha-ao-carregar")
         } else if acompanhamento.painel == nil {
             EstadoCarregando()
         } else {
             AvisoFrila(verbatim: TextosDoAcompanhamento.vagaNaoEncontrada, tom: .informativo)
-                .padding(FrilaEspaco.medio)
+                .padding(FrilaEspaco.grupo)
                 .accessibilityIdentifier("vaga-contratante-nao-encontrada")
         }
     }
 }
 
 private struct TelaDetalheVagaContratante: View {
-    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(BloqueiosDaSessao.self) private var bloqueios
     @Environment(RoteadorDoContratante.self) private var roteadorDoAmbiente: RoteadorDoContratante?
     let vaga: VagaNoPainel
@@ -1087,7 +861,6 @@ private struct TelaDetalheVagaContratante: View {
 
     var body: some View {
         conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
             .task {
                 chamadaHabilitada = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
                     try await api.configuracaoDoApp()
@@ -1098,7 +871,7 @@ private struct TelaDetalheVagaContratante: View {
     @ViewBuilder
     private var conteudoDaTela: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 if republicacaoConcluida {
                     AvisoFrila(verbatim: TextosRepublicarVaga.sucesso, tom: .informativo)
                         .accessibilityIdentifier("aviso-sucesso-republicacao")
@@ -1106,15 +879,17 @@ private struct TelaDetalheVagaContratante: View {
                 if let acompanhamento {
                     AvisosDoAcompanhamento(viewModel: acompanhamento, vagaID: vaga.vaga.id)
                     ForEach(acompanhamento.recusasDaFila.filter { $0.tipo == .cancelamentoVaga && $0.vagaID == vaga.vaga.id }) { recusa in
-                        AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
-                            .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
-                        BotaoSecundario("Fechar") { Task { await acompanhamento.fecharAvisoDaFila(id: recusa.id) } }
-                            .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                            AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
+                                .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                            BotaoSecundario("Fechar") { Task { await acompanhamento.fecharAvisoDaFila(id: recusa.id) } }
+                                .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                        }
                     }
                 }
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                     Text(verbatim: vaga.vaga.funcao)
-                        .font(FrilaTipo.tituloGrande)
+                        .font(FrilaTipo.tituloDaTela)
                         .foregroundStyle(FrilaCor.texto)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -1132,90 +907,95 @@ private struct TelaDetalheVagaContratante: View {
                     // Pela rota da pilha, como o resto de Minhas vagas: o "Ver vaga aberta" troca o caminho.
                     NavigationLink(value: RotaDoContratante.acompanharChamadas(vagaID: vaga.vaga.id)) {
                         RotuloDeLinha(TextosChamadaDireta.acompanharTitulo)
-                            .padding(.horizontal, FrilaEspaco.medio)
-                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao))
+                            .padding(.horizontal, FrilaEspaco.bloco)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(EstiloDeLinhaTocavel())
+                    .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
                     .accessibilityIdentifier("acompanhar-chamadas-\(vaga.vaga.id)")
                 }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    Text(verbatim: TextosMinhasVagas.detalhesPublicados)
-                        .font(FrilaTipo.microRotulo)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                    Text(verbatim: TextosMinhasVagas.detalhesPublicadosTitulo)
+                        .font(FrilaTipo.rotuloDeGrupo)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, FrilaEspaco.medio)
+                        .accessibilityAddTraits(.isHeader)
 
-                    VStack(spacing: 0) {
-                        LinhaDetalhePublicado(
-                            rotulo: TextosMinhasVagas.posicoes,
-                            valor: "\(vaga.posicoes.count)",
-                            comDivisoria: true
-                        )
-                        LinhaDetalhePublicado(
-                            rotulo: TextosMinhasVagas.valorPorPessoa,
-                            valor: formatador.dinheiro(vaga.vaga.valor),
-                            comDivisoria: true
-                        )
-                        LinhaDetalhePublicado(
-                            rotulo: TextosMinhasVagas.local,
-                            valor: vaga.vaga.local,
-                            comDivisoria: false
-                        )
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                        FrilaLinhaDeDado(icone: "person.2") {
+                            Text(verbatim: vaga.posicoes.count == 1
+                                 ? String(localized: "1 posição", bundle: bundleMinhasVagas)
+                                 : String(format: TextosMinhasVagas.vagas, vaga.posicoes.count))
+                        }
+                        FrilaLinhaDeDado(icone: "banknote") {
+                            (Text(verbatim: formatador.dinheiro(vaga.vaga.valor)).font(FrilaTipo.rotuloSecundario)
+                             + Text(verbatim: " ")
+                             + Text("por pessoa", bundle: bundleApresentacao).foregroundStyle(FrilaCor.textoSecundario))
+                        }
+                        FrilaLinhaDeDado(icone: "mappin.and.ellipse") { Text(verbatim: vaga.vaga.local) }
                     }
-                    .padding(.leading, FrilaEspaco.medio)
-                    .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                            .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-                    )
-                }
-
-                if podeRepublicar() {
-                    BotaoPublicarDeNovo { vagaParaRepublicar = vaga }
-                        .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
-                }
-
-                BotaoRepublicarPosicoesRestantes(
-                    vagaID: vaga.vaga.id,
-                    posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
-                    api: api,
-                    podeRepublicar: vaga.podeRepublicarEmUrgencia,
-                    aoNavegarParaVaga: { id in
-                        roteadorEfetivo?.abrirVaga(id: id)
-                    },
-                    atualizarPainel: {
-                        _ = await relerVaga()
-                    },
-                    idAcessibilidade: "republicar-urgencia-detalhe-vaga-\(vaga.vaga.id)"
-                )
-
-                if let acompanhamento, acompanhamento.podeCancelarVaga(vaga) {
-                    BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloVaga) { cancelamento = acompanhamento.criarCancelamento(da: vaga) }
-                        .accessibilityIdentifier("cancelar-vaga-\(vaga.vaga.id)")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .cartaoFrila()
+                    .accessibilityElement(children: .combine)
                 }
 
                 if vaga.modo == .selecao {
                     SecaoDeCandidatos(vaga: vaga, api: api, relerVaga: relerVaga) { perfilSelecionado = $0 }
                 }
 
-                Text(verbatim: TextosMinhasVagas.posicoes).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                ForEach(vaga.posicoes) { posicao in
-                    let bloqueado = posicao.profissional.map { bloqueios.contem($0) } ?? false
-                    if bloqueado && posicao.estado != .confirmada && posicao.estado != .cumprida {
-                        Text(verbatim: TextosDaSeguranca.indisponivel)
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityIdentifier("posicao-bloqueada-\(posicao.id)")
-                    } else {
-                        cartaoPosicao(posicao, bloqueado: bloqueado)
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                    Text(verbatim: TextosMinhasVagas.posicoes)
+                        .font(FrilaTipo.rotuloDeGrupo)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    ForEach(vaga.posicoes) { posicao in
+                        let bloqueado = posicao.profissional.map { bloqueios.contem($0) } ?? false
+                        if bloqueado && posicao.estado != .confirmada && posicao.estado != .cumprida {
+                            Text(verbatim: TextosDaSeguranca.indisponivel)
+                                .font(FrilaTipo.apoio)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .accessibilityIdentifier("posicao-bloqueada-\(posicao.id)")
+                        } else {
+                            cartaoPosicao(posicao, bloqueado: bloqueado)
+                        }
+                    }
+                }
+
+                // Republicar é secundário; cancelar é a ação de risco, discreta e no fim da tela.
+                VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                    if podeRepublicar() {
+                        BotaoSecundario(verbatim: TextosMinhasVagas.republicar) { vagaParaRepublicar = vaga }
+                            .accessibilityIdentifier("republicar-detalhe-vaga-\(vaga.vaga.id)")
+                    }
+
+                    BotaoRepublicarPosicoesRestantes(
+                        vagaID: vaga.vaga.id,
+                        posicoesRestantes: vaga.republicavelEmUrgencia ?? 0,
+                        api: api,
+                        podeRepublicar: vaga.podeRepublicarEmUrgencia,
+                        aoNavegarParaVaga: { id in
+                            roteadorEfetivo?.abrirVaga(id: id)
+                        },
+                        atualizarPainel: {
+                            _ = await relerVaga()
+                        },
+                        idAcessibilidade: "republicar-urgencia-detalhe-vaga-\(vaga.vaga.id)"
+                    )
+
+                    if let acompanhamento, acompanhamento.podeCancelarVaga(vaga) {
+                        Button(role: .destructive) {
+                            cancelamento = acompanhamento.criarCancelamento(da: vaga)
+                        } label: {
+                            Text(verbatim: TextosDoCancelamento.tituloVaga)
+                        }
+                        .buttonStyle(.frilaAcaoDiscreta)
+                        .accessibilityIdentifier("cancelar-vaga-\(vaga.vaga.id)")
                     }
                 }
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .sheet(item: $vagaParaRepublicar) { vaga in
@@ -1249,73 +1029,71 @@ private struct TelaDetalheVagaContratante: View {
     }
 
     @ViewBuilder private func cartaoPosicao(_ posicao: PosicaoNoPainel, bloqueado: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             if bloqueado {
                 Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("etiqueta-bloqueio-\(posicao.id)")
             }
             if posicao.estado == .confirmada || posicao.estado == .cumprida {
                 Text(verbatim: posicao.profissional?.nome ?? TextosMinhasVagas.profissionaisConfirmados)
-                    .font(FrilaTipo.resumo)
+                    .font(FrilaTipo.nome)
                     .fixedSize(horizontal: false, vertical: true)
                 if let perfil = posicao.profissional, !bloqueado {
                     Button { perfilSelecionado = perfil } label: {
                         Text(verbatim: TextosMinhasVagas.perfil)
-                            .frame(minHeight: FrilaMetrica.alvoMinimo)
                     }
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .buttonStyle(.tatil)
+                    .buttonStyle(.frilaLink)
                     .accessibilityIdentifier("perfil-publico-\(posicao.id)")
                 }
                 if let turnoID = posicao.turnoID {
                     NavigationLink(value: RotaDoContratante.turno(turnoID: turnoID)) {
                         Text(verbatim: TextosDoAcompanhamento.acompanharTurno)
-                            .frame(minHeight: FrilaMetrica.alvoMinimo)
                     }
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
+                    .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
                     .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
                 }
                 let turno = TurnoAcompanhado(vaga: vaga.vaga, posicao: posicao)
                 if let acompanhamento, acompanhamento.podeCancelar(turno) {
-                    BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = acompanhamento.criarCancelamento(de: turno) }
-                        .accessibilityIdentifier("cancelar-posicao-\(posicao.id)")
+                    Button(role: .destructive) {
+                        cancelamento = acompanhamento.criarCancelamento(de: turno)
+                    } label: {
+                        Text(verbatim: TextosDoCancelamento.tituloPosicao)
+                    }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .accessibilityIdentifier("cancelar-posicao-\(posicao.id)")
                 }
             } else if posicao.estado == .aberta {
                 Text(verbatim: TextosMinhasVagas.posicaoAberta)
-                    .font(FrilaTipo.resumo)
+                    .font(FrilaTipo.nome)
                     .fixedSize(horizontal: false, vertical: true)
             } else if posicao.estado == .cancelada, let nome = posicao.profissional?.nome {
                 // Cancelada ou reaberta por atraso: a posição guarda de quem era (RN12).
                 Text(verbatim: nome)
-                    .font(FrilaTipo.resumo)
+                    .font(FrilaTipo.nome)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(verbatim: TextosDoAcompanhamento.cancelada)
-                    .font(FrilaTipo.meta)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                 if let turnoID = posicao.turnoID {
                     NavigationLink(value: RotaDoContratante.turno(turnoID: turnoID)) {
                         Text(verbatim: TextosDoAcompanhamento.acompanharTurno)
-                            .frame(minHeight: FrilaMetrica.alvoMinimo)
                     }
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
+                    .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
                     .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
                 }
             } else if posicao.estado == .cancelada, vaga.modo == .selecao {
                 // A seleção fechou 24 h antes do início com esta posição ainda aberta (RN24), ou a
                 // casa cancelou a vaga: o texto diz qual das duas.
                 Text(verbatim: TextosDosCandidatos.posicaoCancelada(vaga: vaga.estado))
-                    .font(FrilaTipo.resumo)
+                    .font(FrilaTipo.nome)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(verbatim: TextosMinhasVagas.encerradas)
-                    .font(FrilaTipo.resumo)
+                    .font(FrilaTipo.nome)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1326,50 +1104,5 @@ private struct TelaDetalheVagaContratante: View {
 
     private func periodo(_ periodo: Periodo) -> String {
         textoPeriodo(periodo)
-    }
-
-    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
-    private var confirmacaoDeSaida: some View {
-        ScrollView {
-            Text("Sair da conta?", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDeEstado)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
-                    mostrarConfirmacaoDeSaida = false
-                }
-                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
-                    mostrarConfirmacaoDeSaida = false
-                    sair?()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
-                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
-            }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
-        }
-        .background(FrilaCor.fundo)
-        .presentationDetents([.large])
-        .presentationCornerRadius(FrilaRaio.folha)
-        .presentationDragIndicator(.visible)
     }
 }
