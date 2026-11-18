@@ -71,22 +71,22 @@ class AberturaDoAppTest {
     }
 
     @Test
-    fun `recriacao com estado salvo nao gasta a vez do processo`() {
-        val jaTocou = AtomicBoolean(false)
-        val politica = PoliticaDaAbertura(jaTocou)
-        // O sistema reconstrói a Activity antes de qualquer abertura a frio: não toca e não reserva.
+    fun `processo novo com Activity restaurada nunca toca, nem na reabertura no mesmo processo`() {
+        // Android 9 a 11: o sistema reconstrói a Activity num processo novo (estado salvo). Depois o Voltar a encerra e
+        // o ícone a abre de novo no MESMO processo: a abertura é só da abertura a frio, então não toca nunca mais.
+        val politica = PoliticaDaAbertura(AtomicBoolean(false))
         assertFalse(politica.deveTocar(Intent(), primeiraCriacao = false))
-        assertFalse(jaTocou.get())
-        assertTrue(politica.deveTocar(Intent(), primeiraCriacao = true))
+        assertFalse(politica.deveTocar(Intent(), primeiraCriacao = true))
+        assertFalse(politica.deveTocar(Intent(), primeiraCriacao = true))
     }
 
     @Test
-    fun `a chave de teste desliga a abertura e nao gasta a vez do processo`() {
-        val jaTocou = AtomicBoolean(false)
-        val politica = PoliticaDaAbertura(jaTocou)
+    fun `a chave de teste desliga a abertura e o processo que comecou assim nao toca depois`() {
+        val politica = PoliticaDaAbertura(AtomicBoolean(false))
         val intent = Intent().putExtra(PoliticaDaAbertura.EXTRA_PULAR_ABERTURA, true)
         assertFalse(politica.deveTocar(intent, primeiraCriacao = true))
-        assertFalse(jaTocou.get())
+        // O processo já começou (sem abertura): a reabertura nele também não toca.
+        assertFalse(politica.deveTocar(Intent(), primeiraCriacao = true))
     }
 
     @Test

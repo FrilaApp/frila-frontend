@@ -8,10 +8,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import br.com.frila.core.designsystem.tema.FrilaTheme
@@ -231,5 +235,45 @@ class AberturaAnimadaTest {
         rule.mainClock.advanceTimeBy(400)
         rule.waitForIdle()
         assertEquals(1, terminou)
+    }
+
+    @Test
+    fun `depois de pular, o app termina em escala 1 exata e ocupa a raiz inteira`() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            FrilaTheme {
+                AberturaAnimada(ligada = true, reduzirMovimento = false) {
+                    Box(Modifier.fillMaxSize().testTag("raiz-do-app")) { Text("conteudo do app") }
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(500)
+        rule.onNodeWithContentDescription("Frila").performClick()
+        // O esmaecimento do pulo (250 ms) acaba antes do assento do app (350 ms): a escala não pode ficar pelo caminho.
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Frila").assertDoesNotExist()
+        val raiz = rule.onRoot().fetchSemanticsNode().boundsInRoot
+        val app = rule.onNodeWithTag("raiz-do-app").fetchSemanticsNode().boundsInRoot
+        assertEquals(raiz.width, app.width, 0.001f)
+        assertEquals(raiz.height, app.height, 0.001f)
+    }
+
+    @Test
+    fun `sem pular, o app tambem termina em escala 1 exata`() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            FrilaTheme {
+                AberturaAnimada(ligada = true, reduzirMovimento = false) {
+                    Box(Modifier.fillMaxSize().testTag("raiz-do-app")) { Text("conteudo do app") }
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(3_500)
+        rule.waitForIdle()
+        val raiz = rule.onRoot().fetchSemanticsNode().boundsInRoot
+        val app = rule.onNodeWithTag("raiz-do-app").fetchSemanticsNode().boundsInRoot
+        assertEquals(raiz.width, app.width, 0.001f)
     }
 }
