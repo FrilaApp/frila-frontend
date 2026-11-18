@@ -1,49 +1,34 @@
 package br.com.frila.feature.perfil
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeNavegacao
+import br.com.frila.core.designsystem.componentes.LinkFrila
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
-import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
 /**
  * Modelo de dados de licença de dependência de código aberto (paridade com `TelaLicencas.swift`).
@@ -249,6 +234,103 @@ object CatalogoLicencasAndroid {
 
    END OF TERMS AND CONDITIONS"""
 
+    /**
+     * Texto da SIL Open Font License 1.1, igual ao de `core/designsystem/src/main/res/raw/prodigy_sans_bold_ofl.txt`
+     * (sem a linha de copyright, que muda por fonte). A Prodigy Sans é derivada da Work Sans.
+     */
+    private const val TEXTO_OFL_1_1: String = """
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE."""
+
     val licencas: List<LicencaDePacote> = listOf(
         LicencaDePacote(
             id = "kotlin",
@@ -271,7 +353,7 @@ object CatalogoLicencasAndroid {
         LicencaDePacote(
             id = "jetpack-compose",
             nome = "AndroidX Jetpack Compose",
-            versao = "2024.09.00",
+            versao = "2025.07.00",
             tipo = "Apache-2.0",
             url = "https://developer.android.com/jetpack/compose",
             texto = TEXTO_APACHE_2,
@@ -298,7 +380,7 @@ object CatalogoLicencasAndroid {
         LicencaDePacote(
             id = "material3",
             nome = "AndroidX Material 3",
-            versao = "1.3.0",
+            versao = "1.3.2",
             tipo = "Apache-2.0",
             url = "https://m3.material.io",
             texto = TEXTO_APACHE_2,
@@ -358,13 +440,29 @@ object CatalogoLicencasAndroid {
             texto = TEXTO_APACHE_2,
             aviso = "Copyright 2024 Google LLC.",
         ),
+        // A versão é a que o próprio arquivo da fonte declara (tabela `name`, "Version 1.001"). A Prodigy Sans deriva da
+        // Work Sans, e a OFL manda manter os dois avisos de copyright: por isso os dois vêm no mesmo pacote.
+        LicencaDePacote(
+            id = "prodigy-sans",
+            nome = "Prodigy Sans",
+            versao = "1.001",
+            tipo = "OFL-1.1",
+            url = "https://github.com/weiweihuanghuang/Work-Sans",
+            texto = "Copyright 2020 The Prodigy Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans)\n" +
+                "Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans)\n" +
+                TEXTO_OFL_1_1,
+            aviso = "Fonte dos títulos e dos valores em destaque. Copyright 2020 The Prodigy Sans Project Authors. " +
+                "Derivada da Work Sans, Copyright 2019 The Work Sans Project Authors.",
+        ),
     )
 }
 
+
 /**
  * Tela principal de lista de licenças de código aberto do app Frila (Cartão v1.2 / Paridade com `TelaLicencas.swift`).
+ *
+ * Tela de leitura (sem laranja): um grupo de linhas que abrem o detalhe de cada pacote, com versão e licença.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaLicencas(
     aoVoltar: () -> Unit,
@@ -373,216 +471,124 @@ fun TelaLicencas(
 ) {
     var licencaSelecionada by remember { mutableStateOf<LicencaDePacote?>(null) }
 
-    if (licencaSelecionada != null) {
+    val aberta = licencaSelecionada
+    if (aberta != null) {
         TelaDetalheLicenca(
-            licenca = licencaSelecionada!!,
+            licenca = aberta,
             aoVoltar = { licencaSelecionada = null },
         )
     } else {
         Scaffold(
             modifier = modifier.fillMaxSize(),
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = TextosLicencas.TITULO,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = aoVoltar,
-                            modifier = Modifier
-                                .sizeIn(
-                                    minWidth = FrilaMetricas.alvoMinimo,
-                                    minHeight = FrilaMetricas.alvoMinimo,
-                                )
-                                .semantics { contentDescription = TextosLicencas.ROTULO_VOLTAR },
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = null,
-                            )
-                        }
-                    },
-                )
-            },
+            containerColor = FrilaTema.cores.fundo,
+            topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
         ) { paddingInterno ->
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingInterno)
-                    .background(MaterialTheme.colorScheme.background),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = FrilaEspacamento.grupo)
+                    .padding(top = FrilaEspacamento.item, bottom = FrilaEspacamento.grupo),
+                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
             ) {
-                items(catalogo, key = { it.id }) { licenca ->
-                    ItemLicenca(
-                        licenca = licenca,
-                        aoClicar = { licencaSelecionada = licenca },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = FrilaEspacamento.medio),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
+                TituloDaTela(TextosLicencas.TITULO)
+                FrilaGrupoDeLinhas {
+                    catalogo.forEach { licenca ->
+                        linha {
+                            FrilaLinhaDeNavegacao(
+                                titulo = licenca.nome,
+                                subtitulo = "${licenca.versao} · ${licenca.tipo}",
+                                aoClicar = { licencaSelecionada = licenca },
+                                modifier = Modifier.semantics {
+                                    contentDescription =
+                                        "${licenca.nome}, ${licenca.versao}, ${licenca.tipo}. ${TextosLicencas.DICA_ABRIR}"
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun ItemLicenca(
-    licenca: LicencaDePacote,
-    aoClicar: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-            .clickable(onClick = aoClicar)
-            .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.compacto)
-            .semantics {
-                contentDescription = "${licenca.nome}, ${licenca.versao}, ${licenca.tipo}. ${TextosLicencas.DICA_ABRIR}"
-            },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio),
-        ) {
-            Text(
-                text = licenca.nome,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "${licenca.versao} · ${licenca.tipo}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 /**
- * Detalhe com texto legal integral e avisos da licença (paridade com `TelaDetalheDaLicenca`).
+ * Detalhe com texto legal integral e avisos da licença (paridade com `TelaDetalheDaLicenca`). Leitura: o nome do
+ * pacote é o título, versão, licença e repositório vão num cartão e o texto legal fica em apoio.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaDetalheLicenca(
     licenca: LicencaDePacote,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cores = FrilaTema.cores
+    val abrirLink = LocalUriHandler.current
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = licenca.nome,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = aoVoltar,
-                        modifier = Modifier
-                            .sizeIn(
-                                minWidth = FrilaMetricas.alvoMinimo,
-                                minHeight = FrilaMetricas.alvoMinimo,
-                            )
-                            .semantics { contentDescription = TextosLicencas.ROTULO_VOLTAR },
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                        )
-                    }
-                },
-            )
-        },
+        containerColor = cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
     ) { paddingInterno ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingInterno)
-                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(FrilaEspacamento.medio),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo)
+                .padding(top = FrilaEspacamento.item, bottom = FrilaEspacamento.secao),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(FrilaRaios.medio),
-            ) {
-                Column(
-                    modifier = Modifier.padding(FrilaEspacamento.medio),
-                    verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio),
-                ) {
+            TituloDaTela(licenca.nome)
+
+            CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                     Text(
                         text = "${TextosLicencas.ROTULO_VERSAO}: ${licenca.versao}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
                     )
                     Text(
                         text = "${TextosLicencas.ROTULO_LICENCA}: ${licenca.tipo}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
                     )
-                    Text(
-                        text = "${TextosLicencas.ROTULO_REPOSITORIO}: ${licenca.url}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                        Text(text = TextosLicencas.ROTULO_REPOSITORIO, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                        LinkFrila(
+                            texto = licenca.url,
+                            aoClicar = { abrirRepositorio(abrirLink, licenca.url) },
+                            modifier = Modifier.semantics {
+                                contentDescription = "${TextosLicencas.ROTULO_REPOSITORIO}: ${licenca.url}"
+                            },
+                        )
+                    }
                 }
             }
 
             licenca.aviso?.let { aviso ->
-                Text(
-                    text = TextosLicencas.ROTULO_AVISOS,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = aviso,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(TextosLicencas.ROTULO_AVISOS)
+                    Text(text = aviso, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                }
             }
 
-            Text(
-                text = TextosLicencas.ROTULO_TEXTO_LICENCA,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        shape = RoundedCornerShape(FrilaRaios.pequeno),
-                    )
-                    .padding(FrilaEspacamento.compacto),
-            ) {
-                Text(
-                    text = licenca.texto,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosLicencas.ROTULO_TEXTO_LICENCA)
+                CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = licenca.texto, style = FrilaTipo.apoio, color = cores.tinta)
+                }
             }
-
-            Spacer(modifier = Modifier.height(FrilaEspacamento.grande))
         }
+    }
+}
+
+/** Abre o repositório no navegador; sem navegador no aparelho, o toque não faz nada em vez de derrubar a tela. */
+private fun abrirRepositorio(abridor: UriHandler, url: String) {
+    try {
+        abridor.openUri(url)
+    } catch (_: Exception) {
+        // Sem aplicativo para abrir o link: a URL segue escrita na tela.
     }
 }

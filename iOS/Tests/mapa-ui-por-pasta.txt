@@ -63,6 +63,7 @@ Tests/UI/CapturasR3UITests.swift = CapturasR3UITests
 Sources/Apresentacao/Fluxos/Profissional/*Codigo* = CheckinPorCodigoUITests, PresencaUITests, CicloDePontaAPontaUITests
 Sources/Apresentacao/Fluxos/Profissional/*Candidatura* = CandidaturaUITests, ModoSelecaoDoProfissionalUITests, CicloDePontaAPontaUITests, VagasUITests
 Sources/Apresentacao/Fluxos/Profissional/*DetalheVaga* = VagasUITests, CandidaturaUITests, DetalheVagaBarraInferiorUITests, PlacaDaVagaUITests, VagaEncerradaTrabalhadaUITests
+Tests/UI/CapturasR2UITests.swift = CapturasR2UITests
 Sources/Apresentacao/Fluxos/Profissional/*Vagas* = VagasUITests, PlacaDaVagaUITests, FrilaUITests
 Sources/Apresentacao/Fluxos/Profissional/FormatoDataVaga.swift = VagasUITests, PlacaDaVagaUITests
 Sources/Apresentacao/Fluxos/Profissional/HorariosDaSemana.swift = VagasUITests, ServicosDoProfissionalUITests

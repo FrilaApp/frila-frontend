@@ -2757,6 +2757,17 @@
         }
       }
     },
+    "Confirmadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmadas"
+          }
+        }
+      }
+    },
     "Confirmado": {
       "extractionState": "manual",
       "localizations": {
@@ -8840,6 +8851,17 @@
         }
       }
     },
+    "O estabelecimento escolhe entre os interessados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento escolhe entre os interessados."
+          }
+        }
+      }
+    },
     "O Frila está sem permissão para usar a localização. Você pode liberar nos Ajustes.": {
       "extractionState": "stale",
       "localizations": {
@@ -10076,6 +10098,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Por que recebo vagas"
+          }
+        }
+      }
+    },
+    "Por seleção": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por seleção"
           }
         }
       }
@@ -11573,6 +11606,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salvar preferências"
+          }
+        }
+      }
+    },
+    "Se aceitar, o turno é seu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se aceitar, o turno é seu."
           }
         }
       }
@@ -13687,6 +13731,17 @@
         }
       }
     },
+    "Ver detalhes da vaga": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver detalhes da vaga"
+          }
+        }
+      }
+    },
     "Ver menos": {
       "localizations": {
         "pt-BR": {
@@ -14198,6 +14253,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você recebe vagas da sua função, perto de você (até 15 km), nos horários que marcar. Todas as vagas do DF aparecem na lista."
+          }
+        }
+      }
+    },
+    "Você se candidatou.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você se candidatou."
           }
         }
       }

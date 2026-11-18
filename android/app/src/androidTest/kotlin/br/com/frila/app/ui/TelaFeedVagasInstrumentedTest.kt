@@ -94,7 +94,6 @@ class TelaFeedVagasInstrumentedTest {
                 TelaFeedVagas(
                     viewModel = viewModel,
                     aoAbrirDetalhe = {},
-                    aoAbrirPerfil = {},
                 )
             }
         }

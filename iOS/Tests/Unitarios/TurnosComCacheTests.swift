@@ -17,7 +17,15 @@ private final class CacheDeTeste: CacheLocal, @unchecked Sendable {
     func removerContato(doTurno turnoID: UUID) async throws {}
     func salvar(funcoes: [Funcao]) async throws {}
     func funcoes() async throws -> [Funcao] { [] }
-    func limpar() async throws { trava.withLock { guardados = [] } }
+    private var epocaAtual: UInt64 = 0
+    func limpar() async throws { trava.withLock { guardados = []; epocaAtual &+= 1 } }
+    func epoca() async -> UInt64 { trava.withLock { epocaAtual } }
+
+    func salvar(turnos: [Turno], em instante: Date, seAindaNaEpoca epoca: UInt64) async throws -> Bool {
+        guard trava.withLock({ epoca == epocaAtual }) else { return false }
+        try await salvar(turnos: turnos, em: instante)
+        return true
+    }
 
     func salvar(turnos: [Turno], em instante: Date) async throws {
         struct GravacaoRecusada: Error {}

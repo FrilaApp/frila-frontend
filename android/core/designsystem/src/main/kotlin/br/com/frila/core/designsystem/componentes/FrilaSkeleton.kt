@@ -9,7 +9,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,15 +30,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import br.com.frila.core.designsystem.tema.FrilaCores
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaRaios
+import br.com.frila.core.designsystem.tema.FrilaTema
 
 /**
  * Propriedade semântica de teste que identifica se o esqueleto está renderizando no modo animado
@@ -95,9 +96,11 @@ fun FrilaSkeleton(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(FrilaRaios.pequeno),
 ) {
-    val escuro = isSystemInDarkTheme()
-    val cores = remember(escuro) {
-        val base = if (escuro) Color(0xFF2C2C2A) else Color(0xFFE2E2DE)
+    val paleta = FrilaTema.cores
+    val escuro = paleta.fundo.luminance() < 0.5f
+    val cores = remember(paleta) {
+        // A base é a `borda` do tema: o esqueleto é um bloco neutro, sem cor nova.
+        val base = paleta.borda
         // Destaque especular (paridade com iOS FrilaSkeleton.swift:154): claro = branco 42%,
         // escuro/OLED = branco 9% (evita glare num fundo quase preto) — DEDUZIDO do swift.
         val destaque = lerp(base, Color.White, if (escuro) 0.09f else 0.42f)
@@ -176,7 +179,8 @@ fun FrilaCartaoSkeleton(
             .fillMaxWidth()
             .height(altura),
         shape = RoundedCornerShape(FrilaRaios.medio),
-        color = if (isSystemInDarkTheme()) FrilaCores.surfaceElevatedDark else FrilaCores.surfaceElevatedLight,
+        color = FrilaTema.cores.superficie,
+        border = BorderStroke(1.dp, FrilaTema.cores.borda),
     ) {
         Column(
             modifier = Modifier.padding(FrilaEspacamento.medio),

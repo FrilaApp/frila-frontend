@@ -15,17 +15,20 @@ public struct TelaVagas: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 filtros
                 AvisoDePermissaoDePush(perfil: .profissional)
-                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.horizontal, FrilaEspaco.grupo)
                 conteudo
             }
-            .padding(.top, FrilaEspaco.pequeno)
+            .padding(.top, FrilaEspaco.item)
+            .padding(.bottom, FrilaEspaco.grupo)
         }
         .background(FrilaCor.fundo)
+        // A raiz abre sem título de página (D-DS-14): o conteúdo é o primeiro elemento. O nome continua na barra,
+        // pequeno e sem repetir a aba, para o sistema, a voz e os testes de interface acharem a tela.
         .navigationTitle(Text(verbatim: TextosDoProfissional.Lista.titulo))
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .refreshable { await medirAbertura(.listaDeVagas, carregar: viewModel.atualizar, pronto: listaNaTela) }
         .task { if viewModel.estado == .ociosa { await medirAbertura(.listaDeVagas, carregar: viewModel.carregar, pronto: listaNaTela) } }
         // Sem `medirAbertura`: a releitura automática não é abertura de tela e não entra na medição (#73).
@@ -36,7 +39,7 @@ public struct TelaVagas: View {
             ativo: dynamicTypeSize.isAccessibilitySize && viewModel.estado == .falha(.semConexao),
             rodape: {
                 tentarDeNovo
-                    .padding(FrilaEspaco.medio)
+                    .padding(FrilaEspaco.grupo)
             }
         ))
     }
@@ -50,20 +53,20 @@ public struct TelaVagas: View {
     private var filtros: some View {
         Group {
             if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                     filtroFuncao
                     filtroData
                     filtroDistancia
                 }
-                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.horizontal, FrilaEspaco.grupo)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: FrilaEspaco.pequeno) {
+                    HStack(spacing: FrilaEspaco.item) {
                         filtroFuncao
                         filtroData
                         filtroDistancia
                     }
-                    .padding(.horizontal, FrilaEspaco.medio)
+                    .padding(.horizontal, FrilaEspaco.grupo)
                 }
             }
         }
@@ -82,12 +85,10 @@ public struct TelaVagas: View {
         pilula(.distancia, titulo: rotuloDistancia, ativo: viewModel.distancia != .qualquer, identificador: "filtro-distancia")
     }
 
+    /// Chip de filtro: marcado quando o filtro está valendo. Toca e abre a folha das opções daquele filtro.
     private func pilula(_ filtro: FiltroDoFeed, titulo: String, ativo: Bool, identificador: String) -> some View {
-        Button { filtroAberto = filtro } label: {
-            PilulaDeFiltro(titulo: titulo, ativo: ativo)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(identificador)
+        FiltroPill(verbatim: titulo, selecionado: ativo) { filtroAberto = filtro }
+            .accessibilityIdentifier(identificador)
     }
 
     private func folhaDeFiltro(_ filtro: FiltroDoFeed) -> some View {
@@ -119,7 +120,8 @@ public struct TelaVagas: View {
             }
         }
         return FolhaDeFiltro(titulo: titulo, opcoes: opcoes) { filtroAberto = nil }
-            .presentationDetents(filtro == .funcao ? [.medium, .large] : [.height(CGFloat(opcoes.count) * 52 + 96)])
+            .presentationDetents(filtro == .funcao || dynamicTypeSize.isAccessibilitySize
+                                 ? [.medium, .large] : [.height(CGFloat(opcoes.count) * 52 + 120)])
             .presentationDragIndicator(.visible)
     }
 
@@ -131,16 +133,18 @@ public struct TelaVagas: View {
         case let .carregada(vagas) where vagas.isEmpty:
             estadoVazio
         case let .carregada(vagas):
-            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 Text(verbatim: TextosDoProfissional.Lista.contagem(total: vagas.count, haMais: viewModel.haMaisPaginas))
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
-                    .padding(.horizontal, FrilaEspaco.medio)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, FrilaEspaco.grupo)
 
-                LazyVStack(spacing: FrilaEspaco.compacto) {
+                let destaque = CartaoDeVagaDoFeed.destaque(em: vagas)
+                LazyVStack(spacing: FrilaEspaco.bloco) {
                     ForEach(vagas) { vaga in
-                        Button { abrir(vaga.id) } label: { CartaoVaga(vaga) }
-                            .buttonStyle(.plain)
+                        Button { abrir(vaga.id) } label: { CartaoDeVagaDoFeed(vaga: vaga, emDestaque: vaga.id == destaque) }
+                            .buttonStyle(EstiloDoCartaoDeVagaDoFeed())
                             .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                             .accessibilityIdentifier("vaga-\(vaga.id.uuidString)")
                             .accessibilityHint(Text("Abre o detalhe da vaga", bundle: bundleApresentacao))
@@ -148,7 +152,7 @@ public struct TelaVagas: View {
                             .task { if vaga.id == vagas.last?.id { await viewModel.carregarMais() } }
                     }
                 }
-                .padding(.horizontal, FrilaEspaco.medio)
+                .padding(.horizontal, FrilaEspaco.grupo)
             }
         case .falha(.semConexao):
             estadoSemConexao
@@ -162,167 +166,69 @@ public struct TelaVagas: View {
     }
 
     private var estadoCarregando: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            ProgressView()
-                .controlSize(.regular)
-                .tint(FrilaCor.texto)
-            Text(verbatim: TextosDoProfissional.Lista.carregando)
-                .font(FrilaTipo.tituloDeEstado)
-                .foregroundStyle(FrilaCor.texto)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, FrilaEspaco.enorme)
-        .padding(.horizontal, FrilaEspaco.grande)
+        EstadoCarregando()
+            .accessibilityLabel(Text(verbatim: TextosDoProfissional.Lista.carregando))
+            .padding(.horizontal, FrilaEspaco.grupo)
     }
 
+    /// Vazio da lista: o fato, uma dica e, com filtro valendo, o caminho para limpá-lo.
     private var estadoVazio: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            Circle()
-                .fill(FrilaCor.controle)
-                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                .overlay {
-                    Image(systemName: "magnifyingglass")
-                        .font(FrilaTipo.secao)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityHidden(true)
-                }
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosTitulo : TextosDoProfissional.Lista.vazioSemFiltrosTitulo)
-                    .font(FrilaTipo.tituloDeEstado)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: temFiltroAtivo ? TextosDoProfissional.Lista.vazioComFiltrosMensagem : TextosDoProfissional.Lista.vazioSemFiltrosMensagem)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        Group {
             if temFiltroAtivo {
-                BotaoSecundario(verbatim: TextosDoProfissional.Lista.limparFiltros) {
+                EstadoVazio(
+                    verbatim: TextosDoProfissional.Lista.vazioComFiltrosTitulo,
+                    mensagem: TextosDoProfissional.Lista.vazioComFiltrosMensagem,
+                    rotuloDaAcao: TextosDoProfissional.Lista.limparFiltros
+                ) {
                     selecionar {
                         await $0.selecionar(funcao: nil)
                         await $0.selecionar(data: .qualquer)
                         await $0.selecionar(distancia: .qualquer)
                     }
                 }
+            } else {
+                EstadoVazio(verbatim: TextosDoProfissional.Lista.vazioSemFiltrosTitulo,
+                            mensagem: TextosDoProfissional.Lista.vazioSemFiltrosMensagem)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, FrilaEspaco.enorme)
-        .padding(.horizontal, FrilaEspaco.grande)
+        .padding(.horizontal, FrilaEspaco.grupo)
         .accessibilityIdentifier("vagas-vazio")
     }
 
+    /// Falta o ponto base: o botão leva ao Perfil. Sem laranja: a tela não tem uma decisão a tomar, só um caminho.
     private var estadoSemPontoDeReferencia: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            Image(systemName: "mappin.slash")
-                .font(FrilaTipo.secao)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityHidden(true)
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaTitulo)
-                    .font(FrilaTipo.tituloDeEstado)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(verbatim: TextosDoProfissional.Lista.semPontoDeReferenciaMensagem)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        MensagemDaLista(titulo: TextosDoProfissional.Lista.semPontoDeReferenciaTitulo,
+                        mensagem: TextosDoProfissional.Lista.semPontoDeReferenciaMensagem) {
             NavigationLink(value: RotaDoProfissional.meuPerfil) {
                 Text(verbatim: TextosDoProfissional.Lista.definirPontoBase)
-                    .font(FrilaTipo.botao)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, FrilaEspaco.grande)
-                    .padding(.vertical, FrilaEspaco.pequeno)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                    .foregroundStyle(FrilaCor.sobrePrimaria)
-                    .background(FrilaCor.primaria, in: Capsule())
-                    .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, FrilaEspaco.enorme)
-        .padding(.horizontal, FrilaEspaco.grande)
         .accessibilityIdentifier("vagas-sem-referencia")
     }
 
     private var estadoSemConexao: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            Image(systemName: "wifi.slash")
-                .font(FrilaTipo.secao)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityHidden(true)
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosDoProfissional.Lista.semConexaoTitulo)
-                    .font(FrilaTipo.tituloDeEstado)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("vagas-sem-conexao")
-                Text(verbatim: TextosDoProfissional.Lista.semConexaoMensagem)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        MensagemDaLista(titulo: TextosDoProfissional.Lista.semConexaoTitulo,
+                        mensagem: TextosDoProfissional.Lista.semConexaoMensagem,
+                        identificadorDoTitulo: "vagas-sem-conexao") {
             if !dynamicTypeSize.isAccessibilitySize {
                 tentarDeNovo
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, FrilaEspaco.enorme)
-        .padding(.horizontal, FrilaEspaco.grande)
     }
 
     private var estadoErro: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            Image(systemName: "exclamationmark.circle")
-                .font(FrilaTipo.secao)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityHidden(true)
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosDoProfissional.Lista.erroMensagem)
-                    .font(FrilaTipo.tituloDeEstado)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("vagas-erro")
-                Text(verbatim: TextosDoProfissional.Lista.erroApoio)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        MensagemDaLista(titulo: TextosDoProfissional.Lista.erroMensagem,
+                        mensagem: TextosDoProfissional.Lista.erroApoio,
+                        identificadorDoTitulo: "vagas-erro") {
             tentarDeNovo
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, FrilaEspaco.enorme)
-        .padding(.horizontal, FrilaEspaco.grande)
     }
 
     private var estadoPerfilIncompativel: some View {
-        HStack(alignment: .top, spacing: FrilaEspaco.medio) {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityHidden(true)
-            Text(verbatim: TextosDoProfissional.Lista.perfilIncompativel)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(FrilaEspaco.medio)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso))
-        .padding(.horizontal, FrilaEspaco.medio)
-        .accessibilityIdentifier("vagas-perfil-incompativel")
+        AvisoFrila(verbatim: TextosDoProfissional.Lista.perfilIncompativel, tom: .alerta)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .accessibilityIdentifier("vagas-perfil-incompativel")
     }
 
     private var tentarDeNovo: some View {
@@ -378,38 +284,37 @@ public struct TelaVagas: View {
     }
 }
 
-/// Chip de filtro que abre a folha do filtro: ativo em fundo neutro de campo, semibold e visto; inativo sobre a superfície com fio.
-/// O Quente fica fora da seleção. O estado ativo não depende só de cor: ganha um ícone. Altura visual 36 pt num alvo de 44 pt.
-private struct PilulaDeFiltro: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+/// Mensagem de estado da lista (sem conexão, erro, sem ponto base): o fato em corpo, a dica em apoio e, abaixo,
+/// o botão da saída. Sem ícone e sem cor de problema; é o desenho do `EstadoVazio`, mas deixa o identificador do
+/// título e do botão com a tela, que os testes procuram por eles.
+private struct MensagemDaLista<Acao: View>: View {
     let titulo: String
-    let ativo: Bool
-
-    private static let alturaVisual: CGFloat = FrilaEspaco.enorme + FrilaEspaco.minimo
+    let mensagem: String
+    var identificadorDoTitulo: String?
+    @ViewBuilder let acao: () -> Acao
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: FrilaEspaco.minimo) {
-            if ativo {
-                Image(systemName: "checkmark")
-                    .accessibilityHidden(true)
+        VStack(spacing: 0) {
+            VStack(spacing: FrilaEspaco.item) {
+                Text(verbatim: titulo)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityIdentifier(identificadorDoTitulo ?? "mensagem-da-lista")
+                Text(verbatim: mensagem)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
             }
-            Text(verbatim: titulo)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-            Image(systemName: "chevron.down")
-                .font(FrilaTipo.nota)
-                .accessibilityHidden(true)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            // Largura do rótulo; com texto grande, a largura toda, para o rótulo quebrar em vez de vazar.
+            acao()
+                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                .padding(.top, FrilaEspaco.bloco)
         }
-        .font(ativo ? FrilaTipo.meta.weight(.semibold) : FrilaTipo.meta.weight(.medium))
-        .padding(.horizontal, FrilaEspaco.compacto)
-        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? FrilaEspaco.pequeno : 0)
-        .frame(minHeight: Self.alturaVisual)
-        .foregroundStyle(FrilaCor.texto)
-        .background(ativo ? FrilaCor.superficieDoCampo : FrilaCor.superficie, in: Capsule())
-        .overlay(Capsule().strokeBorder(ativo ? FrilaCor.texto : FrilaCor.borda, lineWidth: ativo ? 1.5 : 1))
-        .frame(minHeight: FrilaMetrica.alvoMinimo)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(ativo ? String(localized: "filtro ativo", bundle: bundleApresentacao) : "")
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.respiro)
+        .padding(.horizontal, FrilaEspaco.grupo)
     }
 }
 
@@ -450,7 +355,7 @@ private struct OpcaoDeFiltro: Identifiable {
     let aoTocar: () -> Void
 }
 
-/// Folha de um filtro: título e lista de opções. A marcada usa a seleção neutra do app (fundo de campo, semibold e visto).
+/// Folha de um filtro: o título e as opções numa lista de escolha única, com o check em tinta na marcada.
 /// Tocar aplica na hora e fecha a folha.
 private struct FolhaDeFiltro: View {
     let titulo: String
@@ -458,50 +363,31 @@ private struct FolhaDeFiltro: View {
     let fechar: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
             Text(verbatim: titulo)
-                .font(FrilaTipo.corpo.weight(.semibold))
+                .font(FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
-                .padding(.horizontal, FrilaEspaco.medio)
-                .padding(.top, FrilaEspaco.medio)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.grupo)
                 .accessibilityAddTraits(.isHeader)
             ScrollView {
-                VStack(spacing: FrilaEspaco.minimo) {
+                FrilaGrupoDeLinhas(linhasComIcone: false) {
                     ForEach(opcoes) { opcao in
-                        Button {
+                        FrilaLinhaDeOpcao(titulo: opcao.titulo, remate: .marcada(opcao.marcada)) {
                             opcao.aoTocar()
                             fechar()
-                        } label: {
-                            HStack(spacing: FrilaEspaco.pequeno) {
-                                Text(verbatim: opcao.titulo)
-                                    .font(opcao.marcada ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
-                                    .foregroundStyle(FrilaCor.texto)
-                                Spacer(minLength: FrilaEspaco.pequeno)
-                                Image(systemName: "checkmark")
-                                    .font(FrilaTipo.meta.weight(.semibold))
-                                    .foregroundStyle(FrilaCor.texto)
-                                    .opacity(opcao.marcada ? 1 : 0)
-                                    .accessibilityHidden(true)
-                            }
-                            .padding(.horizontal, FrilaEspaco.pequeno)
-                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                    .fill(FrilaCor.superficieDoCampo.opacity(opcao.marcada ? 1 : 0))
-                            )
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
                         .sensoryFeedback(.selection, trigger: opcao.marcada)
-                        .accessibilityAddTraits(opcao.marcada ? .isSelected : [])
                         .accessibilityIdentifier("opcao-filtro-\(opcao.id)")
                     }
                 }
-                .padding(.horizontal, FrilaEspaco.pequeno)
-                .padding(.bottom, FrilaEspaco.medio)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.bottom, FrilaEspaco.grupo)
             }
         }
-        .background(FrilaCor.superficie)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(FrilaCor.fundo)
         .accessibilityIdentifier("folha-filtro")
     }
 }

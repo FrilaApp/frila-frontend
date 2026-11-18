@@ -2,43 +2,42 @@ package br.com.frila.feature.turnos.contratante
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.componentes.CartaoVaga
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.LinhaDeEtapas
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -67,6 +66,8 @@ fun TelaTurnoDoContratante(
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
     /** L1-5: nulo (chave `checkin_por_codigo` desligada, ou ainda sem fiação) esconde o código de chegada. */
     codigoDaCasa: CodigoDaCasaViewModel? = null,
+    /** O que o app põe depois da chegada e antes das ações de risco (incluir na equipe de confiança). Nulo não põe nada. */
+    depoisDaChegada: (@Composable () -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
@@ -81,46 +82,45 @@ fun TelaTurnoDoContratante(
         ),
         modifier = modifier,
         cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
+        depoisDaChegada = depoisDaChegada,
     )
 }
 
 /**
- * Turno visto pela casa (UC05, UC07; paridade com `TelaTurnoDoContratante.swift`): função, horário e
- * local; o profissional confirmado; e a chegada, que muda com o que o painel sabe: a caminho, atraso de
- * 15 minutos, check-in manual esperando confirmação (botão em destaque) ou presença verificada.
+ * Turno visto pela casa (UC05, UC07; paridade com `TelaTurnoDoContratante.swift`): tela em andamento, espelho da
+ * do profissional. O cartão de status diz a etapa (selo e linha de etapas), a função, o horário e o local; o
+ * profissional confirmado vem logo depois; e a chegada muda com o que o painel sabe: a caminho, atraso de 15
+ * minutos, check-in manual esperando confirmação (o único primário da tela, no rodapé) ou presença verificada.
+ * Ações de risco (reabrir a vaga, denunciar) ficam no fim, como ação discreta.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConteudoTurnoDoContratante(
     estado: EstadoTurnoDoContratante,
     acoes: AcoesTurnoDoContratante,
     modifier: Modifier = Modifier,
     cartaoDoCodigo: (@Composable () -> Unit)? = null,
+    depoisDaChegada: (@Composable () -> Unit)? = null,
 ) {
     val contexto = estado.contexto
+    val pendente = estado.presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE
+    // Erro da confirmação fica junto ao botão que o disparou; o resto (resultado, ou erro sem botão) vai no conteúdo.
+    val avisoNoRodape = estado.aviso?.takeIf { it.erro && pendente }
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosTurnoDoContratante.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = acoes.aoVoltar) },
+        bottomBar = {
+            if (pendente) {
+                RodapeAncorado {
+                    avisoNoRodape?.let { MensagemJuntoAoBotao(it.mensagem) }
+                    BotaoPrimario(
+                        texto = if (estado.enviando) TextosTurnoDoContratante.CONFIRMANDO else TextosTurnoDoContratante.CONFIRMAR_PRESENCA,
+                        aoClicar = acoes.aoConfirmarPresenca,
+                        habilitado = estado.podeConfirmar,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = acoes.aoVoltar,
-                        modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosTurnoDoContratante.ROTULO_VOLTAR,
-                        )
-                    }
-                },
-            )
+                }
+            }
         },
     ) { preenchimento ->
         Column(
@@ -128,72 +128,68 @@ fun ConteudoTurnoDoContratante(
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(FrilaEspacamento.medio),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo)
+                .padding(bottom = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                Text(text = contexto.funcao, style = MaterialTheme.typography.headlineSmall)
-                horario(contexto.inicio, contexto.fim)?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge) }
-                Text(text = contexto.local, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            TituloDaTela(TextosTurnoDoContratante.TITULO)
+            CartaoDeStatus(estado)
 
-            Text(
-                text = TextosTurnoDoContratante.PROFISSIONAL,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            CartaoVaga(modifier = Modifier.fillMaxWidth()) {
-                val profissional = contexto.profissional
-                if (profissional == null) {
-                    Text(text = TextosTurnoDoContratante.SEM_PROFISSIONAL, style = MaterialTheme.typography.bodyMedium)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio)) {
-                        Text(text = profissional.nome, style = MaterialTheme.typography.titleMedium)
-                        profissional.funcoes?.takeIf { it.isNotEmpty() }?.let {
-                            Text(text = TextosTurnoDoContratante.FUNCOES.format(it.joinToString(", ")), style = MaterialTheme.typography.bodyMedium)
-                        }
-                        // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-                        acoes.aoDenunciarProfissional?.let { denunciar ->
-                            TextButton(
-                                onClick = { denunciar(profissional.id, contexto.turnoId) },
-                                modifier = Modifier
-                                    .sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo)
-                                    .semantics { contentDescription = TextosTurnoDoContratante.DENUNCIAR_ROTULO.format(profissional.nome) },
-                            ) {
-                                Text(TextosTurnoDoContratante.DENUNCIAR)
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosTurnoDoContratante.PROFISSIONAL)
+                CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                    val profissional = contexto.profissional
+                    if (profissional == null) {
+                        Text(text = TextosTurnoDoContratante.SEM_PROFISSIONAL, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                            Text(text = profissional.nome, style = FrilaTipo.nome, color = FrilaTema.cores.tinta)
+                            profissional.funcoes?.takeIf { it.isNotEmpty() }?.let {
+                                Text(
+                                    text = TextosTurnoDoContratante.FUNCOES.format(it.joinToString(", ")),
+                                    style = FrilaTipo.apoio,
+                                    color = FrilaTema.cores.tintaSuave,
+                                )
                             }
                         }
                     }
                 }
             }
 
-            Text(
-                text = TextosTurnoDoContratante.CHEGADA,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            Chegada(estado, acoes, cartaoDoCodigo)
+            Chegada(estado, cartaoDoCodigo)
 
+            estado.aviso?.takeIf { it != avisoNoRodape }?.let { aviso ->
+                AvisoFrila(tom = if (aviso.erro) TomAviso.ERRO else TomAviso.INFORMATIVO, mensagem = aviso.mensagem)
+            }
             estado.avisoDaReabertura?.let { aviso ->
-                Text(
-                    text = aviso.mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (aviso.erro) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics {
-                        liveRegion = if (aviso.erro) LiveRegionMode.Assertive else LiveRegionMode.Polite
-                    },
-                )
+                AvisoFrila(tom = if (aviso.erro) TomAviso.ERRO else TomAviso.INFORMATIVO, mensagem = aviso.mensagem)
             }
 
-            estado.aviso?.let { aviso ->
-                Text(
-                    text = aviso.mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (aviso.erro) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics {
-                        liveRegion = if (aviso.erro) LiveRegionMode.Assertive else LiveRegionMode.Polite
-                    },
-                )
+            depoisDaChegada?.invoke()
+
+            // Ações de risco no fim da tela, uma por linha.
+            val reabrirVisivel = estado.presenca == PresencaDoTurno.EM_ATRASO &&
+                (estado.podeReabrir || (estado.reaberturaDisponivel && estado.reabrindo))
+            val denunciar = acoes.aoDenunciarProfissional
+            val profissional = contexto.profissional
+            if (reabrirVisivel || (denunciar != null && profissional != null)) {
+                Spacer(Modifier.height(FrilaEspacamento.item))
+                if (reabrirVisivel) {
+                    AcaoDiscreta(
+                        texto = if (estado.reabrindo) TextosTurnoDoContratante.REABRINDO else TextosTurnoDoContratante.REABRIR_VAGA,
+                        aoClicar = acoes.aoPedirReabertura,
+                        habilitado = estado.podeReabrir,
+                    )
+                }
+                if (denunciar != null && profissional != null) {
+                    AcaoDiscreta(
+                        texto = TextosTurnoDoContratante.DENUNCIAR,
+                        aoClicar = { denunciar(profissional.id, contexto.turnoId) },
+                        modifier = Modifier.semantics {
+                            contentDescription = TextosTurnoDoContratante.DENUNCIAR_ROTULO.format(profissional.nome)
+                        },
+                    )
+                }
             }
         }
     }
@@ -201,88 +197,105 @@ fun ConteudoTurnoDoContratante(
     if (estado.pedindoReabertura) {
         AlertDialog(
             onDismissRequest = acoes.aoDesistirDaReabertura,
-            title = { Text(text = TextosTurnoDoContratante.REABRIR_PERGUNTA, modifier = Modifier.semantics { heading() }) },
-            text = { Text(text = TextosTurnoDoContratante.REABRIR_AVISO.format(contexto.profissional?.nome ?: "o profissional")) },
+            containerColor = FrilaTema.cores.superficie,
+            title = {
+                Text(
+                    text = TextosTurnoDoContratante.REABRIR_PERGUNTA,
+                    style = FrilaTipo.nome,
+                    color = FrilaTema.cores.tinta,
+                    modifier = Modifier.semantics { heading() },
+                )
+            },
+            text = {
+                Text(
+                    text = TextosTurnoDoContratante.REABRIR_AVISO.format(contexto.profissional?.nome ?: "o profissional"),
+                    style = FrilaTipo.corpo,
+                    color = FrilaTema.cores.tinta,
+                )
+            },
             confirmButton = {
-                TextButton(
-                    onClick = acoes.aoConfirmarReabertura,
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosTurnoDoContratante.REABRIR_CONFIRMAR, color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = acoes.aoConfirmarReabertura, modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) {
+                    Text(TextosTurnoDoContratante.REABRIR_CONFIRMAR, style = FrilaTipo.rotuloSecundario, color = FrilaTema.cores.tinta)
+                }
             },
             dismissButton = {
-                TextButton(
-                    onClick = acoes.aoDesistirDaReabertura,
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosTurnoDoContratante.ESPERAR) }
+                TextButton(onClick = acoes.aoDesistirDaReabertura, modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) {
+                    Text(TextosTurnoDoContratante.ESPERAR, style = FrilaTipo.rotuloSecundario, color = FrilaTema.cores.tintaSuave)
+                }
             },
         )
     }
 }
 
+/** O selo e a etapa do cartão de status, pelo que o painel sabe da chegada. */
+private data class EtapaDoTurno(val selo: String, val estilo: EstiloDoSelo, val atual: Int)
+
+private fun etapaDe(presenca: PresencaDoTurno): EtapaDoTurno = when (presenca) {
+    PresencaDoTurno.AGUARDANDO, PresencaDoTurno.EM_ATRASO ->
+        EtapaDoTurno(TextosTurnoDoContratante.ETAPA_CONFIRMADO, EstiloDoSelo.CONFIRMADO, 0)
+    PresencaDoTurno.A_CAMINHO -> EtapaDoTurno(TextosTurnoDoContratante.ETAPA_A_CAMINHO, EstiloDoSelo.ANDAMENTO, 1)
+    PresencaDoTurno.CHECKIN_MANUAL_PENDENTE ->
+        EtapaDoTurno(TextosTurnoDoContratante.SELO_PRESENCA_MARCADA, EstiloDoSelo.ANDAMENTO, 2)
+    PresencaDoTurno.VERIFICADA -> EtapaDoTurno(TextosTurnoDoContratante.VERIFICADA, EstiloDoSelo.ANDAMENTO, 2)
+    PresencaDoTurno.NAO_VERIFICADA -> EtapaDoTurno(TextosTurnoDoContratante.NAO_VERIFICADA, EstiloDoSelo.CONTORNO, 2)
+}
+
+/** Cartão de status do turno: selo, função, horário, local e a linha de etapas (como T4 e T8 do profissional). */
 @Composable
-private fun Chegada(
-    estado: EstadoTurnoDoContratante,
-    acoes: AcoesTurnoDoContratante,
-    cartaoDoCodigo: (@Composable () -> Unit)?,
-) {
+private fun CartaoDeStatus(estado: EstadoTurnoDoContratante) {
     val contexto = estado.contexto
-    val nome = contexto.profissional?.nome ?: ""
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-        when (estado.presenca) {
-            PresencaDoTurno.AGUARDANDO ->
-                Text(text = TextosTurnoDoContratante.AGUARDANDO, style = MaterialTheme.typography.bodyLarge)
-            PresencaDoTurno.A_CAMINHO ->
-                Text(
-                    text = TextosTurnoDoContratante.A_CAMINHO.format(nome, contexto.aCaminhoEm?.let(::hora).orEmpty()),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            PresencaDoTurno.EM_ATRASO -> {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                ) {
-                    Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
-                    Text(text = TextosTurnoDoContratante.EM_ATRASO, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
-                }
-                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-                if (estado.podeReabrir || (estado.reaberturaDisponivel && estado.reabrindo)) {
-                    BotaoSecundario(
-                        texto = if (estado.reabrindo) TextosTurnoDoContratante.REABRINDO else TextosTurnoDoContratante.REABRIR_VAGA,
-                        aoClicar = acoes.aoPedirReabertura,
-                        habilitado = estado.podeReabrir,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+    val etapa = etapaDe(estado.presenca)
+    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+            SeloDeStatus(texto = etapa.selo, estilo = etapa.estilo)
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                Text(text = contexto.funcao, style = FrilaTipo.nome, color = FrilaTema.cores.tinta)
+                horario(contexto.inicio, contexto.fim)?.let { Text(text = it, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta) }
+                Text(text = contexto.local, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
             }
-            PresencaDoTurno.CHECKIN_MANUAL_PENDENTE -> {
-                Text(
-                    text = contexto.checkinEm
-                        ?.let { TextosTurnoDoContratante.CHECKIN_PENDENTE_COM_HORA.format(nome, hora(it)) }
-                        ?: TextosTurnoDoContratante.CHECKIN_PENDENTE.format(nome),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-                cartaoDoCodigo?.invoke()
-                BotaoPrimario(
-                    texto = if (estado.enviando) TextosTurnoDoContratante.CONFIRMANDO else TextosTurnoDoContratante.CONFIRMAR_PRESENCA,
-                    aoClicar = acoes.aoConfirmarPresenca,
-                    habilitado = estado.podeConfirmar,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            // Texto e ícone, nunca só cor.
-            PresencaDoTurno.VERIFICADA -> Row(
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                Text(text = TextosTurnoDoContratante.VERIFICADA, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            PresencaDoTurno.NAO_VERIFICADA ->
-                Text(text = TextosTurnoDoContratante.NAO_VERIFICADA, style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(FrilaEspacamento.item))
+            LinhaDeEtapas(
+                etapas = listOf(
+                    TextosTurnoDoContratante.ETAPA_CONFIRMADO,
+                    TextosTurnoDoContratante.ETAPA_A_CAMINHO,
+                    TextosTurnoDoContratante.ETAPA_PRESENCA,
+                    TextosTurnoDoContratante.ETAPA_CONCLUIDO,
+                ),
+                atual = etapa.atual,
+            )
         }
     }
+}
+
+/** O bloco "Chegada". Presença verificada ou não verificada já está dita no selo do cartão de status. */
+@Composable
+private fun Chegada(estado: EstadoTurnoDoContratante, cartaoDoCodigo: (@Composable () -> Unit)?) {
+    val contexto = estado.contexto
+    val nome = contexto.profissional?.nome ?: ""
+    if (estado.presenca == PresencaDoTurno.VERIFICADA || estado.presenca == PresencaDoTurno.NAO_VERIFICADA) return
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        RotuloDeGrupo(TextosTurnoDoContratante.CHEGADA)
+        when (estado.presenca) {
+            PresencaDoTurno.AGUARDANDO -> CorpoDaChegada(TextosTurnoDoContratante.AGUARDANDO)
+            PresencaDoTurno.A_CAMINHO ->
+                CorpoDaChegada(TextosTurnoDoContratante.A_CAMINHO.format(nome, contexto.aCaminhoEm?.let(::hora).orEmpty()))
+            PresencaDoTurno.EM_ATRASO -> AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosTurnoDoContratante.EM_ATRASO)
+            PresencaDoTurno.CHECKIN_MANUAL_PENDENTE -> {
+                CorpoDaChegada(
+                    contexto.checkinEm
+                        ?.let { TextosTurnoDoContratante.CHECKIN_PENDENTE_COM_HORA.format(nome, hora(it)) }
+                        ?: TextosTurnoDoContratante.CHECKIN_PENDENTE.format(nome),
+                )
+                cartaoDoCodigo?.invoke()
+            }
+            PresencaDoTurno.VERIFICADA, PresencaDoTurno.NAO_VERIFICADA -> Unit
+        }
+    }
+}
+
+@Composable
+private fun CorpoDaChegada(texto: String) {
+    Text(text = texto, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
 }
 
 private val FUSO = ZoneId.of("America/Sao_Paulo")

@@ -16,19 +16,21 @@ final class BarraAceitarTurnoUITests: XCTestCase {
         XCTAssertTrue(botao.waitForExistence(timeout: 15))
         let habilitado = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: botao)
         XCTAssertEqual(XCTWaiter.wait(for: [habilitado], timeout: 10), .completed)
+        // Rodapé em dois estados (R2): rolando, só o botão; no fim da rolagem, o valor e o apoio entram acima dele.
         let preco = app.descendants(matching: .any)["candidatura-valor"].firstMatch
-        XCTAssertTrue(preco.waitForExistence(timeout: 5))
+        for _ in 0..<4 { app.swipeUp(velocity: .fast) }
+        XCTAssertTrue(preco.waitForExistence(timeout: 5), "no fim da rolagem o valor aparece no rodapé")
         let apoio = app.staticTexts.matching(NSPredicate(
             format: "label CONTAINS %@ AND label CONTAINS %@", "por pessoa", "23h30"
         )).firstMatch
-        XCTAssertTrue(apoio.exists)
+        XCTAssertTrue(apoio.waitForExistence(timeout: 5))
 
         let tela = app.windows.firstMatch.frame
-        let margem: CGFloat = 16
-        XCTAssertGreaterThanOrEqual(botao.frame.height, 56)
+        let margem: CGFloat = 24
+        XCTAssertGreaterThanOrEqual(botao.frame.height, 48)
         XCTAssertEqual(botao.frame.width, tela.width - 2 * margem, accuracy: 1)
         XCTAssertEqual(botao.frame.midX, tela.midX, accuracy: 1)
-        // Rodapé de duas linhas (LOG-021): valor à esquerda, apoio à direita, botão inteiro embaixo.
+        // Rodapé de duas linhas: valor à esquerda, apoio à direita, botão inteiro embaixo.
         XCTAssertEqual(preco.frame.minX, margem, accuracy: 2, "o valor fica na margem esquerda do corpo")
         XCTAssertEqual(apoio.frame.maxX, tela.width - margem, accuracy: 2, "o apoio fica na margem direita do corpo")
         XCTAssertLessThan(preco.frame.maxX, apoio.frame.minX, "valor e apoio ficam lado a lado")

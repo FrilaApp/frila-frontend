@@ -364,6 +364,34 @@ class TelaPerfilTest {
     }
 
     @Test
+    fun erroMantemOsAtalhosQueVemDeOutrosModulos() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"perfil_incompativel","message":"perfil_incompativel"}""",
+                statusHttp = HttpStatusCode.UnprocessableEntity,
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+            var abriu = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        atalhosExtras = listOf(AtalhoDaConta("Pessoas e locais bloqueados", "entrada-bloqueios") { abriu++ }),
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            // Bloqueados e contestar não dependem do perfil ter carregado: com o perfil em erro continuam ao alcance.
+            rule.onNodeWithText(viewModel.estado.value.mensagemErro!!).assertIsDisplayed()
+            rule.onNodeWithTag("entrada-bloqueios").performScrollTo().assertIsDisplayed().performClick()
+            assertEquals(1, abriu)
+        }
+    }
+
+    @Test
     fun erroMantemAtalhosDeContratanteQuandoPermitido() {
         runBlocking {
             val viewModel = criarViewModel(

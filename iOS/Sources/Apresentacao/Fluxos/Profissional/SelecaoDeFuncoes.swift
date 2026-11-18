@@ -84,9 +84,9 @@ public enum OrganizacaoDeFuncoes {
     }
 }
 
-/// Cartão expansível das funções do profissional: uma função por linha, agrupadas por categoria, com
-/// a busca como apoio. Começa sempre fechado: sem escolha é um convite de uma linha, com escolha é o resumo.
-/// Abrir, fechar, buscar e filtrar nunca mexem na seleção.
+/// Seleção das funções do profissional: um cabeçalho que abre a lista, com uma função por linha agrupada por categoria
+/// e a busca como apoio. Começa sempre fechado: sem escolha é um convite de uma linha, com escolha é o resumo.
+/// A escolha é um check em tinta (sem laranja e sem fundo de cor). Abrir, fechar, buscar e filtrar nunca mexem na seleção.
 struct SecaoDeFuncoes: View {
     let funcoes: [Funcao]
     let selecionadas: Set<UUID>
@@ -112,28 +112,16 @@ struct SecaoDeFuncoes: View {
         OrganizacaoDeFuncoes.agrupar(funcoes, busca: consulta, categoriaVazia: TextosDoProfissional.Perfil.outrasFuncoes)
     }
 
-    /// Sem escolha e fechado, o cartão é um botão cheio na cor Quente (o convite). Ao abrir, o mesmo
-    /// elemento vira o cartão: o preenchimento esmaece, a superfície e o fio entram e a lista sai de dentro.
-    private var convite: Bool { escolhidas.isEmpty && !aberto }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            cabecalho
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            FrilaGrupoDeLinhas(linhasComIcone: false) {
+                cabecalho
+            }
             if aberto {
                 conteudoAberto
-                    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+                    .transition(.opacity)
             }
         }
-        .padding(.vertical, FrilaEspaco.minimo)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                .fill(FrilaCor.superficie.opacity(convite ? 0 : 1))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                .strokeBorder(convite ? Color.clear : FrilaCor.divisoria, lineWidth: 1)
-        )
     }
 
     // MARK: - Cabeçalho
@@ -141,36 +129,35 @@ struct SecaoDeFuncoes: View {
     private var cabecalho: some View {
         let pendente = escolhidas.isEmpty
         return Button(action: alternarAbertura) {
-            HStack(spacing: FrilaEspaco.compacto) {
+            HStack(spacing: FrilaEspaco.item) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                     Text(verbatim: pendente
                          ? TextosDoProfissional.Perfil.escolherFuncoes
                          : TextosDoProfissional.Perfil.funcoesSelecionadas(escolhidas.count))
-                        .font(pendente ? FrilaTipo.botaoSobreQuente : FrilaTipo.corpo.weight(.semibold))
-                        .foregroundStyle(convite ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                        .font(FrilaTipo.rotuloSecundario)
+                        .foregroundStyle(FrilaCor.texto)
                     if !aberto, let resumo = OrganizacaoDeFuncoes.resumo(escolhidas) {
                         Text(verbatim: resumo)
-                            .font(FrilaTipo.meta)
+                            .font(FrilaTipo.apoio)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .lineLimit(1)
                     }
                 }
-                Spacer(minLength: FrilaEspaco.pequeno)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: FrilaEspaco.item)
                 Image(systemName: "chevron.down")
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(convite ? FrilaCor.sobreSelecao : FrilaCor.textoSecundario)
+                    .font(FrilaTipo.apoio.weight(.semibold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
                     .rotationEffect(.degrees(aberto ? 180 : 0))
                     .accessibilityHidden(true)
             }
-            // Borda interna única: o texto fica a 16 pt da borda do contêiner nos dois estados.
-            .padding(.horizontal, FrilaEspaco.medio)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(
-                Capsule().fill(FrilaCor.quente.opacity(convite ? 1 : 0))
-            )
+            .padding(.horizontal, FrilaMedidaDeLinha.margem)
+            .padding(.vertical, FrilaEspaco.item)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(EstiloDoCabecalhoDeFuncoes(convite: convite))
+        .buttonStyle(EstiloDeLinhaTocavel())
         .accessibilityIdentifier("botao-expandir-funcoes")
     }
 
@@ -185,41 +172,28 @@ struct SecaoDeFuncoes: View {
     // MARK: - Conteúdo aberto
 
     private var conteudoAberto: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
             barraDeBusca
             if grupos.isEmpty {
                 semResultado
             } else {
                 ForEach(grupos) { grupo in
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                         Text(verbatim: grupo.categoria)
-                            .font(FrilaTipo.microRotulo)
-                            .textCase(.uppercase)
-                            .tracking(0.8)
+                            .font(FrilaTipo.rotuloDeGrupo)
                             .foregroundStyle(FrilaCor.textoSecundario)
-                            .padding(.horizontal, FrilaEspaco.medio)
-                            .padding(.top, FrilaEspaco.pequeno)
-                            .padding(.bottom, FrilaEspaco.minimo)
+                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
                             .accessibilityIdentifier("categoria-\(grupo.categoria)")
-                        ForEach(Array(grupo.funcoes.enumerated()), id: \.element.id) { indice, funcao in
-                            linha(funcao)
-                            if indice < grupo.funcoes.count - 1 {
-                                // O divisor some ao lado de uma linha preenchida, para os blocos não ganharem um fio entre si.
-                                let ladoAladoMarcado = selecionadas.contains(funcao.id) || selecionadas.contains(grupo.funcoes[indice + 1].id)
-                                Rectangle()
-                                    .fill(FrilaCor.divisoria)
-                                    .frame(height: 1)
-                                    .padding(.horizontal, FrilaEspaco.medio)
-                                    .opacity(ladoAladoMarcado ? 0 : 1)
-                                    .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: ladoAladoMarcado)
+                        FrilaGrupoDeLinhas(linhasComIcone: false) {
+                            ForEach(grupo.funcoes, id: \.id) { funcao in
+                                linha(funcao)
                             }
                         }
                     }
                 }
             }
         }
-        .padding(.bottom, FrilaEspaco.pequeno)
         // Filtrar não corta a lista: as linhas que saem e as que voltam esmaecem e o resto desliza.
         .animation(
             FrilaMovimento.animacao(.easeOut(duration: 0.18), reduzir: reduzirMovimento),
@@ -227,38 +201,13 @@ struct SecaoDeFuncoes: View {
         )
     }
 
+    /// Uma função: o nome e, quando marcada, o check em tinta.
     private func linha(_ funcao: Funcao) -> some View {
         let marcada = selecionadas.contains(funcao.id)
-        return Button {
+        return FrilaLinhaDeOpcao(titulo: funcao.nome, remate: .marcada(marcada)) {
             alternar(funcao.id)
-        } label: {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: funcao.nome)
-                    .font(marcada ? FrilaTipo.corpo.weight(.semibold) : FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                Spacer(minLength: FrilaEspaco.pequeno)
-                Image(systemName: "checkmark")
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .opacity(marcada ? 1 : 0)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, FrilaEspaco.pequeno)
-            .padding(.vertical, FrilaEspaco.compacto)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // A seleção é neutra: fundo de campo, texto em semibold e visto em tinta. O Quente fica para foco e ação,
-            // nunca para marcar escolha (nada de tom alaranjado esmaecido em contêiner). Não muda a geometria da linha.
-            .background(
-                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .fill(FrilaCor.superficieDoCampo.opacity(marcada ? 1 : 0))
-            )
-            .animation(FrilaMovimento.animacao(.easeOut(duration: 0.14), reduzir: reduzirMovimento), value: marcada)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .padding(.horizontal, FrilaEspaco.pequeno)
         .sensoryFeedback(.selection, trigger: marcada)
-        .accessibilityAddTraits(marcada ? .isSelected : [])
         .accessibilityIdentifier("pill-funcao-\(funcao.id)")
     }
 
@@ -274,51 +223,26 @@ struct SecaoDeFuncoes: View {
             limpar: (TextosDoProfissional.Perfil.fecharBuscaDeFuncao, "botao-fechar-busca-funcao"),
             recuoInicial: FrilaEspaco.pequeno
         )
-        .padding(.horizontal, FrilaEspaco.pequeno)
     }
 
+    /// Nenhuma função bate com a busca: o fato e o caminho de volta, sem ícone e sem cor.
     private var semResultado: some View {
-        VStack(spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(verbatim: TextosDoProfissional.Perfil.nenhumaFuncaoEncontrada)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            Button {
-                consulta = ""
-            } label: {
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+            Button { consulta = "" } label: {
                 Text(verbatim: TextosDoProfissional.Perfil.limparBusca)
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.frilaLink)
             .accessibilityIdentifier("botao-limpar-busca-funcao")
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, FrilaEspaco.compacto)
     }
 
     /// Encerra a busca: limpa o texto, solta o foco e devolve a lista inteira, sem tocar na seleção.
     private func encerrarBusca() {
         consulta = ""
         focoNaBusca = false
-    }
-}
-
-// MARK: - Toque no cabeçalho
-
-/// Feedback do toque: o cabeçalho afunda (3% no botão cheio, 2% no cartão) e o botão escurece um pouco.
-/// Entra rápido e sai um pouco mais lento, com curva ease-out forte (sem ease-in, que atrasa o início).
-private struct EstiloDoCabecalhoDeFuncoes: ButtonStyle {
-    let convite: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
-
-    func makeBody(configuration: Configuration) -> some View {
-        let pressionado = configuration.isPressed
-        let curva = Animation.timingCurve(0.23, 1, 0.32, 1, duration: pressionado ? 0.14 : 0.2)
-        return configuration.label
-            .brightness(convite && pressionado ? -0.05 : 0)
-            .scaleEffect(reduzirMovimento ? 1 : (pressionado ? (convite ? 0.97 : 0.98) : 1))
-            .animation(FrilaMovimento.animacao(curva, reduzir: reduzirMovimento), value: pressionado)
     }
 }

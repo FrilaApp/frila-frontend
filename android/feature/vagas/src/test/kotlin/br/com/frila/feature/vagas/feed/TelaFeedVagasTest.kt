@@ -27,7 +27,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,47 +95,14 @@ class TelaFeedVagasTest {
     }
 
     @Test
-    fun `exibe titulo Vagas abertas e botao de perfil que dispara acao`() {
-        var abriuPerfil = false
-        val viewModel = criarViewModel()
-
-        compose.setContent {
-            FrilaTheme {
-                TelaFeedVagas(
-                    viewModel = viewModel,
-                    aoAbrirDetalhe = {},
-                    aoAbrirPerfil = { abriuPerfil = true },
-                )
-            }
-        }
-
-        compose.onNodeWithText("Vagas abertas").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Meu perfil").assertIsDisplayed().performClick()
-        assertTrue(abriuPerfil)
-    }
-
-    @Test
-    fun `C0-9 - o feed tem entrada para Meus turnos, com alvo de toque de 44`() {
-        var abriuMeusTurnos = 0
-        val viewModel = criarViewModel()
-
-        compose.setContent {
-            FrilaTheme {
-                TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {}, aoAbrirMeusTurnos = { abriuMeusTurnos++ })
-            }
-        }
-
-        compose.onNodeWithText("Meus turnos").assertIsDisplayed().assertHeightIsAtLeast(44.dp).performClick()
-        assertEquals(1, abriuMeusTurnos)
-    }
-
-    @Test
-    fun `C0-9 - sem o caminho de Meus turnos o botao nao aparece`() {
+    fun `tela raiz - o feed abre com Vagas abertas e sem atalhos para Meus turnos e Perfil, que viraram abas`() {
         val viewModel = criarViewModel()
 
         compose.setContent { FrilaTheme { TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {}) } }
 
+        compose.onNodeWithText("Vagas abertas").assertIsDisplayed()
         compose.onNodeWithText("Meus turnos").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Meu perfil").assertDoesNotExist()
     }
 
     @Test
@@ -241,7 +207,7 @@ class TelaFeedVagasTest {
             }
 
             compose.waitForIdle()
-            val campoBusca = compose.onNodeWithContentDescription("Buscar vagas por função ou estabelecimento")
+            val campoBusca = compose.onNodeWithContentDescription("Buscar função ou estabelecimento")
             campoBusca.assertIsDisplayed()
             campoBusca.performTextInput("Barista")
             compose.waitForIdle()
