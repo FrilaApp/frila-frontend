@@ -142,6 +142,22 @@ data class ResultadoCandidaturaDto(
 )
 
 /**
+ * Corpo de `POST /rest/v1/rpc/criar_conta` (RF01, RN20, RN25). `nascimento` vai como `YYYY-MM-DD`
+ * e `telefone` em E.164. `termosVersao` é a versão dos Termos e da Política que a tela mostrou;
+ * o instante do aceite é carimbado pelo servidor. `sinalIdade` é opcional e fica fora do JSON
+ * quando nulo (`dezoito_ou_mais`, `recusou` ou `indisponivel`).
+ */
+@Serializable
+data class CriarContaDto(
+    @SerialName("perfil") val perfil: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("telefone") val telefone: String,
+    @SerialName("nascimento") val nascimento: String,
+    @SerialName("termos_versao") val termosVersao: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("sinal_idade") val sinalIdade: String? = null,
+)
+
+/**
  * Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). `versao_app` (0.2.56) é opcional: sem ela o
  * campo não vai no corpo (nem como null), e o servidor trata o aparelho como antigo para os avisos de chamada.
  */
@@ -1136,4 +1152,107 @@ data class ResultadoACaminhoDto(
 @Serializable
 data class ReabrirPorAtrasoDto(
     @SerialName("posicao_id") val posicaoId: String,
+)
+
+/** Corpo de `POST /rest/v1/rpc/cancelar_vaga` (RN12). `motivo` tem no mínimo 3 caracteres. */
+@Serializable
+data class CancelarVagaDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("motivo") val motivo: String,
+)
+
+/** Resposta de `cancelar_vaga`: a vaga, o `estado` (`cancelada`) e quantas posições foram canceladas. */
+@Serializable
+data class VagaCanceladaDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("posicoes_canceladas") val posicoesCanceladas: Int,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/republicar_vaga` (RF05): copia a vaga de origem e muda só início e fim, em
+ * UTC ISO-8601 (RN18). `chave` é a de idempotência, gerada uma vez por republicação.
+ */
+@Serializable
+data class RepublicarVagaDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("chave") val chave: String,
+)
+
+/**
+ * Corpo de `POST /rest/v1/rpc/republicar_posicoes_restantes`: o servidor decide modo, horário, valor e
+ * quantidade; o app manda só a vaga de origem e a `chave` de idempotência.
+ */
+@Serializable
+data class RepublicarPosicoesRestantesDto(
+    @SerialName("vaga_id") val vagaId: String,
+    @SerialName("chave") val chave: String,
+)
+
+/** Parâmetro de `detalhe_vaga`. O contrato o descreve em GET com `vaga_id` na query; vai em POST, como `candidatos_da_vaga`. */
+@Serializable
+data class DetalheVagaParametrosDto(
+    @SerialName("vaga_id") val vagaId: String,
+)
+
+/**
+ * Resposta de `detalhe_vaga` (schema `Vaga`): tudo o que o profissional vê antes de se candidatar. `estado` vale
+ * `publicada`, `preenchida`, `encerrada` ou `cancelada`; `modo`, `urgencia` ou `selecao`; `origem`, `publicacao` ou
+ * `chamada_direta`. `oculta` só chega verdadeiro a quem ocupa posição ou tem candidatura na vaga. A tela mostra o
+ * botão de candidatura só com `estado = publicada` e `posicoes_abertas > 0`, nunca pelo relógio do aparelho.
+ */
+@Serializable
+data class VagaDto(
+    @SerialName("id") val id: String,
+    @SerialName("estabelecimento") val estabelecimento: PerfilPublicoDto,
+    @SerialName("funcao") val funcao: FuncaoDto,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("local") val local: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+    @SerialName("distancia_km") val distanciaKm: Double? = null,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("posicoes") val posicoes: Int,
+    @SerialName("posicoes_abertas") val posicoesAbertas: Int,
+    @SerialName("inclusos") val inclusos: InclusosDto,
+    @SerialName("responsavel_local") val responsavelLocal: String,
+    @SerialName("traje") val traje: String? = null,
+    @SerialName("participa_rateio") val participaRateio: Boolean? = null,
+    @SerialName("observacoes") val observacoes: String? = null,
+    @SerialName("modo") val modo: String,
+    @SerialName("estado") val estado: String,
+    @SerialName("oculta") val oculta: Boolean,
+    @SerialName("publicado_em") val publicadoEm: String,
+    @SerialName("origem") val origem: String? = null,
+    @SerialName("vaga_origem_id") val vagaOrigemId: String? = null,
+)
+
+/** Corpo de `POST /rest/v1/rpc/retirar_candidatura` (RN24): só candidatura ainda não escolhida. */
+@Serializable
+data class RetirarCandidaturaDto(
+    @SerialName("candidatura_id") val candidaturaId: String,
+)
+
+/**
+ * Item de `minhas_candidaturas` e resposta de `retirar_candidatura` (schema `Candidatura`). `estado` vale `pendente`,
+ * `aceita`, `recusada`, `retirada` ou `expirada`. `turno_id` (0.2.32) só vem na `aceita`: é por ele, e não pela vaga,
+ * que a tela chega ao turno em `meus_turnos`.
+ */
+@Serializable
+data class CandidaturaDto(
+    @SerialName("id") val id: String,
+    @SerialName("vaga") val vaga: VagaResumoDto,
+    @SerialName("estado") val estado: String,
+    @SerialName("criada_em") val criadaEm: String,
+    @SerialName("turno_id") val turnoId: String? = null,
+)
+
+/** Parâmetro de `minhas_candidaturas`. Vai em POST; sem filtro, `estado` não vai no corpo (como no iOS). */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class MinhasCandidaturasParametrosDto(
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("estado") val estado: String? = null,
 )

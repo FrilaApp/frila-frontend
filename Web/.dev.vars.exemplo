@@ -2,3 +2,5 @@
 # Só o endereço e a chave PUBLICÁVEL do Supabase de dev. Nunca service_role.
 SUPABASE_URL=
 SUPABASE_CHAVE_PUBLICAVEL=
+# Opcional: e-mails de demonstração, separados por vírgula. Sem ele, ninguém entra como demonstração.
+EMAILS_DE_DEMONSTRACAO=

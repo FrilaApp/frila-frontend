@@ -127,4 +127,100 @@ class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
         } catch (erro: Exception) {
             Result.failure(erro)
         }
+
+    // --- Lote 2 (L2-0): vagas da casa e vaga do profissional. Tudo em POST, como no iOS; erros chegam como [ErroDaApi]. ---
+
+    /**
+     * `POST /rest/v1/rpc/cancelar_vaga` (RN12): cancela as posições abertas e as confirmadas, com motivo (mínimo de
+     * 3 caracteres). Não gera falta para ninguém. Reenvio pelo mesmo autor devolve `200` com a vaga já cancelada
+     * (0.2.35). Erros esperados: `409 vaga_encerrada` (já começou, ou cancelada por outro autor),
+     * `422 campo_obrigatorio` e `422 campo_invalido` (`details: motivo`), `404 nao_encontrado` (não existe ou é de
+     * outra casa), `422 perfil_incompativel` (conta de profissional), `403 sem_permissao` (`details: conta_suspensa`).
+     */
+    suspend fun cancelarVaga(vagaId: String, motivo: String): VagaCanceladaDto {
+        val resposta = cliente.http.post(cliente.urlRpc("cancelar_vaga")) {
+            contentType(ContentType.Application.Json)
+            setBody(CancelarVagaDto(vagaId = vagaId, motivo = motivo))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/republicar_vaga` (RF05): copia a vaga de origem e muda só [inicio] e [fim], enviados em UTC
+     * com precisão de segundo (RN18). Idempotente pela [chave]. Mesmas recusas de `publicar_vaga`
+     * (`422 horario_invalido`, `422 selecao_sem_antecedencia`, `422 campo_invalido`...), mais `404 nao_encontrado`
+     * (origem inexistente), `403 sem_permissao` (vaga de outra casa; `details: conta_suspensa`),
+     * `422 perfil_incompativel` (conta de profissional) e `422 vaga_oculta` (origem ocultada pela moderação).
+     */
+    suspend fun republicarVaga(vagaId: String, inicio: Instant, fim: Instant, chave: String): VagaPublicadaDto {
+        val resposta = cliente.http.post(cliente.urlRpc("republicar_vaga")) {
+            contentType(ContentType.Application.Json)
+            setBody(
+                RepublicarVagaDto(
+                    vagaId = vagaId,
+                    inicioEm = inicio.truncatedTo(ChronoUnit.SECONDS).toString(),
+                    fimEm = fim.truncatedTo(ChronoUnit.SECONDS).toString(),
+                    chave = chave,
+                ),
+            )
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/republicar_posicoes_restantes` (D1-C): publica em urgência, para o mesmo turno e valor, as
+     * posições que a seleção deixou vazias. Idempotente pela [chave]. Erros esperados:
+     * `422 republicacao_indisponivel` com o motivo em `details` (`nao_e_selecao`, `selecao_em_curso`,
+     * `vaga_cancelada`, `ja_comecou`, `sem_posicoes_restantes`, `ja_republicada`), `422 vaga_oculta`,
+     * `422 perfil_incompativel`, `403 sem_permissao` (outra casa; `details: conta_suspensa`), `404 nao_encontrado`.
+     */
+    suspend fun republicarPosicoesRestantes(vagaId: String, chave: String): VagaPublicadaDto {
+        val resposta = cliente.http.post(cliente.urlRpc("republicar_posicoes_restantes")) {
+            contentType(ContentType.Application.Json)
+            setBody(RepublicarPosicoesRestantesDto(vagaId = vagaId, chave = chave))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `detalhe_vaga` (UC03): a vaga inteira, lida do servidor (é o que abre por link ou aviso). Depois do início
+     * continua respondendo `200` com o `estado` real. Erros esperados: `404 nao_encontrado` (não existe, bloqueio
+     * entre as partes, ocultada sem vínculo, ou vaga de chamada direta para quem não é da casa nem tem turno nela),
+     * `422 perfil_incompativel` (conta de contratante), `403 sem_permissao` (`details: conta_suspensa`).
+     */
+    suspend fun detalheVaga(vagaId: String): VagaDto {
+        val resposta = cliente.http.post(cliente.urlRpc("detalhe_vaga")) {
+            contentType(ContentType.Application.Json)
+            setBody(DetalheVagaParametrosDto(vagaId = vagaId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/retirar_candidatura` (RN24): sem penalidade, antes de ser escolhido. Retirar de novo devolve
+     * a mesma candidatura retirada. Erros esperados: `409 candidatura_indisponivel` (recusada ou expirada; a já
+     * escolhida vira `cancelar_posicao`), `422 perfil_incompativel` (conta de contratante), `422 campo_obrigatorio`
+     * (`details: candidatura_id`), `404 nao_encontrado`, `403 sem_permissao` (`details: conta_suspensa`).
+     */
+    suspend fun retirarCandidatura(candidaturaId: String): CandidaturaDto {
+        val resposta = cliente.http.post(cliente.urlRpc("retirar_candidatura")) {
+            contentType(ContentType.Application.Json)
+            setBody(RetirarCandidaturaDto(candidaturaId = candidaturaId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `minhas_candidaturas`: as candidaturas do profissional; [estado] filtra (`pendente`, `aceita`, `recusada`,
+     * `retirada`, `expirada`) e, nulo, não vai no corpo. A `aceita` traz `turno_id` (0.2.32). Lista vazia é resposta
+     * legítima. Erros esperados: `422 perfil_incompativel` (conta de contratante), `403 sem_permissao`
+     * (`details: conta_suspensa`), `401 nao_autenticado`.
+     */
+    suspend fun minhasCandidaturas(estado: String? = null): List<CandidaturaDto> {
+        val resposta = cliente.http.post(cliente.urlRpc("minhas_candidaturas")) {
+            contentType(ContentType.Application.Json)
+            setBody(MinhasCandidaturasParametrosDto(estado = estado))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
 }

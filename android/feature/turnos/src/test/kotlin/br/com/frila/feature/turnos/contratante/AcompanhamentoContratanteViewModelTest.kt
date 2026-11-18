@@ -127,6 +127,47 @@ class AcompanhamentoContratanteViewModelTest {
         assertNull(ContextoDoTurnoContratante.dePainel(vaga, posicao.copy(turnoId = null)))
     }
 
+    @ParameterizedTest
+    @CsvSource("pendente, manual", "NULO, NULO", "nao_verificado, manual")
+    fun `painel atrasado nao regride a presenca ja confirmada`(verificacao: String, tipo: String) = runBlocking {
+        val rede = Rede { respond(verificadoJson, HttpStatusCode.OK, json) }
+        val vm = viewModelCom(rede)
+        vm.confirmarPresenca().join()
+        val confirmada = vm.estado.value
+
+        vm.atualizarContexto(contexto(
+            verificacao = verificacao.takeIf { it != "NULO" },
+            checkinTipo = tipo.takeIf { it != "NULO" },
+        ))
+        vm.confirmarPresenca().join()
+
+        assertEquals(confirmada, vm.estado.value)
+        assertEquals(PresencaDoTurno.VERIFICADA, vm.estado.value.presenca)
+        assertFalse(vm.estado.value.podeConfirmar)
+        assertEquals(1, rede.caminhos.size)
+    }
+
+    @Test
+    fun `painel avanca a presenca e atualiza o contexto ja verificado`() {
+        val vm = viewModelCom(Rede { error("sem confirmação manual") })
+        val verificado = contexto(verificacao = "verificado")
+        vm.atualizarContexto(verificado)
+        assertEquals(PresencaDoTurno.VERIFICADA, vm.estado.value.presenca)
+
+        val atualizado = verificado.copy(local = "Local atualizado")
+        vm.atualizarContexto(atualizado)
+        assertEquals(atualizado, vm.estado.value.contexto)
+    }
+
+    @Test
+    fun `verificacao de um turno nao impede receber outro turno pendente`() {
+        val vm = viewModelCom(Rede { error("sem confirmação manual") }, contexto(verificacao = "verificado"))
+        val outro = contexto().copy(turnoId = "t2")
+        vm.atualizarContexto(outro)
+        assertEquals(outro, vm.estado.value.contexto)
+        assertTrue(vm.estado.value.podeConfirmar)
+    }
+
     // ---- Confirmar ----
 
     @Test

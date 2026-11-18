@@ -186,6 +186,7 @@ def main() -> None:
         "EscolherCandidatoDto": "/rpc/escolher_candidato",
         "ConfirmarCheckinManualDto": "/rpc/confirmar_checkin_manual",
         "RemoverDispositivoDto": "/rpc/remover_dispositivo",
+        "CriarContaDto": "/rpc/criar_conta",
         "DefinirServicosDto": "/rpc/definir_servicos",
         "DefinirPreferenciaChamadasDto": "/rpc/definir_preferencia_chamadas",
         "BuscarProfissionaisDto": "/rpc/buscar_profissionais",
@@ -199,6 +200,10 @@ def main() -> None:
         "ValidarCodigoCheckinDto": "/rpc/validar_codigo_checkin",
         "AvisarACaminhoDto": "/rpc/avisar_a_caminho",
         "ReabrirPorAtrasoDto": "/rpc/reabrir_por_atraso",
+        "CancelarVagaDto": "/rpc/cancelar_vaga",
+        "RepublicarVagaDto": "/rpc/republicar_vaga",
+        "RepublicarPosicoesRestantesDto": "/rpc/republicar_posicoes_restantes",
+        "RetirarCandidaturaDto": "/rpc/retirar_candidatura",
     }
 
     # Respostas 200 declaradas inline em operations RPC de paths
@@ -211,6 +216,7 @@ def main() -> None:
         "PaginaDeProfissionaisDto": "/rpc/buscar_profissionais",
         "PaginaDeChamadasDto": "/rpc/minhas_chamadas",
         "AceiteDeTermosDto": "/rpc/aceitar_termos",
+        "VagaCanceladaDto": "/rpc/cancelar_vaga",
     }
 
     # Leituras que o contrato descreve em GET com parâmetros de query, mas que o app envia em POST
@@ -222,6 +228,8 @@ def main() -> None:
         "PerfilPublicoParametrosDto": ("/rpc/perfil_publico", "get"),
         "DetalheChamadaParametrosDto": ("/rpc/detalhe_chamada", "get"),
         "MinhasChamadasParametrosDto": ("/rpc/minhas_chamadas", "get"),
+        "DetalheVagaParametrosDto": ("/rpc/detalhe_vaga", "get"),
+        "MinhasCandidaturasParametrosDto": ("/rpc/minhas_candidaturas", "get"),
     }
 
     # Itens de array declarados inline dentro de um schema: DTO -> (schema pai, propriedade)
