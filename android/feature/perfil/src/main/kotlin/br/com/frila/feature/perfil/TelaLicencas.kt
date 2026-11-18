@@ -353,7 +353,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE."""
         LicencaDePacote(
             id = "jetpack-compose",
             nome = "AndroidX Jetpack Compose",
-            versao = "2024.09.00",
+            versao = "2025.07.00",
             tipo = "Apache-2.0",
             url = "https://developer.android.com/jetpack/compose",
             texto = TEXTO_APACHE_2,
@@ -380,7 +380,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE."""
         LicencaDePacote(
             id = "material3",
             nome = "AndroidX Material 3",
-            versao = "1.3.0",
+            versao = "1.3.2",
             tipo = "Apache-2.0",
             url = "https://m3.material.io",
             texto = TEXTO_APACHE_2,
