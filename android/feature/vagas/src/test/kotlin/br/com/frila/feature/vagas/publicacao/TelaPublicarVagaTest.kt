@@ -98,7 +98,7 @@ class TelaPublicarVagaTest {
         rule.onNodeWithText(TextosPublicarVaga.FUNCAO).assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.QUANDO).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.MODO).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).performScrollTo().assertIsEnabled()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled()
     }
 
     @Test
@@ -115,7 +115,7 @@ class TelaPublicarVagaTest {
     fun `confirmar o seletor de hora devolve o inicio com a hora escolhida`() {
         val chamadas = montar()
 
-        rule.onNodeWithContentDescription("${TextosPublicarVaga.HORA_DO_INICIO}: 15:00").performClick()
+        rule.onNodeWithContentDescription("${TextosPublicarVaga.HORA_DO_INICIO}: 15:00").performScrollTo().performClick()
         rule.onNodeWithText(TextosPublicarVaga.CONFIRMAR).performClick()
 
         assertEquals(base.plus(Duration.ofHours(3)), chamadas.inicio)
@@ -125,7 +125,7 @@ class TelaPublicarVagaTest {
     fun `confirmar o seletor de data sem mudar o dia devolve o mesmo inicio`() {
         val chamadas = montar()
 
-        rule.onNodeWithContentDescription("${TextosPublicarVaga.DATA_DO_INICIO}: 10/11/2026").performClick()
+        rule.onNodeWithContentDescription("${TextosPublicarVaga.DATA_DO_INICIO}: 10/11/2026").performScrollTo().performClick()
         rule.onNodeWithText(TextosPublicarVaga.CONFIRMAR).performClick()
 
         assertEquals(base.plus(Duration.ofHours(3)), chamadas.inicio)
@@ -135,7 +135,7 @@ class TelaPublicarVagaTest {
     fun `cancelar o seletor de hora nao muda o inicio`() {
         val chamadas = montar()
 
-        rule.onNodeWithContentDescription("${TextosPublicarVaga.HORA_DO_INICIO}: 15:00").performClick()
+        rule.onNodeWithContentDescription("${TextosPublicarVaga.HORA_DO_INICIO}: 15:00").performScrollTo().performClick()
         rule.onNodeWithText(TextosPublicarVaga.CANCELAR).performClick()
 
         assertNull(chamadas.inicio)
@@ -223,12 +223,12 @@ class TelaPublicarVagaTest {
     }
 
     @Test
-    fun `chave de refeicao e um switch que chama o ViewModel`() {
+    fun `refeicao e um chip de selecao multipla que chama o ViewModel`() {
         val chamadas = montar()
 
         rule.onNodeWithText(TextosPublicarVaga.REFEICAO)
             .performScrollTo()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
             .performClick()
 
         assertEquals(true, chamadas.refeicao)
@@ -264,21 +264,21 @@ class TelaPublicarVagaTest {
         rule.onNodeWithText(TextosPublicarVaga.VALOR_CAMPO).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.RESPONSAVEL_CAMPO).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.HORARIO_INICIO_CAMPO).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosPublicarVaga.ERRO_CONFIRA_CAMPOS).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.ERRO_CONFIRA_CAMPOS).assertIsDisplayed()
     }
 
     @Test
     fun `erro de conta suspensa e anunciado`() {
         montar(estado { copy(erro = ErroGlobalPublicacao.CONTA_SUSPENSA) })
 
-        rule.onNodeWithText(TextosPublicarVaga.ERRO_CONTA_SUSPENSA).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.ERRO_CONTA_SUSPENSA).assertIsDisplayed()
     }
 
     @Test
     fun `publicar chama o ViewModel e voltar tambem`() {
         val chamadas = montar()
 
-        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).performScrollTo().performClick()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).performClick()
         rule.onNodeWithContentDescription(TextosPublicarVaga.ROTULO_VOLTAR).performClick()
 
         assertEquals(1, chamadas.publicacoes)
@@ -289,7 +289,7 @@ class TelaPublicarVagaTest {
     fun `enquanto envia o botao mostra publicando e desabilita botao, campos e voltar`() {
         montar(estado { copy(enviando = true, valor = "140") })
 
-        rule.onNodeWithText(TextosPublicarVaga.PUBLICANDO).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICANDO).assertIsNotEnabled()
         rule.onNodeWithText(TextosPublicarVaga.FUNCAO_SELECIONAR).assertIsNotEnabled()
         rule.onNodeWithText(TextosPublicarVaga.RESPONSAVEL).performScrollTo().assertIsNotEnabled()
         rule.onNodeWithContentDescription(TextosPublicarVaga.ROTULO_VOLTAR).assertIsNotEnabled()
@@ -305,10 +305,10 @@ class TelaPublicarVagaTest {
         )
         val chamadas = montar(estado { copy(pendente = pendente, erro = ErroGlobalPublicacao.SEM_REDE) })
 
-        rule.onNodeWithText(TextosPublicarVaga.PENDENTE).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosPublicarVaga.ERRO_SEM_REDE).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.PENDENTE).assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.ERRO_SEM_REDE).assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.RESPONSAVEL).performScrollTo().assertIsNotEnabled()
-        rule.onNodeWithText(TextosPublicarVaga.TENTAR_NOVAMENTE).performScrollTo().assertIsEnabled().performClick()
+        rule.onNodeWithText(TextosPublicarVaga.TENTAR_NOVAMENTE).assertIsEnabled().performClick()
 
         assertEquals(1, chamadas.publicacoes)
     }
@@ -317,15 +317,15 @@ class TelaPublicarVagaTest {
     fun `vaga publicada mostra a confirmacao e desabilita o botao`() {
         montar(estado { copy(publicada = br.com.frila.core.rede.VagaPublicadaDto("v1", listOf("p1"))) })
 
-        rule.onNodeWithText(TextosPublicarVaga.CONCLUIDA).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosPublicarVaga.CONCLUIDA).assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsNotEnabled()
     }
 
     @Test
     fun `alvos de toque do botao e dos switches tem pelo menos o tamanho minimo`() {
         montar()
 
-        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         rule.onNodeWithText(TextosPublicarVaga.REFEICAO).performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
     }
 }

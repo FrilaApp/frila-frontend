@@ -1,40 +1,19 @@
 package br.com.frila.feature.turnos
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.EstadoVazio
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
 
 /** Textos normativos em português brasileiro (guia de voz Frila / paridade iOS DestinosDoAviso.swift:274-293). */
 object TextosTurnoNaoEncontrado {
@@ -50,109 +29,39 @@ object TextosTurnoNaoEncontrado {
  * Exibida quando um push notification ou link profundo aponta para um turno que não pertence
  * à conta logada no dispositivo ou não foi encontrado na base local do profissional.
  *
- * Segue o padrão de estados do Frila: círculo de 72dp, título de estado com semântica de cabeçalho,
- * texto explicativo de apoio e botão secundário com alvo mínimo de 48dp para redirecionar à lista de turnos.
+ * No desenho do Fabrício: só o voltar na barra, o título "Meu turno" como conteúdo e o estado vazio (o fato, a dica
+ * e a saída em botão secundário, sem ícone e sem laranja: a tela não decide nada).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaTurnoNaoEncontrado(
     aoVoltar: () -> Unit,
     aoVerMeusTurnos: () -> Unit,
     modifier: Modifier = Modifier,
     rotuloBotao: String = TextosTurnoNaoEncontrado.BOTAO_VER_MEUS_TURNOS,
-    icone: ImageVector = Icons.Default.Info,
+    /** Sem ícone por padrão (o estado vazio do sistema não leva ícone); só quem ainda precisa de um passa o seu. */
+    icone: ImageVector? = null,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosTurnoNaoEncontrado.TITULO_BARRA,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = aoVoltar,
-                        modifier = Modifier.sizeIn(
-                            minWidth = FrilaMetricas.alvoMinimo,
-                            minHeight = FrilaMetricas.alvoMinimo,
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosTurnoNaoEncontrado.ROTULO_VOLTAR,
-                        )
-                    }
-                },
-            )
-        },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
     ) { preenchimento ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.grande),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
+                .verticalScroll(rememberScrollState()),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.enorme),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-            ) {
-                // Círculo com ícone de estado de 72dp (padrão MidFi / DestinosDoAviso.swift:271)
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = icone,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(FrilaEspacamento.pequeno))
-
-                // Título com semântica de cabeçalho
-                Text(
-                    text = TextosTurnoNaoEncontrado.NAO_ENCONTRADO_TITULO,
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { heading() },
-                )
-
-                // Mensagem de apoio
-                Text(
-                    text = TextosTurnoNaoEncontrado.NAO_ENCONTRADO_MENSAGEM,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            // Ação principal de recuperação: direciona para Meus Turnos
-            BotaoSecundario(
-                texto = rotuloBotao,
-                aoClicar = aoVerMeusTurnos,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = FrilaEspacamento.grande),
+            TituloDaTela(
+                texto = TextosTurnoNaoEncontrado.TITULO_BARRA,
+                modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo),
+            )
+            EstadoVazio(
+                titulo = TextosTurnoNaoEncontrado.NAO_ENCONTRADO_TITULO,
+                mensagem = TextosTurnoNaoEncontrado.NAO_ENCONTRADO_MENSAGEM,
+                icone = icone,
+                textoAcao = rotuloBotao,
+                aoClicarAcao = aoVerMeusTurnos,
             )
         }
     }

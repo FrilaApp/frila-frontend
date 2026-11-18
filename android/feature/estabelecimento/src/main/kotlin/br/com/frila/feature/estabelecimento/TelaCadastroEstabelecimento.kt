@@ -2,33 +2,15 @@ package br.com.frila.feature.estabelecimento
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,19 +18,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.EstabelecimentoDto
 
 /** Liga o [CadastroEstabelecimentoViewModel] ao [ConteudoCadastroEstabelecimento]. */
@@ -78,10 +61,12 @@ fun TelaCadastroEstabelecimento(
     )
 }
 
+
 /**
  * Cadastro do estabelecimento do contratante (RF02, UC10; paridade com `TelaCadastroEstabelecimento.swift`,
- * sem mapa: o ponto vem de latitude e longitude digitadas). Cada campo mostra o próprio erro; o erro
- * global e o botão de envio ficam juntos no fim.
+ * sem mapa: o ponto vem de latitude e longitude digitadas). Tela de entrada: título, campos com o rótulo
+ * acima, a escolha do tipo em lista com check e UM botão primário ancorado embaixo. Cada campo mostra o
+ * próprio erro; o erro global fica junto ao botão.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,31 +87,25 @@ fun ConteudoCadastroEstabelecimento(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = FrilaTema.cores.fundo,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosCadastroEstabelecimento.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = aoVoltar,
-                        enabled = !estado.enviando,
-                        modifier = Modifier.sizeIn(
-                            minWidth = FrilaMetricas.alvoMinimo,
-                            minHeight = FrilaMetricas.alvoMinimo,
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosCadastroEstabelecimento.ROTULO_VOLTAR,
-                        )
-                    }
-                },
+            BarraDeTopoDoFormulario(
+                aoVoltar = aoVoltar,
+                rotuloDoVoltar = TextosCadastroEstabelecimento.ROTULO_VOLTAR,
+                habilitado = !estado.enviando,
             )
+        },
+        bottomBar = {
+            RodapeAncorado {
+                estado.erro?.let { MensagemJuntoAoBotao(it.mensagem) }
+                if (estado.concluido) MensagemJuntoAoBotao(TextosCadastroEstabelecimento.CONCLUIDO)
+                BotaoPrimario(
+                    texto = if (estado.enviando) TextosCadastroEstabelecimento.CADASTRANDO else TextosCadastroEstabelecimento.CADASTRAR,
+                    aoClicar = aoCadastrar,
+                    habilitado = estado.podeEditar,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     ) { preenchimento ->
         Column(
@@ -134,207 +113,112 @@ fun ConteudoCadastroEstabelecimento(
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
-            Text(
-                text = TextosCadastroEstabelecimento.SUBTITULO,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+                TituloDaTela(TextosCadastroEstabelecimento.TITULO)
+                Text(text = TextosCadastroEstabelecimento.SUBTITULO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
+            }
 
-            Campo(
-                rotulo = TextosCadastroEstabelecimento.NOME,
+            CampoDeTexto(
                 valor = estado.nome,
                 aoMudar = aoEditarNome,
+                rotulo = TextosCadastroEstabelecimento.NOME,
                 erro = estado.errosDeCampo[CampoCadastro.NOME],
                 habilitado = estado.podeEditar,
             )
 
-            Text(
-                text = TextosCadastroEstabelecimento.TIPO,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            Column(modifier = Modifier.selectableGroup()) {
+            FrilaGrupoDeLinhas(titulo = TextosCadastroEstabelecimento.TIPO) {
                 TipoEstabelecimento.entries.forEach { tipo ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-                            .selectable(
-                                selected = estado.tipo == tipo,
-                                enabled = estado.podeEditar,
-                                role = Role.RadioButton,
-                                onClick = { aoEscolherTipo(tipo) },
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                    ) {
-                        // O clique é do Row (selectable): o botão de rádio só reflete o estado.
-                        RadioButton(selected = estado.tipo == tipo, onClick = null)
-                        Text(text = tipo.rotulo, style = MaterialTheme.typography.bodyLarge)
+                    linha {
+                        FrilaLinhaDeOpcao(
+                            titulo = tipo.rotulo,
+                            marcada = estado.tipo == tipo,
+                            aoClicar = { aoEscolherTipo(tipo) },
+                            habilitada = estado.podeEditar,
+                        )
                     }
                 }
             }
 
-            Campo(
-                rotulo = TextosCadastroEstabelecimento.DOCUMENTO,
+            CampoDeTexto(
                 valor = estado.documento,
                 aoMudar = aoEditarDocumento,
+                rotulo = TextosCadastroEstabelecimento.DOCUMENTO,
+                apoio = TextosCadastroEstabelecimento.DOCUMENTO_AJUDA,
                 erro = estado.errosDeCampo[CampoCadastro.DOCUMENTO],
                 habilitado = estado.podeEditar,
-                ajuda = TextosCadastroEstabelecimento.DOCUMENTO_AJUDA,
-                teclado = KeyboardType.Number,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
 
-            Campo(
-                rotulo = TextosCadastroEstabelecimento.ENDERECO,
+            CampoDeTexto(
                 valor = estado.endereco,
                 aoMudar = aoEditarEndereco,
+                rotulo = TextosCadastroEstabelecimento.ENDERECO,
+                apoio = TextosCadastroEstabelecimento.ENDERECO_AJUDA,
                 erro = estado.errosDeCampo[CampoCadastro.ENDERECO],
                 habilitado = estado.podeEditar,
-                ajuda = TextosCadastroEstabelecimento.ENDERECO_AJUDA,
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-                Text(
-                    text = TextosCadastroEstabelecimento.REGIAO,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
-                BotaoSecundario(
-                    texto = estado.regiaoAdministrativa.ifEmpty { TextosCadastroEstabelecimento.REGIAO_SELECIONAR },
-                    aoClicar = { seletorDeRegiaoAberto = true },
-                    habilitado = estado.podeEditar,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                val erroDaRegiao = estado.errosDeCampo[CampoCadastro.REGIAO_ADMINISTRATIVA]
-                Text(
-                    text = erroDaRegiao ?: TextosCadastroEstabelecimento.REGIAO_AJUDA,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (erroDaRegiao != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            CampoDeSelecao(
+                rotulo = TextosCadastroEstabelecimento.REGIAO,
+                valor = estado.regiaoAdministrativa.ifEmpty { TextosCadastroEstabelecimento.REGIAO_SELECIONAR },
+                aoClicar = { seletorDeRegiaoAberto = true },
+                habilitado = estado.podeEditar,
+                apoio = TextosCadastroEstabelecimento.REGIAO_AJUDA,
+                erro = estado.errosDeCampo[CampoCadastro.REGIAO_ADMINISTRATIVA],
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosCadastroEstabelecimento.PONTO)
+                Text(text = TextosCadastroEstabelecimento.PONTO_AJUDA, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
             }
-
-            Text(
-                text = TextosCadastroEstabelecimento.PONTO,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = TextosCadastroEstabelecimento.PONTO_AJUDA,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Campo(
-                rotulo = TextosCadastroEstabelecimento.LATITUDE,
+            CampoDeTexto(
                 valor = estado.latitude,
                 aoMudar = aoEditarLatitude,
+                rotulo = TextosCadastroEstabelecimento.LATITUDE,
                 erro = estado.errosDeCampo[CampoCadastro.LATITUDE],
                 habilitado = estado.podeEditar,
-                teclado = KeyboardType.Decimal,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
-            Campo(
-                rotulo = TextosCadastroEstabelecimento.LONGITUDE,
+            CampoDeTexto(
                 valor = estado.longitude,
                 aoMudar = aoEditarLongitude,
+                rotulo = TextosCadastroEstabelecimento.LONGITUDE,
                 erro = estado.errosDeCampo[CampoCadastro.LONGITUDE],
                 habilitado = estado.podeEditar,
-                teclado = KeyboardType.Decimal,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
-
-            estado.erro?.let { erro ->
-                Text(
-                    text = erro.mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                )
-            }
-            if (estado.concluido) {
-                Text(
-                    text = TextosCadastroEstabelecimento.CONCLUIDO,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-                BotaoPrimario(
-                    texto = if (estado.enviando) TextosCadastroEstabelecimento.CADASTRANDO else TextosCadastroEstabelecimento.CADASTRAR,
-                    aoClicar = aoCadastrar,
-                    habilitado = estado.podeEditar,
-                    modifier = Modifier.weight(1f),
-                )
-                if (estado.enviando) CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            }
         }
     }
 
     if (seletorDeRegiaoAberto) {
-        AlertDialog(
+        FrilaBottomSheet(
             onDismissRequest = { seletorDeRegiaoAberto = false },
-            title = {
-                Text(text = TextosCadastroEstabelecimento.REGIAO_SELECIONAR, modifier = Modifier.semantics { heading() })
-            },
-            text = {
-                LazyColumn(modifier = Modifier.selectableGroup()) {
-                    items(REGIOES_ADMINISTRATIVAS_DF, key = { it }) { regiao ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-                                .selectable(
-                                    selected = estado.regiaoAdministrativa == regiao,
-                                    role = Role.RadioButton,
-                                    onClick = {
-                                        aoEscolherRegiao(regiao)
-                                        seletorDeRegiaoAberto = false
-                                    },
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
-                        ) {
-                            RadioButton(selected = estado.regiaoAdministrativa == regiao, onClick = null)
-                            Text(text = regiao, style = MaterialTheme.typography.bodyLarge)
+            titulo = TextosCadastroEstabelecimento.REGIAO_SELECIONAR,
+            aoFechar = null,
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+            ) {
+                FrilaGrupoDeLinhas {
+                    REGIOES_ADMINISTRATIVAS_DF.forEach { regiao ->
+                        linha {
+                            FrilaLinhaDeOpcao(
+                                titulo = regiao,
+                                marcada = estado.regiaoAdministrativa == regiao,
+                                aoClicar = {
+                                    aoEscolherRegiao(regiao)
+                                    seletorDeRegiaoAberto = false
+                                },
+                            )
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { seletorDeRegiaoAberto = false },
-                    modifier = Modifier.sizeIn(
-                        minWidth = FrilaMetricas.alvoMinimo,
-                        minHeight = FrilaMetricas.alvoMinimo,
-                    ),
-                ) { Text(TextosCadastroEstabelecimento.CANCELAR) }
-            },
-        )
+            }
+        }
     }
-}
-
-@Composable
-private fun Campo(
-    rotulo: String,
-    valor: String,
-    aoMudar: (String) -> Unit,
-    erro: String?,
-    habilitado: Boolean,
-    modifier: Modifier = Modifier,
-    ajuda: String? = null,
-    teclado: KeyboardType = KeyboardType.Text,
-) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = aoMudar,
-        enabled = habilitado,
-        label = { Text(rotulo) },
-        isError = erro != null,
-        supportingText = (erro ?: ajuda)?.let { texto -> { Text(texto) } },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = teclado),
-        modifier = modifier.fillMaxWidth(),
-    )
 }
