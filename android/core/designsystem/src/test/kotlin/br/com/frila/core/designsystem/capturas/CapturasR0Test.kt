@@ -87,6 +87,13 @@ class CapturasR0Test {
     }
 
     @Test
+    @Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi", fontScale = 2f)
+    fun `cartao, linhas e etapas - fonte do sistema em 200 por cento`() {
+        compose.setContent { FrilaTheme(temaEscuro = false) { CartaoLinhasEEtapas() } }
+        compose.capturar("r0-06-cartao-linhas-etapas-fonte-200")
+    }
+
+    @Test
     fun `estados vazio, erro e carregando - claro`() {
         compose.setContent { FrilaTheme(temaEscuro = false) { Estados() } }
         compose.capturar("r0-04-estados-claro")
