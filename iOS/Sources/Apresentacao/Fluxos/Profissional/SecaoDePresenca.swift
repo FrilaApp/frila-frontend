@@ -62,18 +62,26 @@ public struct SecaoDePresenca: View {
     /// O que já foi registrado: uma linha de dado por registro, num cartão, em tinta (o estado vai no ícone e no texto).
     @ViewBuilder
     private var situacoes: some View {
-        let linhas = [situacaoACaminho, situacaoDoCheckin, situacaoDoCheckout].compactMap { $0 }
-        if !linhas.isEmpty {
+        if situacaoACaminho != nil || situacaoDoCheckin != nil || situacaoDoCheckout != nil {
             VStack(alignment: .leading, spacing: FrilaEspaco.item) {
-                ForEach(linhas) { linha in
-                    FrilaLinhaDeDado(icone: linha.icone) { Text(verbatim: linha.texto) }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityIdentifier(linha.identificador)
+                if let linha = situacaoACaminho {
+                    linhaDeDado(linha).accessibilityIdentifier("a-caminho-situacao")
+                }
+                if let linha = situacaoDoCheckin {
+                    linhaDeDado(linha).accessibilityIdentifier("checkin-situacao")
+                }
+                if let linha = situacaoDoCheckout {
+                    linhaDeDado(linha).accessibilityIdentifier("checkout-situacao")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .cartaoFrila()
         }
+    }
+
+    private func linhaDeDado(_ linha: LinhaDeSituacao) -> some View {
+        FrilaLinhaDeDado(icone: linha.icone) { Text(verbatim: linha.texto) }
+            .accessibilityElement(children: .combine)
     }
 
     /// Erro da ação, logo acima do botão que a disparou (DESIGN.md, "Mensagem junto ao botão").
@@ -237,17 +245,14 @@ public struct SecaoDePresenca: View {
 
     // MARK: Situação
 
-    private struct LinhaDeSituacao: Identifiable {
-        let identificador: String
+    private struct LinhaDeSituacao {
         let texto: String
         let icone: String
-        var id: String { identificador }
     }
 
     private var situacaoACaminho: LinhaDeSituacao? {
         guard let data = turno?.aCaminhoEm else { return nil }
         return LinhaDeSituacao(
-            identificador: "a-caminho-situacao",
             texto: TextosDoProfissional.Turnos.avisouACaminho(formatador.hora(data)),
             icone: "figure.walk"
         )
@@ -258,21 +263,19 @@ public struct SecaoDePresenca: View {
         case .naoFeito:
             return nil
         case let .naFila(feito):
-            return LinhaDeSituacao(identificador: "checkin-situacao",
-                                   texto: Textos.checkinNaFila(formatador.hora(feito.instante), manual: feito.manual), icone: "wifi.slash")
+            return LinhaDeSituacao(texto: Textos.checkinNaFila(formatador.hora(feito.instante), manual: feito.manual), icone: "wifi.slash")
         case let .registrado(feito):
             let hora = formatador.hora(feito.instante)
             if viewModel.verificacao == .verificado {
-                return LinhaDeSituacao(identificador: "checkin-situacao",
-                                       texto: Textos.checkinVerificado(hora, metros: feito.distanciaMetros), icone: "checkmark.seal.fill")
+                return LinhaDeSituacao(texto: Textos.checkinVerificado(hora, metros: feito.distanciaMetros), icone: "checkmark.seal.fill")
             }
             if viewModel.verificacao == .naoVerificado {
-                return LinhaDeSituacao(identificador: "checkin-situacao", texto: Textos.checkinNaoConfirmado(hora), icone: "xmark.seal")
+                return LinhaDeSituacao(texto: Textos.checkinNaoConfirmado(hora), icone: "xmark.seal")
             }
             if viewModel.aguardandoConfirmacao {
-                return LinhaDeSituacao(identificador: "checkin-situacao", texto: Textos.checkinAguardando(hora), icone: "hourglass")
+                return LinhaDeSituacao(texto: Textos.checkinAguardando(hora), icone: "hourglass")
             }
-            return LinhaDeSituacao(identificador: "checkin-situacao", texto: Textos.checkinSemVerificacao(hora), icone: "questionmark.circle")
+            return LinhaDeSituacao(texto: Textos.checkinSemVerificacao(hora), icone: "questionmark.circle")
         }
     }
 
@@ -281,10 +284,9 @@ public struct SecaoDePresenca: View {
         case .naoFeito:
             nil
         case let .naFila(feito):
-            LinhaDeSituacao(identificador: "checkout-situacao", texto: Textos.checkoutNaFila(formatador.hora(feito.instante)), icone: "wifi.slash")
+            LinhaDeSituacao(texto: Textos.checkoutNaFila(formatador.hora(feito.instante)), icone: "wifi.slash")
         case let .registrado(feito):
-            LinhaDeSituacao(identificador: "checkout-situacao",
-                            texto: Textos.checkoutRegistrado(formatador.hora(feito.instante), metros: feito.distanciaMetros), icone: "checkmark.circle.fill")
+            LinhaDeSituacao(texto: Textos.checkoutRegistrado(formatador.hora(feito.instante), metros: feito.distanciaMetros), icone: "checkmark.circle.fill")
         }
     }
 
