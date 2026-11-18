@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import org.junit.Assert.assertTrue
@@ -92,6 +93,7 @@ class TelaLicencasTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
 
         rule.onNodeWithText("Texto da licença")
+            .performScrollTo()
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
 
