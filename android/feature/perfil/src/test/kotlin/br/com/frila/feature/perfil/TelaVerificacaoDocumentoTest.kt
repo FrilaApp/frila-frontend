@@ -163,7 +163,8 @@ class TelaVerificacaoDocumentoTest {
         esperarTag("verificacao-situacao")
 
         rule.onNodeWithText("Motivo: Foto ilegível", substring = true).assertIsDisplayed()
-        rule.onNodeWithTag("verificacao-enviar").performScrollTo().assertIsDisplayed()
+        // O "Enviar para análise" fica ancorado no rodapé (fora da rolagem): já está à vista, sem rolar.
+        rule.onNodeWithTag("verificacao-enviar").assertIsDisplayed()
         AuditoriaSemanticaAcessibilidade.assertSemanticaValida(rule.onRoot().fetchSemanticsNode())
     }
 
