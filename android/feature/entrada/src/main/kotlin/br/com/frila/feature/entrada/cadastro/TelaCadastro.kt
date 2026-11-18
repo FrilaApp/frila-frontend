@@ -95,7 +95,8 @@ fun TelaCadastro(
                 BotaoPrimario(
                     texto = "Concluir cadastro",
                     aoClicar = viewModel::concluirCadastro,
-                    habilitado = podeSubmeter && !estado.enviando,
+                    // Como na main: só a validade do formulário liga o botão (o ViewModel já impede o envio em dobro).
+                    habilitado = podeSubmeter,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

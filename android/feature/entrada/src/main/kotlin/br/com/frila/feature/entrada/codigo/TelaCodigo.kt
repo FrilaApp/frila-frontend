@@ -134,7 +134,7 @@ fun TelaCodigo(
                     codigo = estado.codigo,
                     aoMudar = { viewModel.aoMudarCodigo(it) },
                     comErro = estado.erro != null,
-                    habilitado = !estado.carregando,
+                    // Como na main: o campo continua editável enquanto confirma (o ViewModel já impede o envio em dobro).
                     rotulo = "Código de 6 dígitos",
                     // Dica de preenchimento automático (Compose 1.8): o teclado e o serviço de preenchimento do aparelho
                     // podem sugerir o código recebido, sem a pessoa copiar.
