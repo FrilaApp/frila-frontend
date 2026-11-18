@@ -1,5 +1,6 @@
 package br.com.frila.feature.entrada.codigo
 
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -62,6 +63,20 @@ class TelaCodigoTest {
         )
         if (esperaDeReenvioVencida) relogio = relogio.plusSeconds(60)
         return viewModel to armazenamento
+    }
+
+    @Test
+    fun campoDoCodigoLevaADicaDePreenchimentoAutomaticoDeCodigo() {
+        val (viewModel, _) = criarViewModel()
+        rule.setContent {
+            FrilaTheme {
+                TelaCodigo(viewModel = viewModel, aoAutenticar = {})
+            }
+        }
+
+        // EWV25ROo: o aparelho pode sugerir o código recebido; a dica é a semântica de preenchimento do Compose 1.8.
+        rule.onNodeWithContentDescription("Código de 6 dígitos")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentType, ContentType.SmsOtpCode))
     }
 
     @Test
