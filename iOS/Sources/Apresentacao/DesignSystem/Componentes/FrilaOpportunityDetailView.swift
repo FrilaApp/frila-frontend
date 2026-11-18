@@ -219,7 +219,6 @@ public struct FrilaOpportunityDetailView: View {
         return segments
     }
 
-    @ViewBuilder
     /// A grade "Quando | Horário" e "Valor | Posições": duas colunas no tamanho padrão, uma coluna em tamanho de
     /// acessibilidade (a palavra "Posições" quebrava letra a letra numa coluna estreita).
     private var linhaDaGrade: AnyLayout {
@@ -228,6 +227,7 @@ public struct FrilaOpportunityDetailView: View {
             : AnyLayout(HStackLayout(alignment: .top))
     }
 
+    @ViewBuilder
     private var headerSubtitleView: some View {
         let segments = headerSubtitleSegments
         if segments.isEmpty {
