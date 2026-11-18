@@ -457,9 +457,6 @@ public struct FrilaJobCreationStudioView: View {
 
                 continuousFormView
             }
-            // Em tamanho de acessibilidade algum filho pedia mais que a tela e alargava o estúdio todo (texto cortado
-            // na esquerda, botões encostando nas bordas): a largura do estúdio é a da tela.
-            .modifier(LarguraDaTelaEmAcessibilidade(ativo: dynamicTypeSize.isAccessibilitySize))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -662,6 +659,10 @@ public struct FrilaJobCreationStudioView: View {
                         )
                 }
                 .padding(.horizontal, FrilaGeometry.space20)
+                // Um controle mais largo que a tela (a roleta de função em tamanho de acessibilidade) alargava a rolagem
+                // inteira, e com ela o cabeçalho, a barra de etapas e os botões: o conteúdo tem a largura visível da rolagem,
+                // e o que passar disso transborda sozinho.
+                .containerRelativeFrame(.horizontal)
                 .coordinateSpace(name: Self.formContentSpace)
                 .animation(FrilaMovimento.animacao(.interpolatingSpring(stiffness: 350, damping: 25), reduzir: reduceMotion),
                     value: FrilaJobFormSection.allCases.map { $0.isComplete(draft) }
@@ -1022,23 +1023,6 @@ private struct FrilaJobFormSectionTrackingModifier: ViewModifier {
                     blurStrength = 1
                     overhangFraction = 1
                 }
-        }
-    }
-}
-
-/// Em tamanho de acessibilidade fixa a largura do conteúdo na do espaço que a tela recebeu: o que pedir mais que isso
-/// transborda sozinho, em vez de alargar o cabeçalho, a barra de etapas e os botões.
-private struct LarguraDaTelaEmAcessibilidade: ViewModifier {
-    let ativo: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if ativo {
-            GeometryReader { geo in
-                content.frame(width: geo.size.width, height: geo.size.height)
-            }
-        } else {
-            content
         }
     }
 }
