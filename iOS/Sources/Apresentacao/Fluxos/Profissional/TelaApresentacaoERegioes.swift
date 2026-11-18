@@ -81,9 +81,9 @@ public struct TelaApresentacaoERegioes: View {
 
             contador(
                 total: viewModel.sobreMim.count,
-                limite: ApresentacaoERegioesViewModel.limiteSobreMim,
-                id: "contador-sobre-mim"
+                limite: ApresentacaoERegioesViewModel.limiteSobreMim
             )
+            .accessibilityIdentifier("contador-sobre-mim")
 
             if let erro = viewModel.erroSobreMim {
                 avisoErroCampo(erro)
@@ -134,9 +134,9 @@ public struct TelaApresentacaoERegioes: View {
 
             contador(
                 total: viewModel.ondeTrabalhei.count,
-                limite: ApresentacaoERegioesViewModel.limiteOndeTrabalhei,
-                id: "contador-onde-trabalhei"
+                limite: ApresentacaoERegioesViewModel.limiteOndeTrabalhei
             )
+            .accessibilityIdentifier("contador-onde-trabalhei")
 
             if let erro = viewModel.erroOndeTrabalhei {
                 avisoErroCampo(erro)
@@ -338,13 +338,12 @@ public struct TelaApresentacaoERegioes: View {
     }
 
     /// "120/600". Passou do limite: o número fica em tinta e em negrito; o texto do erro é quem explica.
-    private func contador(total: Int, limite: Int, id: String) -> some View {
+    private func contador(total: Int, limite: Int) -> some View {
         HStack {
             Spacer()
             Text(verbatim: "\(total)/\(limite)")
                 .font(FrilaTipo.legenda.weight(total > limite ? .bold : .regular))
                 .foregroundStyle(total > limite ? FrilaCor.texto : FrilaCor.textoSecundario)
-                .accessibilityIdentifier(id)
         }
     }
 
