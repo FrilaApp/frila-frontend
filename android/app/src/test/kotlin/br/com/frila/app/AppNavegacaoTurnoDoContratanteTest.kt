@@ -25,6 +25,7 @@ import br.com.frila.core.rede.VagaResumoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.EstadoEntrada
+import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.contratante.TextosTurnoDoContratante
@@ -96,6 +97,9 @@ class AppNavegacaoTurnoDoContratanteTest {
     /** Parâmetros de cada `DenunciaViewModel` criado pela rota: tipo do alvo, id do alvo, turno e chamada. */
     private val denuncias = mutableListOf<List<String?>>()
 
+    /** `turnoId` de cada `OcorrenciaTurnoViewModel` criado pela rota de suporte. */
+    private val ocorrencias = mutableListOf<String>()
+
     private val pedidos = mutableListOf<String>()
     private val janelas = mutableListOf<Pair<java.time.Instant, java.time.Instant>>()
 
@@ -137,6 +141,10 @@ class AppNavegacaoTurnoDoContratanteTest {
                                 chamadaId = chamadaId,
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
+                        }
+                        viewModel { (turnoId: String) ->
+                            ocorrencias += turnoId
+                            OcorrenciaTurnoViewModel(turnoId = turnoId, servicoTurnos = mockk(relaxed = true), escopo = CoroutineScope(Dispatchers.Unconfined))
                         }
                         viewModel { (estabelecimentoId: String, nome: String?, recem: String?) ->
                             MinhasVagasViewModel(
@@ -203,6 +211,20 @@ class AppNavegacaoTurnoDoContratanteTest {
             assertEquals(Rotas.DENUNCIA, rotaAtual())
             // Alvo é o perfil público da profissional (`PerfilPublicoDto.id`), como o iOS.
             assertEquals(listOf(listOf("profissional", "pr1", "t1", null)), denuncias)
+        }
+    }
+
+    @Test
+    fun `do turno da casa chega-se ao relato de ocorrencia, com o turno`() {
+        montar(servicoCom { Result.success(painel()) }, Rotas.turnoDoContratante("est-1", "v1", "p1"))
+        esperar(TextosTurnoDoContratante.CONFIRMAR_PRESENCA)
+
+        rule.onNodeWithText(TextosTurnoDoContratante.PEDIR_AJUDA).performScrollTo().performClick()
+        rule.waitUntil(5_000) { ocorrencias.isNotEmpty() }
+
+        rule.runOnIdle {
+            assertEquals(Rotas.OCORRENCIA, rotaAtual())
+            assertEquals(listOf("t1"), ocorrencias)
         }
     }
 

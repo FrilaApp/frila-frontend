@@ -369,6 +369,8 @@ fun AppNavegacao(
     val denunciarCasa: (String, String) -> Unit = { casaId, turnoId ->
         navController.navigate(Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, casaId, turnoId = turnoId))
     }
+    // O relato de ocorrência nasce do turno (antes só o link frila://suporte chegava nele), como a folha de suporte do iOS.
+    val pedirSuporte: (String) -> Unit = { turnoId -> navController.navigate(Rotas.ocorrencia(turnoId)) }
 
     // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de
     // rede apaga fora da thread principal quando o Auth recusa o token, e a navegação só anda na principal.
@@ -600,6 +602,7 @@ fun AppNavegacao(
                                         },
                                         aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                         aoDenunciarEstabelecimento = denunciarCasa,
+                                        aoPedirSuporte = pedirSuporte,
                                         aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                     )
                                 }
@@ -638,6 +641,7 @@ fun AppNavegacao(
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                     aoDenunciarEstabelecimento = denunciarCasa,
+                                    aoPedirSuporte = pedirSuporte,
                                     aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                 )
                             }
@@ -666,6 +670,7 @@ fun AppNavegacao(
                             },
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
+                            aoPedirSuporte = pedirSuporte,
                             aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                             // Raiz com aba: abre sem título de página (a aba já diz onde a pessoa está).
                             comTitulo = false,
@@ -693,8 +698,19 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
                     val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+                    val contexto = LocalContext.current
                     TelaOcorrencia(
                         viewModel = viewModel,
+                        // O relato e a foto só existem no e-mail (nunca sobem numa RPC): sem abrir o e-mail, o relato se perde.
+                        aoAbrirEmailDeSuporte = { protocoloCurto ->
+                            try {
+                                val destino = "mailto:${EnderecosOficiais.padrao.emailSuporte}?subject=" + Uri.encode("Ocorrência no turno · protocolo #$protocoloCurto")
+                                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(destino)).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                contexto.startActivity(intent)
+                            } catch (_: Exception) { }
+                        },
                         aoVoltar = { navController.popBackStack() },
                     )
                 }
@@ -1122,6 +1138,7 @@ fun AppNavegacao(
                         aoDenunciarProfissional = { profissionalId, turnoId ->
                             navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
                         },
+                        aoPedirSuporte = pedirSuporte,
                     )
                 }
             }

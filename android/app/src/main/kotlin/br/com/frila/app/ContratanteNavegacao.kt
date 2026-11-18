@@ -208,6 +208,8 @@ internal fun RotaTurnoDoContratante(
     aoVoltar: () -> Unit,
     /** C0-9: denunciar a profissional do turno (id do perfil público, id do turno). */
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
+    /** Pedir ajuda com o turno (id do turno): abre o relato de ocorrência. */
+    aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     /** L1-5: chave `checkin_por_codigo`; ligada, a casa vê o código de chegada do turno e, ao confirmar, o turno é relido. */
     checkinPorCodigoHabilitado: Boolean = false,
 ) {
@@ -240,6 +242,7 @@ internal fun RotaTurnoDoContratante(
                 viewModel = viewModel,
                 aoVoltar = aoVoltar,
                 aoDenunciarProfissional = aoDenunciarProfissional,
+                aoPedirSuporte = aoPedirSuporte,
                 codigoDaCasa = codigoDaCasa,
                 depoisDaChegada = profissional?.let {
                     {

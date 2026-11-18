@@ -55,6 +55,8 @@ data class AcoesTurnoDoContratante(
      * (`TelaTurnoDoContratante.swift:360`). Nulo esconde o botão.
      */
     val aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
+    /** Pedir ajuda com este turno (relato de ocorrência, RF12/RN15), como a folha de suporte do iOS. Nulo esconde o botão. */
+    val aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
 )
 
 /** Liga o [AcompanhamentoContratanteViewModel] ao [ConteudoTurnoDoContratante]. */
@@ -64,6 +66,7 @@ fun TelaTurnoDoContratante(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
+    aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     /** L1-5: nulo (chave `checkin_por_codigo` desligada, ou ainda sem fiação) esconde o código de chegada. */
     codigoDaCasa: CodigoDaCasaViewModel? = null,
     /** O que o app põe depois da chegada e antes das ações de risco (incluir na equipe de confiança). Nulo não põe nada. */
@@ -79,6 +82,7 @@ fun TelaTurnoDoContratante(
             aoConfirmarReabertura = { viewModel.confirmarReabertura() },
             aoDesistirDaReabertura = viewModel::desistirDaReabertura,
             aoDenunciarProfissional = aoDenunciarProfissional,
+            aoPedirSuporte = aoPedirSuporte,
         ),
         modifier = modifier,
         cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
@@ -172,13 +176,20 @@ fun ConteudoTurnoDoContratante(
                 (estado.podeReabrir || (estado.reaberturaDisponivel && estado.reabrindo))
             val denunciar = acoes.aoDenunciarProfissional
             val profissional = contexto.profissional
-            if (reabrirVisivel || (denunciar != null && profissional != null)) {
+            val pedirSuporte = acoes.aoPedirSuporte
+            if (reabrirVisivel || pedirSuporte != null || (denunciar != null && profissional != null)) {
                 Spacer(Modifier.height(FrilaEspacamento.item))
                 if (reabrirVisivel) {
                     AcaoDiscreta(
                         texto = if (estado.reabrindo) TextosTurnoDoContratante.REABRINDO else TextosTurnoDoContratante.REABRIR_VAGA,
                         aoClicar = acoes.aoPedirReabertura,
                         habilitado = estado.podeReabrir,
+                    )
+                }
+                if (pedirSuporte != null) {
+                    AcaoDiscreta(
+                        texto = TextosTurnoDoContratante.PEDIR_AJUDA,
+                        aoClicar = { pedirSuporte(contexto.turnoId) },
                     )
                 }
                 if (denunciar != null && profissional != null) {

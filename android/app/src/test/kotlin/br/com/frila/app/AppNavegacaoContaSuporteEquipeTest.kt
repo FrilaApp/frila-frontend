@@ -26,6 +26,7 @@ import br.com.frila.core.rede.ExclusaoDeContaDto
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ProtocoloDto
 import br.com.frila.core.rede.ServicoMembros
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
 import br.com.frila.feature.conta.TextosContaSuspensa
@@ -39,6 +40,8 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.suporte.TextosSuporte
+import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -79,6 +82,7 @@ class AppNavegacaoContaSuporteEquipeTest {
     private val intents = mutableListOf<Intent>()
     private val denuncias = mutableListOf<DenunciarDto>()
     private val equipesPedidas = mutableListOf<String>()
+    private val ocorrenciasAbertas = mutableListOf<Pair<String, String>>()
     private var exclusoes = 0
     private val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
         every { estaAutenticado() } returns false
@@ -144,6 +148,15 @@ class AppNavegacaoContaSuporteEquipeTest {
                             )
                         }
                         viewModel { meusTurnos }
+                        viewModel { (turnoId: String) ->
+                            val servicoTurnos = mockk<ServicoTurnos> {
+                                coEvery { abrirSuporte(any(), any(), any()) } answers {
+                                    ocorrenciasAbertas += firstArg<String>() to secondArg<String>()
+                                    protocolo
+                                }
+                            }
+                            OcorrenciaTurnoViewModel(turnoId = turnoId, servicoTurnos = servicoTurnos, escopo = CoroutineScope(Dispatchers.Unconfined))
+                        }
                         viewModel { (estabelecimentoId: String) ->
                             EquipeDeConfiancaViewModel(
                                 estabelecimentoId = estabelecimentoId,
@@ -200,6 +213,29 @@ class AppNavegacaoContaSuporteEquipeTest {
             assertEquals("estabelecimento", argumentos?.getString("alvoTipo"))
             assertEquals("e1", argumentos?.getString("alvoId"))
             assertEquals("turno-7", argumentos?.getString("turnoId"))
+        }
+    }
+
+    @Test
+    fun `de Meus turnos a profissional chega ao relato de ocorrencia, envia e abre o e-mail de suporte`() {
+        montar(inicio = Rotas.MEUS_TURNOS)
+
+        rule.onNodeWithContentDescription("Pedir ajuda com o turno em Bar do Zé").performScrollTo().performClick()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.OCORRENCIA, rotaAtual())
+            assertEquals("turno-7", nav.currentBackStackEntry?.arguments?.getString("turnoId"))
+        }
+        rule.onNodeWithText(MotivoOcorrencia.ATRASO_OU_IMPREVISTO.descricao).performClick()
+        rule.onNodeWithText("Enviar").performClick()
+        rule.runOnIdle { assertEquals(listOf("turno-7" to "atraso"), ocorrenciasAbertas) }
+
+        rule.onNodeWithText("Abrir e-mail de suporte").performClick()
+
+        rule.runOnIdle {
+            val email = intents.single { it.action == Intent.ACTION_SENDTO }
+            assertTrue(email.data.toString().startsWith("mailto:suporte@frilabr.com"))
+            assertTrue(email.data.toString().contains("6F1C2A4E"))
         }
     }
 
