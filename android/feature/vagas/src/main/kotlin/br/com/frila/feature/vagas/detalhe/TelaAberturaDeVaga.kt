@@ -1,8 +1,8 @@
 package br.com.frila.feature.vagas.detalhe
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import br.com.frila.core.designsystem.componentes.EstadoErro
-import br.com.frila.core.designsystem.componentes.IndicadorCarregando
-import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.rede.VagaDto
 
 /**
@@ -32,7 +32,6 @@ fun TelaAberturaDeVaga(
     ConteudoAberturaDeVaga(estado, aoTentarDeNovo = { viewModel.carregar() }, aoVoltarParaFeed = aoVoltarParaFeed, modifier = modifier, vagaAberta = vagaAberta)
 }
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 /** Os quatro momentos de abrir a vaga pelo id: carregando, falha com "Tentar de novo", vaga indisponível e a vaga aberta. */
 @Composable
 fun ConteudoAberturaDeVaga(
@@ -44,10 +43,18 @@ fun ConteudoAberturaDeVaga(
 ) {
     when (estado) {
         EstadoAberturaDeVaga.Carregando -> Box(
-            modifier = modifier.fillMaxSize().semantics { contentDescription = TextosAberturaDeVaga.CARREGANDO },
-            contentAlignment = Alignment.Center,
-        ) { IndicadorCarregando() }
-        is EstadoAberturaDeVaga.Falha -> Box(modifier = modifier.fillMaxSize().padding(FrilaEspacamento.grande), contentAlignment = Alignment.Center) {
+            modifier = modifier
+                .fillMaxSize()
+                .background(FrilaTema.cores.fundo)
+                .semantics { contentDescription = TextosAberturaDeVaga.CARREGANDO },
+            contentAlignment = Alignment.TopCenter,
+        ) { EstadoCarregando() }
+        is EstadoAberturaDeVaga.Falha -> Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(FrilaTema.cores.fundo),
+            contentAlignment = Alignment.TopCenter,
+        ) {
             EstadoErro(
                 titulo = TextosAberturaDeVaga.ERRO_TITULO,
                 mensagem = estado.mensagem,
