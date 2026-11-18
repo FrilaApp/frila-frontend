@@ -1,6 +1,6 @@
 # Mapa de paridade da web do Frila
 
-Atualizado em 16/11/2026. Este mapa define a ordem de construção da web (`Web/`).
+Atualizado em 16/11/2026; linhas 1.11, 2.10, 5.4, 6.2, 6.3 e 6.4 revistas em 17/11/2026. Este mapa define a ordem de construção da web (`Web/`).
 
 Ele lista, recurso por recurso, o que a web do Frila precisa ter e o que já existe para isso no contrato da API
 (`frila-documentacao/api/openapi.yaml`, versão 0.2.97, 87 operações). Textos, visual e marca são do Frila.
@@ -30,7 +30,7 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | 1.8 | Aviso para sair do navegador embutido de rede social | — | | 4 |
 | 1.9 | Instalar na tela de início (PWA), com guia no iPhone | — | | 4 |
 | 1.10 | Casca mínima sem internet (abre e avisa que está sem conexão) | — | | 4 |
-| 1.11 | Passeio guiado na primeira vez | — | | 5 |
+| 1.11 | Passeio guiado na primeira vez | — | esperando a tela (Fabrício) e os textos (CMO) | 5 |
 
 ## 2. Acesso e conta
 
@@ -43,9 +43,9 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | 2.5 | Sair | — (apaga os cookies e encerra no Auth) | | 1 |
 | 2.6 | Criar conta escolhendo o papel | `criar_conta`, `minha_conta` | | 1 |
 | 2.7 | Aceite dos termos, e novo aceite quando mudam | `aceitar_termos` | | 1 |
-| 2.8 | Cadastro do profissional em passos | `criar_perfil_profissional`, `definir_servicos`, `definir_regioes_atendidas` | | 2P |
+| 2.8 | Cadastro do profissional em passos | `criar_perfil_profissional`, `definir_servicos`, `definir_regioes_atendidas` | parcial: falta serviços com preço e horários (2.8b) | 2P |
 | 2.9 | Cadastro do estabelecimento | `cadastrar_estabelecimento` | | 2C |
-| 2.10 | Conta suspensa: ver o motivo e contestar | `situacao_da_conta`, `contestar_suspensao` | | 2C/2P |
+| 2.10 | Conta suspensa: ver o motivo e contestar | `situacao_da_conta`, `contestar_suspensao` | feito na web (#860) | 2C/2P |
 | 2.11 | Exportar os próprios dados e excluir a conta | `exportar-meus-dados`, `excluir-conta` | | 5 |
 | 2.12 | Entrar com conta de demonstração (para teste) | `entrar-demonstracao` | | 1 (só em teste) |
 
@@ -103,7 +103,7 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | 5.1 | Página "em breve" enquanto a web está com a chave desligada | — | | 0 |
 | 5.2 | Página pública de cada vaga, com dados estruturados de emprego e cartão de compartilhamento | — | leitura da vaga pelo link, sem login: contrato 0.2.100 e depois o backend | 3 |
 | 5.3 | Lista pública de vagas abertas | — | a mesma leitura pública | 3 |
-| 5.4 | Mapa do site e regras para buscadores | — | | 3 |
+| 5.4 | Mapa do site e regras para buscadores | — | feito na web: `/app/sitemap.xml` com as 4 páginas públicas (sem as vagas). O robots.txt da raiz é do site frilabr.com e pode apontar o mapa | 3 |
 | 5.5 | Páginas por função e cidade com número vivo | — | leitura pública agregada; só com volume real no DF | 5 |
 | 5.6 | Página pública do estabelecimento com as vagas dele, com link e QR | `perfil_publico` (logado) | leitura pública do estabelecimento | 5 |
 | 5.7 | Link de convite que abre a web já no destino | `aceitar_convite_membro` | | 5 |
@@ -115,16 +115,17 @@ A regra de negócio fica no servidor. A web mostra o que o servidor decide e nun
 | # | Recurso | Frila hoje | Falta | Fase |
 |---|---|---|---|---|
 | 6.1 | Push no navegador | `registrar_dispositivo`, `remover_dispositivo` (plataforma `web` no contrato) | envio com bloco de web no backend | 4 |
-| 6.2 | Lista do que precisa de atenção dentro do app | parcial: painel, turnos e chamadas já dizem o que está pendente | | 2C/2P |
-| 6.3 | Falar com o suporte | `abrir_suporte` | | 2C/2P |
-| 6.4 | Contato do outro lado perto do turno | `contato_do_turno` | | 2C/2P |
+| 6.2 | Lista do que precisa de atenção dentro do app | parcial: painel, turnos e chamadas já dizem o que está pendente | parcial na web (painel, turnos e chamadas) | 2C/2P |
+| 6.3 | Falar com o suporte | `abrir_suporte` | feito na web (#861) | 2C/2P |
+| 6.4 | Contato do outro lado perto do turno | `contato_do_turno` | **fora:** a operação foi descontinuada no contrato 0.2.49 (decisão de produto de 04/11/2026: o app não troca contato entre as partes; não gerar cliente) | D |
 | 6.5 | Conversa dentro do app | — | decisão de produto | D |
 | 6.6 | Registro de eventos de uso | `registrar_evento` | | 5 |
 
 ## 7. Fora do contrato hoje
 
-Nada disto entra na web sem decisão dos sócios: ou muda o modelo do produto, ou ainda não existe no contrato.
-Ficam listados para a decisão, não como fila de trabalho.
+**Decisão do Cauê (pedido 2026-11-17-02, 17/11/2026): fora por agora, decidir depois.** Nada disto entra na web nem nos
+apps sem ordem dele. A origem é esta comparação com o freela+ e o Scalador. O registro está em `frila-docs`, `produto/AGORA.md`,
+na seção "Fora por agora", e nos módulos.
 
 | Recurso | Por que não entra agora |
 |---|---|
@@ -136,6 +137,7 @@ Ficam listados para a decisão, não como fila de trabalho.
 | Escala que se repete toda semana | Sem operação no contrato |
 | Indicação com prêmio e programa de parceiros | Decisão comercial |
 | Recrutamento para vaga fixa | Outro produto |
+| Painel interno (administração e CRM) | Ferramenta da equipe, fora do produto |
 
 ## 8. Soluções técnicas da web do Frila
 
@@ -176,3 +178,9 @@ Ficam listados para a decisão, não como fila de trabalho.
 | B5 | Leitura da vaga pelo link, sem login | 3 | contrato 0.2.100 a caminho; depois o backend |
 | B6 | Envio de push com bloco de web (o registro do aparelho `web` já é aceito) | 4 | pedido |
 | B7 | Backend da escala em lote (`publicar_escala`) | 5 | contrato pronto, falta o servidor |
+
+## Provas que faltam no Prod (web ligada em 17/11/2026)
+
+- **Página pública da vaga, resposta 200:** provar na 1ª vaga real aberta, só com GET (sem gravar nada) e conferindo que
+  aparecem só os campos públicos. No dia da ligação não havia vaga real aberta, e criar uma avisaria profissionais reais.
+  O 410 (vaga cancelada) e o 404 (vaga de demonstração e id inexistente) já foram provados no Prod; o 200, no dev.

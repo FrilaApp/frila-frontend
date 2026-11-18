@@ -36,6 +36,7 @@ class MainActivity : FragmentActivity() {
                 var versaoMinima by remember { mutableStateOf<String?>(null) }
                 var chamadaDireta by remember { mutableStateOf(false) }
                 var buscaProfissionais by remember { mutableStateOf(false) }
+                var checkinPorCodigo by remember { mutableStateOf(false) }
                 var mensagemBloqueio by remember { mutableStateOf(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO) }
                 var perfilRico by remember { mutableStateOf(false) }
                 var fotoDePerfil by remember { mutableStateOf(false) }
@@ -52,6 +53,7 @@ class MainActivity : FragmentActivity() {
                                 versaoMinima = configuracao.versaoMinima
                                 chamadaDireta = configuracao.recursos.chamadaDireta
                                 buscaProfissionais = configuracao.recursos.buscaProfissionais
+                                checkinPorCodigo = configuracao.recursos.checkinPorCodigo
                                 configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
                                 perfilRico = configuracao.recursos.perfilRico
                                 fotoDePerfil = configuracao.recursos.fotoDePerfil
@@ -106,6 +108,7 @@ class MainActivity : FragmentActivity() {
                         fotoDePerfilHabilitada = fotoDePerfil,
                         chamadaDiretaHabilitada = chamadaDireta,
                         buscaProfissionaisHabilitada = buscaProfissionais,
+                        checkinPorCodigoHabilitado = checkinPorCodigo,
                         aoPronto = {
                             MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                         },

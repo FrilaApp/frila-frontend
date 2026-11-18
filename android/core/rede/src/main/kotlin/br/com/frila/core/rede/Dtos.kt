@@ -142,6 +142,22 @@ data class ResultadoCandidaturaDto(
 )
 
 /**
+ * Corpo de `POST /rest/v1/rpc/criar_conta` (RF01, RN20, RN25). `nascimento` vai como `YYYY-MM-DD`
+ * e `telefone` em E.164. `termosVersao` é a versão dos Termos e da Política que a tela mostrou;
+ * o instante do aceite é carimbado pelo servidor. `sinalIdade` é opcional e fica fora do JSON
+ * quando nulo (`dezoito_ou_mais`, `recusou` ou `indisponivel`).
+ */
+@Serializable
+data class CriarContaDto(
+    @SerialName("perfil") val perfil: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("telefone") val telefone: String,
+    @SerialName("nascimento") val nascimento: String,
+    @SerialName("termos_versao") val termosVersao: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) @SerialName("sinal_idade") val sinalIdade: String? = null,
+)
+
+/**
  * Corpo de `POST /rest/v1/rpc/registrar_dispositivo` (RF06/RN15/RNF02). `versao_app` (0.2.56) é opcional: sem ela o
  * campo não vai no corpo (nem como null), e o servidor trata o aparelho como antigo para os avisos de chamada.
  */

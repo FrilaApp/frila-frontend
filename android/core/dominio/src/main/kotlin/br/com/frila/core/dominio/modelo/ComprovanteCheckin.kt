@@ -4,7 +4,6 @@ import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * Tipo de verificação do check-in presencial (RF13/RN06/RN22).
@@ -18,14 +17,13 @@ enum class TipoVerificacaoCheckin(val descricao: String) {
 
 /**
  * Comprovante de check-in com carimbo temporal e hash verificador (RN06/RN22).
- * Minimiza dados pessoais e coordenadas conforme a LGPD.
+ * Não guarda a posição: ela só serve para medir a distância no toque e não aparece aqui nem no texto compartilhado.
  */
 data class ComprovanteCheckin(
     val turnoId: String,
     val registradoEm: Instant,
     val tipoVerificacao: TipoVerificacaoCheckin,
     val codigoAutenticacao: String,
-    val coordenadasAproximadas: String? = null,
 ) {
     fun horarioFormatado(fuso: ZoneId = FUSO_BRASILIA): String =
         FORMATO_DATA_HORA.withZone(fuso).format(registradoEm)
@@ -35,9 +33,6 @@ data class ComprovanteCheckin(
         appendLine("Código: $codigoAutenticacao")
         appendLine("Horário: ${horarioFormatado()}")
         appendLine("Status: ${tipoVerificacao.descricao}")
-        if (coordenadasAproximadas != null) {
-            appendLine("Localização aproximada: $coordenadasAproximadas")
-        }
         append("Turno: $turnoId")
     }
 
@@ -49,7 +44,7 @@ data class ComprovanteCheckin(
 }
 
 /**
- * Gerador de comprovante com cálculo determinístico de hash SHA-256 e arredondamento de coordenadas (RN22).
+ * Gerador de comprovante com cálculo determinístico de hash SHA-256 (RN22). Não recebe coordenada.
  */
 object GeradorComprovanteCheckin {
 
@@ -57,21 +52,12 @@ object GeradorComprovanteCheckin {
         turnoId: String,
         registradoEm: Instant,
         tipoVerificacao: TipoVerificacaoCheckin,
-        coordenada: Coordenada? = null,
-    ): ComprovanteCheckin {
-        val codigo = calcularCodigoAutenticacao(turnoId, registradoEm)
-        val coordenadasFormatadas = coordenada?.let {
-            String.format(Locale.US, "%.3f, %.3f", it.latitude, it.longitude)
-        }
-
-        return ComprovanteCheckin(
-            turnoId = turnoId,
-            registradoEm = registradoEm,
-            tipoVerificacao = tipoVerificacao,
-            codigoAutenticacao = codigo,
-            coordenadasAproximadas = coordenadasFormatadas,
-        )
-    }
+    ): ComprovanteCheckin = ComprovanteCheckin(
+        turnoId = turnoId,
+        registradoEm = registradoEm,
+        tipoVerificacao = tipoVerificacao,
+        codigoAutenticacao = calcularCodigoAutenticacao(turnoId, registradoEm),
+    )
 
     fun calcularCodigoAutenticacao(turnoId: String, registradoEm: Instant): String {
         val entrada = "$turnoId:${registradoEm.toEpochMilli()}"
