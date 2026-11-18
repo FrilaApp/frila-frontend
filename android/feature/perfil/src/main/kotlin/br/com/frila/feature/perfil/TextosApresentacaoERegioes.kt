@@ -1,6 +1,6 @@
 package br.com.frila.feature.perfil
 
-/** Textos da apresentação e das regiões do profissional (paridade com `TextosApresentacaoERegioes.swift`; tela provisória). */
+/** Textos da apresentação e das regiões do profissional (paridade com `TextosApresentacaoERegioes.swift`). */
 object TextosApresentacaoERegioes {
     const val TITULO = "Apresentação e regiões"
     const val SOBRE_MIM = "Sobre mim"

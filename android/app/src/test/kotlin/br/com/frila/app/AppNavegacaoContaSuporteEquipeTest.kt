@@ -52,6 +52,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import br.com.frila.core.rede.SituacaoDaContaDto
+import br.com.frila.core.rede.SuspensaoDaContaDto
+import br.com.frila.feature.conta.ContaSuspensaViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.compose.KoinApplication
 import org.koin.dsl.module
@@ -92,6 +95,8 @@ class AppNavegacaoContaSuporteEquipeTest {
         coEvery { listarMeusEstabelecimentos() } throws ErroDaApi(CodigoErroAPI.PERFIL_INCOMPATIVEL, "perfil_incompativel", null, "x")
     }
 
+    private var situacaoDaConta = SituacaoDaContaDto(estado = "suspensa")
+
     private fun montar(servicoMembros: ServicoMembros? = null, inicio: String? = null) {
         val entrada = mockk<EntradaViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoEntrada())
@@ -111,6 +116,15 @@ class AppNavegacaoContaSuporteEquipeTest {
                     module {
                         viewModel { entrada }
                         viewModel { perfil }
+                        // L2-5: a tela da suspensão lê o motivo e a data do servidor (antes vinham da rota).
+                        viewModel { (aoReativar: () -> Unit) ->
+                            ContaSuspensaViewModel(
+                                buscarSituacao = { situacaoDaConta },
+                                contestar = { error("o teste não contesta") },
+                                aoReativar = aoReativar,
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
                         viewModel {
                             ExclusaoDeContaViewModel(
                                 excluir = { exclusoes++; ExclusaoDeContaDto("2026-11-10T12:00:00Z", "2026-11-25", 0) },
@@ -253,7 +267,7 @@ class AppNavegacaoContaSuporteEquipeTest {
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_AO_TURNO).performScrollTo().assertExists()
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_A_CHAMADA).performScrollTo().assertExists()
         rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Relato com mais de dez caracteres.")
-        rule.onNodeWithText(TextosSuporte.ENVIAR).performScrollTo().performClick()
+        rule.onNodeWithText(TextosSuporte.ENVIAR).performClick()
 
         rule.runOnIdle {
             val corpo = denuncias.single()
@@ -272,7 +286,7 @@ class AppNavegacaoContaSuporteEquipeTest {
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_AO_TURNO).assertDoesNotExist()
         rule.onNodeWithText(TextosSuporte.ASSOCIADA_A_CHAMADA).assertDoesNotExist()
         rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Relato com mais de dez caracteres.")
-        rule.onNodeWithText(TextosSuporte.ENVIAR).performScrollTo().performClick()
+        rule.onNodeWithText(TextosSuporte.ENVIAR).performClick()
 
         rule.runOnIdle {
             assertEquals("profissional", denuncias.single().alvoTipo)
@@ -303,8 +317,9 @@ class AppNavegacaoContaSuporteEquipeTest {
     }
 
     @Test
-    fun contaSuspensaMostraMotivoEDataDaRotaEOSuporteAbreOEmail() {
-        montar(inicio = Rotas.contaSuspensa(motivo = "Assédio confirmado", desde = "09/11/2026"))
+    fun contaSuspensaMostraMotivoEDataLidosDoServidorEOSuporteAbreOEmail() {
+        situacaoDaConta = SituacaoDaContaDto(estado = "suspensa", suspensao = SuspensaoDaContaDto(motivo = "Assédio confirmado", desde = "2026-11-09T15:00:00Z"))
+        montar(inicio = Rotas.contaSuspensa())
 
         rule.onNodeWithText(TextosContaSuspensa.TITULO).assertExists()
         rule.onNodeWithText("Assédio confirmado").assertExists()
@@ -318,7 +333,8 @@ class AppNavegacaoContaSuporteEquipeTest {
     }
 
     @Test
-    fun contaSuspensaSemParametrosAbreSemSecaoDeMotivo() {
+    fun contaSuspensaSemSuspensaoNaSituacaoAbreSemSecaoDeMotivo() {
+        situacaoDaConta = SituacaoDaContaDto(estado = "suspensa")
         montar(inicio = Rotas.contaSuspensa())
 
         rule.onNodeWithText(TextosContaSuspensa.TITULO).assertExists()

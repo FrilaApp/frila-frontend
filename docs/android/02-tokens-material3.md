@@ -1,203 +1,142 @@
-# 02 — Tokens de Design e Material 3 (Android v1.1)
+# 02 — Tokens de Design e Material 3 (Android)
 
-**Status:** Normativo · **Fonte:** `iOS/Sources/Apresentacao/DesignTokens.swift` (MEDIDO, 326 linhas)
+**Status:** Normativo · **Fonte:** o desenho do Fabrício (redesign de 11/2026): cores, tipografia, espaços, raios e
+alturas do protótipo e do app de redesign dele. Código em `android/core/designsystem` (`tema/` e `componentes/`).
 
-O design system do Android não reinventa tokens: ele mapeia, 1 a 1, os tokens já validados no
-MidFi iOS (`FrilaCor`, `FrilaEspaco`, `FrilaRaio`, `FrilaTipo`, `FrilaMetrica`) para os sistemas
-equivalentes do Material 3 Compose. Nome do token muda de convenção (PascalCase Swift →
-camelCase Kotlin), valor e papel semântico não mudam.
+O design system do Android usa os MESMOS tokens e nomes do iOS (`FrilaCor`/`FrilaTipo`/`FrilaEspaco`/`FrilaRaio`), e
+os põe nos papéis do Material 3 para os componentes do Material já nascerem no desenho. Código novo lê as cores por
+`FrilaTema.cores` e o texto por `FrilaTipo`; `MaterialTheme.colorScheme`/`typography` continuam valendo e dão o mesmo
+resultado.
+
+As regras que os tokens carregam:
+
+- **Uma cor, um significado.** Laranja (`acao`): "toque aqui para avançar", só no botão primário (no máximo um por
+  tela) e no ícone da aba ativa. Amarelo: "deu certo, é seu". Roxo: "é agora". Tinta: texto, seleção e andamento.
+- **Botão colorido leva texto BRANCO**, em negrito de 20sp. Nunca texto laranja, nunca texto escuro no botão laranja.
+- **Problema não tem cor.** Não há vermelho, verde nem amarelo lavado: erro vem escrito em tinta, junto ao botão que
+  o disparou (`MensagemJuntoAoBotao`) ou embaixo do campo.
+- **Cápsula no que se toca** (botão, chip, busca); canto pequeno no que só informa (selo). Cartão sem sombra.
+- **Poucos pesos:** a hierarquia vem da cor (tinta × tinta suave).
 
 ---
 
-## 1. `FrilaCor` → `ColorScheme`
+## 1. Cores → `ColorScheme`
 
-Tema neutro: seleção ativa e botão principal em preenchimento escuro com texto claro; superfícies
-brancas sobre fundo agrupado cinza; terracota da marca (`BrandAccent`, `#EA5A36`) só como acento,
-nunca como fundo de tela ou de cartão — regra herdada do iOS e mantida sem exceção no Android.
+| Token (`FrilaTema.cores`) | Claro | Escuro | Papel | `ColorScheme` (Material 3) |
+|---|---|---|---|---|
+| `fundo` | `#F9F6F4` | `#110F0E` | Fundo das telas e das folhas | `background`, `surfaceDim` |
+| `superficie` | `#FFFFFF` | `#1D1B1A` | Cartões, campos, botão secundário | `surface`, `surfaceVariant`, `surfaceContainer*` |
+| `tinta` | `#111111` | `#F4F1EF` | Texto, seleção, foco, andamento | `onBackground`, `onSurface`, `primary`, `secondary`, `tertiary`, `error`, `secondaryContainer` |
+| `tintaSuave` | `#5A5A58` | `#A5A5A2` | Texto de apoio, ação discreta | `onSurfaceVariant` |
+| `borda` | `#E5E3DD` | `#2F2E29` | Fio de cartão, divisória, botão secundário; fundo do botão desligado | `outlineVariant` |
+| `bordaControle` | `#918F8A` | `#767470` | Contorno de campo | `outline` |
+| `bordaNav` | `#EBE9E2` | `#282622` | Fio de cima do rodapé ancorado e da barra de abas | — |
+| `superficiePressionada` | `#EFECEA` | `#2A2826` | Cartão, linha e secundário pressionados; bloco de aviso | `surfaceContainerHighest`, `primaryContainer`, `errorContainer` |
+| `tintaPressionada` | `#2D2D2D` | `#CFCCCA` | Chip marcado, pressionado | — |
+| `sobreTinta` | `#FFFFFF` | `#110F0E` | Texto sobre tinta (chip marcado, selo) | `onPrimary`, `onSecondaryContainer` |
+| `acao` | `#F46700` | igual | Botão primário, ícone da aba ativa | — (nunca é `primary`) |
+| `acaoPressionada` | `#DD5C00` | igual | Botão primário pressionado | — |
+| `sobreAcao` | `#FFFFFF` | igual | Rótulo do botão primário | — |
+| `destaqueAmarelo` / `sobreAmarelo` | `#FCEB36` / `#111111` | igual | Selos "Confirmado", "Você foi escolhida" | — |
+| `destaqueRoxo` / `sobreRoxo` | `#9D47F5` / `#FFFFFF` | igual | Selo "Urgência" | — |
 
-| Token iOS (`FrilaCor`) | Papel | `ColorScheme` (Material 3) | Observação |
-|---|---|---|---|
-| `primaria` (`BrandPrimary`) | Seleção ativa, botão principal | `primary` | Quase preto no claro, quase branco no escuro |
-| `sobrePrimaria` (`BrandOnPrimary`) | Texto/ícone sobre `primaria` | `onPrimary` | |
-| `fundo` (`Surface`) | Fundo agrupado da tela | `background` | |
-| `superficie` (`SurfaceElevated`) | Cartões, campos, linhas | `surface` | Branco com fio de 1dp, zero-shadow |
-| `texto` (`TextPrimary`) | Texto principal | `onBackground` / `onSurface` | |
-| `textoSecundario` (`TextSecondary`) | Texto de apoio | `onSurfaceVariant` | Contraste mínimo 4,8:1 sobre `fundo`, igual ao iOS |
-| `sucesso` (`Success`) | Estado positivo | `tertiary` (custom scheme role) | Material 3 não tem slot "success" nativo; declarado como extensão do `ColorScheme` |
-| `alerta` (`Warning`) | Estado de atenção | extensão custom `warning` / `onWarning` | |
-| `perigo` (`Danger`) | Estado de erro | `error` | |
-| `marca` (`BrandAccent`) | Acento pontual (ícone, destaque) | extensão custom `brandAccent` | Nunca mapeado para `primary`; uso como fundo de tela/cartão é falha de revisão de design |
-| `controle` (`ControlFill`) | Preenchimento de controle/aviso neutro | `surfaceVariant` | |
-| `divisoria` (`Hairline`) | Fio de cartões e divisórias (1pt) | `outlineVariant` | 1dp |
-| `borda` (`ControlBorder`) | Contorno de chip inativo, botão outline, campo | `outline` | |
-| `puxador` (`SheetGrabber`) | Puxador de bottom sheet | extensão custom `sheetHandle` | `ModalBottomSheet` do Compose usa `dragHandle` customizado com esse token |
+- `primary` é a TINTA de propósito: seleção, foco, cursor, interruptor e texto de botão do Material ficam em tinta.
+  O laranja só entra pelo `BotaoPrimario`, que o usa direto.
+- `error` é a tinta: uma tela que ainda usa `colorScheme.error` já sai sem vermelho.
+- `surfaceTint` é transparente e as superfícies de contêiner não levam o lilás padrão do Material.
+- Modo OLED (RNF10): só o `fundo` vira preto puro (`#000000`); os cartões seguem em `superficie`.
+- Com cores dinâmicas (Material You), `primary`, `onPrimary`, `error` e `onError` continuam do Frila.
 
-Cada entrada acima que não tem slot nativo no `ColorScheme` do Material 3 é declarada como
-propriedade de extensão em um `FrilaColorScheme` próprio (`data class` que envolve o
-`ColorScheme` padrão), nunca sobrescrevendo um slot existente para um papel diferente do dele —
-por exemplo, `sucesso` **não** deve ser forçado dentro de `tertiary` se isso colidir com um uso já
-planejado de `tertiary` noutra tela; nesse caso, a extensão custom é obrigatória também para
-`sucesso`.
+## 2. Espaços (`FrilaEspacamento`)
 
-Claro e escuro seguem o mesmo princípio do iOS: os valores vêm de recursos `colors.xml` /
-`colors-night.xml` com o mesmo nome semântico, nunca de lógica condicional em Kotlin no ponto de
-uso.
-
-## 2. `FrilaEspaco` → espaçamento Compose
-
-Sem equivalente nativo de "espaçamento" no Material 3 (que define apenas `Shapes` e
-`Typography`); o Android replica `FrilaEspaco` como `object` de constantes `Dp`, usado
-diretamente em `Modifier.padding`/`Arrangement.spacedBy`:
-
-| Token iOS | Valor (pt → dp, 1:1) | Uso |
+| Token | Valor | Uso |
 |---|---:|---|
-| `fio` | 2dp | Entre título e subtítulo de um mesmo bloco |
-| `minimo` | 4dp | |
-| `pequeno` | 8dp | |
-| `compacto` | 12dp | Entre cartões de lista e dentro de grupos |
-| `faixa` | 14dp | Entre faixas de um cartão (cabeçalho, linhas, divisória) |
-| `medio` | 16dp | |
-| `grande` | 24dp | |
-| `enorme` | 32dp | |
+| `junto` | 4dp | Linhas do mesmo dado; ícone do selo |
+| `item` | 8dp | Ícone e texto; entre linhas de dado; mensagem e botão |
+| `bloco` | 16dp | Padding de cartão; entre cartões; acima e abaixo da divisória |
+| `grupo` | 24dp | Margem lateral da tela; do título ao cartão; entre blocos de um detalhe |
+| `secao` | 32dp | Acima de seção e das ações discretas |
+| `respiro` | 48dp | Acima do estado vazio |
 
-Conversão pt→dp é 1:1 porque ambas as plataformas usam unidade de densidade independente
-(points no iOS, dp no Android) com a mesma base conceitual de 160 "pixels por polegada" de
-referência.
+Os nomes de antes (`fio` 2, `minimo` 4, `pequeno` 8, `compacto` 12, `faixa` 14, `medio` 16, `grande` 24, `enorme` 32)
+continuam existindo para as telas que já os usam.
 
-## 3. `FrilaRaio` → `Shapes`
+## 3. Raios (`FrilaRaios`) → `Shapes`
 
-| Token iOS | Valor | `Shapes` (Material 3) | Uso |
+| Token | Valor | Uso | `Shapes` (Material 3) |
 |---|---:|---|---|
-| `pequeno` | 8dp | `extraSmall` | |
-| `medio` | 12dp | `small` | |
-| `aviso` | 16dp | `medium` | Avisos e blocos de informação |
-| `grande` | 20dp | `large` | Cartões agrupados (`radiusGroupedCard`) |
-| `folha` | 28dp | `extraLarge` | Topo de bottom sheets |
+| `selo` | 8dp | Selo de status | — |
+| `interno` | 16dp | Campo, bloco de aviso, grupo de linhas, o que fica dentro de um cartão | `extraSmall` (campo, menu) |
+| `cartao` | 24dp | Cartão, diálogo, topo de folha | `medium`, `large`, `extraLarge` |
+| `cartaoDeVaga` | 36dp | Só o cartão de vaga com botão dentro (par concêntrico com o botão de raio 16) | — |
+| cápsula | — | Botão, chip, busca | `small` (chip) |
 
-```kotlin
-val FrilaShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(28.dp),
-)
-```
+Os nomes de antes apontam para os valores novos: `pequeno` = 8, `medio` = 16, `grande` = 24.
 
-Cartões usam zero-shadow com fio de 1dp (`divisoria`/`outlineVariant`), replicando
-`cartaoFrila()` do iOS: `Modifier.background(superficie, FrilaShapes.large).border(1.dp,
-divisoria, FrilaShapes.large)`.
+## 4. Tipografia (`FrilaTipo`) → `Typography`
 
-## 4. `FrilaTipo` → `Typography`
+Prodigy Sans 700 (OFL 1.1, a mesma do iOS; licença em `core/designsystem/src/main/res/raw`) só no título de tela e
+no dinheiro principal. Fonte do sistema em todo o resto. Tudo em `sp`.
 
-iOS usa Dynamic Type com SF Pro para a maior parte da UI, e a fonte display **Bricolage
-Grotesque** só no formulário de publicar vaga (`pergunta`, `respostaEscolhida`,
-`contextoDaResposta`) — números e dinheiro ficam sempre na fonte do sistema, nunca em Bricolage.
-Essa regra é normativa e vale igual no Android.
-
-| Token iOS | Papel | `Typography` (Material 3) | Fonte |
+| Papel (`FrilaTipo`) | Fonte e peso | Tamanho / linha | `Typography` (Material 3) |
 |---|---|---|---|
-| `tituloGrande` | Título de tela principal | `displaySmall` | Sistema (Roboto/variável do dispositivo) |
-| `secao` | Cabeçalho de seção ("Abertas", "Seus dados") | `titleLarge` | Sistema |
-| `subtituloDaTela` | | `titleMedium` | Sistema |
-| `rotuloDoCampo` | | `titleSmall` | Sistema |
-| `valorDoCampo` | | `bodyLarge` | Sistema |
-| `chip` | | `labelLarge` (peso semibold) | Sistema |
-| `tituloDoCartao` | | `titleSmall` (peso semibold) | Sistema |
-| `corpo` | | `bodyLarge` | Sistema |
-| `meta` | | `bodyMedium` | Sistema |
-| `nota` | | `bodySmall` | Sistema |
-| `resumo` | | `titleSmall` | Sistema |
-| `preco` | | `titleMedium` (bold) | Sistema — número, nunca Bricolage |
-| `tituloDeEstado` | | `titleMedium` (peso semibold) | Sistema |
-| `tituloDaFolha` | | `titleMedium` (peso semibold) | Sistema |
-| `botao` | | `titleSmall` | Sistema |
-| `pergunta` | Pergunta do formulário de publicar vaga | extensão custom `pergunta` (26sp, Bold) | **Bricolage Grotesque Bold** |
-| `respostaEscolhida` | Resposta escolhida no formulário | extensão custom `respostaEscolhida` (17sp, Bold) | **Bricolage Grotesque Bold** |
-| `contextoDaResposta` | Contexto da resposta | extensão custom `contextoDaResposta` (17sp, Regular) | **Bricolage Grotesque Regular** |
-| `microRotulo` | Microrrótulo em caixa alta | extensão custom `microRotulo` (peso semibold) | Sistema, `letterSpacing` 0.8sp equivalente ao `.tracking(0.8)` do iOS |
+| `valorEmDestaque` | Prodigy 700 | 28 / 32 | `display*` |
+| `tituloDaTela` | Prodigy 700 | 24 / 28 | `headline*`, `titleLarge` |
+| `valorDoRodape` | Prodigy 700 | 20 / 24 | — |
+| `rotuloDoPrimario` | sistema 700 | 20 / 24 | — |
+| `fraseDoModo` | sistema 600 | 20 / 24 | — |
+| `nome` | sistema 600 | 17 / 22 | `titleMedium` |
+| `corpo` | sistema 400 | 16 / 22 | `bodyLarge` |
+| `rotuloSecundario` | sistema 600 | 16 / 22 | `titleSmall`, `labelLarge` |
+| `apoio` | sistema 400 | 15 / 20 | `bodyMedium` |
+| `rotuloDeGrupo`, `selo` | sistema 600 | 15 / 20 | `labelMedium` |
+| `chip` | sistema 500 | 15 / 20 | — |
+| `legenda` | sistema 400 | 13 / 16 | `bodySmall`, `labelSmall` (500) |
 
-Fontes Bricolage (`BricolageGrotesque-Regular.ttf`, `BricolageGrotesque-Bold.ttf`) são
-empacotadas em `:core:designsystem/src/main/res/font/` e referenciadas via `FontFamily` do
-Compose — sem fallback silencioso: se o arquivo não resolver, o build falha (ao contrário do iOS,
-que cai na fonte do sistema via `guard`); essa é uma divergência deliberada porque Android
-empacota a fonte no APK, não depende de registro em runtime.
+## 5. Alturas (`FrilaMetricas`)
 
-Escala de texto respeita `fontScale` do sistema (equivalente a Dynamic Type) em todos os tokens
-de sistema; tokens Bricolage usam `TextUnit` com `.sp` e participam igualmente da escala —
-nenhum texto do app usa `.dp` para tamanho de fonte.
+| Token | Valor | Uso |
+|---|---:|---|
+| `alvoMinimo` | 48dp | Alvo mínimo de toque. É o do Material 3 e o do desenho; nunca 44 |
+| `alturaBotao`, `alturaCampo` | 48dp | Botão primário e secundário, campo, linha de lista |
+| `alturaBotaoDePresenca` | 64dp | "MARCAR PRESENÇA" |
+| `alturaChip` | 36dp | Chip (dentro de um alvo de 48) |
+| `alturaSelo` | 28dp | Selo de status |
+| `alturaCaixaDeCodigo` | 56dp | Caixa de dígito do código de acesso |
 
-## 5. `FrilaMetrica` → alvo de toque e métricas de componente
+São mínimos: o texto cresce com o tamanho de fonte do sistema e o componente cresce junto.
 
-| Token iOS | Valor | Uso | Regra Material 3 equivalente |
-|---|---:|---|---|
-| `alvoMinimo` | 44pt | Alvo mínimo de toque | Android usa **48dp** como alvo mínimo (guideline Material 3 / acessibilidade Android), não 44 — ver nota abaixo |
-| `larguraMaximaDeLeitura` | 680pt | Largura máxima de bloco de leitura | 680dp, mantido igual |
-| `alturaDoCampo` | 52pt | Campos e botões grandes | 52dp, mantido igual |
-| `alturaDoChip` | 32pt | Altura visual do chip de filtro (toque permanece no alvo mínimo) | 32dp visual, hit box expandida até 48dp |
-| `circuloDeEstado` | 72pt | Círculo de estados vazios/erro | 72dp, mantido igual |
+## 6. Componentes (`componentes/`)
 
-> **Alvo mínimo de toque: 48dp, não 44dp.** O token iOS `alvoMinimo` vale 44pt porque é a
-> diretriz da HIG da Apple. A diretriz equivalente do Android/Material 3 é **48dp**. O Android
-> **não** replica o valor numérico 44 — replica o *papel* do token (garantir área de toque
-> acessível) usando o mínimo correto da própria plataforma. Todo componente tocável de
-> `:core:designsystem` (botão, chip, ícone de ação) declara `Modifier.sizeIn(minWidth = 48.dp,
-> minHeight = 48.dp)` como piso, mesmo quando o conteúdo visual é menor (caso do chip, visual de
-> 32dp com hit box de 48dp).
+`BotaoPrimario`, `BotaoSecundario`, `LinkFrila`, `AcaoDiscreta`, `CartaoFrila`, `AvisoFrila`, `SeloDeStatus`,
+`ChipFrila`, `CampoDeTexto`, `CampoDeBusca`, `CaixasDeCodigo`, `TituloDaTela`, `RotuloDeGrupo`, `FrilaGrupoDeLinhas`
+com `FrilaLinhaDeOpcao`/`FrilaLinhaDeNavegacao`, `FrilaLinhaDeDado`, `FrilaDivisoria`, `LinhaDeEtapas`,
+`FrilaBarraDeTopo`, `RodapeAncorado` com `MensagemJuntoAoBotao`, `EstadoVazio`, `EstadoErro`, `EstadoCarregando`,
+`FrilaBottomSheet`, `FrilaSkeleton`. Cada um tem a regra de uso no comentário do próprio arquivo.
 
-## 6. Movimento e elevação
+Movimento: quem anima respeita a redução de movimento do sistema (`animacoesAtivadas()` em `FrilaSkeleton.kt`).
 
-`FrilaMovimento` (spring stiffness/damping) e `FrilaElevacao` (três camadas rim/key/ambient) não
-têm tradução direta em Material 3 puro — Compose usa `animateDpAsState`/`Spring` com os mesmos
-parâmetros numéricos (`stiffness = 350f, dampingRatio = ...`) e `Modifier.shadow` com múltiplas
-camadas compostas manualmente, replicando os valores de opacidade/raio/offset do iOS por tema
-(claro/escuro) linha a linha. Redução de movimento do sistema (`Settings.Global.ANIMATOR_DURATION_SCALE
-== 0f` ou a preferência de acessibilidade equivalente) desliga a transição exatamente como
-`FrilaMovimento.animacao(reduzir:)` faz no iOS — retorna `tween(durationMillis = 0)` em vez de
-`null`, já que `AnimationSpec` do Compose não aceita ausência de animação, mas o efeito prático
-(sem deslocamento) é o mesmo.
+## 7. Contraste WCAG 2.1 (medido; conferido em `FrilaCoresTest` e `MatrizContrasteWCAGTest`)
 
-## 7. Matriz de contraste WCAG 2.1 AA (medida)
+| Primeiro plano | Fundo | Claro | Escuro | Piso |
+|---|---|---:|---:|---:|
+| `tinta` | `fundo` | 17,55:1 | 17,00:1 | 4,5:1 |
+| `tintaSuave` | `fundo` | 6,42:1 | 7,74:1 | 4,5:1 |
+| `tintaSuave` | `superficie` | 6,91:1 | 6,95:1 | 4,5:1 |
+| `tintaSuave` | `superficiePressionada` | 5,88:1 | 5,95:1 | 4,5:1 |
+| `tintaSuave` | `borda` (botão desligado) | 5,39:1 | 5,51:1 | 4,5:1 |
+| `sobreAcao` (branco) | `acao` | 3,09:1 | 3,09:1 | 3,0:1 (texto grande: 20sp em negrito) |
+| `sobreAcao` (branco) | `acaoPressionada` | 3,75:1 | 3,75:1 | 3,0:1 |
+| `sobreRoxo` | `destaqueRoxo` | 4,51:1 | 4,51:1 | 4,5:1 |
+| `sobreAmarelo` | `destaqueAmarelo` | 15,35:1 | 15,35:1 | 4,5:1 |
+| `bordaControle` | `fundo` | 3,00:1 | 4,10:1 | 3,0:1 (componente gráfico) |
+| `tinta` (escuro) | preto do OLED | — | 18,68:1 | 7,0:1 |
+| `tintaSuave` (escuro) | preto do OLED | — | 8,50:1 | 7,0:1 |
 
-Os valores abaixo foram calculados por luminância relativa sRGB segundo a especificação WCAG 2.1
-(W3C) a partir dos valores literais de `FrilaCores` em
-`android/core/designsystem/src/main/kotlin/br/com/frila/core/designsystem/tema/FrilaCores.kt`.
-A suíte `MatrizContrasteWCAGTest` (`:core:designsystem:testDebugUnitTest`) é o guardião destes
-números: ela falha se qualquer par cair abaixo do piso da coluna "Mínimo exigido".
+- Branco sobre o laranja só passa como texto grande: por isso o rótulo do primário é 20sp em negrito e o laranja
+  nunca é cor de texto nem único sinal de estado.
+- Alterar qualquer valor de `FrilaCores` exige rodar `./gradlew :core:designsystem:testDebugUnitTest` e atualizar
+  esta tabela no mesmo PR.
 
-| Primeiro plano | Fundo | Razão medida | Mínimo exigido | Nível |
-|---|---|---:|---:|---|
-| `textPrimaryLight` | `surfaceLight` | 16,86:1 | 4,5:1 | AAA |
-| `textPrimaryLight` | `surfaceElevatedLight` | 18,89:1 | 4,5:1 | AAA |
-| `textSecondaryLight` | `surfaceLight` | 6,06:1 | 4,5:1 | AA |
-| `textSecondaryLight` | `surfaceElevatedLight` | 6,80:1 | 4,5:1 | AA |
-| `brandOnPrimaryLight` | `brandPrimaryLight` | 18,89:1 | 4,5:1 | AAA |
-| `successLight` | `surfaceElevatedLight` | 5,48:1 | 4,5:1 | AA |
-| `warningLight` | `surfaceElevatedLight` | 5,27:1 | 4,5:1 | AA |
-| `dangerLight` | `surfaceElevatedLight` | 5,38:1 | 4,5:1 | AA |
-| `textPrimaryDark` | `surfaceDark` | 17,89:1 | 4,5:1 | AAA |
-| `textPrimaryDark` | `surfaceElevatedDark` | 15,51:1 | 4,5:1 | AAA |
-| `textSecondaryDark` | `surfaceDark` | 7,69:1 | 4,5:1 | AAA |
-| `textSecondaryDark` | `surfaceElevatedDark` | 6,67:1 | 4,5:1 | AA |
-| `brandOnPrimaryDark` | `brandPrimaryDark` | 17,17:1 | 4,5:1 | AAA |
-| `successDark` | `surfaceElevatedDark` | 9,79:1 | 4,5:1 | AAA |
-| `warningDark` | `surfaceElevatedDark` | 10,22:1 | 4,5:1 | AAA |
-| `dangerDark` | `surfaceElevatedDark` | 6,05:1 | 4,5:1 | AA |
-| `textPrimaryDark` | `surfaceOled` | 19,08:1 | 7,0:1 | AAA |
-| `textSecondaryDark` | `surfaceOled` | 8,21:1 | 7,0:1 | AAA |
-
-Menor razão da matriz: 5,27:1 (`warningLight` sobre `surfaceElevatedLight`), acima do piso AA de
-4,5:1 para texto normal. O modo OLED (`surfaceOled`, preto puro) é exigido no nível AAA (7,0:1)
-porque é o fundo de leitura prolongada em aparelhos com tela OLED.
-
-Notas de uso:
-
-- `brandAccent` (`#EA5A36`) não entra na matriz como cor de texto: ele é acento de ícone e
-  destaque gráfico, sujeito ao piso de 3,0:1 de componentes gráficos, nunca fundo de tela ou de
-  cartão (ver seção 1).
-- Alterar qualquer valor literal de `FrilaCores` exige rodar
-  `./gradlew :core:designsystem:testDebugUnitTest` e atualizar esta tabela no mesmo PR.
-
-As anotações de TalkBack, nós semânticos e ordem de foco das telas Entrada, Cadastro e Feed estão
-em [`06-anotacoes-talkback-telas.md`](06-anotacoes-talkback-telas.md); contraste e semântica são
-os dois lados do critério de acessibilidade do cartão `Q84ogJUr`.
+As anotações de TalkBack, nós semânticos e ordem de foco das telas estão em
+[`06-anotacoes-talkback-telas.md`](06-anotacoes-talkback-telas.md).

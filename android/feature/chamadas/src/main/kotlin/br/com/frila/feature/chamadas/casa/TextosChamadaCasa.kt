@@ -193,6 +193,7 @@ object TextosChamadaCasa {
     const val SEM_REFEICAO_TRANSPORTE_INCLUSO = "Sem refeição, transporte incluso"
     const val SEM_REFEICAO_NEM_TRANSPORTE = "Sem refeição nem transporte"
 
+    fun buscaSelecionar(nome: String) = "Selecionar $nome"
     fun buscaChamar(quantos: Int) = "Chamar ($quantos)"
     fun buscaSelecionados(quantos: Int) = if (quantos == 1) "1 selecionado de 3" else "$quantos selecionados de 3"
 }

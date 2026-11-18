@@ -60,7 +60,6 @@ class PullToRefreshVagasTest {
                 TelaFeedVagas(
                     viewModel = viewModel,
                     aoAbrirDetalhe = {},
-                    aoAbrirPerfil = {},
                 )
             }
         }

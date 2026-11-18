@@ -7,19 +7,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -31,24 +25,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.Role as PapelDeAcessibilidade
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.semantics.Role as PapelDeAcessibilidade
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.componentes.IndicadorCarregando
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.LinkFrila
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import java.time.Instant
 import java.time.ZonedDateTime
 
@@ -109,11 +110,11 @@ class AcoesChamadaDireta(
 )
 
 /**
- * A folha "Chamar profissional" (desenho do iOS `TelaChamadaDireta`): função, local da casa, início e término,
- * responsável, valor total e a confirmação dele, inclusos e recado; o botão desligado diz o que falta, e o aviso J7
- * (3ª chamada em 7 dias) vem num diálogo. Enviada a chamada, a folha mostra o resumo e o caminho para acompanhar.
+ * A tela "Chamar profissional" (desenho do iOS `TelaChamadaDireta`): formulário curto com UM primário no rodapé.
+ * Função, local da casa, início e término, responsável, valor total e a confirmação dele, inclusos e recado; o botão
+ * desligado diz o que falta, e o aviso J7 (3ª chamada em 7 dias) vem num diálogo. Enviada a chamada, mostra o resumo
+ * e o caminho para acompanhar.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConteudoChamadaDireta(
     tela: EstadoChamadaDireta,
@@ -122,25 +123,35 @@ fun ConteudoChamadaDireta(
     faixaDoTermino: () -> ClosedRange<Instant>,
     modifier: Modifier = Modifier,
 ) {
+    val resultado = tela.resultado
+    val comFormulario = resultado == null && tela.recursoHabilitado
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = FrilaTema.cores.fundo,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosChamadaCasa.TITULO_DA_FOLHA,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
+            FrilaBarraDeTopo(
+                acoes = {
+                    LinkFrila(
+                        texto = TextosChamadaCasa.FECHAR,
+                        aoClicar = acoes.aoFechar,
+                        habilitado = !tela.enviando,
+                        modifier = Modifier.padding(end = FrilaEspacamento.compacto),
                     )
                 },
-                navigationIcon = {
-                    TextButton(
-                        onClick = acoes.aoFechar,
-                        enabled = !tela.enviando,
-                        modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                    ) { Text(TextosChamadaCasa.FECHAR) }
-                },
             )
+        },
+        bottomBar = {
+            if (comFormulario) {
+                RodapeAncorado {
+                    tela.oQueFalta?.let { MensagemJuntoAoBotao(it) }
+                    BotaoPrimario(
+                        texto = if (tela.enviando) TextosChamadaCasa.CARREGANDO else TextosChamadaCasa.ENVIAR,
+                        aoClicar = acoes.aoEnviar,
+                        habilitado = tela.podeEnviar,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         },
     ) { preenchimento ->
         Column(
@@ -148,34 +159,22 @@ fun ConteudoChamadaDireta(
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(FrilaEspacamento.medio),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(horizontal = FrilaEspacamento.grupo)
+                .padding(bottom = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
-            if (tela.carregando) IndicadorCarregando()
+            TituloDaTela(TextosChamadaCasa.TITULO_DA_FOLHA)
+            if (tela.carregando) EstadoCarregando()
             tela.erro?.let { erro ->
                 AvisoFrila(tom = TomAviso.ERRO, mensagem = erro)
                 if (!tela.recursoHabilitado && !tela.carregando) {
                     BotaoSecundario(texto = TextosChamadaCasa.TENTAR_NOVAMENTE, aoClicar = acoes.aoTentarNovamente)
                 }
             }
-            val resultado = tela.resultado
             if (resultado != null) {
                 ResumoDaChamadaEnviada(tela = tela, aoAcompanhar = acoes.aoAcompanhar?.let { acompanhar -> { acompanhar(resultado.vagaId) } })
             } else if (tela.recursoHabilitado) {
                 Campos(tela, acoes, inicioMinimo, faixaDoTermino)
-                BotaoPrimario(
-                    texto = if (tela.enviando) TextosChamadaCasa.CARREGANDO else TextosChamadaCasa.ENVIAR,
-                    aoClicar = acoes.aoEnviar,
-                    habilitado = tela.podeEnviar,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                tela.oQueFalta?.let { falta ->
-                    Text(
-                        text = falta,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
     }
@@ -183,19 +182,25 @@ fun ConteudoChamadaDireta(
     if (tela.mostrarJ7) {
         AlertDialog(
             onDismissRequest = acoes.aoDispensarJ7,
-            title = { Text(TextosChamadaCasa.J7_TITULO, modifier = Modifier.semantics { heading() }) },
-            text = { Text(TextosChamadaCasa.J7_MENSAGEM) },
+            containerColor = FrilaTema.cores.superficie,
+            title = {
+                Text(
+                    TextosChamadaCasa.J7_TITULO,
+                    style = FrilaTipo.nome,
+                    color = FrilaTema.cores.tinta,
+                    modifier = Modifier.semantics { heading() },
+                )
+            },
+            text = { Text(TextosChamadaCasa.J7_MENSAGEM, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta) },
             confirmButton = {
-                TextButton(
-                    onClick = acoes.aoConfirmarJ7,
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosChamadaCasa.J7_CONFIRMAR) }
+                TextButton(onClick = acoes.aoConfirmarJ7, modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) {
+                    Text(TextosChamadaCasa.J7_CONFIRMAR, style = FrilaTipo.rotuloSecundario, color = FrilaTema.cores.tinta)
+                }
             },
             dismissButton = {
-                TextButton(
-                    onClick = acoes.aoDispensarJ7,
-                    modifier = Modifier.sizeIn(minWidth = FrilaMetricas.alvoMinimo, minHeight = FrilaMetricas.alvoMinimo),
-                ) { Text(TextosChamadaCasa.CANCELAR) }
+                TextButton(onClick = acoes.aoDispensarJ7, modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) {
+                    Text(TextosChamadaCasa.CANCELAR, style = FrilaTipo.rotuloSecundario, color = FrilaTema.cores.tintaSuave)
+                }
             },
         )
     }
@@ -216,52 +221,47 @@ private fun Campos(
         TextosChamadaCasa.TERMINO, tela.fim, editavel,
         minimo = { faixaDoTermino().start }, maximo = { faixaDoTermino().endInclusive }, aoEscolher = acoes.aoMudarFim,
     )
-    OutlinedTextField(
-        value = tela.responsavel,
-        onValueChange = acoes.aoMudarResponsavel,
-        label = { Text(TextosChamadaCasa.RESPONSAVEL) },
-        enabled = editavel,
-        singleLine = true,
+    CampoDeTexto(
+        valor = tela.responsavel,
+        aoMudar = acoes.aoMudarResponsavel,
+        rotulo = TextosChamadaCasa.RESPONSAVEL,
+        habilitado = editavel,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-        modifier = Modifier.fillMaxWidth(),
     )
-    OutlinedTextField(
-        value = tela.valorTexto,
-        onValueChange = acoes.aoMudarValor,
-        label = { Text(TextosChamadaCasa.VALOR_TOTAL) },
-        placeholder = { Text(TextosChamadaCasa.VALOR_EXEMPLO) },
-        prefix = { Text(TextosChamadaCasa.MOEDA) },
-        enabled = editavel,
-        singleLine = true,
+    CampoDeTexto(
+        valor = tela.valorTexto,
+        aoMudar = acoes.aoMudarValor,
+        rotulo = TextosChamadaCasa.VALOR_TOTAL,
+        dica = TextosChamadaCasa.VALOR_EXEMPLO,
+        habilitado = editavel,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.fillMaxWidth(),
+        acessorio = { Text(TextosChamadaCasa.MOEDA, style = FrilaTipo.corpo, color = FrilaTema.cores.tintaSuave) },
     )
-    LinhaDeInterruptor(TextosChamadaCasa.CONFIRMAR_TOTAL, tela.totalConfirmado, editavel, acoes.aoConfirmarTotal)
-    LinhaDeInterruptor(TextosChamadaCasa.INCLUI_REFEICAO, tela.refeicao, editavel, acoes.aoMudarRefeicao)
-    LinhaDeInterruptor(TextosChamadaCasa.INCLUI_TRANSPORTE, tela.transporte, editavel, acoes.aoMudarTransporte)
-    LinhaDeInterruptor(TextosChamadaCasa.EXIGE_MATERIAL_PROPRIO, tela.materialProprio, editavel, acoes.aoMudarMaterialProprio)
-    OutlinedTextField(
-        value = tela.recado,
-        onValueChange = acoes.aoMudarRecado,
-        label = { Text(TextosChamadaCasa.RECADO) },
-        enabled = editavel,
-        minLines = 3,
-        maxLines = 6,
-        isError = tela.recadoLongo,
-        supportingText = if (tela.recadoLongo) {
-            { Text(TextosChamadaCasa.RECADO_LONGO, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
-        } else {
-            null
-        },
-        modifier = Modifier.fillMaxWidth(),
+    FrilaGrupoDeLinhas {
+        linha { LinhaDeInterruptor(TextosChamadaCasa.CONFIRMAR_TOTAL, tela.totalConfirmado, editavel, acoes.aoConfirmarTotal) }
+        linha { LinhaDeInterruptor(TextosChamadaCasa.INCLUI_REFEICAO, tela.refeicao, editavel, acoes.aoMudarRefeicao) }
+        linha { LinhaDeInterruptor(TextosChamadaCasa.INCLUI_TRANSPORTE, tela.transporte, editavel, acoes.aoMudarTransporte) }
+        linha { LinhaDeInterruptor(TextosChamadaCasa.EXIGE_MATERIAL_PROPRIO, tela.materialProprio, editavel, acoes.aoMudarMaterialProprio) }
+    }
+    CampoDeTexto(
+        valor = tela.recado,
+        aoMudar = acoes.aoMudarRecado,
+        rotulo = TextosChamadaCasa.RECADO,
+        habilitado = editavel,
+        umaLinha = false,
+        linhasMinimas = 3,
+        erro = if (tela.recadoLongo) TextosChamadaCasa.RECADO_LONGO else null,
     )
 }
 
 @Composable
 private fun LinhaDeLeitura(rotulo: String, valor: String) {
-    Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { }) {
-        Text(rotulo, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(valor, style = MaterialTheme.typography.bodyLarge)
+    Column(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { },
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+    ) {
+        Text(rotulo, style = FrilaTipo.rotuloDeGrupo, color = FrilaTema.cores.tintaSuave)
+        Text(valor, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
     }
 }
 
@@ -269,26 +269,15 @@ private fun LinhaDeLeitura(rotulo: String, valor: String) {
 private fun SeletorDeFuncao(tela: EstadoChamadaDireta, aoEscolher: (String) -> Unit, editavel: Boolean) {
     var aberto by remember { mutableStateOf(false) }
     val atual = tela.funcoes.firstOrNull { it.id == tela.funcaoId }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(TextosChamadaCasa.FUNCAO, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        BotaoSecundario(
-            texto = atual?.nome ?: "—",
-            aoClicar = { aberto = true },
-            habilitado = editavel,
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "${TextosChamadaCasa.FUNCAO}: ${atual?.nome.orEmpty()}" },
-        )
-        DropdownMenu(expanded = aberto, onDismissRequest = { aberto = false }) {
-            tela.funcoes.forEach { funcao ->
-                DropdownMenuItem(
-                    text = { Text(funcao.nome) },
-                    onClick = {
-                        aberto = false
-                        aoEscolher(funcao.id)
-                    },
-                )
-            }
-        }
-    }
+    CampoDeEscolha(
+        rotulo = TextosChamadaCasa.FUNCAO,
+        valor = atual?.nome ?: "—",
+        dica = "—",
+        aberto = aberto && editavel,
+        aoMudarAberto = { aberto = it },
+        opcoes = tela.funcoes.map { funcao -> OpcaoDeEscolha(funcao.nome) { aoEscolher(funcao.id) } },
+        modifier = Modifier.semantics { contentDescription = "${TextosChamadaCasa.FUNCAO}: ${atual?.nome.orEmpty()}" },
+    )
 }
 
 /** Data e hora pelos seletores do sistema, no horário de Brasília; o ViewModel segura a faixa de 2 h a 16 h. */
@@ -303,8 +292,8 @@ private fun CampoDeHorario(
 ) {
     val contexto = LocalContext.current
     val atual = ZonedDateTime.ofInstant(valor, FusoDoFrila)
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(rotulo, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        Text(rotulo, style = FrilaTipo.rotuloDeGrupo, color = FrilaTema.cores.tintaSuave)
         BotaoSecundario(
             texto = dataEHora(valor),
             habilitado = editavel,
@@ -344,12 +333,13 @@ private fun LinhaDeInterruptor(rotulo: String, ligado: Boolean, editavel: Boolea
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .sizeIn(minHeight = FrilaMetricas.alvoMinimo)
-            .toggleable(value = ligado, enabled = editavel, role = PapelDeAcessibilidade.Switch, onValueChange = aoMudar),
+            .heightIn(min = FrilaMetricas.alvoMinimo)
+            .toggleable(value = ligado, enabled = editavel, role = PapelDeAcessibilidade.Switch, onValueChange = aoMudar)
+            .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.item),
         horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(rotulo, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(rotulo, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta, modifier = Modifier.weight(1f))
         Switch(checked = ligado, onCheckedChange = null, enabled = editavel)
     }
 }

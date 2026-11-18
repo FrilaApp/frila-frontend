@@ -32,7 +32,7 @@ import org.robolectric.annotation.Config
 
 /** Os estados principais das três telas da casa: perfil público, folha de chamar e acompanhar. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h1200dp")
 class TelasDaCasaTest {
 
     @get:Rule
@@ -137,8 +137,8 @@ class TelasDaCasaTest {
         rule.onNodeWithText("SCS Quadra 2").assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaCasa.INICIO).assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaCasa.TERMINO).assertIsDisplayed()
-        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).performScrollTo().assertIsNotEnabled()
-        rule.onNodeWithText(TextosChamadaCasa.FALTA_VALOR).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsNotEnabled()
+        rule.onNodeWithText(TextosChamadaCasa.FALTA_VALOR).assertIsDisplayed()
     }
 
     @Test
@@ -146,7 +146,7 @@ class TelasDaCasaTest {
         var enviou = 0
         montarFolha(folha { copy(valorTexto = "180", totalConfirmado = true) }, AcoesChamadaDireta(aoEnviar = { enviou++ }))
 
-        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).performScrollTo().assertIsEnabled().performClick()
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
 
         assertEquals(1, enviou)
     }
@@ -155,7 +155,7 @@ class TelasDaCasaTest {
     fun folhaEnviandoNaoDeixaEnviarDeNovoEMostraProgresso() {
         montarFolha(folha { copy(valorTexto = "180", totalConfirmado = true, enviando = true, travado = true) })
 
-        rule.onNodeWithText(TextosChamadaCasa.CARREGANDO).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosChamadaCasa.CARREGANDO).assertIsNotEnabled()
     }
 
     @Test
