@@ -95,9 +95,14 @@ object TextosChamadaProfissional {
     const val AVISO_CHAMADAS_EXISTENTES =
         "Alterações nas preferências não afetam chamadas que você já recebeu; elas continuam disponíveis até o prazo limite."
 
-    /** Novo: "Aceito chamadas diretas" (CD-P10 a CD-P12). Texto do pedido sem "autorizo" nem "consinto" (parecer J1). */
+    /**
+     * "Aceito chamadas diretas" (CD-P10 a CD-P12). É o registro do aceite do titular (LGPD): o texto e a explicação são
+     * os da versão `busca-1` do contrato 0.2.102, os mesmos do iOS (`TextosBuscaDeProfissionais.aceitoChamadas` e
+     * `aceitoChamadasExplicacao`) e da web. Mudar uma palavra aqui pede versão nova (`VERSAO_TEXTO_BUSCA`) no contrato.
+     */
     const val ACEITO_TITULO = "Aceito chamadas diretas"
-    const val ACEITO_TEXTO = "Quero aparecer na busca e receber chamadas de contratantes"
+    const val ACEITO_TEXTO = "Aceito chamadas diretas"
+    const val ACEITO_EXPLICACAO = "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga."
     const val ACEITO_O_QUE_APARECE =
         "Seu telefone, seu endereço e sua data de nascimento não aparecem. O Frila não troca telefone entre as partes."
     const val ACEITO_DESLIGAR = "Você pode desligar quando quiser. Desligar tira você da busca na hora."
@@ -111,8 +116,11 @@ object TextosChamadaProfissional {
     const val ESCOLHER_DATA = "Escolher data"
     const val CONFIRMAR = "Confirmar"
 
-    /** Versão do texto "Aceito chamadas diretas" gravada no servidor ao ligar (`versao_texto_busca`, até 20 caracteres). */
-    const val VERSAO_TEXTO_BUSCA = "busca-v1"
+    /**
+     * Versão do texto "Aceito chamadas diretas" gravada no servidor ao ligar (`versao_texto_busca`, até 20 caracteres).
+     * `busca-1` é a versão registrada no contrato 0.2.102; o iOS (`versaoDoTextoDaBusca`) e a web mandam a mesma.
+     */
+    const val VERSAO_TEXTO_BUSCA = "busca-1"
 
     fun pendencia(codigo: String): String? = when (codigo) {
         "sem_servico_com_preco" -> PENDENCIA_SEM_SERVICO
