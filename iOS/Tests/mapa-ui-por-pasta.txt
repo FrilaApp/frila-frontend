@@ -50,6 +50,7 @@ Sources/Apresentacao/Fluxos/Contratante/*CodigoDaCasa*.swift = CheckinPorCodigoU
 Sources/Apresentacao/Fluxos/Contratante/TextosDoCheckinPorCodigoCasa.swift = CheckinPorCodigoUITests, TurnoDoContratanteUITests
 Sources/Apresentacao/Fluxos/Contratante/Estudio/ = PublicarVagaEmMinhasVagasUITests, MinhasVagasUITests, CicloDePontaAPontaUITests, RepublicarVagaUITests
 Sources/Apresentacao/Fluxos/Contratante/PublicarVaga*.swift = PublicarVagaEmMinhasVagasUITests, CicloDePontaAPontaUITests, MinhasVagasUITests
+Tests/UI/CapturasR5UITests.swift = CapturasR5UITests
 Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift = MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, CancelamentoDoContratanteUITests, VagaEncerradaTrabalhadaUITests, BuscaDeProfissionaisUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarVaga.swift = RepublicarVagaUITests, MinhasVagasUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarPosicoesRestantes.swift = RepublicarPosicoesRestantesUITests, MinhasVagasUITests
