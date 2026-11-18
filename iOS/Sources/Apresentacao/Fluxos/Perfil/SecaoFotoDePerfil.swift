@@ -106,14 +106,14 @@ private struct ConteudoDaFotoDePerfil: View {
     // MARK: Cartão
 
     private var cartao: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosFotoDePerfil.titulo)
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("perfil-foto-titulo")
-            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                HStack(alignment: .top, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                HStack(alignment: .top, spacing: FrilaEspaco.bloco) {
                     AvatarDaFoto(url: model.urlDaFoto)
                     estado
                 }
@@ -121,27 +121,22 @@ private struct ConteudoDaFotoDePerfil: View {
                 if let aviso = model.aviso { avisoDeErro(aviso) }
                 acoes
             }
-            .padding(FrilaEspaco.medio)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                    .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-            )
+            .cartaoFrila()
         }
     }
 
     // MARK: Estado
 
     private var estado: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
             Text(verbatim: titulo)
-                .font(FrilaTipo.tituloDoCartao)
+                .font(FrilaTipo.nome)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("perfil-foto-estado")
             Text(verbatim: texto)
-                .font(FrilaTipo.corpo)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("perfil-foto-texto")
@@ -180,44 +175,37 @@ private struct ConteudoDaFotoDePerfil: View {
         }
     }
 
+    /// Os passos do envio ("Preparando a foto…", "Conferindo a foto…", "Enviando a foto…"): só texto, porque o progresso não é medido.
     private var andamento: some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
-            ProgressView()
-            Text(verbatim: model.etapa == .preparando ? TextosFotoDePerfil.preparando
-                 : model.etapa == .verificando ? TextosFotoDePerfil.verificando : TextosFotoDePerfil.enviando)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-        }
-        .accessibilityElement(children: .combine)
+        Text(verbatim: model.etapa == .preparando ? TextosFotoDePerfil.preparando
+             : model.etapa == .verificando ? TextosFotoDePerfil.verificando : TextosFotoDePerfil.enviando)
+            .font(FrilaTipo.apoio)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
     }
 
+    /// Problema não tem cor (D-DS-13): o aviso é um bloco neutro, com o tom no ícone e na fala.
     private func avisoDeErro(_ aviso: FotoDePerfilViewModel.Aviso) -> some View {
-        HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-            Image(systemName: "exclamationmark.circle")
-                .foregroundStyle(FrilaCor.alerta)
-                .accessibilityHidden(true)
-            Text(verbatim: TextosFotoDePerfil.aviso(aviso))
-                .font(FrilaTipo.aviso)
-                .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("perfil-foto-aviso")
+        AvisoFrila(verbatim: TextosFotoDePerfil.aviso(aviso), tom: .alerta)
+            .accessibilityIdentifier("perfil-foto-aviso")
     }
 
     // MARK: Ações
 
+    /// Nenhum laranja aqui: a raiz da Conta não tem botão primário, então escolher a foto é botão secundário.
     @ViewBuilder
     private var acoes: some View {
-        VStack(spacing: FrilaEspaco.pequeno) {
+        VStack(spacing: FrilaEspaco.item) {
             if model.podeEscolherFoto {
                 if model.midia == nil || model.midia?.estado == .aprovada {
-                    BotaoPrimario(verbatim: model.midia == nil ? TextosFotoDePerfil.escolher : TextosFotoDePerfil.trocar) {
+                    BotaoSecundario(verbatim: model.midia == nil ? TextosFotoDePerfil.escolher : TextosFotoDePerfil.trocar) {
                         mostrarAvisoPrevio = true
                     }
                     .accessibilityIdentifier("perfil-foto-escolher")
                 } else if model.midia?.estado == .recusada || model.midia?.estado == .naoPublicada || model.midia?.estado == .ocultada {
-                    BotaoPrimario(verbatim: TextosFotoDePerfil.tentarOutra) { mostrarAvisoPrevio = true }
+                    BotaoSecundario(verbatim: TextosFotoDePerfil.tentarOutra) { mostrarAvisoPrevio = true }
                         .accessibilityIdentifier("perfil-foto-tentar-outra")
                 }
             }
@@ -227,9 +215,10 @@ private struct ConteudoDaFotoDePerfil: View {
             }
             if model.podeRemover {
                 Button { pedirConfirmacaoDeRemocao = true } label: {
-                    Text(verbatim: TextosFotoDePerfil.remover).capsulaDestrutiva()
+                    Text(verbatim: TextosFotoDePerfil.remover)
                 }
-                .buttonStyle(.tatil)
+                .buttonStyle(.frilaAcaoDiscreta)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("perfil-foto-remover")
             }
         }
@@ -286,7 +275,7 @@ struct AvatarDaFoto: View {
         ZStack {
             FrilaCor.controle
             Image(systemName: "person.fill")
-                .font(FrilaTipo.tituloGrande)
+                .font(.title)
                 .foregroundStyle(FrilaCor.textoSecundario)
         }
     }
@@ -313,7 +302,7 @@ struct TelaRecorteDeFoto: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: FrilaEspaco.grande) {
+            VStack(spacing: FrilaEspaco.grupo) {
                 Text(verbatim: TextosFotoDePerfil.recorteInstrucao)
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.textoSecundario)
@@ -336,7 +325,7 @@ struct TelaRecorteDeFoto: View {
                     .disabled(imagem == nil)
                     .accessibilityIdentifier("perfil-foto-recorte-usar")
             }
-            .padding(FrilaEspaco.medio)
+            .padding(FrilaEspaco.grupo)
             .frame(maxHeight: .infinity, alignment: .top)
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosFotoDePerfil.recorteTitulo))
@@ -383,12 +372,15 @@ struct TelaRecorteDeFoto: View {
         .accessibilityIdentifier("perfil-foto-recorte-area")
     }
 
+    /// Lado a lado no tamanho padrão; um embaixo do outro quando o texto é grande, para o rótulo não ser cortado.
     private var controlesDeZoom: some View {
-        HStack(spacing: FrilaEspaco.medio) {
-            BotaoSecundario(verbatim: TextosFotoDePerfil.recorteAfastar) { mudarZoom(-0.25) }
-                .disabled(zoom <= 1)
-            BotaoSecundario(verbatim: TextosFotoDePerfil.recorteAproximar) { mudarZoom(0.25) }
-                .disabled(zoom >= 4)
+        let afastar = BotaoSecundario(verbatim: TextosFotoDePerfil.recorteAfastar) { mudarZoom(-0.25) }
+            .disabled(zoom <= 1)
+        let aproximar = BotaoSecundario(verbatim: TextosFotoDePerfil.recorteAproximar) { mudarZoom(0.25) }
+            .disabled(zoom >= 4)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: FrilaEspaco.bloco) { afastar; aproximar }
+            VStack(spacing: FrilaEspaco.item) { afastar; aproximar }
         }
     }
 

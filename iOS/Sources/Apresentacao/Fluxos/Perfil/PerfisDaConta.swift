@@ -29,6 +29,7 @@ enum TextosPerfilConta {
     static let explicacaoExcluir = String(localized: "Encerra a conta de forma permanente e não dá para desfazer. Antes de confirmar, você vê o que acontece com seus dados e turnos.", bundle: bundleApresentacao)
     static let erro = String(localized: "Não foi possível carregar o perfil.", bundle: bundleApresentacao)
     static let vazio = String(localized: "Nenhum estabelecimento disponível.", bundle: bundleApresentacao)
+    static let vazioDica = String(localized: "Se isso não parece certo, fale com o suporte em Ajuda.", bundle: bundleApresentacao)
     static let funcao = String(localized: "Funções", bundle: bundleApresentacao)
     static let horarios = String(localized: "Horários disponíveis", bundle: bundleApresentacao)
     static let tipo = String(localized: "Tipo", bundle: bundleApresentacao)
@@ -139,7 +140,8 @@ public final class PerfilEstabelecimentoViewModel {
     }
 }
 
-/// Linha de lista do MidFi: texto 17 à esquerda e chevron em `textoSecundario` à direita, com 52 pt de altura mínima.
+/// Linha de lista de tela que ainda não passou para o `FrilaGrupoDeLinhas`: texto à esquerda e seta em `textoSecundario`,
+/// com 48 pt de altura mínima. A Conta já não a usa; `ItemExportarDados` (R7) e `MinhasVagas` (R5) ainda usam.
 struct RotuloDeLinha: View {
     private let titulo: String
 
@@ -166,7 +168,7 @@ struct RotuloDeLinha: View {
     }
 }
 
-/// Divisória entre as linhas de um grupo.
+/// Divisória entre as linhas de um grupo aberto (telas que ainda não passaram para o `FrilaGrupoDeLinhas`).
 struct DivisoriaDeLinha: View {
     public var body: some View {
         Rectangle()
@@ -176,7 +178,7 @@ struct DivisoriaDeLinha: View {
     }
 }
 
-/// Lista aberta do Hi-Fi, delimitada por fios e sem cartões aninhados.
+/// Lista aberta entre fios, sem cartão. A Conta usa o `FrilaGrupoDeLinhas`; esta ficou para `TelaAparencia` (R7).
 struct GrupoDeLinhas<Conteudo: View>: View {
     private let conteudo: Conteudo
 
@@ -194,37 +196,87 @@ struct GrupoDeLinhas<Conteudo: View>: View {
     }
 }
 
-/// Contorno destrutivo para "Excluir conta"; o toque abre a tela de confirmação.
-struct BotaoDeExclusaoDeConta: View {
-    public var body: some View {
-        Text(verbatim: TextosPerfilConta.excluir).capsulaDestrutiva()
-    }
-}
-
-/// Superfície única de um grupo da Conta: fundo de superfície, raio de cartão e fio de contorno, sem sombra.
-/// As linhas de dentro seguem independentes; o container não é um botão.
-private struct ContainerDaConta<Conteudo: View>: View {
-    private let conteudo: Conteudo
-
-    init(@ViewBuilder conteudo: () -> Conteudo) {
-        self.conteudo = conteudo()
-    }
+/// Linha de leitura de um grupo: o nome à esquerda e o valor, em `textoSecundario`, à direita. Com texto grande, o valor
+/// desce para baixo do nome.
+private struct LinhaDeValorDaConta: View {
+    let titulo: String
+    let valor: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            conteudo
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: FrilaEspaco.item) {
+                nome
+                Spacer(minLength: FrilaEspaco.item)
+                detalhe
+            }
+            VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                nome
+                detalhe
+            }
         }
-        .padding(.horizontal, FrilaEspaco.medio)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
-                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-        )
+        .padding(.horizontal, FrilaMedidaDeLinha.margem)
+        .padding(.vertical, FrilaEspaco.item)
+        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var nome: some View {
+        Text(verbatim: titulo)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var detalhe: some View {
+        Text(verbatim: valor)
+            .font(FrilaTipo.apoio)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
-/// Perfil do profissional (#18), com cabeçalho editorial e lista aberta do Hi-Fi.
+/// O destino de cada linha da Conta do profissional que abre outra tela (um por vez, no `navigationDestination(item:)`).
+private enum DestinoDoPerfil: Hashable {
+    case historico, apresentacao, preferenciasDeChamada, aparencia, bloqueios
+}
+
+/// O mesmo, na Conta do estabelecimento.
+private enum DestinoDoEstabelecimento: Hashable {
+    case historico, equipeDeConfianca, bloqueios, aparencia
+}
+
+/// A confirmação de saída, a mesma nas duas Contas: título rolável e ações ancoradas, Cancelar primeiro.
+/// "Sair" é o botão primário: é o compromisso da folha e o único laranja dela.
+private struct FolhaDeConfirmacaoDeSaida: View {
+    let cancelar: () -> Void
+    let confirmar: () -> Void
+
+    var body: some View {
+        ScrollView {
+            Text("Sair da conta?", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDaTela)
+                .foregroundStyle(FrilaCor.texto)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FrilaEspaco.grupo)
+        }
+        .rodapeAncorado {
+            BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao), acao: cancelar)
+                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+            BotaoPrimario(verbatim: TextosPerfilConta.sair, acao: confirmar)
+                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+        }
+        .background(FrilaCor.fundo)
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// Perfil do profissional (#18): nome e contatos, foto, histórico, o que alimenta as vagas e o menu da conta, em grupos de
+/// linhas sobre o fundo. Sem laranja: a raiz da Conta é de leitura e de escolha.
 public struct TelaMeuPerfilProfissional: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var despachoModel: PorQueReceboVagasViewModel
@@ -235,6 +287,7 @@ public struct TelaMeuPerfilProfissional: View {
     public let enderecos: EnderecosOficiais
     @State private var mostrarExplicacao = false
     @State private var mostrarAjuda = false
+    @State private var destino: DestinoDoPerfil?
     @State private var copiaDeContato = CopiaDeContato()
     @State private var edicao = EdicaoDeContato()
 
@@ -257,7 +310,7 @@ public struct TelaMeuPerfilProfissional: View {
 
     private var conteudoDaTela: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 if model.carregando {
                     EstadoCarregando()
                 } else if let erro = model.mensagemErro {
@@ -269,28 +322,32 @@ public struct TelaMeuPerfilProfissional: View {
                     configuracao(perfil)
                 }
 
-                Button { mostrarAjuda = true } label: {
-                    RotuloDeLinha(TextosPerfilConta.ajuda)
+                menuDaConta
+
+                // Ação de risco: discreta, no fim, uma por linha. A tela de trás diz o que cada uma faz.
+                NavigationLink {
+                    TelaSairOuExcluirConta(api: api, sair: sair)
+                } label: {
+                    Text(verbatim: TextosPerfilConta.sairOuExcluir)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("perfil-ajuda")
-
-                LinhaDeAparencia()
-
-                contaEDados
+                .buttonStyle(.frilaAcaoDiscreta)
+                .accessibilityIdentifier("perfil-sair-ou-excluir")
 
                 #if FRILA_BETA
                 SeloBeta()
                 #endif
             }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.top, FrilaEspaco.medio)
-            .padding(.bottom, FrilaEspaco.grande)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.bloco)
+            .padding(.bottom, FrilaEspaco.secao)
         }
         .background(FrilaCor.fundo)
         .frilaKeyboardDismissScope()
         .navigationTitle(Text(verbatim: TextosPerfilConta.meuPerfil))
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $destino) { destino in
+            telaDo(destino)
+        }
         .task { await model.carregar() }
         .sheet(isPresented: $mostrarExplicacao) { explicacao }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
@@ -302,6 +359,22 @@ public struct TelaMeuPerfilProfissional: View {
         }
     }
 
+    @ViewBuilder
+    private func telaDo(_ destino: DestinoDoPerfil) -> some View {
+        switch destino {
+        case .historico:
+            TelaHistoricoDeTurnos(api: api)
+        case .apresentacao:
+            TelaApresentacaoERegioes(api: api)
+        case .preferenciasDeChamada:
+            TelaPreferenciasDeChamada(api: api)
+        case .aparencia:
+            TelaAparencia()
+        case .bloqueios:
+            TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
+        }
+    }
+
     private func contato(_ titulo: String, _ valor: String, id: String, campo: CampoDeContato) -> some View {
         ContatoCopiavel(
             titulo: titulo, valor: valor, id: id, campo: campo, copia: copiaDeContato,
@@ -310,7 +383,8 @@ public struct TelaMeuPerfilProfissional: View {
             aoAcionar: { acao in
                 if acao == .editar { edicao.iniciar(campo, valor: valor) }
             },
-            aoConfirmarEdicao: confirmarEdicao
+            aoConfirmarEdicao: confirmarEdicao,
+            sangria: FrilaEspaco.item
         )
     }
 
@@ -329,142 +403,106 @@ public struct TelaMeuPerfilProfissional: View {
         }
     }
 
-    /// Seção que reúne dados e conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
+    /// Ajuda, aparência e dados da conta. Sair e Excluir conta ficam um passo adiante, de propósito: ações
     /// irreversíveis não devem ser acionadas por exploração na raiz da Conta.
-    private var contaEDados: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosPerfilConta.contaEDados)
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-            ContainerDaConta {
-                if perfilCarregado {
-                    NavigationLink {
-                        TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
-                    } label: {
-                        RotuloDeLinha(TextosBloqueios.titulo)
-                    }
-                    .buttonStyle(.plain)
+    private var menuDaConta: some View {
+        FrilaGrupoDeLinhas(verbatim: TextosPerfilConta.contaEDados, linhasComIcone: false) {
+            FrilaLinhaDeOpcao(titulo: TextosPerfilConta.ajuda, remate: .navega) { mostrarAjuda = true }
+                .accessibilityIdentifier("perfil-ajuda")
+            FrilaLinhaDeOpcao(titulo: TextosAparencia.titulo, remate: .navega) { destino = .aparencia }
+                .accessibilityIdentifier("perfil-aparencia")
+            if perfilCarregado {
+                FrilaLinhaDeOpcao(titulo: TextosBloqueios.titulo, remate: .navega) { destino = .bloqueios }
                     .accessibilityIdentifier("perfil-bloqueios")
-                    DivisoriaDeLinha()
-                    ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
-                    DivisoriaDeLinha()
-                }
-                NavigationLink {
-                    TelaSairOuExcluirConta(api: api, sair: sair)
-                } label: {
-                    RotuloDeLinha(TextosPerfilConta.sairOuExcluir)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("perfil-sair-ou-excluir")
+                // A linha é da `ItemExportarDados` (R7), que ainda desenha com margem zero: o respiro lateral vem daqui.
+                ItemExportarDados(viewModel: exportarModel, identificador: "perfil-exportar-dados")
+                    .padding(.horizontal, FrilaMedidaDeLinha.margem)
             }
         }
     }
 
     private func identidade(_ conta: Conta) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: conta.nome)
-                .font(FrilaTipo.secao)
+                .font(FrilaTipo.nome)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            // Áreas de toque encostadas: nenhuma faixa morta entre os dois contatos.
+            // Áreas de toque encostadas: nenhuma faixa morta entre os dois contatos. A área passa 8 pt para cada lado (sangria).
             VStack(alignment: .leading, spacing: 0) {
                 contato(TextosPerfilConta.telefone, FormatoDeTelefone.paraExibir(conta.telefone), id: "perfil-telefone", campo: .telefone)
                 contato(TextosPerfilConta.email, conta.email, id: "perfil-email", campo: .email)
             }
+            .padding(.horizontal, -FrilaEspaco.item)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var historico: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text("Seu histórico", bundle: bundleApresentacao)
-                .font(FrilaTipo.resumo)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-            ContainerDaConta {
-                if let reputacao = model.perfilPublico?.reputacao {
-                    SeloReputacao(reputacao)
-                        .padding(.vertical, FrilaEspaco.medio)
-                    DivisoriaDeLinha()
-                }
-                NavigationLink { TelaHistoricoDeTurnos(api: api) } label: {
-                    RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("perfil-historico-turnos")
+        FrilaGrupoDeLinhas(verbatim: String(localized: "Seu histórico", bundle: bundleApresentacao), linhasComIcone: false) {
+            if let reputacao = model.perfilPublico?.reputacao {
+                SeloReputacao(reputacao)
+                    .padding(.horizontal, FrilaMedidaDeLinha.margem)
+                    .padding(.vertical, FrilaEspaco.bloco)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            FrilaLinhaDeOpcao(titulo: TextosHistoricoDeTurnos.titulo, remate: .navega) { destino = .historico }
+                .accessibilityIdentifier("perfil-historico-turnos")
         }
     }
 
     private func configuracao(_ perfil: PerfilProfissional) -> some View {
-        ContainerDaConta {
+        FrilaGrupoDeLinhas(linhasComIcone: false) {
+            // O resumo (funções e horários) são dois textos com identificador próprio, então a linha é a do próprio
+            // NavigationLink, com o mesmo toque e a mesma seta das outras.
             NavigationLink { TelaPerfilProfissional(api: api, modo: .edicao) } label: {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    HStack(spacing: FrilaEspaco.pequeno) {
+                HStack(alignment: .top, spacing: FrilaEspaco.item) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                         Text(verbatim: TextosPerfilConta.funcoesHorarios)
-                            .font(FrilaTipo.tituloDoCartao)
+                            .font(FrilaTipo.rotuloSecundario)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: FrilaEspaco.pequeno)
-                        Image(systemName: "chevron.right")
-                            .font(FrilaTipo.meta.weight(.semibold))
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                    }
-                    VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
                         let funcoes = perfil.funcoes.map(\.nome).joined(separator: ", ")
                         Text(verbatim: funcoes.isEmpty ? TextosPerfilConta.naoInformado : funcoes)
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
+                            .font(FrilaTipo.apoio)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("perfil-funcoes-valor")
                         Text(verbatim: perfil.disponibilidades.isEmpty
                              ? TextosPerfilConta.naoInformado
                              : String(localized: "\(perfil.disponibilidades.count) horários cadastrados", bundle: bundleApresentacao))
-                            .font(FrilaTipo.nota)
+                            .font(FrilaTipo.apoio)
                             .foregroundStyle(FrilaCor.textoSecundario)
+                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("perfil-horarios-valor")
                     }
-                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: FrilaEspaco.item)
+                    Image(systemName: "chevron.forward")
+                        .font(FrilaTipo.apoio.weight(.semibold))
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .padding(.top, FrilaEspaco.junto)
+                        .accessibilityHidden(true)
                 }
-                .padding(.vertical, FrilaEspaco.medio)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, FrilaMedidaDeLinha.margem)
+                .padding(.vertical, FrilaEspaco.item)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(EstiloDeLinhaTocavel())
             .accessibilityIdentifier("perfil-funcoes-horarios")
 
             if model.suportaPerfilRico {
-                DivisoriaDeLinha()
-
-                NavigationLink {
-                    TelaApresentacaoERegioes(api: api)
-                } label: {
-                    RotuloDeLinha(TextosApresentacaoERegioes.titulo)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("perfil-apresentacao-regioes")
+                FrilaLinhaDeOpcao(titulo: TextosApresentacaoERegioes.titulo, remate: .navega) { destino = .apresentacao }
+                    .accessibilityIdentifier("perfil-apresentacao-regioes")
             }
 
             if model.suportaChamadaDireta {
-                DivisoriaDeLinha()
-
-                NavigationLink {
-                    TelaPreferenciasDeChamada(api: api)
-                } label: {
-                    RotuloDeLinha(TextosChamadaDireta.preferenciasTitulo)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("perfil-preferencias-chamada")
+                FrilaLinhaDeOpcao(titulo: TextosChamadaDireta.preferenciasTitulo, remate: .navega) { destino = .preferenciasDeChamada }
+                    .accessibilityIdentifier("perfil-preferencias-chamada")
             }
 
-            DivisoriaDeLinha()
-
-            Button { mostrarExplicacao = true } label: {
-                RotuloDeLinha(TextosPerfilConta.porQueRecebo)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("perfil-por-que-recebo")
+            FrilaLinhaDeOpcao(titulo: TextosPerfilConta.porQueRecebo, remate: .navega) { mostrarExplicacao = true }
+                .accessibilityIdentifier("perfil-por-que-recebo")
         }
     }
 
@@ -502,103 +540,57 @@ struct TelaSairOuExcluirConta: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.enorme) {
-                VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.secao) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                     Button { mostrarConfirmacaoDeSaida = true } label: {
-                        RotuloDeLinha(TextosPerfilConta.sair)
+                        Text(verbatim: TextosPerfilConta.sair)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.frilaAcaoDiscreta)
                     .accessibilityIdentifier("perfil-sair")
                     Text(verbatim: TextosPerfilConta.explicacaoSair)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                     NavigationLink {
                         TelaExclusaoDeConta(
                             viewModel: ExclusaoDeContaViewModel(api: api, aoConcluir: sair)
                         )
                     } label: {
-                        HStack(spacing: FrilaEspaco.pequeno) {
-                            Text(verbatim: TextosPerfilConta.excluir)
-                                .font(FrilaTipo.corpo)
-                            Spacer(minLength: FrilaEspaco.pequeno)
-                            Image(systemName: "chevron.right")
-                                .font(FrilaTipo.meta.weight(.semibold))
-                                .accessibilityHidden(true)
-                        }
-                        .foregroundStyle(FrilaCor.perigo)
-                        .padding(.vertical, FrilaEspaco.minimo)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                        .contentShape(Rectangle())
+                        Text(verbatim: TextosPerfilConta.excluir)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.frilaAcaoDiscreta)
                     .accessibilityIdentifier("perfil-excluir-conta")
                     Text(verbatim: TextosPerfilConta.explicacaoExcluir)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.top, FrilaEspaco.medio)
-            .padding(.bottom, FrilaEspaco.grande)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.bloco)
+            .padding(.bottom, FrilaEspaco.grupo)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosPerfilConta.sairOuExcluir))
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
-    }
-
-    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
-    private var confirmacaoDeSaida: some View {
-        ScrollView {
-            Text("Sair da conta?", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDeEstado)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
-                    mostrarConfirmacaoDeSaida = false
-                }
-                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
+        .sheet(isPresented: $mostrarConfirmacaoDeSaida) {
+            FolhaDeConfirmacaoDeSaida(
+                cancelar: { mostrarConfirmacaoDeSaida = false },
+                confirmar: {
                     mostrarConfirmacaoDeSaida = false
                     sair()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
-                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
-            }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
+            )
         }
-        .background(FrilaCor.fundo)
-        .presentationDetents([.large])
-        .presentationCornerRadius(FrilaRaio.folha)
-        .presentationDragIndicator(.visible)
     }
 }
-/// Perfil do estabelecimento (#18), com a mesma lista aberta do perfil do profissional.
+
+/// Perfil do estabelecimento (#18): o mesmo sistema do perfil do profissional, com o que a casa tem (histórico, equipe,
+/// bloqueios), e Sair e Excluir conta como ações discretas no fim. Sem desenho do Fabrício: extrapolado.
 public struct TelaPerfilEstabelecimento: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var mostrarConfirmacaoDeSaida = false
@@ -608,6 +600,7 @@ public struct TelaPerfilEstabelecimento: View {
     private let sair: () -> Void
     public let enderecos: EnderecosOficiais
     @State private var mostrarAjuda = false
+    @State private var destino: DestinoDoEstabelecimento?
     public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
         self.api = api
         self.sair = sair
@@ -617,172 +610,127 @@ public struct TelaPerfilEstabelecimento: View {
     }
     public var body: some View {
         conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
+            .sheet(isPresented: $mostrarConfirmacaoDeSaida) {
+                FolhaDeConfirmacaoDeSaida(
+                    cancelar: { mostrarConfirmacaoDeSaida = false },
+                    confirmar: {
+                        mostrarConfirmacaoDeSaida = false
+                        sair()
+                    }
+                )
+            }
     }
 
     @ViewBuilder
     private var conteudoDaTela: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 if model.carregando { EstadoCarregando() }
                 else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
                 else if let estabelecimento = model.estabelecimento {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                         Text(verbatim: estabelecimento.nome)
-                            .font(FrilaTipo.secao)
+                            .font(FrilaTipo.nome)
                             .foregroundStyle(FrilaCor.texto)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
-                        GrupoDeLinhas {
+                        FrilaGrupoDeLinhas(linhasComIcone: false) {
                             if let tipo = estabelecimento.tipo {
-                                LabeledContent {
-                                    Text(verbatim: tipo.descricaoPerfil)
-                                        .font(FrilaTipo.meta)
-                                        .foregroundStyle(FrilaCor.textoSecundario)
-                                } label: {
-                                    Text(verbatim: TextosPerfilConta.tipo)
-                                        .font(FrilaTipo.meta)
-                                        .foregroundStyle(FrilaCor.texto)
-                                }
-                                .padding(.vertical, FrilaEspaco.pequeno)
-                                DivisoriaDeLinha()
+                                LinhaDeValorDaConta(titulo: TextosPerfilConta.tipo, valor: tipo.descricaoPerfil)
                             }
-                            LabeledContent {
-                                Text(verbatim: estabelecimento.papel.descricaoPerfil)
-                                    .font(FrilaTipo.meta)
-                                    .foregroundStyle(FrilaCor.textoSecundario)
-                            } label: {
-                                Text(verbatim: TextosPerfilConta.papel)
-                                    .font(FrilaTipo.meta)
-                                    .foregroundStyle(FrilaCor.texto)
-                            }
-                            .padding(.vertical, FrilaEspaco.pequeno)
+                            LinhaDeValorDaConta(titulo: TextosPerfilConta.papel, valor: estabelecimento.papel.descricaoPerfil)
                         }
                         if let reputacao = model.perfilPublico?.reputacao { SeloReputacao(reputacao) }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, FrilaEspaco.medio)
                 } else {
-                    ContentUnavailableView {
-                        Label {
-                            Text(verbatim: TextosPerfilConta.vazio)
-                        } icon: {
-                            Image(systemName: "building.2")
-                        }
-                    }
+                    EstadoVazio(verbatim: TextosPerfilConta.vazio, mensagem: TextosPerfilConta.vazioDica)
                 }
-                GrupoDeLinhas {
-                    if !model.carregando, model.mensagemErro == nil, let estabelecimento = model.estabelecimento {
-                        NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
-                            RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
+
+                FrilaGrupoDeLinhas(linhasComIcone: false) {
+                    if !model.carregando, model.mensagemErro == nil, model.estabelecimento != nil {
+                        FrilaLinhaDeOpcao(titulo: TextosHistoricoDeTurnos.titulo, remate: .navega) {
+                            destino = .historico
                         }
-                        .buttonStyle(.plain)
                         .accessibilityIdentifier("estabelecimento-historico-turnos")
-                        DivisoriaDeLinha()
-                        NavigationLink { TelaEquipeDeConfianca(api: api, estabelecimentoID: estabelecimento.id) } label: {
-                            RotuloDeLinha(TextosEquipeDeConfianca.titulo)
+                        FrilaLinhaDeOpcao(titulo: TextosEquipeDeConfianca.titulo, remate: .navega) {
+                            destino = .equipeDeConfianca
                         }
-                        .buttonStyle(.plain)
                         .accessibilityIdentifier("estabelecimento-equipe-de-confianca")
-                        DivisoriaDeLinha()
-                        NavigationLink {
-                            TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
-                        } label: {
-                            RotuloDeLinha(TextosBloqueios.titulo)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("estabelecimento-bloqueios")
-                        DivisoriaDeLinha()
-                        Button { mostrarAjuda = true } label: {
-                            RotuloDeLinha(TextosPerfilConta.ajuda)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("perfil-ajuda")
-                        DivisoriaDeLinha()
+                        FrilaLinhaDeOpcao(titulo: TextosBloqueios.titulo, remate: .navega) { destino = .bloqueios }
+                            .accessibilityIdentifier("estabelecimento-bloqueios")
+                        FrilaLinhaDeOpcao(titulo: TextosPerfilConta.ajuda, remate: .navega) { mostrarAjuda = true }
+                            .accessibilityIdentifier("perfil-ajuda")
+                        // A linha é da `ItemExportarDados` (R7), que ainda desenha com margem zero: o respiro lateral vem daqui.
                         ItemExportarDados(viewModel: exportarModel, identificador: "estabelecimento-exportar-dados")
-                        DivisoriaDeLinha()
+                            .padding(.horizontal, FrilaMedidaDeLinha.margem)
                     }
-                    LinhaDeAparencia()
-                    DivisoriaDeLinha()
-                    Button(role: .destructive) { mostrarConfirmacaoDeSaida = true } label: {
-                        RotuloDeLinha(TextosPerfilConta.sair)
+                    FrilaLinhaDeOpcao(titulo: TextosAparencia.titulo, remate: .navega) { destino = .aparencia }
+                        .accessibilityIdentifier("perfil-aparencia")
+                }
+
+                // Ações de risco: discretas, no fim, uma por linha.
+                VStack(alignment: .leading, spacing: 0) {
+                    Button { mostrarConfirmacaoDeSaida = true } label: {
+                        Text(verbatim: TextosPerfilConta.sair)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.frilaAcaoDiscreta)
                     .accessibilityIdentifier("estabelecimento-sair")
-                }
-                NavigationLink {
-                    TelaExclusaoDeConta(
-                        viewModel: ExclusaoDeContaViewModel(
-                            api: api,
-                            aoConcluir: sair
+                    NavigationLink {
+                        TelaExclusaoDeConta(
+                            viewModel: ExclusaoDeContaViewModel(
+                                api: api,
+                                aoConcluir: sair
+                            )
                         )
-                    )
-                } label: {
-                    BotaoDeExclusaoDeConta()
+                    } label: {
+                        Text(verbatim: TextosPerfilConta.excluir)
+                    }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .accessibilityIdentifier("estabelecimento-excluir-conta")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("estabelecimento-excluir-conta")
 
                 #if FRILA_BETA
                 SeloBeta()
                 #endif
-            }.padding(FrilaEspaco.medio)
+            }
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.bloco)
+            .padding(.bottom, FrilaEspaco.secao)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosPerfilConta.perfilEstabelecimento))
-        .navigationBarTitleDisplayMode(.inline).task { await model.carregar() }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $destino) { destino in
+            telaDo(destino)
+        }
+        .task { await model.carregar() }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 
-    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
-    private var confirmacaoDeSaida: some View {
-        ScrollView {
-            Text("Sair da conta?", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDeEstado)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
-                    mostrarConfirmacaoDeSaida = false
-                }
-                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
-                    mostrarConfirmacaoDeSaida = false
-                    sair()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
-                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+    @ViewBuilder
+    private func telaDo(_ destino: DestinoDoEstabelecimento) -> some View {
+        switch destino {
+        case .historico:
+            if let estabelecimento = model.estabelecimento {
+                TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id)
             }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
+        case .equipeDeConfianca:
+            if let estabelecimento = model.estabelecimento {
+                TelaEquipeDeConfianca(api: api, estabelecimentoID: estabelecimento.id)
+            }
+        case .bloqueios:
+            TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
+        case .aparencia:
+            TelaAparencia()
         }
-        .background(FrilaCor.fundo)
-        .presentationDetents([.large])
-        .presentationCornerRadius(FrilaRaio.folha)
-        .presentationDragIndicator(.visible)
     }
 }
 
 
 public struct TelaAjudaPerfil: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var abrirLicencas = false
     public let enderecos: EnderecosOficiais
 
     public init(enderecos: EnderecosOficiais = .padrao) {
@@ -791,110 +739,21 @@ public struct TelaAjudaPerfil: View {
 
     public var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        if let url = enderecos.urlSuporte {
-                            Link(destination: url) {
-                                HStack {
-                                    Text(verbatim: TextosPerfilConta.suporte)
-                                        .font(FrilaTipo.corpo)
-                                        .foregroundStyle(FrilaCor.texto)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Spacer()
-                                    Image(systemName: "envelope")
-                                        .font(FrilaTipo.nota)
-                                        .foregroundStyle(FrilaCor.textoSecundario)
-                                }
-                                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                                .contentShape(Rectangle())
-                            }
-                            .accessibilityLabel(Text(verbatim: TextosPerfilConta.suporte))
-                            .accessibilityHint(Text(verbatim: TextosPerfilConta.dicaSuporte))
-                            .accessibilityAddTraits(.isLink)
-                            .accessibilityIdentifier("perfil-suporte")
-                        } else {
-                            Text(verbatim: TextosPerfilConta.suporte)
-                                .font(FrilaTipo.corpo)
-                                .foregroundStyle(FrilaCor.texto)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                                .accessibilityIdentifier("perfil-suporte")
-                        }
-
-                        Text(verbatim: enderecos.emailSuporte)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                            .contentShape(Rectangle())
-                            .textSelection(.enabled)
-                            .accessibilityLabel(Text(verbatim: "\(TextosPerfilConta.email): \(enderecos.emailSuporte)"))
-                            .accessibilityIdentifier("perfil-suporte-email")
-
-                        Text(verbatim: TextosPerfilConta.prazoSuporte)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            ScrollView {
+                FrilaGrupoDeLinhas(linhasComIcone: false) {
+                    suporte
+                    linkExterno(TextosPerfilConta.termos, destino: enderecos.termosDeUso, id: "perfil-termos")
+                    linkExterno(TextosPerfilConta.privacidade, destino: enderecos.politicaDePrivacidade, id: "perfil-privacidade")
+                    FrilaLinhaDeOpcao(titulo: TextosPerfilConta.licencas, remate: .navega) { abrirLicencas = true }
+                        .accessibilityIdentifier("perfil-licencas")
                 }
-
-                Link(destination: enderecos.termosDeUso) {
-                    HStack {
-                        Text(verbatim: TextosPerfilConta.termos)
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Image(systemName: "arrow.up.right")
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityHidden(true)
-                    }
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityLabel(Text(verbatim: TextosPerfilConta.termos))
-                .accessibilityAddTraits(.isLink)
-                .accessibilityIdentifier("perfil-termos")
-
-                Link(destination: enderecos.politicaDePrivacidade) {
-                    HStack {
-                        Text(verbatim: TextosPerfilConta.privacidade)
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer()
-                        Image(systemName: "arrow.up.right")
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityHidden(true)
-                    }
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityLabel(Text(verbatim: TextosPerfilConta.privacidade))
-                .accessibilityAddTraits(.isLink)
-                .accessibilityIdentifier("perfil-privacidade")
-
-                NavigationLink {
-                    TelaLicencas()
-                } label: {
-                    Text(verbatim: TextosPerfilConta.licencas)
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityIdentifier("perfil-licencas")
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.bloco)
+                .padding(.bottom, FrilaEspaco.grupo)
             }
-            .listStyle(.plain)
-            .listRowBackground(FrilaCor.fundo)
-            .listRowSeparatorTint(FrilaCor.divisoria)
-            .scrollContentBackground(.hidden)
             .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosPerfilConta.ajuda)).navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $abrirLicencas) { TelaLicencas() }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -909,6 +768,79 @@ public struct TelaAjudaPerfil: View {
                 }
             }
         }.presentationDetents([.large])
+    }
+
+    /// "Fale com o suporte", o e-mail e o prazo: um bloco só, na primeira linha.
+    private var suporte: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+            if let url = enderecos.urlSuporte {
+                Link(destination: url) {
+                    HStack {
+                        Text(verbatim: TextosPerfilConta.suporte)
+                            .font(FrilaTipo.rotuloSecundario)
+                            .foregroundStyle(FrilaCor.texto)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: FrilaEspaco.item)
+                        Image(systemName: "envelope")
+                            .font(FrilaTipo.apoio)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .accessibilityLabel(Text(verbatim: TextosPerfilConta.suporte))
+                .accessibilityHint(Text(verbatim: TextosPerfilConta.dicaSuporte))
+                .accessibilityAddTraits(.isLink)
+                .accessibilityIdentifier("perfil-suporte")
+            } else {
+                Text(verbatim: TextosPerfilConta.suporte)
+                    .font(FrilaTipo.rotuloSecundario)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minHeight: FrilaMetrica.alvo, alignment: .leading)
+                    .accessibilityIdentifier("perfil-suporte")
+            }
+
+            Text(verbatim: enderecos.emailSuporte)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
+                .contentShape(Rectangle())
+                .textSelection(.enabled)
+                .accessibilityLabel(Text(verbatim: "\(TextosPerfilConta.email): \(enderecos.emailSuporte)"))
+                .accessibilityIdentifier("perfil-suporte-email")
+
+            Text(verbatim: TextosPerfilConta.prazoSuporte)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, FrilaEspaco.item)
+        }
+        .padding(.horizontal, FrilaMedidaDeLinha.margem)
+    }
+
+    private func linkExterno(_ titulo: String, destino: URL, id: String) -> some View {
+        Link(destination: destino) {
+            HStack {
+                Text(verbatim: titulo)
+                    .font(FrilaTipo.rotuloSecundario)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: FrilaEspaco.item)
+                Image(systemName: "arrow.up.right")
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, FrilaMedidaDeLinha.margem)
+            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityAddTraits(.isLink)
+        .accessibilityIdentifier(id)
     }
 }
 

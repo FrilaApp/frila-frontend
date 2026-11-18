@@ -213,6 +213,9 @@ struct ContatoCopiavel: View {
     var edicao: EdicaoDeContato?
     var aoAcionar: (AcaoDaRail) -> Void = { _ in }
     var aoConfirmarEdicao: () -> Void = {}
+    /// Quanto a área de toque passa para os lados do conteúdo (o chamador a desfaz com a margem negativa). Com a margem da
+    /// tela em 24 pt, o toque no vazio à direita do valor continua dentro da linha, como era com 16.
+    var sangria: CGFloat = 0
 
     private enum Fase {
         case repouso, arrastando, travado, copiado
@@ -348,11 +351,15 @@ struct ContatoCopiavel: View {
     }
 
     var body: some View {
+        // Copiada para uma constante: a closure de medida é `@Sendable` e não pode capturar `self`.
+        let sangriaDaLinha = sangria
         if valor.isEmpty {
             par(valorExibido: TextosPerfilConta.naoInformado)
+                .padding(.horizontal, sangria)
                 .modifier(SuperficieDoContato())
         } else {
             par(valorExibido: valor)
+                .padding(.horizontal, sangria)
                 .modifier(SuperficieDoContato())
                 .overlay {
                     if edicao?.campo == nil {
@@ -371,7 +378,7 @@ struct ContatoCopiavel: View {
                 .accessibilityAction(named: Text(verbatim: TextosPerfilConta.copiar)) {
                     copia.copiar(campo, valor: valor)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { largura in
+                .onGeometryChange(for: CGFloat.self) { $0.size.width - 2 * sangriaDaLinha } action: { largura in
                     if largura != larguraDaLinha { interromper() }
                     larguraDaLinha = largura
                 }
@@ -387,8 +394,9 @@ struct ContatoCopiavel: View {
     private func par(valorExibido: String) -> some View {
         let editando = edicao?.campo == campo
         return VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            // Rótulo visível acima do valor, em rótulo de grupo (DESIGN.md, "Em tela de edição, o rótulo vai acima do valor").
             Text(verbatim: titulo)
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.rotuloDeGrupo)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityIdentifier("\(id)-rotulo")
                 .opacity(aberta ? 0 : 1)
@@ -404,9 +412,8 @@ struct ContatoCopiavel: View {
         .animation(FrilaMovimento.animacao(FrilaMotion.copyPillOpen, reduzir: reduzirMovimento), value: editando)
     }
 
-    /// Mesmas proporções do campo do app (`CampoFrila`, `CaixaDoCampoFrila`): 52 pt, respiro de 16 e 8, raio de
-    /// entrada e superfície do campo, só sem o contorno. O foco vem junto com a entrada, então o teclado sobe
-    /// com a pílula saindo.
+    /// A caixa do campo do sistema (`CaixaDoCampoFrila`): 48 pt, respiro de 16 e 8, raio de entrada, superfície do campo
+    /// e, como o foco vem junto com a entrada (o teclado sobe com a pílula saindo), o fio de 2 pt em tinta.
     private func editor(_ edicao: EdicaoDeContato) -> some View {
         HStack(spacing: FrilaEspaco.pequeno) {
             CampoDeEdicaoDeContato(
@@ -415,10 +422,10 @@ struct ContatoCopiavel: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             // Saída explícita, além de tocar fora: descarta o rascunho e fecha o teclado.
             Button { edicao.cancelar() } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(FrilaTipo.corpo)
+                Image(systemName: "xmark")
+                    .font(FrilaTipo.apoio.weight(.semibold))
                     .foregroundStyle(FrilaCor.textoSecundario)
-                    .frame(minWidth: FrilaEspaco.enorme, minHeight: FrilaEspaco.enorme)
+                    .frame(minWidth: FrilaMetrica.alvo, minHeight: FrilaMetrica.alvo)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -430,6 +437,7 @@ struct ContatoCopiavel: View {
         .padding(.vertical, FrilaEspaco.pequeno)
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
         .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.texto, lineWidth: 2))
         .frilaFormField(id: "\(id)-editar", isFocused: edicao.focado, onDismiss: { edicao.cancelar() })
         .transition(.opacity)
     }
@@ -448,7 +456,7 @@ struct ContatoCopiavel: View {
         .hidden()
     }
 
-    /// O toque simples confirma no lugar do valor: "Copiado" entra na cor da marca e o valor volta sozinho.
+    /// O toque simples confirma no lugar do valor: "Copiado" entra no lugar dele, em tinta, e o valor volta sozinho.
     /// O valor oculto segura a altura e a largura, para um e-mail que quebra linha não mexer na tela.
     private func valorOuCopiado(_ valorExibido: String) -> some View {
         let copiado = copia.tipVisivel == campo
@@ -459,7 +467,7 @@ struct ContatoCopiavel: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { larguraDoValor = $0 }
             if copiado {
                 TextoRolante(texto: TextosPerfilConta.copiado, identificador: "\(id)-copiado")
-                    .foregroundStyle(FrilaCor.marca)
+                    .foregroundStyle(FrilaCor.texto)
             } else {
                 TextoRolante(texto: valorExibido, identificador: "\(id)-valor", quebraLinha: true)
                     .foregroundStyle(FrilaCor.texto)

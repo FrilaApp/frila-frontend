@@ -85,7 +85,7 @@ struct CampoDeEdicaoDeContato: UIViewRepresentable {
         campoDeTexto.font = .preferredFont(forTextStyle: .body)
         campoDeTexto.adjustsFontForContentSizeCategory = true
         campoDeTexto.textColor = FrilaCor.textoUIKit
-        campoDeTexto.tintColor = FrilaCor.marcaUIKit
+        campoDeTexto.tintColor = FrilaCor.textoUIKit
         campoDeTexto.borderStyle = .none
         campoDeTexto.autocorrectionType = .no
         campoDeTexto.spellCheckingType = .no
