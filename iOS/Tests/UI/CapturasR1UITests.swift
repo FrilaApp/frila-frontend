@@ -89,8 +89,28 @@ final class CapturasR1UITests: XCTestCase {
         app.textFields["Código de acesso"].tap()
         app.textFields["Código de acesso"].typeText("000000")
         let erro = app.descendants(matching: .any)["codigo-erro"]
-        XCTAssertTrue(erro.waitForExistence(timeout: Espera.aparecer), "o erro do código aparece junto do botão")
+        XCTAssertTrue(erro.waitForExistence(timeout: Espera.aparecer), "o erro do código aparece")
+        // A captura vem antes das conferências: se uma delas falhar, a imagem mostra o que a pessoa via.
         capturar("r1-codigo-erro", ax5)
+        // Existir não basta: com o teclado aberto (e com texto grande), o erro tem de estar inteiro na tela, acima
+        // do teclado, sem a pessoa precisar rolar para saber o que houve.
+        let teclado = app.keyboards.firstMatch
+        let fimDaAreaVisivel = teclado.exists ? teclado.frame.minY : app.windows.firstMatch.frame.maxY
+        XCTAssertTrue(erro.isHittable, "o erro do código fica à vista depois do código errado (erro \(erro.frame), fim \(fimDaAreaVisivel))")
+        XCTAssertLessThanOrEqual(erro.frame.maxY, fimDaAreaVisivel + 1,
+                                 "o erro inteiro fica acima do teclado (erro \(erro.frame), fim \(fimDaAreaVisivel))")
+        // O caminho do reenvio continua ao alcance: no máximo com a rolagem da própria tela.
+        let reenvio = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier IN %@", ["codigo-reenviar", "codigo-reenviar-aguarde"])).firstMatch
+        XCTAssertTrue(reenvio.waitForExistence(timeout: Espera.aparecer), "o reenvio existe na tela do código")
+        // As caixas continuam na tela para a pessoa digitar de novo, e o reenvio ao alcance da rolagem.
+        let caixas = app.textFields["Código de acesso"]
+        XCTAssertLessThanOrEqual(caixas.frame.maxY, fimDaAreaVisivel + 1,
+                                 "as caixas do código seguem acima do teclado (caixas \(caixas.frame), fim \(fimDaAreaVisivel))")
+        XCTAssertFalse(caixas.frame.intersects(erro.frame),
+                       "o erro não cobre as caixas (caixas \(caixas.frame), erro \(erro.frame))")
+        for _ in 0..<4 where !reenvio.isHittable { app.swipeUp() }
+        XCTAssertTrue(reenvio.isHittable, "o reenvio fica ao alcance depois do código errado (reenvio \(reenvio.frame))")
     }
 
     // MARK: - Cadastro
