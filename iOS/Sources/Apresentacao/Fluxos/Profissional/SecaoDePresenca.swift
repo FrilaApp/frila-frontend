@@ -93,6 +93,16 @@ public struct SecaoDePresenca: View {
         if let erro = turno?.mensagemErroACaminho {
             MensagemJuntoAoBotao(verbatim: erro).accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: erro, tom: .erro))).accessibilityIdentifier("a-caminho-erro")
         }
+        if RegrasDeTelaDaPresenca.mostraTentarDeNovoDoACaminho(
+            estado: viewModel.etapa, erro: turno?.mensagemErroACaminho, podeTentar: turno?.podeTentarAvisarDeNovo == true
+        ) {
+            botaoACaminho(
+                verbatim: TextosDoProfissional.Turnos.tentarDeNovo,
+                identificador: "tentar-a-caminho-de-novo",
+                avisando: turno?.avisandoACaminho == true,
+                secundarioSempre: viewModel.etapa != .parada
+            )
+        }
     }
 
     // MARK: Ações
@@ -115,14 +125,6 @@ public struct SecaoDePresenca: View {
                 botaoACaminho(
                     verbatim: TextosDoProfissional.Turnos.botaoEstouACaminho,
                     identificador: "botao-a-caminho",
-                    avisando: turno?.avisandoACaminho == true
-                )
-            } else if RegrasDeTelaDaPresenca.mostraTentarDeNovoDoACaminho(
-                estado: viewModel.etapa, erro: turno?.mensagemErroACaminho, podeTentar: turno?.podeTentarAvisarDeNovo == true
-            ) {
-                botaoACaminho(
-                    verbatim: TextosDoProfissional.Turnos.tentarDeNovo,
-                    identificador: "tentar-a-caminho-de-novo",
                     avisando: turno?.avisandoACaminho == true
                 )
             }
@@ -187,10 +189,10 @@ public struct SecaoDePresenca: View {
     }
 
     /// "Estou a caminho": o primário da tela enquanto o check-in ainda não abriu; secundário quando o botão de check-in
-    /// ou de check-out já está na tela.
+    /// ou de check-out já está na tela. O "Tentar de novo" fora da etapa parada é sempre secundário: o primário é o do passo em curso.
     @ViewBuilder
-    private func botaoACaminho(verbatim titulo: String, identificador: String, avisando: Bool) -> some View {
-        if temPrimarioDeRegistro {
+    private func botaoACaminho(verbatim titulo: String, identificador: String, avisando: Bool, secundarioSempre: Bool = false) -> some View {
+        if secundarioSempre || temPrimarioDeRegistro {
             BotaoSecundario(verbatim: titulo) { Task { await turno?.avisarACaminho() } }
                 .disabled(avisando)
                 .accessibilityIdentifier(identificador)
@@ -333,8 +335,9 @@ private struct BotaoDePresenca: View {
 
 /// Condições de tela da presença que valem testar sem desenhar a view.
 enum RegrasDeTelaDaPresenca {
-    /// O "Tentar de novo" do aviso "a caminho": com o erro na tela e o ViewModel dizendo que dá para tentar.
+    /// O "Tentar de novo" do aviso "a caminho": com o erro na tela e o ViewModel dizendo que dá para tentar, em qualquer
+    /// etapa da presença (na main ele ficava fora do `switch` das etapas). `estado` fica na assinatura para o teste provar isso.
     static func mostraTentarDeNovoDoACaminho(estado: PresencaDoTurnoViewModel.Etapa, erro: String?, podeTentar: Bool) -> Bool {
-        estado == .parada && erro != nil && podeTentar
+        erro != nil && podeTentar
     }
 }
