@@ -1,9 +1,9 @@
 import FrilaDominio
 import SwiftUI
 
-/// Exclusão de conta (#25): o aviso, o que acontece, os turnos futuros, a confirmação e, ancorado embaixo, o botão da
-/// exclusão. O Fabrício não desenhou esta tela: extrapolada do sistema (ação de risco sem laranja e sem vermelho; a
-/// consequência vem escrita, e o botão repete a ação).
+/// Exclusão de conta (#25): o aviso, o que acontece, os turnos futuros, a confirmação e o botão da exclusão, tudo no
+/// conteúdo rolável, nessa ordem. O Fabrício não desenhou esta tela: extrapolada do sistema (ação de risco sem laranja
+/// e sem vermelho; a consequência vem escrita, e o botão repete a ação).
 public struct TelaExclusaoDeConta: View {
     @State private var viewModel: ExclusaoDeContaViewModel
     @State private var mostrarDialogoConfirmacao = false
@@ -26,6 +26,7 @@ public struct TelaExclusaoDeConta: View {
                 secaoConsequencias
                 secaoTurnosFuturos
                 secaoConfirmacao
+                acaoDeExcluir
             }
             .padding(.top, FrilaEspaco.item)
             .padding(.horizontal, FrilaEspaco.grupo)
@@ -37,13 +38,6 @@ public struct TelaExclusaoDeConta: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(FrilaCor.fundo, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .rodapeAncorado {
-            if let erro = viewModel.mensagemErro {
-                MensagemJuntoAoBotao(verbatim: erro)
-                    .accessibilityIdentifier("aviso-erro-exclusao")
-            }
-            botaoExcluir
-        }
         .task { await viewModel.carregar() }
         .sheet(isPresented: $mostrarDialogoConfirmacao) { confirmacaoFinal }
         .accessibilityIdentifier("tela-exclusao-de-conta")
@@ -187,6 +181,18 @@ public struct TelaExclusaoDeConta: View {
         .tint(FrilaCor.selecao)
         .frame(minHeight: FrilaMetrica.alvo)
         .accessibilityIdentifier("toggle-confirmar-consequencias")
+    }
+
+    /// A mensagem do erro e o botão, no fim do conteúdo, depois da confirmação.
+    @ViewBuilder
+    private var acaoDeExcluir: some View {
+        VStack(spacing: FrilaEspaco.item) {
+            if let erro = viewModel.mensagemErro {
+                MensagemJuntoAoBotao(verbatim: erro)
+                    .accessibilityIdentifier("aviso-erro-exclusao")
+            }
+            botaoExcluir
+        }
     }
 
     /// Ação de risco: sem laranja e sem vermelho, no desenho do botão secundário. Desligado (sem a confirmação ou

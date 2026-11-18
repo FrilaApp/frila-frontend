@@ -8,6 +8,7 @@ public struct TelaCodigo: View {
     var aoVoltar: () -> Void
     var aoConcluir: (DestinoCodigo) -> Void
     @FocusState private var campoFocado: Bool
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
 
     /// 56 pt: o passo da grade de 8 acima do campo de 48, para o dígito em `.title2` respirar.
     private static let alturaDaCaixa: CGFloat = 56
@@ -56,6 +57,12 @@ public struct TelaCodigo: View {
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, FrilaEspaco.bloco)
+
+                    // Com texto grande, a mensagem e o botão vão para o fim do conteúdo: ancorados, cobririam as caixas.
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(spacing: FrilaEspaco.item) { rodape }
+                            .padding(.top, FrilaEspaco.grupo)
+                    }
                 }
                 .padding(.top, FrilaEspaco.item)
                 .padding(.horizontal, FrilaEspaco.grupo)
@@ -87,7 +94,7 @@ public struct TelaCodigo: View {
             .navigationBarBackButtonHidden(true)
             // O erro, o aviso da colagem e o resultado do reenvio ficam junto do botão; sem nenhum deles, enquanto
             // faltam números, o que falta para entrar.
-            .rodapeAncorado { rodape }
+            .rodapeAncoradoQuando(!tamanhoDoTexto.isAccessibilitySize) { rodape }
             .onAppear {
                 campoFocado = true
                 #if DEBUG
@@ -331,4 +338,16 @@ public struct TelaCodigo: View {
         }
     }
     #endif
+}
+
+private extension View {
+    /// O rodapé ancorado só quando cabe: com texto grande a ação vai para o fim do conteúdo.
+    @ViewBuilder
+    func rodapeAncoradoQuando<Conteudo: View>(_ ativo: Bool, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        if ativo {
+            rodapeAncorado(conteudo)
+        } else {
+            self
+        }
+    }
 }

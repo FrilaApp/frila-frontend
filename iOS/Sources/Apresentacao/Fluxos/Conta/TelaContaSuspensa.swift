@@ -52,10 +52,11 @@ public struct TelaContaSuspensa: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
+            // O identificador da tela fica só na rolagem: no conjunto, ele trocaria o dos botões do rodapé.
+            .accessibilityIdentifier("tela-conta-suspensa")
             .rodapeAncoradoQuando(contestacaoEmAberto) { rodape }
             .toolbar(.hidden, for: .navigationBar)
             .task { await viewModel.carregar() }
-            .accessibilityIdentifier("tela-conta-suspensa")
         }
     }
 

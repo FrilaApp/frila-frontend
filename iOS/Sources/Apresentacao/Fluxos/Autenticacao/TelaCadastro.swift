@@ -10,6 +10,7 @@ public struct TelaCadastro: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @FocusState private var focoNoNome: Bool
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @State private var telefoneEmEdicao = false
     @State private var nascimentoEmEdicao = false
     @Bindable var viewModel: CadastroViewModel
@@ -31,6 +32,11 @@ public struct TelaCadastro: View {
                     escolhaDoPerfil
                     camposDeDados
                     aceiteDosTermos
+
+                    // Com texto grande, o botão vai para o fim do conteúdo: ancorado, cobriria os campos.
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(spacing: FrilaEspaco.item) { acaoDeContinuar(proxy) }
+                    }
                 }
                 .padding(.top, FrilaEspaco.item)
                 .padding(.horizontal, FrilaEspaco.grupo)
@@ -40,18 +46,7 @@ public struct TelaCadastro: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
-            .rodapeAncorado {
-                if let erro = viewModel.erro {
-                    MensagemJuntoAoBotao(verbatim: erro)
-                        .accessibilityIdentifier("cadastro-erro")
-                }
-
-                BotaoPrimario("Continuar", carregando: viewModel.carregando) {
-                    continuar(rolandoCom: proxy)
-                }
-                .disabled(viewModel.carregando || viewModel.ehMenorDeIdade)
-                .accessibilityIdentifier("cadastro-continuar")
-            }
+            .rodapeAncoradoQuando(!tamanhoDoTexto.isAccessibilitySize) { acaoDeContinuar(proxy) }
         }
         .onChange(of: viewModel.nome) { _, _ in
             if viewModel.campoComErro == .nome {
@@ -78,6 +73,21 @@ public struct TelaCadastro: View {
             }
         }
         .frilaKeyboardDismissScope()
+    }
+
+    /// A mensagem do erro e o botão, juntos: ancorados embaixo, ou no fim do conteúdo com texto grande.
+    @ViewBuilder
+    private func acaoDeContinuar(_ proxy: ScrollViewProxy) -> some View {
+        if let erro = viewModel.erro {
+            MensagemJuntoAoBotao(verbatim: erro)
+                .accessibilityIdentifier("cadastro-erro")
+        }
+
+        BotaoPrimario("Continuar", carregando: viewModel.carregando) {
+            continuar(rolandoCom: proxy)
+        }
+        .disabled(viewModel.carregando || viewModel.ehMenorDeIdade)
+        .accessibilityIdentifier("cadastro-continuar")
     }
 
     /// Cria a conta; se um campo falhou, leva a tela até ele.
@@ -303,5 +313,17 @@ public struct TelaCadastro: View {
         .accessibilityLabel(Text(verbatim: "\(titulo). \(descricao)"))
         .accessibilityValue(selecionado ? String(localized: "Selecionado", bundle: bundleApresentacao) : String(localized: "Não selecionado", bundle: bundleApresentacao))
         .accessibilityIdentifier(identificador)
+    }
+}
+
+private extension View {
+    /// O rodapé ancorado só quando cabe: com texto grande a ação vai para o fim do conteúdo.
+    @ViewBuilder
+    func rodapeAncoradoQuando<Conteudo: View>(_ ativo: Bool, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        if ativo {
+            rodapeAncorado(conteudo)
+        } else {
+            self
+        }
     }
 }

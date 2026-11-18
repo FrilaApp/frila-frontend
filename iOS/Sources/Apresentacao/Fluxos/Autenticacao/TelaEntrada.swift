@@ -7,6 +7,7 @@ public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
 
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @State private var erroLocal: String?
     @State private var controleDoCampo = ControleDoCampoEmail()
 
@@ -29,6 +30,11 @@ public struct TelaEntrada: View {
                     Spacer(minLength: FrilaEspaco.grupo)
 
                     VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                        // Com texto grande, o legal desce para o fim do conteúdo: ancorado, ele tomaria a tela.
+                        if tamanhoDoTexto.isAccessibilitySize {
+                            textoLegal
+                        }
+
                         Text("Classificação indicativa: 18 anos", bundle: bundleApresentacao)
                             .font(FrilaTipo.legenda)
                             .foregroundStyle(FrilaCor.textoSecundario)
@@ -60,12 +66,9 @@ public struct TelaEntrada: View {
         }
         .rodapeAncorado {
             // O que o toque faz fica escrito antes do botão, no mesmo grupo.
-            Text("Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).", bundle: bundleApresentacao)
-                .font(FrilaTipo.legenda)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .tint(FrilaCor.texto)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if !tamanhoDoTexto.isAccessibilitySize {
+                textoLegal
+            }
 
             if let erro = viewModel.erro {
                 MensagemJuntoAoBotao(verbatim: erro)
@@ -84,6 +87,15 @@ public struct TelaEntrada: View {
         #if DEBUG || FRILA_BETA
         .exemploDebugEntrada()
         #endif
+    }
+
+    private var textoLegal: some View {
+        Text("Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).", bundle: bundleApresentacao)
+            .font(FrilaTipo.legenda)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .tint(FrilaCor.texto)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var cabecalho: some View {

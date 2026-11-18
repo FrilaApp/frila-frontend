@@ -52,6 +52,8 @@ final class CapturasR1UITests: XCTestCase {
     private func entrar(email: String, _ app: XCUIApplication) {
         let campo = app.textFields["entrada-email"]
         XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
+        // Com texto grande o campo nasce abaixo da dobra: uma rolagem o traz, como no teste de cadastro existente.
+        if campo.frame.minY > app.windows.firstMatch.frame.height * 0.6 { app.swipeUp() }
         campo.tap()
         campo.digitarEEsperar(email)
         tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
@@ -65,6 +67,7 @@ final class CapturasR1UITests: XCTestCase {
         capturar("r1-entrada", ax5)
         // Sem e-mail, o toque mostra o que falta junto do campo.
         app.buttons["entrada-receber-codigo"].tap()
+        for _ in 0..<4 where !app.textFields["entrada-email"].isHittable { app.swipeUp() }
         XCTAssertTrue(app.staticTexts["Digite seu e-mail para receber o código."].waitForExistence(timeout: Espera.aparecer))
         capturar("r1-entrada-erro", ax5)
     }
@@ -75,6 +78,7 @@ final class CapturasR1UITests: XCTestCase {
         conferirAlvo(app.buttons["codigo-entrar"], "Entrar")
         conferirAlvo(app.buttons["Colar código"], "Colar código")
         capturar("r1-codigo", ax5)
+        app.textFields["Código de acesso"].tap()
         app.textFields["Código de acesso"].typeText("123")
         capturar("r1-codigo-digitando", ax5)
     }
@@ -82,6 +86,7 @@ final class CapturasR1UITests: XCTestCase {
     private func codigoIncorreto(ax5: Bool) {
         let app = iniciar(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "codigo-errado"], ax5: ax5)
         entrar(email: "teste@frila.app", app)
+        app.textFields["Código de acesso"].tap()
         app.textFields["Código de acesso"].typeText("000000")
         let erro = app.descendants(matching: .any)["codigo-erro"]
         XCTAssertTrue(erro.waitForExistence(timeout: Espera.aparecer), "o erro do código aparece junto do botão")
@@ -93,6 +98,7 @@ final class CapturasR1UITests: XCTestCase {
     private func telaDeCadastro(ax5: Bool) {
         let app = iniciar(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"], ax5: ax5)
         entrar(email: "novo@frila.app", app)
+        app.textFields["Código de acesso"].tap()
         app.textFields["Código de acesso"].typeText("123456")
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: Espera.aparecer), "o cadastro deve abrir")
         conferirAlvo(app.buttons["cadastro-continuar"], "Continuar")
@@ -196,6 +202,28 @@ final class CapturasR1UITests: XCTestCase {
         capturar("r1-excluir-conta-dialogo", ax5)
     }
 
+    /// A lista de turnos futuros (cenário do contratante com turnos): o grupo de linhas, e o fim da tela com o rodapé.
+    private func excluirContaComTurnos(ax5: Bool) {
+        let app = iniciar(["-FRILA_SCENARIO", "painel-contratante"], ax5: ax5)
+        let conta = app.tabBars.buttons["Conta"]
+        XCTAssertTrue(conta.waitForExistence(timeout: Espera.aparecer))
+        conta.tap()
+        let abrir = app.buttons["estabelecimento-excluir-conta"]
+        XCTAssertTrue(abrir.waitForExistence(timeout: Espera.aparecer))
+        rolarAte(abrir, app)
+        abrir.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].waitForExistence(timeout: Espera.aparecer))
+        capturar("r1-excluir-conta-turnos-0", ax5)
+        let turno = app.descendants(matching: .any)["item-turno-futuro-82000000-0000-0000-0000-000000000001"]
+        XCTAssertTrue(turno.waitForExistence(timeout: Espera.aparecer))
+        for passo in 1...3 {
+            app.swipeUp()
+            capturar("r1-excluir-conta-turnos-\(passo)", ax5)
+        }
+    }
+
+    func testExcluirContaComTurnosNoTamanhoPadrao() { excluirContaComTurnos(ax5: false) }
+    func testExcluirContaComTurnosEmAX5() { excluirContaComTurnos(ax5: true) }
     func testEntradaNoTamanhoPadrao() { telaDeEntrada(ax5: false) }
     func testEntradaEmAX5() { telaDeEntrada(ax5: true) }
     func testCodigoNoTamanhoPadrao() { telaDoCodigo(ax5: false) }
