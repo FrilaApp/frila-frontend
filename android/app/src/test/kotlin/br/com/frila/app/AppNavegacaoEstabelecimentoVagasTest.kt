@@ -251,7 +251,7 @@ class AppNavegacaoEstabelecimentoVagasTest {
         cadastro.editarLongitude("-47.8822")
         montar(servicoMembros = contratanteCom("nova-1"), inicio = Rotas.CADASTRO_ESTABELECIMENTO, cadastro = cadastro)
 
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).performScrollTo().performClick()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).performClick()
 
         rule.waitUntil(5_000) { rule.onAllNodesWithText(TextosPublicarVaga.TITULO).fetchSemanticsNodes().isNotEmpty() }
         rule.runOnIdle {
