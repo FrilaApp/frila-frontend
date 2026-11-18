@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -47,6 +48,19 @@ class ServicoMembros(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.post(cliente.urlRpc("meu_estabelecimento")) {
             contentType(ContentType.Application.Json)
             setBody(EstabelecimentoParametrosDto(estabelecimentoId = estabelecimentoId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `GET /rest/v1/rpc/membros_do_estabelecimento?estabelecimento_id=` (0.2.103, RF21): os membros da casa, os
+     * administradores primeiro e, em cada papel, do mais antigo ao mais novo. **Só o administrador**: o operador, quem
+     * não é membro e a casa que não existe recebem a mesma recusa, `403 sem_permissao` sem `details`; conta suspensa,
+     * `403 sem_permissao` com `details: conta_suspensa`.
+     */
+    suspend fun listarMembrosDaCasa(estabelecimentoId: String): List<MembroDoEstabelecimentoDto> {
+        val resposta = cliente.http.get(cliente.urlRpc("membros_do_estabelecimento")) {
+            parameter("estabelecimento_id", estabelecimentoId)
         }
         return cliente.corpoOuErro(resposta)
     }

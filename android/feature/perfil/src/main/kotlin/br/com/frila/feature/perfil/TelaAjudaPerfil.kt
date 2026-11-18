@@ -28,8 +28,13 @@ data class EnderecosOficiais(
     val termosDeUso: String = "https://frilabr.com/termos",
     val politicaDePrivacidade: String = "https://frilabr.com/privacidade",
     val emailSuporte: String = "suporte@frilabr.com",
+    /** Onde a web mora (`frilabr.com/app`): o link do convite de membro da casa sai daqui. */
+    val origemDaWeb: String = "https://frilabr.com/app",
 ) {
     val urlSuporte: String get() = "mailto:$emailSuporte"
+
+    /** O link que o administrador compartilha: `<origem>/convite#<token>`. O token vai no fragmento, que o navegador não manda ao servidor. */
+    fun linkDoConvite(token: String): String = "$origemDaWeb/convite#$token"
 
     companion object {
         val padrao = EnderecosOficiais()
