@@ -27,9 +27,10 @@ import br.com.frila.core.designsystem.tema.FrilaMetricas
  * com `TelaContaSuspensa.swift`). Não há navegação para fora da tela além de falar com o suporte
  * ou sair da conta: a conta suspensa não usa o app.
  *
- * O Android ainda não tem `situacao_da_conta` nem `contestar_suspensao`, então a tela não
- * contesta: o canal é o e-mail do suporte. [motivo] e [desde] vêm de quem chama, já formatados, e
- * somem quando nulos. [emailSuporte] também vem de quem chama (`EnderecosOficiais.padrao`).
+ * [motivo] e [desde] vêm de quem chama, já formatados, e somem quando nulos. [emailSuporte] também vem
+ * de quem chama (`EnderecosOficiais.padrao`). [contestacao] é a seção de contestar a suspensão, entre as
+ * informações e o suporte; sem ela (padrão) a tela só oferece o e-mail do suporte. Quem lê a situação da
+ * conta e contesta é a `TelaContaSuspensaComContestacao`, com o `ContaSuspensaViewModel`.
  */
 @Composable
 fun TelaContaSuspensa(
@@ -39,6 +40,7 @@ fun TelaContaSuspensa(
     modifier: Modifier = Modifier,
     motivo: String? = null,
     desde: String? = null,
+    contestacao: (@Composable () -> Unit)? = null,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { preenchimento ->
         Column(
@@ -77,6 +79,8 @@ fun TelaContaSuspensa(
                 desde?.let { Informacao(TextosContaSuspensa.DESDE_TITULO, it) }
             }
 
+            contestacao?.invoke()
+
             Text(
                 text = TextosContaSuspensa.SECAO_SUPORTE,
                 style = MaterialTheme.typography.titleMedium,
@@ -109,7 +113,7 @@ fun TelaContaSuspensa(
 }
 
 @Composable
-private fun Informacao(titulo: String, valor: String) {
+internal fun Informacao(titulo: String, valor: String) {
     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio)) {
         Text(
             text = titulo,
