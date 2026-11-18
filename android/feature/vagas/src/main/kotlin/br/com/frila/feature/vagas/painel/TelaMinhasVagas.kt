@@ -53,8 +53,10 @@ data class AcoesMinhasVagas(
     val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     val aoPublicarVaga: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
-    /** Ação da vaga (L2-3). `null` esconde o botão: a tela só oferece o que quem a abriu sabe atender. */
+    /** As três ações da vaga (L2-3). `null` esconde o botão: a tela só oferece o que quem a abriu sabe atender. */
     val aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
+    val aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
+    val aoRepublicarPosicoesRestantes: ((ItemMinhaVaga) -> Unit)? = null,
 )
 
 /**
@@ -73,6 +75,8 @@ fun TelaMinhasVagas(
     modifier: Modifier = Modifier,
     aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
+    aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
+    aoRepublicarPosicoesRestantes: ((ItemMinhaVaga) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -87,6 +91,8 @@ fun TelaMinhasVagas(
             aoPublicarVaga = { aoPublicarVaga(viewModel.estabelecimentoId) },
             aoVoltar = aoVoltar,
             aoCancelarVaga = aoCancelarVaga,
+            aoRepublicarVaga = aoRepublicarVaga,
+            aoRepublicarPosicoesRestantes = aoRepublicarPosicoesRestantes,
         ),
         modifier = modifier,
     )
@@ -295,10 +301,24 @@ private fun CartaoDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
     }
 }
 
-/** Cancelar a vaga: o botão só aparece se a vaga permite e há quem atenda. */
+/** Republicar posições vazias, republicar com outro horário e cancelar: cada botão só aparece se a vaga permite e há quem atenda. */
 @Composable
 private fun AcoesDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
     val acima = Modifier.fillMaxWidth().padding(top = FrilaEspacamento.pequeno)
+    acoes.aoRepublicarPosicoesRestantes?.takeIf { item.republicavelEmUrgencia > 0 }?.let { aoTocar ->
+        BotaoSecundario(
+            texto = TextosRepublicarPosicoesRestantes.botao(item.republicavelEmUrgencia),
+            aoClicar = { aoTocar(item) },
+            modifier = acima,
+        )
+    }
+    acoes.aoRepublicarVaga?.takeIf { item.podeRepublicar }?.let { aoTocar ->
+        BotaoSecundario(
+            texto = TextosRepublicarVaga.TITULO,
+            aoClicar = { aoTocar(item) },
+            modifier = acima.semantics { contentDescription = TextosRepublicarVaga.REPUBLICAR_VAGA_DE.format(item.funcao) },
+        )
+    }
     acoes.aoCancelarVaga?.takeIf { item.podeCancelar }?.let { aoTocar ->
         BotaoSecundario(
             texto = TextosCancelarVaga.TITULO,
