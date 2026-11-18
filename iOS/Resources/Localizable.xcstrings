@@ -15792,6 +15792,17 @@
           }
         }
       }
+    },
+    "Opcional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcional"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

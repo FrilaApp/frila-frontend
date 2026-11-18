@@ -78,6 +78,13 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertTrue(linha.waitForExistence(timeout: Espera.aparecer))
     }
 
+    private func preencherResponsavel(_ app: XCUIApplication, vaga: Int, nome: String) {
+        let campo = app.textFields["escala-responsavel-\(vaga)"]
+        trazer(campo, em: app)
+        substituirTexto(campo, por: nome)
+        fecharTeclado(app)
+    }
+
     private func digitarValor(_ app: XCUIApplication, vaga: Int, centavos: String) {
         let campo = app.textFields.matching(identifier: "valor-vaga-campo").element(boundBy: vaga)
         trazer(campo, em: app)
@@ -94,13 +101,10 @@ final class EscalaDeEventoUITests: XCTestCase {
 
         substituirTexto(app.textFields["escala-nome"], por: "Formatura de Direito")
         fecharTeclado(app)
-        let responsavel = app.textFields["escala-responsavel"]
-        trazer(responsavel, em: app)
-        substituirTexto(responsavel, por: "Marina")
-        fecharTeclado(app)
 
         escolherFuncao(app, vaga: 0, opcao: 0)
         digitarValor(app, vaga: 0, centavos: "16000")
+        preencherResponsavel(app, vaga: 0, nome: "Marina")
 
         let adicionar = app.buttons["escala-adicionar-vaga"]
         trazer(adicionar, em: app)
@@ -178,10 +182,6 @@ final class EscalaDeEventoUITests: XCTestCase {
 
             substituirTexto(app.textFields["escala-nome"], por: "Formatura de Direito")
             fecharTeclado(app)
-            let responsavel = app.textFields["escala-responsavel"]
-            trazer(responsavel, em: app)
-            substituirTexto(responsavel, por: "Marina")
-            fecharTeclado(app)
             let funcao = app.buttons["escala-funcao-0"]
             trazer(funcao, em: app)
             tocar(funcao)
@@ -197,7 +197,9 @@ final class EscalaDeEventoUITests: XCTestCase {
             capturar("4-duas-vagas", ax5: ax5)
 
             digitarValor(app, vaga: 0, centavos: "16000")
+            preencherResponsavel(app, vaga: 0, nome: "Marina")
             escolherFuncao(app, vaga: 1, opcao: 1)
+            preencherResponsavel(app, vaga: 1, nome: "Marina")
             digitarValor(app, vaga: 1, centavos: "18000")
             tocar(app.buttons["escala-publicar"])
             XCTAssertTrue(elemento("escala-confirmacao", em: app).waitForExistence(timeout: 15))

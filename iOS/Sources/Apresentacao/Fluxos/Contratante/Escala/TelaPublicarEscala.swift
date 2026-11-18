@@ -3,17 +3,26 @@ import SwiftUI
 
 /// A escala de evento da casa (contrato 0.2.96): um evento e de 1 a 10 vagas, publicadas de uma vez, tudo ou nada.
 /// Entra por "Publicar escala do evento", ao lado do publicar vaga em Minhas vagas, e não troca o fluxo da vaga única.
-/// O botão e a mensagem da ação ficam no rodapé ancorado (D-DS-09), no sistema do Fabrício.
+/// Cada vaga tem o que a vaga avulsa tem (modo, responsável no local, inclusos, traje e observações), como na web e no
+/// Android. O botão e a mensagem da ação ficam no rodapé ancorado (D-DS-09), no sistema do Fabrício; em tamanho de
+/// acessibilidade a mensagem vai para o alto da rolagem, e a tela rola até ela e move o foco para ela.
 public struct TelaPublicarEscala: View {
     private enum Foco: Hashable {
         case nome
-        case responsavel
+        case responsavel(UUID)
+        case traje(UUID)
+        case observacoes(UUID)
     }
+
+    private static let idDoAviso = "escala-aviso"
 
     @State private var modelo: PublicarEscalaViewModel
     @State private var escolhendoFuncaoDe: UUID?
     @FocusState private var foco: Foco?
+    @AccessibilityFocusState private var focoDoAviso: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     private let aoConcluir: () -> Void
     private let aoCancelar: () -> Void
     private let formatador = FormatadorFrila()
@@ -51,27 +60,49 @@ public struct TelaPublicarEscala: View {
         .accessibilityIdentifier("tela-publicar-escala")
     }
 
+    private var isDark: Bool { colorScheme == .dark }
+
     // MARK: Formulário
 
     private var formulario: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
-                cabecalho
-                // Em tamanho de acessibilidade a mensagem junto ao botão ocuparia a tela inteira: vai para a rolagem, no alto.
-                if dynamicTypeSize.isAccessibilitySize { mensagens }
-                secaoDoEvento
-                secaoDasVagas
+        ScrollViewReader { leitor in
+            ScrollView {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                    cabecalho
+                    // Em tamanho de acessibilidade a mensagem junto ao botão ocuparia a tela inteira: vai para a rolagem, no alto.
+                    if dynamicTypeSize.isAccessibilitySize {
+                        mensagens
+                            .id(Self.idDoAviso)
+                    }
+                    secaoDoEvento
+                    secaoDasVagas
+                }
+                .padding(.horizontal, FrilaEspaco.bloco)
+                .padding(.top, FrilaEspaco.item)
+                .padding(.bottom, FrilaEspaco.grupo)
+                .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .containerRelativeFrame(.horizontal)
             }
-            .padding(.horizontal, FrilaEspaco.bloco)
-            .padding(.top, FrilaEspaco.item)
-            .padding(.bottom, FrilaEspaco.grupo)
-            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
-            .frame(maxWidth: .infinity)
-            .containerRelativeFrame(.horizontal)
+            .scrollDismissesKeyboard(.interactively)
+            .disabled(modelo.enviando)
+            .rodapeAncorado { rodape }
+            // Cada tentativa que termina com mensagem (mesmo repetida): rola até ela e leva o foco de acessibilidade para ela.
+            .onChange(of: modelo.avisosDaAcao) {
+                foco = nil
+                Task { @MainActor in
+                    await Task.yield()
+                    if dynamicTypeSize.isAccessibilitySize {
+                        withAnimation(reduzirMovimento ? nil : .easeOut(duration: 0.25)) {
+                            leitor.scrollTo(Self.idDoAviso, anchor: .top)
+                        }
+                    }
+                    focoDoAviso = false
+                    await Task.yield()
+                    focoDoAviso = true
+                }
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
-        .disabled(modelo.enviando)
-        .rodapeAncorado { rodape }
         .sheet(isPresented: Binding(get: { escolhendoFuncaoDe != nil }, set: { if !$0 { escolhendoFuncaoDe = nil } })) {
             folhaDeFuncao
         }
@@ -102,13 +133,14 @@ public struct TelaPublicarEscala: View {
                     .accessibilityLabel(Text(verbatim: TextosDaEscala.nome))
                     .focused($foco, equals: .nome)
                     .textInputAutocapitalization(.sentences)
-                    .submitLabel(.next)
-                    .onSubmit { foco = .responsavel }
+                    .submitLabel(.done)
+                    .onSubmit { foco = nil }
+                    .disabled(modelo.camposBloqueados)
                     .accessibilityIdentifier("escala-nome")
             }
 
             campo(rotulo: nil, erro: modelo.erros.evento[.data], id: "escala-erro-data") {
-                linhaDeSeletor(TextosDaEscala.data) { seletorDoDia }
+                linhaDeSeletor(TextosDaEscala.data) { seletorDoDia.disabled(modelo.camposBloqueados) }
             }
 
             FrilaLinhaDeDado(icone: "mappin.and.ellipse") {
@@ -121,22 +153,6 @@ public struct TelaPublicarEscala: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("escala-endereco")
-
-            campo(rotulo: TextosDaEscala.responsavel, erro: modelo.erros.evento[.responsavel], id: "escala-erro-responsavel") {
-                CampoFrila(verbatim: TextosDaEscala.responsavelExemplo, texto: $modelo.responsavelLocal, emFoco: foco == .responsavel)
-                    .accessibilityLabel(Text(verbatim: TextosDaEscala.responsavel))
-                    .focused($foco, equals: .responsavel)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-                    .onSubmit { foco = nil }
-                    .accessibilityIdentifier("escala-responsavel")
-            }
-
-            FrilaGrupoDeLinhas(verbatim: TextosDaEscala.inclusos, linhasComIcone: false) {
-                interruptor(TextosPublicarVaga.refeicao, ligado: $modelo.refeicao, id: "escala-refeicao")
-                interruptor(TextosPublicarVaga.transporte, ligado: $modelo.transporte, id: "escala-transporte")
-                interruptor(TextosPublicarVaga.material, ligado: $modelo.materialProprio, id: "escala-material")
-            }
         }
     }
 
@@ -214,6 +230,8 @@ public struct TelaPublicarEscala: View {
                 }
             }
 
+            modoDaVaga(vaga, indice: indice, erro: erros[.modo])
+
             campo(rotulo: TextosDaEscala.valor, erro: erros[.valor], id: "escala-erro-valor-\(indice)") {
                 // O campo do valor é um UITextField, que não encolhe abaixo do texto: em AX3 ou mais ele passaria da largura do
                 // cartão e empurraria a tela para o lado. Ele cresce até AX2; o resto da tela segue até AX5.
@@ -227,6 +245,46 @@ public struct TelaPublicarEscala: View {
                 seletorDePessoas(vaga, indice: indice)
             }
 
+            campo(rotulo: TextosDaEscala.responsavel, erro: erros[.responsavel], id: "escala-erro-responsavel-\(indice)") {
+                CampoFrila(verbatim: TextosDaEscala.responsavelExemplo, texto: ligacao(vaga.id, \.responsavelLocal),
+                           emFoco: foco == .responsavel(vaga.id))
+                    .accessibilityLabel(Text(verbatim: TextosDaEscala.responsavel))
+                    .focused($foco, equals: .responsavel(vaga.id))
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .onSubmit { foco = nil }
+                    .disabled(modelo.camposBloqueados)
+                    .accessibilityIdentifier("escala-responsavel-\(indice)")
+            }
+
+            FrilaGrupoDeLinhas(verbatim: TextosPublicarVaga.inclusos, linhasComIcone: false) {
+                interruptor(TextosPublicarVaga.refeicao, ligado: ligacao(vaga.id, \.refeicao), id: "escala-refeicao-\(indice)")
+                interruptor(TextosPublicarVaga.transporte, ligado: ligacao(vaga.id, \.transporte), id: "escala-transporte-\(indice)")
+                interruptor(TextosPublicarVaga.material, ligado: ligacao(vaga.id, \.materialProprio), id: "escala-material-\(indice)")
+            }
+
+            campo(rotulo: TextosPublicarVaga.traje, erro: erros[.traje], id: "escala-erro-traje-\(indice)") {
+                CampoFrila(verbatim: TextosDaEscala.opcional, texto: ligacao(vaga.id, \.traje), emFoco: foco == .traje(vaga.id))
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.traje))
+                    .focused($foco, equals: .traje(vaga.id))
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.done)
+                    .onSubmit { foco = nil }
+                    .disabled(modelo.camposBloqueados)
+                    .accessibilityIdentifier("escala-traje-\(indice)")
+            }
+
+            campo(rotulo: TextosPublicarVaga.observacoes, erro: erros[.observacoes], id: "escala-erro-observacoes-\(indice)") {
+                CampoFrila(verbatim: TextosDaEscala.opcional, texto: ligacao(vaga.id, \.observacoes), emFoco: foco == .observacoes(vaga.id))
+                    .accessibilityLabel(Text(verbatim: TextosPublicarVaga.observacoes))
+                    .focused($foco, equals: .observacoes(vaga.id))
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.done)
+                    .onSubmit { foco = nil }
+                    .disabled(modelo.camposBloqueados)
+                    .accessibilityIdentifier("escala-observacoes-\(indice)")
+            }
+
             if modelo.podeRemoverVaga {
                 Button(TextosDaEscala.remover) { modelo.removerVaga(id: vaga.id) }
                     .buttonStyle(.frilaAcaoDiscreta)
@@ -237,6 +295,45 @@ public struct TelaPublicarEscala: View {
         .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("escala-vaga-\(indice)")
+    }
+
+    /// O modo da vaga, como no Estúdio de vaga: urgência sempre; seleção só com o início a mais de 24 horas (RN24).
+    private func modoDaVaga(_ vaga: VagaDoFormularioDaEscala, indice: Int, erro: String?) -> some View {
+        let disponivel = modelo.selecaoDisponivel(vaga)
+        var itens = [FrilaSegmentedItem(tag: ModoPreenchimento.urgencia, title: TextosPublicarVaga.modoUrgencia)]
+        if disponivel { itens.append(FrilaSegmentedItem(tag: ModoPreenchimento.selecao, title: TextosPublicarVaga.modoSelecao)) }
+        return campo(rotulo: TextosPublicarVaga.modo, erro: erro, id: "escala-erro-modo-\(indice)") {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                FrilaSegmentedControl(
+                    items: itens,
+                    selection: Binding(get: { vaga.modo }, set: { modelo.escolherModo($0, em: vaga.id) }),
+                    isDark: isDark,
+                    height: FrilaGeometry.buttonHeightStandard
+                )
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(TextosPublicarVaga.modo)
+                .accessibilityIdentifier("escala-modo-\(indice)")
+                .disabled(modelo.camposBloqueados)
+
+                Text(verbatim: vaga.modo == .selecao ? TextosPublicarVaga.modoSelecaoExplicacao : TextosPublicarVaga.modoUrgenciaExplicacao)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !disponivel {
+                    Text(verbatim: TextosPublicarVaga.modoSelecaoSoComAntecedencia)
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("escala-selecao-indisponivel-\(indice)")
+                }
+                if let prazo = modelo.prazoDeEscolha(vaga) {
+                    Text(verbatim: String(format: TextosPublicarVaga.modoSelecaoPrazo, formatador.dataEHora(prazo)))
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     /// Em AX5 o seletor compacto não encolhe abaixo do texto da data e alarga a tela inteira: lá vai a roleta, que tem largura própria.
@@ -411,17 +508,19 @@ public struct TelaPublicarEscala: View {
     // MARK: Rodapé
 
     /// A falha das funções e a mensagem geral da ação: no rodapé, junto ao botão; em AX, no alto da rolagem.
-    @ViewBuilder
     private var mensagens: some View {
-        if modelo.funcoesIndisponiveis {
-            MensagemJuntoAoBotao(verbatim: TextosDaEscala.funcoesIndisponiveis)
-                .accessibilityIdentifier("escala-funcoes-indisponiveis")
-            BotaoSecundario(verbatim: TextosDaEscala.tentarNovamente) { Task { await modelo.carregarFuncoes() } }
-                .accessibilityIdentifier("escala-recarregar-funcoes")
-        }
-        if let geral = modelo.erros.geral {
-            MensagemJuntoAoBotao(verbatim: geral)
-                .accessibilityIdentifier("escala-mensagem")
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            if modelo.funcoesIndisponiveis {
+                MensagemJuntoAoBotao(verbatim: TextosDaEscala.funcoesIndisponiveis)
+                    .accessibilityIdentifier("escala-funcoes-indisponiveis")
+                BotaoSecundario(verbatim: TextosDaEscala.tentarNovamente) { Task { await modelo.carregarFuncoes() } }
+                    .accessibilityIdentifier("escala-recarregar-funcoes")
+            }
+            if let geral = modelo.erros.geral {
+                MensagemJuntoAoBotao(verbatim: geral)
+                    .accessibilityFocused($focoDoAviso)
+                    .accessibilityIdentifier("escala-mensagem")
+            }
         }
     }
 

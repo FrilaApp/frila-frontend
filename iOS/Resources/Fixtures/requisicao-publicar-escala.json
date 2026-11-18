@@ -21,7 +21,6 @@
       "inclui_transporte": false,
       "exige_material_proprio": false,
       "responsavel_local": "Marina",
-      "participa_rateio": false,
       "modo": "urgencia"
     },
     {
@@ -34,7 +33,6 @@
       "inclui_transporte": false,
       "exige_material_proprio": false,
       "responsavel_local": "Marina",
-      "participa_rateio": false,
       "modo": "urgencia"
     }
   ],

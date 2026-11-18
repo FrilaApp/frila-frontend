@@ -43,19 +43,23 @@ let recusasDoServidor: [RecusaDaEscala] = [
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoObrigatorio, detalhes: "vagas[0].funcao_id"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (0, .funcao)),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "vagas[1].posicoes"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (1, .pessoas)),
     RecusaDaEscala(erro: ErroDaApi(codigo: .horarioInvalido, detalhes: "vagas[0]"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (0, .horario)),
-    RecusaDaEscala(erro: ErroDaApi(codigo: .selecaoSemAntecedencia, detalhes: "vagas[1]"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (1, .horario)),
+    RecusaDaEscala(erro: ErroDaApi(codigo: .selecaoSemAntecedencia, detalhes: "vagas[1]"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (1, .modo)),
+    RecusaDaEscala(erro: ErroDaApi(codigo: .campoObrigatorio, detalhes: "vagas[0].responsavel_local"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (0, .responsavel)),
+    RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "vagas[1].modo"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (1, .modo)),
+    RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "vagas[0].traje"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (0, .traje)),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "vagas"), mensagemGeral: TextosDaEscala.Erro.quantidade, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "posicoes"), mensagemGeral: TextosDaEscala.Erro.somaDePessoas, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoObrigatorio, detalhes: "evento.local"), mensagemGeral: TextosDaEscala.Erro.cadastroDaCasa, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "evento.ponto"), mensagemGeral: TextosDaEscala.Erro.cadastroDaCasa, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido, detalhes: "vagas[9].valor_centavos"), mensagemGeral: TextosDaEscala.Erro.generico, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .campoInvalido), mensagemGeral: TextosDaEscala.Erro.generico, evento: nil, vaga: nil),
+    RecusaDaEscala(erro: ErroDaApi(codigo: .funcaoIncompativel, detalhes: "vagas[1]"), mensagemGeral: TextosDaEscala.Erro.temErro, evento: nil, vaga: (1, .funcao)),
+    RecusaDaEscala(erro: ErroDaApi(codigo: .naoEncontrado), mensagemGeral: TextosDaEscala.Erro.generico, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .semPermissao), mensagemGeral: TextosDaEscala.Erro.semPermissao, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"), mensagemGeral: TextosDaEscala.Erro.contaSuspensa, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .perfilIncompativel), mensagemGeral: TextosDaEscala.Erro.perfilIncompativel, evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .limiteExcedido), mensagemGeral: MensagemDoErroAPI.texto(ErroDaApi(codigo: .limiteExcedido)), evento: nil, vaga: nil),
     RecusaDaEscala(erro: ErroDaApi(codigo: .naoAutenticado), mensagemGeral: MensagemDoErroAPI.texto(ErroDaApi(codigo: .naoAutenticado)), evento: nil, vaga: nil),
-    RecusaDaEscala(erro: ErroDaApi(codigo: .desconhecido), mensagemGeral: TextosDaEscala.Erro.generico, evento: nil, vaga: nil),
 ]
 
 
@@ -89,9 +93,8 @@ struct PublicarEscalaViewModelTests {
     /// O formulário preenchido: duas vagas (Garçom e Bartender) de um evento.
     private func preenchido(_ vm: PublicarEscalaViewModel) {
         vm.nome = "Formatura de Direito"
-        vm.responsavelLocal = "Marina"
         let primeira = vm.vagas[0].id
-        vm.atualizar(primeira) { $0.funcaoID = garcom.id; $0.valorTexto = "16000"; $0.pessoas = 6 }
+        vm.atualizar(primeira) { $0.funcaoID = garcom.id; $0.valorTexto = "16000"; $0.pessoas = 6; $0.responsavelLocal = "Marina" }
         vm.adicionarVaga()
         let segunda = vm.vagas[1].id
         vm.atualizar(segunda) { $0.funcaoID = bartender.id; $0.valorTexto = "18000"; $0.pessoas = 2 }
@@ -108,7 +111,10 @@ struct PublicarEscalaViewModelTests {
         #expect(vm.vagas[0].inicio > agora)
         #expect(vm.vagas[0].fim > vm.vagas[0].inicio)
         #expect(vm.vagas[0].pessoas == 1)
-        #expect(vm.refeicao == false && vm.transporte == false && vm.materialProprio == false)
+        let vaga = vm.vagas[0]
+        #expect(vaga.modo == .urgencia && vaga.responsavelLocal.isEmpty)
+        #expect(vaga.refeicao == false && vaga.transporte == false && vaga.materialProprio == false)
+        #expect(vaga.traje.isEmpty && vaga.observacoes.isEmpty)
     }
 
     @Test("Formulário vazio: cada campo faltante é marcado, a mensagem geral diz que nada foi publicado, e a API não é chamada")
@@ -119,10 +125,10 @@ struct PublicarEscalaViewModelTests {
         await vm.publicar()
 
         #expect(vm.erros.evento[.nome] == TextosDaEscala.Erro.nome)
-        #expect(vm.erros.evento[.responsavel] == TextosDaEscala.Erro.responsavel)
         let daVaga = try #require(vm.erros.vagas[vm.vagas[0].id])
         #expect(daVaga[.funcao] == TextosDaEscala.Erro.funcao)
         #expect(daVaga[.valor] == TextosDaEscala.Erro.valor)
+        #expect(daVaga[.responsavel] == TextosDaEscala.Erro.responsavel)
         #expect(vm.erros.geral == TextosDaEscala.Erro.temErro)
         #expect(vm.resultado == nil && vm.tentativaIncerta == nil)
         #expect(await servidor.chamadas == 0)
@@ -224,7 +230,7 @@ struct PublicarEscalaViewModelTests {
 
         #expect(vm.erros.evento[.nome] == nil)
         #expect(vm.erros.vagas[id]?[.valor] == nil)
-        #expect(vm.erros.evento[.responsavel] != nil)
+        #expect(vm.erros.vagas[id]?[.responsavel] != nil)
         #expect(vm.erros.vagas[id]?[.funcao] != nil)
     }
 
@@ -235,7 +241,7 @@ struct PublicarEscalaViewModelTests {
         let servidor = ServidorDeEscala([.success(publicada(vagas: 2))])
         let vm = try modelo(servidor)
         preenchido(vm)
-        vm.refeicao = true
+        vm.atualizar(vm.vagas[0].id) { $0.refeicao = true; $0.traje = "Camisa preta"; $0.observacoes = "Entrada pela lateral" }
 
         await vm.publicar()
 
@@ -249,7 +255,11 @@ struct PublicarEscalaViewModelTests {
         #expect(escala.vagas.map(\.funcaoID) == [garcom.id, bartender.id])
         #expect(escala.vagas.map(\.valor.centavos) == [16_000, 18_000])
         #expect(escala.vagas.map(\.posicoes) == [6, 2])
-        #expect(escala.vagas.allSatisfy { $0.modo == .urgencia && $0.responsavelLocal == "Marina" && $0.inclusos.refeicao })
+        #expect(escala.vagas.allSatisfy { $0.modo == .urgencia && $0.responsavelLocal == "Marina" })
+        #expect(escala.vagas.map(\.inclusos.refeicao) == [true, false])
+        #expect(escala.vagas.map(\.traje) == ["Camisa preta", nil])
+        #expect(escala.vagas.map(\.observacoes) == ["Entrada pela lateral", nil])
+        #expect(escala.vagas.allSatisfy { $0.participaRateio == nil }, "o rateio vai nulo, como na web e no Android")
         #expect(vm.resultado != nil)
         #expect(vm.vagasPublicadas == 2)
         #expect(vm.tentativaIncerta == nil && vm.erros.vazio && vm.enviando == false)
@@ -261,7 +271,8 @@ struct PublicarEscalaViewModelTests {
         let vm = try modelo(servidor)
         preenchido(vm)
         vm.nome = "  Formatura de Direito \n"
-        vm.responsavelLocal = " Marina  "
+        vm.atualizar(vm.vagas[0].id) { $0.responsavelLocal = " Marina  " }
+        vm.atualizar(vm.vagas[1].id) { $0.responsavelLocal = "Marina\n" }
 
         await vm.publicar()
 
@@ -474,8 +485,7 @@ struct PublicarEscalaViewModelTests {
         let desconhecida = Funcao(id: UUID(), nome: "Mágico", categoria: "Palco")
         let vm = PublicarEscalaViewModel(estabelecimento: casa, funcoes: [primeira, desconhecida], publicar: { try await api.publicarEscala($0) })
         vm.nome = "Formatura de Direito"
-        vm.responsavelLocal = "Marina"
-        vm.atualizar(vm.vagas[0].id) { $0.funcaoID = primeira.id; $0.valorTexto = "16000" }
+        vm.atualizar(vm.vagas[0].id) { $0.funcaoID = primeira.id; $0.valorTexto = "16000"; $0.responsavelLocal = "Marina" }
         vm.adicionarVaga()
         vm.atualizar(vm.vagas[1].id) { $0.funcaoID = desconhecida.id; $0.valorTexto = "18000" }
         let antes = await api.vagasCriadas
@@ -557,4 +567,229 @@ struct PublicarEscalaViewModelTests {
         let vazia = try escala(casaID: casa.id, vagas: [])
         #expect(await recusa(vazia)?.detalhes == "vagas")
     }
+
+    // MARK: Paridade com a vaga avulsa, a web e o Android (modo, responsável e inclusos por vaga)
+
+    @Test("O modo é por vaga: a seleção só com o início a mais de 24 horas; antes disso a escolha é recusada no campo")
+    func modoPorVaga() throws {
+        let vm = try modelo(ServidorDeEscala([]))
+        preenchido(vm)
+        let primeira = vm.vagas[0].id
+        let segunda = vm.vagas[1].id
+
+        // O início padrão depende da hora do dia: o teste fixa os inícios a 10 h e a 48 h do relógio.
+        vm.atualizar(primeira) { $0.inicio = agora.addingTimeInterval(10 * 3_600); $0.fim = agora.addingTimeInterval(14 * 3_600) }
+        vm.atualizar(segunda) { $0.inicio = agora.addingTimeInterval(48 * 3_600); $0.fim = agora.addingTimeInterval(52 * 3_600) }
+        #expect(vm.selecaoDisponivel(vm.vagas[0]) == false)
+        #expect(vm.selecaoDisponivel(vm.vagas[1]))
+
+        vm.escolherModo(.selecao, em: primeira)
+        #expect(vm.vagas[0].modo == .urgencia)
+        #expect(vm.erros.vagas[primeira]?[.modo] == TextosRepublicarVaga.selecaoSemAntecedencia)
+
+        vm.escolherModo(.selecao, em: segunda)
+        #expect(vm.vagas[1].modo == .selecao)
+        #expect(vm.erros.vagas[segunda]?[.modo] == nil)
+        #expect(vm.prazoDeEscolha(vm.vagas[1]) != nil)
+        #expect(vm.prazoDeEscolha(vm.vagas[0]) == nil)
+
+        // Mover o início da vaga de seleção para menos de 24 horas devolve a urgência.
+        vm.atualizar(segunda) { $0.inicio = agora.addingTimeInterval(5 * 3_600) }
+        #expect(vm.vagas[1].modo == .urgencia)
+    }
+
+    @Test("A seleção sai no pedido como o contrato escreve, e o servidor que a recusa por antecedência marca o modo da vaga")
+    func modoNoPedido() async throws {
+        let servidor = ServidorDeEscala([.success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+        vm.atualizar(vm.vagas[0].id) { $0.inicio = agora.addingTimeInterval(72 * 3_600); $0.fim = agora.addingTimeInterval(76 * 3_600) }
+        vm.escolherModo(.selecao, em: vm.vagas[0].id)
+
+        await vm.publicar()
+
+        let escala = try #require(await servidor.recebidas.first)
+        #expect(escala.vagas.map(\.modo) == [.selecao, .urgencia])
+    }
+
+    @Test("O responsável e os inclusos são por vaga, e a vaga nova nasce com o responsável da anterior")
+    func responsavelEInclusosPorVaga() async throws {
+        let servidor = ServidorDeEscala([.success(publicada())])
+        let vm = try modelo(servidor)
+        vm.nome = "Formatura de Direito"
+        vm.atualizar(vm.vagas[0].id) {
+            $0.funcaoID = garcom.id; $0.valorTexto = "16000"; $0.responsavelLocal = "Marina"
+            $0.refeicao = true; $0.materialProprio = true
+        }
+        vm.adicionarVaga()
+        #expect(vm.vagas[1].responsavelLocal == "Marina")
+        #expect(vm.vagas[1].refeicao == false && vm.vagas[1].materialProprio == false, "os inclusos não herdam: cada vaga tem os seus")
+        vm.atualizar(vm.vagas[1].id) {
+            $0.funcaoID = bartender.id; $0.valorTexto = "18000"; $0.responsavelLocal = "João"; $0.transporte = true
+        }
+
+        await vm.publicar()
+
+        let escala = try #require(await servidor.recebidas.first)
+        #expect(escala.vagas.map(\.responsavelLocal) == ["Marina", "João"])
+        #expect(escala.vagas.map(\.inclusos) == [
+            Inclusos(refeicao: true, transporte: false, exigeMaterialProprio: true),
+            Inclusos(refeicao: false, transporte: true, exigeMaterialProprio: false),
+        ])
+    }
+
+    @Test("Sem responsável numa vaga, só essa vaga é marcada")
+    func responsavelObrigatorioPorVaga() throws {
+        let vm = try modelo(ServidorDeEscala([]))
+        preenchido(vm)
+        vm.atualizar(vm.vagas[1].id) { $0.responsavelLocal = "  " }
+
+        #expect(vm.validar() == false)
+        #expect(vm.erros.vagas[vm.vagas[0].id] == nil)
+        #expect(vm.erros.vagas[vm.vagas[1].id]?[.responsavel] == TextosDaEscala.Erro.responsavel)
+    }
+
+    // MARK: O aviso da ação (em AX5 a tela rola até ele)
+
+    @Test("Cada tentativa que termina com mensagem sobe o contador do aviso, mesmo com a mesma mensagem")
+    func avisoDaAcao() async throws {
+        let servidor = ServidorDeEscala([.failure(ErroDaApi(codigo: .campoInvalido, detalhes: "vagas")), .failure(ErroDaApi(codigo: .campoInvalido, detalhes: "vagas"))])
+        let vm = try modelo(servidor)
+
+        #expect(vm.avisosDaAcao == 0)
+        await vm.publicar()
+        #expect(vm.avisosDaAcao == 1)
+        await vm.publicar()
+        #expect(vm.avisosDaAcao == 2, "o mesmo erro de novo ainda é um aviso novo")
+
+        preenchido(vm)
+        await vm.publicar()
+        #expect(vm.avisosDaAcao == 3)
+        await vm.publicar()
+        #expect(vm.avisosDaAcao == 4)
+    }
+}
+
+/// A guarda mantém a escala com resultado incerto (e a chave) quando a pessoa cancela e reabre a tela.
+@MainActor
+@Suite("Escala de evento: a guarda da tentativa incerta (cancelar e reabrir não troca a chave)")
+struct GuardaDaEscalaTests {
+    private let agora = Date(timeIntervalSince1970: 1_800_000_000)
+    private let garcom = Funcao(id: UUID(uuidString: "20000000-0000-0000-0000-000000000001")!, nome: "Garçom", categoria: "Salão")
+
+    private func modelo(_ servidor: ServidorDeEscala) -> PublicarEscalaViewModel {
+        let fixo = agora
+        let casa = Estabelecimento(
+            id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!, nome: "Bistrô Ipê", tipo: .foodService,
+            endereco: "CLS 405, Asa Sul, Brasília - DF", regiaoAdministrativa: "Plano Piloto",
+            ponto: try! Coordenada(latitude: -15.8121, longitude: -47.8997)
+        )
+        let vm = PublicarEscalaViewModel(estabelecimento: casa, funcoes: [garcom], agora: { fixo }, publicar: { try await servidor.publicar($0) })
+        vm.nome = "Formatura de Direito"
+        vm.atualizar(vm.vagas[0].id) { $0.funcaoID = garcom.id; $0.valorTexto = "16000"; $0.responsavelLocal = "Marina" }
+        return vm
+    }
+
+    @Test("Com tentativa incerta, cancelar e reabrir devolve o mesmo modelo: o rascunho, o aviso e a MESMA chave; reenviar não duplica")
+    func incertaSobreviveAoCancelar() async throws {
+        let servidor = ServidorDeEscala([.failure(ErroDaApi(codigo: .semRede)), .success(publicada())])
+        let guarda = GuardaDaEscala()
+        let primeiro = guarda.obter { modelo(servidor) }
+        await primeiro.publicar()
+        #expect(primeiro.tentativaIncerta != nil)
+
+        guarda.aoSair() // Cancelar
+        #expect(guarda.temTentativaIncerta)
+        let reaberto = guarda.obter { modelo(servidor) }
+
+        #expect(reaberto === primeiro)
+        #expect(reaberto.nome == "Formatura de Direito")
+        #expect(reaberto.erros.geral == TextosDaEscala.Erro.incerta, "a tela reaberta avisa que a última tentativa pode ter publicado")
+        await reaberto.publicar()
+        let enviadas = await servidor.recebidas
+        #expect(enviadas.count == 2)
+        #expect(enviadas[0].chave == enviadas[1].chave)
+        #expect(reaberto.resultado != nil)
+
+        guarda.aoSair() // Concluiu
+        #expect(guarda.temTentativaIncerta == false)
+        #expect(guarda.obter { modelo(servidor) } !== reaberto, "depois do sucesso a próxima escala começa limpa")
+    }
+
+    @Test("Sem tentativa incerta, sair descarta o modelo: a próxima abertura começa limpa")
+    func semIncertaDescarta() async throws {
+        let servidor = ServidorDeEscala([])
+        let guarda = GuardaDaEscala()
+        let primeiro = guarda.obter { modelo(servidor) }
+        #expect(guarda.obter { modelo(servidor) } === primeiro)
+
+        guarda.aoSair()
+
+        #expect(guarda.obter { modelo(servidor) } !== primeiro)
+    }
+
+    @Test("Recusa definitiva solta a chave: depois dela, cancelar descarta, e a próxima escala leva chave nova")
+    func recusaDefinitivaSolta() async throws {
+        let servidor = ServidorDeEscala([.failure(ErroDaApi(codigo: .campoInvalido, detalhes: "evento.nome"))])
+        let guarda = GuardaDaEscala()
+        let vm = guarda.obter { modelo(servidor) }
+
+        await vm.publicar()
+        #expect(vm.tentativaIncerta == nil)
+        guarda.aoSair()
+
+        #expect(guarda.obter { modelo(servidor) } !== vm)
+    }
+}
+
+/// O cadastro da casa lido com prazo: a entrada da escala não fica em "carregando" para sempre.
+@MainActor
+@Suite("Escala de evento: leitura do cadastro da casa com prazo")
+struct CadastroDaCasaDaEscalaTests {
+    private let casa = Estabelecimento(
+        id: UUID(uuidString: "30000000-0000-0000-0000-000000000001")!, nome: "Bistrô Ipê", tipo: .foodService,
+        endereco: "CLS 405, Asa Sul, Brasília - DF", regiaoAdministrativa: "Plano Piloto",
+        ponto: try! Coordenada(latitude: -15.8121, longitude: -47.8997)
+    )
+
+    @Test("Lê o cadastro e fica guardado: abrir de novo não volta à rede")
+    func le() async throws {
+        let chamadas = Contador()
+        let modelo = CadastroDaCasaDaEscala(estabelecimentoID: casa.id) { [casa] _ in await chamadas.somar(); return casa }
+
+        await modelo.carregar()
+        await modelo.carregar()
+
+        #expect(modelo.estado == .pronta(casa))
+        #expect(await chamadas.total == 1)
+    }
+
+    @Test("Passou do prazo: erro com o texto de sem conexão, não carregando para sempre, e dá para tentar de novo")
+    func prazoVencido() async throws {
+        let tentativas = Contador()
+        let modelo = CadastroDaCasaDaEscala(estabelecimentoID: casa.id, prazo: .milliseconds(50)) { [casa] _ in
+            if await tentativas.somar() == 1 { try await Task.sleep(for: .seconds(30)) }
+            return casa
+        }
+
+        await modelo.carregar()
+        #expect(modelo.estado == .erro(mensagem: MensagemDoErroAPI.texto(ErroDaApi(codigo: .semRede))))
+
+        await modelo.carregar()
+        #expect(modelo.estado == .pronta(casa))
+    }
+
+    @Test("Erro do servidor vira a mensagem do código")
+    func recusa() async throws {
+        let modelo = CadastroDaCasaDaEscala(estabelecimentoID: casa.id) { _ in throw ErroDaApi(codigo: .semPermissao) }
+
+        await modelo.carregar()
+
+        #expect(modelo.estado == .erro(mensagem: MensagemDoErroAPI.texto(ErroDaApi(codigo: .semPermissao))))
+    }
+}
+
+private actor Contador {
+    private(set) var total = 0
+    @discardableResult func somar() -> Int { total += 1; return total }
 }

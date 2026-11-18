@@ -238,6 +238,8 @@ private struct DestinoDasVagasDoContratante: View {
     @Binding private var publicando: Bool
     /// A escala de evento toma o lugar da lista, como a publicação de uma vaga.
     @State private var escalando = false
+    /// Guarda a escala que saiu sem resposta conhecida (com a chave) enquanto a pessoa cancela e reabre a tela.
+    @State private var guardaDaEscala = GuardaDaEscala()
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     init(
@@ -267,7 +269,8 @@ private struct DestinoDasVagasDoContratante: View {
         Group {
             if escalando {
                 DestinoDePublicarEscala(
-                    api: api, modelo: publicacao, aoConcluir: { escalando = false }, aoCancelar: { escalando = false }
+                    api: api, estabelecimentoID: model.estabelecimentoID, guarda: guardaDaEscala,
+                    aoConcluir: { escalando = false }, aoCancelar: { escalando = false }
                 )
             } else if publicando, let fila {
                 DestinoDePublicarVaga(

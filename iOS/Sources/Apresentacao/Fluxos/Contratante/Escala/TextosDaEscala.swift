@@ -16,6 +16,7 @@ enum TextosDaEscala {
     static let data = String(localized: "Dia do evento", bundle: bundleApresentacao)
     static let responsavel = String(localized: "Quem recebe os profissionais no local", bundle: bundleApresentacao)
     static let responsavelExemplo = String(localized: "Nome de quem recebe", bundle: bundleApresentacao)
+    static let opcional = String(localized: "Opcional", bundle: bundleApresentacao)
     static let inclusos = String(localized: "Vale para todas as vagas", bundle: bundleApresentacao)
 
     static let vagas = String(localized: "Vagas da escala", bundle: bundleApresentacao)
