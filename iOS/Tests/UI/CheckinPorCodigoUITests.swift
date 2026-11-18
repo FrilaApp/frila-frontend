@@ -93,6 +93,34 @@ final class CheckinPorCodigoUITests: XCTestCase {
 
     // MARK: O profissional
 
+    func testChegadaPendenteOfereceNovoGPSSemEsconderCheckout() {
+        conferirRenovacao(extras: [])
+    }
+
+    func testRenovacaoDaChegadaEmAX5() {
+        conferirRenovacao(extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+    }
+
+    private func conferirRenovacao(extras: [String]) {
+        let app = abrir(["-FRILA_SCENARIO", "checkin-por-codigo", "-FRILA_LOCALIZACAO", "codigo-perto",
+                         "-FRILA_PUSH", "turno_nao_verificado", "-FRILA_PUSH_ID", turnoDoProfissional] + extras)
+        fazerCheckinPendente(app, manual: false)
+        let renovar = app.buttons["renovar-chegada"]
+        XCTAssertTrue(renovar.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertEqual(renovar.label, "Tentar o GPS de novo")
+        rolarAte(renovar, em: app)
+        XCTAssertTrue(renovar.isHittable)
+        XCTAssertGreaterThanOrEqual(renovar.frame.height, 44)
+        tocar(renovar)
+        let checkout = app.buttons["fazer-checkout"]
+        XCTAssertTrue(checkout.waitForExistence(timeout: Espera.aparecer))
+        rolarAte(checkout, em: app)
+        XCTAssertTrue(checkout.isHittable)
+        XCTAssertTrue(checkout.isEnabled)
+        XCTAssertGreaterThanOrEqual(checkout.frame.height, 44)
+        XCTAssertTrue(app.buttons["ler-codigo-da-casa"].exists)
+    }
+
     private func abrirTurnoDoProfissional(localizacao: String) -> XCUIApplication {
         abrir(["-FRILA_SCENARIO", "checkin-por-codigo", "-FRILA_LOCALIZACAO", localizacao,
                "-FRILA_PUSH", "turno_nao_verificado", "-FRILA_PUSH_ID", turnoDoProfissional])
