@@ -36,6 +36,7 @@ public struct TelaChamadaDireta: View {
     @State private var viewModel: ChamadaDiretaViewModel
     @FocusState private var campoEmFoco: Campo?
     @Environment(\.dismiss) private var fechar
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     /// Leva ao Acompanhar chamadas depois do envio (V11); sem ela, o resumo aparece sem o link.
     private let api: (any ApiCliente)?
 
@@ -58,6 +59,10 @@ public struct TelaChamadaDireta: View {
                 } else if viewModel.recursoHabilitado {
                     campos
                         .disabled(viewModel.tentativa != nil || viewModel.enviando)
+                    // Em texto de acessibilidade o grupo do pé passaria de um terço da tela: vai para o fim do formulário.
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
+                    }
                 }
                 // Sem o formulário na tela, não há botão de envio para levar a mensagem: ela vem em aviso de bloco.
                 if let erro = viewModel.erro, !formularioVisivel {
@@ -83,7 +88,7 @@ public struct TelaChamadaDireta: View {
                 Button { fechar() } label: { Text("Fechar", bundle: bundleApresentacao) }
             }
         }
-        .rodapeAncoradoSe(formularioVisivel) { rodape }
+        .rodapeAncoradoSe(formularioVisivel && !tamanhoDoTexto.isAccessibilitySize) { rodape }
         .alert(Text(verbatim: TextosChamadaDireta.j7Titulo), isPresented: $viewModel.mostrarJ7) {
             Button(role: .cancel) { viewModel.mostrarJ7 = false } label: { Text("Cancelar", bundle: bundleApresentacao) }
             Button {

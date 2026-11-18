@@ -284,6 +284,8 @@ struct TelaTurnoDoContratante: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         // Sem título na barra: o título da tela é conteúdo nosso (DESIGN.md, "Estrutura"); a barra só leva o voltar.
         .navigationBarTitleDisplayMode(.inline)
+        // O identificador da tela vem antes do rodapé: depois dele, cobriria o botão ancorado e apagaria o dele.
+        .accessibilityIdentifier("turno-do-contratante")
         .rodapeAncoradoSe(viewModel.turno(turnoID: turnoID).map(confirmarPresencaNoRodape) ?? false) { rodapeDaAcao }
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .task(id: viewModel.turno(turnoID: turnoID)?.vaga.periodo.fim) {
@@ -304,7 +306,6 @@ struct TelaTurnoDoContratante: View {
         .sheet(item: $suporteModel) { model in
             FolhaSuporteTurno(viewModel: model)
         }
-        .accessibilityIdentifier("turno-do-contratante")
         .task {
             guard let api else { return }
             let recursos = (try? await PrazoDaAbertura.esperar(.seconds(15)) {

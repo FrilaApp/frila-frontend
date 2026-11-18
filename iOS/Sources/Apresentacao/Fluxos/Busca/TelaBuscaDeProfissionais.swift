@@ -81,7 +81,8 @@ public struct TelaBuscaDeProfissionais: View {
                     .accessibilityIdentifier("busca-fechar")
             }
         }
-        .rodapeAncoradoSe(!viewModel.resultados.isEmpty) { rodapeDaLista }
+        // Em texto de acessibilidade o grupo do pé passaria de um terço da tela e cobriria o "Buscar": vai para o fim da lista.
+        .rodapeAncoradoSe(!viewModel.resultados.isEmpty && !tamanhoDoTexto.isAccessibilitySize) { rodapeDaLista }
         .task { await carregarCatalogo() }
         .sheet(item: $rascunhoDaChamada) { rascunho in
             FolhaDeChamadaDaBusca(rascunho: rascunho, fechar: { rascunhoDaChamada = nil }, enviar: { Task { await enviarChamadas() } })
@@ -240,12 +241,11 @@ public struct TelaBuscaDeProfissionais: View {
                 .font(FrilaTipo.rotuloDeGrupo)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            // Preguiçosa, como era a lista: o marcador do fim só nasce quando chega perto da tela, e é ele que pede a
+            // página seguinte. Com a lista inteira montada de uma vez, o marcador pedia todas as páginas de uma vez.
+            LazyVStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 ForEach(viewModel.resultados) { cartao in linha(cartao) }
-            }
-            if viewModel.temMais {
-                // O marcador do fim da lista só nasce quando chega perto da tela: é ele que pede a página seguinte.
-                LazyVStack {
+                if viewModel.temMais {
                     Color.clear.frame(height: 1)
                         .onAppear { Task { await viewModel.carregarMais() } }
                         .accessibilityHidden(true)
@@ -262,6 +262,10 @@ public struct TelaBuscaDeProfissionais: View {
                     MensagemJuntoAoBotao(verbatim: erro)
                     BotaoSecundario(verbatim: TextosBuscaDeProfissionais.carregarMais) { Task { await viewModel.carregarMais() } }
                 }
+            }
+            if tamanhoDoTexto.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodapeDaLista }
+                    .padding(.top, FrilaEspaco.item)
             }
         }
     }
@@ -408,6 +412,7 @@ private struct FolhaDeChamadaDaBusca: View {
     let fechar: () -> Void
     let enviar: () -> Void
     @FocusState private var campoEmFoco: Campo?
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
 
     var body: some View {
         NavigationStack {
@@ -455,6 +460,9 @@ private struct FolhaDeChamadaDaBusca: View {
                             .focused($campoEmFoco, equals: .recado)
                             .caixaDoCampoFrila(emFoco: campoEmFoco == .recado)
                     }
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { acaoDoEnvio }
+                    }
                 }
                 .padding(.horizontal, FrilaEspaco.grupo)
                 .padding(.top, FrilaEspaco.item)
@@ -469,19 +477,23 @@ private struct FolhaDeChamadaDaBusca: View {
                     Button { fechar() } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
                 }
             }
-            .rodapeAncorado {
-                if let falta = rascunho.oQueFalta {
-                    Text(verbatim: falta)
-                        .font(FrilaTipo.apoio)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                BotaoPrimario(verbatim: TextosBuscaDeProfissionais.enviarChamadas) { enviar() }
-                    .disabled(!rascunho.podeEnviar)
-                    .accessibilityIdentifier("busca-enviar-chamadas")
-            }
+            .rodapeAncoradoSe(!tamanhoDoTexto.isAccessibilitySize) { acaoDoEnvio }
         }
+    }
+
+    /// O que falta e o botão laranja. Ancorados embaixo; em texto de acessibilidade, no fim do formulário.
+    @ViewBuilder
+    private var acaoDoEnvio: some View {
+        if let falta = rascunho.oQueFalta {
+            Text(verbatim: falta)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        BotaoPrimario(verbatim: TextosBuscaDeProfissionais.enviarChamadas) { enviar() }
+            .disabled(!rascunho.podeEnviar)
+            .accessibilityIdentifier("busca-enviar-chamadas")
     }
 
     /// O rótulo visível acima do campo, em rótulo de grupo.
