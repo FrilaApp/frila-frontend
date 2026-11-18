@@ -1,11 +1,14 @@
 package br.com.frila.feature.conta
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -14,11 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,9 +35,17 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
 /** Liga o [ExclusaoDeContaViewModel] ao [ConteudoExclusaoDeConta]. */
 @Composable
@@ -60,8 +68,11 @@ fun TelaExclusaoDeConta(
  * Exclusão de conta em tela cheia (RF25/UC16, paridade com `TelaExclusaoDeConta.swift`): o que
  * acontece, a caixa de confirmação e um diálogo final antes do pedido. O botão só habilita depois
  * da caixa marcada. Prazo de até 15 dias para as cópias de backup (contrato `ExclusaoDeConta`).
+ *
+ * Tela de leitura com uma ação de risco: sem laranja. "Excluir minha conta definitivamente" é uma ação
+ * discreta no fim da tela, e o diálogo nativo escreve a consequência antes de qualquer pedido. Sem desenho
+ * do Fabrício (extrapolada do mesmo sistema).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConteudoExclusaoDeConta(
     estado: EstadoExclusaoDeConta,
@@ -70,76 +81,49 @@ fun ConteudoExclusaoDeConta(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cores = FrilaTema.cores
     var dialogoAberto by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosExclusaoDeConta.TITULO,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = aoVoltar,
-                        enabled = !estado.excluindo,
-                        modifier = Modifier.sizeIn(
-                            minWidth = FrilaMetricas.alvoMinimo,
-                            minHeight = FrilaMetricas.alvoMinimo,
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosExclusaoDeConta.ROTULO_VOLTAR,
-                        )
-                    }
-                },
-            )
-        },
+        containerColor = cores.fundo,
+        topBar = { BarraDeVoltar(aoVoltar = aoVoltar, habilitado = !estado.excluindo) },
     ) { preenchimento ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.pequeno),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(
+                    start = FrilaEspacamento.grupo,
+                    end = FrilaEspacamento.grupo,
+                    top = FrilaEspacamento.item,
+                    bottom = FrilaEspacamento.grupo,
+                ),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
             val resultado = estado.resultado
             if (resultado != null) {
-                Text(
-                    text = TextosExclusaoDeConta.CONCLUIDA_TITULO,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics {
-                        heading()
-                        liveRegion = LiveRegionMode.Polite
-                    },
+                TituloDaTela(
+                    texto = TextosExclusaoDeConta.CONCLUIDA_TITULO,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 Text(
                     text = TextosExclusaoDeConta.concluidaResumo(
                         turnosCancelados = resultado.turnosCancelados,
                         dadosApagadosAte = resultado.dadosApagadosAte,
                     ),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
                 )
                 return@Column
             }
 
-            Text(
-                text = TextosExclusaoDeConta.AVISO,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
-            )
-            Text(
-                text = TextosExclusaoDeConta.SECAO_O_QUE_ACONTECE,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
+            TituloDaTela(TextosExclusaoDeConta.TITULO)
+            AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosExclusaoDeConta.AVISO)
+
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosExclusaoDeConta.SECAO_O_QUE_ACONTECE)
                 Consequencia(TextosExclusaoDeConta.CONSEQUENCIA_ANONIMIZACAO)
                 Consequencia(TextosExclusaoDeConta.CONSEQUENCIA_TURNOS)
                 Consequencia(TextosExclusaoDeConta.CONSEQUENCIA_PRAZO)
@@ -156,44 +140,48 @@ fun ConteudoExclusaoDeConta(
                         onValueChange = aoAlterarConfirmacao,
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno),
+                horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
             ) {
                 // O clique é do Row (toggleable): a caixa só reflete o estado.
                 Checkbox(checked = estado.confirmouConsequencias, onCheckedChange = null)
                 Text(
                     text = TextosExclusaoDeConta.CONFIRMACAO_CHECK,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
                 )
             }
 
-            estado.mensagemErro?.let { mensagem ->
-                Text(
-                    text = mensagem,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                estado.mensagemErro?.let { mensagem ->
+                    MensagemJuntoAoBotao(
+                        texto = mensagem,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                    )
+                }
+                AcaoDiscreta(
+                    texto = if (estado.excluindo) TextosExclusaoDeConta.EXCLUINDO else TextosExclusaoDeConta.BOTAO_EXCLUIR,
+                    aoClicar = { dialogoAberto = true },
+                    habilitado = estado.podeExcluir,
                 )
             }
-
-            BotaoPrimario(
-                texto = if (estado.excluindo) TextosExclusaoDeConta.EXCLUINDO else TextosExclusaoDeConta.BOTAO_EXCLUIR,
-                aoClicar = { dialogoAberto = true },
-                habilitado = estado.podeExcluir,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 
     if (dialogoAberto && estado.podeExcluir) {
         AlertDialog(
             onDismissRequest = { dialogoAberto = false },
+            containerColor = cores.superficie,
             title = {
                 Text(
                     text = TextosExclusaoDeConta.DIALOGO_TITULO,
+                    style = FrilaTipo.nome,
+                    color = cores.tinta,
                     modifier = Modifier.semantics { heading() },
                 )
             },
-            text = { Text(text = TextosExclusaoDeConta.DIALOGO_MENSAGEM) },
+            text = {
+                Text(text = TextosExclusaoDeConta.DIALOGO_MENSAGEM, style = FrilaTipo.corpo, color = cores.tintaSuave)
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -205,7 +193,7 @@ fun ConteudoExclusaoDeConta(
                         minHeight = FrilaMetricas.alvoMinimo,
                     ),
                 ) {
-                    Text(TextosExclusaoDeConta.DIALOGO_CONFIRMAR, color = MaterialTheme.colorScheme.error)
+                    Text(TextosExclusaoDeConta.DIALOGO_CONFIRMAR, style = FrilaTipo.rotuloSecundario, color = cores.tinta)
                 }
             },
             dismissButton = {
@@ -215,9 +203,35 @@ fun ConteudoExclusaoDeConta(
                         minWidth = FrilaMetricas.alvoMinimo,
                         minHeight = FrilaMetricas.alvoMinimo,
                     ),
-                ) { Text(TextosExclusaoDeConta.CANCELAR) }
+                ) { Text(TextosExclusaoDeConta.CANCELAR, style = FrilaTipo.rotuloSecundario, color = cores.tinta) }
             },
         )
+    }
+}
+
+/**
+ * A barra de topo da tela (só o voltar, sem título), igual à `FrilaBarraDeTopo`, mas com o voltar que
+ * desliga enquanto a exclusão roda. Para subir ao sistema: `FrilaBarraDeTopo` ganhar `voltarHabilitado`.
+ */
+@Composable
+private fun BarraDeVoltar(aoVoltar: () -> Unit, habilitado: Boolean) {
+    val cores = FrilaTema.cores
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(cores.fundo)
+            .heightIn(min = FrilaMetricas.alvoMinimo)
+            .padding(horizontal = FrilaEspacamento.compacto),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = aoVoltar, enabled = habilitado, modifier = Modifier.size(FrilaMetricas.alvoMinimo)) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = TextosExclusaoDeConta.ROTULO_VOLTAR,
+                tint = if (habilitado) cores.tinta else cores.tintaSuave,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
 
@@ -225,7 +239,7 @@ fun ConteudoExclusaoDeConta(
 private fun Consequencia(texto: String) {
     Text(
         text = "• $texto",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface,
+        style = FrilaTipo.corpo,
+        color = FrilaTema.cores.tinta,
     )
 }
