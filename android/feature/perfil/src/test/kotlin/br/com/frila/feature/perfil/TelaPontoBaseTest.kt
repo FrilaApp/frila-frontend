@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Ponto base (TELA PROVISÓRIA): uma lista de regiões e, só para quem não tem perfil, as funções. */
+/** Ponto base: uma lista de regiões com busca e, só para quem não tem perfil, as funções. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h2400dp")
 class TelaPontoBaseTest {
@@ -102,8 +102,9 @@ class TelaPontoBaseTest {
     fun `salvar e voltar avisam quem abriu a tela, e o erro aparece`() {
         val toques = montar(estadoBase.copy(erro = TextosPontoBase.ERRO_SEM_PONTO_BASE))
 
-        rule.onNodeWithText(TextosPontoBase.ERRO_SEM_PONTO_BASE).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosPontoBase.SALVAR).performScrollTo().performClick()
+        // O erro e o Salvar ficam no rodapé ancorado, fora da rolagem: não há o que rolar até eles.
+        rule.onNodeWithText(TextosPontoBase.ERRO_SEM_PONTO_BASE).assertIsDisplayed()
+        rule.onNodeWithText(TextosPontoBase.SALVAR).performClick()
         rule.onNodeWithContentDescription(TextosPontoBase.VOLTAR).performClick()
 
         assertEquals(1, toques.salvou)
@@ -114,7 +115,7 @@ class TelaPontoBaseTest {
     fun `enquanto salva o botao fica desligado e diz que esta salvando`() {
         val toques = montar(estadoBase.copy(salvando = true))
 
-        rule.onNodeWithText(TextosPontoBase.SALVANDO).performScrollTo().assertIsNotEnabled().performClick()
+        rule.onNodeWithText(TextosPontoBase.SALVANDO).assertIsNotEnabled().performClick()
 
         assertEquals(0, toques.salvou)
     }

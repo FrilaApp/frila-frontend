@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** L1-2a (TELA PROVISÓRIA): apresentação e regiões do profissional, só campos e listas nativos. */
+/** L1-2a: apresentação e regiões do profissional. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h2400dp")
 class TelaApresentacaoERegioesTest {
@@ -160,7 +160,8 @@ class TelaApresentacaoERegioesTest {
     fun `salvar tem alvo minimo, chama o callback e desliga enquanto salva`() {
         val toques = montar()
 
-        rule.onNodeWithText(TextosApresentacaoERegioes.SALVAR).performScrollTo()
+        // O Salvar fica no rodapé ancorado, fora da rolagem.
+        rule.onNodeWithText(TextosApresentacaoERegioes.SALVAR)
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).assertIsEnabled().performClick()
 
         assertEquals(1, toques.salvou)
@@ -170,7 +171,7 @@ class TelaApresentacaoERegioesTest {
     fun `salvando mostra o texto e o botao fica desligado`() {
         montar(estadoBase.copy(salvando = true))
 
-        rule.onNodeWithText(TextosApresentacaoERegioes.SALVANDO).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosApresentacaoERegioes.SALVANDO).assertIsNotEnabled()
     }
 
     @Test
@@ -189,10 +190,12 @@ class TelaApresentacaoERegioesTest {
         for (texto in listOf(
             TextosApresentacaoERegioes.ERRO_ANTI_CONTATO, TextosApresentacaoERegioes.LIMITE_ONDE_TRABALHEI,
             TextosApresentacaoERegioes.LIMITE_CURSOS, TextosApresentacaoERegioes.ERRO_REGIOES,
-            TextosApresentacaoERegioes.ERRO_SEM_REDE, TextosApresentacaoERegioes.SUCESSO,
         )) {
             rule.onNodeWithText(texto).performScrollTo().assertIsDisplayed()
         }
+        // O resultado do salvar fica junto ao botão, no rodapé ancorado, fora da rolagem.
+        rule.onNodeWithText(TextosApresentacaoERegioes.ERRO_SEM_REDE).assertIsDisplayed()
+        rule.onNodeWithText(TextosApresentacaoERegioes.SUCESSO).assertIsDisplayed()
     }
 
     @Test
