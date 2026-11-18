@@ -93,7 +93,7 @@ public struct TelaPublicarEscala: View {
                 Task { @MainActor in
                     await Task.yield()
                     if dynamicTypeSize.isAccessibilitySize {
-                        withAnimation(reduzirMovimento ? nil : .easeOut(duration: 0.25)) {
+                        withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.25), reduzir: reduzirMovimento)) {
                             leitor.scrollTo(Self.idDoAviso, anchor: .top)
                         }
                     }
