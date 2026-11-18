@@ -1,6 +1,11 @@
 package br.com.frila.feature.perfil
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTema
@@ -88,5 +94,21 @@ internal fun LinhaDeValor(
             modifier = Modifier.weight(1f),
         )
         Text(text = valor, style = FrilaTipo.corpo, color = cores.tintaSuave, modifier = modificadorDoValor)
+    }
+}
+
+/**
+ * A [FrilaBarraDeTopo] das telas que o perfil abre por cima de uma raiz, com o recuo da barra de status: o app desenha de
+ * borda a borda (target 35) e a barra do design system ainda não cuida disso sozinha.
+ */
+@Composable
+internal fun BarraDeTopoDoPerfil(aoVoltar: (() -> Unit)?, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(FrilaTema.cores.fundo)
+            .windowInsetsPadding(WindowInsets.statusBars),
+    ) {
+        FrilaBarraDeTopo(aoVoltar = aoVoltar)
     }
 }
