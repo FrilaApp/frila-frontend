@@ -343,6 +343,26 @@ struct PublicarEscalaViewModelTests {
         #expect(vm.erros.geral == TextosDaEscala.Erro.incerta)
     }
 
+    @Test("Tudo que não é recusa definitiva é resultado incerto (um 502 ou 504 sem envelope vira .desconhecido): a escala fica guardada e o reenvio leva a MESMA chave", arguments: [CodigoErroAPI.desconhecido, .semRede, .respostaInvalida, .vagaEncerrada])
+    func incertoParaQualquerErroQueNaoSejaRecusaDefinitiva(codigo: CodigoErroAPI) async throws {
+        let servidor = ServidorDeEscala([.failure(ErroDaApi(codigo: codigo)), .success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+
+        await vm.publicar()
+
+        #expect(vm.tentativaIncerta != nil)
+        #expect(vm.camposBloqueados)
+        #expect(vm.erros.geral == TextosDaEscala.Erro.incerta)
+
+        await vm.publicar()
+
+        let enviadas = await servidor.recebidas
+        #expect(enviadas.count == 2)
+        #expect(enviadas[0].chave == enviadas[1].chave)
+        #expect(vm.resultado != nil)
+    }
+
     @Test("Erro que não é do ErroDaApi (a rede crua) também guarda a escala")
     func erroCru() async throws {
         let servidor = ServidorDeEscala([.failure(URLError(.networkConnectionLost))])

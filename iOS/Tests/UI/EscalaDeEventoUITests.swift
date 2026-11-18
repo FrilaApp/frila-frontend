@@ -142,6 +142,28 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertEqual(vagas(app).count, antes)
     }
 
+    /// Em AX5 o aviso vai para o alto da rolagem: depois de Publicar ele tem de aparecer na tela (rolagem até ele), e não
+    /// ficar fora da primeira tela, onde quem só aumenta a letra acharia que o botão não fez nada.
+    func testEmAX5OErroAparecaNaTelaDepoisDePublicar() {
+        let app = abrir(ax5: true)
+        abrirEscala(app)
+
+        // Desce a tela, para o aviso do alto ficar fora dela antes do toque.
+        for _ in 0..<3 { app.swipeUp(velocity: .fast) }
+        tocar(app.buttons["escala-publicar"])
+
+        let mensagem = elemento("escala-mensagem", em: app)
+        XCTAssertTrue(mensagem.waitForExistence(timeout: Espera.aparecer))
+        let janela = app.windows.firstMatch.frame
+        let visivel = NSPredicate { _, _ in
+            let quadro = mensagem.frame
+            return mensagem.exists && quadro.minY >= 100 && quadro.maxY <= janela.height - 100
+        }
+        expectation(for: visivel, evaluatedWith: nil)
+        waitForExpectations(timeout: 5)
+        capturar("2-erros-de-campo", ax5: true)
+    }
+
     // MARK: Capturas (tamanho padrão e AX5)
 
     func testCapturasDaEscala() {
