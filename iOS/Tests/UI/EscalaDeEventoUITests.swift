@@ -168,6 +168,24 @@ final class EscalaDeEventoUITests: XCTestCase {
         capturar("2-erros-de-campo", ax5: true)
     }
 
+    /// Quem usa letra grande e corrige um campo marcado com erro não pode perder o teclado: a marca do campo não some na
+    /// primeira letra (o conteúdo encolheria, o campo pularia debaixo do dedo e o teclado cairia, deixando "M").
+    func testEmAX5CorrigirOCampoMarcadoComErroMantemOTecladoAberto() {
+        let app = abrir(ax5: true)
+        abrirEscala(app)
+        tocar(app.buttons["escala-publicar"])
+        XCTAssertTrue(elemento("escala-mensagem", em: app).waitForExistence(timeout: Espera.aparecer))
+
+        let campo = app.textFields["escala-responsavel-0"]
+        trazer(campo, em: app)
+        XCTAssertTrue(elemento("escala-erro-responsavel-0", em: app).exists, "o responsável vazio está marcado")
+
+        substituirTexto(campo, por: "Marina")
+
+        XCTAssertEqual(campo.value as? String, "Marina")
+        XCTAssertTrue(app.keyboards.firstMatch.exists, "o teclado segue aberto depois de digitar no campo marcado")
+    }
+
     // MARK: Capturas (tamanho padrão e AX5)
 
     func testCapturasDaEscala() {
