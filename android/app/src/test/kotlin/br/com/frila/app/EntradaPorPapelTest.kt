@@ -341,6 +341,30 @@ class EntradaPorPapelTest {
     }
 
     @Test
+    fun `RN - a aba que sai nao fica guardada - voltar a ela abre de novo, sem o estado de antes nem de outra conta`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+        var entradaDeAntes: String? = null
+        rule.runOnIdle {
+            entradaDeAntes = nav.currentBackStackEntry!!.id
+            nav.currentBackStackEntry!!.savedStateHandle["marca"] = "de antes"
+        }
+
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        aguardar { rotaAtual() == Rotas.PERFIL }
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+
+        rule.runOnIdle {
+            // Estado de aba guardado sobreviveria à saída da conta e reapareceria na conta seguinte.
+            assertNull("a aba voltou com o estado de antes", nav.currentBackStackEntry!!.savedStateHandle.get<String>("marca"))
+            assertNotEquals("a aba voltou com a mesma entrada da pilha", entradaDeAntes, nav.currentBackStackEntry!!.id)
+        }
+    }
+
+    @Test
     fun `RN - tela aberta por cima de uma raiz nao tem barra de abas`() {
         montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.FEED }

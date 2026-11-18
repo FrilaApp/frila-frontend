@@ -104,9 +104,8 @@ internal fun temBarraDaRaiz(papel: PapelDaRaiz?, padraoAtual: String?): Boolean 
 }
 
 /**
- * A barra de abas da raiz do app. A primeira aba é o chão da pilha: trocar de aba volta até ela (guardando o estado
- * da aba que sai) e abre a escolhida por cima, então "voltar" numa outra aba leva à primeira, e "voltar" na primeira
- * sai do app. Se a primeira aba não está na pilha (link que abriu direto noutra raiz), a aba atual é que dá lugar.
+ * A barra de abas da raiz do app. A primeira aba é o chão da pilha: trocar de aba volta até ela e abre a escolhida
+ * por cima, então "voltar" numa outra aba leva à primeira, e "voltar" na primeira sai do app. Se a primeira aba não está na pilha (link que abriu direto noutra raiz), a aba atual é que dá lugar.
  */
 @Composable
 internal fun BarraDaRaiz(navController: NavHostController, papel: PapelDaRaiz?, padraoAtual: String?) {
@@ -121,17 +120,11 @@ internal fun BarraDaRaiz(navController: NavHostController, papel: PapelDaRaiz?, 
             if (indice != atual) {
                 val chao = abas.first().padrao
                 val chaoNaPilha = runCatching { navController.getBackStackEntry(chao) }.isSuccess
+                // Sem guardar o estado da aba que sai (`saveState`/`restoreState`): o estado guardado sobrevive à saída da
+                // conta e reapareceria para a conta seguinte. Cada aba abre de novo e recarrega do servidor.
                 navController.navigate(abas[indice].rota) {
-                    if (chaoNaPilha) {
-                        popUpTo(chao) { saveState = true }
-                    } else {
-                        popUpTo(padraoAtual) {
-                            inclusive = true
-                            saveState = true
-                        }
-                    }
+                    if (chaoNaPilha) popUpTo(chao) else popUpTo(padraoAtual) { inclusive = true }
                     launchSingleTop = true
-                    restoreState = true
                 }
             }
         },

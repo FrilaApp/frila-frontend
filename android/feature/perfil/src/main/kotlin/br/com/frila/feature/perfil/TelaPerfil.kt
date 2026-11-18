@@ -279,6 +279,7 @@ fun TelaPerfil(
                     },
                     aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                     modifier = Modifier.weight(1f),
+                    atalhosExtras = atalhosExtras,
                 )
                 StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                     nome = estado.conta?.nome,
@@ -1228,8 +1229,11 @@ private fun Erro(
     aoDeslogar: () -> Unit = {},
     aoAbrirExclusao: () -> Unit = {},
     modifier: Modifier = Modifier,
+    /** Bloqueados e contestar não dependem do perfil ter carregado: continuam ao alcance com o perfil em erro. */
+    atalhosExtras: List<AtalhoDaConta> = emptyList(),
 ) {
-    val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null
+    val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null ||
+        atalhosExtras.isNotEmpty()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1252,6 +1256,9 @@ private fun Erro(
             if (temAtalhos) {
                 FrilaGrupoDeLinhas {
                     atalhosDaCasa(aoAbrirEquipe, aoMinhasVagas, aoPublicarVaga, null, aoEncontrarProfissional)
+                    atalhosExtras.forEach { atalho ->
+                        linha { FrilaLinhaDeNavegacao(atalho.rotulo, atalho.aoAbrir, Modifier.testTag(atalho.tag)) }
+                    }
                 }
             }
             // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
