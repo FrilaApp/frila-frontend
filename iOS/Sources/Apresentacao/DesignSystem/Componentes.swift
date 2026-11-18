@@ -87,60 +87,90 @@ public extension ButtonStyle where Self == EstiloChipTatil {
     }
 }
 
-public struct BotaoPrimario: View {
-    private let titulo: Text
-    private let carregando: Bool
-    private let acao: () -> Void
-    @Environment(\.isEnabled) private var habilitado
+/// Os dois botões do sistema do Fabrício (`Botoes.swift` do redesign; DESIGN.md do protótipo, "Componentes").
+/// O toque troca a cor do fundo em 120 ms (D-DS-03), sem encolher o botão.
+public struct EstiloDoBotaoFrila: ButtonStyle {
+    public enum Papel: Equatable, Sendable { case primario, secundario }
+
+    private let papel: Papel
+    private let emConferencia: Bool
+    private let alturaMinima: CGFloat
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
-    public init(_ titulo: LocalizedStringKey, carregando: Bool = false, acao: @escaping () -> Void) {
-        self.titulo = Text(titulo, bundle: bundleApresentacao)
-        self.carregando = carregando
-        self.acao = acao
+    public init(papel: Papel, emConferencia: Bool = false, alturaMinima: CGFloat = FrilaMetrica.alturaDoCampo) {
+        self.papel = papel
+        self.emConferencia = emConferencia
+        self.alturaMinima = alturaMinima
     }
 
-    public init(verbatim titulo: String, carregando: Bool = false, acao: @escaping () -> Void) {
-        self.titulo = Text(verbatim: titulo)
-        self.carregando = carregando
-        self.acao = acao
-    }
-
-    /// O carregando também desliga o botão, mas mantém a cor: o indicador já diz o que acontece.
-    private var desligado: Bool { !habilitado && !carregando }
-
-    public var body: some View {
-        Button(action: acao) {
-            Group {
-                if carregando { ProgressView().tint(FrilaCor.sobreAcao) }
-                else {
-                    titulo
-                        .font(FrilaTipo.botaoPrimario)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.horizontal, FrilaEspaco.grande)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .foregroundStyle(desligado ? FrilaCor.textoSecundario : FrilaCor.sobreAcao)
-            // Pílula da `acao` (laranja do protótipo), rótulo branco em negrito de 20 pt: o único rótulo pesado, porque o
-            // branco sobre a `acao` só passa assim (3,1:1). No máximo um por tela.
-            // Desligado (sem ser pelo carregando), vira cinza com borda: laranja cheio
-            // parecia pronto para tocar, e o toque não fazia nada (V7 da conferência visual da 1.1).
-            .background(desligado ? FrilaCor.controle : FrilaCor.acao, in: FrilaForma.capsulaQueCresce())
-            .overlay { if desligado { FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.borda, lineWidth: 1) } }
-            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: desligado)
-            .contentShape(FrilaForma.capsulaQueCresce())
+    /// As cores de cada estado. O primário em conferência (desligado ou esperando a resposta) fica no lugar, com o
+    /// mesmo rótulo, em `borda` e `textoSecundario`: é o único estado desabilitado do produto.
+    public static func cores(papel: Papel, emConferencia: Bool, pressionado: Bool) -> (fundo: Color, rotulo: Color, borda: Color?) {
+        switch papel {
+        case .primario where emConferencia: (FrilaCor.borda, FrilaCor.textoSecundario, nil)
+        case .primario: (pressionado ? FrilaCor.acaoPressionada : FrilaCor.acao, FrilaCor.sobreAcao, nil)
+        case .secundario: (pressionado ? FrilaCor.superficiePressionada : FrilaCor.superficie, FrilaCor.texto, FrilaCor.borda)
         }
-        .buttonStyle(.tatil)
-        .disabled(carregando)
-        // Enquanto carrega, o conteúdo é só o indicador: sem isto o botão perde o nome no VoiceOver.
-        .accessibilityLabel(titulo)
-        .accessibilityValue(carregando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
+    }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        let cores = Self.cores(papel: papel, emConferencia: emConferencia, pressionado: configuration.isPressed)
+        let forma = FrilaForma.capsulaQueCresce(alturaMinima: alturaMinima)
+        configuration.label
+            .font(papel == .primario ? FrilaTipo.botaoPrimario : FrilaTipo.rotuloSecundario)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, FrilaEspaco.bloco)
+            .padding(.vertical, FrilaEspaco.item)
+            .frame(maxWidth: .infinity, minHeight: alturaMinima)
+            .foregroundStyle(cores.rotulo)
+            .background(cores.fundo, in: forma)
+            .overlay { if let borda = cores.borda { forma.strokeBorder(borda, lineWidth: 1) } }
+            .contentShape(forma)
+            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento, somenteOpacidade: true),
+                       value: configuration.isPressed)
+            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento, somenteOpacidade: true),
+                       value: emConferencia)
+            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { _, pressionado in pressionado }
     }
 }
 
+/// Botão primário: cápsula da `acao` (laranja), rótulo branco em negrito de 20 pt. No máximo um por tela.
+public struct BotaoPrimario: View {
+    private let titulo: Text
+    private let carregando: Bool
+    private let alturaMinima: CGFloat
+    private let acao: () -> Void
+    @Environment(\.isEnabled) private var habilitado
+
+    public init(_ titulo: LocalizedStringKey, carregando: Bool = false, alturaMinima: CGFloat = FrilaMetrica.alturaDoCampo,
+                acao: @escaping () -> Void) {
+        self.titulo = Text(titulo, bundle: bundleApresentacao)
+        self.carregando = carregando
+        self.alturaMinima = alturaMinima
+        self.acao = acao
+    }
+
+    public init(verbatim titulo: String, carregando: Bool = false, alturaMinima: CGFloat = FrilaMetrica.alturaDoCampo,
+                acao: @escaping () -> Void) {
+        self.titulo = Text(verbatim: titulo)
+        self.carregando = carregando
+        self.alturaMinima = alturaMinima
+        self.acao = acao
+    }
+
+    public var body: some View {
+        // Enquanto a ação roda, o botão fica em conferência: no lugar, com o mesmo rótulo, sem indicador girando
+        // (valor padrão da chave "Botão carregando" do Laboratório dele, D-DS-19).
+        Button(action: acao) { titulo }
+            .buttonStyle(EstiloDoBotaoFrila(papel: .primario, emConferencia: carregando || !habilitado, alturaMinima: alturaMinima))
+            .disabled(carregando)
+            .accessibilityLabel(titulo)
+            .accessibilityValue(carregando ? Text("Carregando", bundle: bundleApresentacao) : Text(verbatim: ""))
+    }
+}
+
+/// Botão secundário: superfície com fio de 1 pt em `borda` e rótulo em tinta, 600 de 16 pt.
 public struct BotaoSecundario: View {
     private let titulo: Text
     private let acao: () -> Void
@@ -156,88 +186,109 @@ public struct BotaoSecundario: View {
     }
 
     public var body: some View {
-        Button(action: acao) {
-            titulo
-                .font(FrilaTipo.rotuloSecundario)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, FrilaEspaco.grande)
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                .foregroundStyle(FrilaCor.texto)
-                // Botão secundário da pele nova: superfície branca, fio de 1 pt em `borda`, rótulo em tinta 600 de 16 pt.
-                .background(FrilaCor.superficie, in: FrilaForma.capsulaQueCresce())
-                .overlay(FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                .contentShape(FrilaForma.capsulaQueCresce())
-        }
-        .buttonStyle(.tatil)
+        Button(action: acao) { titulo }
+            .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
     }
 }
 
+/// Link e ação discreta (DESIGN.md do protótipo): texto sublinhado no corpo, com alvo de 48 pt.
+/// O link, em tinta, abre outra tela ou refaz um envio ("Trocar e-mail", "Reenviar código"). A ação discreta, em
+/// `textoSecundario`, é só para risco e suporte (cancelar, sair, excluir, denunciar, pedir ajuda) e fica no fim da tela.
+public struct EstiloDeLinkFrila: ButtonStyle {
+    private let discreto: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+
+    public init(discreto: Bool = false) { self.discreto = discreto }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(FrilaTipo.corpo)
+            .underline()
+            .foregroundStyle(discreto ? FrilaCor.textoSecundario : FrilaCor.texto)
+            .multilineTextAlignment(.leading)
+            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvo, alignment: .leading)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento, somenteOpacidade: true),
+                       value: configuration.isPressed)
+    }
+}
+
+public extension ButtonStyle where Self == EstiloDeLinkFrila {
+    static var frilaLink: EstiloDeLinkFrila { EstiloDeLinkFrila() }
+    static var frilaAcaoDiscreta: EstiloDeLinkFrila { EstiloDeLinkFrila(discreto: true) }
+}
+
 public extension View {
-    /// Rótulo de ação destrutiva do MidFi (cancelar turno, ligar para a emergência, excluir conta):
-    /// cápsula de contorno vermelho sobre a superfície, com a altura dos botões grandes.
+    /// Rótulo de ação de risco (cancelar turno, excluir conta, remover foto). No sistema do Fabrício o produto não usa
+    /// vermelho: a ação de risco tem o desenho do botão secundário, e a consequência vem escrita na confirmação.
+    /// O nome ficou de quando era uma cápsula de contorno vermelho.
     func capsulaDestrutiva() -> some View {
-        font(FrilaTipo.botao)
+        font(FrilaTipo.rotuloSecundario)
             .multilineTextAlignment(.center)
-            .foregroundStyle(FrilaCor.perigo)
-            .padding(.horizontal, FrilaEspaco.grande)
-            .padding(.vertical, FrilaEspaco.pequeno)
+            .foregroundStyle(FrilaCor.texto)
+            .padding(.horizontal, FrilaEspaco.bloco)
+            .padding(.vertical, FrilaEspaco.item)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .overlay(FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.perigo, lineWidth: 1.5))
+            .background(FrilaCor.superficie, in: FrilaForma.capsulaQueCresce())
+            .overlay(FrilaForma.capsulaQueCresce().strokeBorder(FrilaCor.borda, lineWidth: 1))
             .contentShape(FrilaForma.capsulaQueCresce())
     }
 }
 
+/// Campo de texto (DESIGN.md do protótipo): 48 pt, `superficie`, fio em `bordaDoCampo`, raio 16; com foco, o fio
+/// vira 2 pt em tinta. O título é a dica dentro do campo e o nome acessível; o rótulo visível acima, em rótulo de
+/// grupo, é de quem monta a tela. `emFoco` vem do `@FocusState` da tela, para o campo não ter um foco só dele.
 public struct CampoFrila: View {
     @Environment(\.erroDeCampoFrila) private var erroDeCampo
     private let titulo: Text
+    private let emFoco: Bool
     @Binding private var texto: String
 
-    public init(_ titulo: LocalizedStringKey, texto: Binding<String>) {
+    public init(_ titulo: LocalizedStringKey, texto: Binding<String>, emFoco: Bool = false) {
         self.titulo = Text(titulo, bundle: bundleApresentacao)
+        self.emFoco = emFoco
         _texto = texto
     }
 
-    public init(verbatim titulo: String, texto: Binding<String>) {
+    public init(verbatim titulo: String, texto: Binding<String>, emFoco: Bool = false) {
         self.titulo = Text(verbatim: titulo)
+        self.emFoco = emFoco
         _texto = texto
     }
 
     public var body: some View {
         TextField(text: $texto, prompt: titulo.foregroundStyle(FrilaCor.textoSecundario)) { titulo }
             .textFieldStyle(.plain)
-            .font(FrilaTipo.valorDoCampo)
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(minHeight: FrilaMetrica.alturaDoCampo)
-            // Campo da origem (`FrilaJobFormLabeledField`): superfície e fio próprios, raio 14.
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .caixaDoCampoFrila(emFoco: emFoco)
             .accessibilityLabel(titulo)
             .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
     }
 }
 
+/// A caixa do campo, para os campos que não são o `CampoFrila` (máscara, seletor): a mesma superfície, o mesmo fio
+/// e o mesmo foco.
 public struct CaixaDoCampoFrila: ViewModifier {
-    public init() {}
+    private let emFoco: Bool
+
+    public init(emFoco: Bool = false) { self.emFoco = emFoco }
 
     public func body(content: Content) -> some View {
+        let forma = RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
         content
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
+            .padding(.horizontal, FrilaEspaco.bloco)
+            .padding(.vertical, FrilaEspaco.item)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
-            )
+            .background(FrilaCor.superficieDoCampo, in: forma)
+            .overlay(forma.strokeBorder(emFoco ? FrilaCor.texto : FrilaCor.bordaDoCampo, lineWidth: emFoco ? 2 : 1))
     }
 }
 
 public extension View {
-    func caixaDoCampoFrila() -> some View {
-        modifier(CaixaDoCampoFrila())
+    func caixaDoCampoFrila(emFoco: Bool = false) -> some View {
+        modifier(CaixaDoCampoFrila(emFoco: emFoco))
     }
 }
 
@@ -329,8 +380,8 @@ public struct FiltroPill: View {
                 .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento), value: selecionado)
                 .scaleEffect(emPop ? FrilaMotion.chipOvershootScale : 1)
                 .animation(FrilaMovimento.animacao(FrilaMotion.chipActivationSpring, reduzir: reduzirMovimento), value: emPop)
-                // Garante área de toque mínima de 44 pt (Apple HIG / FrilaMetrica.alvoMinimo) com chip visual de 32 pt.
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
+                // Chip visual de 36 pt dentro de um alvo de toque de 48 pt.
+                .frame(minHeight: FrilaMetrica.alvo)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -402,7 +453,7 @@ public struct SeloDeStatus: View {
         // Selo com borda: ela conta dentro do padding (3×7), para todo selo ter a mesma altura.
         .padding(.horizontal, cores.borda == nil ? FrilaEspaco.pequeno : 7)
         .padding(.vertical, cores.borda == nil ? FrilaEspaco.minimo : 3)
-        .frame(minHeight: FrilaGeometry.chipHeight)
+        .frame(minHeight: FrilaMetrica.alturaDoSelo)
         .foregroundStyle(cores.texto)
         .background(cores.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.selo, style: .continuous))
         .overlay {
@@ -504,8 +555,9 @@ public struct AvisoFrila: View {
         .foregroundStyle(FrilaCor.texto)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(FrilaEspaco.medio)
-        // Bloco de aviso do MidFi: raio 16; o neutro usa o preenchimento de controle, os outros o tom da cor.
-        .background(fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
+        // Bloco de aviso: preenchimento neutro de controle, raio 16. Problema não tem cor (D-DS-13): o tom vai no
+        // ícone e no prefixo falado, nunca em vermelho ou amarelo lavado.
+        .background(fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous))
     }
 
     public static func prefixo(tom: Tom) -> String {

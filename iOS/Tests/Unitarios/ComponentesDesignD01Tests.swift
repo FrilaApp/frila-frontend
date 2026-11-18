@@ -129,8 +129,9 @@ struct ComponentesDesignD01Tests {
     @Test("Alvo de toque mínimo do chip preserva métrica de 44 pt")
     func alvoMinimoDoChipPreservado() {
         #expect(FrilaMetrica.alvoMinimo == 44)
-        #expect(FrilaMetrica.alturaDoChip == 32)
-        #expect(FrilaMetrica.alturaDoCampo == 52)
+        // R0 do redesign: o chip e o campo passam às alturas do sistema do Fabrício (D-DS-06): 36 e 48.
+        #expect(FrilaMetrica.alturaDoChip == 36)
+        #expect(FrilaMetrica.alturaDoCampo == 48)
     }
 
     // MARK: - Lacuna 7: Beautiful Shadows (Elevação em 3 Camadas)

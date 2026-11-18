@@ -9,22 +9,34 @@ public enum EstadoTela<Conteudo: Sendable>: Sendable {
     case pendente(mensagem: String)
 }
 
+/// Estado vazio (DESIGN.md do protótipo; `EstadoVazio.swift` do redesign): o fato em corpo, uma dica em apoio e
+/// uma ação opcional em botão secundário da largura do rótulo. Sem cartão, sem ícone e sem laranja: o vazio não decide nada.
 public struct EstadoVazio: View {
     private let titulo: Text
     private let mensagem: Text
+    private let acao: (rotulo: Text, executar: () -> Void)?
 
     public init(_ titulo: LocalizedStringKey, mensagem: LocalizedStringKey) {
         self.titulo = Text(titulo, bundle: bundleApresentacao)
         self.mensagem = Text(mensagem, bundle: bundleApresentacao)
+        self.acao = nil
     }
 
     public init(verbatim titulo: String, mensagem: String) {
         self.titulo = Text(verbatim: titulo)
         self.mensagem = Text(verbatim: mensagem)
+        self.acao = nil
+    }
+
+    /// Com ação: só quando existe um próximo passo que o campo da tela não é (o limpar de uma busca já é a ação dela).
+    public init(verbatim titulo: String, mensagem: String, rotuloDaAcao: String, acao: @escaping () -> Void) {
+        self.titulo = Text(verbatim: titulo)
+        self.mensagem = Text(verbatim: mensagem)
+        self.acao = (Text(verbatim: rotuloDaAcao), acao)
     }
 
     public var body: some View {
-        MensagemDeEstado(icone: "tray", titulo: titulo, mensagem: mensagem)
+        MensagemDeEstado(titulo: titulo, mensagem: mensagem, acao: acao)
     }
 }
 
@@ -66,14 +78,12 @@ public struct EstadoErro: View {
     }
 
     public var body: some View {
-        VStack(spacing: FrilaEspaco.medio) {
-            MensagemDeEstado(icone: "exclamationmark.triangle",
-                             titulo: Text("Algo deu errado", bundle: bundleApresentacao),
-                             mensagem: mensagem)
-            // Ação de recuperação do MidFi: pílula escura.
-            BotaoPrimario("Tentar novamente", acao: tentarNovamente)
-        }
-        .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(conteudo.resolver(locale: locale).characters), tom: .erro)))
+        // Erro: o que falhou e o que fazer, em tinta. Tentar de novo é botão secundário: o laranja fica para a ação
+        // que avança ou compromete, e uma tela de erro não é isso.
+        MensagemDeEstado(titulo: Text("Algo deu errado", bundle: bundleApresentacao),
+                         mensagem: mensagem,
+                         acao: (Text("Tentar novamente", bundle: bundleApresentacao), tentarNovamente))
+            .modifier(AnunciarAoAparecer(anuncio: .init(texto: String(conteudo.resolver(locale: locale).characters), tom: .erro)))
     }
 }
 
@@ -89,32 +99,36 @@ public struct EstadoPendente: View {
 }
 
 private struct MensagemDeEstado: View {
-    let icone: String
     let titulo: Text
     let mensagem: Text
+    var acao: (rotulo: Text, executar: () -> Void)?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        // Estado Hi-Fi: ícone limpo sem círculo, título em placard e apoio em meta centralizados.
-        VStack(spacing: FrilaEspaco.compacto) {
-            Image(systemName: icone)
-                .font(FrilaTipo.tituloGrande)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityHidden(true)
-            VStack(spacing: FrilaEspaco.minimo) {
+        VStack(spacing: 0) {
+            // O fato e a dica são um elemento só para o leitor de tela; o botão fica à parte.
+            VStack(spacing: FrilaEspaco.item) {
                 titulo
-                    .font(FrilaTipo.tituloDoCartao)
+                    .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                 mensagem
-                    .font(FrilaTipo.meta)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .multilineTextAlignment(.center)
+            .accessibilityElement(children: .combine)
+            if let acao {
+                Button(action: acao.executar) { acao.rotulo }
+                    .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
+                    // Largura do rótulo; com texto grande, a largura toda, para o rótulo quebrar em vez de vazar.
+                    .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                    .padding(.top, FrilaEspaco.bloco)
+            }
         }
-        .padding(.vertical, FrilaEspaco.grande)
-        .frame(maxWidth: .infinity, minHeight: 160)
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity)
+        .padding(.top, FrilaEspaco.respiro)
+        .padding(.bottom, FrilaEspaco.grupo)
     }
 }
