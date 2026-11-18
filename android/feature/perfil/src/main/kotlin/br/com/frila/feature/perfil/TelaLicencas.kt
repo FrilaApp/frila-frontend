@@ -440,25 +440,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE."""
             texto = TEXTO_APACHE_2,
             aviso = "Copyright 2024 Google LLC.",
         ),
+        // A versão é a que o próprio arquivo da fonte declara (tabela `name`, "Version 1.001"). A Prodigy Sans deriva da
+        // Work Sans, e a OFL manda manter os dois avisos de copyright: por isso os dois vêm no mesmo pacote.
         LicencaDePacote(
             id = "prodigy-sans",
             nome = "Prodigy Sans",
-            versao = "Bold",
+            versao = "1.001",
             tipo = "OFL-1.1",
             url = "https://github.com/weiweihuanghuang/Work-Sans",
             texto = "Copyright 2020 The Prodigy Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans)\n" +
+                "Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans)\n" +
                 TEXTO_OFL_1_1,
-            aviso = "Fonte dos títulos e dos valores em destaque. Copyright 2020 The Prodigy Sans Project Authors.",
-        ),
-        LicencaDePacote(
-            id = "work-sans",
-            nome = "Work Sans (base da Prodigy Sans)",
-            versao = "Bold",
-            tipo = "OFL-1.1",
-            url = "https://github.com/weiweihuanghuang/Work-Sans",
-            texto = "Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans)\n" +
-                TEXTO_OFL_1_1,
-            aviso = "Copyright 2019 The Work Sans Project Authors.",
+            aviso = "Fonte dos títulos e dos valores em destaque. Copyright 2020 The Prodigy Sans Project Authors. " +
+                "Derivada da Work Sans, Copyright 2019 The Work Sans Project Authors.",
         ),
     )
 }
