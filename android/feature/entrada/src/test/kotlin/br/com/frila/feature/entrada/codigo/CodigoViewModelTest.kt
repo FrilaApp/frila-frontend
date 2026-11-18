@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 /** Ver nota em `EntradaViewModelTest.viewModelComEngine` sobre por que o teste faz `job.join()`. */
 class CodigoViewModelTest {
@@ -29,6 +31,7 @@ class CodigoViewModelTest {
         armazenamento: ArmazenamentoDeSessaoEmMemoria = ArmazenamentoDeSessaoEmMemoria(),
         agora: () -> Instant = Instant::now,
         aoEntrar: suspend () -> Unit = {},
+        permitirDominioDeTeste: Boolean = false,
     ): Pair<CodigoViewModel, ArmazenamentoDeSessaoEmMemoria> {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val viewModel = CodigoViewModel(
@@ -38,6 +41,7 @@ class CodigoViewModelTest {
             escopo = CoroutineScope(Dispatchers.Default),
             agora = agora,
             aoEntrar = aoEntrar,
+            permitirDominioDeTeste = permitirDominioDeTeste,
         )
         return viewModel to armazenamento
     }
@@ -369,4 +373,34 @@ class CodigoViewModelTest {
         assertEquals("Não foi possível confirmar o código. Tente de novo em instantes.", viewModel.estado.value.erro)
         assertFalse(armazenamento.estaAutenticado())
     }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `dominio de teste so confirma e reenvia como demonstracao em debug`(permitirDominioDeTeste: Boolean) = runBlocking {
+        val caminhos = mutableListOf<String>()
+        var relogio = Instant.parse("2026-11-17T12:00:00Z")
+        val (vm, armazenamento) = viewModelComEngine(
+            engine = MockEngine { request ->
+                caminhos += request.url.encodedPath
+                respond(
+                    """{"access_token":"token-teste","refresh_token":"refresh-teste","token_type":"bearer","expires_in":3600}""",
+                    HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+            email = "  Qualquer@FRILA.TEST  ",
+            agora = { relogio },
+            permitirDominioDeTeste = permitirDominioDeTeste,
+        )
+        vm.aoMudarCodigo("123456")?.join()
+        assertTrue(vm.estado.value.autenticado)
+        assertTrue(armazenamento.estaAutenticado())
+        relogio = relogio.plusSeconds(60)
+        vm.reenviarCodigo()?.join()
+        assertTrue(vm.estado.value.reenviado)
+        assertEquals(
+            if (permitirDominioDeTeste) listOf("/functions/v1/entrar-demonstracao") else listOf("/auth/v1/verify", "/auth/v1/otp"),
+            caminhos,
+        )
+    }
+
 }

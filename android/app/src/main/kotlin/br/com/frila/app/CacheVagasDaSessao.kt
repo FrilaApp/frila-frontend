@@ -1,6 +1,5 @@
 package br.com.frila.app
 
-import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -17,7 +16,7 @@ import kotlinx.coroutines.flow.update
 /** Inclui instâncias ainda em uso e arquivos de execuções anteriores. Sem Context, só memória. */
 internal class CacheVagasDaSessao(private val raiz: File?) {
     private val repositorios = Collections.newSetFromMap(WeakHashMap<RepositorioVagas, Boolean>())
-    @Synchronized fun criar(armazenamento: ArmazenamentoDeSessao, rede: suspend (Coordenada?) -> List<VagaAbertaDto>): RepositorioVagas =
+    @Synchronized fun criar(armazenamento: ArmazenamentoDeSessao, rede: suspend () -> List<VagaAbertaDto>): RepositorioVagas =
         RepositorioVagas(raiz?.let { arquivoCacheVagas(it, armazenamento.obterSessao()) }, buscarNaRede = rede)
             .also { repositorios.add(it) }
 

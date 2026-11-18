@@ -14,8 +14,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import io.ktor.client.engine.mock.MockEngine
@@ -23,8 +23,6 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -91,11 +89,8 @@ class TelaFeedVagasTest {
                 )
             },
         )
-        val provedorDeLocalizacao = mockk<ProvedorDeLocalizacao>()
-        coEvery { provedorDeLocalizacao.obterCoordenadaAtual() } returns null
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(cliente),
-            provedorDeLocalizacao = provedorDeLocalizacao,
             escopo = CoroutineScope(Dispatchers.Default),
         )
     }
@@ -161,6 +156,27 @@ class TelaFeedVagasTest {
 
             compose.waitForIdle()
             compose.onNodeWithText("Nenhuma vaga encontrada com esses filtros.").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `sem ponto base o feed explica o que falta e o botao leva a defini-lo`() {
+        runBlocking {
+            val semPontoBase = """{"code":"campo_obrigatorio","message":"sem ponto de referência","details":"latitude"}"""
+            val viewModel = criarViewModel(semPontoBase, HttpStatusCode.UnprocessableEntity)
+            viewModel.carregar().join()
+            var abriu = 0
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {}, aoDefinirPontoBase = { abriu++ })
+                }
+            }
+
+            compose.waitForIdle()
+            compose.onNodeWithText("Falta o seu ponto base").assertIsDisplayed()
+            compose.onNodeWithText("Definir ponto base").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+            assertEquals(1, abriu)
         }
     }
 
