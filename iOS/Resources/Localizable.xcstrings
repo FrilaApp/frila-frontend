@@ -10003,6 +10003,17 @@
         }
       }
     },
+    "Por seleção": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por seleção"
+          }
+        }
+      }
+    },
     "Português": {
       "localizations": {
         "pt-BR": {
@@ -13595,6 +13606,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver avaliação"
+          }
+        }
+      }
+    },
+    "Ver detalhes da vaga": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver detalhes da vaga"
           }
         }
       }
