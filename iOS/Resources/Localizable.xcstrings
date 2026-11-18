@@ -884,6 +884,17 @@
         }
       }
     },
+    "A caminho": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A caminho"
+          }
+        }
+      }
+    },
     "A Equipe Frila ocultou esta vaga. Você vê os candidatos, mas só pode escolher depois que ela for reexibida.": {
       "extractionState": "stale",
       "localizations": {
@@ -2731,6 +2742,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro."
+          }
+        }
+      }
+    },
+    "Concluído": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluído"
+          }
+        }
+      }
+    },
+    "Confirmado": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmado"
           }
         }
       }
@@ -10230,6 +10263,17 @@
         }
       }
     },
+    "Presença a confirmar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença a confirmar"
+          }
+        }
+      }
+    },
     "Presença confirmada.": {
       "extractionState": "stale",
       "localizations": {
@@ -10237,6 +10281,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença confirmada."
+          }
+        }
+      }
+    },
+    "Presença não verificada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não verificada"
           }
         }
       }
@@ -10268,6 +10323,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
+          }
+        }
+      }
+    },
+    "Presença verificada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença verificada"
           }
         }
       }

@@ -4,6 +4,10 @@ import SwiftUI
 /// O código de chegada na tela do turno da casa: 6 dígitos grandes legíveis, contagem regressiva da
 /// validade emitida pelo servidor e estados informativos de chegada e encerramento.
 /// Renova automaticamente no zero do relógio monotônico. Nesta primeira etapa, não inclui QR code.
+///
+/// Desenho (R6): o código é o dado principal do cartão. Fica numa caixa de preenchimento neutro, centralizado, no
+/// maior tamanho de texto do sistema, e é o único lugar do app com dígitos tabulares. O cartão é um bloco próprio da
+/// tela do turno, sem laranja: quem avança é o "Confirmar presença" ancorado embaixo.
 public struct CartaoDoCodigoDaCasa: View {
     private typealias Textos = TextosDoCheckinPorCodigoCasa
 
@@ -14,14 +18,16 @@ public struct CartaoDoCodigoDaCasa: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
             Text(verbatim: Textos.titulo)
-                .font(FrilaTipo.resumo)
+                .font(FrilaTipo.nome)
                 .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             conteudo
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("cartao-codigo-da-casa")
         .task {
@@ -43,31 +49,34 @@ public struct CartaoDoCodigoDaCasa: View {
     private var conteudo: some View {
         switch viewModel.estado {
         case .carregando:
-            progresso(Textos.carregando)
+            apoio(Textos.carregando)
         case .semCodigoParaEsteCheckin:
             AvisoFrila(verbatim: Textos.semCodigoParaEsteCheckin, tom: .informativo)
                 .accessibilityIdentifier("codigo-da-casa-sem-codigo-para-o-checkin")
         case let .mostrando(codigo):
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 Text(verbatim: Textos.explicacao)
-                    .font(FrilaTipo.meta)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                 // 6 dígitos grandes legíveis em AX5 (uma linha que encolhe até 40% em vez de quebrar os dígitos).
                 Text(verbatim: codigo)
-                    .font(FrilaTipo.valorEmDestaque.monospacedDigit())
-                    .tracking(4)
+                    .font(Font.largeTitle.weight(.semibold).monospacedDigit())
+                    .tracking(6)
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
                     .foregroundStyle(FrilaCor.texto)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, FrilaEspaco.grupo)
+                    .padding(.horizontal, FrilaEspaco.bloco)
+                    .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.interno, style: .continuous))
                     .accessibilityLabel(Text(verbatim: Textos.codigoPorExtenso(codigo)))
                     .accessibilityIdentifier("codigo-da-casa")
                 if viewModel.renovando {
-                    progresso(Textos.gerandoOutro)
+                    apoio(Textos.gerandoOutro).frame(maxWidth: .infinity)
                 } else {
                     Text(verbatim: Textos.validade(CodigoDaCasaViewModel.formatar(segundos: viewModel.segundosRestantes)))
-                        .font(FrilaTipo.meta.monospacedDigit())
+                        .font(FrilaTipo.apoio.monospacedDigit())
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .frame(maxWidth: .infinity)
                         .accessibilityIdentifier("validade-do-codigo-da-casa")
@@ -80,8 +89,9 @@ public struct CartaoDoCodigoDaCasa: View {
             AvisoFrila(verbatim: Textos.encerrado, tom: .informativo)
                 .accessibilityIdentifier("codigo-da-casa-encerrado")
         case .falhou:
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                AvisoFrila(verbatim: Textos.falhou, tom: .erro)
+            // O erro da ação fica logo acima do botão que tenta de novo.
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                MensagemJuntoAoBotao(verbatim: Textos.falhou)
                     .accessibilityIdentifier("codigo-da-casa-falhou")
                 BotaoSecundario(verbatim: Textos.tentarDeNovo) {
                     Task { await viewModel.tentarDeNovo() }
@@ -93,14 +103,12 @@ public struct CartaoDoCodigoDaCasa: View {
         }
     }
 
-    private func progresso(_ texto: String) -> some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
-            ProgressView()
-            Text(verbatim: texto)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-        }
-        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-        .accessibilityElement(children: .combine)
+    /// Texto de espera, sem indicador girando: o texto já diz o que está acontecendo.
+    private func apoio(_ texto: String) -> some View {
+        Text(verbatim: texto)
+            .font(FrilaTipo.apoio)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .combine)
     }
 }
