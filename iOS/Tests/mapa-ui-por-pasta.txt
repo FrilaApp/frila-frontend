@@ -32,6 +32,8 @@ Tests/UI/AjudanteDeLancamentoUITests.swift = @completa
 # --- Fluxos
 Sources/Apresentacao/Fluxos/Autenticacao/ = AutenticacaoUITests, FrilaUITests, SaidaDaContaUITests, CadastroEstabelecimentoUITests, FluxoDoContratanteUITests
 Tests/UI/CapturasR1UITests.swift = CapturasR1UITests
+Sources/Apresentacao/Fluxos/Abertura/ = AberturaUITests
+Tests/UI/AberturaUITests.swift = AberturaUITests
 Sources/Apresentacao/Fluxos/Cancelamento/ = CancelamentoDoContratanteUITests, CancelamentoDoProfissionalUITests, FrilaUITestsLote4
 Sources/Apresentacao/Fluxos/ChamadaDireta/ = ChamadaDiretaCompletaUITests, EquipeDeConfiancaUITests, VarreduraFinal11UITests, BuscaDeProfissionaisUITests
 Sources/Apresentacao/Fluxos/Busca/ = BuscaDeProfissionaisUITests

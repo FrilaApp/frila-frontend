@@ -2,7 +2,8 @@ import FrilaDominio
 import SwiftUI
 
 /// Entrada por e-mail (#13, T6 do redesign): a marca, o título, o campo de e-mail e, ancorados embaixo, o texto
-/// legal, a mensagem do envio e o botão "Receber código". Sem Apple e Google e sem a abertura animada (fora do lote).
+/// legal, a mensagem do envio e o botão "Receber código". Sem Apple e Google (fora do lote). A marca é o destino do
+/// rótulo da abertura animada, e a arte da Turma fica entre a marca e o título.
 public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
@@ -10,6 +11,8 @@ public struct TelaEntrada: View {
     @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @State private var erroLocal: String?
     @State private var controleDoCampo = ControleDoCampoEmail()
+    /// Com o teclado aberto (aqui ou na tela do código, por cima), a arte para de flutuar.
+    @State private var tecladoAberto = false
 
     public init(viewModel: EntradaViewModel, aoAvancarParaCodigo: @escaping (String) -> Void) {
         self.viewModel = viewModel
@@ -23,7 +26,16 @@ public struct TelaEntrada: View {
                     VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                         RotuloDaMarca()
                             .frame(height: 32)
-                        cabecalho
+                            // O rótulo do fim da abertura pousa aqui e vira este.
+                            .destinoDoRotuloDaAbertura()
+                        // A arte e o título formam um bloco: a base da arte esmaece no fundo e o título começa logo abaixo.
+                        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                            // Com texto grande a arte sai: é decorativa e empurraria o campo para fora da primeira tela.
+                            if !tamanhoDoTexto.isAccessibilitySize {
+                                arte
+                            }
+                            cabecalho
+                        }
                         formulario
                     }
 
@@ -84,6 +96,8 @@ public struct TelaEntrada: View {
             .accessibilityIdentifier("entrada-receber-codigo")
         }
         .frilaKeyboardDismissScope()
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in tecladoAberto = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in tecladoAberto = false }
         #if DEBUG || FRILA_BETA
         .exemploDebugEntrada()
         #endif
@@ -97,6 +111,26 @@ public struct TelaEntrada: View {
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
+
+    /// A Turma dá as boas-vindas, com a chave e o copo soltos. Decorativa: o leitor de tela pula.
+    private var arte: some View {
+        IlustracaoDeBoasVindas(ativa: !tecladoAberto)
+            .frame(maxWidth: .infinity, maxHeight: 180)
+            // A base esmaece no fundo da tela: a figura não termina num corte reto.
+            .mask { Self.esmaecimentoDaBase }
+            .accessibilityHidden(true)
+    }
+
+    /// Opaco até 80% da altura; dali até a base, cai para zero numa curva de suavidade dupla (6t⁵ − 15t⁴ + 10t³),
+    /// sem marca onde o esmaecimento começa nem onde termina. 24 paradas para não formar faixas.
+    private static let esmaecimentoDaBase = LinearGradient(
+        stops: [Gradient.Stop(color: .black, location: 0)] + (0...24).map { passo in
+            let t = Double(passo) / 24
+            let opacidade = 1 - t * t * t * (t * (t * 6 - 15) + 10)
+            return Gradient.Stop(color: .black.opacity(opacidade), location: 0.80 + 0.20 * t)
+        },
+        startPoint: .top, endPoint: .bottom
+    )
 
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
