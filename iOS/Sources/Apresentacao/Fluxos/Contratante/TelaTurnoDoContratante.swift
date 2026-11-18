@@ -284,7 +284,7 @@ struct TelaTurnoDoContratante: View {
         .background(FrilaCor.fundo.ignoresSafeArea())
         // Sem título na barra: o título da tela é conteúdo nosso (DESIGN.md, "Estrutura"); a barra só leva o voltar.
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom, spacing: 0) { rodapeDaAcao }
+        .rodapeAncoradoSe(viewModel.turno(turnoID: turnoID).map(confirmarPresencaNoRodape) ?? false) { rodapeDaAcao }
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .task(id: viewModel.turno(turnoID: turnoID)?.vaga.periodo.fim) {
             if let turno = viewModel.turno(turnoID: turnoID) { await viewModel.aguardarLiberacaoDaAvaliacao(turno) }
@@ -503,26 +503,16 @@ struct TelaTurnoDoContratante: View {
     }
 
     @ViewBuilder private var rodapeDaAcao: some View {
-        if let turno = viewModel.turno(turnoID: turnoID), confirmarPresencaNoRodape(turno) {
-            VStack(spacing: FrilaEspaco.item) {
-                // O erro da ação fica logo acima do botão que a disparou (D-DS-13).
-                if let falha = viewModel.falha {
-                    MensagemJuntoAoBotao(verbatim: TextosDoAcompanhamento.falha(falha, desatualizado: viewModel.falhouAoCarregar))
-                        .accessibilityIdentifier("falha-do-acompanhamento")
-                }
-                BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
-                    Task { await viewModel.confirmarPresenca(turno) }
-                }
-                .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
+        if let turno = viewModel.turno(turnoID: turnoID) {
+            // O erro da ação fica logo acima do botão que a disparou (D-DS-13).
+            if let falha = viewModel.falha {
+                MensagemJuntoAoBotao(verbatim: TextosDoAcompanhamento.falha(falha, desatualizado: viewModel.falhouAoCarregar))
+                    .accessibilityIdentifier("falha-do-acompanhamento")
             }
-            .padding(.horizontal, FrilaEspaco.grupo)
-            .padding(.top, FrilaEspaco.bloco)
-            .padding(.bottom, FrilaEspaco.item)
-            .frame(maxWidth: .infinity)
-            .background(FrilaCor.fundo)
-            .overlay(alignment: .top) {
-                Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
+            BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                Task { await viewModel.confirmarPresenca(turno) }
             }
+            .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
         }
     }
 

@@ -7724,6 +7724,17 @@
         }
       }
     },
+    "Nenhum profissional encontrado com esses filtros.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum profissional encontrado com esses filtros."
+          }
+        }
+      }
+    },
     "Nenhum turno confirmado": {
       "extractionState": "stale",
       "localizations": {
@@ -14121,6 +14132,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você pode mudar isso quando quiser, nos Ajustes do iPhone."
+          }
+        }
+      }
+    },
+    "Você pode publicar a vaga para todos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode publicar a vaga para todos."
           }
         }
       }
