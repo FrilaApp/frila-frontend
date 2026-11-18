@@ -431,13 +431,27 @@ public struct TelaPerfilProfissional: View {
 // MARK: - Rodapé ancorado condicional
 
 extension View {
-    /// O rodapé só existe quando há formulário; sem ele (carregando ou erro de carga), a tela não ancora nada.
-    @ViewBuilder
+    /// O mesmo grupo ancorado de `rodapeAncorado`, que só aparece quando `ativo` (há formulário; sem ele, carregando ou erro de
+    /// carga, a tela não ancora nada). A condição fica DENTRO do `safeAreaInset`: trocar de ramo por fora recriaria a tela
+    /// inteira, e com ela a `.task` que carrega os dados, que então rodaria de novo sem parar.
     func rodapeAncoradoDoPerfilSe<Conteudo: View>(_ ativo: Bool, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
-        if ativo {
-            rodapeAncorado(conteudo)
-        } else {
-            self
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            if ativo {
+                VStack(spacing: FrilaEspaco.item) {
+                    conteudo()
+                }
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.bloco)
+                .padding(.bottom, FrilaEspaco.item)
+                .frame(maxWidth: .infinity)
+                .background(FrilaCor.fundo)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(FrilaCor.divisoria)
+                        .frame(height: 1)
+                        .accessibilityHidden(true)
+                }
+            }
         }
     }
 }
