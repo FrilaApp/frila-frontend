@@ -119,14 +119,14 @@ class TelaDenunciaTest {
     fun enviarSoHabilitaComRelatoDeDezCaracteresOuMais() {
         val c = montar()
 
-        rule.onNodeWithText(TextosSuporte.ENVIAR).performScrollTo().assertIsNotEnabled()
-        rule.onNodeWithText(TextosSuporte.RELATO_DICA).assertIsDisplayed()
+        rule.onNodeWithText(TextosSuporte.ENVIAR).assertIsNotEnabled()
+        rule.onNodeWithText(TextosSuporte.RELATO_DICA).performScrollTo().assertIsDisplayed()
 
         rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText)).performTextInput("123456789")
         rule.onNodeWithText(TextosSuporte.ENVIAR).assertIsNotEnabled()
 
         rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText)).performTextInput("0")
-        rule.onNodeWithText(TextosSuporte.RELATO_VALIDO).assertIsDisplayed()
+        rule.onNodeWithText(TextosSuporte.RELATO_VALIDO).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosSuporte.ENVIAR).assertIsEnabled().performClick()
 
         assertEquals(1, c.envios)
@@ -152,14 +152,14 @@ class TelaDenunciaTest {
     fun enviandoDesabilitaOBotaoEMostraProgresso() {
         montar(EstadoDenuncia(relato = "relato bem comprido", enviando = true))
 
-        rule.onNodeWithText(TextosSuporte.ENVIANDO).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosSuporte.ENVIANDO).assertIsNotEnabled()
     }
 
     @Test
     fun erroDeEnvioApareceEOBotaoContinuaDisponivelParaNovaTentativa() {
         montar(EstadoDenuncia(relato = "relato bem comprido", erroDenuncia = TextosSuporte.ERRO_SEM_REDE))
 
-        rule.onNodeWithText(TextosSuporte.ERRO_SEM_REDE).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosSuporte.ERRO_SEM_REDE).assertIsDisplayed()
         rule.onNodeWithText(TextosSuporte.ENVIAR).assertIsEnabled()
     }
 
@@ -172,10 +172,10 @@ class TelaDenunciaTest {
             ),
         )
 
-        rule.onNodeWithText(TextosSuporte.ENVIADA).assertIsDisplayed()
+        rule.onNodeWithText(TextosSuporte.ENVIADA).performScrollTo().assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
-        rule.onNodeWithText("#6F1C2A4E", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("17/11/2026", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("#6F1C2A4E", substring = true).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("17/11/2026", substring = true).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosSuporte.ENVIAR).assertDoesNotExist()
         rule.onNodeWithText(TextosSuporte.CONCLUIR).performClick()
 

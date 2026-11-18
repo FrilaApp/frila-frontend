@@ -120,10 +120,11 @@ class TelaDetalheVagaTest {
         compose.onNodeWithText("Garçom").assertIsDisplayed()
         compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
         compose.onNodeWithText("Modo urgência: confirmação na hora").assertIsDisplayed()
-        compose.onNodeWithText("Local: SQN 108").assertIsDisplayed()
-        compose.onNodeWithText("Região: Asa Norte").assertIsDisplayed()
-        compose.onNode(hasText("Valor:", substring = true)).assertExists()
-        compose.onNode(hasText("Distância:", substring = true)).assertExists()
+        // Sem rótulo: o ícone basta na leitura (o local e a região na mesma linha, a distância logo abaixo).
+        compose.onNode(hasText("SQN 108, Asa Norte", substring = true)).assertExists()
+        compose.onNode(hasText("4,2 km", substring = true)).assertExists()
+        compose.onNode(hasText("de distância", substring = true)).assertExists()
+        compose.onNode(hasText("160,00", substring = true)).assertExists()
 
         // Benefícios e acessibilidade
         compose.onNodeWithText("Inclui").assertExists()
