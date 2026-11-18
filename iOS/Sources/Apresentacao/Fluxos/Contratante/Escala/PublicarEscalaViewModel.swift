@@ -269,6 +269,7 @@ public final class PublicarEscalaViewModel {
     public func publicar() async {
         guard !enviando, resultado == nil else { return }
         let escala: PublicacaoEscala
+        let reenvio = tentativaIncerta != nil
         if let incerta = tentativaIncerta {
             escala = incerta
         } else {
@@ -289,9 +290,15 @@ public final class PublicarEscalaViewModel {
             resultado = try await PrazoDaAbertura.esperar(prazo) { try await fonte(escala) }
             tentativaIncerta = nil
         } catch let erro as ErroDaApi {
-            if Self.recusaDefinitiva(erro) {
+            if Self.recusaDefinitiva(erro), !reenvio || Self.recusaDeConteudo(erro) {
                 tentativaIncerta = nil
                 tratar(erro)
+            } else if Self.recusaDefinitiva(erro) {
+                // Reenvio recusado por permissão, limite, sessão ou perfil: o servidor confere isso ANTES de olhar a chave, então a
+                // recusa não prova que a primeira tentativa não gravou. A chave segue guardada, os campos travados, e o próximo
+                // envio leva a mesma chave (soltá-la aqui deixaria o próximo Publicar sair com chave nova e duplicar a escala).
+                tentativaIncerta = escala
+                erros.geral = "\(MensagemDoErroAPI.texto(erro)) \(TextosDaEscala.Erro.incerta)"
             } else {
                 // Pode ter chegado: sem rede, prazo vencido, resposta ilegível, 502 ou 504 sem envelope. Guarda a mesma
                 // escala, com a mesma chave: reenviar nunca a duplica.
@@ -307,6 +314,15 @@ public final class PublicarEscalaViewModel {
 
     /// Só a recusa definitiva solta a chave: o servidor não gravou nada e repetir o mesmo corpo não vira sucesso. `429` e
     /// `401` também chegam antes de gravar.
+    /// A recusa que é do CONTEÚDO da escala (campo, horário, seleção, função): vem da conferência do corpo, depois da chave, e
+    /// prova que nada foi gravado. Só ela solta a chave de uma tentativa que já estava incerta.
+    static func recusaDeConteudo(_ erro: ErroDaApi) -> Bool {
+        switch erro.codigo {
+        case .campoObrigatorio, .campoInvalido, .horarioInvalido, .selecaoSemAntecedencia, .funcaoIncompativel: true
+        default: false
+        }
+    }
+
     static func recusaDefinitiva(_ erro: ErroDaApi) -> Bool {
         erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .limiteExcedido || erro.codigo == .naoAutenticado
     }
