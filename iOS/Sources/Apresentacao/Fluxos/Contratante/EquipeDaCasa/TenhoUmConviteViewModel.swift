@@ -20,8 +20,15 @@ public struct ConviteAceito: Equatable, Sendable {
 public final class TenhoUmConviteViewModel {
     public var texto = "" {
         didSet {
-            guard texto != oldValue else { return }
-            if enviando || aceito != nil { texto = oldValue } else { erro = nil }
+            guard texto != oldValue, !devolvendo else { return }
+            if enviando || aceito != nil {
+                // Devolver o valor dentro do `didSet` o dispara outra vez (o `@Observable` reenvia a atribuição).
+                devolvendo = true
+                texto = oldValue
+                devolvendo = false
+            } else {
+                erro = nil
+            }
         }
     }
     public private(set) var enviando = false
@@ -29,6 +36,7 @@ public final class TenhoUmConviteViewModel {
     public private(set) var erro: String?
     public private(set) var aceito: ConviteAceito?
 
+    private var devolvendo = false
     private let aceitar: @Sendable (String) async throws -> MembroAdicionado
     private let prazo: Duration
 

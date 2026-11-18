@@ -18,7 +18,7 @@ public enum AcaoSobreMembro: Equatable, Sendable {
 }
 
 /// Uma ação aguardando o "Confirmar". Guarda só o id e o nome, para a folha de confirmação.
-public struct AcaoPendente: Equatable, Sendable {
+public struct ConfirmacaoDeAcaoNaEquipe: Equatable, Sendable {
     public let acao: AcaoSobreMembro
     public let membroID: UUID
     public let nome: String
@@ -57,15 +57,15 @@ public final class EquipeDaCasaViewModel {
     public var email = "" {
         didSet {
             guard email != oldValue, !reiniciando else { return }
-            guard podeGerenciar, !gerandoConvite else { email = oldValue; return }
+            guard podeGerenciar, !gerandoConvite else { devolver(\.email, a: oldValue); return }
             erroDoEmail = nil
             erroDoConvite = nil
         }
     }
     public var papelConvidado: PapelMembro = .operador {
         didSet {
-            guard papelConvidado != oldValue else { return }
-            guard podeGerenciar, !gerandoConvite else { papelConvidado = oldValue; return }
+            guard papelConvidado != oldValue, !reiniciando else { return }
+            guard podeGerenciar, !gerandoConvite else { devolver(\.papelConvidado, a: oldValue); return }
             erroDoConvite = nil
         }
     }
@@ -74,7 +74,7 @@ public final class EquipeDaCasaViewModel {
     public private(set) var convite: ConviteGerado?
     public private(set) var erroDoConvite: String?
     /// Uma pergunta de confirmação aberta.
-    public private(set) var pendente: AcaoPendente?
+    public private(set) var pendente: ConfirmacaoDeAcaoNaEquipe?
     /// O `membroID` cuja ação está em voo.
     public private(set) var agindoEm: UUID?
     public private(set) var aviso: String?
@@ -91,8 +91,16 @@ public final class EquipeDaCasaViewModel {
     private let prazo: Duration
     /// Cada leitura da lista leva um número; só a mais nova escreve na tela.
     private var geracaoDaLeitura = 0
-    /// Ligado só enquanto a perda da administração limpa os campos: o `didSet` não os devolve ao valor antigo.
+    /// Ligado enquanto o modelo mesmo mexe num campo (limpar ou devolver o valor antigo): o `didSet` não age de novo. Sem isto,
+    /// devolver o valor dentro do `didSet` o dispara outra vez (o `@Observable` reenvia a atribuição) e a recusa não acaba.
     private var reiniciando = false
+
+    /// Recusa a edição: o campo volta ao valor que tinha.
+    private func devolver<Valor>(_ campo: ReferenceWritableKeyPath<EquipeDaCasaViewModel, Valor>, a valor: Valor) {
+        reiniciando = true
+        self[keyPath: campo] = valor
+        reiniciando = false
+    }
 
     public convenience init(
         api: any ApiCliente, estabelecimentoID: UUID, papel: PapelMembro?, origemDaWeb: String = OrigemDaWeb.atual,
@@ -231,7 +239,7 @@ public final class EquipeDaCasaViewModel {
     public func pedirConfirmacao(_ acao: AcaoSobreMembro, membro: MembroDaCasa) {
         guard podeGerenciar, !ocupado, !membro.eVoce else { return }
         if acao == .transferir, membro.papel == .administrador { return }
-        pendente = AcaoPendente(acao: acao, membroID: membro.id, nome: membro.nome)
+        pendente = ConfirmacaoDeAcaoNaEquipe(acao: acao, membroID: membro.id, nome: membro.nome)
         erroDaAcao = nil
     }
 

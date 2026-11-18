@@ -155,10 +155,10 @@ struct EquipeDaCasaViewModelTests {
         #expect(vm.pendente == nil)
 
         vm.pedirConfirmacao(.remover, membro: renata)
-        #expect(vm.pendente == AcaoPendente(acao: .remover, membroID: renata.id, nome: "Renata Dias"))
+        #expect(vm.pendente == ConfirmacaoDeAcaoNaEquipe(acao: .remover, membroID: renata.id, nome: "Renata Dias"))
         vm.cancelarConfirmacao()
         vm.pedirConfirmacao(.transferir, membro: marina)
-        #expect(vm.pendente == AcaoPendente(acao: .transferir, membroID: marina.id, nome: "Marina Souza"))
+        #expect(vm.pendente == ConfirmacaoDeAcaoNaEquipe(acao: .transferir, membroID: marina.id, nome: "Marina Souza"))
     }
 
     // MARK: 403 tira as capacidades

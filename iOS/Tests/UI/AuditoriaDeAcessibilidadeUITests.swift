@@ -608,7 +608,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         auditar(app, tela: "conta-com-as-linhas-da-casa")
 
         tocar(elemento("conta-equipe-da-casa", em: app), em: app)
-        guard esperar(elemento("equipe-lista", em: app), "A lista da equipe deve carregar") else { return }
+        guard esperar(elemento("equipe-membro-93000000-0000-0000-0000-000000000001", em: app), "A lista da equipe deve carregar") else { return }
         auditar(app, tela: "equipe-da-casa")
 
         let email = app.textFields["equipe-email"]
@@ -616,7 +616,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         substituirTexto(email, por: "convidada@exemplo.com")
         fecharTeclado(app)
         tocar(app.buttons["equipe-gerar-convite"], em: app)
-        guard esperar(elemento("equipe-convite", em: app), "O convite deve aparecer") else { return }
+        guard esperar(elemento("equipe-convite-pronto", em: app), "O convite deve aparecer") else { return }
         auditar(app, tela: "equipe-da-casa-convite-gerado")
 
         let remover = app.buttons["equipe-remover-93000000-0000-0000-0000-000000000003"]
@@ -627,7 +627,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         tocar(app.navigationBars.buttons.element(boundBy: 0), em: app)
 
         tocar(elemento("conta-trocar-de-casa", em: app), em: app)
-        guard esperar(elemento("trocar-casa-lista", em: app), "A lista de casas deve carregar") else { return }
+        guard esperar(elemento("trocar-casa-30000000-0000-0000-0000-000000000001", em: app), "A lista de casas deve carregar") else { return }
         auditar(app, tela: "trocar-de-casa")
         tocar(app.navigationBars.buttons.element(boundBy: 0), em: app)
 

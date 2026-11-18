@@ -43,7 +43,6 @@ public struct TelaTrocarDeCasa: View {
                             .accessibilityIdentifier("trocar-casa-\(casa.id.uuidString.lowercased())")
                         }
                     }
-                    .accessibilityIdentifier("trocar-casa-lista")
                 }
             }
             .padding(.horizontal, FrilaEspaco.bloco)
@@ -58,6 +57,5 @@ public struct TelaTrocarDeCasa: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .task { await modelo.carregar() }
-        .accessibilityIdentifier("tela-trocar-de-casa")
     }
 }

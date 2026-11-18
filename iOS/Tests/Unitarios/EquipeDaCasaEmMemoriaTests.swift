@@ -230,7 +230,10 @@ struct EquipeDaCasaEmMemoriaTests {
 
         await tela.carregar()
 
-        guard case let .conteudo(casas) = tela.estado else { return Issue.record("a lista de casas devia carregar") }
+        guard case let .conteudo(casas) = tela.estado else {
+            Issue.record("a lista de casas devia carregar")
+            return
+        }
         #expect(casas.map(\.id) == [bistro, ApiClienteEmMemoria.cantinaDaEsquinaID])
         #expect(casas.map(\.papel) == [.administrador, .operador])
     }

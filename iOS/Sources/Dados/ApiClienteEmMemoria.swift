@@ -1352,7 +1352,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     // MARK: Equipe da casa (RF21, US24)
 
     /// Só o administrador da casa: o operador, quem não é membro e a casa que não existe recebem o mesmo `403 sem_permissao`.
-    private func exigirAdministrador(de estabelecimentoID: UUID) throws {
+    private func exigirAdministradorDaEquipe(de estabelecimentoID: UUID) throws {
         guard conta?.perfil == .contratante,
               estabelecimentos.first(where: { $0.id == estabelecimentoID })?.papel == .administrador else { throw erro("sem_permissao") }
     }
@@ -1360,7 +1360,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public func membrosDaCasa(estabelecimentoID: UUID) async throws -> [MembroDaCasa] {
         chamadasAMembrosDaCasa += 1
         try verificarFalhaGeral()
-        try exigirAdministrador(de: estabelecimentoID)
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
         let membros = membrosPorCasa[estabelecimentoID] ?? []
         // Como o servidor: os administradores primeiro e, em cada papel, do mais antigo ao mais novo.
         return membros
@@ -1370,7 +1370,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func convidarMembro(estabelecimentoID: UUID, email: String, papel: PapelMembro) async throws -> ConviteDeMembro {
         try verificarFalhaGeral()
-        try exigirAdministrador(de: estabelecimentoID)
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
         let limpo = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let partes = limpo.split(separator: "@", omittingEmptySubsequences: false)
         guard partes.count == 2, !partes[0].isEmpty, partes[1].contains("."), !limpo.contains(" ") else {
@@ -1402,7 +1402,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func removerMembro(estabelecimentoID: UUID, membroID: UUID) async throws {
         try verificarFalhaGeral()
-        try exigirAdministrador(de: estabelecimentoID)
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
         var membros = membrosPorCasa[estabelecimentoID] ?? []
         guard let indice = membros.firstIndex(where: { $0.id == membroID }) else { throw erro("nao_encontrado") }
         if membros[indice].papel == .administrador, membros.filter({ $0.papel == .administrador }).count == 1 {
@@ -1415,7 +1415,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func transferirAdministracao(estabelecimentoID: UUID, novoAdministradorID: UUID) async throws {
         try verificarFalhaGeral()
-        try exigirAdministrador(de: estabelecimentoID)
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
         guard let indice = membrosPorCasa[estabelecimentoID]?.firstIndex(where: { $0.id == novoAdministradorID }) else {
             throw erro("nao_encontrado")
         }

@@ -52,6 +52,14 @@ final class EquipeDaCasaUITests: XCTestCase {
         }
     }
 
+    /// Rola até o topo do elemento aparecer na metade de cima da tela (um cartão alto em AX5 nunca cabe inteiro).
+    private func rolarAteOTopo(_ elemento: XCUIElement, em app: XCUIApplication) {
+        let janela = app.windows.firstMatch.frame
+        for _ in 0..<10 where !(elemento.exists && elemento.frame.minY < janela.height * 0.45 && elemento.frame.minY > 100) {
+            app.swipeUp(velocity: .slow)
+        }
+    }
+
     private func capturar(_ nome: String, ax5: Bool) {
         RunLoop.current.run(until: Date().addingTimeInterval(0.8))
         let captura = XCUIScreen.main.screenshot()
@@ -72,7 +80,7 @@ final class EquipeDaCasaUITests: XCTestCase {
 
     private func abrirEquipe(_ app: XCUIApplication) {
         tocar(elemento("conta-equipe-da-casa", em: app))
-        XCTAssertTrue(elemento("equipe-lista", em: app).waitForExistence(timeout: Espera.aparecer), "A lista da equipe deve carregar")
+        XCTAssertTrue(elemento("equipe-membro-93000000-0000-0000-0000-000000000001", em: app).waitForExistence(timeout: Espera.aparecer), "A lista da equipe deve carregar")
     }
 
     private func gerarConvite(_ app: XCUIApplication, para email: String) {
@@ -83,7 +91,7 @@ final class EquipeDaCasaUITests: XCTestCase {
         let gerar = app.buttons["equipe-gerar-convite"]
         trazer(gerar, em: app)
         tocar(gerar)
-        XCTAssertTrue(elemento("equipe-convite", em: app).waitForExistence(timeout: Espera.aparecer), "O convite deve aparecer")
+        XCTAssertTrue(elemento("equipe-convite-pronto", em: app).waitForExistence(timeout: Espera.aparecer), "O convite deve aparecer")
     }
 
     // MARK: Caminho feliz do administrador
@@ -140,7 +148,7 @@ final class EquipeDaCasaUITests: XCTestCase {
         // Trocar de casa: a Cantina da Esquina, onde a conta é só operadora, perde a equipe.
         voltar(app)
         tocar(elemento("conta-trocar-de-casa", em: app))
-        XCTAssertTrue(elemento("trocar-casa-lista", em: app).waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(elemento("trocar-casa-30000000-0000-0000-0000-000000000001", em: app).waitForExistence(timeout: Espera.aparecer))
         capturar("trocar-de-casa", ax5: false)
         tocar(elemento("trocar-casa-\(Self.cantina)", em: app))
         XCTAssertTrue(app.staticTexts["Cantina da Esquina"].waitForExistence(timeout: Espera.aparecer), "O perfil deve mostrar a casa escolhida")
@@ -158,13 +166,15 @@ final class EquipeDaCasaUITests: XCTestCase {
 
         // Texto que não é link nem código: a recusa é local, junto ao botão.
         substituirTexto(app.textFields["convite-campo"], por: "oi, tudo bem?")
-        tocarFechandoTeclado(app.buttons["convite-aceitar"], em: app)
+        fecharTeclado(app)
+        tocar(app.buttons["convite-aceitar"])
         XCTAssertTrue(elemento("convite-erro", em: app).waitForExistence(timeout: Espera.aparecer), "link ou código inválido")
         capturar("tenho-um-convite-invalido", ax5: false)
 
         // O link inteiro do convite entra na casa; "Abrir a casa" leva a pessoa para ela.
         substituirTexto(app.textFields["convite-campo"], por: "https://frila-web-dev.frilabr.workers.dev/app/convite#\(Self.conviteDeExemplo)")
-        tocarFechandoTeclado(app.buttons["convite-aceitar"], em: app)
+        fecharTeclado(app)
+        tocar(app.buttons["convite-aceitar"])
         XCTAssertTrue(elemento("convite-aceito", em: app).waitForExistence(timeout: Espera.aparecer), "O convite deve ser aceito")
         capturar("convite-aceito", ax5: false)
         tocar(app.buttons["convite-abrir-casa"])
@@ -194,6 +204,7 @@ final class EquipeDaCasaUITests: XCTestCase {
         abrirEquipe(app)
         capturar("lista", ax5: true)
         gerarConvite(app, para: "convidada@exemplo.com")
+        rolarAteOTopo(elemento("equipe-convite-pronto", em: app), em: app)
         capturar("convite-gerado", ax5: true)
         let remover = app.buttons["equipe-remover-\(Self.marina)"]
         trazer(remover, em: app)
@@ -204,7 +215,7 @@ final class EquipeDaCasaUITests: XCTestCase {
         voltar(app)
 
         tocar(elemento("conta-trocar-de-casa", em: app))
-        XCTAssertTrue(elemento("trocar-casa-lista", em: app).waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(elemento("trocar-casa-30000000-0000-0000-0000-000000000001", em: app).waitForExistence(timeout: Espera.aparecer))
         capturar("trocar-de-casa", ax5: true)
         voltar(app)
 
@@ -212,7 +223,8 @@ final class EquipeDaCasaUITests: XCTestCase {
         XCTAssertTrue(elemento("convite-campo", em: app).waitForExistence(timeout: Espera.aparecer))
         capturar("tenho-um-convite", ax5: true)
         substituirTexto(app.textFields["convite-campo"], por: "oi")
-        tocarFechandoTeclado(app.buttons["convite-aceitar"], em: app)
+        fecharTeclado(app)
+        tocar(app.buttons["convite-aceitar"])
         XCTAssertTrue(elemento("convite-erro", em: app).waitForExistence(timeout: Espera.aparecer))
         capturar("tenho-um-convite-invalido", ax5: true)
     }

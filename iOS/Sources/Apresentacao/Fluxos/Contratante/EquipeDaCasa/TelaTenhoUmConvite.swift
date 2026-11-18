@@ -31,7 +31,6 @@ public struct TelaTenhoUmConvite: View {
         .onChange(of: modelo.aceito) { _, novo in
             if novo != nil { aoAceitar() }
         }
-        .accessibilityIdentifier("tela-tenho-um-convite")
     }
 
     // MARK: Formulário
@@ -63,8 +62,8 @@ public struct TelaTenhoUmConvite: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .submitLabel(.go)
-                        .onSubmit { Task { await modelo.aceitarConvite() } }
+                        .submitLabel(.done)
+                        .onSubmit { campoEmFoco = false }
                         .disabled(modelo.enviando)
                         .accessibilityIdentifier("convite-campo")
                 }

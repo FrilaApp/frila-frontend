@@ -56,7 +56,6 @@ public struct TelaEquipeDaCasa: View {
         .onChange(of: modelo.podeGerenciar) { _, pode in
             if !pode { aoPerderAdministracao() }
         }
-        .accessibilityIdentifier("tela-equipe-da-casa")
     }
 
     private var cabecalho: some View {
@@ -99,7 +98,6 @@ public struct TelaEquipeDaCasa: View {
                 FrilaGrupoDeLinhas(verbatim: TextosDaEquipeDaCasa.lista, linhasComIcone: false) {
                     ForEach(membros) { membro in linhaDoMembro(membro) }
                 }
-                .accessibilityIdentifier("equipe-lista")
             }
         }
     }
@@ -117,6 +115,9 @@ public struct TelaEquipeDaCasa: View {
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            // Nome e detalhe são uma pessoa só para o leitor de tela; as ações seguem separadas, cada uma com o nome da pessoa.
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("equipe-membro-\(id)")
             // "Você" não tem Remover nem Tornar administrador: o app não oferece sair da casa por aqui.
             if modelo.podeGerenciar, !membro.eVoce {
                 acoes(de: membro, id: id)
@@ -125,8 +126,6 @@ public struct TelaEquipeDaCasa: View {
         .padding(.horizontal, FrilaMedidaDeLinha.margem)
         .padding(.vertical, FrilaEspaco.item)
         .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("equipe-membro-\(id)")
     }
 
     /// "Administrador · Você · Desde 14/10/2025".
@@ -265,7 +264,6 @@ public struct TelaEquipeDaCasa: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("equipe-convite")
     }
 
     // MARK: Confirmação
