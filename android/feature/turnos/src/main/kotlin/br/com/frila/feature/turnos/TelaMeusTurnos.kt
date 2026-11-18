@@ -91,6 +91,8 @@ fun TelaMeusTurnos(
     relogio: () -> Instant = { Instant.now() },
     /** C0-9: denunciar a casa do turno (id do perfil público, id do turno), como o iOS. Nulo esconde o botão. */
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
+    /** L2-1: "Estou a caminho" no turno confirmado. Nulo esconde o botão (a fiação é o L2-8); a regra da janela é do [podeAvisarACaminho]. */
+    aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -175,6 +177,9 @@ fun TelaMeusTurnos(
                     carregandoMaisHistorico = estado.carregandoMaisHistorico,
                     aoCarregarMaisHistorico = { viewModel.carregarMaisHistorico() },
                     aoDenunciarEstabelecimento = aoDenunciarEstabelecimento,
+                    aoAvisarACaminho = aoAvisarACaminho,
+                    avisandoACaminho = estado.avisandoACaminho,
+                    erroACaminho = estado.erroACaminho,
                 )
             }
         }
@@ -211,6 +216,9 @@ private fun ListaDeTurnos(
     carregandoMaisHistorico: Boolean = false,
     aoCarregarMaisHistorico: () -> Unit = {},
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
+    aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
+    avisandoACaminho: String? = null,
+    erroACaminho: ErroDoACaminho? = null,
 ) {
     if (itens.isEmpty()) {
         Vazio()
@@ -264,6 +272,15 @@ private fun ListaDeTurnos(
                         aoCancelar = aoCancelar,
                         aoExibirComprovante = aoExibirComprovante,
                         relogio = relogio,
+                    )
+                }
+                if (aoAvisarACaminho != null && turno.estado == ESTADO_CHECKIN_DISPONIVEL) {
+                    SecaoACaminho(
+                        turno = turno,
+                        avisando = avisandoACaminho == turno.turnoId,
+                        mensagemErro = erroACaminho?.takeIf { it.turnoId == turno.turnoId }?.mensagem,
+                        aoAvisar = { aoAvisarACaminho(turno) },
+                        agora = relogio(),
                     )
                 }
                 SecaoDeAvaliacao(turno = turno, aoAbrirAvaliacao = aoAbrirAvaliacao)
