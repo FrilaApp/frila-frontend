@@ -216,6 +216,7 @@ class CapturasR6Test {
         return EstadoChamadaDireta(
             funcoes = listOf(garcom, barman), funcaoId = "f1", local = "SCS Quadra 2", inicio = inicio, fim = inicio.plus(Duration.ofHours(4)),
             responsavel = "Bistrô Ipê", recursoHabilitado = true, agora = agora,
+            pontoDaCasa = CoordenadaDto(-15.79, -47.88),
         ).ajuste()
     }
 
