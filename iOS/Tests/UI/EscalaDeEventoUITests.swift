@@ -78,10 +78,30 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertTrue(linha.waitForExistence(timeout: Espera.aparecer))
     }
 
+    /// Toca no campo, apaga o que houver e digita. O valor do campo marcado com erro é lido como "texto, Erro: mensagem"
+    /// (a marca é parte do valor para o leitor de tela), por isso a conferência é pelo começo do valor e não pela igualdade
+    /// do `substituirTexto` compartilhado.
+    private func digitarNoCampo(_ campo: XCUIElement, por texto: String, file: StaticString = #filePath, line: UInt = #line) {
+        var focado = false
+        for _ in 0..<4 where !focado {
+            esperarEstabilizacaoDeFrame(campo, timeout: 3)
+            campo.tap()
+            focado = esperarFocoDoTeclado(campo, timeout: 3)
+        }
+        XCTAssertTrue(focado, "o campo deveria receber o foco do teclado", file: file, line: line)
+        guard focado else { return }
+        let atual = ((campo.value as? String) ?? "")
+        if !atual.isEmpty {
+            campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: atual.count))
+        }
+        campo.typeText(texto)
+        XCTAssertTrue(((campo.value as? String) ?? "").hasPrefix(texto), "o campo deveria mostrar \"\(texto)\" depois da digitação", file: file, line: line)
+    }
+
     private func preencherResponsavel(_ app: XCUIApplication, vaga: Int, nome: String) {
         let campo = app.textFields["escala-responsavel-\(vaga)"]
         trazer(campo, em: app)
-        substituirTexto(campo, por: nome)
+        digitarNoCampo(campo, por: nome)
         fecharTeclado(app)
     }
 
@@ -99,7 +119,7 @@ final class EscalaDeEventoUITests: XCTestCase {
         let app = abrir()
         let antes = abrirEscala(app)
 
-        substituirTexto(app.textFields["escala-nome"], por: "Formatura de Direito")
+        digitarNoCampo(app.textFields["escala-nome"], por: "Formatura de Direito")
         fecharTeclado(app)
 
         escolherFuncao(app, vaga: 0, opcao: 0)
@@ -180,9 +200,9 @@ final class EscalaDeEventoUITests: XCTestCase {
         trazer(campo, em: app)
         XCTAssertTrue(elemento("escala-erro-responsavel-0", em: app).exists, "o responsável vazio está marcado")
 
-        substituirTexto(campo, por: "Marina")
+        digitarNoCampo(campo, por: "Marina")
 
-        XCTAssertEqual(campo.value as? String, "Marina")
+        XCTAssertTrue((campo.value as? String ?? "").hasPrefix("Marina"), "o campo mostra o que foi digitado: \(campo.value as? String ?? "")")
         XCTAssertTrue(app.keyboards.firstMatch.exists, "o teclado segue aberto depois de digitar no campo marcado")
     }
 
@@ -198,7 +218,7 @@ final class EscalaDeEventoUITests: XCTestCase {
             XCTAssertTrue(elemento("escala-mensagem", em: app).waitForExistence(timeout: Espera.aparecer))
             capturar("2-erros-de-campo", ax5: ax5)
 
-            substituirTexto(app.textFields["escala-nome"], por: "Formatura de Direito")
+            digitarNoCampo(app.textFields["escala-nome"], por: "Formatura de Direito")
             fecharTeclado(app)
             let funcao = app.buttons["escala-funcao-0"]
             trazer(funcao, em: app)
