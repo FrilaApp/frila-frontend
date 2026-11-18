@@ -42,6 +42,19 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func meuEstabelecimento(id: UUID) async throws -> Estabelecimento { try await base.meuEstabelecimento(id: id) }
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel { try await base.painelEstabelecimento(id: id, periodo: periodo) }
 
+    // Equipe da casa
+    func membrosDaCasa(estabelecimentoID: UUID) async throws -> [MembroDaCasa] { try await base.membrosDaCasa(estabelecimentoID: estabelecimentoID) }
+    func convidarMembro(estabelecimentoID: UUID, email: String, papel: PapelMembro) async throws -> ConviteDeMembro {
+        try await base.convidarMembro(estabelecimentoID: estabelecimentoID, email: email, papel: papel)
+    }
+    func aceitarConviteDeMembro(token: String) async throws -> MembroAdicionado { try await base.aceitarConviteDeMembro(token: token) }
+    func removerMembro(estabelecimentoID: UUID, membroID: UUID) async throws {
+        try await base.removerMembro(estabelecimentoID: estabelecimentoID, membroID: membroID)
+    }
+    func transferirAdministracao(estabelecimentoID: UUID, novoAdministradorID: UUID) async throws {
+        try await base.transferirAdministracao(estabelecimentoID: estabelecimentoID, novoAdministradorID: novoAdministradorID)
+    }
+
     // Equipe de confiança
     func equipeDeConfianca(estabelecimentoID: UUID) async throws -> [PerfilPublico] { try await base.equipeDeConfianca(estabelecimentoID: estabelecimentoID) }
     func incluirNaEquipe(_ membro: MembroDaEquipe) async throws -> MembroDaEquipe { try await base.incluirNaEquipe(membro) }

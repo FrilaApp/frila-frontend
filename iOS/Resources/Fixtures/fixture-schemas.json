@@ -40,6 +40,22 @@
   "escala-publicada.json": {
     "schema": "#/components/schemas/EscalaPublicada"
   },
+  "membros-do-estabelecimento.json": {
+    "schema": "#/components/schemas/MembroDoEstabelecimento",
+    "lista": true
+  },
+  "convite-de-membro.json": {
+    "schema": "#/paths/~1rpc~1convidar_membro/post/responses/200/content/application~1json/schema"
+  },
+  "membro-adicionado.json": {
+    "schema": "#/paths/~1rpc~1aceitar_convite_membro/post/responses/200/content/application~1json/schema"
+  },
+  "membro-removido.json": {
+    "schema": "#/paths/~1rpc~1remover_membro/post/responses/200/content/application~1json/schema"
+  },
+  "administracao-transferida.json": {
+    "schema": "#/paths/~1rpc~1transferir_administracao/post/responses/200/content/application~1json/schema"
+  },
   "erros.json": {
     "schema": "#/components/schemas/Erro",
     "lista": true
@@ -151,6 +167,18 @@
   },
   "requisicao-pedir-revisao-despacho.json": {
     "schema": "#/paths/~1rpc~1pedir_revisao_despacho/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-aceitar-convite-membro.json": {
+    "schema": "#/paths/~1rpc~1aceitar_convite_membro/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-convidar-membro.json": {
+    "schema": "#/paths/~1rpc~1convidar_membro/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-remover-membro.json": {
+    "schema": "#/paths/~1rpc~1remover_membro/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-transferir-administracao.json": {
+    "schema": "#/paths/~1rpc~1transferir_administracao/post/requestBody/content/application~1json/schema"
   },
   "requisicao-publicar-escala.json": {
     "schema": "#/components/schemas/NovaEscala"

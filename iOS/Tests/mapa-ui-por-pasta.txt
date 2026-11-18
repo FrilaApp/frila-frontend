@@ -48,6 +48,7 @@ Sources/Apresentacao/Fluxos/Contratante/TelaTurnoDoContratante.swift = TurnoDoCo
 Sources/Apresentacao/Fluxos/Contratante/*CodigoDaCasa*.swift = CheckinPorCodigoUITests, TurnoDoContratanteUITests
 Sources/Apresentacao/Fluxos/Contratante/TextosDoCheckinPorCodigoCasa.swift = CheckinPorCodigoUITests, TurnoDoContratanteUITests
 Sources/Apresentacao/Fluxos/Contratante/Escala/ = EscalaDeEventoUITests, MinhasVagasUITests
+Sources/Apresentacao/Fluxos/Contratante/EquipeDaCasa/ = EquipeDaCasaUITests, FluxoDoContratanteUITests
 Sources/Apresentacao/Fluxos/Contratante/Estudio/ =PublicarVagaEmMinhasVagasUITests, MinhasVagasUITests, CicloDePontaAPontaUITests, RepublicarVagaUITests
 Sources/Apresentacao/Fluxos/Contratante/PublicarVaga*.swift = PublicarVagaEmMinhasVagasUITests, CicloDePontaAPontaUITests, MinhasVagasUITests
 Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift = MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, CancelamentoDoContratanteUITests, VagaEncerradaTrabalhadaUITests, BuscaDeProfissionaisUITests

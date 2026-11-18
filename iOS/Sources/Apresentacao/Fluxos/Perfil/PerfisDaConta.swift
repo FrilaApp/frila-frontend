@@ -128,13 +128,20 @@ public final class PerfilEstabelecimentoViewModel {
         carregarEstabelecimentos = estabelecimentos; carregarPublico = publico
     }
 
-    public func carregar() async {
+    /// `preferida` é a casa que a conta escolheu em "Trocar de casa"; sem ela, ou se a conta já não é membro dela, vale a primeira.
+    /// Trocar de casa limpa o que era da anterior antes de ler a nova: nada de uma casa aparece na outra.
+    public func carregar(preferindo preferida: UUID? = nil) async {
         carregando = true; mensagemErro = nil
+        if let preferida, estabelecimento?.id != preferida { estabelecimento = nil; perfilPublico = nil }
         defer { carregando = false }
         do {
-            guard let primeiro = try await carregarEstabelecimentos().first else { return }
-            let publico = try await carregarPublico(primeiro.id)
-            estabelecimento = primeiro; perfilPublico = publico
+            let todas = try await carregarEstabelecimentos()
+            guard let escolhida = todas.first(where: { $0.id == preferida }) ?? todas.first else {
+                estabelecimento = nil; perfilPublico = nil
+                return
+            }
+            let publico = try await carregarPublico(escolhida.id)
+            estabelecimento = escolhida; perfilPublico = publico
         } catch { mensagemErro = TextosPerfilConta.erro }
     }
 }
@@ -608,10 +615,17 @@ public struct TelaPerfilEstabelecimento: View {
     private let sair: () -> Void
     public let enderecos: EnderecosOficiais
     @State private var mostrarAjuda = false
-    public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
+    private let casaEscolhida: UUID?
+    private let entradasDaCasa: ((EstabelecimentoDaConta?) -> AnyView)?
+    /// `casaEscolhida`: a casa de "Trocar de casa" (a tela relê quando ela muda). `entradasDaCasa` põe no topo da lista as linhas
+    /// da equipe da casa, do convite e da troca de casa; recebe a casa que a tela mostra (`nil` enquanto a conta não tem uma).
+    public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, casaEscolhida: UUID? = nil,
+                entradasDaCasa: ((EstabelecimentoDaConta?) -> AnyView)? = nil, sair: @escaping () -> Void) {
         self.api = api
         self.sair = sair
         self.enderecos = enderecos
+        self.casaEscolhida = casaEscolhida
+        self.entradasDaCasa = entradasDaCasa
         _model = State(initialValue: PerfilEstabelecimentoViewModel(api: api))
         _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
@@ -672,6 +686,9 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                 }
                 GrupoDeLinhas {
+                    if !model.carregando, model.mensagemErro == nil, let entradasDaCasa {
+                        entradasDaCasa(model.estabelecimento)
+                    }
                     if !model.carregando, model.mensagemErro == nil, let estabelecimento = model.estabelecimento {
                         NavigationLink { TelaHistoricoDeTurnos(api: api, estabelecimentoID: estabelecimento.id) } label: {
                             RotuloDeLinha(TextosHistoricoDeTurnos.titulo)
@@ -730,7 +747,7 @@ public struct TelaPerfilEstabelecimento: View {
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosPerfilConta.perfilEstabelecimento))
-        .navigationBarTitleDisplayMode(.inline).task { await model.carregar() }
+        .navigationBarTitleDisplayMode(.inline).task(id: casaEscolhida) { await model.carregar(preferindo: casaEscolhida) }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 

@@ -338,6 +338,115 @@ struct ContratoDoClienteSupabaseTests {
         }
     }
 
+    // MARK: Equipe da casa (0.2.73 e 0.2.103)
+
+    private static let casaDaEquipe = UUID(uuidString: "30000000-0000-0000-0000-000000000001")!
+    private static let membroRemovido = UUID(uuidString: "93000000-0000-0000-0000-000000000003")!
+
+    private func recusa(_ rota: String, status: Int, codigo: String, detalhes: String? = nil) {
+        let detalhe = detalhes.map { "\"\($0)\"" } ?? "null"
+        let corpo = #"{"code":"\#(codigo)","message":"\#(codigo)","details":\#(detalhe),"hint":null}"#
+        BackendDeContrato.preparar(["/rest/v1/rpc/\(rota)": .init(status: status, corpo: Data(corpo.utf8))])
+    }
+
+    @Test("membros_do_estabelecimento manda o estabelecimento_id e lê as pessoas da casa: membro_id do vínculo, papel, desde e e_voce")
+    func membrosDaCasa() async throws {
+        try rpc("membros_do_estabelecimento", "membros-do-estabelecimento")
+
+        let membros = try await cliente().membrosDaCasa(estabelecimentoID: Self.casaDaEquipe)
+
+        let corpo = try corpoEnviado(para: "/rest/v1/rpc/membros_do_estabelecimento")
+        #expect(corpo == ["estabelecimento_id": "30000000-0000-0000-0000-000000000001"] as NSDictionary)
+        #expect(membros.count == 3)
+        #expect(membros[0].id == UUID(uuidString: "93000000-0000-0000-0000-000000000001"))
+        #expect(membros[0].nome == "Ana Prado")
+        #expect(membros[0].papel == .administrador)
+        #expect(membros[0].eVoce)
+        #expect(membros[0].desde == ContratoAPI.instante("2025-10-14T12:00:00Z"))
+        #expect(membros[2].papel == .operador)
+        #expect(!membros[2].eVoce)
+    }
+
+    @Test("convidar_membro manda estabelecimento_id, email e papel, sem p_, e lê o token e o vencimento")
+    func convidarMembro() async throws {
+        try rpc("convidar_membro", "convite-de-membro")
+
+        let convite = try await cliente().convidarMembro(estabelecimentoID: Self.casaDaEquipe, email: "paulo.lima@example.com", papel: .operador)
+
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/convidar_membro") == (try ContratoTests.fixture("requisicao-convidar-membro")))
+        #expect(convite.token == String(repeating: "ef", count: 32))
+        #expect(convite.expiraEm == ContratoAPI.instante("2026-11-25T15:30:00Z"))
+    }
+
+    @Test("aceitar_convite_membro manda só o token e lê a casa e o papel em que a conta entrou")
+    func aceitarConvite() async throws {
+        try rpc("aceitar_convite_membro", "membro-adicionado")
+
+        let membro = try await cliente().aceitarConviteDeMembro(token: String(repeating: "ef", count: 32))
+
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/aceitar_convite_membro") == (try ContratoTests.fixture("requisicao-aceitar-convite-membro")))
+        #expect(membro.estabelecimentoID == UUID(uuidString: "30000000-0000-0000-0000-000000000003"))
+        #expect(membro.papel == .operador)
+    }
+
+    @Test("remover_membro e transferir_administracao mandam os nomes do contrato (membro_id e novo_admin_id), sem p_")
+    func removerETransferir() async throws {
+        try rpc("remover_membro", "membro-removido")
+        try await cliente().removerMembro(estabelecimentoID: Self.casaDaEquipe, membroID: Self.membroRemovido)
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/remover_membro") == (try ContratoTests.fixture("requisicao-remover-membro")))
+
+        try rpc("transferir_administracao", "administracao-transferida")
+        try await cliente().transferirAdministracao(estabelecimentoID: Self.casaDaEquipe, novoAdministradorID: Self.membroRemovido)
+        #expect(try corpoEnviado(para: "/rest/v1/rpc/transferir_administracao") == (try ContratoTests.fixture("requisicao-transferir-administracao")))
+    }
+
+    @Test("403 sem_permissao sem details é a recusa de administrador; com conta_suspensa é a suspensão, e a casa não existir dá a mesma recusa")
+    func recusaDeAdministradorNoServidor() async throws {
+        recusa("membros_do_estabelecimento", status: 403, codigo: "sem_permissao")
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await cliente().membrosDaCasa(estabelecimentoID: Self.casaDaEquipe) }
+        #expect(erro?.codigo == .semPermissao)
+        #expect(erro?.detalhes == nil)
+        #expect(erro?.recusaDeAdministrador == true)
+        #expect(erro?.contaSuspensa == false)
+
+        recusa("convidar_membro", status: 403, codigo: "sem_permissao", detalhes: "conta_suspensa")
+        let suspensa = await #expect(throws: ErroDaApi.self) {
+            _ = try await cliente().convidarMembro(estabelecimentoID: Self.casaDaEquipe, email: "a@b.co", papel: .operador)
+        }
+        #expect(suspensa?.recusaDeAdministrador == false)
+        #expect(suspensa?.contaSuspensa == true)
+    }
+
+    @Test("422 convite_invalido e 422 ultimo_administrador chegam como o código original, e 404 como nao_encontrado")
+    func recusasDeRegra() async throws {
+        recusa("aceitar_convite_membro", status: 422, codigo: "convite_invalido")
+        let invalido = await #expect(throws: ErroDaApi.self) { _ = try await cliente().aceitarConviteDeMembro(token: String(repeating: "ef", count: 32)) }
+        #expect(invalido?.conviteInvalido == true)
+
+        recusa("remover_membro", status: 422, codigo: "ultimo_administrador")
+        let ultimo = await #expect(throws: ErroDaApi.self) {
+            try await cliente().removerMembro(estabelecimentoID: Self.casaDaEquipe, membroID: Self.membroRemovido)
+        }
+        #expect(ultimo?.ultimoAdministrador == true)
+
+        recusa("transferir_administracao", status: 404, codigo: "nao_encontrado")
+        let ausente = await #expect(throws: ErroDaApi.self) {
+            try await cliente().transferirAdministracao(estabelecimentoID: Self.casaDaEquipe, novoAdministradorID: Self.membroRemovido)
+        }
+        #expect(ausente?.codigo == .naoEncontrado)
+    }
+
+    @Test("O erro do convite nunca leva o token: nem no código, nem nos detalhes")
+    func erroSemOToken() async throws {
+        let token = String(repeating: "ef", count: 32)
+        recusa("aceitar_convite_membro", status: 422, codigo: "convite_invalido")
+
+        let erro = await #expect(throws: ErroDaApi.self) { _ = try await cliente().aceitarConviteDeMembro(token: token) }
+
+        #expect(!String(describing: erro).contains(token))
+        #expect(!String(reflecting: erro).contains(token))
+    }
+
     @Test("configuracao_do_app manda plataforma ios e a versao_app do app (0.2.65), e lê versões, mensagem e loja")
     func configuracaoDoApp() async throws {
         try rpc("configuracao_do_app", "configuracao-do-app")
@@ -737,6 +846,16 @@ struct RedeRuimEValorNovoTests {
 
         rpc("meus_estabelecimentos", try fixture("meus-estabelecimentos", trocando: "0/tipo", por: "valor_novo"))
         #expect(try await cliente(BackendDeContrato.self).meusEstabelecimentos().first?.tipo == .outro)
+    }
+
+    @Test("membros_do_estabelecimento: papel novo do contrato vira operador, o de menos permissão")
+    func membroComPapelNovo() async throws {
+        rpc("membros_do_estabelecimento", try fixture("membros-do-estabelecimento", trocando: "0/papel", por: "gerente"))
+
+        let membros = try await cliente(BackendDeContrato.self).membrosDaCasa(estabelecimentoID: UUID())
+
+        #expect(membros.first?.papel == .operador)
+        #expect(membros.count == 3)
     }
 
     @Test("Protocolo com tipo novo vira denúncia e registro com tipo novo vira manual")
