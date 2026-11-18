@@ -9,8 +9,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import br.com.frila.core.dominio.modelo.Coordenada
-import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PainelDto
@@ -125,12 +123,6 @@ class EntradaPorPapelTest {
         respond(corpo, status, headersOf(HttpHeaders.ContentType, "application/json"))
     }
 
-    private val semLocalizacao = object : ProvedorDeLocalizacao {
-        override suspend fun obterCoordenadaAtual(): Coordenada? = null
-        override fun temPermissaoDeLocalizacao() = false
-        override fun isGpsAtivado() = false
-    }
-
     private fun montar(papel: Papel, comSessaoGuardada: Boolean) {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = servidor(papel))
         if (comSessaoGuardada) sessao.salvarSessao(Sessao("tok", "ref", "bearer", 3600))
@@ -170,7 +162,7 @@ class EntradaPorPapelTest {
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
-                        viewModel { FeedVagasViewModel(ServicoVagas(cliente), semLocalizacao) }
+                        viewModel { FeedVagasViewModel(ServicoVagas(cliente)) }
                         viewModel { br.com.frila.feature.turnos.MeusTurnosViewModel(br.com.frila.core.rede.ServicoTurnos { cliente }) }
                         viewModel { (id: String, nome: String?, recente: String?) ->
                             MinhasVagasViewModel(

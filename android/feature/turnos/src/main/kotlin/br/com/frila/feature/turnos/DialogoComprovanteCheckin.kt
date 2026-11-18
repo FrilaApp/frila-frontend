@@ -26,7 +26,7 @@ import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 
 /**
  * Diálogo do comprovante de presença com carimbo temporal e hash verificador (RN06/RN22).
- * Exibe horário exato, coordenadas aproximadas e código verificador.
+ * Exibe horário exato, tipo de verificação e código verificador. Nunca a posição.
  * Permite compartilhamento acessível nativo do Android.
  */
 @Composable
@@ -116,23 +116,6 @@ fun DialogoComprovanteCheckin(
                         text = comprovante.tipoVerificacao.descricao,
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                }
-
-                comprovante.coordenadasAproximadas?.let { coords ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Coordenadas aproximadas (LGPD)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = coords,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.semantics {
-                                contentDescription = "Coordenadas aproximadas: $coords"
-                            },
-                        )
-                    }
                 }
             }
         },

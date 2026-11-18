@@ -63,9 +63,11 @@ import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
 import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaApresentacaoERegioes
+import br.com.frila.feature.perfil.TelaPontoBase
 import br.com.frila.feature.perfil.TelaFotoDePerfilConectada
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
@@ -104,6 +106,7 @@ object Rotas {
     const val AVALIACAO = "avaliacao/{turnoId}"
     const val PERFIL = "perfil"
     const val APRESENTACAO = "perfil_apresentacao"
+    const val PONTO_BASE = "perfil_ponto_base"
     const val FOTO_DE_PERFIL = "perfil_foto"
     const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
@@ -229,6 +232,11 @@ fun AppNavegacao(
      * iOS de hoje, sem o "Aceito chamadas diretas" nem as pendências da busca.
      */
     buscaProfissionaisHabilitada: Boolean = false,
+    /**
+     * Chave `checkin_por_codigo` (`configuracao_do_app`, a do servidor): ligada, o profissional digita o código que a casa mostra e a casa vê o
+     * código do turno. Desligada (padrão), a tela de turnos fica como antes.
+     */
+    checkinPorCodigoHabilitado: Boolean = false,
     /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
@@ -396,6 +404,7 @@ fun AppNavegacao(
                         aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
                         aoAbrirPerfil = { navController.navigate(Rotas.PERFIL) },
                         aoAbrirMeusTurnos = { navController.navigate(Rotas.MEUS_TURNOS) },
+                        aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
                     )
                 }
             }
@@ -489,15 +498,20 @@ fun AppNavegacao(
                             val turnoEncontrado = estado.agendados.any { it.turnoId == turnoId } ||
                                 estado.historicoCompleto.any { it.turnoId == turnoId }
                             if (turnoEncontrado) {
-                                TelaMeusTurnos(
-                                    viewModel = viewModel,
-                                    criarCheckinViewModel = { turno ->
-                                        // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
-                                        koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
-                                    },
-                                    aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
-                                    aoDenunciarEstabelecimento = denunciarCasa,
-                                )
+                                ComConfirmacaoPorCodigo(
+                                    habilitada = checkinPorCodigoHabilitado,
+                                    aoPresencaVerificada = { viewModel.carregar() },
+                                ) {
+                                    TelaMeusTurnos(
+                                        viewModel = viewModel,
+                                        criarCheckinViewModel = { turno ->
+                                            // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
+                                            koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
+                                        },
+                                        aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                                        aoDenunciarEstabelecimento = denunciarCasa,
+                                    )
+                                }
                             } else {
                                 TelaTurnoNaoEncontrado(
                                     aoVoltar = { navController.popBackStack() },
@@ -521,15 +535,20 @@ fun AppNavegacao(
                         }
                         StatusMeusTurnos.ERRO -> {
                             // Não transforma erro de conexão em "não encontrado" (DestinosDoAviso.swift:208)
-                            TelaMeusTurnos(
-                                viewModel = viewModel,
-                                criarCheckinViewModel = { turno ->
-                                    // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
-                                    koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
-                                },
-                                aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
-                                aoDenunciarEstabelecimento = denunciarCasa,
-                            )
+                            ComConfirmacaoPorCodigo(
+                                habilitada = checkinPorCodigoHabilitado,
+                                aoPresencaVerificada = { viewModel.carregar() },
+                            ) {
+                                TelaMeusTurnos(
+                                    viewModel = viewModel,
+                                    criarCheckinViewModel = { turno ->
+                                        // C0-7: um check-in por turno (key), com o ponto da vaga para medir a distância.
+                                        koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
+                                    },
+                                    aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
+                                    aoDenunciarEstabelecimento = denunciarCasa,
+                                )
+                            }
                         }
                     }
                 }
@@ -542,16 +561,21 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
-                    TelaMeusTurnos(
-                        viewModel = viewModel,
-                        criarCheckinViewModel = { turno ->
-                            // C0-7: um check-in por turno (key; antes todos os cartões dividiam um só), com o ponto
-                            // da vaga (`VagaResumo.ponto`), para medir a distância até ela (RN06).
-                            koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
-                        },
-                        aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
-                        aoDenunciarEstabelecimento = denunciarCasa,
-                    )
+                    ComConfirmacaoPorCodigo(
+                        habilitada = checkinPorCodigoHabilitado,
+                        aoPresencaVerificada = { viewModel.carregar() },
+                    ) {
+                        TelaMeusTurnos(
+                            viewModel = viewModel,
+                            criarCheckinViewModel = { turno ->
+                                // C0-7: um check-in por turno (key; antes todos os cartões dividiam um só), com o ponto
+                                // da vaga (`VagaResumo.ponto`), para medir a distância até ela (RN06).
+                                koinViewModel(key = "checkin-${turno.turnoId}", parameters = { parametersOf(turno.turnoId, turno.pontoDaVaga) })
+                            },
+                            aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
+                            aoDenunciarEstabelecimento = denunciarCasa,
+                        )
+                    }
                 }
             }
 
@@ -671,6 +695,24 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // O ponto base é do profissional (mesma regra de `casas`). Sem chave: sem ele a lista de vagas não abre.
+                        aoAbrirPontoBase = if (casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.PONTO_BASE) }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+
+            // Ao salvar, volta para quem abriu: a lista de vagas recarrega sozinha ao reaparecer.
+            composable(Rotas.PONTO_BASE) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: PontoBaseViewModel = koinViewModel()
+                    TelaPontoBase(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoSalvo = { navController.popBackStack() },
                     )
                 }
             }
@@ -869,6 +911,7 @@ fun AppNavegacao(
                         posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
                         buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
                         aoVoltar = { navController.popBackStack() },
+                        checkinPorCodigoHabilitado = checkinPorCodigoHabilitado,
                         // C0-9: a casa denuncia a profissional pelo turno, como o iOS (`TelaTurnoDoContratante.swift:360`).
                         aoDenunciarProfissional = { profissionalId, turnoId ->
                             navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))

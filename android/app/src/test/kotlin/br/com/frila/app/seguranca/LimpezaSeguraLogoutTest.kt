@@ -46,7 +46,7 @@ class LimpezaSeguraLogoutTest {
     private lateinit var gestorCliente: GestorClienteKtor
 
     private val sessaoTeste = Sessao(
-        accessToken = "jwt-acesso-12345",
+        accessToken = "token-de-teste",
         refreshToken = "jwt-refresh-67890",
         tokenType = "bearer",
         expiresIn = 3_600L,
@@ -409,7 +409,7 @@ class LimpezaSeguraLogoutTest {
         assertNull("a limpeza local não espera o servidor", armazenamento.obterSessao())
         esperar { registro.rotas.isNotEmpty() }
         assertEquals(listOf("/rest/v1/rpc/remover_dispositivo"), registro.rotas)
-        assertEquals(listOf("Bearer jwt-acesso-12345"), registro.autorizacoes)
+        assertEquals(listOf("Bearer token-de-teste"), registro.autorizacoes)
     }
 
     @Test
