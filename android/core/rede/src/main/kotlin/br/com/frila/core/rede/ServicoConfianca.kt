@@ -4,6 +4,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.serialization.json.JsonObject
 
 /** Denúncia, bloqueio e equipe de confiança: listar, remover e sair (RF26/RF18/RN16/RN13, UC17/UC11). */
 class ServicoConfianca(private val provedorDeCliente: () -> ClienteSupabase) {
@@ -77,5 +78,46 @@ class ServicoConfianca(private val provedorDeCliente: () -> ClienteSupabase) {
             setBody(SairDaEquipeDto(estabelecimentoId = estabelecimentoId))
         }
         cliente.corpoOuErro<Unit>(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/incluir_na_equipe` (RF18, UC11). Idempotente; devolve o par incluído. Só o administrador
+     * inclui, e só quem já cumpriu um turno com presença verificada na casa. Erros esperados: `403 sem_permissao`
+     * (`details`: `sem_turno_cumprido` ou `conta_suspensa`; sem `details` para quem não é administrador),
+     * `404 nao_encontrado` (profissional ou casa inexistente, ou bloqueio), `422 campo_obrigatorio`.
+     */
+    suspend fun incluirNaEquipe(estabelecimentoId: String, profissionalId: String): MembroDaEquipeDto {
+        val resposta = cliente.http.post(cliente.urlRpc("incluir_na_equipe")) {
+            contentType(ContentType.Application.Json)
+            setBody(MembroDaEquipeDto(estabelecimentoId = estabelecimentoId, profissionalId = profissionalId))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `listar_bloqueios` (decisão A8, RF26): os bloqueios que o chamador criou, do mais recente para o mais antigo,
+     * com o par que [desbloquear] recebe. Lista vazia é resposta legítima. Vai em POST com corpo vazio, como no iOS.
+     * Erros esperados: `403 sem_permissao` (`details: conta_suspensa`), `401 nao_autenticado`.
+     */
+    suspend fun listarBloqueios(): List<ItemBloqueioDto> {
+        val resposta = cliente.http.post(cliente.urlRpc("listar_bloqueios")) {
+            contentType(ContentType.Application.Json)
+            setBody(JsonObject(emptyMap()))
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * `POST /rest/v1/rpc/desbloquear` (decisão A8, RF26). Imediato e idempotente: desbloquear quem já não está
+     * bloqueado devolve `200`. Membro de estabelecimento desfaz para a casa inteira. Erros esperados:
+     * `422 campo_obrigatorio` e `422 campo_invalido` (`details`: `alvo_tipo` ou `alvo_id`), `404 nao_encontrado`,
+     * `403 sem_permissao` (`details: conta_suspensa`).
+     */
+    suspend fun desbloquear(alvoTipo: String, alvoId: String): BloqueioDto {
+        val resposta = cliente.http.post(cliente.urlRpc("desbloquear")) {
+            contentType(ContentType.Application.Json)
+            setBody(DesbloquearDto(alvoTipo = alvoTipo, alvoId = alvoId))
+        }
+        return cliente.corpoOuErro(resposta)
     }
 }
