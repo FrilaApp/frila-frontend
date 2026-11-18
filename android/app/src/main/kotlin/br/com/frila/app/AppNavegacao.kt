@@ -31,6 +31,7 @@ import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoVagas
@@ -1099,7 +1100,7 @@ fun AppNavegacao(
                     // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
                     // só perde o aviso da última posição e o prazo, nunca recebe lixo.
                     val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
-                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                    val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { instanteDoServidor(it) }.getOrNull() }
                     val viewModel: CandidatosDaVagaViewModel = koinViewModel(
                         parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
                     )
