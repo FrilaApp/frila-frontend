@@ -88,7 +88,7 @@ class TelaCadastroEstabelecimentoTest {
             TextosCadastroEstabelecimento.LONGITUDE,
         ).forEach { rule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
         rule.onNodeWithText(TextosCadastroEstabelecimento.REGIAO_SELECIONAR).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).assertIsDisplayed()
     }
 
     @Test
@@ -156,15 +156,15 @@ class TelaCadastroEstabelecimentoTest {
     fun erroGlobalAparecePertoDoBotaoEOBotaoContinuaDisponivel() {
         montar(EstadoCadastroEstabelecimento(erro = ErroGlobalCadastro.DOCUMENTO_DUPLICADO))
 
-        rule.onNodeWithText(ErroGlobalCadastro.DOCUMENTO_DUPLICADO.mensagem).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).performScrollTo().assertIsEnabled()
+        rule.onNodeWithText(ErroGlobalCadastro.DOCUMENTO_DUPLICADO.mensagem).assertIsDisplayed()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).assertIsEnabled()
     }
 
     @Test
     fun botaoCadastrarChamaOCallbackUmaVez() {
         val c = montar()
 
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).performScrollTo()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR)
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
             .performClick()
 
@@ -175,7 +175,7 @@ class TelaCadastroEstabelecimentoTest {
     fun enviandoMostraProgressoDesabilitaBotaoCamposEVoltar() {
         montar(EstadoCadastroEstabelecimento(enviando = true))
 
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRANDO).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRANDO).assertIsNotEnabled()
         rule.onNodeWithText(TextosCadastroEstabelecimento.NOME).performScrollTo().assertIsNotEnabled()
         rule.onNodeWithContentDescription(TextosCadastroEstabelecimento.ROTULO_VOLTAR).assertIsNotEnabled()
     }
@@ -188,7 +188,7 @@ class TelaCadastroEstabelecimentoTest {
             ),
         )
 
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CONCLUIDO).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CONCLUIDO).assertIsDisplayed()
+        rule.onNodeWithText(TextosCadastroEstabelecimento.CADASTRAR).assertIsNotEnabled()
     }
 }

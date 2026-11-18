@@ -1,5 +1,6 @@
 package br.com.frila.feature.entrada.codigo
 
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -7,6 +8,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -64,6 +66,20 @@ class TelaCodigoTest {
     }
 
     @Test
+    fun campoDoCodigoLevaADicaDePreenchimentoAutomaticoDeCodigo() {
+        val (viewModel, _) = criarViewModel()
+        rule.setContent {
+            FrilaTheme {
+                TelaCodigo(viewModel = viewModel, aoAutenticar = {})
+            }
+        }
+
+        // EWV25ROo: o aparelho pode sugerir o código recebido; a dica é a semântica de preenchimento do Compose 1.8.
+        rule.onNodeWithContentDescription("Código de 6 dígitos")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentType, ContentType.SmsOtpCode))
+    }
+
+    @Test
     fun tituloPossuiSemanticaDeCabecalhoEExibeEmail() {
         val (viewModel, _) = criarViewModel(email = "teste@frila.app")
         rule.setContent {
@@ -107,7 +123,7 @@ class TelaCodigoTest {
             }
         }
 
-        rule.onNodeWithText("Código de 6 dígitos").performTextInput("123")
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123")
         rule.onNodeWithText("Confirmar código").performClick()
         rule.waitForIdle()
 
@@ -150,7 +166,7 @@ class TelaCodigoTest {
 
         // Completar os 6 dígitos confirma sozinho (como o iOS): não há toque no botão, que nesse momento
         // pode estar em "Confirmando…".
-        rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
 
         rule.waitUntil(5000) { viewModel.estado.value.autenticado }
         rule.waitForIdle()
