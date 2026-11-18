@@ -225,6 +225,6 @@ class TelasContaTest {
 
         rule.onNodeWithText(TextosContaSuspensa.SECAO_MOTIVO).assertIsDisplayed()
         rule.onNodeWithText("Denúncia de assédio confirmada").assertIsDisplayed()
-        rule.onNodeWithText("09/11/2026").assertIsDisplayed()
+        rule.onNodeWithText("09/11/2026").performScrollTo().assertIsDisplayed()
     }
 }

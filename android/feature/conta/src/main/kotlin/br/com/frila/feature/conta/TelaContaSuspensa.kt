@@ -5,27 +5,33 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
 /**
  * Bloqueio de conta suspensa (RN13, `403 sem_permissao` com `details: conta_suspensa`; paridade
  * com `TelaContaSuspensa.swift`). Não há navegação para fora da tela além de falar com o suporte
  * ou sair da conta: a conta suspensa não usa o app.
+ *
+ * Tela de leitura com uma ação (a contestação, no [contestacao]): título, o aviso, o motivo e a data em
+ * um cartão e, no fim, o suporte e o "Sair da conta" como ações discretas, uma por linha. Sem desenho do
+ * Fabrício (extrapolada do mesmo sistema).
  *
  * [motivo] e [desde] vêm de quem chama, já formatados, e somem quando nulos. [emailSuporte] também vem
  * de quem chama (`EnderecosOficiais.padrao`). [contestacao] é a seção de contestar a suspensão, entre as
@@ -42,84 +48,75 @@ fun TelaContaSuspensa(
     desde: String? = null,
     contestacao: (@Composable () -> Unit)? = null,
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { preenchimento ->
+    val cores = FrilaTema.cores
+    Scaffold(modifier = modifier.fillMaxSize(), containerColor = cores.fundo) { preenchimento ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.grande),
-            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
+                .padding(
+                    start = FrilaEspacamento.grupo,
+                    end = FrilaEspacamento.grupo,
+                    top = FrilaEspacamento.respiro,
+                    bottom = FrilaEspacamento.grupo,
+                ),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
-            Text(
-                text = TextosContaSuspensa.TITULO,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.semantics {
-                    heading()
-                    liveRegion = LiveRegionMode.Polite
-                },
-            )
-            Text(
-                text = TextosContaSuspensa.SUBTITULO,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = TextosContaSuspensa.AVISO_PRINCIPAL,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                TituloDaTela(
+                    texto = TextosContaSuspensa.TITULO,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+                Text(
+                    text = TextosContaSuspensa.SUBTITULO,
+                    style = FrilaTipo.corpo,
+                    color = cores.tintaSuave,
+                )
+            }
+            AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosContaSuspensa.AVISO_PRINCIPAL)
 
             if (motivo != null || desde != null) {
-                Text(
-                    text = TextosContaSuspensa.SECAO_MOTIVO,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
-                motivo?.let { Informacao(TextosContaSuspensa.MOTIVO_TITULO, it) }
-                desde?.let { Informacao(TextosContaSuspensa.DESDE_TITULO, it) }
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                    RotuloDeGrupo(TextosContaSuspensa.SECAO_MOTIVO)
+                    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+                            motivo?.let { Informacao(TextosContaSuspensa.MOTIVO_TITULO, it) }
+                            desde?.let { Informacao(TextosContaSuspensa.DESDE_TITULO, it) }
+                        }
+                    }
+                }
             }
 
             contestacao?.invoke()
 
-            Text(
-                text = TextosContaSuspensa.SECAO_SUPORTE,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = TextosContaSuspensa.PRAZO_SUPORTE,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = emailSuporte,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            BotaoPrimario(
-                texto = TextosContaSuspensa.BOTAO_SUPORTE,
-                aoClicar = { aoContatarSuporte(emailSuporte) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            TextButton(
-                onClick = aoSair,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .sizeIn(minHeight = FrilaMetricas.alvoMinimo),
-            ) {
-                Text(TextosContaSuspensa.BOTAO_SAIR, style = MaterialTheme.typography.titleSmall)
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                RotuloDeGrupo(TextosContaSuspensa.SECAO_SUPORTE)
+                Text(
+                    text = TextosContaSuspensa.PRAZO_SUPORTE,
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
+                )
+                Text(
+                    text = emailSuporte,
+                    style = FrilaTipo.apoio,
+                    color = cores.tintaSuave,
+                )
+                AcaoDiscreta(
+                    texto = TextosContaSuspensa.BOTAO_SUPORTE,
+                    aoClicar = { aoContatarSuporte(emailSuporte) },
+                )
+                AcaoDiscreta(texto = TextosContaSuspensa.BOTAO_SAIR, aoClicar = aoSair)
             }
         }
     }
 }
 
+/** Um dado de leitura: o nome em tinta suave e, embaixo, o valor em tinta. */
 @Composable
 internal fun Informacao(titulo: String, valor: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.fio)) {
-        Text(
-            text = titulo,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(text = valor, style = MaterialTheme.typography.bodyMedium)
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+        Text(text = titulo, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
+        Text(text = valor, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
     }
 }

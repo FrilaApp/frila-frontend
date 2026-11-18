@@ -7,8 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,16 +15,25 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.CartaoFrila
+import br.com.frila.core.designsystem.componentes.EstiloDoSelo
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
+import br.com.frila.core.designsystem.componentes.SeloDeStatus
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-// A contestação da suspensão (dentro da tela "Conta suspensa") e o pedido de revisão do despacho, em baixíssima
-// fidelidade e só com componentes nativos, para a regra poder ser testada no emulador.
+// A contestação da suspensão (dentro da tela "Conta suspensa") e o pedido de revisão do despacho. Sem desenho
+// do Fabrício: extrapoladas do mesmo sistema (leitura + uma ação; o campo com o rótulo acima; o erro junto ao botão).
 
 /** O que a seção de contestação pode pedir ao [ContaSuspensaViewModel]. */
 data class AcoesContestacaoDaSuspensao(
@@ -68,39 +76,61 @@ fun TelaContaSuspensaComContestacao(
     )
 }
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-/** Um de quatro momentos: o protocolo da contestação já feita, o aviso de que ela já existe, o formulário, ou o botão de contestar. */
+/**
+ * Um de quatro momentos: o protocolo da contestação já feita, o aviso de que ela já existe, o formulário, ou
+ * o botão de contestar. O botão que avança (abrir o formulário, depois enviar) é o único laranja da tela;
+ * "Cancelar" é discreto.
+ */
 @Composable
 fun SecaoContestacaoDaSuspensao(estado: EstadoContaSuspensa, emailSuporte: String, acoes: AcoesContestacaoDaSuspensao) {
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-        Text(TextosContaSuspensa.SECAO_CONTESTACAO, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+    val cores = FrilaTema.cores
+    val protocolo = estado.protocolo
+    val comBotoes = protocolo == null && !estado.contaReativada && !estado.contestacaoJaExiste
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        RotuloDeGrupo(TextosContaSuspensa.SECAO_CONTESTACAO)
         if (estado.carregando) TextoAoVivo(TextosContaSuspensa.CARREGANDO)
-        val protocolo = estado.protocolo
         when {
             estado.contaReativada -> TextoAoVivo(TextosContaSuspensa.CONTA_REATIVADA)
-            protocolo != null -> {
-                Text(TextosContaSuspensa.PROTOCOLO_TITULO, style = MaterialTheme.typography.titleSmall)
-                if (estado.emAnalise) Text(TextosContaSuspensa.EM_ANALISE, style = MaterialTheme.typography.labelLarge)
-                Informacao(TextosContaSuspensa.PROTOCOLO_NUMERO, protocolo.numero)
-                Informacao(TextosContaSuspensa.PROTOCOLO_DATA, protocolo.enviadoEm)
-                Informacao(TextosContaSuspensa.PRAZO_RESPOSTA, protocolo.prazoRespostaAte)
-                TextoAoVivo(
-                    if (estado.emAnalise) TextosContaSuspensa.MENSAGEM_EM_ANALISE else TextosContaSuspensa.MENSAGEM_APOS_PRAZO.format(emailSuporte),
-                )
+            protocolo != null -> CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+                    Text(TextosContaSuspensa.PROTOCOLO_TITULO, style = FrilaTipo.rotuloSecundario, color = cores.tinta)
+                    if (estado.emAnalise) SeloDeStatus(TextosContaSuspensa.EM_ANALISE, EstiloDoSelo.CONTORNO)
+                    Informacao(TextosContaSuspensa.PROTOCOLO_NUMERO, protocolo.numero)
+                    Informacao(TextosContaSuspensa.PROTOCOLO_DATA, protocolo.enviadoEm)
+                    Informacao(TextosContaSuspensa.PRAZO_RESPOSTA, protocolo.prazoRespostaAte)
+                    TextoAoVivo(
+                        if (estado.emAnalise) {
+                            TextosContaSuspensa.MENSAGEM_EM_ANALISE
+                        } else {
+                            TextosContaSuspensa.MENSAGEM_APOS_PRAZO.format(emailSuporte)
+                        },
+                        cor = cores.tintaSuave,
+                    )
+                }
             }
             estado.contestacaoJaExiste -> TextoAoVivo(TextosContaSuspensa.CONTESTACAO_JA_EXISTE)
             estado.formularioAberto -> {
-                CampoDoRelato(estado.relato, TextosContaSuspensa.ROTULO_RELATO, TextosContaSuspensa.DICA_RELATO, !estado.enviando, acoes.aoMudarRelato)
+                CampoDoRelato(
+                    valor = estado.relato,
+                    rotulo = TextosContaSuspensa.ROTULO_RELATO,
+                    dica = TextosContaSuspensa.DICA_RELATO,
+                    habilitado = !estado.enviando,
+                    aoMudar = acoes.aoMudarRelato,
+                )
                 if (estado.enviando) TextoAoVivo(TextosContaSuspensa.ENVIANDO)
-                BotaoPrimario(TextosContaSuspensa.BOTAO_ENVIAR, acoes.aoEnviar, Modifier.fillMaxWidth(), habilitado = !estado.enviando)
-                BotaoSecundario(TextosContaSuspensa.CANCELAR, acoes.aoCancelar, Modifier.fillMaxWidth(), habilitado = !estado.enviando)
             }
-            else -> {
-                Text(TextosContaSuspensa.PRAZO_ANALISE, style = MaterialTheme.typography.bodyMedium)
-                BotaoSecundario(TextosContaSuspensa.BOTAO_CONTESTAR, acoes.aoAbrirFormulario, Modifier.fillMaxWidth())
+            else -> Text(TextosContaSuspensa.PRAZO_ANALISE, style = FrilaTipo.corpo, color = cores.tintaSuave)
+        }
+        // O erro vem logo acima do botão que o disparou; sem botão na tela, fecha a seção.
+        estado.mensagemErro?.let { MensagemJuntoAoBotao(it) }
+        if (comBotoes) {
+            if (estado.formularioAberto) {
+                BotaoPrimario(TextosContaSuspensa.BOTAO_ENVIAR, acoes.aoEnviar, Modifier.fillMaxWidth(), habilitado = !estado.enviando)
+                AcaoDiscreta(TextosContaSuspensa.CANCELAR, acoes.aoCancelar, habilitado = !estado.enviando)
+            } else {
+                BotaoPrimario(TextosContaSuspensa.BOTAO_CONTESTAR, acoes.aoAbrirFormulario, Modifier.fillMaxWidth())
             }
         }
-        estado.mensagemErro?.let { TextoDeErro(it) }
     }
 }
 
@@ -111,8 +141,11 @@ fun TelaContestarDespacho(viewModel: ContestarDespachoViewModel, aoVoltar: () ->
     ConteudoContestarDespacho(estado, aoMudarRelato = viewModel::mudarRelato, aoEnviar = { viewModel.contestar() }, aoVoltar = aoVoltar, modifier = modifier)
 }
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-/** O pedido de revisão do despacho: a explicação e o relato, ou o protocolo do pedido enviado, ou o aviso de que já existe um. */
+/**
+ * O pedido de revisão do despacho, como uma tela de formulário: título, a explicação e o campo do relato,
+ * com o erro e o botão laranja ancorados embaixo. Depois do envio (ou se já existe um pedido) não há mais
+ * ação além de voltar: o protocolo vira leitura e o "Voltar" fica ancorado.
+ */
 @Composable
 fun ConteudoContestarDespacho(
     estado: EstadoContestarDespacho,
@@ -121,52 +154,95 @@ fun ConteudoContestarDespacho(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(FrilaEspacamento.medio),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
-    ) {
-        Text(TextosContestarDespacho.TITULO, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-        val protocolo = estado.protocolo
-        when {
-            protocolo != null -> {
-                TextoAoVivo(TextosContestarDespacho.PEDIDO_ENVIADO)
-                Informacao(TextosContestarDespacho.PROTOCOLO_NUMERO, protocolo.numero)
-                Informacao(TextosContestarDespacho.PROTOCOLO_DATA, protocolo.enviadoEm)
-                Informacao(TextosContestarDespacho.PRAZO_RESPOSTA, protocolo.prazoRespostaAte)
-                Text(TextosContestarDespacho.MENSAGEM_ENVIADO)
+    val cores = FrilaTema.cores
+    val protocolo = estado.protocolo
+    val emFormulario = protocolo == null && !estado.contestacaoJaAberta
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = cores.fundo,
+        bottomBar = {
+            RodapeAncorado {
+                if (emFormulario) {
+                    estado.mensagemErro?.let { MensagemJuntoAoBotao(it) }
+                    BotaoPrimario(
+                        TextosContestarDespacho.BOTAO_ENVIAR,
+                        aoEnviar,
+                        Modifier.fillMaxWidth(),
+                        habilitado = !estado.enviando,
+                    )
+                } else {
+                    BotaoSecundario(
+                        TextosContestarDespacho.VOLTAR,
+                        aoVoltar,
+                        Modifier.fillMaxWidth(),
+                        habilitado = !estado.enviando,
+                    )
+                }
             }
-            estado.contestacaoJaAberta -> TextoAoVivo(TextosContestarDespacho.CONTESTACAO_JA_ABERTA)
-            else -> {
-                Text(TextosContestarDespacho.EXPLICACAO)
-                CampoDoRelato(estado.relato, TextosContestarDespacho.ROTULO_RELATO, TextosContestarDespacho.DICA_RELATO, !estado.enviando, aoMudarRelato)
-                if (estado.enviando) TextoAoVivo(TextosContestarDespacho.ENVIANDO)
-                estado.mensagemErro?.let { TextoDeErro(it) }
-                BotaoPrimario(TextosContestarDespacho.BOTAO_ENVIAR, aoEnviar, Modifier.fillMaxWidth(), habilitado = !estado.enviando)
+        },
+    ) { preenchimento ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(preenchimento)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = FrilaEspacamento.grupo,
+                    end = FrilaEspacamento.grupo,
+                    top = FrilaEspacamento.respiro,
+                    bottom = FrilaEspacamento.grupo,
+                ),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+        ) {
+            TituloDaTela(TextosContestarDespacho.TITULO)
+            when {
+                protocolo != null -> {
+                    TextoAoVivo(TextosContestarDespacho.PEDIDO_ENVIADO, estilo = FrilaTipo.nome)
+                    CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+                            Informacao(TextosContestarDespacho.PROTOCOLO_NUMERO, protocolo.numero)
+                            Informacao(TextosContestarDespacho.PROTOCOLO_DATA, protocolo.enviadoEm)
+                            Informacao(TextosContestarDespacho.PRAZO_RESPOSTA, protocolo.prazoRespostaAte)
+                        }
+                    }
+                    Text(TextosContestarDespacho.MENSAGEM_ENVIADO, style = FrilaTipo.corpo, color = cores.tintaSuave)
+                }
+                estado.contestacaoJaAberta -> TextoAoVivo(TextosContestarDespacho.CONTESTACAO_JA_ABERTA)
+                else -> {
+                    Text(TextosContestarDespacho.EXPLICACAO, style = FrilaTipo.corpo, color = cores.tintaSuave)
+                    CampoDoRelato(
+                        valor = estado.relato,
+                        rotulo = TextosContestarDespacho.ROTULO_RELATO,
+                        dica = TextosContestarDespacho.DICA_RELATO,
+                        habilitado = !estado.enviando,
+                        aoMudar = aoMudarRelato,
+                    )
+                    if (estado.enviando) TextoAoVivo(TextosContestarDespacho.ENVIANDO)
+                }
             }
         }
-        BotaoSecundario(TextosContestarDespacho.VOLTAR, aoVoltar, Modifier.fillMaxWidth(), habilitado = !estado.enviando)
     }
 }
 
 @Composable
 private fun CampoDoRelato(valor: String, rotulo: String, dica: String, habilitado: Boolean, aoMudar: (String) -> Unit) {
-    OutlinedTextField(
-        value = valor,
-        onValueChange = aoMudar,
-        enabled = habilitado,
-        label = { Text(rotulo) },
-        supportingText = { Text(dica) },
-        minLines = 3,
-        modifier = Modifier.fillMaxWidth(),
+    CampoDeTexto(
+        valor = valor,
+        aoMudar = aoMudar,
+        rotulo = rotulo,
+        apoio = dica,
+        habilitado = habilitado,
+        umaLinha = false,
+        linhasMinimas = 3,
     )
 }
 
 @Composable
-private fun TextoAoVivo(texto: String) {
-    Text(texto, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-}
-
-@Composable
-private fun TextoDeErro(texto: String) {
-    Text(texto, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+private fun TextoAoVivo(
+    texto: String,
+    estilo: androidx.compose.ui.text.TextStyle = FrilaTipo.corpo,
+    cor: androidx.compose.ui.graphics.Color = FrilaTema.cores.tinta,
+) {
+    Text(texto, style = estilo, color = cor, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
 }
