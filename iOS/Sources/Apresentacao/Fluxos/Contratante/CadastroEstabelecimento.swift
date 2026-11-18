@@ -444,6 +444,7 @@ public struct TelaCadastroEstabelecimento: View {
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
+            .fundoSobORelogio()
             .rodapeAncorado {
                 rodape
             }

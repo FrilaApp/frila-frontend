@@ -46,6 +46,7 @@ public struct TelaCadastro: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
+            .fundoSobORelogio()
             .rodapeAncoradoQuando(!tamanhoDoTexto.isAccessibilitySize) { acaoDeContinuar(proxy) }
         }
         .onChange(of: viewModel.nome) { _, _ in
