@@ -37,3 +37,35 @@ struct LinhaDeControleDaCasa: ViewModifier {
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
     }
 }
+
+/// Uma linha de data e hora (Início, Término) de um `FrilaGrupoDeLinhas`. No tamanho padrão é o seletor compacto, com o
+/// rótulo ao lado. Em texto de acessibilidade o seletor compacto (data e hora lado a lado) passa da largura da tela e
+/// alarga a rolagem inteira: o rótulo vai em cima, e a data e a hora ficam uma embaixo da outra.
+struct LinhaDeDataDaCasa: View {
+    let rotulo: String
+    @Binding var data: Date
+    let faixa: ClosedRange<Date>
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
+
+    var body: some View {
+        Group {
+            if tamanhoDoTexto.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                    Text(verbatim: rotulo).font(FrilaTipo.corpo)
+                    // O seletor compacto é um controle do sistema que não quebra linha: em AX5 a data sozinha passa da
+                    // largura da tela e arrasta o conteúdo inteiro para fora dela. Ele fica no maior tamanho que cabe.
+                    DatePicker(selection: $data, in: faixa, displayedComponents: .date) { Text(verbatim: rotulo) }
+                        .labelsHidden()
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    DatePicker(selection: $data, in: faixa, displayedComponents: .hourAndMinute) { Text(verbatim: rotulo) }
+                        .labelsHidden()
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                }
+            } else {
+                DatePicker(selection: $data, in: faixa) { Text(verbatim: rotulo).font(FrilaTipo.corpo) }
+            }
+        }
+        .modifier(LinhaDeControleDaCasa())
+    }
+}
+

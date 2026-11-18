@@ -69,6 +69,8 @@ public struct TelaBuscaDeProfissionais: View {
             .padding(.horizontal, FrilaEspaco.grupo)
             .padding(.top, FrilaEspaco.item)
             .padding(.bottom, FrilaEspaco.grupo)
+            // Preso à largura visível: nenhum controle mais largo que a tela alarga a rolagem inteira.
+            .containerRelativeFrame(.horizontal)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosBuscaDeProfissionais.titulo))
@@ -134,16 +136,10 @@ public struct TelaBuscaDeProfissionais: View {
                 .accessibilityIdentifier("busca-usar-horario")
                 .modifier(LinhaDeControleDaCasa())
                 if usarHorario {
-                    DatePicker(selection: $inicio, in: Date.now...) {
-                        Text(verbatim: TextosBuscaDeProfissionais.inicio).font(FrilaTipo.corpo)
-                    }
-                    .accessibilityIdentifier("busca-inicio")
-                    .modifier(LinhaDeControleDaCasa())
-                    DatePicker(selection: $fim, in: inicio...) {
-                        Text(verbatim: TextosBuscaDeProfissionais.termino).font(FrilaTipo.corpo)
-                    }
-                    .accessibilityIdentifier("busca-fim")
-                    .modifier(LinhaDeControleDaCasa())
+                    LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.inicio, data: $inicio, faixa: Date.now...Date.distantFuture)
+                        .accessibilityIdentifier("busca-inicio")
+                    LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.termino, data: $fim, faixa: inicio...Date.distantFuture)
+                        .accessibilityIdentifier("busca-fim")
                 }
             }
             BotaoSecundario(verbatim: TextosBuscaDeProfissionais.buscar) { Task { await buscar() } }
@@ -436,14 +432,10 @@ private struct FolhaDeChamadaDaBusca: View {
                         .modifier(LinhaDeControleDaCasa())
                     }
                     FrilaGrupoDeLinhas(linhasComIcone: false) {
-                        DatePicker(selection: $rascunho.inicio) {
-                            Text(verbatim: TextosBuscaDeProfissionais.inicio).font(FrilaTipo.corpo)
-                        }
-                        .modifier(LinhaDeControleDaCasa())
-                        DatePicker(selection: $rascunho.fim) {
-                            Text(verbatim: TextosBuscaDeProfissionais.termino).font(FrilaTipo.corpo)
-                        }
-                        .modifier(LinhaDeControleDaCasa())
+                        LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.inicio, data: $rascunho.inicio,
+                                          faixa: Date.distantPast...Date.distantFuture)
+                        LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.termino, data: $rascunho.fim,
+                                          faixa: Date.distantPast...Date.distantFuture)
                     }
                     campo(TextosChamadaDireta.responsavel) {
                         CampoFrila(verbatim: TextosChamadaDireta.responsavel, texto: $rascunho.responsavel,
@@ -467,6 +459,7 @@ private struct FolhaDeChamadaDaBusca: View {
                 .padding(.horizontal, FrilaEspaco.grupo)
                 .padding(.top, FrilaEspaco.item)
                 .padding(.bottom, FrilaEspaco.grupo)
+                .containerRelativeFrame(.horizontal)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo)

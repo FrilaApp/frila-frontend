@@ -220,13 +220,12 @@ final class CapturasR6UITests: XCTestCase {
         primeira.tap()
         capturar("r6-busca-selecao-\(sufixo(ax5))")
         let chamar = app.buttons["chamar-selecionados"]
-        XCTAssertTrue(chamar.waitForExistence(timeout: 5))
-        if chamar.isEnabled {
-            chamar.tap()
-            if app.textFields["busca-valor-total"].waitForExistence(timeout: 10) {
-                capturar("r6-busca-folha-chamar-\(sufixo(ax5))")
-            }
-        }
+        // Em AX5 o botão está no fim da lista rolável: rola até ele antes de tocar.
+        for _ in 0..<30 where !(chamar.exists && chamar.isHittable) { app.swipeUp() }
+        XCTAssertTrue(chamar.waitForExistence(timeout: 5) && chamar.isEnabled, "com uma pessoa escolhida, dá para chamar")
+        chamar.tap()
+        XCTAssertTrue(app.textFields["busca-valor-total"].waitForExistence(timeout: 10), "a folha de chamada abre")
+        capturar("r6-busca-folha-chamar-\(sufixo(ax5))")
     }
 
     private func buscaSemResultado(ax5: Bool) {

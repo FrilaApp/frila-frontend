@@ -77,6 +77,8 @@ public struct TelaChamadaDireta: View {
             .padding(.horizontal, FrilaEspaco.grupo)
             .padding(.top, FrilaEspaco.item)
             .padding(.bottom, FrilaEspaco.grupo)
+            // Preso à largura visível: nenhum controle mais largo que a tela alarga a rolagem inteira.
+            .containerRelativeFrame(.horizontal)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo)
@@ -149,16 +151,12 @@ public struct TelaChamadaDireta: View {
             .accessibilityElement(children: .combine)
             // V10: o seletor não oferece horário que já passou nem a menos de 2 h.
             FrilaGrupoDeLinhas(linhasComIcone: false) {
-                DatePicker(selection: $viewModel.inicio, in: viewModel.inicioMinimo...) {
-                    Text("Início", bundle: bundleApresentacao).font(FrilaTipo.corpo)
-                }
-                .accessibilityIdentifier("inicio-chamada")
-                .modifier(LinhaDeControleDaCasa())
-                DatePicker(selection: $viewModel.fim, in: viewModel.faixaDoTermino) {
-                    Text("Término", bundle: bundleApresentacao).font(FrilaTipo.corpo)
-                }
-                .accessibilityIdentifier("termino-chamada")
-                .modifier(LinhaDeControleDaCasa())
+                LinhaDeDataDaCasa(rotulo: String(localized: "Início", bundle: bundleApresentacao), data: $viewModel.inicio,
+                                  faixa: viewModel.inicioMinimo...Date.distantFuture)
+                    .accessibilityIdentifier("inicio-chamada")
+                LinhaDeDataDaCasa(rotulo: String(localized: "Término", bundle: bundleApresentacao), data: $viewModel.fim,
+                                  faixa: viewModel.faixaDoTermino)
+                    .accessibilityIdentifier("termino-chamada")
             }
             // V9: o rótulo vai acima, visível; o leitor de tela lê o rótulo no próprio campo.
             VStack(alignment: .leading, spacing: FrilaEspaco.item) {
