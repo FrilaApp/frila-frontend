@@ -218,7 +218,8 @@ enum CoreografiaDaAbertura {
     // 2,40–2,82  o pingo vira a janela, o rótulo some em 0,16 s e o app assenta.
     // O relógio conta do primeiro quadro desenhado. Na entrada e no bote, um rastro faz o desfoque
     // de movimento (`rastro(no:)`).
-    private static let linhaDoTempo = KeyframeTimeline(initialValue: QuadroDaAbertura()) {
+    // `KeyframeTimeline` não é `Sendable`, mas aqui é um valor montado uma vez e nunca mais alterado: só se lê.
+    private nonisolated(unsafe) static let linhaDoTempo = KeyframeTimeline(initialValue: QuadroDaAbertura()) {
         // O `r`: deslocamento
         KeyframeTrack(\.rX) {
             SpringKeyframe(-110, duration: 0.45, spring: molaDaEntrada)
