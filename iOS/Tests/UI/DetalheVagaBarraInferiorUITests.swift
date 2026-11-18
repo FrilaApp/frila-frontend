@@ -74,7 +74,7 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("01-detalhe-amanha-23h30-claro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 48, accuracy: 2, "O botão ocupa toda a largura útil da barra (margem de 24)")
         XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
@@ -83,7 +83,7 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("02-detalhe-amanha-23h30-escuro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 48, accuracy: 2, "O botão ocupa toda a largura útil da barra (margem de 24)")
         XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
@@ -92,7 +92,7 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("03-detalhe-hoje-18h-claro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 48, accuracy: 2, "O botão ocupa toda a largura útil da barra (margem de 24)")
         XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 
@@ -101,7 +101,7 @@ final class DetalheVagaBarraInferiorUITests: XCTestCase {
         salvarCaptura("04-detalhe-hoje-18h-escuro")
         let botao = app.buttons["candidatar"]
         XCTAssertTrue(botao.waitForExistence(timeout: 5))
-        XCTAssertEqual(botao.frame.width, app.frame.width - 32, accuracy: 2, "O botão ocupa toda a largura útil da barra")
+        XCTAssertEqual(botao.frame.width, app.frame.width - 48, accuracy: 2, "O botão ocupa toda a largura útil da barra (margem de 24)")
         XCTAssertEqual(botao.frame.midX, app.frame.midX, accuracy: 1, "O botão fica centralizado abaixo do valor")
     }
 

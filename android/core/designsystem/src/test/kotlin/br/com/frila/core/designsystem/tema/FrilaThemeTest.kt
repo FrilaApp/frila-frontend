@@ -10,43 +10,75 @@ class FrilaThemeTest {
 
     @Test
     fun `EsquemaClaro aplica exatamente os tokens claros`() {
-        assertEquals(FrilaCores.brandPrimaryLight, EsquemaClaro.primary)
-        assertEquals(FrilaCores.brandOnPrimaryLight, EsquemaClaro.onPrimary)
-        assertEquals(FrilaCores.surfaceLight, EsquemaClaro.background)
-        assertEquals(FrilaCores.textPrimaryLight, EsquemaClaro.onBackground)
-        assertEquals(FrilaCores.surfaceElevatedLight, EsquemaClaro.surface)
-        assertEquals(FrilaCores.textPrimaryLight, EsquemaClaro.onSurface)
-        assertEquals(FrilaCores.surfaceElevatedLight, EsquemaClaro.surfaceVariant)
-        assertEquals(FrilaCores.textSecondaryLight, EsquemaClaro.onSurfaceVariant)
-        assertEquals(FrilaCores.dangerLight, EsquemaClaro.error)
-        assertEquals(FrilaCores.controlBorderLight, EsquemaClaro.outline)
-        assertEquals(FrilaCores.hairlineLight, EsquemaClaro.outlineVariant)
-        assertEquals(FrilaCores.successLight, EsquemaClaro.tertiary)
+        assertEquals(FrilaCores.tintaClaro, EsquemaClaro.primary)
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.onPrimary)
+        assertEquals(FrilaCores.fundoClaro, EsquemaClaro.background)
+        assertEquals(FrilaCores.tintaClaro, EsquemaClaro.onBackground)
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.surface)
+        assertEquals(FrilaCores.tintaClaro, EsquemaClaro.onSurface)
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.surfaceVariant)
+        assertEquals(FrilaCores.tintaSuaveClaro, EsquemaClaro.onSurfaceVariant)
+        assertEquals(FrilaCores.bordaControleClaro, EsquemaClaro.outline)
+        assertEquals(FrilaCores.bordaClaro, EsquemaClaro.outlineVariant)
     }
 
     @Test
     fun `EsquemaEscuro aplica exatamente os tokens escuros`() {
-        assertEquals(FrilaCores.brandPrimaryDark, EsquemaEscuro.primary)
-        assertEquals(FrilaCores.brandOnPrimaryDark, EsquemaEscuro.onPrimary)
-        assertEquals(FrilaCores.surfaceDark, EsquemaEscuro.background)
-        assertEquals(FrilaCores.textPrimaryDark, EsquemaEscuro.onBackground)
-        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuro.surface)
-        assertEquals(FrilaCores.textPrimaryDark, EsquemaEscuro.onSurface)
-        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuro.surfaceVariant)
-        assertEquals(FrilaCores.textSecondaryDark, EsquemaEscuro.onSurfaceVariant)
-        assertEquals(FrilaCores.dangerDark, EsquemaEscuro.error)
-        assertEquals(FrilaCores.controlBorderDark, EsquemaEscuro.outline)
-        assertEquals(FrilaCores.hairlineDark, EsquemaEscuro.outlineVariant)
-        assertEquals(FrilaCores.successDark, EsquemaEscuro.tertiary)
+        assertEquals(FrilaCores.tintaEscuro, EsquemaEscuro.primary)
+        assertEquals(FrilaCores.fundoEscuro, EsquemaEscuro.onPrimary)
+        assertEquals(FrilaCores.fundoEscuro, EsquemaEscuro.background)
+        assertEquals(FrilaCores.tintaEscuro, EsquemaEscuro.onBackground)
+        assertEquals(FrilaCores.superficieEscuro, EsquemaEscuro.surface)
+        assertEquals(FrilaCores.tintaEscuro, EsquemaEscuro.onSurface)
+        assertEquals(FrilaCores.superficieEscuro, EsquemaEscuro.surfaceVariant)
+        assertEquals(FrilaCores.tintaSuaveEscuro, EsquemaEscuro.onSurfaceVariant)
+        assertEquals(FrilaCores.bordaControleEscuro, EsquemaEscuro.outline)
+        assertEquals(FrilaCores.bordaEscuro, EsquemaEscuro.outlineVariant)
+    }
+
+    @Test
+    fun `o laranja nunca e primary, secondary nem tertiary - selecao e foco do Material ficam em tinta`() {
+        listOf(EsquemaClaro, EsquemaEscuro, EsquemaEscuroOled).forEach { esquema ->
+            assertNotEquals(FrilaCores.acao, esquema.primary)
+            assertNotEquals(FrilaCores.acao, esquema.secondary)
+            assertNotEquals(FrilaCores.acao, esquema.tertiary)
+            assertNotEquals(FrilaCores.acao, esquema.surface)
+        }
+    }
+
+    @Test
+    fun `problema nao tem cor - error e a tinta nos dois modos`() {
+        assertEquals(EsquemaClaro.onBackground, EsquemaClaro.error)
+        assertEquals(EsquemaEscuro.onBackground, EsquemaEscuro.error)
+    }
+
+    @Test
+    fun `chip marcado do Material sai em tinta com texto claro`() {
+        assertEquals(FrilaCores.tintaClaro, EsquemaClaro.secondaryContainer)
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.onSecondaryContainer)
+        assertEquals(FrilaCores.tintaEscuro, EsquemaEscuro.secondaryContainer)
+        assertEquals(FrilaCores.fundoEscuro, EsquemaEscuro.onSecondaryContainer)
+    }
+
+    @Test
+    fun `superficies de conteiner do Material nao ficam com o lilas padrao`() {
+        val padrao = lightColorScheme()
+
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.surfaceContainer)
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.surfaceContainerHigh)
+        assertEquals(FrilaCores.superficieClaro, EsquemaClaro.surfaceContainerLow)
+        assertEquals(FrilaCores.superficiePressionadaClaro, EsquemaClaro.surfaceContainerHighest)
+        assertNotEquals(padrao.surfaceContainerHigh, EsquemaClaro.surfaceContainerHigh)
+        assertEquals(Color.Transparent, EsquemaClaro.surfaceTint)
     }
 
     @Test
     fun `EsquemaEscuroOled troca so o background para preto puro (RNF10)`() {
-        assertEquals(FrilaCores.surfaceOled, EsquemaEscuroOled.background)
-        // surface/surfaceVariant continuam em surfaceElevatedDark: elevação visual dos cartões
-        // sobre o preto puro, não é o mesmo tom do fundo.
-        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuroOled.surface)
-        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuroOled.surfaceVariant)
+        assertEquals(FrilaCores.fundoOled, EsquemaEscuroOled.background)
+        // surface/surfaceVariant continuam em superficieEscuro: é o que separa os cartões do preto
+        // puro, não é o mesmo tom do fundo.
+        assertEquals(FrilaCores.superficieEscuro, EsquemaEscuroOled.surface)
+        assertEquals(FrilaCores.superficieEscuro, EsquemaEscuroOled.surfaceVariant)
         assertNotEquals(EsquemaEscuroOled.background, EsquemaEscuroOled.surface)
     }
 
@@ -64,38 +96,7 @@ class FrilaThemeTest {
     }
 
     @Test
-    fun `BrandAccent no modo OLED continua brandAccentDark`() {
-        assertEquals(FrilaCores.brandAccentDark, EsquemaEscuroOled.brandAccent)
-    }
-
-    @Test
-    fun `extensoes resolvem tokens claros`() {
-        assertEquals(FrilaCores.brandAccentLight, EsquemaClaro.brandAccent)
-        assertEquals(FrilaCores.warningLight, EsquemaClaro.warning)
-        assertEquals(FrilaCores.hairlineLight, EsquemaClaro.hairline)
-        assertEquals(FrilaCores.controlBorderLight, EsquemaClaro.controlBorder)
-        assertEquals(FrilaCores.surfaceElevatedLight, EsquemaClaro.surfaceElevated)
-    }
-
-    @Test
-    fun `extensoes resolvem tokens escuros`() {
-        assertEquals(FrilaCores.brandAccentDark, EsquemaEscuro.brandAccent)
-        assertEquals(FrilaCores.warningDark, EsquemaEscuro.warning)
-        assertEquals(FrilaCores.hairlineDark, EsquemaEscuro.hairline)
-        assertEquals(FrilaCores.controlBorderDark, EsquemaEscuro.controlBorder)
-        assertEquals(FrilaCores.surfaceElevatedDark, EsquemaEscuro.surfaceElevated)
-    }
-
-    @Test
-    fun `BrandAccent nunca e primary nem surface em nenhum tema`() {
-        assertNotEquals(EsquemaClaro.primary, EsquemaClaro.brandAccent)
-        assertNotEquals(EsquemaClaro.surface, EsquemaClaro.brandAccent)
-        assertNotEquals(EsquemaEscuro.primary, EsquemaEscuro.brandAccent)
-        assertNotEquals(EsquemaEscuro.surface, EsquemaEscuro.brandAccent)
-    }
-
-    @Test
-    fun `cores dinamicas preservam CTA e erro da marca nos dois temas`() {
+    fun `cores dinamicas preservam a tinta e a regra do erro nos dois temas`() {
         val secondaryDinamico = Color(0xFF123456)
         val esquemaDinamico = lightColorScheme(
             primary = Color.Magenta,
@@ -107,13 +108,13 @@ class FrilaThemeTest {
         val claro = esquemaDinamico.comCoresCriticasFrila(temaEscuro = false)
         val escuro = esquemaDinamico.comCoresCriticasFrila(temaEscuro = true)
 
-        assertEquals(FrilaCores.brandPrimaryLight, claro.primary)
-        assertEquals(FrilaCores.brandOnPrimaryLight, claro.onPrimary)
-        assertEquals(FrilaCores.dangerLight, claro.error)
+        assertEquals(FrilaCores.tintaClaro, claro.primary)
+        assertEquals(FrilaCores.superficieClaro, claro.onPrimary)
+        assertEquals(FrilaCores.tintaClaro, claro.error)
         assertEquals(secondaryDinamico, claro.secondary)
-        assertEquals(FrilaCores.brandPrimaryDark, escuro.primary)
-        assertEquals(FrilaCores.brandOnPrimaryDark, escuro.onPrimary)
-        assertEquals(FrilaCores.dangerDark, escuro.error)
+        assertEquals(FrilaCores.tintaEscuro, escuro.primary)
+        assertEquals(FrilaCores.fundoEscuro, escuro.onPrimary)
+        assertEquals(FrilaCores.tintaEscuro, escuro.error)
         assertEquals(secondaryDinamico, escuro.secondary)
     }
 }

@@ -2,45 +2,31 @@ package br.com.frila.feature.vagas.painel
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.feature.vagas.publicacao.FUSO_DA_VAGA
-import br.com.frila.feature.vagas.publicacao.dataParaSeletorUtcMs
-import br.com.frila.feature.vagas.publicacao.formatarData
-import br.com.frila.feature.vagas.publicacao.formatarHora
-import br.com.frila.feature.vagas.publicacao.trocarData
-import br.com.frila.feature.vagas.publicacao.trocarHora
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
+import br.com.frila.feature.vagas.publicacao.BarraDeTopoDoFormulario
+import br.com.frila.feature.vagas.publicacao.SeletorDeInstante
 import java.time.Instant
-
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-// Republicar a vaga com outro horário e republicar em urgência as posições vazias, em baixíssima fidelidade e só com
-// componentes nativos, para a regra poder ser testada no emulador.
 
 /** Liga o [RepublicarVagaViewModel] ao [ConteudoRepublicarVaga]. [aoFechar] recebe o id da vaga nova, ou `null` se não republicou. */
 @Composable
@@ -56,7 +42,11 @@ fun TelaRepublicarVaga(viewModel: RepublicarVagaViewModel, aoFechar: (novaVagaId
     )
 }
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+/**
+ * Republicar a vaga com outro horário: formulário curto. O título, a frase de apoio e os dois instantes (data e
+ * hora em campos que abrem o seletor nativo) ficam no conteúdo; a mensagem de erro e o primário "Confirmar
+ * republicação" ficam ancorados embaixo. Desistir é a ação discreta no fim do conteúdo.
+ */
 @Composable
 fun ConteudoRepublicarVaga(
     estado: EstadoRepublicarVaga,
@@ -66,24 +56,72 @@ fun ConteudoRepublicarVaga(
     aoFechar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ColunaDaTela(TextosRepublicarVaga.TITULO, modifier) {
-        if (estado.vagaPublicadaId != null) {
-            Text(TextosRepublicarVaga.SUCESSO, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-            BotaoPrimario(TextosRepublicarVaga.OK, aoFechar, Modifier.fillMaxWidth())
-            return@ColunaDaTela
+    val cores = FrilaTema.cores
+    val republicada = estado.vagaPublicadaId != null
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = cores.fundo,
+        topBar = {
+            BarraDeTopoDoFormulario(
+                aoVoltar = aoFechar,
+                rotuloDoVoltar = TextosCancelarVaga.VOLTAR,
+                habilitado = !estado.enviando,
+            )
+        },
+        bottomBar = {
+            RodapeAncorado {
+                if (republicada) {
+                    MensagemJuntoAoBotao(TextosRepublicarVaga.SUCESSO)
+                    BotaoSecundario(TextosRepublicarVaga.OK, aoFechar, Modifier.fillMaxWidth())
+                } else {
+                    estado.mensagemErro?.let { MensagemJuntoAoBotao(it) }
+                    if (estado.enviando) MensagemJuntoAoBotao(TextosRepublicarVaga.ENVIANDO)
+                    BotaoPrimario(
+                        texto = if (estado.camposBloqueados) TextosRepublicarVaga.TENTAR_NOVAMENTE else TextosRepublicarVaga.CONFIRMAR,
+                        aoClicar = aoConfirmar,
+                        modifier = Modifier.fillMaxWidth(),
+                        habilitado = estado.podeConfirmar,
+                    )
+                }
+            }
+        },
+    ) { preenchimento ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(preenchimento)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+        ) {
+            TituloDaTela(TextosRepublicarVaga.TITULO)
+            if (!republicada) {
+                Text(text = TextosRepublicarVaga.SUBTITULO, style = FrilaTipo.corpo, color = cores.tinta)
+                SeletorDeInstante(
+                    titulo = TextosRepublicarVaga.INICIO,
+                    rotuloData = TextosRepublicarVaga.DATA_DE.format(TextosRepublicarVaga.INICIO.lowercase()),
+                    rotuloHora = TextosRepublicarVaga.HORA_DE.format(TextosRepublicarVaga.INICIO.lowercase()),
+                    instante = estado.inicio,
+                    erro = estado.erroInicio,
+                    habilitado = estado.podeMudarHorario,
+                    textoDeConfirmar = TextosRepublicarVaga.OK,
+                    textoDeCancelar = TextosRepublicarVaga.CANCELAR,
+                    aoMudar = aoMudarInicio,
+                )
+                SeletorDeInstante(
+                    titulo = TextosRepublicarVaga.TERMINO,
+                    rotuloData = TextosRepublicarVaga.DATA_DE.format(TextosRepublicarVaga.TERMINO.lowercase()),
+                    rotuloHora = TextosRepublicarVaga.HORA_DE.format(TextosRepublicarVaga.TERMINO.lowercase()),
+                    instante = estado.fim,
+                    erro = estado.erroFim,
+                    habilitado = estado.podeMudarHorario,
+                    textoDeConfirmar = TextosRepublicarVaga.OK,
+                    textoDeCancelar = TextosRepublicarVaga.CANCELAR,
+                    aoMudar = aoMudarFim,
+                )
+                AcaoDiscreta(texto = TextosRepublicarVaga.CANCELAR, aoClicar = aoFechar, habilitado = !estado.enviando)
+            }
         }
-        Text(TextosRepublicarVaga.SUBTITULO)
-        SeletorDeInstante(TextosRepublicarVaga.INICIO, estado.inicio, estado.erroInicio, estado.podeMudarHorario, aoMudarInicio)
-        SeletorDeInstante(TextosRepublicarVaga.TERMINO, estado.fim, estado.erroFim, estado.podeMudarHorario, aoMudarFim)
-        estado.mensagemErro?.let { TextoDeErro(it) }
-        if (estado.enviando) TextoDeAndamento(TextosRepublicarVaga.ENVIANDO)
-        BotaoPrimario(
-            texto = if (estado.camposBloqueados) TextosRepublicarVaga.TENTAR_NOVAMENTE else TextosRepublicarVaga.CONFIRMAR,
-            aoClicar = aoConfirmar,
-            modifier = Modifier.fillMaxWidth(),
-            habilitado = estado.podeConfirmar,
-        )
-        BotaoSecundario(TextosRepublicarVaga.CANCELAR, aoFechar, Modifier.fillMaxWidth(), habilitado = !estado.enviando)
     }
 }
 
@@ -94,78 +132,37 @@ fun TelaRepublicarPosicoesRestantes(viewModel: RepublicarPosicoesRestantesViewMo
     DialogoRepublicarPosicoesRestantes(estado = estado, aoConfirmar = { viewModel.executar() }, aoFechar = aoFechar)
 }
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-/** A confirmação do atalho: diz que a urgência confirma o primeiro profissional na hora, e mostra a recusa do servidor. */
-@Composable
-fun DialogoRepublicarPosicoesRestantes(estado: EstadoRepublicarPosicoesRestantes, aoConfirmar: () -> Unit, aoFechar: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = aoFechar,
-        title = { Text(TextosRepublicarPosicoesRestantes.CONFIRMACAO_TITULO, modifier = Modifier.semantics { heading() }) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-                Text(TextosRepublicarPosicoesRestantes.botao(estado.posicoesRestantes))
-                Text(TextosRepublicarPosicoesRestantes.CONFIRMACAO_MENSAGEM)
-                if (estado.carregando) TextoDeAndamento(TextosRepublicarPosicoesRestantes.REPUBLICANDO)
-                estado.erro?.let { TextoDeErro(it) }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = aoConfirmar, enabled = !estado.carregando && estado.vagaPublicadaId == null) {
-                Text(TextosRepublicarPosicoesRestantes.CONFIRMAR)
-            }
-        },
-        dismissButton = { TextButton(onClick = aoFechar) { Text(TextosRepublicarPosicoesRestantes.CANCELAR) } },
-    )
-}
-
-/** Data e hora de um instante, cada uma num botão que abre o seletor nativo do Material 3 (como em Publicar vaga). */
+/**
+ * A confirmação do atalho, numa folha: diz que a urgência confirma o primeiro profissional na hora e mostra a
+ * recusa do servidor logo acima do botão. Confirmar compromete (o primeiro a aceitar já é confirmado), então é
+ * o único primário da folha; desistir é a ação discreta.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SeletorDeInstante(titulo: String, instante: Instant, erro: String?, habilitado: Boolean, aoMudar: (Instant) -> Unit) {
-    var escolhendoData by rememberSaveable { mutableStateOf(false) }
-    var escolhendoHora by rememberSaveable { mutableStateOf(false) }
-    val data = formatarData(instante)
-    val hora = formatarHora(instante)
-    val rotuloData = TextosRepublicarVaga.DATA_DE.format(titulo.lowercase())
-    val rotuloHora = TextosRepublicarVaga.HORA_DE.format(titulo.lowercase())
-
-    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.minimo)) {
-        Text(titulo, style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.pequeno)) {
-            BotaoSecundario(data, { escolhendoData = true }, Modifier.weight(1f).semantics { contentDescription = "$rotuloData: $data" }, habilitado)
-            BotaoSecundario(hora, { escolhendoHora = true }, Modifier.weight(1f).semantics { contentDescription = "$rotuloHora: $hora" }, habilitado)
+fun DialogoRepublicarPosicoesRestantes(estado: EstadoRepublicarPosicoesRestantes, aoConfirmar: () -> Unit, aoFechar: () -> Unit) {
+    val cores = FrilaTema.cores
+    FrilaBottomSheet(
+        onDismissRequest = aoFechar,
+        titulo = TextosRepublicarPosicoesRestantes.CONFIRMACAO_TITULO,
+        aoFechar = null,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        ) {
+            Text(text = TextosRepublicarPosicoesRestantes.botao(estado.posicoesRestantes), style = FrilaTipo.nome, color = cores.tinta)
+            Text(text = TextosRepublicarPosicoesRestantes.CONFIRMACAO_MENSAGEM, style = FrilaTipo.corpo, color = cores.tinta)
+            estado.erro?.let { MensagemJuntoAoBotao(it) }
+            if (estado.carregando) MensagemJuntoAoBotao(TextosRepublicarPosicoesRestantes.REPUBLICANDO)
+            BotaoPrimario(
+                texto = TextosRepublicarPosicoesRestantes.CONFIRMAR,
+                aoClicar = aoConfirmar,
+                habilitado = !estado.carregando && estado.vagaPublicadaId == null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            AcaoDiscreta(texto = TextosRepublicarPosicoesRestantes.CANCELAR, aoClicar = aoFechar)
         }
-        erro?.let { TextoDeErro(it) }
-    }
-
-    if (escolhendoData) {
-        val seletor = rememberDatePickerState(initialSelectedDateMillis = dataParaSeletorUtcMs(instante))
-        DatePickerDialog(
-            onDismissRequest = { escolhendoData = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    seletor.selectedDateMillis?.let { aoMudar(trocarData(instante, it)) }
-                    escolhendoData = false
-                }) { Text(TextosRepublicarVaga.OK) }
-            },
-            dismissButton = { TextButton(onClick = { escolhendoData = false }) { Text(TextosRepublicarVaga.CANCELAR) } },
-        ) { DatePicker(state = seletor, title = { Text(rotuloData, modifier = Modifier.padding(FrilaEspacamento.medio)) }) }
-    }
-
-    if (escolhendoHora) {
-        val local = instante.atZone(FUSO_DA_VAGA)
-        val seletor = rememberTimePickerState(initialHour = local.hour, initialMinute = local.minute, is24Hour = true)
-        AlertDialog(
-            onDismissRequest = { escolhendoHora = false },
-            title = { Text(rotuloHora, modifier = Modifier.semantics { heading() }) },
-            text = { TimePicker(state = seletor) },
-            confirmButton = {
-                TextButton(onClick = {
-                    aoMudar(trocarHora(instante, seletor.hour, seletor.minute))
-                    escolhendoHora = false
-                }) { Text(TextosRepublicarVaga.OK) }
-            },
-            dismissButton = { TextButton(onClick = { escolhendoHora = false }) { Text(TextosRepublicarVaga.CANCELAR) } },
-        )
     }
 }

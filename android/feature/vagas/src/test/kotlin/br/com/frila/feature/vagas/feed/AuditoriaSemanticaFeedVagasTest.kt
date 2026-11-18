@@ -95,7 +95,6 @@ class AuditoriaSemanticaFeedVagasTest {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirPerfil = {},
                     )
                 }
             }
@@ -122,7 +121,6 @@ class AuditoriaSemanticaFeedVagasTest {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirPerfil = {},
                     )
                 }
             }
@@ -153,14 +151,13 @@ class AuditoriaSemanticaFeedVagasTest {
                     TelaFeedVagas(
                         viewModel = viewModel,
                         aoAbrirDetalhe = {},
-                        aoAbrirPerfil = {},
                     )
                 }
             }
             compose.waitForIdle()
 
             val noRaiz = compose.onRoot().fetchSemanticsNode()
-            // Procura nó com heading para a função da vaga no cartão
+            // Procura nó com heading no cartão: o nome da casa é o cabeçalho do cartão (identidade, no desenho)
             val nosHeading = mutableListOf<androidx.compose.ui.semantics.SemanticsNode>()
             fun buscarHeadings(no: androidx.compose.ui.semantics.SemanticsNode) {
                 if (no.config.contains(SemanticsProperties.Heading)) {
@@ -174,7 +171,7 @@ class AuditoriaSemanticaFeedVagasTest {
 
             assertTrue("Deve existir pelo menos um cabeçalho semântico estrutural", nosHeading.isNotEmpty())
             val textoHeading = nosHeading.first().config.getOrNull(SemanticsProperties.Text)?.firstOrNull()?.text
-            assertEquals("Garçom", textoHeading)
+            assertEquals("Bar do Zé", textoHeading)
         }
     }
 }

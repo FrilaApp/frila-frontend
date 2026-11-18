@@ -41,7 +41,7 @@ final class PlacaDaVagaUITests: XCTestCase {
     // MARK: - 2. Detalhe: header do estabelecimento
 
     /// Desde o LOG-019 (04/11/2026) o detalhe não tem mais a placa "casa / função": o nome da casa é o título do
-    /// header e "Vaga de <função>, <bairro>" é a informação secundária. O bloco todo é um só elemento de
+    /// header e "Vaga de <função>, <bairro>" é o que o leitor de tela diz junto do nome. O bloco todo é um só elemento de
     /// acessibilidade ("abrir-perfil-estabelecimento"), com o nome original, sem caixa alta, e a casa antes da função.
     func testDetalheTemHeaderDoEstabelecimentoComCasaAntesDaFuncao() {
         let app = XCUIApplication()
@@ -63,9 +63,10 @@ final class PlacaDaVagaUITests: XCTestCase {
             XCTAssertLessThan(casa.lowerBound, funcao.lowerBound, "A casa vem antes da função")
         }
 
-        // A placa antiga some: nem o nome em caixa alta nem a função solta como título.
+        // A placa antiga some: o nome em caixa alta é só visual (o rótulo é o original), e a função é uma linha de dado
+        // do cartão (com ícone), não o título (R2, T3 do desenho do Fabrício).
         XCTAssertFalse(detalhe.staticTexts["BISTRÔ IPÊ"].exists)
-        XCTAssertFalse(detalhe.staticTexts["Garçom"].firstMatch.exists, "A função não aparece mais como título solto")
+        XCTAssertTrue(detalhe.staticTexts["Garçom"].firstMatch.exists, "A função aparece como linha de dado do cartão")
     }
 
     // MARK: - 3. Vaga original na candidatura em seleção

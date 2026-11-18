@@ -4,7 +4,11 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,13 +16,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
+import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
+import br.com.frila.core.designsystem.componentes.RodapeAncorado
+import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaTema
+import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.perfil.AutenticadorBiometrico
 import br.com.frila.feature.perfil.DisponibilidadeBiometrica
@@ -72,30 +81,60 @@ fun TelaDesbloqueioBiometrico(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(FrilaEspacamento.grande),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
-    ) {
-        Text(text = "Confirme sua identidade para continuar")
+    val cores = FrilaTema.cores
+    val disponivel = disponibilidade == DisponibilidadeBiometrica.DISPONIVEL
 
-        if (disponibilidade != DisponibilidadeBiometrica.DISPONIVEL) {
-            Text(text = "Desbloqueio rápido indisponível neste aparelho agora.")
-        } else if (mensagemErro != null) {
-            Text(text = mensagemErro!!)
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = cores.fundo,
+        bottomBar = {
+            // Sem hardware não há o que desbloquear: sem rodapé, só a saída manual na tela.
+            if (disponivel) {
+                RodapeAncorado {
+                    mensagemErro?.let { MensagemJuntoAoBotao(texto = it) }
+                    BotaoPrimario(
+                        texto = "Desbloquear",
+                        aoClicar = ::autenticar,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
+    ) { preenchimento ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(preenchimento)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = FrilaEspacamento.grupo,
+                    end = FrilaEspacamento.grupo,
+                    top = FrilaEspacamento.respiro,
+                    bottom = FrilaEspacamento.grupo,
+                ),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                TituloDaTela("Confirme sua identidade para continuar")
+                if (!disponivel) {
+                    Text(
+                        text = "Desbloqueio rápido indisponível neste aparelho agora.",
+                        style = FrilaTipo.apoio,
+                        color = cores.tintaSuave,
+                    )
+                }
+            }
+
+            // Sair da conta é ação discreta; sem o desbloqueio, é a única saída e vira o botão secundário.
+            if (disponivel) {
+                AcaoDiscreta(texto = "Entrar com outra conta", aoClicar = ::entrarComOutraConta)
+            } else {
+                BotaoSecundario(
+                    texto = "Entrar com outra conta",
+                    aoClicar = ::entrarComOutraConta,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
-
-        if (disponibilidade == DisponibilidadeBiometrica.DISPONIVEL) {
-            BotaoPrimario(
-                texto = "Desbloquear",
-                aoClicar = ::autenticar,
-                modifier = Modifier.padding(top = FrilaEspacamento.pequeno),
-            )
-        }
-
-        BotaoSecundario(
-            texto = "Entrar com outra conta",
-            aoClicar = ::entrarComOutraConta,
-            modifier = Modifier.padding(top = FrilaEspacamento.minimo),
-        )
     }
 }

@@ -525,7 +525,7 @@ private struct EntradaDoApp: View {
                 await canal.limparEntregues()
                 roteadorDePush.semSessao()
                 contaID = nil
-                roteador.voltarParaLista()
+                roteador.reiniciarParaOutraConta()
                 destinoAtual = nil
                 await avaliarSessao()
             }
@@ -674,7 +674,7 @@ private struct EntradaDoApp: View {
         Task {
             do {
                 contaID = try await IdentidadeDaAvaliacao.obter(api: api, cache: armazenamento, permitirCache: false)
-                roteador.voltarParaLista()
+                roteador.reiniciarParaOutraConta()
                 aplicarDestinoIdentificado(destino)
             } catch let erroApi as ErroDaApi {
                 erroAoAvaliar = MensagemDoErroAPI.texto(erroApi)
@@ -895,7 +895,7 @@ private struct EntradaDoApp: View {
                                     CacheEquipeDeConfianca.compartilhado.limpar()
                                     CacheDeLeituras.compartilhado.limpar()
                                 }).sair()
-        roteador.voltarParaLista()
+        roteador.reiniciarParaOutraConta()
         // A pilha do contratante também volta ao início: sem isso a próxima entrada reabria a vaga
         // que estava aberta na hora de sair (E2E de 21/10).
         roteadorDoContratante.voltarParaAsVagas()

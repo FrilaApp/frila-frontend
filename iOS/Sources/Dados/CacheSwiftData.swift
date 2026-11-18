@@ -164,6 +164,8 @@ public enum PersistenciaFrila {
 @ModelActor
 public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
     private var reenviandoTelemetria = false
+    /// Muda a cada `limpar()`. Fica só na memória: uma resposta em voo não atravessa o fim do processo.
+    private var epocaAtual: UInt64 = 0
 
     public func salvar(sessao: SessaoUsuario) throws {
         let dados = try JSONEncoder().encode(sessao)
@@ -207,6 +209,21 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
             }
         }
         try modelContext.save()
+    }
+
+    public func epoca() -> UInt64 {
+        epocaAtual
+    }
+
+    /// Dentro do ator, a conferência da época e a gravação não se intercalam com o `limpar()`.
+    @discardableResult
+    public func salvar(turnos: [Turno], em instante: Date, seAindaNaEpoca epoca: UInt64) throws -> Bool {
+        guard epoca == epocaAtual else {
+            Self.log.info("[cache] turnos de uma leitura anterior à limpeza descartados")
+            return false
+        }
+        try salvar(turnos: turnos, em: instante)
+        return true
     }
 
     public func turnosValidos(em instante: Date) throws -> [Turno] {
@@ -440,6 +457,8 @@ public actor ArmazenamentoSwiftData: CacheLocal, FilaDeAcoes, FilaDeTelemetria {
     private static let log = Logger(subsystem: "com.frila.org.app", category: "cache")
 
     public func limpar() throws {
+        // Antes de apagar: mesmo que a remoção falhe, o que estava em voo deixa de poder gravar.
+        epocaAtual &+= 1
         try modelContext.delete(model: TurnoPersistido.self)
         try modelContext.delete(model: FuncaoPersistida.self)
         try modelContext.delete(model: SessaoPersistida.self)

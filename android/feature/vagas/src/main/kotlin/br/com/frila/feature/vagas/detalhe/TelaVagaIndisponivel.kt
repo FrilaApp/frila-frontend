@@ -1,39 +1,15 @@
 package br.com.frila.feature.vagas.detalhe
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import br.com.frila.core.designsystem.componentes.BotaoSecundario
-import br.com.frila.core.designsystem.tema.FrilaEspacamento
-import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.designsystem.componentes.EstadoVazio
+import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
+import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.dominio.modelo.EstadoCandidatura
 
 /**
@@ -55,7 +31,6 @@ enum class ModoPreenchimentoVaga {
 
 /** Textos normativos em português brasileiro (guia de voz Frila / paridade iOS). */
 object TextosVagaIndisponivel {
-    const val TITULO_BARRA = "Vaga"
     const val ROTULO_VOLTAR = "Voltar"
     const val BOTAO_VOLTAR_PADRAO = "Ver outras vagas perto de você"
 
@@ -126,9 +101,9 @@ object TextosVagaIndisponivel {
 /**
  * Tela de Vaga Indisponível (Tela 42 do mapa de paridade v1.2 / `DestinosDoAviso.swift:116`).
  * Exibida quando o usuário toca em uma notificação de vaga que não está mais disponível para
- * candidatura ou trabalho (preenchida, encerrada, cancelada ou expirada).
+ * candidatura ou trabalho (preenchida, encerrada, cancelada ou expirada). Barra de topo só com o voltar:
+ * o fato (o título) e a dica (a mensagem) são o conteúdo, e a saída é o botão secundário.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaVagaIndisponivel(
     motivo: MotivoIndisponibilidadeVaga,
@@ -150,96 +125,17 @@ fun TelaVagaIndisponivel(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = TextosVagaIndisponivel.TITULO_BARRA,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = aoVoltarParaFeed,
-                        modifier = Modifier.sizeIn(
-                            minWidth = FrilaMetricas.alvoMinimo,
-                            minHeight = FrilaMetricas.alvoMinimo,
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = TextosVagaIndisponivel.ROTULO_VOLTAR,
-                        )
-                    }
-                },
-            )
-        },
+        containerColor = FrilaTema.cores.fundo,
+        topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltarParaFeed) },
     ) { preenchimento ->
-        Column(
+        EstadoVazio(
+            titulo = textos.first,
+            mensagem = textos.second,
+            textoAcao = rotuloBotaoVoltar ?: TextosVagaIndisponivel.BOTAO_VOLTAR_PADRAO,
+            aoClicarAcao = aoVoltarParaFeed,
             modifier = Modifier
-                .fillMaxSize()
                 .padding(preenchimento)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = FrilaEspacamento.medio, vertical = FrilaEspacamento.grande),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FrilaEspacamento.enorme),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio),
-            ) {
-                // Círculo com ícone de estado de 72dp
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(FrilaEspacamento.pequeno))
-
-                // Título com heading de acessibilidade
-                Text(
-                    text = textos.first,
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { heading() },
-                )
-
-                // Mensagem explicativa
-                Text(
-                    text = textos.second,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            // Ação de retorno para o feed ou tela de origem
-            BotaoSecundario(
-                texto = rotuloBotaoVoltar ?: TextosVagaIndisponivel.BOTAO_VOLTAR_PADRAO,
-                aoClicar = aoVoltarParaFeed,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = FrilaEspacamento.grande),
-            )
-        }
+                .verticalScroll(rememberScrollState()),
+        )
     }
 }

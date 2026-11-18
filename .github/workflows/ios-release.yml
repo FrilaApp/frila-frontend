@@ -16,7 +16,8 @@ jobs:
   release:
     name: "Builds de Release (Dev, Beta e Prod)"
     runs-on: macos-26
-    timeout-minutes: 60
+    # 90 min (era 60): os 3 builds de Release levam ~42 min, mas passaram de 60 com a fila do macOS cheia (18/11).
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash

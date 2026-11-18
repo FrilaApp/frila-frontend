@@ -50,23 +50,23 @@ class FrilaThemeComposeTest {
 
     @Test
     fun `tema claro usa EsquemaClaro`() {
-        assertEquals(FrilaCores.surfaceLight, backgroundDoTema(temaEscuro = false))
+        assertEquals(FrilaCores.fundoClaro, backgroundDoTema(temaEscuro = false))
     }
 
     @Test
     fun `tema escuro sem OLED usa EsquemaEscuro`() {
-        assertEquals(FrilaCores.surfaceDark, backgroundDoTema(temaEscuro = true, modoOled = false))
+        assertEquals(FrilaCores.fundoEscuro, backgroundDoTema(temaEscuro = true, modoOled = false))
     }
 
     @Test
     fun `tema escuro com OLED usa EsquemaEscuroOled (preto puro)`() {
-        assertEquals(FrilaCores.surfaceOled, backgroundDoTema(temaEscuro = true, modoOled = true))
+        assertEquals(FrilaCores.fundoOled, backgroundDoTema(temaEscuro = true, modoOled = true))
     }
 
     @Test
     fun `modoOled no tema claro nao tem efeito`() {
         // modoOled só se aplica no escuro — no claro, o fundo continua surfaceLight.
-        assertEquals(FrilaCores.surfaceLight, backgroundDoTema(temaEscuro = false, modoOled = true))
+        assertEquals(FrilaCores.fundoClaro, backgroundDoTema(temaEscuro = false, modoOled = true))
     }
 
     @Test
@@ -83,9 +83,9 @@ class FrilaThemeComposeTest {
         }
         compose.waitForIdle()
         // As cores críticas da marca devem sempre ser preservadas mesmo com dynamicColor ativo (RNF10)
-        assertEquals(FrilaCores.brandPrimaryLight, scheme!!.primary)
-        assertEquals(FrilaCores.brandOnPrimaryLight, scheme!!.onPrimary)
-        assertEquals(FrilaCores.dangerLight, scheme!!.error)
+        assertEquals(FrilaCores.tintaClaro, scheme!!.primary)
+        assertEquals(FrilaCores.superficieClaro, scheme!!.onPrimary)
+        assertEquals(FrilaCores.tintaClaro, scheme!!.error)
 
         // Papéis dinâmicos vêm da paleta do sistema (Material You) e distinguem da estática
         assertEquals(dynamicEsperado!!.secondary, scheme!!.secondary)
@@ -106,9 +106,9 @@ class FrilaThemeComposeTest {
             }
         }
         compose.waitForIdle()
-        assertEquals(FrilaCores.brandPrimaryDark, scheme!!.primary)
-        assertEquals(FrilaCores.brandOnPrimaryDark, scheme!!.onPrimary)
-        assertEquals(FrilaCores.dangerDark, scheme!!.error)
+        assertEquals(FrilaCores.tintaEscuro, scheme!!.primary)
+        assertEquals(FrilaCores.fundoEscuro, scheme!!.onPrimary)
+        assertEquals(FrilaCores.tintaEscuro, scheme!!.error)
 
         // Papéis dinâmicos vêm da paleta escura do sistema (Material You) e distinguem da estática
         assertEquals(dynamicEsperado!!.secondary, scheme!!.secondary)
@@ -126,9 +126,9 @@ class FrilaThemeComposeTest {
             }
         }
         compose.waitForIdle()
-        assertEquals(FrilaCores.surfaceLight, scheme!!.background)
-        assertEquals(FrilaCores.brandPrimaryLight, scheme!!.primary)
-        assertEquals(FrilaCores.surfaceElevatedLight, scheme!!.surface)
+        assertEquals(FrilaCores.fundoClaro, scheme!!.background)
+        assertEquals(FrilaCores.tintaClaro, scheme!!.primary)
+        assertEquals(FrilaCores.superficieClaro, scheme!!.surface)
     }
 
     @Test
@@ -141,9 +141,9 @@ class FrilaThemeComposeTest {
             }
         }
         compose.waitForIdle()
-        assertEquals(FrilaCores.surfaceDark, scheme!!.background)
-        assertEquals(FrilaCores.brandPrimaryDark, scheme!!.primary)
-        assertEquals(FrilaCores.surfaceElevatedDark, scheme!!.surface)
+        assertEquals(FrilaCores.fundoEscuro, scheme!!.background)
+        assertEquals(FrilaCores.tintaEscuro, scheme!!.primary)
+        assertEquals(FrilaCores.superficieEscuro, scheme!!.surface)
     }
 
     @Test
