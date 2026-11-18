@@ -236,67 +236,59 @@ public extension View {
     }
 }
 
-/// Campo de texto (DESIGN.md do protótipo): 48 pt, `superficie`, fio em `bordaDoCampo`, raio 16. O rótulo fica
-/// visível acima, em rótulo de grupo; com foco, o fio vira 2 pt em tinta.
+/// Campo de texto (DESIGN.md do protótipo): 48 pt, `superficie`, fio em `bordaDoCampo`, raio 16; com foco, o fio
+/// vira 2 pt em tinta. O título é a dica dentro do campo e o nome acessível; o rótulo visível acima, em rótulo de
+/// grupo, é de quem monta a tela. `emFoco` vem do `@FocusState` da tela, para o campo não ter um foco só dele.
 public struct CampoFrila: View {
     @Environment(\.erroDeCampoFrila) private var erroDeCampo
-    @FocusState private var emFoco: Bool
     private let titulo: Text
+    private let emFoco: Bool
     @Binding private var texto: String
 
-    public init(_ titulo: LocalizedStringKey, texto: Binding<String>) {
+    public init(_ titulo: LocalizedStringKey, texto: Binding<String>, emFoco: Bool = false) {
         self.titulo = Text(titulo, bundle: bundleApresentacao)
+        self.emFoco = emFoco
         _texto = texto
     }
 
-    public init(verbatim titulo: String, texto: Binding<String>) {
+    public init(verbatim titulo: String, texto: Binding<String>, emFoco: Bool = false) {
         self.titulo = Text(verbatim: titulo)
+        self.emFoco = emFoco
         _texto = texto
     }
 
     public var body: some View {
-        let forma = RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
-            titulo
-                .font(FrilaTipo.rotuloDeGrupo)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityHidden(true)
-            TextField(text: $texto) { titulo }
-                .textFieldStyle(.plain)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(FrilaCor.texto)
-                .focused($emFoco)
-                .padding(.horizontal, FrilaEspaco.bloco)
-                .padding(.vertical, FrilaEspaco.item)
-                .frame(minHeight: FrilaMetrica.alturaDoCampo)
-                .background(FrilaCor.superficieDoCampo, in: forma)
-                .overlay(forma.strokeBorder(emFoco ? FrilaCor.texto : FrilaCor.bordaDoCampo, lineWidth: emFoco ? 2 : 1))
-                .accessibilityLabel(titulo)
-                .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
-        }
+        TextField(text: $texto, prompt: titulo.foregroundStyle(FrilaCor.textoSecundario)) { titulo }
+            .textFieldStyle(.plain)
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .caixaDoCampoFrila(emFoco: emFoco)
+            .accessibilityLabel(titulo)
+            .modifier(ErroLidoComoValor(texto: texto, erro: erroDeCampo))
     }
 }
 
+/// A caixa do campo, para os campos que não são o `CampoFrila` (máscara, seletor): a mesma superfície, o mesmo fio
+/// e o mesmo foco.
 public struct CaixaDoCampoFrila: ViewModifier {
-    public init() {}
+    private let emFoco: Bool
+
+    public init(emFoco: Bool = false) { self.emFoco = emFoco }
 
     public func body(content: Content) -> some View {
+        let forma = RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
         content
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
+            .padding(.horizontal, FrilaEspaco.bloco)
+            .padding(.vertical, FrilaEspaco.item)
             .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                    .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
-            )
+            .background(FrilaCor.superficieDoCampo, in: forma)
+            .overlay(forma.strokeBorder(emFoco ? FrilaCor.texto : FrilaCor.bordaDoCampo, lineWidth: emFoco ? 2 : 1))
     }
 }
 
 public extension View {
-    func caixaDoCampoFrila() -> some View {
-        modifier(CaixaDoCampoFrila())
+    func caixaDoCampoFrila(emFoco: Bool = false) -> some View {
+        modifier(CaixaDoCampoFrila(emFoco: emFoco))
     }
 }
 
