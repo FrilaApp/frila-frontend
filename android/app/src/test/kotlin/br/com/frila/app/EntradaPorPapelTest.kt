@@ -368,35 +368,38 @@ class EntradaPorPapelTest {
     }
 
     @Test
-    fun `casa com sessao guardada alcanca o Perfil e o Sair a partir de Minhas vagas`() {
+    fun `casa com sessao guardada alcanca a Conta e o Sair pela aba, a partir de Minhas vagas`() {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
 
         assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
-        assertEquals("o Perfil (Sair, Equipe) fica embaixo da tela inicial da casa", Rotas.PERFIL, rotaAbaixo())
+        assertNull("Minhas vagas é a primeira aba da casa: o chão da pilha", rotaAbaixo())
 
-        // A seta de Minhas vagas leva ao Perfil, nunca a uma pilha vazia.
-        rule.runOnUiThread { nav.popBackStack() }
-        rule.waitForIdle()
-        assertEquals(Rotas.PERFIL, rotaAtual())
+        // A aba Conta leva ao Perfil (Sair, Equipe): a casa nunca fica presa na tela inicial.
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        assertTrue("a aba Conta não levou ao Perfil (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PERFIL })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
 
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(Rotas.ENTRADA, rotaAtual())
+        rule.onNodeWithText(TextosDasAbas.CONTA).assertDoesNotExist()
     }
 
     @Test
     fun `casa com sessao guardada Voltar na raiz sai do app em vez de deixar tela em branco`() {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true)
         aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+        rule.onNodeWithText(TextosDasAbas.CONTA).performClick()
+        aguardar { rotaAtual() == Rotas.PERFIL }
 
-        voltarDoSistema() // Minhas vagas -> Perfil
-        assertEquals(Rotas.PERFIL, rotaAtual())
+        voltarDoSistema() // Conta -> Minhas vagas
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
         assertFalse("ainda há tela para voltar", rule.activity.isFinishing)
 
-        voltarDoSistema() // Perfil é a raiz: sai do app
+        voltarDoSistema() // Minhas vagas é a raiz: sai do app
         assertTrue("Voltar na raiz deve sair do app", rule.activity.isFinishing)
-        assertEquals("a pilha nunca fica vazia", Rotas.PERFIL, rotaAtual())
+        assertEquals("a pilha nunca fica vazia", Rotas.MINHAS_VAGAS, rotaAtual())
     }
 
     @Test

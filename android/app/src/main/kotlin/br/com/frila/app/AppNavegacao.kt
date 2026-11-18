@@ -428,16 +428,19 @@ fun AppNavegacao(
                         RotaDeAbertura(
                             avaliador = avaliadorDeDestino,
                             aoDecidir = { destino ->
-                                if (destino is DestinoDaConta.Contratante) {
-                                    // A casa não tem feed para voltar: o Perfil (Sair, Equipe, Excluir conta) fica
-                                    // como raiz da pilha, e a tela inicial da casa entra por cima dele. "Voltar" da
-                                    // tela inicial leva ao Perfil; "Voltar" no Perfil sai do app (pilha nunca vazia).
+                                val casa = (destino as? DestinoDaConta.Contratante)?.casa
+                                if (destino is DestinoDaConta.Contratante && casa == null) {
+                                    // Contratante ainda sem casa não tem abas: o Perfil (Sair, Excluir conta) fica como
+                                    // raiz da pilha e o cadastro da casa entra por cima dele. "Voltar" do cadastro leva
+                                    // ao Perfil; "Voltar" no Perfil sai do app (pilha nunca vazia).
                                     navController.navigate(Rotas.PERFIL) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
                                     navController.navigate(destino.rota())
                                 } else {
+                                    // Profissional e casa abrem na primeira aba; a Conta (Sair, Equipe) é a última aba.
                                     if (destino == DestinoDaConta.Profissional) papelDaRaiz = PapelDaRaiz.Profissional
+                                    if (casa != null) papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(casa.id, casa.nome))
                                     navController.navigate(destino.rota()) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
@@ -763,7 +766,8 @@ fun AppNavegacao(
                             aoPublicarVaga = primeiraCasa?.let { casa ->
                                 { navController.navigate(Rotas.publicarVaga(casa.id)) }
                             },
-                            aoMinhasVagas = primeiraCasa?.let { casa ->
+                            // Com as abas da casa, "Minhas vagas" é a primeira aba: o atalho do Perfil sai.
+                            aoMinhasVagas = primeiraCasa?.takeIf { papelDaRaiz !is PapelDaRaiz.Contratante }?.let { casa ->
                                 { navController.navigate(Rotas.minhasVagas(casa.id, casa.nome)) }
                             },
                             aoCadastrarEstabelecimento = if (casas == CasasDaConta.Nenhuma) {
@@ -967,6 +971,8 @@ fun AppNavegacao(
                         // Recém-cadastrada, a casa segue direto para a primeira vaga; "Voltar" da
                         // publicação leva ao perfil, não de volta ao formulário já concluído.
                         aoConcluir = { criado ->
+                            // A casa acabou de nascer: a partir daqui a raiz tem as abas dela.
+                            papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(criado.id, criado.nome))
                             navController.navigate(Rotas.publicarVaga(criado.id)) {
                                 popUpTo(Rotas.CADASTRO_ESTABELECIMENTO) { inclusive = true }
                             }
@@ -1008,7 +1014,8 @@ fun AppNavegacao(
                     var restantesDe by remember { mutableStateOf<ItemMinhaVaga?>(null) }
                     TelaMinhasVagas(
                         viewModel = viewModel,
-                        aoVoltar = { navController.popBackStack() },
+                        // Com as abas da casa, Minhas vagas é raiz: sem voltar. Sem elas (aberta pelo Perfil), volta.
+                        aoVoltar = if (papelDaRaiz is PapelDaRaiz.Contratante) null else ({ navController.popBackStack() }),
                         aoCancelarVaga = { item -> navController.navigate(Rotas.cancelarVaga(item.id, item.inicio)) },
                         aoRepublicarVaga = { item ->
                             navController.navigate(Rotas.republicarVaga(item.id, item.selecao, duracaoDaVagaEmMinutos(item.inicio, item.fim)))
