@@ -38,8 +38,8 @@ secrets do GitHub. Para a arquitetura dos ambientes, veja [Environments](Environ
 
 | Serviço | Projeto | Região | Conta / Organização |
 |---|---|---|---|
-| Supabase | `frila-prod` | `sa-east-1` | Organização `Frila'orgs` |
-| Firebase | `frila-prod` | — | Conta de proprietário do Cauê |
+| Supabase | `frila-prod` | `sa-east-1` | Organização `Frila'orgs` (Owner: conta do time frila.org) |
+| Firebase | `frila-prod` | — | Conta do time frila.org (a única Proprietária; o Cauê não é membro) |
 | Apple Developer | Team `8B7F7G3Y2U` | — | Conta do Cauê |
 | App Store Connect | App `Frila: Turnos e Vagas`, Apple ID `6815311991`, bundle `com.frila.org.app` | — | Conta do Cauê |
 | GitHub | `FrilaApp/frila-frontend` (privado) | — | Organização `FrilaApp` |
