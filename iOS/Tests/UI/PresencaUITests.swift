@@ -91,6 +91,10 @@ final class PresencaUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["checkin-situacao"].exists, "a 350 m nada é registrado sem a pessoa pedir")
         let manual = app.buttons["registro-manual"]
         XCTAssertTrue(app.buttons["tentar-gps"].exists)
+        // Em AX5 o botão ocupa mais de um terço da tela e o meio dele pode ficar sob a barra de navegação: rola até ele
+        // aparecer inteiro abaixo da barra antes de tocar.
+        XCTAssertTrue(manual.waitForExistence(timeout: Espera.aparecer))
+        for _ in 0..<4 where manual.frame.minY < 130 { app.swipeDown() }
         tocar(manual)
 
         let checkin = app.descendants(matching: .any)["checkin-situacao"]

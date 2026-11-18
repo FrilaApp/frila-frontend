@@ -316,10 +316,13 @@ private struct BotaoDePresenca: View {
     let emCaixaAlta: Bool
     let acao: () -> Void
     @Environment(\.isEnabled) private var habilitado
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
 
     var body: some View {
+        // Com texto de acessibilidade a caixa alta alonga o botão e dificulta a leitura: fica só no tamanho comum.
+        let maiusculas = emCaixaAlta && !tamanhoDoTexto.isAccessibilitySize
         Button(action: acao) {
-            Text(verbatim: emCaixaAlta ? titulo.uppercased(with: Locale(identifier: "pt_BR")) : titulo)
+            Text(verbatim: maiusculas ? titulo.uppercased(with: Locale(identifier: "pt_BR")) : titulo)
         }
         .buttonStyle(EstiloDoBotaoFrila(papel: .primario, emConferencia: !habilitado, alturaMinima: altura))
         .accessibilityLabel(Text(verbatim: titulo))
