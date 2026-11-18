@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.app.BarraDaRaiz
 import br.com.frila.app.PapelDaRaiz
+import br.com.frila.app.RegistraActivityDeTeste
 import br.com.frila.app.Rotas
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
@@ -31,7 +32,11 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h914dp-xxhdpi")
 class CapturasRNTest {
 
-    @get:Rule
+    // No release o manifesto de teste do Compose não entra: a regra registra a atividade de teste, como nos outros testes do app.
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste()
+
+    @get:Rule(order = 1)
     val compose = createComposeRule()
 
     private val casa = PapelDaRaiz.Contratante(Rotas.minhasVagas("est-1", "Bar da Lia"))
