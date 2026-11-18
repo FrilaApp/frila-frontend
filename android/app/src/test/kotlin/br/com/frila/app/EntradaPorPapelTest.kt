@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -207,7 +208,7 @@ class EntradaPorPapelTest {
     private fun entrarComCodigo(): String? {
         rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
         // Completar os 6 dígitos confirma sozinho (como o iOS): sem toque em "Confirmar código".
-        rule.onNodeWithText("Código de 6 dígitos").performTextInput("123456")
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
         aguardar { rotaAtual() != Rotas.CODIGO && rotaAtual() != Rotas.ABERTURA }
         // Dá tempo de uma decisão que dependa do servidor terminar de rotear.
         aguardar(1_500) { rotaAtual() !in listOf(Rotas.CADASTRO, Rotas.CODIGO, Rotas.ABERTURA) }

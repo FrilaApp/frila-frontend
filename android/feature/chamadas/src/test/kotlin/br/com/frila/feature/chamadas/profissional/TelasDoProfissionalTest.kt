@@ -127,7 +127,7 @@ class TelasDoProfissionalTest {
         rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.ANTECEDENCIA_MINIMA).performScrollTo().assertExists()
         rule.onNodeWithText(TextosChamadaProfissional.QUEM_PODE_CHAMAR).performScrollTo().assertExists()
-        rule.onNodeWithTag("salvar-preferencias-chamada").performScrollTo().assertExists()
+        rule.onNodeWithTag("salvar-preferencias-chamada").assertExists()
     }
 
     @Test
@@ -153,9 +153,9 @@ class TelasDoProfissionalTest {
         montarPreferencias(preferencias { copy(aceitaChamadas = true, pendencias = listOf("sem_servico_com_preco", "sem_regiao", "codigo_novo")) })
 
         rule.onNodeWithTag("chave-aceita-chamadas").assertIsOn()
-        rule.onNodeWithText(TextosChamadaProfissional.PENDENCIAS_TITULO).assertIsDisplayed()
-        rule.onNodeWithText("• ${TextosChamadaProfissional.PENDENCIA_SEM_SERVICO}").assertIsDisplayed()
-        rule.onNodeWithText("• ${TextosChamadaProfissional.PENDENCIA_SEM_REGIAO}").assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaProfissional.PENDENCIAS_TITULO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("• ${TextosChamadaProfissional.PENDENCIA_SEM_SERVICO}").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("• ${TextosChamadaProfissional.PENDENCIA_SEM_REGIAO}").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -190,7 +190,7 @@ class TelasDoProfissionalTest {
         assertEquals("so_cnpj", p.quem)
         rule.onNodeWithTag("editar-servicos").performScrollTo().performClick()
         assertEquals(1, p.servicos)
-        rule.onNodeWithTag("salvar-preferencias-chamada").performScrollTo().performClick()
+        rule.onNodeWithTag("salvar-preferencias-chamada").performClick()
         assertEquals(1, p.salvou)
     }
 
@@ -199,7 +199,7 @@ class TelasDoProfissionalTest {
         montarPreferencias(preferencias { copy(salvando = true, erro = TextosChamadaProfissional.DESLIGADO) })
 
         rule.onNodeWithText(TextosChamadaProfissional.DESLIGADO).assertIsDisplayed()
-        rule.onNodeWithTag("salvar-preferencias-chamada").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("salvar-preferencias-chamada").assertIsNotEnabled()
     }
 
     @Test
@@ -306,8 +306,8 @@ class TelasDoProfissionalTest {
     fun recebidaAbertaTemAceitarERecusarQueDisparamACallbackCerta() {
         val r = montarRecebida(recebida())
 
-        rule.onNodeWithTag("aceitar-chamada").performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
-        rule.onNodeWithTag("recusar-chamada").performScrollTo().performClick()
+        rule.onNodeWithTag("aceitar-chamada").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithTag("recusar-chamada").performClick()
         assertEquals(1, r.aceitou)
         assertEquals(1, r.abriuRecusa)
     }
@@ -323,9 +323,10 @@ class TelasDoProfissionalTest {
     }
 
     @Test
-    fun recebidaRespondendoDeixaOsBotoesSemEfeitoPorqueSaemDaTela() {
+    fun recebidaRespondendoDeixaOAceiteDesligadoNoLugar() {
         montarRecebida(recebida { copy(respondendo = true) })
-        rule.onNodeWithTag("aceitar-chamada").assertDoesNotExist()
+        rule.onNodeWithTag("aceitar-chamada").assertIsNotEnabled()
+        rule.onNodeWithTag("recusar-chamada").assertIsNotEnabled()
     }
 
     @Test
@@ -333,9 +334,9 @@ class TelasDoProfissionalTest {
         val r = montarRecebida(recebida { copy(resultado = resultado("aceita"), detalhe = detalhe("aceita")) })
 
         rule.onNodeWithTag("chamada-aceita").assertIsDisplayed()
-        rule.onNodeWithText("SCS Quadra 2").assertIsDisplayed()
-        rule.onNodeWithText("Ana").assertIsDisplayed()
-        rule.onNodeWithTag("ver-turno-aceito").performScrollTo().performClick()
+        rule.onNodeWithText("SCS Quadra 2").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Ana").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("ver-turno-aceito").performClick()
         assertEquals(Fixtures.TURNO, r.turno)
     }
 
@@ -365,9 +366,9 @@ class TelasDoProfissionalTest {
             TextosChamadaProfissional.MOTIVO_TIPO_DE_SERVICO,
             TextosChamadaProfissional.MOTIVO_OUTRO,
         ).forEach { rule.onNodeWithText(it).assertExists() }
-        rule.onNodeWithText(TextosChamadaProfissional.MOTIVO_AGENDA).performClick()
+        rule.onNodeWithText(TextosChamadaProfissional.MOTIVO_AGENDA).performScrollTo().performClick()
         assertEquals("agenda", r.motivo)
-        rule.onNodeWithTag("confirmar-recusa-chamada").performClick()
+        rule.onNodeWithTag("confirmar-recusa-chamada").performScrollTo().performClick()
         assertEquals(1, r.confirmouRecusa)
     }
 
@@ -492,15 +493,15 @@ class TelasDoProfissionalTest {
     @Test
     fun servicosSalvarSoComCargaProntaEMostraSucessoEErro() {
         val s = montarServicos(servicos(ServicoEmEdicao(garcom)) { copy(sucesso = true) })
-        rule.onNodeWithTag("servicos-sucesso").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithTag("salvar-servicos").performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithTag("servicos-sucesso").assertIsDisplayed()
+        rule.onNodeWithTag("salvar-servicos").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
         assertEquals(1, s.salvou)
     }
 
     @Test
     fun servicosSalvandoDesabilitaOBotao() {
         montarServicos(servicos(ServicoEmEdicao(garcom)) { copy(salvando = true) })
-        rule.onNodeWithTag("salvar-servicos").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("salvar-servicos").assertIsNotEnabled()
     }
 
     @Test
@@ -514,6 +515,6 @@ class TelasDoProfissionalTest {
         montarServicos(EstadoEditarServicos(carregando = false, carregou = false, erro = TextosChamadaProfissional.ERRO))
         rule.onNodeWithText(TextosChamadaProfissional.ERRO).assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.TENTAR_NOVAMENTE).assertIsDisplayed()
-        rule.onNodeWithTag("salvar-servicos").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithTag("salvar-servicos").assertIsNotEnabled()
     }
 }
