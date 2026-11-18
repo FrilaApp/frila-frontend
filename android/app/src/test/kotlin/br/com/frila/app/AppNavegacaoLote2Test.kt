@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -80,6 +81,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -385,6 +388,35 @@ class AppNavegacaoLote2Test {
     }
 
     // ---- 4. A vaga abre pelo id; minhas candidaturas e retirar ----
+
+    @Test
+    fun `RN - o voltar do detalhe da vaga devolve a tela de onde a pessoa veio`() {
+        montar(Rotas.detalhe("vaga-9"))
+        esperarTexto("Chegar 15 minutos antes", substring = true)
+        var rotaDeBaixo: String? = null
+        rule.runOnIdle { rotaDeBaixo = nav.previousBackStackEntry?.destination?.route }
+        assertNotNull("o teste precisa de uma tela embaixo do detalhe", rotaDeBaixo)
+
+        rule.onNodeWithContentDescription("Voltar").performClick()
+
+        rule.runOnIdle { assertEquals(rotaDeBaixo, rotaAtual()) }
+    }
+
+    @Test
+    fun `RN - o voltar do detalhe aberto por link, sem tela embaixo, leva as vagas em vez de esvaziar a pilha`() {
+        montar(Rotas.FEED)
+        // Como um link que abre o app direto na vaga: o detalhe é a única tela da pilha.
+        rule.runOnIdle { nav.navigate(Rotas.detalhe("vaga-9")) { popUpTo(0) { inclusive = true } } }
+        esperarTexto("Chegar 15 minutos antes", substring = true)
+        rule.runOnIdle { assertNull(nav.previousBackStackEntry) }
+
+        rule.onNodeWithContentDescription("Voltar").performClick()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.FEED, rotaAtual())
+            assertNull("o detalhe não fica embaixo das vagas", nav.previousBackStackEntry)
+        }
+    }
 
     @Test
     fun `a vaga aberta pelo id, sem passar pelo feed, e lida do servidor e mostra o que so o servidor sabe`() {

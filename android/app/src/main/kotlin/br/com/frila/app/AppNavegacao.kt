@@ -351,6 +351,15 @@ fun AppNavegacao(
         }
     }
 
+    // RN: o voltar do detalhe da vaga. Aberto por link, sem tela embaixo, leva às vagas em vez de esvaziar a pilha.
+    val voltarDoDetalhe: () -> Unit = {
+        if (navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        } else {
+            navController.navigate(Rotas.FEED) { popUpTo(Rotas.DETALHE) { inclusive = true } }
+        }
+    }
+
     // C0-9: a profissional denuncia a casa pelo turno dela, como o iOS (`TelaMeuTurno.swift:125`).
     val denunciarCasa: (String, String) -> Unit = { casaId, turnoId ->
         navController.navigate(Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, casaId, turnoId = turnoId))
@@ -408,6 +417,8 @@ fun AppNavegacao(
                             popUpTo(Rotas.ENTRADA) { inclusive = true }
                         }
                     },
+                    // "Trocar e-mail" volta para a entrada, que está embaixo; se não estiver, a entrada vira a raiz.
+                    aoTrocarEmail = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }
 
@@ -494,7 +505,7 @@ fun AppNavegacao(
                                 "Disponibilidade não confirmada. Conecte-se e atualize o feed antes de se candidatar.",
                                 modifier = Modifier.padding(16.dp),
                             )
-                            TelaDetalheVaga(viewModel = viewModel)
+                            TelaDetalheVaga(viewModel = viewModel, aoVoltar = voltarDoDetalhe)
                         }
                     } else {
                         // L2-4: a vaga fora da lista (link, aviso, candidatura) é lida do servidor pelo id; 404 é "não encontrada".
@@ -508,7 +519,7 @@ fun AppNavegacao(
                             },
                         ) { detalhe ->
                             val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(detalhe.paraVagaAberta(), detalhe) })
-                            TelaDetalheVaga(viewModel = viewModel)
+                            TelaDetalheVaga(viewModel = viewModel, aoVoltar = voltarDoDetalhe)
                         }
                     }
                 }

@@ -294,6 +294,18 @@ class EntradaPorPapelTest {
         assertEquals("a primeira aba (Vagas) é o chão da pilha: voltar em Meus turnos leva ao feed", Rotas.FEED, rotaAbaixo())
     }
 
+    @Test
+    fun `RN - no codigo, Trocar e-mail volta para a entrada`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = false)
+        rule.runOnIdle { nav.navigate(Rotas.codigo("conta@exemplo.com")) }
+        aguardar { rotaAtual() == Rotas.CODIGO }
+
+        rule.onNodeWithText("Trocar e-mail").performClick()
+
+        assertTrue("o link não voltou para a entrada (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.ENTRADA })
+        assertNull("a entrada volta a ser o chão da pilha", rotaAbaixo())
+    }
+
     // ───────────────── RN: abas das telas raiz do profissional ─────────────────
 
     @Test
