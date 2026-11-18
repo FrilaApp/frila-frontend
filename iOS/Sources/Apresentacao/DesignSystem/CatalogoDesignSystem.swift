@@ -22,6 +22,20 @@ public struct CatalogoDesignSystem: View {
     private let amostraCorpo = "Corpo em SF Pro, 17 pt, com Dynamic Type."
     private let amostraMeta = "Meta e apoio, 15 pt."
     private let amostraMicro = "O que está incluso"
+    // Amostras da fundação do redesign (R0).
+    private let amostraAceitar = "Aceitar turno"
+    private let amostraReceberCodigo = "Receber código"
+    private let amostraPresenca = "MARCAR PRESENÇA"
+    private let amostraLink = "Reenviar código"
+    private let amostraAcaoDiscreta = "Cancelar turno"
+    private let amostraGrupo = "Salvar como"
+    private let amostraLinhaCasa = "Casa"
+    private let amostraLinhaEndereco = "SQS 308 Bloco C"
+    private let amostraLinhaTrabalho = "Trabalho"
+    private let amostraLinhaAvisos = "Avisos"
+    private let amostraDadoFuncao = "Bartender"
+    private let amostraDadoQuando = "Sáb 14/11, das 18:00 às 00:00"
+    private let amostraMensagemDoBotao = "Sem sinal de internet. Tente de novo quando a conexão voltar."
     @Environment(\.colorScheme) private var colorScheme
     private let tituloCatalogo = "Frila UI"
     private let textoForcarFalha = "Forçar falha"
@@ -104,6 +118,30 @@ public struct CatalogoDesignSystem: View {
                         secao("Paleta") { paleta }
                         secao("Tipografia") { tipografia }
                         secao("Botões") { BotaoPrimario("Continuar") {}; BotaoSecundario("Voltar") {} }
+                        secao("Botão em conferência e presença") {
+                            BotaoPrimario(verbatim: amostraAceitar, carregando: true) {}
+                            BotaoPrimario(verbatim: amostraReceberCodigo) {}.disabled(true)
+                            BotaoPrimario(verbatim: amostraPresenca, alturaMinima: FrilaMetrica.alturaDoBotaoDePresenca) {}
+                        }
+                        secao("Link e ação discreta") {
+                            Button {} label: { Text(verbatim: amostraLink) }.buttonStyle(.frilaLink)
+                            Button {} label: { Text(verbatim: amostraAcaoDiscreta) }.buttonStyle(.frilaAcaoDiscreta)
+                        }
+                        secao("Grupo de linhas") {
+                            FrilaGrupoDeLinhas(verbatim: amostraGrupo) {
+                                FrilaLinhaDeOpcao(icone: "house", titulo: amostraLinhaCasa, subtitulo: amostraLinhaEndereco, remate: .marcada(true)) {}
+                                FrilaLinhaDeOpcao(icone: "briefcase", titulo: amostraLinhaTrabalho, remate: .marcada(false)) {}
+                                FrilaLinhaDeOpcao(icone: "bell", titulo: amostraLinhaAvisos, remate: .navega) {}
+                            }
+                        }
+                        secao("Linha de dado e mensagem junto ao botão") {
+                            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                                FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: amostraDadoFuncao) }
+                                FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: amostraDadoQuando) }
+                            }
+                            .cartaoFrila()
+                            MensagemJuntoAoBotao(verbatim: amostraMensagemDoBotao)
+                        }
                         secao("Botões do Estúdio") { botoesDoEstudio }
                         secao("Chips do Estúdio") { chipsDoEstudio }
                         secao("Toque tátil") {

@@ -10,17 +10,18 @@ public enum FrilaGeometry {
     /// Bottom sheet modal radius
     public static let radiusSheet: CGFloat = 24
     
-    /// Cartão e contêiner de mídia: `--raio-card` do protótipo (30 = 24 nominal × 1,25 do Liquid Glass).
-    public static let radiusCard: CGFloat = 30
+    /// Cartão e contêiner de mídia: 24, o raio nominal do sistema do Fabrício (`Tokens.swift` do redesign,
+    /// D-DS-06). Os 30 de antes eram o desenho do HTML do protótipo, que multiplica o nominal por 1,25.
+    public static let radiusCard: CGFloat = 24
 
-    /// Elemento dentro de um cartão (botão no card de vaga, caixa interna): `--raio-interno` (20 = 16 × 1,25).
-    public static let radiusInner: CGFloat = 20
+    /// Elemento dentro de um cartão (botão no card de vaga, caixa interna, grupo de linhas): 16 nominal.
+    public static let radiusInner: CGFloat = 16
 
     /// Campo de formulário e stepper: 16 (DESIGN.md, Campo de texto).
     public static let radiusInput: CGFloat = 16
 
-    /// Selo de status e emblema aninhado: `--raio-selo` (10 = 8 × 1,25).
-    public static let radiusNested: CGFloat = 10
+    /// Selo de status e emblema aninhado: 8 nominal.
+    public static let radiusNested: CGFloat = 8
     
     // MARK: - Human Interface Hitbox Standard
     

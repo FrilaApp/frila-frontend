@@ -77,6 +77,14 @@ public enum FrilaCor {
     public static let borda = Color("ControlBorder", bundle: recursos)
     /// Puxador das folhas.
     public static let puxador = Color("SheetGrabber", bundle: recursos)
+    /// Botão primário com o dedo em cima (D-DS-03 do redesign): a `acao` com a claridade 0,05 abaixo, #DD5C00.
+    /// Branco sobre ela dá 3,75:1. Igual nos dois modos, como a `acao`.
+    public static let acaoPressionada = Color(UIColor(red: 0xDD / 255, green: 0x5C / 255, blue: 0x00 / 255, alpha: 1))
+    /// Cartão, linha e botão secundário com o dedo em cima (D-DS-03): #EFECEA no claro, #2A2826 no escuro.
+    public static let superficiePressionada = Color(UIColor { traits in
+        traits.userInterfaceStyle == .dark ? UIColor(red: 0x2A / 255, green: 0x28 / 255, blue: 0x26 / 255, alpha: 1)
+                                           : UIColor(red: 0xEF / 255, green: 0xEC / 255, blue: 0xEA / 255, alpha: 1)
+    })
 }
 
 public enum FrilaEspaco {
@@ -91,9 +99,23 @@ public enum FrilaEspaco {
     public static let medio: CGFloat = 16
     public static let grande: CGFloat = 24
     public static let enorme: CGFloat = 32
+
+    // Os seis espaços do sistema do Fabrício (D-DS-06), com os nomes dele. Tela nova ou refeita usa estes.
+    /// Linhas do mesmo dado; ícone do selo.
+    public static let junto: CGFloat = 4
+    /// Ícone e texto; entre linhas de dado; mensagem e botão.
+    public static let item: CGFloat = 8
+    /// Padding de cartão; entre cartões; acima e abaixo da divisória.
+    public static let bloco: CGFloat = 16
+    /// Margem lateral da tela; do título ao cartão; entre blocos de um detalhe.
+    public static let grupo: CGFloat = 24
+    /// Acima de seção e das ações discretas.
+    public static let secao: CGFloat = 32
+    /// Acima do estado vazio.
+    public static let respiro: CGFloat = 48
 }
 
-/// Raios da pele nova (`FrilaGeometry`, de `tokens.css`): 10 selo, 16 campo, 20 interno, 30 cartão, 24 folha;
+/// Raios nominais do sistema do Fabrício (`FrilaGeometry`): 8 selo, 16 campo e elemento interno, 24 cartão e folha;
 /// o que se toca (botão, chip) é sempre cápsula. Cantos sempre contínuos (`style: .continuous`).
 public enum FrilaRaio {
     /// Selo de status e elemento aninhado pequeno (`radiusNested`, `--raio-selo`).
@@ -128,12 +150,19 @@ public enum FrilaForma {
 }
 
 public enum FrilaMetrica {
+    /// Piso do sistema (HIG): controle nativo e o que ainda não foi refeito.
     public static let alvoMinimo: CGFloat = 44
+    /// Alvo de toque do que é desenhado por nós (botão, chip, linha, link): 48 (D-DS-06, `alvo`).
+    public static let alvo: CGFloat = 48
     public static let larguraMaximaDeLeitura: CGFloat = 680
-    /// Campos e botões grandes (`fieldHeight`).
-    public static let alturaDoCampo: CGFloat = 52
-    /// Altura visual do chip de filtro; o toque continua com 44.
-    public static let alturaDoChip: CGFloat = 32
+    /// Botão primário e secundário, campo e linha de lista: 48 (`altura-botao`). É mínimo: cresce com o texto.
+    public static let alturaDoCampo: CGFloat = 48
+    /// "MARCAR PRESENÇA": 64 (`altura-botao-presenca`).
+    public static let alturaDoBotaoDePresenca: CGFloat = 64
+    /// Altura visual do chip (`altura-chip`); o toque vai a 48.
+    public static let alturaDoChip: CGFloat = 36
+    /// Selo de status (`altura-selo`).
+    public static let alturaDoSelo: CGFloat = 28
     /// Círculo dos estados vazios e de erro.
     public static let circuloDeEstado: CGFloat = 72
 }
@@ -238,6 +267,20 @@ public enum FrilaTipo {
     public static var contextoDaResposta: Font { FrilaFormType.answerContext.dynamicFont }
     /// Microrrótulo em caixa alta (use com `.textCase(.uppercase)` e `.tracking(0.8)`): `FrilaFormType.microLabel`.
     public static let microRotulo = FrilaFormType.microLabel.font
+
+    // Papéis da tabela de Tipografia do Fabrício (`FrilaFonte` do redesign), com os nomes dele.
+    /// Nome do estabelecimento em cartão e linha; valores das linhas do histórico: sistema 600, 17.
+    public static let nome = Font.headline
+    /// Frase do modo ("Se aceitar, o turno é seu."): sistema 600, 20.
+    public static let fraseDoModo = Font.title3.weight(.semibold)
+    /// Apoio, em `textoSecundario`: sistema 400, 15.
+    public static let apoio = Font.subheadline
+    /// Rótulo de grupo e de campo, em `textoSecundario`: sistema 600, 15.
+    public static let rotuloDeGrupo = Font.subheadline.weight(.semibold)
+    /// Selo de status: sistema 600, 15.
+    public static let selo = Font.subheadline.weight(.semibold)
+    /// Legenda (linha de etapas): sistema 400, 13.
+    public static let legenda = Font.footnote
 }
 
 /// Registra as fontes do bundle no processo, uma vez. Se falhar, o `Font.custom` cai na fonte do sistema.
@@ -446,7 +489,8 @@ public enum FrilaMaterial {
 }
 
 public extension View {
-    /// Cartão da pele nova: superfície branca sobre o fundo off-white, raio 30 contínuo (`--raio-card`), fio de 1 pt em `borda`.
+    /// Cartão: superfície branca sobre o fundo off-white, raio 24 contínuo, padding de 16 e fio de 1 pt em `borda`.
+    /// Sem sombra: a sombra suave é só do cartão de vaga em destaque (`elevacaoFrila(.suave)`).
     func cartaoFrila() -> some View {
         modifier(CartaoFrilaModificador())
     }
@@ -469,15 +513,12 @@ public extension View {
     }
 }
 
-/// Anatomia do cartão, lendo o tema para a sombra (`FrilaShadowElevation.subtle`).
+/// Anatomia do cartão (DESIGN.md do protótipo, "Espaço e forma"): `superficie`, borda de 1 pt, raio 24, sem sombra.
 private struct CartaoFrilaModificador: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
         content
-            .padding(FrilaGeometry.space20)
+            .padding(FrilaEspaco.bloco)
             .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
-            .frilaShadow(.subtle, isDark: colorScheme == .dark)
     }
 }
