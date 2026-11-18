@@ -1,8 +1,24 @@
 package br.com.frila.feature.entrada.cadastro
 
 import br.com.frila.core.dominio.modelo.DataCivil
+import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ServicoConta
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockRequestHandleScope
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.request.HttpResponseData
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
+import io.ktor.http.headersOf
+import java.net.UnknownHostException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -79,15 +95,159 @@ class CadastroViewModelTest {
         assertEquals(MENSAGEM_MENOR_DE_IDADE, viewModel.estado.value.erro)
     }
 
+    private val corpoUsuario =
+        """{"id":"u1","perfil":"profissional","nome":"Profissional de Teste","telefone":"+5511987654321","email":"p@exemplo.com","nascimento":"2000-06-15","estado":"ativa"}"""
+
+    private class Envios {
+        val caminhos = mutableListOf<String>()
+        val corpos = mutableListOf<String>()
+    }
+
+    private fun viewModelComServidor(
+        envios: Envios,
+        termosVersao: String = TERMOS_VERSAO_ATUAL,
+        resposta: suspend MockRequestHandleScope.() -> HttpResponseData = {
+            respond(corpoUsuario, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        },
+    ): CadastroViewModel {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                envios.caminhos += request.url.encodedPath
+                envios.corpos += (request.body as TextContent).text
+                resposta()
+            },
+        )
+        return CadastroViewModel(ServicoConta(cliente), CoroutineScope(Dispatchers.Default), termosVersao)
+    }
+
+    private fun erroDaApi(codigo: String, status: HttpStatusCode, detalhes: String? = null): suspend MockRequestHandleScope.() -> HttpResponseData = {
+        val details = detalhes?.let { "\"$it\"" } ?: "null"
+        respond(
+            """{"code":"$codigo","message":"recusa","details":$details}""",
+            status,
+            headersOf(HttpHeaders.ContentType, "application/json"),
+        )
+    }
+
     @Test
-    fun `concluirCadastro aceita maior de 18 anos com todos os campos validos (RN20)`() {
+    fun `concluirCadastro aceita maior de 18 anos com todos os campos validos e cria a conta (RN20)`() = runBlocking {
+        val envios = Envios()
+        val viewModel = viewModelComServidor(envios)
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertTrue(viewModel.estado.value.concluido)
+        assertFalse(viewModel.estado.value.enviando)
+        assertEquals(null, viewModel.estado.value.erro)
+        assertEquals(listOf("/rest/v1/rpc/criar_conta"), envios.caminhos)
+        assertEquals(
+            """{"perfil":"profissional","nome":"Profissional de Teste","telefone":"+5511987654321","nascimento":"2000-06-15","termos_versao":"2026-11-16"}""",
+            envios.corpos.single(),
+        )
+    }
+
+    @Test
+    fun `concluirCadastro envia a versao dos termos configurada`() = runBlocking {
+        val envios = Envios()
+        val viewModel = viewModelComServidor(envios, termosVersao = TERMOS_VERSAO_ANTERIOR)
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertTrue(envios.corpos.single().contains(""""termos_versao":"2026-11-13""""))
+    }
+
+    @Test
+    fun `concluirCadastro com 422 menor_de_idade mostra a mensagem de idade e nao conclui`() = runBlocking {
+        val viewModel = viewModelComServidor(Envios(), resposta = erroDaApi("menor_de_idade", HttpStatusCode.UnprocessableEntity, "nascimento"))
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertFalse(viewModel.estado.value.concluido)
+        assertFalse(viewModel.estado.value.enviando)
+        assertEquals(MENSAGEM_MENOR_DE_IDADE, viewModel.estado.value.erro)
+    }
+
+    @Test
+    fun `concluirCadastro com 422 campo_invalido de nome pede um nome valido`() = runBlocking {
+        val viewModel = viewModelComServidor(Envios(), resposta = erroDaApi("campo_invalido", HttpStatusCode.UnprocessableEntity, "nome"))
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertFalse(viewModel.estado.value.concluido)
+        assertEquals("Informe um nome válido.", viewModel.estado.value.erro)
+    }
+
+    @Test
+    fun `concluirCadastro com 409 conta_existente orienta a entrar com o codigo`() = runBlocking {
+        val viewModel = viewModelComServidor(Envios(), resposta = erroDaApi("conta_existente", HttpStatusCode.Conflict))
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertFalse(viewModel.estado.value.concluido)
+        assertEquals("Já existe uma conta com este e-mail. Entre com o código para continuar.", viewModel.estado.value.erro)
+    }
+
+    @Test
+    fun `concluirCadastro com erro de rede mostra a mensagem de conexao e nao conclui`() = runBlocking {
+        val viewModel = viewModelComServidor(Envios()) { throw UnknownHostException("sem rede") }
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertFalse(viewModel.estado.value.concluido)
+        assertFalse(viewModel.estado.value.enviando)
+        assertEquals("Sem conexão. Confira a internet e tente de novo.", viewModel.estado.value.erro)
+    }
+
+    @Test
+    fun `concluirCadastro durante um envio em voo nao envia a conta duas vezes`() = runBlocking {
+        val envios = Envios()
+        val liberar = CompletableDeferred<Unit>()
+        val viewModel = viewModelComServidor(envios) {
+            liberar.await()
+            respond(corpoUsuario, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        val primeiro = viewModel.concluirCadastro()!!
+        assertTrue(viewModel.estado.value.enviando)
+        assertNull(viewModel.concluirCadastro())
+        liberar.complete(Unit)
+        primeiro.join()
+
+        assertEquals(1, envios.caminhos.size)
+        assertTrue(viewModel.estado.value.concluido)
+    }
+
+    @Test
+    fun `concluirCadastro nao chama a rede quando a validacao local recusa`() = runBlocking {
+        val envios = Envios()
+        val viewModel = viewModelComServidor(envios)
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+        viewModel.aoMudarAceiteDeTermos(false)
+
+        assertNull(viewModel.concluirCadastro())
+
+        assertTrue(envios.caminhos.isEmpty())
+        assertFalse(viewModel.estado.value.concluido)
+    }
+
+    @Test
+    fun `concluirCadastro sem servico de conta nunca marca concluido`() {
         val viewModel = CadastroViewModel()
         preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
 
-        viewModel.concluirCadastro()
+        assertNull(viewModel.concluirCadastro())
 
-        assertTrue(viewModel.estado.value.concluido)
-        assertEquals(null, viewModel.estado.value.erro)
+        assertFalse(viewModel.estado.value.concluido)
+        assertEquals("Não foi possível concluir o cadastro. Tente de novo em instantes.", viewModel.estado.value.erro)
     }
 
     @Test

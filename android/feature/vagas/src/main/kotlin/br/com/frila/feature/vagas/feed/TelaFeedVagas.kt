@@ -64,6 +64,8 @@ fun TelaFeedVagas(
     aoAbrirPerfil: () -> Unit = {},
     /** C0-9: sem este caminho, "Meus turnos" não tinha entrada no app. Nulo esconde o botão. */
     aoAbrirMeusTurnos: (() -> Unit)? = null,
+    /** Abre a tela do ponto base quando o servidor recusa a lista por falta dele. Nulo deixa o erro comum, com "Tentar novamente". */
+    aoDefinirPontoBase: (() -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
@@ -127,7 +129,11 @@ fun TelaFeedVagas(
 
                 when (estado.status) {
                     StatusFeed.CARREGANDO -> SkeletonFeedVagas()
-                    StatusFeed.ERRO -> ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
+                    StatusFeed.ERRO -> if (estado.semPontoBase && aoDefinirPontoBase != null) {
+                        SemPontoBaseFeed(aoDefinirPontoBase = aoDefinirPontoBase)
+                    } else {
+                        ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
+                    }
                     StatusFeed.VAZIO -> VazioFeed(textoBusca = estado.textoBusca)
                     StatusFeed.SUCESSO -> ListaDeVagas(vagas = estado.vagas, aoAbrirDetalhe = aoAbrirDetalhe)
                 }
@@ -463,6 +469,33 @@ private fun VazioFeed(textoBusca: String) {
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/** Sem ponto base o servidor não tem de onde medir a distância: a saída é defini-lo. Textos iguais aos do iOS. */
+// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+@Composable
+private fun SemPontoBaseFeed(aoDefinirPontoBase: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.grande),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.medio, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = "Falta o seu ponto base",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            text = "Sem ele, não dá para medir a distância até as vagas nem avisar você das que ficam perto.",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+        )
+        BotaoPrimario(texto = "Definir ponto base", aoClicar = aoDefinirPontoBase)
     }
 }
 

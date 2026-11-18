@@ -61,6 +61,9 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
             {textos.contratanteCadastro.abrir}
           </Link>
         ) : null}
+        <Link to="/conta" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+          {textos.contaDados.abrir}
+        </Link>
         <Link to="/" className="min-h-11 font-semibold underline underline-offset-4">
           {t.voltarAoInicio}
         </Link>
@@ -94,6 +97,9 @@ export default function PainelDaCasa({ loaderData }: Route.ComponentProps) {
       </Link>
       <Link to={`/casa/equipe?casa=${casa.id}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
         {textos.contratanteEquipe.abrir}
+      </Link>
+      <Link to="/conta" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+        {textos.contaDados.abrir}
       </Link>
 
       {grupos.length === 0 ? <p>{t.vazio}</p> : null}
