@@ -5,24 +5,36 @@ import SwiftUI
 public enum CampoDoEventoDaEscala: Hashable, Sendable {
     case nome
     case data
-    case responsavel
 }
 
 public enum CampoDaVagaDaEscala: Hashable, Sendable {
     case funcao
     case horario
+    case modo
     case valor
     case pessoas
+    case responsavel
+    case traje
+    case observacoes
 }
 
-/// Uma vaga do formulário da escala. O valor fica em centavos como texto (a máscara do campo de valor escreve assim).
+/// Uma vaga do formulário da escala, com o que a vaga avulsa tem: modo, responsável no local, inclusos, traje e
+/// observações (a mesma escala sai igual na web, no Android e no iOS). O valor fica em centavos como texto (a máscara do
+/// campo de valor escreve assim). O rateio dos 10% não é perguntado: vai nulo, como na web e no Android.
 public struct VagaDoFormularioDaEscala: Identifiable, Equatable, Sendable {
     public let id: UUID
     public var funcaoID: UUID?
     public var inicio: Date
     public var fim: Date
+    public var modo: ModoPreenchimento = .urgencia
     public var valorTexto: String
     public var pessoas: Int
+    public var responsavelLocal: String = ""
+    public var refeicao = false
+    public var transporte = false
+    public var materialProprio = false
+    public var traje = ""
+    public var observacoes = ""
 
     public var valorCentavos: Int { Int(valorTexto.filter(\.isNumber)) ?? 0 }
 }
@@ -37,9 +49,14 @@ public struct ErrosDaEscala: Equatable, Sendable {
 }
 
 /// A escala de evento da casa (contrato 0.2.96, `publicar_escala`): um evento e de 1 a 10 vagas, publicadas de uma vez,
-/// tudo ou nada. Não passa pela fila offline: uma escala é uma só chamada, e o que não se sabe se chegou (sem rede,
-/// prazo vencido, resposta ilegível) fica guardado com a mesma `chave` até a pessoa tentar de novo, com os campos
-/// travados. O servidor devolve a mesma escala para a mesma chave, sem publicar de novo.
+/// tudo ou nada. Não passa pela fila offline: uma escala é uma só chamada.
+///
+/// Idempotência (DINHEIRO: vaga em dobro): a `chave` é uma só para a escala inteira e nasce com cada montagem do pedido.
+/// Tudo que não é recusa definitiva (`recusaDefinitivaDePublicacao`, mais 401 e 429, que também não gravam nada) é
+/// resultado INCERTO: sem rede, prazo vencido, resposta ilegível, um 502 ou 504 sem envelope (`.desconhecido`). A escala
+/// montada fica guardada em `tentativaIncerta`, os campos travam, e o "Tentar de novo" manda o MESMO corpo com a MESMA
+/// chave, que o servidor devolve sem publicar de novo. A chave só sai depois de sucesso ou de recusa definitiva.
+/// A `GuardaDaEscala` mantém este modelo vivo, com a chave, enquanto houver tentativa incerta, mesmo que a pessoa cancele.
 @MainActor @Observable
 public final class PublicarEscalaViewModel {
     public let estabelecimento: Estabelecimento
@@ -54,13 +71,6 @@ public final class PublicarEscalaViewModel {
             editou(evento: .data)
         }
     }
-    public var responsavelLocal = "" {
-        didSet { editou(evento: .responsavel) }
-    }
-    /// Valem para todas as vagas da escala.
-    public var refeicao = false { didSet { editou() } }
-    public var transporte = false { didSet { editou() } }
-    public var materialProprio = false { didSet { editou() } }
 
     public private(set) var vagas: [VagaDoFormularioDaEscala]
     public private(set) var funcoes: [Funcao] = []
@@ -71,6 +81,9 @@ public final class PublicarEscalaViewModel {
     public private(set) var resultado: EscalaPublicada?
     /// A escala que saiu sem resposta conhecida: o "Tentar de novo" a manda de novo, com a mesma chave.
     public private(set) var tentativaIncerta: PublicacaoEscala?
+    /// Sobe a cada tentativa de publicar que termina com uma mensagem geral, mesmo repetida: a tela rola até ela e move o
+    /// foco de acessibilidade para ela (quem só aumenta a letra, em AX5, não a veria no alto da rolagem).
+    public private(set) var avisosDaAcao = 0
 
     private let carregar: @Sendable () async throws -> [Funcao]
     private let publicarAPI: @Sendable (PublicacaoEscala) async throws -> EscalaPublicada
@@ -124,6 +137,17 @@ public final class PublicarEscalaViewModel {
         funcoes.first { $0.id == vaga.funcaoID }
     }
 
+    /// RN24: a seleção só existe com o início a mais de 24 horas do relógio do aparelho (o do servidor é que vale).
+    public func selecaoDisponivel(_ vaga: VagaDoFormularioDaEscala) -> Bool {
+        vaga.inicio > agora().addingTimeInterval(RegraDaSelecao.antecedencia)
+    }
+
+    /// Até quando a casa escolhe, 24 h antes do início; `nil` fora do modo seleção.
+    public func prazoDeEscolha(_ vaga: VagaDoFormularioDaEscala) -> Date? {
+        guard vaga.modo == .selecao, selecaoDisponivel(vaga) else { return nil }
+        return RegraDaSelecao.prazoDeEscolha(inicio: vaga.inicio)
+    }
+
     /// Quantas vagas a escala publicou, depois do resultado.
     public var vagasPublicadas: Int { resultado?.vagas.count ?? 0 }
 
@@ -149,12 +173,12 @@ public final class PublicarEscalaViewModel {
 
     public func adicionarVaga() {
         guard podeAdicionarVaga else { return }
-        let ultima = vagas.last
         var nova = Self.vagaVazia(id: novoID(), dia: data)
-        // Mais uma função no mesmo turno é o caso comum: a vaga nova nasce com o horário da anterior.
-        if let ultima {
+        // Mais uma função no mesmo turno é o caso comum: a vaga nova nasce com o horário e o responsável da anterior.
+        if let ultima = vagas.last {
             nova.inicio = ultima.inicio
             nova.fim = ultima.fim
+            nova.responsavelLocal = ultima.responsavelLocal
         }
         vagas.append(nova)
         editou()
@@ -179,12 +203,30 @@ public final class PublicarEscalaViewModel {
             if duracao > 0, depois.fim == antes.fim { depois.fim = depois.inicio.addingTimeInterval(duracao) }
         }
         depois.pessoas = min(max(depois.pessoas, 1), PublicacaoEscala.limiteDePosicoes)
+        // A seleção deixou de caber com o novo início: volta para urgência, que é o que a tela oferece.
+        if depois.modo == .selecao, !selecaoDisponivel(depois) { depois.modo = .urgencia }
         vagas[indice] = depois
         if depois.funcaoID != antes.funcaoID { erros.vagas[id]?[.funcao] = nil }
-        if depois.inicio != antes.inicio || depois.fim != antes.fim { erros.vagas[id]?[.horario] = nil }
-        if depois.valorTexto != antes.valorTexto { erros.vagas[id]?[.valor] = nil }
+        if depois.inicio != antes.inicio || depois.fim != antes.fim {
+            erros.vagas[id]?[.horario] = nil
+            erros.vagas[id]?[.modo] = nil
+        }
+        if depois.modo != antes.modo { erros.vagas[id]?[.modo] = nil }
         if depois.pessoas != antes.pessoas { erros.vagas[id]?[.pessoas] = nil }
+        // A marca de um campo de TEXTO (valor, responsável, traje, observações) não some na primeira letra: com o teclado
+        // aberto, o conteúdo encolheria e o campo pularia debaixo do dedo, e em AX5 o teclado caía. Ela sai na próxima tentativa
+        // de publicar (que confere tudo de novo). As escolhas por toque (função, horário, modo, pessoas) limpam na hora.
         editou()
+    }
+
+    /// Escolhe o modo da vaga. A seleção é recusada, com a mensagem no campo, quando o início não está a mais de 24 horas.
+    public func escolherModo(_ modo: ModoPreenchimento, em id: UUID) {
+        guard !camposBloqueados, let vaga = vagas.first(where: { $0.id == id }) else { return }
+        if modo == .selecao, !selecaoDisponivel(vaga) {
+            erros.vagas[id, default: [:]][.modo] = TextosRepublicarVaga.selecaoSemAntecedencia
+            return
+        }
+        atualizar(id) { $0.modo = modo }
     }
 
     public func aumentarPessoas(em id: UUID) { atualizar(id) { $0.pessoas += 1 } }
@@ -198,15 +240,16 @@ public final class PublicarEscalaViewModel {
         let nome = nome.trimmingCharacters(in: .whitespacesAndNewlines)
         if !(3...100).contains(nome.count) { novos.evento[.nome] = TextosDaEscala.Erro.nome }
         if DataCivil.deSaoPaulo(data) == nil { novos.evento[.data] = TextosDaEscala.Erro.data }
-        if responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { novos.evento[.responsavel] = TextosDaEscala.Erro.responsavel }
 
         let agora = agora()
         for vaga in vagas {
             var daVaga: [CampoDaVagaDaEscala: String] = [:]
             if !funcoes.contains(where: { $0.id == vaga.funcaoID }) { daVaga[.funcao] = TextosDaEscala.Erro.funcao }
             if vaga.inicio <= agora || vaga.fim <= vaga.inicio { daVaga[.horario] = TextosDaEscala.Erro.horario }
+            if vaga.modo == .selecao, !selecaoDisponivel(vaga) { daVaga[.modo] = TextosRepublicarVaga.selecaoSemAntecedencia }
             if vaga.valorCentavos < 1 { daVaga[.valor] = TextosDaEscala.Erro.valor }
             if !(1...PublicacaoEscala.limiteDePosicoes).contains(vaga.pessoas) { daVaga[.pessoas] = TextosDaEscala.Erro.pessoas }
+            if vaga.responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { daVaga[.responsavel] = TextosDaEscala.Erro.responsavel }
             if !daVaga.isEmpty { novos.vagas[vaga.id] = daVaga }
         }
 
@@ -226,34 +269,62 @@ public final class PublicarEscalaViewModel {
     public func publicar() async {
         guard !enviando, resultado == nil else { return }
         let escala: PublicacaoEscala
+        let reenvio = tentativaIncerta != nil
         if let incerta = tentativaIncerta {
             escala = incerta
         } else {
-            guard validar(), let montada = montar() else { return }
+            guard validar(), let montada = montar() else {
+                if erros.geral != nil { avisosDaAcao += 1 }
+                return
+            }
             escala = montada
         }
         enviando = true
         erros.geral = nil
-        defer { enviando = false }
+        defer {
+            enviando = false
+            if erros.geral != nil { avisosDaAcao += 1 }
+        }
         let fonte = publicarAPI
         do {
             resultado = try await PrazoDaAbertura.esperar(prazo) { try await fonte(escala) }
             tentativaIncerta = nil
         } catch let erro as ErroDaApi {
-            if erro.codigo == .semRede || erro.codigo == .respostaInvalida {
-                // Pode ter chegado: sem rede, prazo vencido ou resposta ilegível. Guarda a mesma escala.
+            if Self.recusaDefinitiva(erro), !reenvio || Self.recusaDeConteudo(erro) {
+                tentativaIncerta = nil
+                tratar(erro)
+            } else if Self.recusaDefinitiva(erro) {
+                // Reenvio recusado por permissão, limite, sessão ou perfil: o servidor confere isso ANTES de olhar a chave, então a
+                // recusa não prova que a primeira tentativa não gravou. A chave segue guardada, os campos travados, e o próximo
+                // envio leva a mesma chave (soltá-la aqui deixaria o próximo Publicar sair com chave nova e duplicar a escala).
+                tentativaIncerta = escala
+                erros.geral = "\(MensagemDoErroAPI.texto(erro)) \(TextosDaEscala.Erro.incerta)"
+            } else {
+                // Pode ter chegado: sem rede, prazo vencido, resposta ilegível, 502 ou 504 sem envelope. Guarda a mesma
+                // escala, com a mesma chave: reenviar nunca a duplica.
                 tentativaIncerta = escala
                 erros.geral = TextosDaEscala.Erro.incerta
-            } else {
-                tentativaIncerta = nil
-                tratar(erro, em: escala)
             }
-        } catch is CancellationError {
-            tentativaIncerta = escala
         } catch {
+            // A rede crua e o cancelamento (a saída da tela no meio do envio) também deixam a escala incerta.
             tentativaIncerta = escala
-            erros.geral = TextosDaEscala.Erro.incerta
+            if !(error is CancellationError) { erros.geral = TextosDaEscala.Erro.incerta }
         }
+    }
+
+    /// Só a recusa definitiva solta a chave: o servidor não gravou nada e repetir o mesmo corpo não vira sucesso. `429` e
+    /// `401` também chegam antes de gravar.
+    /// A recusa que é do CONTEÚDO da escala (campo, horário, seleção, função): vem da conferência do corpo, depois da chave, e
+    /// prova que nada foi gravado. Só ela solta a chave de uma tentativa que já estava incerta.
+    static func recusaDeConteudo(_ erro: ErroDaApi) -> Bool {
+        switch erro.codigo {
+        case .campoObrigatorio, .campoInvalido, .horarioInvalido, .selecaoSemAntecedencia, .funcaoIncompativel: true
+        default: false
+        }
+    }
+
+    static func recusaDefinitiva(_ erro: ErroDaApi) -> Bool {
+        erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == .limiteExcedido || erro.codigo == .naoAutenticado
     }
 
     private func montar() -> PublicacaoEscala? {
@@ -262,14 +333,17 @@ public final class PublicarEscalaViewModel {
             nome: nome.trimmingCharacters(in: .whitespacesAndNewlines), data: dia, local: estabelecimento.endereco,
             regiaoAdministrativa: estabelecimento.regiaoAdministrativa, ponto: estabelecimento.ponto
         )
-        let inclusos = Inclusos(refeicao: refeicao, transporte: transporte, exigeMaterialProprio: materialProprio)
-        let responsavel = responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines)
         var itens: [VagaDaEscala] = []
         for vaga in vagas {
             guard let funcaoID = vaga.funcaoID, let periodo = try? Periodo(inicio: vaga.inicio, fim: vaga.fim) else { return nil }
             itens.append(VagaDaEscala(
                 funcaoID: funcaoID, periodo: periodo, valor: Dinheiro(centavos: vaga.valorCentavos), posicoes: vaga.pessoas,
-                inclusos: inclusos, responsavelLocal: responsavel, participaRateio: false, modo: .urgencia
+                inclusos: Inclusos(refeicao: vaga.refeicao, transporte: vaga.transporte, exigeMaterialProprio: vaga.materialProprio),
+                responsavelLocal: vaga.responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines),
+                traje: vaga.traje.trimmingCharacters(in: .whitespacesAndNewlines).nilSeVazio,
+                participaRateio: nil,
+                observacoes: vaga.observacoes.trimmingCharacters(in: .whitespacesAndNewlines).nilSeVazio,
+                modo: vaga.modo
             ))
         }
         return PublicacaoEscala(estabelecimentoID: estabelecimento.id, evento: evento, vagas: itens, chave: novoID())
@@ -277,18 +351,17 @@ public final class PublicarEscalaViewModel {
 
     /// Recusa do servidor: nada foi publicado. O caminho do campo (`evento.nome`, `vagas[2].valor_centavos`, `vagas`,
     /// `posicoes`) vira a marca no campo certo, ou a mensagem geral quando o erro não é de um campo só.
-    private func tratar(_ erro: ErroDaApi, em escala: PublicacaoEscala) {
+    private func tratar(_ erro: ErroDaApi) {
         var novos = ErrosDaEscala()
         switch erro.codigo {
         case .campoObrigatorio, .campoInvalido:
             marcar(caminho: erro.detalhes, em: &novos)
-        case .horarioInvalido, .selecaoSemAntecedencia:
-            if let (indice, _) = Self.vaga(deCaminho: erro.detalhes), vagas.indices.contains(indice) {
-                novos.vagas[vagas[indice].id] = [.horario: TextosDaEscala.Erro.horario]
-                novos.geral = TextosDaEscala.Erro.temErro
-            } else {
-                novos.geral = TextosDaEscala.Erro.generico
-            }
+        case .horarioInvalido:
+            marcarVaga(deCaminho: erro.detalhes, campo: .horario, texto: TextosDaEscala.Erro.horario, em: &novos)
+        case .selecaoSemAntecedencia:
+            marcarVaga(deCaminho: erro.detalhes, campo: .modo, texto: TextosRepublicarVaga.selecaoSemAntecedencia, em: &novos)
+        case .funcaoIncompativel:
+            marcarVaga(deCaminho: erro.detalhes, campo: .funcao, texto: TextosDaEscala.Erro.funcao, em: &novos)
         case .semPermissao where erro.detalhes == CodigoErroAPI.contaSuspensa.rawValue, .contaSuspensa:
             novos.geral = TextosDaEscala.Erro.contaSuspensa
         case .semPermissao:
@@ -301,6 +374,15 @@ public final class PublicarEscalaViewModel {
             novos.geral = TextosDaEscala.Erro.generico
         }
         erros = novos
+    }
+
+    private func marcarVaga(deCaminho caminho: String?, campo: CampoDaVagaDaEscala, texto: String, em novos: inout ErrosDaEscala) {
+        if let (indice, _) = Self.vaga(deCaminho: caminho), vagas.indices.contains(indice) {
+            novos.vagas[vagas[indice].id] = [campo: texto]
+            novos.geral = TextosDaEscala.Erro.temErro
+        } else {
+            novos.geral = TextosDaEscala.Erro.generico
+        }
     }
 
     private func marcar(caminho: String?, em novos: inout ErrosDaEscala) {
@@ -349,6 +431,10 @@ public final class PublicarEscalaViewModel {
         case "inicio_em", "fim_em": (.horario, TextosDaEscala.Erro.horario)
         case "valor_centavos": (.valor, TextosDaEscala.Erro.valor)
         case "posicoes": (.pessoas, TextosDaEscala.Erro.pessoas)
+        case "responsavel_local": (.responsavel, TextosDaEscala.Erro.responsavel)
+        case "modo": (.modo, TextosPublicarVaga.modoIndisponivel)
+        case "traje": (.traje, TextosPublicarVaga.campoInvalido)
+        case "observacoes": (.observacoes, TextosPublicarVaga.campoInvalido)
         default: nil
         }
     }
@@ -356,8 +442,10 @@ public final class PublicarEscalaViewModel {
     // MARK: Ajudantes
 
     private func editou(evento campo: CampoDoEventoDaEscala? = nil) {
-        if let campo { erros.evento[campo] = nil }
-        if tentativaIncerta == nil, erros.geral != nil, !enviando { erros.geral = nil }
+        // O nome é de texto: a marca dele fica até a próxima tentativa (ver `atualizar`). O dia é por toque e limpa na hora.
+        if campo == .data { erros.evento[.data] = nil }
+        // A mensagem geral fica até a próxima tentativa de publicar: em AX ela está no alto da rolagem, e tirá-la enquanto a
+        // pessoa digita encolheria o conteúdo e deslocaria o campo debaixo do dedo (o campo perdia o foco na segunda letra).
     }
 
     private func deslocarVagas(de antigo: Date, para novo: Date) {
@@ -369,6 +457,7 @@ public final class PublicarEscalaViewModel {
             var movida = vaga
             movida.inicio = calendario.date(byAdding: .day, value: dias, to: vaga.inicio) ?? vaga.inicio
             movida.fim = calendario.date(byAdding: .day, value: dias, to: vaga.fim) ?? vaga.fim
+            if movida.modo == .selecao, !selecaoDisponivel(movida) { movida.modo = .urgencia }
             return movida
         }
     }
@@ -387,4 +476,8 @@ public final class PublicarEscalaViewModel {
             id: id, funcaoID: nil, inicio: inicio, fim: inicio.addingTimeInterval(5 * 60 * 60), valorTexto: "", pessoas: 1
         )
     }
+}
+
+private extension String {
+    var nilSeVazio: String? { isEmpty ? nil : self }
 }

@@ -13,12 +13,12 @@ struct ContratoDaEscalaTests {
         let primeira = VagaDaEscala(
             funcaoID: garcom,
             periodo: try Periodo(inicio: try #require(ContratoAPI.instante("2026-12-12T21:00:00Z")), fim: try #require(ContratoAPI.instante("2026-12-13T02:00:00Z"))),
-            valor: Dinheiro(centavos: 16_000), posicoes: 6, inclusos: semInclusos, responsavelLocal: "Marina", participaRateio: false
+            valor: Dinheiro(centavos: 16_000), posicoes: 6, inclusos: semInclusos, responsavelLocal: "Marina"
         )
         let segunda = VagaDaEscala(
             funcaoID: bartender,
             periodo: try Periodo(inicio: try #require(ContratoAPI.instante("2026-12-12T20:00:00Z")), fim: try #require(ContratoAPI.instante("2026-12-13T02:00:00Z"))),
-            valor: Dinheiro(centavos: 18_000), posicoes: 2, inclusos: semInclusos, responsavelLocal: "Marina", participaRateio: false
+            valor: Dinheiro(centavos: 18_000), posicoes: 2, inclusos: semInclusos, responsavelLocal: "Marina"
         )
         return PublicacaoEscala(
             estabelecimentoID: try #require(UUID(uuidString: "30000000-0000-0000-0000-000000000001")),
@@ -50,6 +50,7 @@ struct ContratoDaEscalaTests {
         let itens = try #require(corpo["vagas"] as? [NSDictionary])
 
         #expect(itens[0]["traje"] == nil && itens[0]["observacoes"] == nil && itens[0]["alerta_antecedencia_min"] == nil)
+        #expect(itens[0]["participa_rateio"] == nil, "o rateio sai nulo (omitido), como na web e no Android")
         #expect(itens[1]["traje"] as? String == "Camisa preta")
         #expect(itens[1]["observacoes"] as? String == "Entrada pela lateral")
         #expect(itens[1]["modo"] as? String == "selecao")

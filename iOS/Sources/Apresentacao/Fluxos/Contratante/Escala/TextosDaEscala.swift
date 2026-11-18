@@ -16,6 +16,7 @@ enum TextosDaEscala {
     static let data = String(localized: "Dia do evento", bundle: bundleApresentacao)
     static let responsavel = String(localized: "Quem recebe os profissionais no local", bundle: bundleApresentacao)
     static let responsavelExemplo = String(localized: "Nome de quem recebe", bundle: bundleApresentacao)
+    static let opcional = String(localized: "Opcional", bundle: bundleApresentacao)
     static let inclusos = String(localized: "Vale para todas as vagas", bundle: bundleApresentacao)
 
     static let vagas = String(localized: "Vagas da escala", bundle: bundleApresentacao)
@@ -60,7 +61,7 @@ enum TextosDaEscala {
         static let quantidade = String(localized: "Uma escala tem de 1 a 10 vagas. Nada foi publicado.", bundle: bundleApresentacao)
         static let somaDePessoas = String(localized: "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado.", bundle: bundleApresentacao)
         static let cadastroDaCasa = String(localized: "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado.", bundle: bundleApresentacao)
-        static let incerta = String(localized: "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas.", bundle: bundleApresentacao)
+        static let incerta = String(localized: "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo.", bundle: bundleApresentacao)
         static let generico = String(localized: "Não foi possível publicar a escala. Nada foi publicado. Tente novamente.", bundle: bundleApresentacao)
         static let semPermissao = String(localized: "Sua conta não pode publicar escalas nesta casa. Nada foi publicado.", bundle: bundleApresentacao)
         static let contaSuspensa = String(localized: "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado.", bundle: bundleApresentacao)

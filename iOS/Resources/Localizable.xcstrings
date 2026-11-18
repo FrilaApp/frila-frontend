@@ -15793,6 +15793,28 @@
         }
       }
     },
+    "Opcional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcional"
+          }
+        }
+      }
+    },
+    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo."
+          }
+        }
+      }
+    },
     "Equipe da casa" : {
       "extractionState" : "manual",
       "localizations" : {

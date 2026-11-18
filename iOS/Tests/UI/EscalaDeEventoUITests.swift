@@ -78,6 +78,33 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertTrue(linha.waitForExistence(timeout: Espera.aparecer))
     }
 
+    /// Toca no campo, apaga o que houver e digita. O valor do campo marcado com erro é lido como "texto, Erro: mensagem"
+    /// (a marca é parte do valor para o leitor de tela), por isso a conferência é pelo começo do valor e não pela igualdade
+    /// do `substituirTexto` compartilhado.
+    private func digitarNoCampo(_ campo: XCUIElement, por texto: String, file: StaticString = #filePath, line: UInt = #line) {
+        var focado = false
+        for _ in 0..<4 where !focado {
+            esperarEstabilizacaoDeFrame(campo, timeout: 3)
+            campo.tap()
+            focado = esperarFocoDoTeclado(campo, timeout: 3)
+        }
+        XCTAssertTrue(focado, "o campo deveria receber o foco do teclado", file: file, line: line)
+        guard focado else { return }
+        let atual = ((campo.value as? String) ?? "")
+        if !atual.isEmpty {
+            campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: atual.count))
+        }
+        campo.typeText(texto)
+        XCTAssertTrue(((campo.value as? String) ?? "").hasPrefix(texto), "o campo deveria mostrar \"\(texto)\" depois da digitação", file: file, line: line)
+    }
+
+    private func preencherResponsavel(_ app: XCUIApplication, vaga: Int, nome: String) {
+        let campo = app.textFields["escala-responsavel-\(vaga)"]
+        trazer(campo, em: app)
+        digitarNoCampo(campo, por: nome)
+        fecharTeclado(app)
+    }
+
     private func digitarValor(_ app: XCUIApplication, vaga: Int, centavos: String) {
         let campo = app.textFields.matching(identifier: "valor-vaga-campo").element(boundBy: vaga)
         trazer(campo, em: app)
@@ -92,15 +119,12 @@ final class EscalaDeEventoUITests: XCTestCase {
         let app = abrir()
         let antes = abrirEscala(app)
 
-        substituirTexto(app.textFields["escala-nome"], por: "Formatura de Direito")
-        fecharTeclado(app)
-        let responsavel = app.textFields["escala-responsavel"]
-        trazer(responsavel, em: app)
-        substituirTexto(responsavel, por: "Marina")
+        digitarNoCampo(app.textFields["escala-nome"], por: "Formatura de Direito")
         fecharTeclado(app)
 
         escolherFuncao(app, vaga: 0, opcao: 0)
         digitarValor(app, vaga: 0, centavos: "16000")
+        preencherResponsavel(app, vaga: 0, nome: "Marina")
 
         let adicionar = app.buttons["escala-adicionar-vaga"]
         trazer(adicionar, em: app)
@@ -142,6 +166,46 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertEqual(vagas(app).count, antes)
     }
 
+    /// Em AX5 o aviso vai para o alto da rolagem: depois de Publicar ele tem de aparecer na tela (rolagem até ele), e não
+    /// ficar fora da primeira tela, onde quem só aumenta a letra acharia que o botão não fez nada.
+    func testEmAX5OErroAparecaNaTelaDepoisDePublicar() {
+        let app = abrir(ax5: true)
+        abrirEscala(app)
+
+        // Desce a tela, para o aviso do alto ficar fora dela antes do toque.
+        for _ in 0..<3 { app.swipeUp(velocity: .fast) }
+        tocar(app.buttons["escala-publicar"])
+
+        let mensagem = elemento("escala-mensagem", em: app)
+        XCTAssertTrue(mensagem.waitForExistence(timeout: Espera.aparecer))
+        let janela = app.windows.firstMatch.frame
+        let visivel = NSPredicate { _, _ in
+            let quadro = mensagem.frame
+            return mensagem.exists && quadro.minY >= 100 && quadro.maxY <= janela.height - 100
+        }
+        expectation(for: visivel, evaluatedWith: nil)
+        waitForExpectations(timeout: 5)
+        capturar("2-erros-de-campo", ax5: true)
+    }
+
+    /// Quem usa letra grande e corrige um campo marcado com erro não pode perder o teclado: a marca do campo não some na
+    /// primeira letra (o conteúdo encolheria, o campo pularia debaixo do dedo e o teclado cairia, deixando "M").
+    func testEmAX5CorrigirOCampoMarcadoComErroMantemOTecladoAberto() {
+        let app = abrir(ax5: true)
+        abrirEscala(app)
+        tocar(app.buttons["escala-publicar"])
+        XCTAssertTrue(elemento("escala-mensagem", em: app).waitForExistence(timeout: Espera.aparecer))
+
+        let campo = app.textFields["escala-responsavel-0"]
+        trazer(campo, em: app)
+        XCTAssertTrue(elemento("escala-erro-responsavel-0", em: app).exists, "o responsável vazio está marcado")
+
+        digitarNoCampo(campo, por: "Marina")
+
+        XCTAssertTrue((campo.value as? String ?? "").hasPrefix("Marina"), "o campo mostra o que foi digitado: \(campo.value as? String ?? "")")
+        XCTAssertTrue(app.keyboards.firstMatch.exists, "o teclado segue aberto depois de digitar no campo marcado")
+    }
+
     // MARK: Capturas (tamanho padrão e AX5)
 
     func testCapturasDaEscala() {
@@ -154,11 +218,7 @@ final class EscalaDeEventoUITests: XCTestCase {
             XCTAssertTrue(elemento("escala-mensagem", em: app).waitForExistence(timeout: Espera.aparecer))
             capturar("2-erros-de-campo", ax5: ax5)
 
-            substituirTexto(app.textFields["escala-nome"], por: "Formatura de Direito")
-            fecharTeclado(app)
-            let responsavel = app.textFields["escala-responsavel"]
-            trazer(responsavel, em: app)
-            substituirTexto(responsavel, por: "Marina")
+            digitarNoCampo(app.textFields["escala-nome"], por: "Formatura de Direito")
             fecharTeclado(app)
             let funcao = app.buttons["escala-funcao-0"]
             trazer(funcao, em: app)
@@ -175,7 +235,9 @@ final class EscalaDeEventoUITests: XCTestCase {
             capturar("4-duas-vagas", ax5: ax5)
 
             digitarValor(app, vaga: 0, centavos: "16000")
+            preencherResponsavel(app, vaga: 0, nome: "Marina")
             escolherFuncao(app, vaga: 1, opcao: 1)
+            preencherResponsavel(app, vaga: 1, nome: "Marina")
             digitarValor(app, vaga: 1, centavos: "18000")
             tocar(app.buttons["escala-publicar"])
             XCTAssertTrue(elemento("escala-confirmacao", em: app).waitForExistence(timeout: 15))
