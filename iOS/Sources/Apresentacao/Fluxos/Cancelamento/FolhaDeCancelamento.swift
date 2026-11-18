@@ -207,7 +207,8 @@ public struct FolhaDeCancelamento: View {
     }
 }
 
-/// Botão de cancelamento em cápsula destrutiva (MidFi do Fabrício) que abre a folha de cancelamento, nos dois lados.
+/// Botão de cancelamento (turno, posição ou vaga): ação discreta, sublinhada, no fim da tela e longe do botão primário.
+/// O toque só abre a folha de cancelamento, nos dois lados; quem cancela é o "Confirmar" da folha.
 public struct BotaoDeCancelamento: View {
     private let titulo: String
     private let acao: () -> Void
@@ -218,10 +219,9 @@ public struct BotaoDeCancelamento: View {
     }
 
     public var body: some View {
-        Button(role: .destructive, action: acao) {
+        Button(action: acao) {
             Text(verbatim: titulo)
-                .capsulaDestrutiva()
         }
-        .buttonStyle(.tatil)
+        .buttonStyle(.frilaAcaoDiscreta)
     }
 }

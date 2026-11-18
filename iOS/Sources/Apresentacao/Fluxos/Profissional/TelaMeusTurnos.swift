@@ -23,11 +23,9 @@ struct LinhaDoTurnoComIcone: View {
     }
 }
 
-/// Cartão de turno do profissional, no mesmo padrão de placa de museu da origem (`CartaoVaga`):
-/// casa em caixa alta na `entity` (`FrilaTipo.resumo`), função em `FrilaTipo.tituloDoCartao`,
-/// linhas de dados entre dois fios `FrilaCor.divisoria` e valor em `FrilaTipo.preco`.
+/// Cartão de turno do profissional (T7 do protótipo, "Card de vaga" sem a ação): o selo da etapa, a casa e a função,
+/// as linhas de dado (quando e onde) e o valor. Tocar abre o turno; o cartão não leva botão.
 public struct CartaoMeuTurno: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let turno: Turno
     private let formatador = FormatadorFrila()
 
@@ -36,79 +34,68 @@ public struct CartaoMeuTurno: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            cabecalho
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                LinhaDoTurnoComIcone(icone: "clock", texto: formatador.intervalo(turno.vaga.periodo))
-                LinhaDoTurnoComIcone(icone: "mappin", texto: turno.vaga.local)
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            selo
+            VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                Text(verbatim: turno.contraparte.nome)
+                    .font(FrilaTipo.nome)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: turno.vaga.funcao)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .overlay(alignment: .top) { fio }
-            .overlay(alignment: .bottom) { fio }
-            if turno.cancelado {
-                Label {
-                    Text(verbatim: TextosDoProfissional.Turnos.canceladoTitulo)
-                } icon: {
-                    Image(systemName: "xmark.circle")
-                }
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                FrilaLinhaDeDado(icone: "clock") { Text(verbatim: formatador.intervalo(turno.vaga.periodo)) }
+                FrilaLinhaDeDado(icone: "mappin") { Text(verbatim: turno.vaga.local) }
             }
+            FrilaPriceTag(texto: formatador.dinheiro(turno.valorAcordado),
+                          leitura: formatador.dinheiroFalado(turno.valorAcordado), tamanho: 22)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cartaoFrila()
         .accessibilityElement(children: .combine)
     }
 
-    private var fio: some View {
-        Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
-    }
-
+    /// O status do turno vem no selo: cancelado, não verificado ou a etapa em que ele está.
     @ViewBuilder
-    private var cabecalho: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                casaEFuncao
-                valor
-            }
+    private var selo: some View {
+        if turno.cancelado {
+            SeloDeStatus(verbatim: TextosDoProfissional.Turnos.canceladoTitulo, estilo: .encerrado)
+        } else if turno.verificacao == .naoVerificado {
+            SeloDeStatus(verbatim: TextosDoProfissional.Turnos.naoVerificadoTitulo, estilo: .contorno)
         } else {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-                    casaEFuncao
-                    Spacer(minLength: FrilaEspaco.pequeno)
-                    valor
-                }
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    casaEFuncao
-                    valor
-                }
-            }
+            let etapa = EtapaDoTurno.atual(aCaminho: turno.aCaminhoEm != nil, presenca: turno.checkin != nil,
+                                           concluido: turno.checkout != nil)
+            let dados = etapa.selo
+            SeloDeStatus(verbatim: dados.titulo, estilo: dados.estilo, icone: dados.icone)
         }
-    }
-
-    private var casaEFuncao: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: turno.contraparte.nome)
-                .font(FrilaTipo.resumo)
-                .textCase(.uppercase)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityLabel(Text(verbatim: turno.contraparte.nome))
-                .fixedSize(horizontal: false, vertical: true)
-            Text(verbatim: turno.vaga.funcao)
-                .font(FrilaTipo.tituloDoCartao)
-                .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var valor: some View {
-        FrilaPriceTag(texto: formatador.dinheiro(turno.valorAcordado),
-                      leitura: formatador.dinheiroFalado(turno.valorAcordado), tamanho: 18)
     }
 }
 
-/// Lista de turnos do profissional (#105), no quadro "MeuTurno" do MidFi do Fabrício. Tocar num cartão abre o turno.
+/// O nome da tela de uma raiz de aba, sem título de página repetindo a aba (D-DS-14): a barra fica vazia, e o nome
+/// continua existindo para o leitor de tela e para quem procura a barra pelo nome.
+private struct NomeDaTelaSoParaOLeitorDeTela: ViewModifier {
+    let nome: String
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(Text(verbatim: nome))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(verbatim: nome)
+                        .opacity(0)
+                        .accessibilityAddTraits(.isHeader)
+                }
+            }
+    }
+}
+
+/// Lista de turnos do profissional (#105; T7 do protótipo). Tocar num cartão abre o turno. A raiz abre sem título
+/// de página: o primeiro elemento é o conteúdo. Sem o agrupamento Hoje, Próximos e Histórico do protótipo: ele pede
+/// regra de dia e faturado que a lista não tem.
 public struct TelaMeusTurnos: View {
     @Bindable private var viewModel: MeusTurnosViewModel
     private let abrir: (Turno) -> Void
@@ -120,7 +107,7 @@ public struct TelaMeusTurnos: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 if case let .carregada(_, origem) = viewModel.estado, origem == .cache {
                     AvisoFrila(verbatim: TextosDoProfissional.Turnos.avisoCache, tom: .informativo)
                         .accessibilityIdentifier("aviso-cache-turnos")
@@ -128,10 +115,12 @@ public struct TelaMeusTurnos: View {
 
                 conteudo
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.bloco)
+            .padding(.bottom, FrilaEspaco.grupo)
         }
         .background(FrilaCor.fundo)
-        .navigationTitle(Text(verbatim: TextosDoProfissional.Turnos.tituloMeusTurnos))
+        .modifier(NomeDaTelaSoParaOLeitorDeTela(nome: TextosDoProfissional.Turnos.tituloMeusTurnos))
         .refreshable { await viewModel.atualizar() }
         .task { if viewModel.estado == .ociosa { await viewModel.carregar() } }
         .atualizacaoAutomatica(.meusTurnos, recarregar: viewModel.atualizarEmSilencio)
@@ -151,7 +140,7 @@ public struct TelaMeusTurnos: View {
                 )
                 .accessibilityIdentifier("meus-turnos-vazio")
             } else {
-                LazyVStack(spacing: FrilaEspaco.compacto) {
+                LazyVStack(spacing: FrilaEspaco.bloco) {
                     ForEach(turnos) { turno in
                         Button { abrir(turno) } label: { CartaoMeuTurno(turno: turno) }
                             .buttonStyle(.plain)

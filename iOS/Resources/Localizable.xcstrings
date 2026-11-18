@@ -884,6 +884,17 @@
         }
       }
     },
+    "A caminho": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A caminho"
+          }
+        }
+      }
+    },
     "A Equipe Frila ocultou esta vaga. Você vê os candidatos, mas só pode escolher depois que ela for reexibida.": {
       "extractionState": "stale",
       "localizations": {
@@ -2731,6 +2742,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "CNPJ ou CPF: este documento já tem um estabelecimento no Frila. Se o negócio é seu, entre com o e-mail usado nesse cadastro."
+          }
+        }
+      }
+    },
+    "Concluído": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluído"
+          }
+        }
+      }
+    },
+    "Confirmado": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmado"
           }
         }
       }
@@ -5870,6 +5903,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Estou ciente das consequências e confirmo a exclusão definitiva da minha conta"
+          }
+        }
+      }
+    },
+    "Etapa atual": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa atual"
+          }
+        }
+      }
+    },
+    "Etapa feita": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa feita"
+          }
+        }
+      }
+    },
+    "Etapa que falta": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa que falta"
+          }
+        }
+      }
+    },
+    "Etapas do turno": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapas do turno"
           }
         }
       }
@@ -10237,6 +10314,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença confirmada."
+          }
+        }
+      }
+    },
+    "Presença marcada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença marcada"
           }
         }
       }
