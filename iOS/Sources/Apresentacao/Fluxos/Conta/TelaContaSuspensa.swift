@@ -1,13 +1,14 @@
 import FrilaDominio
 import SwiftUI
 
-/// Conta suspensa (#105): estado e formulário com os tokens Hi-Fi; ações em lista com divisórias.
+/// Conta suspensa (#105): o estado da suspensão, a contestação e, no fim, as ações de conta. O Fabrício não desenhou
+/// esta tela: extrapolada do sistema da entrada (título em Prodigy, botão primário ancorado embaixo, o formulário com o
+/// rótulo acima, as ações de risco como ação discreta no fim e sem cor de alerta).
 public struct TelaContaSuspensa: View {
     @State private var mostrarConfirmacaoDeSaida = false
     @Bindable private var viewModel: ContaSuspensaViewModel
     @State private var exportarModel: ExportarDadosViewModel
     @FocusState private var focoNoRelato: Bool
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let api: any ApiCliente
 
     public init(viewModel: ContaSuspensaViewModel, api: any ApiCliente) {
@@ -22,23 +23,37 @@ public struct TelaContaSuspensa: View {
             .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
+    /// Enquanto a contestação pode ser aberta ou enviada, o botão dela fica ancorado embaixo. Com o protocolo gravado
+    /// (ou a contestação já aberta no servidor), não há ação que avance: sem rodapé.
+    private var contestacaoEmAberto: Bool {
+        viewModel.protocolo == nil && !viewModel.bloqueadoPor409
+    }
+
     @ViewBuilder
     private var conteudoDaTela: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                    Text(verbatim: TextosContaSuspensa.titulo)
+                        .font(FrilaTipo.tituloDaTela)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
                     avisoCabecalho
                     secaoMotivoESuspensao
                     secaoContestacao
                     secaoAcoes
                 }
-                .padding(FrilaEspaco.medio)
+                .padding(.top, FrilaEspaco.item)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.bottom, FrilaEspaco.secao)
+                .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(FrilaCor.fundo)
-            .navigationTitle(Text(verbatim: TextosContaSuspensa.titulo))
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .rodapeAncoradoQuando(contestacaoEmAberto) { rodape }
+            .toolbar(.hidden, for: .navigationBar)
             .task { await viewModel.carregar() }
             .accessibilityIdentifier("tela-conta-suspensa")
         }
@@ -51,58 +66,55 @@ public struct TelaContaSuspensa: View {
     }
 
     private var secaoMotivoESuspensao: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosContaSuspensa.secaoMotivo)
-                .font(FrilaTipo.resumo)
-                .textCase(.uppercase)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDeSecao(TextosContaSuspensa.secaoMotivo)
 
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                 Text(verbatim: TextosContaSuspensa.motivoTitulo)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: viewModel.motivo.isEmpty ? "—" : viewModel.motivo)
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("texto-motivo-suspensao")
 
             if let data = viewModel.dataSuspensao {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                     Text(verbatim: TextosContaSuspensa.desdeTitulo)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                     Text(verbatim: formatarData(data))
-                        .font(FrilaTipo.meta)
+                        .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.texto)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("texto-data-suspensao")
             }
 
-            HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                Image(systemName: "clock.badge.exclamationmark")
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityHidden(true)
-                Text(verbatim: TextosContaSuspensa.prazoAnaliseDescricao)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            }
-            .padding(.top, FrilaEspaco.minimo)
+            Text(verbatim: TextosContaSuspensa.prazoAnaliseDescricao)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .cartaoFrila()
     }
 
+    private func rotuloDeSecao(_ texto: String) -> some View {
+        Text(verbatim: texto)
+            .font(FrilaTipo.rotuloDeGrupo)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+    }
+
     @ViewBuilder
     private var secaoContestacao: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosContaSuspensa.secaoContestacao)
-                .font(FrilaTipo.resumo)
-                .textCase(.uppercase)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDeSecao(TextosContaSuspensa.secaoContestacao)
 
             if let explicacao409 = viewModel.avisoExplicacao409 {
                 AvisoFrila(verbatim: explicacao409, tom: .alerta)
@@ -115,195 +127,175 @@ public struct TelaContaSuspensa: View {
                 EmptyView()
             } else if viewModel.mostrarFormularioContestacao {
                 formularioContestacao
-            } else {
-                BotaoPrimario(verbatim: TextosContaSuspensa.botaoContestar) {
-                    viewModel.abrirFormularioContestacao()
-                }
-                .accessibilityIdentifier("botao-contestar-suspensao")
             }
 
-            if let erro = viewModel.mensagemErro {
-                AvisoFrila(verbatim: erro, tom: .erro)
+            // Com o botão ancorado embaixo, o erro vai junto dele; sem rodapé (protocolo gravado), fica aqui.
+            if !contestacaoEmAberto, let erro = viewModel.mensagemErro {
+                MensagemJuntoAoBotao(verbatim: erro)
                     .accessibilityIdentifier("aviso-erro-contestacao")
             }
         }
-        .cartaoFrila()
     }
 
     private func cartaoProtocolo(_ protocolo: Protocolo) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            HStack {
-                Label {
-                    Text(verbatim: viewModel.emAnalise ? TextosContaSuspensa.emAnalise : TextosContaSuspensa.protocoloTitulo)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                } icon: {
-                    Image(systemName: "clock.arrow.circlepath")
-                }
-                .foregroundStyle(FrilaCor.alerta)
-                Spacer()
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Label {
+                Text(verbatim: viewModel.emAnalise ? TextosContaSuspensa.emAnalise : TextosContaSuspensa.protocoloTitulo)
+                    .font(FrilaTipo.rotuloSecundario)
+            } icon: {
+                Image(systemName: "clock.arrow.circlepath")
             }
+            .foregroundStyle(FrilaCor.texto)
             .accessibilityIdentifier(viewModel.emAnalise ? "status-em-analise" : "status-contestacao-enviada")
 
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                 Text(verbatim: TextosContaSuspensa.protocoloNumero)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: protocolo.ocorrenciaID.uuidString)
-                    .font(FrilaTipo.meta.monospaced())
+                    .font(FrilaTipo.corpo.monospaced())
                     .foregroundStyle(FrilaCor.texto)
                     .speechSpellsOutCharacters(true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("protocolo-contestacao")
 
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                 Text(verbatim: TextosContaSuspensa.protocoloData)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: formatarData(protocolo.criadaEm))
-                    .font(FrilaTipo.meta)
+                    .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.texto)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
 
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
                 Text(verbatim: TextosContaSuspensa.prazoRespostaTitulo)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 Text(verbatim: formatarDataCivil(protocolo.prazoRespostaAte))
-                    .font(FrilaTipo.meta.weight(.semibold))
+                    .font(FrilaTipo.rotuloSecundario)
                     .foregroundStyle(FrilaCor.texto)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("prazo-resposta-contestacao")
 
             Text(verbatim: viewModel.mensagemDoProtocolo)
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
-                .padding(.top, FrilaEspaco.minimo)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, FrilaEspaco.junto)
                 .accessibilityIdentifier("mensagem-protocolo-contestacao")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
     }
 
+    /// O rótulo visível acima do campo é da tela; o campo é uma caixa de várias linhas, com a dica dentro.
     private var formularioContestacao: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosContaSuspensa.labelRelato)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
 
             TextField(
                 text: $viewModel.relato,
-                prompt: Text(verbatim: TextosContaSuspensa.promptRelato),
+                prompt: Text(verbatim: TextosContaSuspensa.promptRelato).foregroundStyle(FrilaCor.textoSecundario),
                 axis: .vertical
             ) {
                 Text(verbatim: TextosContaSuspensa.labelRelato)
             }
             .lineLimit(4...8)
             .textFieldStyle(.plain)
-            .padding(FrilaEspaco.medio)
-            .font(FrilaTipo.valorDoCampo)
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1))
+            .font(FrilaTipo.corpo)
+            .foregroundStyle(FrilaCor.texto)
+            .caixaDoCampoFrila(emFoco: focoNoRelato)
             .focused($focoNoRelato)
             .accessibilityIdentifier("campo-relato-contestacao")
             .frilaFormField(id: "contestacao-relato", isFocused: focoNoRelato, onDismiss: { focoNoRelato = false })
 
-            HStack {
+            HStack(spacing: FrilaEspaco.item) {
                 if viewModel.relatoValido {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(FrilaCor.sucesso)
+                        .foregroundStyle(FrilaCor.texto)
                         .accessibilityIdentifier("icone-relato-valido-contestacao")
                 }
                 Text(verbatim: TextosContaSuspensa.dicaRelato)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                    .font(FrilaTipo.legenda)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                 Spacer()
                 Text(verbatim: "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10")
-                    .font(FrilaTipo.nota.monospacedDigit())
-                    .foregroundStyle(viewModel.relatoValido ? FrilaCor.sucesso : FrilaCor.textoSecundario)
+                    .font(FrilaTipo.legenda.monospacedDigit())
+                    .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityIdentifier("contador-relato-contestacao")
                     .accessibilityLabel(Text(verbatim: viewModel.relatoValido ? TextosContaSuspensa.relatoValidoAcessibilidade : "\(viewModel.relato.trimmingCharacters(in: .whitespacesAndNewlines).count)/10"))
             }
-
-            layoutDosBotoes {
-                BotaoPrimario(
-                    verbatim: TextosContaSuspensa.botaoEnviar,
-                    carregando: viewModel.enviandoContestacao
-                ) {
-                    Task { await viewModel.enviarContestacao() }
-                }
-                .accessibilityIdentifier("botao-enviar-contestacao")
-
-                BotaoSecundario(verbatim: TextosContaSuspensa.cancelar) {
-                    viewModel.cancelarFormularioContestacao()
-                }
-                .accessibilityIdentifier("botao-cancelar-contestacao")
-            }
         }
     }
 
-    /// Lado a lado, os dois botões se estrangulavam nos tamanhos de acessibilidade (QA do #105).
-    /// `AnyLayout` em vez de `ViewThatFits`: o botão não troca de layout quando o título vira o
-    /// indicador de envio, e a auditoria do XCTest não lê as duas cópias como fonte que não escala.
-    private var layoutDosBotoes: AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: FrilaEspaco.pequeno))
-            : AnyLayout(HStackLayout(spacing: FrilaEspaco.pequeno))
+    /// Ancorado embaixo: o erro da contestação, o botão que avança (um só laranja) e, no formulário, o Cancelar.
+    @ViewBuilder
+    private var rodape: some View {
+        if let erro = viewModel.mensagemErro {
+            MensagemJuntoAoBotao(verbatim: erro)
+                .accessibilityIdentifier("aviso-erro-contestacao")
+        }
+        if viewModel.mostrarFormularioContestacao {
+            BotaoPrimario(
+                verbatim: TextosContaSuspensa.botaoEnviar,
+                carregando: viewModel.enviandoContestacao
+            ) {
+                Task { await viewModel.enviarContestacao() }
+            }
+            .accessibilityIdentifier("botao-enviar-contestacao")
+
+            BotaoSecundario(verbatim: TextosContaSuspensa.cancelar) {
+                viewModel.cancelarFormularioContestacao()
+            }
+            .accessibilityIdentifier("botao-cancelar-contestacao")
+        } else {
+            BotaoPrimario(verbatim: TextosContaSuspensa.botaoContestar) {
+                viewModel.abrirFormularioContestacao()
+            }
+            .accessibilityIdentifier("botao-contestar-suspensao")
+        }
     }
 
+    /// Exportar não é risco; excluir e sair são ações discretas, no fim, uma por linha.
     private var secaoAcoes: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosContaSuspensa.secaoAcoes)
-                .font(FrilaTipo.resumo)
-                .textCase(.uppercase)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDeSecao(TextosContaSuspensa.secaoAcoes)
 
             ItemExportarDados(viewModel: exportarModel, identificador: "conta-suspensa-exportar-dados")
 
-            Divider().overlay(FrilaCor.divisoria)
-
-            NavigationLink {
-                TelaExclusaoDeConta(
-                    viewModel: ExclusaoDeContaViewModel(
-                        api: api,
-                        aoConcluir: viewModel.executarSair
+            VStack(alignment: .leading, spacing: 0) {
+                NavigationLink {
+                    TelaExclusaoDeConta(
+                        viewModel: ExclusaoDeContaViewModel(
+                            api: api,
+                            aoConcluir: viewModel.executarSair
+                        )
                     )
-                )
-            } label: {
-                linhaDeAcao(TextosContaSuspensa.excluir, cor: FrilaCor.perigo)
+                } label: {
+                    Text(verbatim: TextosContaSuspensa.excluir)
+                }
+                .buttonStyle(.frilaAcaoDiscreta)
+                .accessibilityIdentifier("conta-suspensa-excluir-conta")
+
+                Button {
+                    mostrarConfirmacaoDeSaida = true
+                } label: {
+                    Text(verbatim: TextosContaSuspensa.sair)
+                }
+                .buttonStyle(.frilaAcaoDiscreta)
+                .accessibilityIdentifier("conta-suspensa-sair")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("conta-suspensa-excluir-conta")
-
-            Divider().overlay(FrilaCor.divisoria)
-
-            Button {
-                mostrarConfirmacaoDeSaida = true
-            } label: {
-                linhaDeAcao(TextosContaSuspensa.sair, cor: FrilaCor.texto)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("conta-suspensa-sair")
+            .padding(.top, FrilaEspaco.item)
         }
-        .cartaoFrila()
-    }
-
-    /// Linha de lista Hi-Fi: texto à esquerda, chevron em `textoSecundario` à direita, 52 pt de altura mínima.
-    private func linhaDeAcao(_ titulo: String, cor: Color) -> some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo)
-                .font(FrilaTipo.corpo)
-                .foregroundStyle(cor)
-                .multilineTextAlignment(.leading)
-            Spacer(minLength: FrilaEspaco.pequeno)
-            Image(systemName: "chevron.right")
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-        .contentShape(Rectangle())
     }
 
     private func formatarData(_ data: Date) -> String {
@@ -318,48 +310,52 @@ public struct TelaContaSuspensa: View {
         String(format: "%02d/%02d/%04d", data.dia, data.mes, data.ano)
     }
 
-    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
+    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro. Sair é ação de risco: no
+    /// desenho do botão secundário, sem vermelho.
     private var confirmacaoDeSaida: some View {
         ScrollView {
             Text("Sair da conta?", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDeEstado)
+                .font(FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
+                .padding(.top, FrilaEspaco.grupo)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.bottom, FrilaEspaco.grupo)
         }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
-                    mostrarConfirmacaoDeSaida = false
-                }
-                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
-                    mostrarConfirmacaoDeSaida = false
-                    viewModel.executarSair()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
-                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
+        .rodapeAncorado {
+            BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
+                mostrarConfirmacaoDeSaida = false
             }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
+            .accessibilityIdentifier("botao-cancelar-saida-dialogo")
+
+            Button(role: .destructive) {
+                mostrarConfirmacaoDeSaida = false
+                viewModel.executarSair()
+            } label: {
+                Text("Sair", bundle: bundleApresentacao)
+                    .capsulaDestrutiva()
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("botao-confirmar-saida-dialogo")
         }
-        .background(FrilaCor.fundo)
+        .background(FrilaCor.fundo.ignoresSafeArea())
         .presentationDetents([.large])
         .presentationCornerRadius(FrilaRaio.folha)
         .presentationDragIndicator(.visible)
+    }
+}
+
+private extension View {
+    /// O rodapé ancorado só enquanto há ação que avança; sem ela, a tela fica sem a barra de baixo.
+    @ViewBuilder
+    func rodapeAncoradoQuando<Conteudo: View>(_ ativo: Bool, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        if ativo {
+            rodapeAncorado(conteudo)
+        } else {
+            self
+        }
     }
 }

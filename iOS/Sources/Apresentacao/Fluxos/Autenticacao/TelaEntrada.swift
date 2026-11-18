@@ -1,7 +1,8 @@
 import FrilaDominio
 import SwiftUI
 
-/// Entrada por e-mail (#13), com identidade editorial, campo e pílula do Hi-Fi.
+/// Entrada por e-mail (#13, T6 do redesign): a marca, o título, o campo de e-mail e, ancorados embaixo, o texto
+/// legal, a mensagem do envio e o botão "Receber código". Sem Apple e Google e sem a abertura animada (fora do lote).
 public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
@@ -18,87 +19,19 @@ public struct TelaEntrada: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Grupo superior: hero, aviso da API se houver e formulário
-                    VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-                        // Identidade: bloco da marca e títulos
-                        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-                            Text("F", bundle: bundleApresentacao)
-                                .font(FrilaTipo.tituloGrande)
-                                .foregroundStyle(FrilaCor.sobrePrimaria)
-                                .frame(width: 64, height: 64)
-                                .background(FrilaCor.marca, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao))
-                                .accessibilityHidden(true)
-
-                            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                                Text("Frila", bundle: bundleApresentacao)
-                                    .font(FrilaTipo.pergunta)
-                                    .foregroundStyle(FrilaCor.texto)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .accessibilityAddTraits(.isHeader)
-
-                                Text("Turnos avulsos no DF, perto de você.", bundle: bundleApresentacao)
-                                    .font(FrilaTipo.contextoDaResposta)
-                                    .foregroundStyle(FrilaCor.textoSecundario)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-
-                        // Erro da API / conexão (quando presente)
-                        if let erro = viewModel.erro {
-                            AvisoFrila(verbatim: erro, tom: .erro)
-                                .accessibilityIdentifier("entrada-erro")
-                        }
-
-                        // Formulário de e-mail
-                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                            Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
-                                .font(FrilaTipo.contextoDaResposta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-
-                            Text("E-mail", bundle: bundleApresentacao)
-                                .font(FrilaTipo.rotuloDoCampo)
-                                .foregroundStyle(FrilaCor.texto)
-
-                            CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio, controle: controleDoCampo)
-                                .frame(height: FrilaMetrica.alturaDoCampo)
-                                .zIndex(1)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: FrilaRaio.entrada)
-                                        .strokeBorder(erroLocal != nil ? FrilaCor.perigo : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
-                                        .allowsHitTesting(false)
-                                )
-                                .accessibilityLabel(Text("E-mail", bundle: bundleApresentacao))
-                                .accessibilityIdentifier("entrada-email")
-
-                            if let erro = erroLocal {
-                                HStack(alignment: .top, spacing: FrilaEspaco.pequeno) {
-                                    Image(systemName: "exclamationmark.triangle")
-                                        .font(FrilaTipo.meta)
-                                        .foregroundStyle(FrilaCor.perigo)
-                                        .accessibilityHidden(true)
-
-                                    Text(verbatim: erro)
-                                        .font(FrilaTipo.meta)
-                                        .foregroundStyle(FrilaCor.perigo)
-                                }
-                            }
-                        }
+                    VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                        RotuloDaMarca()
+                            .frame(height: 32)
+                        cabecalho
+                        formulario
                     }
 
-                    Spacer(minLength: FrilaEspaco.grande)
+                    Spacer(minLength: FrilaEspaco.grupo)
 
-                    // Textos legais discretos fora da barra fixa
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        Text("Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).", bundle: bundleApresentacao)
-                            .font(FrilaTipo.nota)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .tint(FrilaCor.texto)
-                            .multilineTextAlignment(.leading)
-
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                         Text("Classificação indicativa: 18 anos", bundle: bundleApresentacao)
-                            .font(FrilaTipo.nota)
+                            .font(FrilaTipo.legenda)
                             .foregroundStyle(FrilaCor.textoSecundario)
-                            .multilineTextAlignment(.leading)
                             .accessibilityIdentifier("entrada-classificacao-indicativa")
 
                         #if FRILA_BETA
@@ -106,10 +39,10 @@ public struct TelaEntrada: View {
                         #endif
                     }
                 }
-                .frame(minHeight: max(0, geometry.size.height - FrilaEspaco.grande * 2), alignment: .top)
-                .padding(.top, FrilaEspaco.grande)
-                .padding(.horizontal, FrilaEspaco.medio)
-                .padding(.bottom, FrilaEspaco.grande)
+                .frame(minHeight: max(0, geometry.size.height - FrilaEspaco.grupo * 2), alignment: .top)
+                .padding(.top, FrilaEspaco.grupo)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.bottom, FrilaEspaco.grupo)
                 .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -125,7 +58,20 @@ public struct TelaEntrada: View {
                 viewModel.erro = nil
             }
         }
-        .barraInferiorFixa {
+        .rodapeAncorado {
+            // O que o toque faz fica escrito antes do botão, no mesmo grupo.
+            Text("Ao continuar, você aceita os [Termos de Uso](https://frilabr.com/termos) e a [Política de Privacidade](https://frilabr.com/privacidade).", bundle: bundleApresentacao)
+                .font(FrilaTipo.legenda)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .tint(FrilaCor.texto)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let erro = viewModel.erro {
+                MensagemJuntoAoBotao(verbatim: erro)
+                    .accessibilityIdentifier("entrada-erro")
+            }
+
             BotaoPrimario("Receber código", carregando: viewModel.carregando) {
                 // Com ghost, o primeiro toque completa e o segundo envia, como no Return.
                 if controleDoCampo.completarAntesDeEnviar?() == true { return }
@@ -133,13 +79,50 @@ public struct TelaEntrada: View {
             }
             .disabled(viewModel.carregando)
             .accessibilityIdentifier("entrada-receber-codigo")
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.compacto)
         }
         .frilaKeyboardDismissScope()
         #if DEBUG || FRILA_BETA
         .exemploDebugEntrada()
         #endif
+    }
+
+    private var cabecalho: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text("Turnos avulsos no DF, perto de você.", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDaTela)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            Text("Sem senha e sem SMS: você entra com um código enviado ao seu e-mail.", bundle: bundleApresentacao)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var formulario: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text("E-mail", bundle: bundleApresentacao)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+
+            CampoEmailComDominio(texto: $viewModel.email, habilitado: !viewModel.carregando, aoEnviar: executarEnvio, controle: controleDoCampo)
+                .frame(height: FrilaMetrica.alturaDoCampo)
+                .zIndex(1)
+                .overlay(
+                    // O que falta no campo vira o contorno de 2 pt em tinta, como o foco: problema não tem cor.
+                    RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                        .strokeBorder(erroLocal != nil ? FrilaCor.texto : Color.clear, lineWidth: erroLocal != nil ? 2 : 0)
+                        .allowsHitTesting(false)
+                )
+                .accessibilityLabel(Text("E-mail", bundle: bundleApresentacao))
+                .accessibilityIdentifier("entrada-email")
+
+            if let erro = erroLocal {
+                MensagemJuntoAoBotao(verbatim: erro)
+            }
+        }
     }
 
     private func executarEnvio() {
@@ -161,21 +144,6 @@ public struct TelaEntrada: View {
             if await viewModel.solicitarCodigo() {
                 aoAvancarParaCodigo(viewModel.email)
             }
-        }
-    }
-}
-
-private extension View {
-    func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(FrilaCor.divisoria)
-                    .frame(height: 1)
-                    .accessibilityHidden(true)
-                conteudo()
-            }
-            .background(FrilaCor.fundo)
         }
     }
 }
