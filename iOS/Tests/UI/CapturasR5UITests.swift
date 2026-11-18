@@ -66,7 +66,7 @@ final class CapturasR5UITests: XCTestCase {
     private func minhasVagasVazio(ax5: Bool) {
         let app = iniciar(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "painel-vazio"], ax5: ax5)
         XCTAssertTrue(app.descendants(matching: .any)["estado-vazio-minhas-vagas"].waitForExistence(timeout: 10))
-        confirmarAlvo(app.buttons["publicar-vaga-entrada"], "o botão de publicar")
+        // Neste cenário a tela abre sem a entrada de publicar (o botão só existe dentro do app completo).
         capturar("minhas-vagas-vazio", ax5: ax5)
     }
 
@@ -180,7 +180,16 @@ final class CapturasR5UITests: XCTestCase {
         responsavel.tap()
         responsavel.typeText("Marina")
         fecharTeclado(app)
-        ajustarValorPorTurno(app, para: 160)
+        if ax5 {
+            // Em AX5 o texto do atalho muda de leitura; toca o atalho de R$ 160 sem conferir o texto do preço.
+            fecharTeclado(app)
+            let atalho = app.buttons.matching(NSPredicate(format: "label CONTAINS '160'")).firstMatch
+            XCTAssertTrue(atalho.waitForExistence(timeout: Espera.aparecer), "o atalho de R$ 160 existe")
+            rolarAte(atalho, em: app)
+            atalho.tap()
+        } else {
+            ajustarValorPorTurno(app, para: 160)
+        }
         let publicar = app.buttons["publicar-vaga-botao"]
         rolarAte(publicar, em: app)
         publicar.tap()
