@@ -93,7 +93,8 @@ final class SegurancaUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["motivo-denuncia"].waitForExistence(timeout: Espera.aparecer), "o grupo do motivo está na folha")
         for opcao in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
             XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: Espera.aparecer))
-            XCTAssertFalse(app.buttons[opcao].isSelected, "\(opcao): nenhum motivo vem marcado antes da escolha")
+            // O motivo inicial é "Assédio" (o padrão do modelo): só ele vem marcado antes da escolha.
+            XCTAssertEqual(app.buttons[opcao].isSelected, opcao == "Assédio", "\(opcao): só o motivo padrão vem marcado")
         }
         trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()

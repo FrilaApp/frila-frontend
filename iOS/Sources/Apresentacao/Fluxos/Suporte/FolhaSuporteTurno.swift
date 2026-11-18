@@ -45,6 +45,9 @@ public struct FolhaSuporteTurno: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo)
+            // O identificador da folha fica no conteúdo, antes do grupo ancorado: posto na pilha de navegação, ele
+            // passava por cima dos identificadores do botão e das mensagens do rodapé.
+            .accessibilityIdentifier("folha-suporte-turno")
             .rodapeAncorado { rodape }
             .navigationTitle(Text(verbatim: TextosDoSuporte.titulo))
             .navigationBarTitleDisplayMode(.inline)
@@ -72,7 +75,6 @@ public struct FolhaSuporteTurno: View {
                     aoConcluir: { [viewModel] _ in Task { @MainActor in viewModel.compositorConcluido() } }
                 )
             }
-            .accessibilityIdentifier("folha-suporte-turno")
         }
         .frilaKeyboardDismissScope()
     }

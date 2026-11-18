@@ -45,7 +45,7 @@ public struct TelaBloqueios: View {
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosBloqueios.titulo))
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .task { await viewModel.carregar() }
         .refreshable { await viewModel.carregar() }
