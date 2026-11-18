@@ -50,6 +50,8 @@ final class CapturasR4UITests: XCTestCase {
         var problemas: [String] = []
         for botao in app.buttons.allElementsBoundByIndex where botao.exists && !botao.frame.isEmpty && janela.intersects(botao.frame) {
             if barraDeAbas.contains(botao.frame) || barraDeNavegacao.contains(botao.frame) { continue }
+            // Os dois seletores em menu (unidade de preço e material) são controles nativos: ficam como o sistema os faz.
+            if ["unidade-servico", "material-servico"].contains(botao.identifier) { continue }
             if botao.label.trimmingCharacters(in: .whitespaces).isEmpty { problemas.append("sem rótulo: \(botao.identifier)") }
             if botao.frame.height < 44 { problemas.append("alvo \(Int(botao.frame.height)) pt: \(botao.identifier) \(botao.label)") }
         }
@@ -86,14 +88,11 @@ final class CapturasR4UITests: XCTestCase {
         XCTAssertTrue(faixa.waitForExistence(timeout: Espera.aparecer), "a faixa semanal deve abrir")
         for _ in 0..<12 where !faixa.isHittable { app.swipeUp() }
         capturar("horarios-dias", ax5: ax5)
-        let escolher = app.buttons["escolher-horario"]
-        if escolher.waitForExistence(timeout: 3) {
-            tocarRolando(escolher, app)
-            // Se a linha estava junto do rodapé e o primeiro toque não pegou, toca de novo.
-            if !app.buttons["horario-avancar"].waitForExistence(timeout: 3), escolher.exists, escolher.isHittable { escolher.tap() }
-            XCTAssertTrue(app.buttons["horario-avancar"].waitForExistence(timeout: Espera.aparecer), "o editor de horário deve abrir")
-            capturar("horarios-editor", ax5: ax5)
-        }
+        // Tocar num dia sem horário abre o editor nele (o domingo, que abre selecionado, traz a linha "Escolher horário",
+        // coberta pelo PerfilUITests): a segunda não tem horário no cenário.
+        tocarRolando(app.buttons["dia-semana-1"], app)
+        XCTAssertTrue(app.buttons["horario-avancar"].waitForExistence(timeout: Espera.aparecer), "o editor de horário deve abrir")
+        capturar("horarios-editor", ax5: ax5)
     }
 
     private func apresentacaoERegioes(ax5: Bool) {
