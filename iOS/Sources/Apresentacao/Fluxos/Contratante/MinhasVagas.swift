@@ -603,6 +603,8 @@ public struct TelaMinhasVagas: View {
         VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
             NavigationLink(value: RotaDoContratante.vaga(vaga.vaga.id)) {
                 cartao(vaga, secao: secao)
+                    // O fundo do cartão está fora do link: sem a forma, só o texto e os ícones recebem o toque.
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityHint(Text(verbatim: TextosMinhasVagas.verDetalhes))
