@@ -17,7 +17,7 @@
 # que não está em nenhum destino, no marcador @visual, na fumaça nem em @so-noturna.
 
 # Marcadores (definições; não são destinos de linha)
-@visual = AcessibilidadeDoContratanteUITests, AcessibilidadeDoProfissionalUITests, AuditoriaDeAcessibilidadeUITests, AparenciaUITests, CapturasDesignD01UITests, CapturasPeleNovaUITests, ConferenciaVisualLote1e4UITests
+@visual = AcessibilidadeDoContratanteUITests, AcessibilidadeDoProfissionalUITests, AuditoriaDeAcessibilidadeUITests, AparenciaUITests, CapturasDesignD01UITests, CapturasNavegacaoRaizUITests, CapturasPeleNovaUITests, ConferenciaVisualLote1e4UITests
 # Classes que só a suíte completa (noturna e TestFlight) roda, sem prefixo que as chame:
 # ajuda do próprio alvo de teste e cálculo puro do alvo.
 @so-noturna = AjudanteDeLancamentoUITestsInternos, TrazerParaATelaCalculoTests
