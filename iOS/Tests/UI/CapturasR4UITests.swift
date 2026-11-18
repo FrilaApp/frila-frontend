@@ -69,6 +69,7 @@ final class CapturasR4UITests: XCTestCase {
         abrirContaProfissional(app)
         tocarRolando(app.buttons["perfil-funcoes-horarios"], app)
         XCTAssertTrue(app.descendants(matching: .any)["tela-perfil-profissional"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.descendants(matching: .any)["titulo-secao-ponto-base"].waitForExistence(timeout: Espera.aparecer), "o formulário deve carregar")
         capturar("perfil-profissional-topo", ax5: ax5)
         conferirBotoes(app, tela: "perfil do profissional")
         app.swipeUp()

@@ -133,7 +133,8 @@ private struct ConteudoDaChamadaRecebida: View {
     @ViewBuilder
     private func conteudoChamada(_ detalhe: ChamadaDetalhe) -> some View {
         // Quem chama, o que e quando: um cartão, com o valor no maior texto (DESIGN.md, "Card de vaga").
-        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+        VStack(alignment: .leading, spacing: 0) {
+          VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.item) {
                     nomeDaCasa(detalhe)
@@ -153,8 +154,11 @@ private struct ConteudoDaChamadaRecebida: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+          }
+
             FrilaDivisoria()
 
+          VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: detalhe.funcao.nome) }
             FrilaLinhaDeDado(icone: "clock") { Text(verbatim: viewModel.intervaloFormatado) }
             FrilaLinhaDeDado(icone: "mappin") {
@@ -164,6 +168,7 @@ private struct ConteudoDaChamadaRecebida: View {
                     Text(verbatim: detalhe.regiaoAdministrativa)
                 }
             }
+          }
 
             FrilaDivisoria()
 
