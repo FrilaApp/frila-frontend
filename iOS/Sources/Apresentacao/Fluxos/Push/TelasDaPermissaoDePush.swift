@@ -3,9 +3,10 @@ import SwiftUI
 
 /// A explicação que vem antes do pedido do sistema: diz para que serve a notificação e deixa a
 /// pessoa escolher. Sem ela, o pedido do sistema apareceria sem contexto, e ele só aparece uma vez.
-/// Segue o quadro "PermissaoNotificacao" do MidFi do Fabrício: círculo de 72 pt, título, apoio e itens com visto.
+/// Desenho do sistema do Fabrício, extrapolado (a tela não está no protótipo): título de tela, o fato em corpo, a amostra
+/// da notificação num cartão, os itens com visto em linha de dado e, ancorado embaixo, o único botão laranja
+/// ("Ativar notificações") com "Agora não" em botão secundário. Os textos continuam provisórios (`TextosDoPush`).
 public struct TelaExplicacaoDoPush: View {
-    @ScaledMetric(relativeTo: .subheadline) private var diametroDoVisto: CGFloat = 24
     private let modelo: PermissaoDePushModelo
     private let perfil: PerfilConta
 
@@ -16,179 +17,102 @@ public struct TelaExplicacaoDoPush: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 cabecalho
-
                 if perfil == .profissional {
                     amostraNotificacaoProfissional
-                    beneficiosProfissional
-                } else {
-                    beneficiosContratante
                 }
+                itens
+                Text(verbatim: TextosDoPush.Explicacao.rodape)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.top, FrilaEspaco.medio)
-            .padding(.bottom, FrilaEspaco.enorme * 3)
-            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.grupo)
+            .padding(.bottom, FrilaEspaco.grupo)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
         .accessibilityIdentifier("explicacao-do-push")
-        .barraInferiorFixa {
-            barraInferiorConteudo
-        }
-    }
-
-    // MARK: - Cabeçalho
-
-    private var cabecalho: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-            Image(systemName: "bell.badge.fill")
-                .font(FrilaTipo.secao)
-                .foregroundStyle(FrilaCor.texto)
-                .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                .background(FrilaCor.controle, in: Circle())
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosDoPush.Explicacao.titulo(perfil))
-                    .font(FrilaTipo.tituloGrande)
-                    .foregroundStyle(FrilaCor.texto)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(verbatim: TextosDoPush.Explicacao.mensagem(perfil))
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    // MARK: - Amostra Ilustrativa Profissional
-
-    private var amostraNotificacaoProfissional: some View {
-        HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-            Text("F", bundle: bundleApresentacao)
-                .font(FrilaTipo.resumo.weight(.bold))
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .frame(width: 38, height: 38)
-                .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous))
-
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(verbatim: TextosDoPush.Explicacao.amostraCargoHorario)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .foregroundStyle(FrilaCor.texto)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: FrilaEspaco.minimo)
-                    Text(verbatim: TextosDoPush.Explicacao.amostraAgora)
-                        .font(FrilaTipo.nota)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Text(verbatim: TextosDoPush.Explicacao.amostraDetalhe)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(FrilaEspaco.faixa)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.fundo, in: RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: FrilaRaio.folha, style: .continuous)
-                .strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-        )
-        .accessibilityHidden(true)
-    }
-
-    // MARK: - Benefícios Profissionais
-
-    private var beneficiosProfissional: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            ForEach(TextosDoPush.Explicacao.itens(.profissional), id: \.self) { item in
-                HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-                    ZStack {
-                        Circle()
-                            .fill(FrilaCor.controle)
-                            .frame(width: diametroDoVisto, height: diametroDoVisto)
-                        Image(systemName: "checkmark")
-                            .font(FrilaTipo.microRotulo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .accessibilityHidden(true)
-                    }
-                    Text(verbatim: item)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .accessibilityElement(children: .combine)
-            }
-        }
-    }
-
-    // MARK: - Benefícios Contratante
-
-    private var beneficiosContratante: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
-            ForEach(TextosDoPush.Explicacao.itens(.contratante), id: \.self) { item in
-                HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
-                    ZStack {
-                        Circle()
-                            .fill(FrilaCor.controle)
-                            .frame(width: diametroDoVisto, height: diametroDoVisto)
-                        Image(systemName: "checkmark")
-                            .font(FrilaTipo.microRotulo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .accessibilityHidden(true)
-                    }
-                    Text(verbatim: item)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .accessibilityElement(children: .combine)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Barra inferior fixa
-
-    private var barraInferiorConteudo: some View {
-        VStack(spacing: FrilaEspaco.compacto) {
+        .rodapeAncorado {
             BotaoPrimario(verbatim: TextosDoPush.Explicacao.ativar, carregando: modelo.pedindo) {
                 Task { await modelo.ativar() }
             }
             .disabled(modelo.pedindo)
             .accessibilityIdentifier("ativar-notificacoes")
 
-            Button {
+            BotaoSecundario(verbatim: TextosDoPush.Explicacao.agoraNao) {
                 modelo.agoraNao()
-            } label: {
-                Text(verbatim: TextosDoPush.Explicacao.agoraNao)
-                    .font(FrilaTipo.botaoPadrao)
-                    .foregroundStyle(FrilaCor.texto)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
             .disabled(modelo.pedindo)
             .accessibilityIdentifier("notificacoes-agora-nao")
+        }
+    }
 
-            Text(verbatim: TextosDoPush.Explicacao.rodape)
-                .font(FrilaTipo.nota)
+    // MARK: - Cabeçalho
+
+    private var cabecalho: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: TextosDoPush.Explicacao.titulo(perfil))
+                .font(FrilaTipo.tituloDaTela)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(verbatim: TextosDoPush.Explicacao.mensagem(perfil))
+                .font(FrilaTipo.corpo)
                 .foregroundStyle(FrilaCor.textoSecundario)
-                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, FrilaEspaco.medio)
-        .padding(.vertical, FrilaEspaco.compacto)
-        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Amostra ilustrativa do profissional
+
+    private var amostraNotificacaoProfissional: some View {
+        HStack(alignment: .top, spacing: FrilaEspaco.compacto) {
+            Text("F", bundle: bundleApresentacao)
+                .font(FrilaTipo.nome)
+                .foregroundStyle(FrilaCor.sobrePrimaria)
+                .frame(width: 38, height: 38)
+                .background(FrilaCor.primaria, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno, style: .continuous))
+
+            VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(verbatim: TextosDoPush.Explicacao.amostraCargoHorario)
+                        .font(FrilaTipo.rotuloSecundario)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: FrilaEspaco.junto)
+                    Text(verbatim: TextosDoPush.Explicacao.amostraAgora)
+                        .font(FrilaTipo.legenda)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text(verbatim: TextosDoPush.Explicacao.amostraDetalhe)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .accessibilityHidden(true)
+    }
+
+    // MARK: - Itens do que chega
+
+    private var itens: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            ForEach(TextosDoPush.Explicacao.itens(perfil), id: \.self) { item in
+                FrilaLinhaDeDado(icone: "checkmark") {
+                    Text(verbatim: item)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -268,32 +192,13 @@ public struct AvisoDePermissaoDePush: View {
     #endif
 
     private func aviso(_ texto: String, tom: AvisoFrila.Tom, botao: String, id: String, acao: @escaping () -> Void) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
             AvisoFrila(verbatim: texto, tom: tom)
-            BotaoSecundario(verbatim: botao, acao: acao)
+            // Abrir os Ajustes e reabrir a explicação são links (DESIGN.md do protótipo: "Link"), não um segundo botão.
+            Button(action: acao) { Text(verbatim: botao) }
+                .buttonStyle(.frilaLink)
                 .accessibilityIdentifier(id)
         }
         .accessibilityElement(children: .contain)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        if #available(iOS 26, *) {
-            safeAreaBar(edge: .bottom) {
-                conteudo()
-            }
-        } else {
-            safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(FrilaCor.divisoria)
-                        .frame(height: 1)
-                    conteudo()
-                }
-                .background(.regularMaterial)
-            }
-        }
     }
 }

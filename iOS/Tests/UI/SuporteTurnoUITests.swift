@@ -37,11 +37,13 @@ final class SuporteTurnoUITests: XCTestCase {
         XCTAssertTrue(botao180.waitForExistence(timeout: Espera.aparecer), "Botão para ligar 180 deve estar disponível")
 
         // 4. Rola a tela para ver os campos inferiores e botões de ação
-        app.swipeUp()
+        rolarParaCima(app)
 
         // 5. Campo de relato opcional aceita texto
         let campoRelato = app.descendants(matching: .any)["campo-relato-suporte"]
         if campoRelato.waitForExistence(timeout: 3) {
+            // O botão ancorado embaixo cobre o pé da tela: o campo vai para o meio antes do toque.
+            trazerParaOMeio(campoRelato, em: app)
             campoRelato.tap()
             campoRelato.typeText("Relato de teste para o suporte.")
             fecharTecladoDoRelato(app)
@@ -54,7 +56,7 @@ final class SuporteTurnoUITests: XCTestCase {
         let botaoCopiar = app.descendants(matching: .any)["botao-copiar-dados-suporte"]
         XCTAssertTrue(botaoCopiar.waitForExistence(timeout: Espera.aparecer), "Botão para copiar dados deve estar presente")
         for _ in 0..<3 where !botaoCopiar.isHittable {
-            app.swipeUp()
+            rolarParaCima(app)
         }
         tocarFechandoTeclado(botaoCopiar, em: app)
 
@@ -209,6 +211,28 @@ final class SuporteTurnoUITests: XCTestCase {
             XCTAssertTrue(subtituloDados.waitForExistence(timeout: Espera.aparecer), "O subtítulo de dados do turno deve estar visível em AX5")
         }
         XCTAssertTrue(subtituloDados.ehCabecalho, "O subtítulo de dados do turno deve ser cabeçalho em AX5")
+    }
+
+    /// Rola a folha para cima com um arrasto que começa no meio da tela. O `swipeUp()` do XCUITest começa perto do pé da
+    /// tela, e desde o redesenho o pé é o grupo ancorado (o botão "Abrir e-mail de suporte"), que não rola.
+    private func rolarParaCima(_ app: XCUIApplication) {
+        let inicio = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+        let fim = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+        inicio.press(forDuration: 0.05, thenDragTo: fim, withVelocity: .slow, thenHoldForDuration: 0.1)
+    }
+
+    /// Leva o elemento para a faixa do meio da tela, longe da barra de navegação e do grupo ancorado embaixo (o botão
+    /// "Abrir e-mail de suporte" fica fixo no pé da folha desde o redesenho), com arrastos limitados.
+    private func trazerParaOMeio(_ elemento: XCUIElement, em app: XCUIApplication) {
+        let janela = app.windows.firstMatch.frame
+        for _ in 0..<10 {
+            guard elemento.exists else { app.swipeUp(); continue }
+            let meio = elemento.frame.midY
+            if meio > janela.height * 0.25, meio < janela.height * 0.6 { return }
+            let deslocamento = max(-janela.height * 0.3, min(janela.height * 0.3, janela.height * 0.4 - meio))
+            let inicio = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            inicio.press(forDuration: 0.05, thenDragTo: inicio.withOffset(CGVector(dx: 0, dy: deslocamento)), withVelocity: .slow, thenHoldForDuration: 0.1)
+        }
     }
 
     /// Fecha o teclado do relato como a pessoa faria: um toque fora do campo, no título da seção.
