@@ -9,6 +9,9 @@ interface FalhasDoFirebase {
     val configurado: Boolean
 
     fun apagarRelatoriosPendentes()
+
+    /** Sincroniza o estado da coleta de falhas no SDK do Crashlytics. */
+    fun definirColetaAtiva(ativa: Boolean) {}
 }
 
 /** A chave do manifesto que liga ou desliga a coleta do Crashlytics (o SDK lê a mesma). */
@@ -33,7 +36,9 @@ object RelatorioDeFalhas {
      * abertura (igual ao iOS). Sem Firebase configurado não há o que apagar. Devolve se apagou.
      */
     fun iniciarSeConfigurado(coletaLigada: Boolean, firebase: FalhasDoFirebase): Boolean {
-        if (coletaLigada || !firebase.configurado) return false
+        if (!firebase.configurado) return false
+        firebase.definirColetaAtiva(coletaLigada)
+        if (coletaLigada) return false
         firebase.apagarRelatoriosPendentes()
         return true
     }

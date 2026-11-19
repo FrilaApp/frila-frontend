@@ -6,6 +6,10 @@ import br.com.frila.app.conectividade.MonitorDeConectividadeAndroid
 import br.com.frila.app.falhas.ColetaDeFalhas
 import br.com.frila.app.falhas.DestinoCrashlytics
 import br.com.frila.app.falhas.DestinoDeFalhas
+import br.com.frila.app.falhas.FalhasDoFirebase
+import br.com.frila.app.falhas.FalhasDoFirebaseReal
+import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
+import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlyticsReal
 import br.com.frila.app.falhas.TelemetriaDeFalhas
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
@@ -163,12 +167,30 @@ val moduloRede = module {
             ?: MonitorDeConectividadeFalso()
     }
     /**
-     * L1-7d: telemetria de falhas (Crashlytics). A coleta sai DESLIGADA no manifesto, como o iOS 1.1 (C1, 08/11/2026): com ela desligada nada é
-     * gravado. Só código, rota e duração; nunca identificador de usuário. Sem `Context` (testes) também sai desligada.
+     * L1-7d / Parecer P-059: telemetria de falhas (Crashlytics). A coleta sai DESLIGADA no manifesto (LGPD art. 33, VIII);
+     * só é ativada se houver consentimento explícito e específico para a versão atual do texto (1.8).
+     * Só código, rota e duração; nunca identificador de usuário nem dados pessoais.
      */
+    single<FalhasDoFirebase> {
+        getOrNull<Context>()?.let(::FalhasDoFirebaseReal) ?: object : FalhasDoFirebase {
+            override val configurado: Boolean = false
+            override fun apagarRelatoriosPendentes() {}
+            override fun definirColetaAtiva(ativa: Boolean) {}
+        }
+    }
+    single<GerenciadorConsentimentoCrashlytics> {
+        getOrNull<Context>()?.let { contexto ->
+            GerenciadorConsentimentoCrashlyticsReal(contexto, firebase = get())
+        } ?: object : GerenciadorConsentimentoCrashlytics {
+            override fun coletaAtiva(): Boolean = false
+            override fun precisaPerguntar(): Boolean = false
+            override fun definirConsentimento(concedido: Boolean) {}
+        }
+    }
     single {
+        val consentimento = getOrNull<GerenciadorConsentimentoCrashlytics>()
         TelemetriaDeFalhas(
-            coletaLigada = getOrNull<Context>()?.let(ColetaDeFalhas::ligadaNoManifesto) ?: false,
+            leitorColetaLigada = { consentimento?.coletaAtiva() ?: false },
             destino = getOrNull<DestinoDeFalhas>() ?: DestinoCrashlytics(),
         )
     }

@@ -4,7 +4,9 @@ import android.app.Application
 import android.util.Log
 import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.app.falhas.ColetaDeFalhas
+import br.com.frila.app.falhas.FalhasDoFirebase
 import br.com.frila.app.falhas.FalhasDoFirebaseReal
+import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
 import br.com.frila.app.falhas.RelatorioDeFalhas
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.seguranca.LeitorDeAmbiente
@@ -51,12 +53,15 @@ class FrilaApplication : Application(), KoinComponent {
     }
 
     /**
-     * L1-6: o Crashlytics sai com a coleta desligada (manifesto); o que o SDK deixou guardado no aparelho sai na abertura, como no iOS.
+     * L1-6 / Parecer P-059: a coleta de falhas sai desligada (manifesto) e só liga após consentimento explícito.
+     * Na abertura, se desligada, qualquer relatório guardado pelo SDK é apagado (como no iOS).
      * Nunca pode ser a causa de uma falha de inicialização do app.
      */
     private fun limparRelatoriosDeFalhaPendentes() {
         try {
-            RelatorioDeFalhas.iniciarSeConfigurado(ColetaDeFalhas.ligadaNoManifesto(this), FalhasDoFirebaseReal(this))
+            val consentimento = get<GerenciadorConsentimentoCrashlytics>()
+            val firebase = get<FalhasDoFirebase>()
+            RelatorioDeFalhas.iniciarSeConfigurado(consentimento.coletaAtiva(), firebase)
         } catch (_: Exception) {
         }
     }

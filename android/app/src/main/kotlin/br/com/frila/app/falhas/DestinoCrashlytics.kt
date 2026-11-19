@@ -44,6 +44,12 @@ class FalhasDoFirebaseReal(private val contexto: Context) : FalhasDoFirebase {
     override val configurado: Boolean get() = FirebaseApp.getApps(contexto).isNotEmpty()
 
     override fun apagarRelatoriosPendentes() {
+        if (!configurado) return
         FirebaseCrashlytics.getInstance().deleteUnsentReports()
+    }
+
+    override fun definirColetaAtiva(ativa: Boolean) {
+        if (!configurado) return
+        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(ativa)
     }
 }

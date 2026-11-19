@@ -181,6 +181,8 @@ fun TelaPerfil(
     verificarNotificacoesDoSistema: (Context) -> Boolean = { ctx ->
         NotificationManagerCompat.from(ctx).areNotificationsEnabled()
     },
+    relatoriosDeFalhasAtivados: Boolean = false,
+    aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
@@ -259,6 +261,8 @@ fun TelaPerfil(
                     aoMinhasVagas = aoMinhasVagas,
                     aoCadastrarEstabelecimento = aoCadastrarEstabelecimento,
                     aoEncontrarProfissional = aoEncontrarProfissional,
+                    relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
+                    aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
                     modifier = Modifier.weight(1f),
                     atalhosExtras = atalhosExtras,
                 )
@@ -347,6 +351,8 @@ fun TelaPerfil(
                     verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                     podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
                     aoAbrirSelo = aoAbrirSelo,
+                    relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
+                    aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
                     modifier = Modifier.weight(1f),
                     atalhosExtras = atalhosExtras,
                 )
@@ -457,6 +463,8 @@ private fun ConteudoDoPerfil(
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    relatoriosDeFalhasAtivados: Boolean = false,
+    aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -518,6 +526,8 @@ private fun ConteudoDoPerfil(
             aoAbrirPontoBase = aoAbrirPontoBase,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
+            relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
+            aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
         )
     }
 }
@@ -545,6 +555,8 @@ private fun ConteudoDaCasa(
     aoEncontrarProfissional: (() -> Unit)?,
     modifier: Modifier = Modifier,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    relatoriosDeFalhasAtivados: Boolean = false,
+    aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -579,6 +591,8 @@ private fun ConteudoDaCasa(
             aoAbrirFotoDePerfil = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
+            relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
+            aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
         )
     }
 }
@@ -1047,6 +1061,8 @@ private fun BlocoDeConta(
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    relatoriosDeFalhasAtivados: Boolean = false,
+    aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
     val cores = FrilaTema.cores
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.secao)) {
@@ -1063,6 +1079,17 @@ private fun BlocoDeConta(
                             // hardware ficou indisponível depois de ativada — senão o switch trava em ON.
                             habilitada = disponibilidadeBiometrica == DisponibilidadeBiometrica.DISPONIVEL || biometriaAtivada,
                             modifier = Modifier.testTag("toggle-biometria"),
+                        )
+                    }
+                }
+                if (aoAlternarRelatoriosDeFalhas != null) {
+                    linha {
+                        LinhaDeInterruptor(
+                            rotulo = "Enviar relatórios de falhas",
+                            subtitulo = "Ajuda a corrigir erros técnicos no app",
+                            ativada = relatoriosDeFalhasAtivados,
+                            aoAlternar = aoAlternarRelatoriosDeFalhas,
+                            modifier = Modifier.testTag("toggle-relatorios-falhas"),
                         )
                     }
                 }

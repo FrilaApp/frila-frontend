@@ -32,6 +32,8 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
+import br.com.frila.app.falhas.TelaConsentimentoCrashlytics
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
@@ -183,6 +185,7 @@ object Rotas {
     const val MINHAS_CANDIDATURAS = "minhas_candidaturas"
     const val BLOQUEIOS = "bloqueios"
     const val CONTESTAR_DESPACHO = "contestar_despacho"
+    const val CONSENTIMENTO_FALHAS = "consentimento_falhas"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -340,6 +343,11 @@ fun AppNavegacao(
     perfilRicoHabilitado: Boolean = false,
     /** Chave `foto_de_perfil` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Foto de perfil". Desligada (padrão), não vê. */
     fotoDePerfilHabilitada: Boolean = false,
+    gerenciadorConsentimento: GerenciadorConsentimentoCrashlytics = getKoin().getOrNull() ?: object : GerenciadorConsentimentoCrashlytics {
+        override fun coletaAtiva(): Boolean = false
+        override fun precisaPerguntar(): Boolean = false
+        override fun definirConsentimento(concedido: Boolean) {}
+    },
 ) {
     val destinoInicial = remember(armazenamentoDeSessao, avaliadorDeDestino, biometriaHabilitada) {
         rotaInicial(armazenamentoDeSessao, biometriaHabilitada).let { if (it == Rotas.FEED && avaliadorDeDestino != null) Rotas.ABERTURA else it }
@@ -444,12 +452,38 @@ fun AppNavegacao(
                 TelaCodigo(
                     viewModel = viewModel,
                     aoAutenticar = {
-                        navController.navigate(if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO) {
-                            popUpTo(Rotas.ENTRADA) { inclusive = true }
+                        val proximoDestino = if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO
+                        if (gerenciadorConsentimento.precisaPerguntar()) {
+                            navController.navigate(Rotas.CONSENTIMENTO_FALHAS) {
+                                popUpTo(Rotas.ENTRADA) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(proximoDestino) {
+                                popUpTo(Rotas.ENTRADA) { inclusive = true }
+                            }
                         }
                     },
                     // "Trocar e-mail" volta para a entrada, que está embaixo; se não estiver, a entrada vira a raiz.
                     aoTrocarEmail = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
+                )
+            }
+
+            composable(Rotas.CONSENTIMENTO_FALHAS) {
+                val proximoDestino = if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO
+                fun continuar() {
+                    navController.navigate(proximoDestino) {
+                        popUpTo(Rotas.CONSENTIMENTO_FALHAS) { inclusive = true }
+                    }
+                }
+                TelaConsentimentoCrashlytics(
+                    aoPermitir = {
+                        gerenciadorConsentimento.definirConsentimento(true)
+                        continuar()
+                    },
+                    aoRecusar = {
+                        gerenciadorConsentimento.definirConsentimento(false)
+                        continuar()
+                    },
                 )
             }
 
@@ -811,6 +845,7 @@ fun AppNavegacao(
                             null
                         },
                     )
+                    var relatoriosDeFalhasAtivados by remember { mutableStateOf(gerenciadorConsentimento.coletaAtiva()) }
                     TelaPerfil(
                         viewModel = viewModel,
                         atalhosExtras = atalhosDaConta,
@@ -819,6 +854,11 @@ fun AppNavegacao(
                         verificacaoIdentidade = estadoSelo?.verificacao,
                         podeSolicitarSelo = estadoSelo?.podeSolicitar == true,
                         aoAbrirSelo = { navController.navigate(Rotas.SELO_CONFIANCA) },
+                        relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
+                        aoAlternarRelatoriosDeFalhas = { ligado ->
+                            gerenciadorConsentimento.definirConsentimento(ligado)
+                            relatoriosDeFalhasAtivados = gerenciadorConsentimento.coletaAtiva()
+                        },
                         aoDeslogar = { irParaEntrada() },
                         aoAbrirAjuda = { navController.navigate(Rotas.AJUDA) },
                         aoAbrirExclusaoDeConta = { navController.navigate(Rotas.EXCLUSAO_DE_CONTA) },

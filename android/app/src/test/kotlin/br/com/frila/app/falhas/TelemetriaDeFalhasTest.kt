@@ -37,6 +37,21 @@ class TelemetriaDeFalhasTest {
     }
 
     @Test
+    fun `com o fornecedor dinamico de flag desligado a trava do app para de gravar na hora`() {
+        var ligada = true
+        val destino = DestinoEspiao()
+        val telemetria = TelemetriaDeFalhas(leitorColetaLigada = { ligada }, destino = destino)
+
+        telemetria.registrarErroDaApi("erro_1", "rpc_1", 1_000)
+        assertEquals(1, destino.gravados.size)
+
+        // Ao revogar o consentimento, para de gravar imediatamente sem precisar reiniciar o processo
+        ligada = false
+        telemetria.registrarErroDaApi("erro_2", "rpc_2", 2_000)
+        assertEquals(1, destino.gravados.size, "nenhum novo erro deve ser gravado após desligar a trava")
+    }
+
+    @Test
     fun `o codigo do app nunca chama o identificador de usuario do Crashlytics`() {
         val pasta = File("src/main/kotlin/br/com/frila/app/falhas")
         val codigo = pasta.walkTopDown().filter { it.extension == "kt" }
@@ -45,5 +60,18 @@ class TelemetriaDeFalhasTest {
             .joinToString("\n")
         assertTrue(pasta.isDirectory)
         assertFalse(Regex("""setUserId|setUserIdentifier""", RegexOption.IGNORE_CASE).containsMatchIn(codigo))
+    }
+
+    @Test
+    fun `o codigo do app nao chama log do Crashlytics nem setCustomKey arbitrarios`() {
+        val pasta = File("src/main/kotlin/br/com/frila/app/falhas")
+        val codigo = pasta.walkTopDown().filter { it.extension == "kt" }
+            .flatMap { it.readLines().asSequence() }
+            .filterNot { it.trim().startsWith("//") || it.trim().startsWith("*") || it.trim().startsWith("/*") }
+            .joinToString("\n")
+        // O Crashlytics.log grava mensagens livres de log que podem vazar dados pessoais
+        assertFalse(Regex("""\.log\(""").containsMatchIn(codigo), "não deve chamar FirebaseCrashlytics.log(...)")
+        // O setCustomKey direto não deve ser chamado; só CustomKeysAndValues com as 3 chaves aprovadas
+        assertFalse(Regex("""\.setCustomKey\(""").containsMatchIn(codigo), "não deve chamar setCustomKey direto")
     }
 }

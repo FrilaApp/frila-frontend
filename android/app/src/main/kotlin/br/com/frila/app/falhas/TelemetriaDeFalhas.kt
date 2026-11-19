@@ -6,10 +6,17 @@ interface DestinoDeFalhas {
 }
 
 /** Igual ao `TelemetriaCrashlytics` do iOS: só código, rota e duração; nada de usuário, e nada gravado com a coleta desligada. */
-class TelemetriaDeFalhas(private val coletaLigada: Boolean, private val destino: DestinoDeFalhas) {
+class TelemetriaDeFalhas(
+    private val leitorColetaLigada: () -> Boolean,
+    private val destino: DestinoDeFalhas,
+) {
+    constructor(coletaLigada: Boolean, destino: DestinoDeFalhas) : this({ coletaLigada }, destino)
+
+    val coletaLigada: Boolean get() = leitorColetaLigada()
+
     fun registrarErroDaApi(codigo: String, rpc: String, duracaoNs: Long) {
         // Coleta desligada: nada vai ao Crashlytics, nem fica guardado no aparelho para depois.
-        if (!coletaLigada) return
+        if (!leitorColetaLigada()) return
         destino.gravar(codigo, rpc, duracaoNs)
     }
 }

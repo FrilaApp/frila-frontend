@@ -10,7 +10,9 @@ class RelatorioDeFalhasTest {
 
     private class FirebaseFalso(override val configurado: Boolean) : FalhasDoFirebase {
         var apagamentos = 0
+        var ultimaColetaDefinida: Boolean? = null
         override fun apagarRelatoriosPendentes() { apagamentos++ }
+        override fun definirColetaAtiva(ativa: Boolean) { ultimaColetaDefinida = ativa }
     }
 
     @Test
@@ -18,13 +20,15 @@ class RelatorioDeFalhasTest {
         val firebase = FirebaseFalso(configurado = true)
         assertTrue(RelatorioDeFalhas.iniciarSeConfigurado(coletaLigada = false, firebase = firebase))
         assertEquals(1, firebase.apagamentos)
+        assertEquals(false, firebase.ultimaColetaDefinida)
     }
 
     @Test
-    fun `coleta ligada nao apaga nada`() {
+    fun `coleta ligada nao apaga nada e sincroniza o SDK`() {
         val firebase = FirebaseFalso(configurado = true)
         assertFalse(RelatorioDeFalhas.iniciarSeConfigurado(coletaLigada = true, firebase = firebase))
         assertEquals(0, firebase.apagamentos)
+        assertEquals(true, firebase.ultimaColetaDefinida)
     }
 
     @Test
