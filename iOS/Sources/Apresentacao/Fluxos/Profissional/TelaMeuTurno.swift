@@ -15,6 +15,7 @@ public struct TelaMeuTurno: View {
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     private let formatador = FormatadorFrila()
 
     private static let idDaSecaoDePresenca = "secao-de-presenca-do-turno"
@@ -229,11 +230,14 @@ public struct TelaMeuTurno: View {
     private var seloDoTurno: some View {
         if viewModel.cancelado {
             SeloDeStatus(verbatim: TextosDoProfissional.Turnos.canceladoTitulo, estilo: .encerrado)
+                .seloSemQuebrarPalavra(tamanhoDoTexto)
         } else if viewModel.naoVerificado {
             SeloDeStatus(verbatim: TextosDoProfissional.Turnos.naoVerificadoTitulo, estilo: .contorno)
+                .seloSemQuebrarPalavra(tamanhoDoTexto)
         } else {
             let dados = etapaAtual.selo
-            SeloDeStatus(verbatim: dados.titulo, estilo: dados.estilo, icone: dados.icone)
+            SeloDeStatus(verbatim: dados.titulo, estilo: dados.estilo, icone: tamanhoDoTexto.isAccessibilitySize ? nil : dados.icone)
+                .seloSemQuebrarPalavra(tamanhoDoTexto)
         }
     }
 
