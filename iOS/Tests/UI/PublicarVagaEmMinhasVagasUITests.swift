@@ -234,6 +234,35 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         salvarCaptura("03-publicar-vaga-xxxl")
     }
 
+    /// R8b, item 9b: em AX5, arrastar a tela do Estúdio pelo meio não pode mudar início nem término (roda dentro da rolagem
+    /// giraria com o dedo). O seletor do Estúdio abre numa camada própria, fora da rolagem; o teste fixa isso.
+    func testEmAX5RolarPeloCentroNaoMudaNenhumHorario() {
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        tocar(app.buttons["publicar-vaga-entrada"])
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
+
+        let inicio = app.descendants(matching: .any)["datepicker-inicio"]
+        let fim = app.descendants(matching: .any)["datepicker-fim"]
+        rolarAte(inicio, em: app)
+        XCTAssertTrue(inicio.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(fim.waitForExistence(timeout: Espera.aparecer))
+        func leitura() -> [String] {
+            [inicio, fim].map { "\($0.label)|\(String(describing: $0.value ?? ""))" }
+        }
+        let antes = leitura()
+
+        let janela = app.windows.firstMatch
+        let alto = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+        let baixo = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.28))
+        for _ in 0..<4 { alto.press(forDuration: 0.05, thenDragTo: baixo) }
+        for _ in 0..<4 { baixo.press(forDuration: 0.05, thenDragTo: alto) }
+
+        XCTAssertEqual(app.pickerWheels.count, 0, "nenhuma roda solta na rolagem do Estúdio em AX5")
+        XCTAssertEqual(leitura(), antes, "rolar pelo centro não muda o início nem o término")
+    }
+
     func testCapturaPublicarVagaFimAcompanhaInicioPadrao() {
         let app = abrir(["-FRILA_CADASTRO_UI_TEST", "-FRILA_PUBLICAR_INICIO_EM_HORAS", "30"])
 
