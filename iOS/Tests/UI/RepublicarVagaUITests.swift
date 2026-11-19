@@ -118,6 +118,41 @@ final class RepublicarVagaUITests: XCTestCase {
         }
     }
 
+    /// R8b, item 9b: em AX5, arrastar a tela de republicar pelo centro não muda início nem término (roda solta na rolagem gira
+    /// com o dedo e a vaga seria republicada no horário errado). O seletor fica numa folha, fora da rolagem.
+    func testEmAX5RolarPeloCentroNaoMudaInicioNemTermino() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "vaga-encerrada-contratante",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+        let botaoRepublicar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "republicar-vaga-")).firstMatch
+        XCTAssertTrue(botaoRepublicar.waitForExistence(timeout: 10))
+        botaoRepublicar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForExistence(timeout: 10))
+
+        let inicio = app.descendants(matching: .any)["campo-inicio-republicacao"]
+        let fim = app.descendants(matching: .any)["campo-fim-republicacao"]
+        XCTAssertTrue(inicio.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(fim.waitForExistence(timeout: Espera.aparecer))
+        func leitura() -> [String] {
+            [inicio, fim].map { "\($0.label)|\(String(describing: $0.value ?? ""))" }
+                + app.pickerWheels.allElementsBoundByIndex.map { String(describing: $0.value ?? "") }
+        }
+        let antes = leitura()
+
+        let janela = app.windows.firstMatch
+        let alto = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+        let baixo = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.28))
+        for _ in 0..<4 { alto.press(forDuration: 0.05, thenDragTo: baixo) }
+        for _ in 0..<4 { baixo.press(forDuration: 0.05, thenDragTo: alto) }
+
+        XCTAssertEqual(app.pickerWheels.count, 0, "nenhuma roda solta na rolagem de republicar em AX5")
+        XCTAssertEqual(leitura(), antes, "rolar pelo centro não muda o início nem o término")
+    }
+
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
         let janela = app.windows.firstMatch.frame
         for _ in 0..<tentativas {
