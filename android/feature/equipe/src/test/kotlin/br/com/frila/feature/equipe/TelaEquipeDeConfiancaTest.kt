@@ -50,12 +50,14 @@ class TelaEquipeDeConfiancaTest {
         val removidos = mutableListOf<String>()
         var voltou = 0
         val chamadosDeNovo = mutableListOf<String>()
+        val denunciados = mutableListOf<String>()
     }
 
     private fun montar(
         tela: EstadoTelaEquipe,
         chamadas: Chamadas = Chamadas(),
         comChamarDeNovo: Boolean = false,
+        comDenunciar: Boolean = false,
     ): Chamadas {
         rule.setContent {
             FrilaTheme {
@@ -65,6 +67,7 @@ class TelaEquipeDeConfiancaTest {
                     aoRemover = { chamadas.removidos += it.id },
                     aoVoltar = { chamadas.voltou++ },
                     aoChamarDeNovo = if (comChamarDeNovo) ({ chamadas.chamadosDeNovo += it.id }) else null,
+                    aoDenunciar = if (comDenunciar) ({ chamadas.denunciados += it.id }) else null,
                 )
             }
         }
@@ -98,6 +101,24 @@ class TelaEquipeDeConfiancaTest {
         rule.onNodeWithText("7 de 8 avaliações positivas").assertIsDisplayed()
         rule.onNodeWithText("Beto Lima").assertIsDisplayed()
         rule.onNodeWithText(TextosEquipe.SEM_AVALIACOES).assertIsDisplayed()
+    }
+
+    @Test
+    fun denunciarDeCadaProfissionalEntregaOPerfilCertoEFicaAcimaDoAlvoMinimo() {
+        val c = montar(comMembros(ana, beto), comDenunciar = true)
+
+        rule.onNodeWithContentDescription(TextosEquipe.rotuloDenunciar("Ana Souza"))
+            .assertIsEnabled().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        rule.onNodeWithContentDescription(TextosEquipe.rotuloDenunciar("Beto Lima")).performScrollTo().performClick()
+
+        assertEquals(listOf("b1"), c.denunciados)
+    }
+
+    @Test
+    fun semOCallbackDeDenunciaOBotaoNaoAparece() {
+        montar(comMembros(ana))
+
+        rule.onNodeWithContentDescription(TextosEquipe.rotuloDenunciar("Ana Souza")).assertDoesNotExist()
     }
 
     @Test

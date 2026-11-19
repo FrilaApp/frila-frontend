@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.IndicadorCarregando
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.PapelMembro
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PainelDto
 import br.com.frila.core.rede.ServicoMembros
@@ -50,8 +51,12 @@ internal sealed interface CasasDaConta {
     /** Contratante sem estabelecimento: pode cadastrar o primeiro. */
     data object Nenhuma : CasasDaConta
 
-    /** Primeira casa por nome, para a equipe, a publicação e Minhas vagas. */
-    data class Primeira(val id: String, val nome: String) : CasasDaConta
+    /**
+     * A casa em uso, para a equipe, a publicação e Minhas vagas: a que a pessoa escolheu em "Trocar de casa" ou, sem
+     * escolha, a primeira por nome. [papel] é o de quem chama nela (`null` se o servidor mandou um papel que o app não
+     * conhece); [total] é quantas casas a conta tem, e só com mais de uma "Trocar de casa" faz sentido.
+     */
+    data class Primeira(val id: String, val nome: String, val papel: PapelMembro? = null, val total: Int = 1) : CasasDaConta
 }
 
 /**
@@ -59,9 +64,11 @@ internal sealed interface CasasDaConta {
  * perfil_incompativel`, sem rede, resposta ilegível, sem o serviço no grafo) é [CasasDaConta.Desconhecidas]:
  * o perfil nunca quebra por causa disso, e conta de profissional nunca é convidada a cadastrar uma casa.
  */
-internal suspend fun buscarCasasDaConta(servicoMembros: ServicoMembros?): CasasDaConta = try {
-    servicoMembros?.listarMeusEstabelecimentos()?.firstOrNull()
-        ?.let { CasasDaConta.Primeira(it.id, it.nome) }
+internal suspend fun buscarCasasDaConta(servicoMembros: ServicoMembros?, preferidaId: String? = null): CasasDaConta = try {
+    val casas = servicoMembros?.listarMeusEstabelecimentos().orEmpty()
+    // A casa escolhida em "Trocar de casa" vale enquanto a conta ainda é membro dela; senão, a primeira por nome.
+    (casas.firstOrNull { it.id == preferidaId } ?: casas.firstOrNull())
+        ?.let { CasasDaConta.Primeira(it.id, it.nome, PapelMembro.deChave(it.papel), casas.size) }
         ?: if (servicoMembros == null) CasasDaConta.Desconhecidas else CasasDaConta.Nenhuma
 } catch (erro: CancellationException) {
     throw erro
@@ -178,6 +185,29 @@ internal fun RotaEscalaDeEvento(
     }
 }
 
+/**
+ * Passa a usar a casa [id] (trocar de casa ou entrar numa por convite): a raiz do contratante aponta para as vagas dela e a
+ * pilha recomeça ali, sem a tela anterior por baixo. Com a aba "Minhas vagas" na pilha, ela é que dá lugar; sem ela (conta
+ * que ainda não tinha casa e abriu pelo Perfil), o Perfil é o chão que sai. [nome] pode faltar (convite aceito): a lista de
+ * vagas aceita a casa sem nome.
+ */
+internal fun abrirCasa(
+    navController: androidx.navigation.NavHostController,
+    id: String,
+    nome: String?,
+    definirPapelDaRaiz: (PapelDaRaiz) -> Unit,
+    definirCasaEscolhida: (String) -> Unit,
+) {
+    val rota = Rotas.minhasVagas(id, nome)
+    definirPapelDaRaiz(PapelDaRaiz.Contratante(rota))
+    definirCasaEscolhida(id)
+    val abaNaPilha = runCatching { navController.getBackStackEntry(Rotas.MINHAS_VAGAS) }.isSuccess
+    navController.navigate(rota) {
+        popUpTo(if (abaNaPilha) Rotas.MINHAS_VAGAS else Rotas.PERFIL) { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
 /** Textos da carga do turno antes da tela de acompanhamento. */
 internal object TextosTurnoDoContratanteDaRota {
     const val TITULO_FALHA = "Não foi possível abrir o turno"
@@ -248,6 +278,8 @@ internal fun RotaTurnoDoContratante(
     aoVoltar: () -> Unit,
     /** C0-9: denunciar a profissional do turno (id do perfil público, id do turno). */
     aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
+    /** Pedir ajuda com o turno (id do turno): abre o relato de ocorrência. */
+    aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     /** L1-5: chave `checkin_por_codigo`; ligada, a casa vê o código de chegada do turno e, ao confirmar, o turno é relido. */
     checkinPorCodigoHabilitado: Boolean = false,
 ) {
@@ -280,6 +312,7 @@ internal fun RotaTurnoDoContratante(
                 viewModel = viewModel,
                 aoVoltar = aoVoltar,
                 aoDenunciarProfissional = aoDenunciarProfissional,
+                aoPedirSuporte = aoPedirSuporte,
                 codigoDaCasa = codigoDaCasa,
                 depoisDaChegada = profissional?.let {
                     {

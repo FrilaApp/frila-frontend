@@ -91,6 +91,8 @@ fun TelaMeusTurnos(
     relogio: () -> Instant = { Instant.now() },
     /** C0-9: denunciar a casa do turno (id do perfil público, id do turno), como o iOS. Nulo esconde o botão. */
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
+    /** Pedir ajuda com o turno (relato de ocorrência, RF12/RN15), como a folha de suporte do iOS. Nulo esconde o botão. */
+    aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     /** L2-1: "Estou a caminho" no turno confirmado. Nulo esconde o botão (a fiação é o L2-8); a regra da janela é do [podeAvisarACaminho]. */
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
     /** Falso na tela raiz (aba "Meus turnos"): a aba já diz onde a pessoa está, e a lista é o primeiro elemento. */
@@ -170,6 +172,7 @@ fun TelaMeusTurnos(
                         carregandoMaisHistorico = estado.carregandoMaisHistorico,
                         aoCarregarMaisHistorico = { viewModel.carregarMaisHistorico() },
                         aoDenunciarEstabelecimento = aoDenunciarEstabelecimento,
+                        aoPedirSuporte = aoPedirSuporte,
                         aoAvisarACaminho = aoAvisarACaminho,
                         avisandoACaminho = estado.avisandoACaminho,
                         erroACaminho = estado.erroACaminho,
@@ -209,6 +212,7 @@ private fun ListaDeTurnos(
     carregandoMaisHistorico: Boolean = false,
     aoCarregarMaisHistorico: () -> Unit = {},
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
+    aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
     avisandoACaminho: String? = null,
     erroACaminho: ErroDoACaminho? = null,
@@ -256,6 +260,7 @@ private fun ListaDeTurnos(
                 aoExibirComprovante = aoExibirComprovante,
                 relogio = relogio,
                 aoDenunciarEstabelecimento = aoDenunciarEstabelecimento,
+                aoPedirSuporte = aoPedirSuporte,
                 aoAvisarACaminho = aoAvisarACaminho,
                 avisandoACaminho = avisandoACaminho,
                 erroACaminho = erroACaminho,
@@ -314,6 +319,7 @@ private fun CartaoDoTurno(
     aoExibirComprovante: (ComprovanteCheckin) -> Unit,
     relogio: () -> Instant,
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)?,
+    aoPedirSuporte: ((turnoId: String) -> Unit)?,
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)?,
     avisandoACaminho: String?,
     erroACaminho: ErroDoACaminho?,
@@ -364,11 +370,18 @@ private fun CartaoDoTurno(
         val podeCancelar = contagem is EstadoContagemRegressiva.AguardandoJanela || contagem is EstadoContagemRegressiva.JanelaAberta
         val casaId = turno.contraparteId
         val podeDenunciar = aoDenunciarEstabelecimento != null && casaId != null
-        if (podeCancelar || podeDenunciar) {
+        if (podeCancelar || podeDenunciar || aoPedirSuporte != null) {
             Spacer(modifier = Modifier.height(FrilaEspacamento.item))
             Column {
                 if (podeCancelar) {
                     AcaoDiscreta(texto = "Cancelar turno", aoClicar = { aoCancelar(turno) })
+                }
+                if (aoPedirSuporte != null) {
+                    AcaoDiscreta(
+                        texto = "Pedir ajuda com o turno",
+                        aoClicar = { aoPedirSuporte(turno.turnoId) },
+                        modifier = Modifier.semantics { contentDescription = "Pedir ajuda com o turno em ${turno.estabelecimentoNome}" },
+                    )
                 }
                 if (podeDenunciar && casaId != null && aoDenunciarEstabelecimento != null) {
                     AcaoDiscreta(

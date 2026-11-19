@@ -48,6 +48,16 @@ enum TextosDoAcompanhamento {
     static let motivoCancelamento = String(localized: "Motivo: %@", bundle: bundleApresentacao)
     static let canceladaEm = String(localized: "Cancelada em %@.", bundle: bundleApresentacao)
 
+    // Selos e etapas do cartão de status do turno (R6). Os selos nomeiam o estado; as etapas, o caminho.
+    static let etapaConfirmado = String(localized: "Confirmado", bundle: bundleApresentacao)
+    static let etapaACaminho = String(localized: "A caminho", bundle: bundleApresentacao)
+    static let etapaPresenca = String(localized: "Presença", bundle: bundleApresentacao)
+    static let etapaConcluido = String(localized: "Concluído", bundle: bundleApresentacao)
+    static let seloPresencaAConfirmar = String(localized: "Presença a confirmar", bundle: bundleApresentacao)
+    static let seloPresencaVerificada = String(localized: "Presença verificada", bundle: bundleApresentacao)
+    static let seloNaoVerificada = String(localized: "Presença não verificada", bundle: bundleApresentacao)
+    static let seloCancelada = String(localized: "Cancelada", bundle: bundleApresentacao)
+
     static func detalheDoCheckin(em hora: String, tipo: TipoRegistro?) -> String {
         switch tipo {
         case .geolocalizado:
@@ -100,9 +110,125 @@ enum TextosDoAcompanhamento {
     }
 }
 
+/// O selo e a etapa do cartão de status do turno, a partir da chegada do profissional.
+private struct SituacaoDoTurnoDaCasa {
+    let selo: String
+    let estilo: SeloDeStatus.Estilo
+    let icone: String?
+    /// A etapa atual da linha (0 a 3: Confirmado, A caminho, Presença, Concluído). `nil` quando não há caminho a mostrar.
+    let etapa: Int?
+
+    init(_ chegada: ChegadaDoProfissional) {
+        switch chegada {
+        case .aguardando:
+            self.init(TextosDoAcompanhamento.etapaConfirmado, .destaque, "checkmark", 0)
+        case .aCaminho:
+            self.init(TextosDoAcompanhamento.etapaACaminho, .andamento, nil, 1)
+        case .manualPendente:
+            self.init(TextosDoAcompanhamento.seloPresencaAConfirmar, .contorno, nil, 2)
+        case .emAtraso:
+            self.init(TextosDoAcompanhamento.atrasos, .contorno, nil, 0)
+        case .verificada:
+            self.init(TextosDoAcompanhamento.seloPresencaVerificada, .andamento, "checkmark", 2)
+        case .naoVerificada:
+            self.init(TextosDoAcompanhamento.seloNaoVerificada, .encerrado, nil, nil)
+        case .cancelada:
+            self.init(TextosDoAcompanhamento.seloCancelada, .encerrado, nil, nil)
+        }
+    }
+
+    private init(_ selo: String, _ estilo: SeloDeStatus.Estilo, _ icone: String?, _ etapa: Int?) {
+        self.selo = selo
+        self.estilo = estilo
+        self.icone = icone
+        self.etapa = etapa
+    }
+}
+
+/// A linha de etapas do turno (DESIGN.md do protótipo): Confirmado, A caminho, Presença, Concluído. Marcador de 12 pt por
+/// etapa, ligado ao seguinte por um traço de 2 pt: em tinta até a etapa atual, em `divisoria` dali em diante. As etapas
+/// futuras são contorno. A atual leva o rótulo em 600 e em tinta. Em texto grande, vira uma lista, para o rótulo não cortar.
+private struct LinhaDeEtapasDoTurnoDaCasa: View {
+    let atual: Int
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
+    private let rotulos = [TextosDoAcompanhamento.etapaConfirmado, TextosDoAcompanhamento.etapaACaminho,
+                           TextosDoAcompanhamento.etapaPresenca, TextosDoAcompanhamento.etapaConcluido]
+
+    var body: some View {
+        Group {
+            if tamanhoDoTexto >= .xLarge { emLista } else { emLinha }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var emLinha: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(rotulos.indices, id: \.self) { indice in
+                VStack(spacing: FrilaEspaco.item) {
+                    HStack(spacing: 0) {
+                        trecho(existe: indice > 0, feito: indice <= atual)
+                        marcador(indice)
+                        trecho(existe: indice < rotulos.count - 1, feito: indice + 1 <= atual)
+                    }
+                    rotulo(indice).multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(indice == atual ? .isSelected : [])
+            }
+        }
+    }
+
+    private var emLista: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            ForEach(rotulos.indices, id: \.self) { indice in
+                HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.item) {
+                    marcador(indice)
+                    rotulo(indice)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(indice == atual ? .isSelected : [])
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func marcador(_ indice: Int) -> some View {
+        Group {
+            if indice <= atual {
+                Circle().fill(FrilaCor.texto)
+            } else {
+                Circle().strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 2)
+            }
+        }
+        .frame(width: 12, height: 12)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func trecho(existe: Bool, feito: Bool) -> some View {
+        if existe {
+            Rectangle().fill(feito ? FrilaCor.texto : FrilaCor.divisoria).frame(height: 2).frame(maxWidth: .infinity)
+        } else {
+            Color.clear.frame(height: 2).frame(maxWidth: .infinity)
+        }
+    }
+
+    private func rotulo(_ indice: Int) -> some View {
+        Text(verbatim: rotulos[indice])
+            .font(indice == atual ? FrilaTipo.legenda.weight(.semibold) : FrilaTipo.legenda)
+            .foregroundStyle(indice == atual ? FrilaCor.texto : FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 /// O turno visto por quem opera a casa, no quadro "TurnoContratante" do MidFi do Fabrício: a chegada do
 /// profissional, a confirmação do check-in manual e a reabertura por atraso. Recebe o turno pelo id,
 /// que é o que o aviso do push traz.
+///
+/// Desenho (R6): o lado da casa não foi desenhado pelo Fabrício. A tela segue o detalhe do turno do profissional (T4 e
+/// T8 do protótipo): título, cartão de status com selo e linha de etapas, o bloco de chegada, a ação principal ancorada
+/// embaixo (um botão laranja só, "Confirmar presença") e as ações de risco e de suporte no fim, discretas.
 struct TelaTurnoDoContratante: View {
     @State private var chamadaHabilitada = false
     /// O código de chegada (0.2.68): só existe com a chave `checkin_por_codigo` ligada; sem ela, a tela é a de hoje.
@@ -134,14 +260,16 @@ struct TelaTurnoDoContratante: View {
     @ViewBuilder
     private var conteudoDaTela: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 if let turno = viewModel.turno(turnoID: turnoID) {
                     conteudo(turno)
                 } else if viewModel.falhouAoCarregar {
                     // Sem leitura que tenha dado certo, não dá para dizer que o turno não existe.
-                    AvisoFrila(verbatim: TextosDoAcompanhamento.falhaAoCarregar, tom: .erro)
-                    BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
-                        .accessibilityIdentifier("tentar-de-novo-turno")
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                        AvisoFrila(verbatim: TextosDoAcompanhamento.falhaAoCarregar, tom: .erro)
+                        BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+                            .accessibilityIdentifier("tentar-de-novo-turno")
+                    }
                 } else if viewModel.painel == nil {
                     EstadoCarregando()
                 } else {
@@ -149,11 +277,16 @@ struct TelaTurnoDoContratante: View {
                         .accessibilityIdentifier("turno-contratante-nao-encontrado")
                 }
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.item)
+            .padding(.bottom, FrilaEspaco.grupo)
         }
         .background(FrilaCor.fundo.ignoresSafeArea())
-        .navigationTitle(TextosDoAcompanhamento.titulo)
+        // Sem título na barra: o título da tela é conteúdo nosso (DESIGN.md, "Estrutura"); a barra só leva o voltar.
         .navigationBarTitleDisplayMode(.inline)
+        // O identificador da tela vem antes do rodapé: depois dele, cobriria o botão ancorado e apagaria o dele.
+        .accessibilityIdentifier("turno-do-contratante")
+        .rodapeAncoradoSe(viewModel.turno(turnoID: turnoID).map(confirmarPresencaNoRodape) ?? false) { rodapeDaAcao }
         .task { if viewModel.painel == nil || viewModel.contaID == nil { await viewModel.carregar() } }
         .task(id: viewModel.turno(turnoID: turnoID)?.vaga.periodo.fim) {
             if let turno = viewModel.turno(turnoID: turnoID) { await viewModel.aguardarLiberacaoDaAvaliacao(turno) }
@@ -173,7 +306,6 @@ struct TelaTurnoDoContratante: View {
         .sheet(item: $suporteModel) { model in
             FolhaSuporteTurno(viewModel: model)
         }
-        .accessibilityIdentifier("turno-do-contratante")
         .task {
             guard let api else { return }
             let recursos = (try? await PrazoDaAbertura.esperar(.seconds(15)) {
@@ -188,73 +320,201 @@ struct TelaTurnoDoContratante: View {
         }
     }
 
+    // MARK: - Conteúdo
+
     @ViewBuilder private func conteudo(_ turno: TurnoAcompanhado) -> some View {
-        Text(verbatim: TextosDoAcompanhamento.nome(turno))
+        Text(verbatim: TextosDoAcompanhamento.titulo)
             .font(FrilaTipo.tituloDaTela)
+            .foregroundStyle(FrilaCor.texto)
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: turno.vaga.funcao).font(FrilaTipo.resumo)
-            Text(verbatim: turno.vaga.local)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: String(
-                format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
-            ))
-            .font(FrilaTipo.meta.monospacedDigit())
-            .foregroundStyle(FrilaCor.textoSecundario)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
-        .accessibilityElement(children: .combine)
+
+        cartaoDeStatus(turno)
 
         // O modelo é o da lista inteira: aqui só as recusas deste turno.
-        ForEach(viewModel.recusasDaFila.filter { $0.turnoID == turnoID }) { recusa in
-            AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
-                .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
-            BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila(id: recusa.id) } }
-                .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+        let recusas = viewModel.recusasDaFila.filter { $0.turnoID == turnoID }
+        if !recusas.isEmpty {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                ForEach(recusas) { recusa in
+                    AvisoFrila(verbatim: TextosDaFila.texto(recusa), tom: .informativo)
+                        .accessibilityIdentifier("aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                    BotaoSecundario("Fechar") { Task { await viewModel.fecharAvisoDaFila(id: recusa.id) } }
+                        .accessibilityIdentifier("fechar-aviso-acao-recusada-\(recusa.tipo.rawValue)")
+                }
+            }
         }
 
-        AvisosDoAcompanhamento(viewModel: viewModel, vagaID: turno.vaga.id, posicaoID: turno.posicao.id)
+        AvisosDoAcompanhamento(viewModel: viewModel, vagaID: turno.vaga.id, posicaoID: turno.posicao.id,
+                               mostrarFalha: !confirmarPresencaNoRodape(turno))
 
-        Text(verbatim: TextosDoAcompanhamento.chegada).font(FrilaTipo.secao).accessibilityAddTraits(.isHeader)
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            chegada(turno)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cartaoFrila()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("chegada-do-turno")
-
-        if viewModel.podeCancelar(turno) {
-            BotaoDeCancelamento(titulo: TextosDoCancelamento.tituloPosicao) { cancelamento = viewModel.criarCancelamento(de: turno) }
-                .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
-        }
+        grupoDeChegada(turno)
 
         cartaoAvaliacao(turno)
 
-        rodapeAcoes(turno)
+        equipeDoProfissional(turno)
+
+        acoesDeRiscoESuporte(turno)
     }
 
-    // MARK: - Ações de suporte e segurança (#21, #39)
+    /// O cartão de status do turno: o selo do estado, o nome de quem vem, os dados do turno e a linha de etapas.
+    private func cartaoDeStatus(_ turno: TurnoAcompanhado) -> some View {
+        let situacao = SituacaoDoTurnoDaCasa(viewModel.chegada(turno))
+        return VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                SeloDeStatus(verbatim: situacao.selo, estilo: situacao.estilo, icone: situacao.icone)
+                Text(verbatim: TextosDoAcompanhamento.nome(turno))
+                    .font(FrilaTipo.nome)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: turno.vaga.funcao) }
+                FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: formatador.data(turno.vaga.periodo.inicio)) }
+                FrilaLinhaDeDado(icone: "clock") {
+                    Text(verbatim: String(
+                        format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
+                    ))
+                }
+                FrilaLinhaDeDado(icone: "mappin.and.ellipse") { Text(verbatim: turno.vaga.local) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            if let etapa = situacao.etapa {
+                LinhaDeEtapasDoTurnoDaCasa(atual: etapa)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+    }
 
-    @ViewBuilder
-    private func rodapeAcoes(_ turno: TurnoAcompanhado) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            botaoSuporte(turno)
-            rodapeSeguranca(turno)
+    /// "Chegada": o que se sabe da chegada de quem foi confirmado e, quando o check-in manual espera a casa, o código.
+    private func grupoDeChegada(_ turno: TurnoAcompanhado) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: TextosDoAcompanhamento.chegada)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                chegada(turno)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cartaoFrila()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("chegada-do-turno")
+            if viewModel.chegada(turno) == .manualPendente, let codigoDaCasa {
+                CartaoDoCodigoDaCasa(viewModel: codigoDaCasa)
+                    .padding(.top, FrilaEspaco.item)
+            }
         }
     }
 
-    private func botaoSuporte(_ turno: TurnoAcompanhado) -> some View {
-        BotaoSecundario(verbatim: TextosDoSuporte.botaoAjudaTurno) {
-            suporteModel = SuporteTurnoViewModel(
-                dados: ContextoSuporteTurno(turnoAcompanhado: turno),
-                api: api
-            )
+    @ViewBuilder private func chegada(_ turno: TurnoAcompanhado) -> some View {
+        switch viewModel.chegada(turno) {
+        case .aguardando:
+            Text(verbatim: TextosDoAcompanhamento.aguardando)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        case let .aCaminho(desde):
+            Text(verbatim: String(format: TextosDoAcompanhamento.aCaminho, formatador.hora(desde)))
+                .font(FrilaTipo.rotuloSecundario)
+                .foregroundStyle(FrilaCor.texto)
+        case .manualPendente:
+            Text(verbatim: TextosDoAcompanhamento.manualPendente)
+                .font(FrilaTipo.rotuloSecundario)
+                .foregroundStyle(FrilaCor.texto)
+            Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+            if let checkinEm = turno.posicao.checkinEm {
+                FrilaLinhaDeDado(icone: "clock") {
+                    Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo ?? .manual))
+                        .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
+                }
+            }
+        case .emAtraso:
+            Text(verbatim: TextosDoAcompanhamento.emAtraso)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+            if viewModel.podeReabrir(turno) {
+                BotaoSecundario(verbatim: TextosDoAcompanhamento.reabrirVaga) { viewModel.pedirReabertura(turno) }
+                    .disabled(viewModel.emAndamento.contains(turno.id))
+                    .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
+                    .padding(.top, FrilaEspaco.item)
+            }
+        case .verificada:
+            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.item) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(FrilaCor.texto)
+                    .accessibilityHidden(true)
+                Text(verbatim: TextosDoAcompanhamento.verificada)
+            }
+            .font(FrilaTipo.rotuloSecundario)
+            .foregroundStyle(FrilaCor.texto)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("presenca-verificada-\(turnoID)")
+            if let checkinEm = turno.posicao.checkinEm {
+                FrilaLinhaDeDado(icone: "clock") {
+                    Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo))
+                        .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
+                }
+            }
+            if let confirmadoEm = turno.posicao.checkinConfirmadoEm {
+                FrilaLinhaDeDado(icone: "checkmark") {
+                    Text(verbatim: String(format: TextosDoAcompanhamento.checkinConfirmado, formatador.hora(confirmadoEm)))
+                        .accessibilityIdentifier("detalhe-confirmacao-\(turnoID)")
+                }
+            }
+        case .naoVerificada:
+            Text(verbatim: TextosDoAcompanhamento.naoVerificada)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+        case .cancelada:
+            // O bloco inteiro usa o id do turno: `turno.id` é o da posição, outro valor.
+            Text(verbatim: TextosDoAcompanhamento.cancelada)
+                .font(FrilaTipo.rotuloSecundario)
+                .foregroundStyle(FrilaCor.texto)
+                .accessibilityIdentifier("posicao-cancelada-\(turnoID)")
+            if let cancelamento = turno.posicao.cancelamento {
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                    Text(verbatim: TextosDoAcompanhamento.textoDaCausa(cancelamento.causa))
+                        .font(FrilaTipo.corpo)
+                        .accessibilityIdentifier("cancelamento-causa-\(turnoID)")
+                    Text(verbatim: TextosDoAcompanhamento.textoDaFalta(cancelamento.falta))
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("cancelamento-falta-\(turnoID)")
+                    if let motivo = cancelamento.motivo, !motivo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(verbatim: String(format: TextosDoAcompanhamento.motivoCancelamento, motivo))
+                            .font(FrilaTipo.apoio)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityIdentifier("cancelamento-motivo-\(turnoID)")
+                    }
+                    Text(verbatim: String(format: TextosDoAcompanhamento.canceladaEm, formatador.dataEHora(cancelamento.canceladaEm)))
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityIdentifier("cancelamento-data-\(turnoID)")
+                }
+            }
         }
-        .accessibilityIdentifier("botao-ajuda-turno")
-        .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
+    }
+
+    // MARK: - Ação principal ancorada
+
+    /// "Confirmar presença" é a ação principal da tela quando o check-in manual espera a casa.
+    private func confirmarPresencaNoRodape(_ turno: TurnoAcompanhado) -> Bool {
+        viewModel.chegada(turno) == .manualPendente && viewModel.podeConfirmar(turno)
+    }
+
+    @ViewBuilder private var rodapeDaAcao: some View {
+        if let turno = viewModel.turno(turnoID: turnoID) {
+            // O erro da ação fica logo acima do botão que a disparou (D-DS-13).
+            if let falha = viewModel.falha {
+                MensagemJuntoAoBotao(verbatim: TextosDoAcompanhamento.falha(falha, desatualizado: viewModel.falhouAoCarregar))
+                    .accessibilityIdentifier("falha-do-acompanhamento")
+            }
+            BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                Task { await viewModel.confirmarPresenca(turno) }
+            }
+            .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
+        }
     }
 
     // MARK: - Avaliação (#22)
@@ -262,100 +522,125 @@ struct TelaTurnoDoContratante: View {
     @ViewBuilder
     private func cartaoAvaliacao(_ turno: TurnoAcompanhado) -> some View {
         if viewModel.podeAvaliar(turno) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo.uppercased())
-                    .font(FrilaTipo.microRotulo)
-                    .tracking(0.8)
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                Text(verbatim: TextosDoProfissional.Avaliacao.cartaoTitulo)
+                    .font(FrilaTipo.rotuloDeGrupo)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .accessibilityAddTraits(.isHeader)
 
-                if viewModel.jaAvaliado(turno) {
-                    if let resposta = viewModel.respostaAvaliacao(turno) {
-                        Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
-                            .font(FrilaTipo.chip)
-                            .accessibilityIdentifier("texto-status-avaliacao")
-                    } else {
-                        Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
-                            .font(FrilaTipo.chip)
-                            .accessibilityIdentifier("texto-status-avaliacao")
-                    }
-
-                    NavigationLink {
-                        DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
-                    } label: {
-                        HStack(spacing: FrilaEspaco.pequeno) {
-                            Image(systemName: "star.fill")
+                VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                    if viewModel.jaAvaliado(turno) {
+                        if let resposta = viewModel.respostaAvaliacao(turno) {
+                            Text(verbatim: TextosDoProfissional.Avaliacao.statusResposta(resposta))
+                                .font(FrilaTipo.corpo)
                                 .foregroundStyle(FrilaCor.texto)
-                                .accessibilityHidden(true)
+                                .accessibilityIdentifier("texto-status-avaliacao")
+                        } else {
+                            Text(verbatim: TextosDoProfissional.Avaliacao.statusAvaliado)
+                                .font(FrilaTipo.corpo)
+                                .foregroundStyle(FrilaCor.texto)
+                                .accessibilityIdentifier("texto-status-avaliacao")
+                        }
+
+                        NavigationLink {
+                            DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
+                        } label: {
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoVerAvaliacao)
                         }
-                        .font(FrilaTipo.botao)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
-                    }
-                    .accessibilityIdentifier("botao-ver-avaliacao")
-                } else {
-                    Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
+                        .accessibilityIdentifier("botao-ver-avaliacao")
+                    } else {
+                        Text(verbatim: TextosDoProfissional.Avaliacao.cartaoChamada)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
 
-                    NavigationLink {
-                        DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
-                    } label: {
-                        HStack(spacing: FrilaEspaco.pequeno) {
-                            Image(systemName: "star.fill")
-                                .foregroundStyle(FrilaCor.texto)
-                                .accessibilityHidden(true)
+                        NavigationLink {
+                            DestinoAvaliacaoDoContratante(viewModel: viewModel, turno: turno, api: api)
+                        } label: {
                             Text(verbatim: TextosDoProfissional.Avaliacao.botaoAvaliar)
                         }
-                        .font(FrilaTipo.botao)
-                        .foregroundStyle(FrilaCor.texto)
-                        .frame(minHeight: FrilaMetrica.alvoMinimo)
-                        .contentShape(Rectangle())
+                        .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
+                        .accessibilityIdentifier("botao-abrir-avaliacao")
                     }
-                    .accessibilityIdentifier("botao-abrir-avaliacao")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cartaoFrila()
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("cartao-avaliacao-turno")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cartaoFrila()
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("cartao-avaliacao-turno")
         } else if let liberacao = viewModel.liberacaoDaAvaliacao(turno) {
             AvisoFrila(verbatim: TextosDoProfissional.Avaliacao.liberaAs(formatador.hora(liberacao)), tom: .informativo)
                 .accessibilityIdentifier("aviso-avaliacao-libera")
         }
     }
 
-    // MARK: - Ações de segurança (#39)
+    // MARK: - Equipe e nova chamada (#24)
 
     @ViewBuilder
-    private func rodapeSeguranca(_ turno: TurnoAcompanhado) -> some View {
+    private func equipeDoProfissional(_ turno: TurnoAcompanhado) -> some View {
+        if let profissional = turno.posicao.profissional,
+           let api = viewModel.api ?? api,
+           // Só com a presença verificada: é a condição de `incluir_na_equipe` (UC11). O servidor confere de novo;
+           // aqui é só para não oferecer o que ele vai recusar. D-14: não oferecer incluir na equipe nem chamar
+           // de novo profissional bloqueado.
+           !bloqueios.contem(profissional),
+           turno.posicao.verificacao == .verificado,
+           let estabelecimentoID = viewModel.painel?.estabelecimentoID {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                if chamadaHabilitada, viewModel.podeAvaliar(turno) {
+                    BotaoChamarDeNovo(api: api, profissionalID: profissional.id,
+                        estabelecimentoID: estabelecimentoID, vagaAnterior: turno.vaga)
+                }
+                BotaoIncluirNaEquipe(
+                    perfil: profissional, estabelecimentoID: estabelecimentoID, api: api,
+                    cache: .compartilhado,
+                    identificador: "incluir-na-equipe-\(turno.posicao.id)"
+                )
+                .id(profissional.id)
+            }
+        }
+    }
+
+    // MARK: - Ações de risco e de suporte (#21, #39)
+
+    /// No fim da tela, discretas e uma por linha (DESIGN.md, "Ações de risco ou suporte ficam no fim").
+    private func acoesDeRiscoESuporte(_ turno: TurnoAcompanhado) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if viewModel.podeCancelar(turno) {
+                Button { cancelamento = viewModel.criarCancelamento(de: turno) } label: {
+                    Text(verbatim: TextosDoCancelamento.tituloPosicao)
+                }
+                .buttonStyle(.frilaAcaoDiscreta)
+                .accessibilityIdentifier("cancelar-posicao-\(turno.posicao.id)")
+            }
+            Button {
+                suporteModel = SuporteTurnoViewModel(
+                    dados: ContextoSuporteTurno(turnoAcompanhado: turno),
+                    api: api
+                )
+            } label: {
+                Text(verbatim: TextosDoSuporte.botaoAjudaTurno)
+            }
+            .buttonStyle(.frilaAcaoDiscreta)
+            .accessibilityIdentifier("botao-ajuda-turno")
+            .accessibilityHint(Text(verbatim: TextosDoSuporte.dicaAjudaTurno))
+            segurancaDoProfissional(turno)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // 24 do espaçamento da tela + 8 = os 32 acima das ações discretas.
+        .padding(.top, FrilaEspaco.item)
+    }
+
+    @ViewBuilder
+    private func segurancaDoProfissional(_ turno: TurnoAcompanhado) -> some View {
         if let profissional = turno.posicao.profissional,
            let api = viewModel.api ?? api {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                 if bloqueios.contem(profissional) {
                     Text(verbatim: TextosDaSeguranca.voceBloqueouProfissional)
-                        .font(FrilaTipo.nota)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("etiqueta-bloqueio-\(turno.posicao.id)")
-                }
-                // Só com a presença verificada: é a condição de `incluir_na_equipe` (UC11). O
-                // servidor confere de novo; aqui é só para não oferecer o que ele vai recusar.
-                // D-14: Não oferecer incluir na equipe nem chamar de novo profissional bloqueado.
-                if !bloqueios.contem(profissional),
-                   turno.posicao.verificacao == .verificado,
-                   let estabelecimentoID = viewModel.painel?.estabelecimentoID {
-                    if chamadaHabilitada, viewModel.podeAvaliar(turno) {
-                        BotaoChamarDeNovo(api: api, profissionalID: profissional.id,
-                            estabelecimentoID: estabelecimentoID, vagaAnterior: turno.vaga)
-                    }
-                    BotaoIncluirNaEquipe(
-                        perfil: profissional, estabelecimentoID: estabelecimentoID, api: api,
-                        cache: .compartilhado,
-                        identificador: "incluir-na-equipe-\(turno.posicao.id)"
-                    )
-                    .id(profissional.id)
                 }
                 AcoesDeSeguranca(
                     perfil: profissional,
@@ -372,98 +657,6 @@ struct TelaTurnoDoContratante: View {
         }
     }
 
-    @ViewBuilder private func chegada(_ turno: TurnoAcompanhado) -> some View {
-        switch viewModel.chegada(turno) {
-        case .aguardando:
-            Text(verbatim: TextosDoAcompanhamento.aguardando)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-        case let .aCaminho(desde):
-            Text(verbatim: String(format: TextosDoAcompanhamento.aCaminho, formatador.hora(desde)))
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-        case .manualPendente:
-            Text(verbatim: TextosDoAcompanhamento.manualPendente).font(FrilaTipo.resumo)
-            Text(verbatim: TextosDoAcompanhamento.explicacaoDaConfirmacao)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-            if let checkinEm = turno.posicao.checkinEm {
-                Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo ?? .manual))
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
-            }
-            if let codigoDaCasa {
-                CartaoDoCodigoDaCasa(viewModel: codigoDaCasa)
-            }
-            if viewModel.podeConfirmar(turno) {
-                BotaoSecundario(verbatim: TextosDoAcompanhamento.confirmarPresenca) {
-                    Task { await viewModel.confirmarPresenca(turno) }
-                }
-                .disabled(viewModel.emAndamento.contains(turno.id))
-                .accessibilityIdentifier("confirmar-presenca-\(turnoID)")
-            }
-        case .emAtraso:
-            AvisoFrila(verbatim: TextosDoAcompanhamento.emAtraso, tom: .alerta)
-            if viewModel.podeReabrir(turno) {
-                BotaoSecundario(verbatim: TextosDoAcompanhamento.reabrirVaga) { viewModel.pedirReabertura(turno) }
-                    .disabled(viewModel.emAndamento.contains(turno.id))
-                    .accessibilityIdentifier("reabrir-vaga-\(turno.id)")
-            }
-        case .verificada:
-            HStack(spacing: FrilaEspaco.minimo) {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundStyle(FrilaCor.sucesso)
-                Text(verbatim: TextosDoAcompanhamento.verificada)
-            }
-            .font(FrilaTipo.resumo.weight(.semibold))
-            .foregroundStyle(FrilaCor.texto)
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("presenca-verificada-\(turnoID)")
-            if let checkinEm = turno.posicao.checkinEm {
-                Text(verbatim: TextosDoAcompanhamento.detalheDoCheckin(em: formatador.hora(checkinEm), tipo: turno.posicao.checkinTipo))
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityIdentifier("detalhe-checkin-\(turnoID)")
-            }
-            if let confirmadoEm = turno.posicao.checkinConfirmadoEm {
-                Text(verbatim: String(format: TextosDoAcompanhamento.checkinConfirmado, formatador.hora(confirmadoEm)))
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityIdentifier("detalhe-confirmacao-\(turnoID)")
-            }
-        case .naoVerificada:
-            Text(verbatim: TextosDoAcompanhamento.naoVerificada)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
-        case .cancelada:
-            // O bloco inteiro usa o id do turno: `turno.id` é o da posição, outro valor.
-            Text(verbatim: TextosDoAcompanhamento.cancelada).font(FrilaTipo.resumo)
-                .accessibilityIdentifier("posicao-cancelada-\(turnoID)")
-            if let cancelamento = turno.posicao.cancelamento {
-                VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: TextosDoAcompanhamento.textoDaCausa(cancelamento.causa))
-                        .font(FrilaTipo.meta)
-                        .accessibilityIdentifier("cancelamento-causa-\(turnoID)")
-                    Text(verbatim: TextosDoAcompanhamento.textoDaFalta(cancelamento.falta))
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityIdentifier("cancelamento-falta-\(turnoID)")
-                    if let motivo = cancelamento.motivo, !motivo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(verbatim: String(format: TextosDoAcompanhamento.motivoCancelamento, motivo))
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityIdentifier("cancelamento-motivo-\(turnoID)")
-                    }
-                    Text(verbatim: String(format: TextosDoAcompanhamento.canceladaEm, formatador.dataEHora(cancelamento.canceladaEm)))
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .accessibilityIdentifier("cancelamento-data-\(turnoID)")
-                }
-            }
-        }
-    }
-
     /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
     private var confirmacaoDeSaida: some View {
         ScrollView {
@@ -474,33 +667,22 @@ struct TelaTurnoDoContratante: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
+                .padding(FrilaEspaco.grupo)
         }
         .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
+            VStack(spacing: FrilaEspaco.item) {
                 BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
                     mostrarConfirmacaoDeSaida = false
                 }
                 .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
+                // Sem vermelho (D-DS-13): a consequência vem escrita; o botão é o secundário.
+                BotaoSecundario(verbatim: String(localized: "Sair", bundle: bundleApresentacao)) {
                     mostrarConfirmacaoDeSaida = false
                     sair?()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
                 .accessibilityIdentifier("botao-confirmar-saida-dialogo")
             }
-            .padding(FrilaEspaco.medio)
+            .padding(FrilaEspaco.grupo)
             .background(FrilaCor.fundo)
         }
         .background(FrilaCor.fundo)
@@ -512,27 +694,36 @@ struct TelaTurnoDoContratante: View {
 
 /// O que aconteceu na última confirmação, reabertura ou cancelamento, para a tela do turno e para Minhas vagas.
 /// O resultado só aparece na tela de onde a ação saiu: `vagaID` e `posicaoID` são o alvo da tela (sem eles, a
-/// lista de Minhas vagas mostra o último de qualquer vaga).
+/// lista de Minhas vagas mostra o último de qualquer vaga). `mostrarFalha` é falso quando a tela já leva a falha
+/// junto ao botão que a causou.
 struct AvisosDoAcompanhamento: View {
     let viewModel: AcompanhamentoViewModel
     var vagaID: UUID?
     var posicaoID: UUID?
+    var mostrarFalha = true
 
     var body: some View {
-        if let resultado = viewModel.resultadoParaAviso(vaga: vagaID, posicao: posicaoID) {
-            AvisoFrila(verbatim: TextosDoAcompanhamento.resultado(resultado), tom: .informativo)
-                .accessibilityIdentifier("resultado-do-acompanhamento")
-        }
-        if let falha = viewModel.falha {
-            AvisoFrila(verbatim: TextosDoAcompanhamento.falha(falha, desatualizado: viewModel.falhouAoCarregar), tom: .erro)
-                .accessibilityIdentifier("falha-do-acompanhamento")
-        }
+        let resultado = viewModel.resultadoParaAviso(vaga: vagaID, posicao: posicaoID)
+        let falha = mostrarFalha ? viewModel.falha : nil
         // A leitura falhou com um painel já na tela: o que aparece pode estar velho.
-        if viewModel.falhouAoCarregar, viewModel.painel != nil {
-            AvisoFrila(verbatim: TextosDoAcompanhamento.desatualizado, tom: .alerta)
-                .accessibilityIdentifier("acompanhamento-desatualizado")
-            BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
-                .accessibilityIdentifier("atualizar-acompanhamento")
+        let desatualizado = viewModel.falhouAoCarregar && viewModel.painel != nil
+        if resultado != nil || falha != nil || desatualizado {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                if let resultado {
+                    AvisoFrila(verbatim: TextosDoAcompanhamento.resultado(resultado), tom: .informativo)
+                        .accessibilityIdentifier("resultado-do-acompanhamento")
+                }
+                if let falha {
+                    AvisoFrila(verbatim: TextosDoAcompanhamento.falha(falha, desatualizado: viewModel.falhouAoCarregar), tom: .erro)
+                        .accessibilityIdentifier("falha-do-acompanhamento")
+                }
+                if desatualizado {
+                    AvisoFrila(verbatim: TextosDoAcompanhamento.desatualizado, tom: .alerta)
+                        .accessibilityIdentifier("acompanhamento-desatualizado")
+                    BotaoSecundario("Tentar novamente") { Task { await viewModel.carregar() } }
+                        .accessibilityIdentifier("atualizar-acompanhamento")
+                }
+            }
         }
     }
 }
@@ -565,9 +756,18 @@ struct ConfirmacaoDeReabertura: ViewModifier {
 }
 
 /// O que pede uma decisão da casa agora, no topo de Minhas vagas: presenças a confirmar e atrasos.
+/// Cada pendência é o cartão de status sem etapas, com botão (DESIGN.md do protótipo, T7, "Precisa de você"): quem,
+/// a função, o dia e o horário em linhas separadas (D-24), o fato em corpo e um botão secundário; o botão laranja
+/// da tela é de quem a monta.
 struct PendenciasDoContratante: View {
     let viewModel: AcompanhamentoViewModel
     let abrir: (UUID) -> Void
+    private let formatador = FormatadorFrila()
+
+    init(viewModel: AcompanhamentoViewModel, abrir: @escaping (UUID) -> Void) {
+        self.viewModel = viewModel
+        self.abrir = abrir
+    }
 
     var body: some View {
         let pendentes = viewModel.pendentes
@@ -578,9 +778,10 @@ struct PendenciasDoContratante: View {
                 ForEach(pendentes) { turno in
                     cartao(turno, detalhe: TextosDoAcompanhamento.explicacaoDaConfirmacao) {
                         if viewModel.podeConfirmar(turno) {
-                            BotaoPrimario(verbatim: TextosDoAcompanhamento.confirmarPresenca, carregando: viewModel.emAndamento.contains(turno.id)) {
+                            BotaoSecundario(verbatim: TextosDoAcompanhamento.confirmarPresenca) {
                                 Task { await viewModel.confirmarPresenca(turno) }
                             }
+                            .disabled(viewModel.emAndamento.contains(turno.id))
                             .accessibilityIdentifier("confirmar-presenca-\(turno.posicao.turnoID?.uuidString ?? "")")
                         }
                     }
@@ -603,23 +804,48 @@ struct PendenciasDoContratante: View {
     }
 
     private func secao(_ titulo: String, id: String, @ViewBuilder conteudo: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: titulo).font(FrilaTipo.secao).accessibilityAddTraits(.isHeader)
-            conteudo()
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                conteudo()
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(id)
     }
 
     private func cartao(_ turno: TurnoAcompanhado, detalhe: String, @ViewBuilder acao: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosDoAcompanhamento.nome(turno)).font(FrilaTipo.resumo)
-            Text(verbatim: turno.vaga.funcao).font(FrilaTipo.meta)
-            Text(verbatim: detalhe).font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
-            acao()
-            if let turnoID = turno.posicao.turnoID {
-                BotaoSecundario(verbatim: TextosDoAcompanhamento.acompanharTurno) { abrir(turnoID) }
-                    .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                    Text(verbatim: TextosDoAcompanhamento.nome(turno))
+                        .font(FrilaTipo.nome)
+                        .foregroundStyle(FrilaCor.texto)
+                        .fixedSize(horizontal: false, vertical: true)
+                    FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: turno.vaga.funcao) }
+                    FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: formatador.data(turno.vaga.periodo.inicio)) }
+                    FrilaLinhaDeDado(icone: "clock") {
+                        Text(verbatim: String(
+                            format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
+                        ))
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                Text(verbatim: detalhe)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                acao()
+                if let turnoID = turno.posicao.turnoID {
+                    Button { abrir(turnoID) } label: { Text(verbatim: TextosDoAcompanhamento.acompanharTurno) }
+                        .buttonStyle(.frilaLink)
+                        .accessibilityIdentifier("acompanhar-turno-\(turnoID)")
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -645,7 +871,7 @@ public struct DestinoAvaliacaoDoContratante: View {
         if let avaliacao = viewModel.criarAvaliacaoViewModel(para: turno, api: api) {
             TelaAvaliacao(viewModel: avaliacao)
         } else {
-            VStack(spacing: FrilaEspaco.medio) {
+            VStack(spacing: FrilaEspaco.bloco) {
                 EstadoErro(verbatim: TextosDoProfissional.Avaliacao.erroSemRede) {
                     Task {
                         await viewModel.carregarIdentidadeEEAvaliacoes()
@@ -656,7 +882,7 @@ public struct DestinoAvaliacaoDoContratante: View {
                 }
                 .disabled(viewModel.carregando)
             }
-            .padding(FrilaEspaco.medio)
+            .padding(FrilaEspaco.grupo)
             .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationTitle(TextosDoProfissional.Avaliacao.titulo)
             .accessibilityIdentifier("avaliacao-sem-conexao")
@@ -668,4 +894,3 @@ public struct DestinoAvaliacaoDoContratante: View {
         }
     }
 }
-

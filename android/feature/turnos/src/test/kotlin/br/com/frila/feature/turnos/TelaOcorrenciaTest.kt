@@ -106,19 +106,20 @@ class TelaOcorrenciaTest {
     fun `em caso de sucesso exibe confirmacao com protocolo curto de 8 caracteres em maiusculas`() {
         runBlocking {
             val viewModel = criarViewModel()
-            var protocoloEnviado: String? = null
+            var pedidoEnviado: PedidoDeEmailDeSuporte? = null
 
             compose.setContent {
                 FrilaTheme {
                     TelaOcorrencia(
                         viewModel = viewModel,
-                        aoAbrirEmailDeSuporte = { protocoloEnviado = it },
+                        aoAbrirEmailDeSuporte = { pedidoEnviado = it; true },
                     )
                 }
             }
 
             // Seleciona motivo e envia aguardando conclusão da coroutine
             viewModel.selecionarMotivo(MotivoOcorrencia.RISCO_SEGURANCA)
+            viewModel.atualizarRelato("Portão fechado.")
             viewModel.enviar()?.join()
             compose.waitForIdle()
 
@@ -127,8 +128,48 @@ class TelaOcorrenciaTest {
 
             // Clique em abrir email
             compose.onNodeWithText("Abrir e-mail de suporte").assertIsDisplayed().assertHasClickAction().performClick()
-            assertEquals("6F1C2A4E", protocoloEnviado)
+            assertEquals(PedidoDeEmailDeSuporte("6F1C2A4E", MotivoOcorrencia.RISCO_SEGURANCA, "Portão fechado."), pedidoEnviado)
         }
+    }
+
+    @Test
+    fun `sem app de e-mail a confirmacao avisa com o e-mail e o protocolo, mostra o relato e deixa tentar de novo`() {
+        runBlocking {
+            val viewModel = criarViewModel()
+            var tentativas = 0
+            compose.setContent {
+                FrilaTheme {
+                    TelaOcorrencia(
+                        viewModel = viewModel,
+                        emailDeSuporte = "suporte@exemplo.test",
+                        aoAbrirEmailDeSuporte = { tentativas++; tentativas > 1 },
+                    )
+                }
+            }
+            viewModel.selecionarMotivo(MotivoOcorrencia.OUTRO)
+            viewModel.atualizarRelato("Texto que não pode se perder.")
+            viewModel.enviar()?.join()
+            compose.waitForIdle()
+            compose.onNodeWithText(TextosOcorrencia.RELATO_PARA_COPIAR).assertDoesNotExist()
+
+            compose.onNodeWithText(TextosOcorrencia.ABRIR_EMAIL).performClick()
+
+            compose.onNodeWithText(TextosOcorrencia.FALHA_AO_ABRIR_EMAIL.format("suporte@exemplo.test", "6F1C2A4E")).assertIsDisplayed()
+            compose.onNodeWithText("Texto que não pode se perder.").assertIsDisplayed()
+
+            compose.onNodeWithText(TextosOcorrencia.ABRIR_EMAIL).performClick()
+
+            assertEquals(2, tentativas)
+            compose.onNodeWithText(TextosOcorrencia.FALHA_AO_ABRIR_EMAIL.format("suporte@exemplo.test", "6F1C2A4E")).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `o formulario nao oferece anexar foto`() {
+        compose.setContent { FrilaTheme { TelaOcorrencia(viewModel = criarViewModel()) } }
+
+        compose.onNodeWithText("Anexar foto").assertDoesNotExist()
+        compose.onNodeWithText(TextosOcorrencia.ROTULO_RELATO).assertExists()
     }
 
     @Test

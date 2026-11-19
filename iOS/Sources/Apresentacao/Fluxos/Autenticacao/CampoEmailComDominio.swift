@@ -64,15 +64,15 @@ struct CampoEmailComDominio: View {
     private func inicioDaRoda(_ largura: CGFloat) -> CGFloat {
         let medida = (texto as NSString)
             .size(withAttributes: [.font: UIFont.preferredFont(forTextStyle: .body)]).width
-        let limite = max(largura - FrilaEspaco.medio - reservaDireita, 0)
-        return FrilaEspaco.medio + min(medida, limite) + 0.5
+        let limite = max(largura - FrilaEspaco.bloco - reservaDireita, 0)
+        return FrilaEspaco.bloco + min(medida, limite) + 0.5
     }
 
     /// x da borda esquerda do "@", medido pela largura da parte local do e-mail.
     private func inicioDoArroba(_ largura: CGFloat) -> CGFloat {
         let local = texto.firstIndex(of: "@").map { String(texto[..<$0]) } ?? texto
-        let limite = max(largura - FrilaEspaco.medio - reservaDireita, 0)
-        return FrilaEspaco.medio + min(medir(local), limite)
+        let limite = max(largura - FrilaEspaco.bloco - reservaDireita, 0)
+        return FrilaEspaco.bloco + min(medir(local), limite)
     }
 
     var body: some View {
@@ -87,7 +87,8 @@ struct CampoEmailComDominio: View {
                     .frame(width: largura, height: alturaVisual)
                     .allowsHitTesting(false)
                 RoundedRectangle(cornerRadius: raioDoCampo, style: .continuous)
-                    .strokeBorder(FrilaCor.bordaDoCampo, lineWidth: 1)
+                    // Foco como nos outros campos do sistema: contorno de 2 pt em tinta.
+                    .strokeBorder(estado.focado ? FrilaCor.texto : FrilaCor.bordaDoCampo, lineWidth: estado.focado ? 2 : 1)
                     .frame(width: largura, height: alturaVisual)
                     .allowsHitTesting(false)
 
@@ -107,15 +108,15 @@ struct CampoEmailComDominio: View {
                 if let transicao {
                     PreenchimentoPorBlocos(transicao: transicao, tempo: tempoDaCadeia, mostrarGhost: !aguardandoCadeia,
                                            baseline: estado.baseline, linhaDoCursor: estado.linhaDoCursor)
-                        .frame(width: max(0, largura - FrilaEspaco.medio - reservaDireita), height: altura)
+                        .frame(width: max(0, largura - FrilaEspaco.bloco - reservaDireita), height: altura)
                         .clipped()
-                        .offset(x: FrilaEspaco.medio)
+                        .offset(x: FrilaEspaco.bloco)
                         .allowsHitTesting(false)
                         .id(transicao.id)
                         .onAppear { animarCadeia(transicao) }
 
                     if aguardandoCadeia {
-                        let inicio = min(medir(transicao.textoAnterior), max(0, largura - FrilaEspaco.medio - reservaDireita)) + FrilaEspaco.medio + 0.5
+                        let inicio = min(medir(transicao.textoAnterior), max(0, largura - FrilaEspaco.bloco - reservaDireita)) + FrilaEspaco.bloco + 0.5
                         RodaDeDominios(sugestao: transicao.sugestao, posicao: Double(transicao.posicao),
                                        passo: passoDaRoda, interacao: destaque, acento: acento)
                             .frame(width: max(0, largura - inicio - reservaDireita - 4), height: alturaVisual, alignment: .leading)
@@ -193,10 +194,12 @@ struct CampoEmailComDominio: View {
                                     .clipShape(RoundedRectangle(cornerRadius: raioDaCapsula, style: .continuous))
                                 }
                                 .scaleEffect(acentoCTA ? 1.015 : 1)
+                                // O desenho fica com 6 pt de respiro; o alvo ocupa a altura do campo (48 pt ou mais).
+                                .frame(width: larguraDaCapsula + respiro * 2, height: alturaVisual)
+                                .contentShape(Rectangle())
                                 .animation(FrilaMovimento.animacao(.timingCurve(0.16, 1, 0.3, 1, duration: ctaAtivo ? 0.12 : 0.08), reduzir: reduzirMovimento), value: ctaAtivo)
                         }
                         .buttonStyle(ToqueDaSeta(aoPressionar: hapticos.toqueDaSeta))
-                        .padding(.trailing, respiro)
                         .accessibilityIdentifier("entrada-email-dominio-confirmar")
                     }
                     .frame(width: largura, height: altura)
@@ -666,8 +669,8 @@ private struct RodaDeDominios: View, Animatable {
 
     private func tom(_ q: Double, acentoDoItem a: Double) -> Color {
         let neutro = FrilaCor.texto.resolve(in: ambiente)
-        // Mesma seleção da seta no claro; no escuro, a terracota viva da marca.
-        let cor = (ambiente.colorScheme == .dark ? FrilaCor.marca : FrilaCor.selecao).resolve(in: ambiente)
+        // Tinta nos dois modos: o laranja é só para avançar. O destaque vem da opacidade e do peso.
+        let cor = FrilaCor.texto.resolve(in: ambiente)
         let t = Float(a)
         return Color(.sRGBLinear,
                      red: Double(neutro.linearRed + (cor.linearRed - neutro.linearRed) * t),
@@ -1037,8 +1040,8 @@ private struct CampoEmailNativo: UIViewRepresentable {
                     // Com o cursor no fim, o x é a largura do texto: o caretRect do UIKit chega atrasado.
                     let largura = ((textField.text ?? "") as NSString)
                         .size(withAttributes: [.font: textField.font ?? UIFont.preferredFont(forTextStyle: .body)]).width
-                    let limite = textField.bounds.width - FrilaEspaco.medio - ((textField as? CampoComMargens)?.reservaDireita ?? 0)
-                    novo.caretX = FrilaEspaco.medio + min(largura, max(limite, 0))
+                    let limite = textField.bounds.width - FrilaEspaco.bloco - ((textField as? CampoComMargens)?.reservaDireita ?? 0)
+                    novo.caretX = FrilaEspaco.bloco + min(largura, max(limite, 0))
                 }
                 relato(novo)
             }
@@ -1143,8 +1146,8 @@ private final class CampoComMargens: UITextField {
     var reservaDireita: CGFloat = 0
     private func area(_ limites: CGRect) -> CGRect {
         CGRect(
-            x: FrilaEspaco.medio, y: 0,
-            width: max(0, limites.width - FrilaEspaco.medio - reservaDireita), height: limites.height
+            x: FrilaEspaco.bloco, y: 0,
+            width: max(0, limites.width - FrilaEspaco.bloco - reservaDireita), height: limites.height
         )
     }
     override func textRect(forBounds bounds: CGRect) -> CGRect { area(bounds) }

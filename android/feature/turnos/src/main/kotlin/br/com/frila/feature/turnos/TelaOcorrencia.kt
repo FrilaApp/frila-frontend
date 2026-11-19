@@ -9,11 +9,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
@@ -22,6 +27,7 @@ import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
 import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
 import br.com.frila.core.designsystem.componentes.RodapeAncorado
 import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
@@ -29,8 +35,8 @@ import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 
 /**
  * Tela de ocorrência de um turno (RF12/RF23/RN15, UC14): escolha do motivo normativo, relato
- * livre e anexo opcional de foto. Relato e foto ficam só no aparelho e no e-mail que
- * [aoAbrirEmailDeSuporte] dispara depois do sucesso — nunca sobem numa RPC.
+ * livre. Sem anexo de foto (como no iOS). O relato fica só no aparelho e no corpo do e-mail que
+ * [aoAbrirEmailDeSuporte] dispara depois do sucesso — nunca sobe numa RPC.
  *
  * Desenho: o motivo é uma lista com check em tinta (escolha única de formulário), o relato é um campo com o rótulo
  * acima e o envio fica ancorado embaixo, com a recusa escrita logo acima do botão. Suporte é por e-mail.
@@ -39,15 +45,22 @@ import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 fun TelaOcorrencia(
     viewModel: OcorrenciaTurnoViewModel,
     modifier: Modifier = Modifier,
-    aoSelecionarFoto: () -> Unit = {},
-    aoAbrirEmailDeSuporte: (protocoloCurto: String) -> Unit = {},
+    /** E-mail oficial de suporte, citado na mensagem de falha quando nenhum app de e-mail abre. */
+    emailDeSuporte: String = "",
+    /** Abre o e-mail já escrito; devolve `false` se nenhum app de e-mail abriu (a tela avisa e mantém o relato). */
+    aoAbrirEmailDeSuporte: (PedidoDeEmailDeSuporte) -> Boolean = { true },
     aoVoltar: () -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     when (estado.status) {
         StatusOcorrencia.SUCESSO -> ConfirmacaoDeOcorrencia(
-            protocoloCurto = estado.protocolo?.ocorrenciaId?.take(8)?.replace("-", "")?.uppercase() ?: "",
+            pedido = PedidoDeEmailDeSuporte(
+                protocoloCurto = estado.protocolo?.ocorrenciaId?.take(8)?.replace("-", "")?.uppercase() ?: "",
+                motivo = estado.motivo,
+                relato = estado.relato,
+            ),
+            emailDeSuporte = emailDeSuporte,
             aoAbrirEmailDeSuporte = aoAbrirEmailDeSuporte,
             aoVoltar = aoVoltar,
             modifier = modifier,
@@ -56,7 +69,6 @@ fun TelaOcorrencia(
             estado = estado,
             aoSelecionarMotivo = viewModel::selecionarMotivo,
             aoAtualizarRelato = viewModel::atualizarRelato,
-            aoSelecionarFoto = aoSelecionarFoto,
             aoEnviar = { viewModel.enviar() },
             aoVoltar = aoVoltar,
             modifier = modifier,
@@ -69,7 +81,6 @@ private fun FormularioDeOcorrencia(
     estado: EstadoOcorrencia,
     aoSelecionarMotivo: (MotivoOcorrencia) -> Unit,
     aoAtualizarRelato: (String) -> Unit,
-    aoSelecionarFoto: () -> Unit,
     aoEnviar: () -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
@@ -119,15 +130,9 @@ private fun FormularioDeOcorrencia(
             CampoDeTexto(
                 valor = estado.relato,
                 aoMudar = aoAtualizarRelato,
-                rotulo = "Relato (vai só no e-mail de suporte)",
+                rotulo = TextosOcorrencia.ROTULO_RELATO,
                 umaLinha = false,
                 linhasMinimas = 4,
-            )
-
-            BotaoSecundario(
-                texto = if (estado.anexoUri == null) "Anexar foto" else "Foto anexada",
-                aoClicar = aoSelecionarFoto,
-                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -135,11 +140,15 @@ private fun FormularioDeOcorrencia(
 
 @Composable
 private fun ConfirmacaoDeOcorrencia(
-    protocoloCurto: String,
-    aoAbrirEmailDeSuporte: (String) -> Unit,
+    pedido: PedidoDeEmailDeSuporte,
+    emailDeSuporte: String,
+    aoAbrirEmailDeSuporte: (PedidoDeEmailDeSuporte) -> Boolean,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Sem app de e-mail, o relato só existe aqui: a tela diz, mantém o texto selecionável e deixa tentar de novo.
+    var emailFalhou by rememberSaveable { mutableStateOf(false) }
+    val protocoloCurto = pedido.protocoloCurto
     Scaffold(
         modifier = modifier,
         containerColor = FrilaTema.cores.fundo,
@@ -147,8 +156,8 @@ private fun ConfirmacaoDeOcorrencia(
         bottomBar = {
             RodapeAncorado {
                 BotaoPrimario(
-                    texto = "Abrir e-mail de suporte",
-                    aoClicar = { aoAbrirEmailDeSuporte(protocoloCurto) },
+                    texto = TextosOcorrencia.ABRIR_EMAIL,
+                    aoClicar = { emailFalhou = !aoAbrirEmailDeSuporte(pedido) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 BotaoSecundario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
@@ -165,10 +174,22 @@ private fun ConfirmacaoDeOcorrencia(
         ) {
             TituloDaTela("Chamado aberto. Protocolo #$protocoloCurto")
             Text(
-                text = "Agora envie seu relato e a foto por e-mail para que a Equipe Frila possa ajudar.",
+                text = TextosOcorrencia.CONFIRMACAO,
                 style = FrilaTipo.corpo,
                 color = FrilaTema.cores.tintaSuave,
             )
+            if (emailFalhou) {
+                AvisoFrila(
+                    tom = TomAviso.ERRO,
+                    mensagem = TextosOcorrencia.FALHA_AO_ABRIR_EMAIL.format(emailDeSuporte, protocoloCurto),
+                )
+                if (pedido.relato.isNotBlank()) {
+                    Text(text = TextosOcorrencia.RELATO_PARA_COPIAR, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
+                    SelectionContainer {
+                        Text(text = pedido.relato.trim(), style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
+                    }
+                }
+            }
         }
     }
 }

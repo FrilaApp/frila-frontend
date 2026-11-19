@@ -11,6 +11,7 @@ import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.modelo.PapelMembro
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
@@ -74,6 +75,9 @@ import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.chamadas.casa.ServicoDeRegioes
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
+import br.com.frila.feature.equipe.casa.EquipeDaCasaViewModel
+import br.com.frila.feature.equipe.casa.TenhoUmConviteViewModel
+import br.com.frila.feature.equipe.casa.TrocarDeCasaViewModel
 import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
@@ -81,6 +85,7 @@ import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
+import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.OpcaoDePontoBase
 import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
@@ -325,6 +330,27 @@ val moduloFeatures = module {
             enviarVaga = vagas::publicarVaga,
         )
     }
+    /**
+     * Equipe da casa (RF21): lista, convite por link, remover e tornar administrador. O link do convite sai da origem da web
+     * dos endereços oficiais; o papel de quem abriu a tela vem da rota (lido de `meus_estabelecimentos`).
+     */
+    viewModel { (estabelecimentoId: String, papel: PapelMembro?) ->
+        val membros = get<ServicoMembros>()
+        EquipeDaCasaViewModel(
+            estabelecimentoId = estabelecimentoId,
+            papel = papel,
+            listar = membros::listarMembrosDaCasa,
+            convidar = membros::convidarMembro,
+            remover = membros::removerMembro,
+            transferir = membros::transferirAdministracao,
+            // A web do MESMO ambiente do app: o debug (Supabase DEV) abre a web DEV, o release abre a web Prod.
+            montarLink = { token -> EnderecosOficiais.padrao.copy(origemDaWeb = OrigemDaWeb.doAmbiente()).linkDoConvite(token) },
+        )
+    }
+    /** "Tenho um convite": cola o link ou o código e aceita (`aceitar_convite_membro`). */
+    viewModel { TenhoUmConviteViewModel(aceitar = get<ServicoMembros>()::aceitarConviteMembro) }
+    /** Trocar de casa: `meus_estabelecimentos`, sem RPC própria. */
+    viewModel { TrocarDeCasaViewModel(listar = get<ServicoMembros>()::listarMeusEstabelecimentos) }
     /** Escala de evento (RF19, `publicar_escala`): o mesmo estabelecimento lido da publicação de vaga, com a chave única da escala. */
     viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
         val vagas = get<ServicoVagas>()

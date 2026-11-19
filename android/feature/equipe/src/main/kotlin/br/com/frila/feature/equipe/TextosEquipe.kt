@@ -15,6 +15,7 @@ object TextosEquipe {
     const val NA_EQUIPE = "Na equipe de confiança"
     const val REMOVER = "Remover"
     const val CHAMAR_DE_NOVO = "Chamar de novo"
+    const val DENUNCIAR = "Denunciar"
     const val REMOVENDO = "Removendo…"
     const val CONFIRMAR_REMOCAO = "Remover da equipe?"
     const val CONFIRMAR_REMOVER = "Sim, remover"
@@ -43,6 +44,8 @@ object TextosEquipe {
     fun rotuloRemover(nome: String): String = "$REMOVER $nome"
 
     fun rotuloChamarDeNovo(nome: String): String = "$CHAMAR_DE_NOVO $nome"
+
+    fun rotuloDenunciar(nome: String): String = "$DENUNCIAR $nome"
 
     fun reputacao(positivas: Int, total: Int): String =
         if (total <= 0) SEM_AVALIACOES else "$positivas de $total avaliações positivas"

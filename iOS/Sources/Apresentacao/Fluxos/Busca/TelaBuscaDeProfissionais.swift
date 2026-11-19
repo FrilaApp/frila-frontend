@@ -1,9 +1,12 @@
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 import FrilaDominio
 import SwiftUI
 
-/// Busca de profissionais (CD-B01 a CD-B11), só com controles nativos: filtros, lista, seleção de até 3,
-/// chamar e "Publicar para todos". Atrás da chave `buscaProfissionais`.
+/// Busca de profissionais (CD-B01 a CD-B11): filtros, lista, seleção de até 3, chamar e "Publicar para todos".
+/// Atrás da chave `buscaProfissionais`.
+///
+/// Desenho (R6): o Fabrício não desenhou o lado da casa; a tela segue o que ele desenhou para escolher (T2, a lista de
+/// vagas): rótulo visível acima de cada campo, cartões em `superficie`, estado vazio sem ícone e, ancorado embaixo,
+/// o único botão laranja, "Chamar selecionados". "Buscar" e a lista de resultados não levam laranja.
 public struct TelaBuscaDeProfissionais: View {
     /// Vem de fora: vive enquanto a busca existir (não só enquanto a folha está aberta), para um envio incerto
     /// continuar travado mesmo se a tela for fechada e aberta de novo.
@@ -20,11 +23,16 @@ public struct TelaBuscaDeProfissionais: View {
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @Environment(\.dismiss) private var fechar
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
 
     private let api: any ApiCliente
     private let estabelecimentoID: UUID
     private let aoPublicarParaTodos: (RascunhoDeVagaDaBusca) -> Void
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
+
+    // O fato e a dica do estado vazio, no desenho do estado vazio (o texto antigo era uma frase só).
+    private static let semResultadoFato = String(localized: "Nenhum profissional encontrado com esses filtros.", bundle: bundleApresentacao)
+    private static let semResultadoDica = String(localized: "Você pode publicar a vaga para todos.", bundle: bundleApresentacao)
 
     public init(viewModel: BuscaDeProfissionaisViewModel, api: any ApiCliente, estabelecimentoID: UUID,
                 aoPublicarParaTodos: @escaping (RascunhoDeVagaDaBusca) -> Void) {
@@ -39,61 +47,32 @@ public struct TelaBuscaDeProfissionais: View {
 
     public var body: some View {
         @Bindable var viewModel = viewModel
-        return Form {
-            Section(TextosBuscaDeProfissionais.filtros) {
-                Picker(selection: $viewModel.funcaoID) {
-                    Text(verbatim: TextosBuscaDeProfissionais.escolhaOServico).tag(UUID?.none)
-                    ForEach(funcoes) { funcao in Text(verbatim: funcao.nome).tag(UUID?.some(funcao.id)) }
-                } label: { Text(verbatim: TextosBuscaDeProfissionais.servico) }
-                    .accessibilityIdentifier("busca-servico")
-                Picker(selection: $viewModel.regiaoID) {
-                    Text(verbatim: TextosBuscaDeProfissionais.regiaoDoEstabelecimento).tag(Int?.none)
-                    ForEach(regioes) { regiao in Text(verbatim: regiao.nome).tag(Int?.some(regiao.id)) }
-                } label: { Text(verbatim: TextosBuscaDeProfissionais.regiao) }
-                    .accessibilityIdentifier("busca-regiao")
-                Toggle(isOn: $usarHorario) { Text(verbatim: TextosBuscaDeProfissionais.buscarPorHorario) }
-                    .accessibilityIdentifier("busca-usar-horario")
-                if usarHorario {
-                    DatePicker(selection: $inicio, in: Date.now...) { Text(verbatim: TextosBuscaDeProfissionais.inicio) }
-                        .accessibilityIdentifier("busca-inicio")
-                    DatePicker(selection: $fim, in: inicio...) { Text(verbatim: TextosBuscaDeProfissionais.termino) }
-                        .accessibilityIdentifier("busca-fim")
-                }
-                Button { Task { await buscar() } } label: { Text(verbatim: TextosBuscaDeProfissionais.buscar) }
-                    .disabled(!viewModel.podeBuscar)
-                    .accessibilityIdentifier("buscar-profissionais")
-            }
-            if catalogoComErro && !catalogoCarregado {
-                Section {
-                    Text(verbatim: TextosBuscaDeProfissionais.catalogoIndisponivel)
-                        .accessibilityIdentifier("busca-catalogo-erro")
-                    Button { Task { await carregarCatalogo() } } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
-                        .accessibilityIdentifier("busca-catalogo-tentar-de-novo")
-                }
-            }
-            if viewModel.enviando {
-                // Envio em curso: a seleção fica parada até a resposta (ou o prazo) chegar.
-                Section {
-                    ProgressView { Text(verbatim: TextosBuscaDeProfissionais.enviando) }
+        return ScrollView {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                filtros
+                if catalogoComErro && !catalogoCarregado { catalogoIndisponivel }
+                if viewModel.enviando {
+                    // Envio em curso: a seleção fica parada até a resposta (ou o prazo) chegar.
+                    Text(verbatim: TextosBuscaDeProfissionais.enviando)
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
                         .accessibilityIdentifier("busca-enviando")
                 }
-            }
-            if viewModel.travadoPeloIncerto {
-                // Um envio que levou o trabalho ficou incerto: nada de busca nova nem de trocar a seleção até resolver.
-                Section {
-                    Text(verbatim: TextosBuscaDeProfissionais.envioIncerto)
-                        .accessibilityIdentifier("busca-envio-incerto")
-                    Button { chamarSelecionados() } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
-                        .disabled(!podeChamarAgora)
-                        .accessibilityIdentifier("busca-tentar-de-novo")
+                if viewModel.travadoPeloIncerto { envioIncerto }
+                situacao
+                if let aviso = viewModel.avisoDeLimiteDeSelecao {
+                    AvisoFrila(verbatim: aviso, tom: .informativo)
+                        .accessibilityIdentifier("busca-aviso-limite")
                 }
+                if !viewModel.resultados.isEmpty { lista }
             }
-            situacao
-            if let aviso = viewModel.avisoDeLimiteDeSelecao {
-                Section { Text(verbatim: aviso).accessibilityIdentifier("busca-aviso-limite") }
-            }
-            if !viewModel.resultados.isEmpty { lista }
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.item)
+            .padding(.bottom, FrilaEspaco.grupo)
+            // Preso à largura visível: nenhum controle mais largo que a tela alarga a rolagem inteira.
+            .containerRelativeFrame(.horizontal)
         }
+        .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosBuscaDeProfissionais.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -104,8 +83,12 @@ public struct TelaBuscaDeProfissionais: View {
                     .accessibilityIdentifier("busca-fechar")
             }
         }
+        // Em texto de acessibilidade o grupo do pé passaria de um terço da tela e cobriria o "Buscar": vai para o fim da lista.
+        .rodapeAncoradoSe(!viewModel.resultados.isEmpty && !tamanhoDoTexto.isAccessibilitySize) { rodapeDaLista }
         .task { await carregarCatalogo() }
-        .sheet(item: $rascunhoDaChamada) { rascunho in folhaDeChamada(rascunho) }
+        .sheet(item: $rascunhoDaChamada) { rascunho in
+            FolhaDeChamadaDaBusca(rascunho: rascunho, fechar: { rascunhoDaChamada = nil }, enviar: { Task { await enviarChamadas() } })
+        }
         .alert(Text(verbatim: TextosChamadaDireta.j7Titulo), isPresented: $viewModel.mostrarJ7) {
             Button(role: .cancel) { viewModel.mostrarJ7 = false } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
             Button { Task { await reenviarComJ7() } } label: { Text(verbatim: TextosChamadaDireta.j7Confirmar) }
@@ -115,7 +98,92 @@ public struct TelaBuscaDeProfissionais: View {
             // 0.2.95: a vaga já aberta do trabalho tem outros termos. Só sai com Confirmar; fechar a folha é Cancelar.
             if let folha = TelaTermosDaVagaAbertaProvisoria(modelo: viewModel) {
                 ScrollView { folha }
+                    .background(FrilaCor.fundo)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationCornerRadius(FrilaRaio.folha)
             }
+        }
+    }
+
+    // MARK: Filtros
+
+    private var filtros: some View {
+        @Bindable var viewModel = viewModel
+        return VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            Text(verbatim: TextosBuscaDeProfissionais.filtros)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+            campoDeEscolha(TextosBuscaDeProfissionais.servico) {
+                Picker(selection: $viewModel.funcaoID) {
+                    Text(verbatim: TextosBuscaDeProfissionais.escolhaOServico).tag(UUID?.none)
+                    ForEach(funcoes) { funcao in Text(verbatim: funcao.nome).tag(UUID?.some(funcao.id)) }
+                } label: { Text(verbatim: TextosBuscaDeProfissionais.servico) }
+                    .accessibilityIdentifier("busca-servico")
+            }
+            campoDeEscolha(TextosBuscaDeProfissionais.regiao) {
+                Picker(selection: $viewModel.regiaoID) {
+                    Text(verbatim: TextosBuscaDeProfissionais.regiaoDoEstabelecimento).tag(Int?.none)
+                    ForEach(regioes) { regiao in Text(verbatim: regiao.nome).tag(Int?.some(regiao.id)) }
+                } label: { Text(verbatim: TextosBuscaDeProfissionais.regiao) }
+                    .accessibilityIdentifier("busca-regiao")
+            }
+            FrilaGrupoDeLinhas(linhasComIcone: false) {
+                Toggle(isOn: $usarHorario) {
+                    Text(verbatim: TextosBuscaDeProfissionais.buscarPorHorario).font(FrilaTipo.corpo)
+                }
+                .accessibilityIdentifier("busca-usar-horario")
+                .modifier(LinhaDeControleDaCasa())
+                if usarHorario {
+                    LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.inicio, data: $inicio, faixa: Date.now...Date.distantFuture)
+                        .accessibilityIdentifier("busca-inicio")
+                    LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.termino, data: $fim, faixa: inicio...Date.distantFuture)
+                        .accessibilityIdentifier("busca-fim")
+                }
+            }
+            BotaoSecundario(verbatim: TextosBuscaDeProfissionais.buscar) { Task { await buscar() } }
+                .disabled(!viewModel.podeBuscar)
+                .accessibilityIdentifier("buscar-profissionais")
+        }
+    }
+
+    /// Escolha única por menu do sistema, na caixa do campo, com o rótulo visível acima.
+    private func campoDeEscolha<Conteudo: View>(_ nome: String, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: nome)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityHidden(true)
+            conteudo()
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(FrilaCor.texto)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .caixaDoCampoFrila()
+        }
+    }
+
+    // MARK: Avisos que travam a busca
+
+    private var catalogoIndisponivel: some View {
+        // O erro da ação fica logo acima do botão que a repete (D-DS-13).
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            MensagemJuntoAoBotao(verbatim: TextosBuscaDeProfissionais.catalogoIndisponivel)
+                .accessibilityIdentifier("busca-catalogo-erro")
+            BotaoSecundario(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) { Task { await carregarCatalogo() } }
+                .accessibilityIdentifier("busca-catalogo-tentar-de-novo")
+        }
+    }
+
+    private var envioIncerto: some View {
+        // Um envio que levou o trabalho ficou incerto: nada de busca nova nem de trocar a seleção até resolver.
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            MensagemJuntoAoBotao(verbatim: TextosBuscaDeProfissionais.envioIncerto)
+                .accessibilityIdentifier("busca-envio-incerto")
+            BotaoSecundario(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) { chamarSelecionados() }
+                .disabled(!podeChamarAgora)
+                .accessibilityIdentifier("busca-tentar-de-novo")
         }
     }
 
@@ -127,25 +195,35 @@ public struct TelaBuscaDeProfissionais: View {
         case .ocioso, .resultados:
             EmptyView()
         case .carregando:
-            Section { ProgressView { Text(verbatim: TextosBuscaDeProfissionais.buscando) } }
+            Text(verbatim: TextosBuscaDeProfissionais.buscando)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .frame(maxWidth: .infinity)
+                .padding(.top, FrilaEspaco.bloco)
         case .vazio:
-            Section {
-                Text(verbatim: TextosBuscaDeProfissionais.nenhumEncontrado)
+            VStack(spacing: 0) {
+                EstadoVazio(verbatim: Self.semResultadoFato, mensagem: Self.semResultadoDica)
                     .accessibilityIdentifier("busca-vazia")
                 if let rascunho = viewModel.rascunhoParaPublicarParaTodos {
-                    Button { aoPublicarParaTodos(rascunho) } label: { Text(verbatim: TextosChamadaDireta.publicarParaTodos) }
+                    BotaoSecundario(verbatim: TextosChamadaDireta.publicarParaTodos) { aoPublicarParaTodos(rascunho) }
+                        // Largura do rótulo; com texto grande, a largura toda, para o rótulo quebrar em vez de vazar.
+                        .fixedSize(horizontal: !tamanhoDoTexto.isAccessibilitySize, vertical: false)
                         .accessibilityIdentifier("publicar-para-todos-busca")
                 }
             }
+            .frame(maxWidth: .infinity)
         case .indisponivel:
-            Section { Text(verbatim: TextosBuscaDeProfissionais.indisponivel).accessibilityIdentifier("busca-indisponivel") }
+            AvisoFrila(verbatim: TextosBuscaDeProfissionais.indisponivel, tom: .informativo)
+                .accessibilityIdentifier("busca-indisponivel")
         case .termosPendentes:
             // `termos_pendentes` (0.2.90): aceitar repete a busca com os mesmos filtros; sem aceite, segue bloqueada.
-            Section { TelaAceiteDeTermosProvisoria(modelo: viewModel) }
+            TelaAceiteDeTermosProvisoria(modelo: viewModel)
+                .cartaoFrila()
         case let .erro(mensagem):
-            Section {
-                Text(verbatim: mensagem).accessibilityIdentifier("busca-erro")
-                Button { Task { await buscar() } } label: { Text(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) }
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                MensagemJuntoAoBotao(verbatim: mensagem)
+                    .accessibilityIdentifier("busca-erro")
+                BotaoSecundario(verbatim: TextosBuscaDeProfissionais.tentarDeNovo) { Task { await buscar() } }
                     .disabled(!viewModel.podeBuscar)
             }
         }
@@ -154,54 +232,91 @@ public struct TelaBuscaDeProfissionais: View {
     // MARK: Lista
 
     private var lista: some View {
-        Section {
-            Button { chamarSelecionados() } label: { Text(verbatim: TextosBuscaDeProfissionais.chamarSelecionados) }
-                .disabled(!podeChamarAgora)
-                .accessibilityIdentifier("chamar-selecionados")
-            ForEach(viewModel.resultados) { cartao in linha(cartao) }
-            if viewModel.temMais {
-                Color.clear.frame(height: 1)
-                    .onAppear { Task { await viewModel.carregarMais() } }
-                    .accessibilityHidden(true)
-            }
-            if viewModel.carregandoMais { ProgressView() }
-            if let erro = viewModel.erroAoCarregarMais {
-                Text(verbatim: erro)
-                Button { Task { await viewModel.carregarMais() } } label: { Text(verbatim: TextosBuscaDeProfissionais.carregarMais) }
-            }
-        } header: {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosBuscaDeProfissionais.profissionais)
-        } footer: {
-            Text(verbatim: TextosBuscaDeProfissionais.selecionados(viewModel.selecionados.count))
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
+            // Preguiçosa, como era a lista: o marcador do fim só nasce quando chega perto da tela, e é ele que pede a
+            // página seguinte. Com a lista inteira montada de uma vez, o marcador pedia todas as páginas de uma vez.
+            LazyVStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                ForEach(viewModel.resultados) { cartao in linha(cartao) }
+                if viewModel.temMais {
+                    Color.clear.frame(height: 1)
+                        .onAppear { Task { await viewModel.carregarMais() } }
+                        .accessibilityHidden(true)
+                }
+            }
+            if viewModel.carregandoMais {
+                Text(verbatim: TextosBuscaDeProfissionais.buscando)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(maxWidth: .infinity)
+            }
+            if let erro = viewModel.erroAoCarregarMais {
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                    MensagemJuntoAoBotao(verbatim: erro)
+                    BotaoSecundario(verbatim: TextosBuscaDeProfissionais.carregarMais) { Task { await viewModel.carregarMais() } }
+                }
+            }
+            if tamanhoDoTexto.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodapeDaLista }
+                    .padding(.top, FrilaEspaco.item)
+            }
         }
     }
 
+    /// O botão laranja da tela: chamar as pessoas escolhidas. A contagem fica logo acima dele.
+    @ViewBuilder
+    private var rodapeDaLista: some View {
+        Text(verbatim: TextosBuscaDeProfissionais.selecionados(viewModel.selecionados.count))
+            .font(FrilaTipo.apoio)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        BotaoPrimario(verbatim: TextosBuscaDeProfissionais.chamarSelecionados, carregando: viewModel.enviando) { chamarSelecionados() }
+            .disabled(!podeChamarAgora)
+            .accessibilityIdentifier("chamar-selecionados")
+    }
+
+    /// Um resultado num cartão: a marca de seleção à esquerda, o cartão que abre o perfil e, embaixo, o resultado da
+    /// chamada a essa pessoa. Escolhido, o cartão ganha o fio de 2 pt em tinta (além do check, que não depende de cor).
     private func linha(_ cartao: CartaoProfissional) -> some View {
         let selecionado = viewModel.estaSelecionado(cartao.id)
-        return HStack {
-            Button { viewModel.alternarSelecao(cartao.id) } label: {
-                Image(systemName: selecionado ? "checkmark.circle.fill" : "circle")
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.borderless)
-            .disabled(viewModel.travadoPeloIncerto || viewModel.enviando)
-            .accessibilityLabel(Text(verbatim: selecionado ? TextosBuscaDeProfissionais.desmarcar(cartao.nome)
-                                                             : TextosBuscaDeProfissionais.selecionar(cartao.nome)))
-            .accessibilityIdentifier("selecionar-profissional-\(cartao.id)")
-            NavigationLink {
-                TelaPerfilPublico(perfil: Self.perfilResumido(cartao), api: api, bloqueios: bloqueios)
-                    .navigationTitle(Text(verbatim: cartao.nome))
-            } label: {
-                VStack(alignment: .leading) {
-                    CartaoDaBuscaProvisorio(cartao: cartao)
-                    if let resultado = viewModel.resultadosDaChamada[cartao.id] {
-                        Text(verbatim: Self.texto(resultado))
-                            .accessibilityIdentifier("resultado-chamada-\(cartao.id)")
-                    }
+        let forma = RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous)
+        return VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            HStack(alignment: .top, spacing: FrilaEspaco.item) {
+                Button { viewModel.alternarSelecao(cartao.id) } label: {
+                    Image(systemName: selecionado ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundStyle(selecionado ? FrilaCor.texto : FrilaCor.bordaDoCampo)
+                        .frame(minWidth: FrilaMetrica.alvo, minHeight: FrilaMetrica.alvo)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .disabled(viewModel.travadoPeloIncerto || viewModel.enviando)
+                .accessibilityLabel(Text(verbatim: selecionado ? TextosBuscaDeProfissionais.desmarcar(cartao.nome)
+                                                                 : TextosBuscaDeProfissionais.selecionar(cartao.nome)))
+                .accessibilityIdentifier("selecionar-profissional-\(cartao.id)")
+                NavigationLink {
+                    TelaPerfilPublico(perfil: Self.perfilResumido(cartao), api: api, bloqueios: bloqueios)
+                        .navigationTitle(Text(verbatim: cartao.nome))
+                } label: {
+                    CartaoDaBuscaProvisorio(cartao: cartao)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("perfil-profissional-\(cartao.id)")
             }
-            .accessibilityIdentifier("perfil-profissional-\(cartao.id)")
+            if let resultado = viewModel.resultadosDaChamada[cartao.id] {
+                Text(verbatim: Self.texto(resultado))
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("resultado-chamada-\(cartao.id)")
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cartaoFrila()
+        .overlay { if selecionado { forma.strokeBorder(FrilaCor.texto, lineWidth: 2) } }
     }
 
     /// Só o necessário para abrir o perfil; a tela do perfil lê o resto pelo id.
@@ -282,41 +397,107 @@ public struct TelaBuscaDeProfissionais: View {
     private func reenviarComJ7() async {
         await viewModel.reenviar(confirmoRecorrencia: true)
     }
+}
 
-    // MARK: Folha de chamada
+/// A folha "Chamar profissionais" da busca: valor total, horário, responsável e recado, iguais para cada pessoa escolhida.
+/// O que falta e o botão laranja "Enviar chamadas" ficam ancorados embaixo.
+private struct FolhaDeChamadaDaBusca: View {
+    private enum Campo: Hashable { case valor, responsavel, recado }
 
-    private func folhaDeChamada(_ rascunhoAtual: RascunhoDaChamadaDaBusca) -> some View {
-        @Bindable var rascunho = rascunhoAtual
-        return NavigationStack {
-            Form {
-                Section { Text(verbatim: TextosBuscaDeProfissionais.folhaExplicacao) }
-                Section {
-                    TextField(text: $rascunho.valorTexto) { Text(verbatim: TextosChamadaDireta.valor) }
-                        .keyboardType(.decimalPad)
-                        .accessibilityIdentifier("busca-valor-total")
-                    Toggle(isOn: $rascunho.totalConfirmado) { Text(verbatim: TextosChamadaDireta.total) }
+    @Bindable var rascunho: RascunhoDaChamadaDaBusca
+    let fechar: () -> Void
+    let enviar: () -> Void
+    @FocusState private var campoEmFoco: Campo?
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                    Text(verbatim: TextosBuscaDeProfissionais.folhaExplicacao)
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                    campo(TextosChamadaDireta.valor) {
+                        CampoFrila(verbatim: TextosChamadaDireta.valor, texto: $rascunho.valorTexto, emFoco: campoEmFoco == .valor)
+                            .focused($campoEmFoco, equals: .valor)
+                            .keyboardType(.decimalPad)
+                            .accessibilityIdentifier("busca-valor-total")
+                    }
+                    FrilaGrupoDeLinhas(linhasComIcone: false) {
+                        Toggle(isOn: $rascunho.totalConfirmado) {
+                            Text(verbatim: TextosChamadaDireta.total).font(FrilaTipo.corpo)
+                        }
                         .accessibilityIdentifier("busca-confirmo-total")
-                    DatePicker(selection: $rascunho.inicio) { Text(verbatim: TextosBuscaDeProfissionais.inicio) }
-                    DatePicker(selection: $rascunho.fim) { Text(verbatim: TextosBuscaDeProfissionais.termino) }
-                    TextField(text: $rascunho.responsavel) { Text(verbatim: TextosChamadaDireta.responsavel) }
-                        .accessibilityIdentifier("busca-responsavel")
-                    TextField(text: $rascunho.recado, axis: .vertical) { Text(verbatim: TextosChamadaDireta.recado) }
+                        .modifier(LinhaDeControleDaCasa())
+                    }
+                    FrilaGrupoDeLinhas(linhasComIcone: false) {
+                        LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.inicio, data: $rascunho.inicio,
+                                          faixa: Date.distantPast...Date.distantFuture)
+                        LinhaDeDataDaCasa(rotulo: TextosBuscaDeProfissionais.termino, data: $rascunho.fim,
+                                          faixa: Date.distantPast...Date.distantFuture)
+                    }
+                    campo(TextosChamadaDireta.responsavel) {
+                        CampoFrila(verbatim: TextosChamadaDireta.responsavel, texto: $rascunho.responsavel,
+                                   emFoco: campoEmFoco == .responsavel)
+                            .focused($campoEmFoco, equals: .responsavel)
+                            .accessibilityIdentifier("busca-responsavel")
+                    }
+                    campo(TextosChamadaDireta.recado) {
+                        TextField(text: $rascunho.recado, axis: .vertical) { Text(verbatim: TextosChamadaDireta.recado) }
+                            .textFieldStyle(.plain)
+                            .font(FrilaTipo.corpo)
+                            .foregroundStyle(FrilaCor.texto)
+                            .lineLimit(3...6)
+                            .focused($campoEmFoco, equals: .recado)
+                            .caixaDoCampoFrila(emFoco: campoEmFoco == .recado)
+                    }
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { acaoDoEnvio }
+                    }
                 }
-                Section {
-                    if let falta = rascunho.oQueFalta { Text(verbatim: falta) }
-                    Button { Task { await enviarChamadas() } } label: { Text(verbatim: TextosBuscaDeProfissionais.enviarChamadas) }
-                        .disabled(!rascunho.podeEnviar)
-                        .accessibilityIdentifier("busca-enviar-chamadas")
-                }
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.item)
+                .padding(.bottom, FrilaEspaco.grupo)
+                .containerRelativeFrame(.horizontal)
             }
             .scrollDismissesKeyboard(.interactively)
+            .background(FrilaCor.fundo)
             .navigationTitle(Text(verbatim: TextosBuscaDeProfissionais.folhaTitulo))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button { rascunhoDaChamada = nil } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
+                    Button { fechar() } label: { Text(verbatim: TextosBuscaDeProfissionais.fechar) }
                 }
             }
+            .rodapeAncoradoSe(!tamanhoDoTexto.isAccessibilitySize) { acaoDoEnvio }
+        }
+    }
+
+    /// O que falta e o botão laranja. Ancorados embaixo; em texto de acessibilidade, no fim do formulário.
+    @ViewBuilder
+    private var acaoDoEnvio: some View {
+        if let falta = rascunho.oQueFalta {
+            Text(verbatim: falta)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        BotaoPrimario(verbatim: TextosBuscaDeProfissionais.enviarChamadas) { enviar() }
+            .disabled(!rascunho.podeEnviar)
+            .accessibilityIdentifier("busca-enviar-chamadas")
+    }
+
+    /// O rótulo visível acima do campo, em rótulo de grupo.
+    private func campo<Conteudo: View>(_ rotulo: String, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(verbatim: rotulo)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
+            conteudo()
         }
     }
 }

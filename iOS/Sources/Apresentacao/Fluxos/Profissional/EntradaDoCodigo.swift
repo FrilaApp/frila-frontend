@@ -6,6 +6,8 @@ import UIKit
 /// Os 6 números digitados diretamente pelo profissional. Mede a distância no toque (apenas a distância
 /// vai ao servidor, nunca a coordenada). Acima do raio configurado avisa "chegue mais perto" e não envia,
 /// preservando as tentativas do profissional. Sem QR code nesta etapa.
+/// Segue a composição das telas de entrada do protótipo: o rótulo, o campo de 48 pt, o botão primário ancorado no pé e,
+/// junto dele, em tinta, o resultado ("Conferindo o código…", "Esse código não vale…"), sem vermelho.
 public struct EntradaDoCodigo: View {
     private typealias Textos = TextosDoCheckinPorCodigo.Profissional
 
@@ -13,6 +15,7 @@ public struct EntradaDoCodigo: View {
     @State private var validacao: ValidacaoDoCodigoViewModel
     @State private var codigo = ""
     @Environment(\.dismiss) private var fechar
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @FocusState private var campoEmFoco: Bool
 
     public init(presenca: PresencaDoTurnoViewModel) {
@@ -23,7 +26,7 @@ public struct EntradaDoCodigo: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                     Text(verbatim: Textos.explicacao)
                         .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.texto)
@@ -31,17 +34,22 @@ public struct EntradaDoCodigo: View {
 
                     campo
 
-                    mensagem
-
                     Text(verbatim: Textos.casaConfirma)
-                        .font(FrilaTipo.meta)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("aviso-casa-confirma")
+
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
+                    }
                 }
-                .padding(FrilaEspaco.medio)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.bloco)
+                .padding(.bottom, FrilaEspaco.grupo)
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
+            .modifier(RodapeAncoradoForaDeAX { rodape })
             .navigationTitle(Textos.titulo)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -51,90 +59,102 @@ public struct EntradaDoCodigo: View {
                 }
             }
         }
+        .presentationCornerRadius(FrilaRaio.folha)
+        .presentationDragIndicator(.visible)
         .accessibilityIdentifier("entrada-do-codigo")
         .onChange(of: validacao.resultado) { _, novo in aplicar(novo) }
     }
 
     // MARK: Digitar
 
+    /// O rótulo visível acima do campo, em rótulo de grupo, e o campo de 48 pt com o foco de 2 pt em tinta.
     private var campo: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: Textos.rotuloDoCampo)
-                .font(FrilaTipo.rotuloDoCampo)
+                .font(FrilaTipo.rotuloDeGrupo)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityHidden(true)
-            TextField("", text: $codigo, prompt: Text(verbatim: "000000"))
+            TextField("", text: $codigo, prompt: Text(verbatim: "000000").foregroundStyle(FrilaCor.textoSecundario))
+                .textFieldStyle(.plain)
                 .keyboardType(.numberPad)
-                .font(FrilaTipo.valorEmDestaque.monospacedDigit())
+                .font(FrilaTipo.rotuloSecundario.monospacedDigit())
+                .foregroundStyle(FrilaCor.texto)
                 .tracking(4)
                 .multilineTextAlignment(.center)
                 .focused($campoEmFoco)
-                .padding(.horizontal, FrilaEspaco.medio)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.pequeno))
+                .caixaDoCampoFrila(emFoco: campoEmFoco)
                 .accessibilityLabel(Text(verbatim: Textos.rotuloDoCampo))
                 .accessibilityIdentifier("campo-codigo-checkin")
                 .onChange(of: codigo) { _, novo in
                     let digitos = String(novo.filter { $0.isASCII && $0.isNumber }.prefix(6))
                     if digitos != novo { codigo = digitos }
                 }
-            BotaoPrimario(verbatim: Textos.confirmar, carregando: ocupado) {
-                campoEmFoco = false
-                Task { await validacao.validarMedindo(codigo: codigo) }
-            }
-            .disabled(!ValidacaoDoCodigoViewModel.formatoValido(codigo) || ocupado)
-            .accessibilityIdentifier("confirmar-codigo-checkin")
         }
     }
 
     // MARK: Resultado
 
+    /// O resultado e o botão: ancorados no pé, ou no fim da rolagem com texto de acessibilidade.
+    @ViewBuilder
+    private var rodape: some View {
+        mensagem
+        BotaoPrimario(verbatim: Textos.confirmar, carregando: ocupado) {
+            campoEmFoco = false
+            Task { await validacao.validarMedindo(codigo: codigo) }
+        }
+        .disabled(!ValidacaoDoCodigoViewModel.formatoValido(codigo) || ocupado)
+        .accessibilityIdentifier("confirmar-codigo-checkin")
+    }
+
     private var ocupado: Bool { validacao.resultado == .enviando }
 
+    /// O resultado do envio, em tinta e logo acima do botão que o disparou (DESIGN.md, "Mensagem junto ao botão").
     @ViewBuilder
     private var mensagem: some View {
         switch validacao.resultado {
         case .aguardando, .verificado, .jaVerificado:
             EmptyView()
         case .enviando:
-            HStack(spacing: FrilaEspaco.pequeno) {
-                ProgressView()
-                Text(verbatim: Textos.enviando)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-            }
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("codigo-enviando")
+            MensagemJuntoAoBotao(verbatim: Textos.enviando)
+                .accessibilityIdentifier("codigo-enviando")
         case .formatoInvalido:
-            AvisoFrila(verbatim: Textos.formatoInvalido, tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.formatoInvalido)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.formatoInvalido, tom: .alerta)))
                 .accessibilityIdentifier("codigo-formato-invalido")
         case .invalido:
-            AvisoFrila(verbatim: Textos.invalido, tom: .erro)
+            MensagemJuntoAoBotao(verbatim: Textos.invalido)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.invalido, tom: .erro)))
                 .accessibilityIdentifier("codigo-invalido")
         case .foraDoRaio:
-            AvisoFrila(verbatim: Textos.foraDoRaio, tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.foraDoRaio)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.foraDoRaio, tom: .alerta)))
                 .accessibilityIdentifier("codigo-fora-do-raio")
         case let .chegueMaisPerto(metros):
-            AvisoFrila(verbatim: Textos.chegueMaisPerto(metros), tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.chegueMaisPerto(metros))
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.chegueMaisPerto(metros), tom: .alerta)))
                 .accessibilityIdentifier("chegue-mais-perto")
         case .semLocalizacao:
-            AvisoFrila(verbatim: Textos.semLocalizacao, tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.semLocalizacao)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.semLocalizacao, tom: .alerta)))
                 .accessibilityIdentifier("codigo-sem-localizacao")
         case .bloqueado(.temporario):
-            AvisoFrila(verbatim: Textos.bloqueadoPorUmTempo, tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.bloqueadoPorUmTempo)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.bloqueadoPorUmTempo, tom: .alerta)))
                 .accessibilityIdentifier("codigo-bloqueado-temporario")
         case .bloqueado(.encerrado):
-            AvisoFrila(verbatim: Textos.encerrado, tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.encerrado)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.encerrado, tom: .alerta)))
                 .accessibilityIdentifier("codigo-bloqueado-encerrado")
         case .recursoDesligado:
-            AvisoFrila(verbatim: Textos.indisponivel, tom: .informativo)
+            MensagemJuntoAoBotao(verbatim: Textos.indisponivel)
                 .accessibilityIdentifier("codigo-indisponivel")
         case .respostaPerdida:
-            AvisoFrila(verbatim: Textos.respostaPerdida, tom: .alerta)
+            MensagemJuntoAoBotao(verbatim: Textos.respostaPerdida)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: Textos.respostaPerdida, tom: .alerta)))
                 .accessibilityIdentifier("codigo-resposta-perdida")
         case let .falhou(erro):
-            AvisoFrila(verbatim: MensagemDoErroAPI.texto(erro), tom: .erro)
+            MensagemJuntoAoBotao(verbatim: MensagemDoErroAPI.texto(erro))
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: MensagemDoErroAPI.texto(erro), tom: .erro)))
                 .accessibilityIdentifier("codigo-falhou")
         }
     }
