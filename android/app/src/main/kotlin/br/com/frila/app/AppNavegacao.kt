@@ -75,6 +75,7 @@ import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.vagas.escala.TextosEscala
 import br.com.frila.feature.vagas.painel.CancelarVagaViewModel
 import br.com.frila.feature.vagas.painel.ItemMinhaVaga
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
@@ -128,6 +129,7 @@ import org.koin.core.parameter.parametersOf
 /** Rotas da navegação declarativa. Única fonte de verdade dos destinos possíveis do app. */
 /** Marcas de teste das duas linhas que o app põe no grupo da conta do Perfil. */
 internal const val ENTRADA_BLOQUEIOS = "entrada-bloqueios"
+internal const val ENTRADA_PUBLICAR_ESCALA = "entrada-publicar-escala"
 internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
 
 object Rotas {
@@ -159,6 +161,7 @@ object Rotas {
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
+    const val PUBLICAR_ESCALA = "publicar_escala/{estabelecimentoId}"
     const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
@@ -208,6 +211,8 @@ object Rotas {
         "republicar_vaga/${Uri.encode(vagaId)}?selecao=$selecao&duracaoMin=$duracaoMin"
 
     fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
+
+    fun publicarEscala(estabelecimentoId: String) = "publicar_escala/${Uri.encode(estabelecimentoId)}"
 
     /** O turno da posição `posicaoId` da vaga `vagaId`, lido do painel do estabelecimento. */
     fun turnoDoContratante(estabelecimentoId: String, vagaId: String, posicaoId: String) =
@@ -750,6 +755,10 @@ fun AppNavegacao(
                             null
                         },
                         AtalhoDaConta(TextosBloqueios.TITULO, ENTRADA_BLOQUEIOS) { navController.navigate(Rotas.BLOQUEIOS) },
+                        // RF19: a escala do evento é da casa; entra ao lado de "Publicar vaga", que continua como está.
+                        primeiraCasa?.let { casa ->
+                            AtalhoDaConta(TextosEscala.ENTRADA, ENTRADA_PUBLICAR_ESCALA) { navController.navigate(Rotas.publicarEscala(casa.id)) }
+                        },
                     )
                     TelaPerfil(
                         viewModel = viewModel,
@@ -997,6 +1006,20 @@ fun AppNavegacao(
             }
 
             composable(
+                route = Rotas.PUBLICAR_ESCALA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    RotaEscalaDeEvento(
+                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        servicoMembros = servicoMembros,
+                        aoVoltar = { navController.popBackStack() },
+                        aoConcluir = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
                 route = Rotas.MINHAS_VAGAS,
                 arguments = listOf(
                     navArgument("estabelecimentoId") { type = NavType.StringType },
@@ -1026,6 +1049,7 @@ fun AppNavegacao(
                             navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
+                        aoPublicarEscala = { id -> navController.navigate(Rotas.publicarEscala(id)) },
                         aoAcompanharTurno = { vagaId, posicaoId ->
                             navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
                         },

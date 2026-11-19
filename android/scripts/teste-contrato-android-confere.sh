@@ -107,9 +107,10 @@ cp "$ANDROID_DIR/core/rede/src/main/kotlin/br/com/frila/core/rede/Dtos.kt" "$DTO
 python3 -c "
 with open('$DTOS_FILE', 'r', encoding='utf-8') as f:
     c = f.read()
-alvo = '    @SerialName(\"valor_centavos\") val valorCentavos: Long,\n    @SerialName(\"posicoes\") val posicoes: Int,\n    @SerialName(\"inclui_refeicao\")'
+# O ponto antes de valor_centavos só existe em NovaVagaDto (em ItemEscalaDto vem fim_em): o alvo é único.
+alvo = '    @SerialName(\"ponto\") val ponto: CoordenadaDto,\n    @SerialName(\"valor_centavos\") val valorCentavos: Long,\n    @SerialName(\"posicoes\") val posicoes: Int,\n    @SerialName(\"inclui_refeicao\")'
 assert c.count(alvo) == 1
-c = c.replace(alvo, '    @SerialName(\"posicoes\") val posicoes: Int,\n    @SerialName(\"inclui_refeicao\")')
+c = c.replace(alvo, '    @SerialName(\"ponto\") val ponto: CoordenadaDto,\n    @SerialName(\"posicoes\") val posicoes: Int,\n    @SerialName(\"inclui_refeicao\")')
 with open('$DTOS_FILE', 'w', encoding='utf-8') as f:
     f.write(c)
 "

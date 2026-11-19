@@ -61,6 +61,21 @@ class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
         return cliente.corpoOuErro(resposta)
     }
 
+    /**
+     * `POST /rest/v1/rpc/publicar_escala` (0.2.96, RF19): um evento e de 1 a 10 vagas numa transação só, tudo ou nada.
+     * Idempotente pela `chave` da [escala]. Erros esperados: `422 campo_obrigatorio` e `422 campo_invalido` (o caminho
+     * do campo em `details`: `evento.nome`, `vagas[2].valor_centavos`, `vagas`, `posicoes`), `422 horario_invalido` e
+     * `422 selecao_sem_antecedencia` (`details: vagas[<i>]`), `422 perfil_incompativel`, `403 sem_permissao` (com
+     * `details: conta_suspensa` para conta suspensa), `401 nao_autenticado`.
+     */
+    suspend fun publicarEscala(escala: NovaEscalaDto): EscalaPublicadaDto {
+        val resposta = cliente.http.post(cliente.urlRpc("publicar_escala")) {
+            contentType(ContentType.Application.Json)
+            setBody(escala)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
     /** `GET /rest/v1/funcao`: catálogo fechado de funções ativas (RN05), para o seletor de publicação. */
     suspend fun listarFuncoes(): List<FuncaoDto> {
         val resposta = cliente.http.get(cliente.urlCompleta("/rest/v1/funcao")) {
