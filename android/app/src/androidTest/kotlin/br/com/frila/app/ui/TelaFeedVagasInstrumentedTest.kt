@@ -1,6 +1,7 @@
 package br.com.frila.app.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -214,7 +215,7 @@ class TelaFeedVagasInstrumentedTest {
 
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNode(hasScrollAction())
+        composeTestRule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Buscar função ou estabelecimento")))
             .performScrollToNode(hasText("Sommelier Especialista"))
 
         composeTestRule.onNodeWithText("Sommelier Especialista")
