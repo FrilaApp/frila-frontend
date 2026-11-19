@@ -186,6 +186,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private static let cartaoDaVagaLimitadoAAX1 = "o cartão da vaga não acompanha o Dynamic Type além de AX1 por decisão de layout do design (#139): sem o limite a altura passa da tela em AX5 (957 pt de 874); as pílulas de filtro já acompanham até AX5"
     private static let estudioBarraEDock = "no Estúdio de Criação (Publicar vaga), o título da barra (\"Publicar vaga\", \"n de 3\") é item principal da barra de navegação e não acompanha o Dynamic Type além do limite da barra, como o título do sistema; as pílulas \"Prévia\" e \"Publicar vaga\" do dock têm altura fixa e uma linha por desenho da origem (FrilaPillButtonStyle), assim como os campos fechados da roleta de categoria e função (FrilaCoupledRolePicker, lineLimit(1)), e a auditoria os aponta como cortados nos tamanhos de acessibilidade; ao auditar com o formulário rolado (Mais opções), os textos das etapas anteriores, rolados sob o cabeçalho fixo, também aparecem como cortados. Os tamanhos de acessibilidade do estúdio ficam para a Fase 4 da missão hi-fi (hifi/ESTUDO-E-PLANO.md)"
     private static let cadastroBotaoSairNaBarra = "o botão Sair da barra do cadastro do estabelecimento não acompanha o Dynamic Type por desenho do sistema iOS (item de toolbar); achado do #494 registrado para o Nick Fury"
+    private static let escalaBotaoCancelarNaBarra = "o botão Cancelar da barra da escala não acompanha o Dynamic Type por desenho do sistema iOS (item de toolbar), como o Sair do cadastro do estabelecimento"
     private static let porQueReceboVagasBotaoBarra = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
     private static let ajudaDoPerfilAchados = "o botão Fechar da barra não acompanha o Dynamic Type em PerfisDaConta.swift por desenho do sistema iOS: item de toolbar com Large Content Viewer (accessibilityShowsLargeContentViewer)"
 
@@ -580,6 +581,22 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
 
     func testRepublicarVaga() { republicarVaga(ax5: false) }
     func testRepublicarVagaEmAX5() { republicarVaga(ax5: true) }
+
+    /// A escala de evento (`publicar_escala`, 0.2.96): o formulário e o mesmo formulário com as recusas marcadas.
+    private func escalaDeEvento(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "contratante", "-FRILA_CACHE_VAZIO_UI_TEST"], ax5: ax5)
+        guard esperar(elemento("minhas-vagas", em: app), "Minhas vagas deve abrir") else { return }
+        tocar(app.buttons["publicar-escala-entrada"], em: app)
+        guard esperar(elemento("escala-nome", em: app), "A escala deve abrir") else { return }
+        auditar(app, tela: "escala-de-evento", pendente: Self.escalaBotaoCancelarNaBarra)
+
+        tocar(app.buttons["escala-publicar"], em: app)
+        guard esperar(elemento("escala-mensagem", em: app), "A conferência local deve marcar os campos") else { return }
+        auditar(app, tela: "escala-de-evento-com-erros", pendente: Self.escalaBotaoCancelarNaBarra)
+    }
+
+    func testEscalaDeEvento() { escalaDeEvento(ax5: false) }
+    func testEscalaDeEventoEmAX5() { escalaDeEvento(ax5: true) }
 
     private func auditarMinhasVagas(_ app: XCUIApplication, tela: String, ax5: Bool) {
         auditar(app, tela: tela)

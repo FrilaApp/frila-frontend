@@ -323,6 +323,11 @@ public actor ApiClienteEmMemoria: ApiCliente {
     private var chavePrimeiraTentativaRepublicar: UUID?
     private var republicadasDe: [UUID: UUID] = [:]
     private var publicacoesPorChave: [UUID: VagaPublicada] = [:]
+    /// Quantas vezes `publicarEscala` foi chamado, e o que chegou, na ordem: os testes de escala leem isso.
+    public private(set) var chamadasAPublicarEscala = 0
+    public private(set) var escalasRecebidas: [PublicacaoEscala] = []
+    /// As escalas gravadas por chave, como o backend guarda: repetir a chave devolve a mesma, sem gravar de novo.
+    private var escalasPorChave: [UUID: EscalaPublicada] = [:]
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
@@ -1845,6 +1850,56 @@ public actor ApiClienteEmMemoria: ApiCliente {
         publicacoesPorChave[publicacao.chave] = resposta
         if cenario == .respostaPerdidaPublicacao { throw ErroDaApi(codigo: .semRede) }
         if cenario == .respostaInvalidaPublicacao { throw ErroDaApi(codigo: .respostaInvalida) }
+        return resposta
+    }
+
+    /// `publicar_escala` (0.2.96): tudo ou nada. Confere na ordem do contrato (quem pode, a chave, o evento, os limites e os
+    /// itens do primeiro ao último) e só grava as vagas depois que todas passaram. A mesma chave devolve a mesma escala.
+    public func publicarEscala(_ escala: PublicacaoEscala) async throws -> EscalaPublicada {
+        chamadasAPublicarEscala += 1
+        escalasRecebidas.append(escala)
+        try verificarFalhaGeral()
+        guard let estabelecimento = estabelecimentos.first(where: { $0.id == escala.estabelecimentoID }) else { throw erro("sem_permissao") }
+        if let gravada = escalasPorChave[escala.chave] { return gravada }
+
+        let nome = escala.evento.nome.trimmingCharacters(in: .whitespacesAndNewlines)
+        if nome.isEmpty { throw erro("campo_obrigatorio", detalhes: "evento.nome") }
+        if !(3...100).contains(nome.count) { throw erro("campo_invalido", detalhes: "evento.nome") }
+        if escala.evento.local.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { throw erro("campo_obrigatorio", detalhes: "evento.local") }
+        if escala.evento.regiaoAdministrativa.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw erro("campo_obrigatorio", detalhes: "evento.regiao_administrativa")
+        }
+        if !(1...PublicacaoEscala.limiteDeVagas).contains(escala.vagas.count) { throw erro("campo_invalido", detalhes: "vagas") }
+        if escala.vagas.reduce(0, { $0 + max($1.posicoes, 0) }) > PublicacaoEscala.limiteDePosicoes { throw erro("campo_invalido", detalhes: "posicoes") }
+
+        var novas: [Vaga] = []
+        for (indice, item) in escala.vagas.enumerated() {
+            guard let funcao = catalogo.first(where: { $0.id == item.funcaoID }) else { throw erro("campo_invalido", detalhes: "vagas[\(indice)].funcao_id") }
+            if !(1...PublicacaoEscala.limiteDePosicoes).contains(item.posicoes) { throw erro("campo_invalido", detalhes: "vagas[\(indice)].posicoes") }
+            if item.valor.centavos < 1 { throw erro("campo_invalido", detalhes: "vagas[\(indice)].valor_centavos") }
+            if item.responsavelLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw erro("campo_obrigatorio", detalhes: "vagas[\(indice)].responsavel_local")
+            }
+            if item.periodo.inicio <= relogio.agora { throw erro("horario_invalido", detalhes: "vagas[\(indice)]") }
+            if item.modo == .selecao, item.periodo.inicio <= relogio.agora.addingTimeInterval(Self.antecedenciaDaSelecao) {
+                throw erro("selecao_sem_antecedencia", detalhes: "vagas[\(indice)]")
+            }
+            novas.append(Vaga(
+                id: UUID(), estabelecimento: perfilDo(estabelecimento), funcao: funcao, periodo: item.periodo,
+                local: escala.evento.local, regiaoAdministrativa: escala.evento.regiaoAdministrativa, ponto: escala.evento.ponto,
+                valor: item.valor, posicoes: item.posicoes, posicoesAbertas: item.posicoes, inclusos: item.inclusos,
+                responsavelLocal: item.responsavelLocal, traje: item.traje, participaRateio: item.participaRateio,
+                observacoes: item.observacoes, modo: item.modo, estado: .publicada, publicadoEm: relogio.agora
+            ))
+        }
+
+        vagas.append(contentsOf: novas)
+        vagasCriadas += novas.count
+        let resposta = EscalaPublicada(
+            eventoID: UUID(),
+            vagas: novas.map { VagaPublicada(vagaID: $0.id, posicoes: (0..<$0.posicoes).map { _ in UUID() }) }
+        )
+        escalasPorChave[escala.chave] = resposta
         return resposta
     }
 

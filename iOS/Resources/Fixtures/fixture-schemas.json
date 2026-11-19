@@ -37,6 +37,9 @@
     "schema": "#/components/schemas/PerfilPublico",
     "lista": true
   },
+  "escala-publicada.json": {
+    "schema": "#/components/schemas/EscalaPublicada"
+  },
   "erros.json": {
     "schema": "#/components/schemas/Erro",
     "lista": true
@@ -148,6 +151,9 @@
   },
   "requisicao-pedir-revisao-despacho.json": {
     "schema": "#/paths/~1rpc~1pedir_revisao_despacho/post/requestBody/content/application~1json/schema"
+  },
+  "requisicao-publicar-escala.json": {
+    "schema": "#/components/schemas/NovaEscala"
   },
   "requisicao-publicar-vaga.json": {
     "schema": "#/components/schemas/NovaVaga"

@@ -1,0 +1,70 @@
+import Foundation
+
+/// Os textos da escala de evento (`publicar_escala`, 0.2.96). Os rótulos de cada vaga que são os mesmos do publicar
+/// vaga (refeição, transporte, material) vêm de `TextosPublicarVaga`.
+enum TextosDaEscala {
+    static let titulo = String(localized: "Publicar escala do evento", bundle: bundleApresentacao)
+    static let entrada = String(localized: "Publicar escala do evento", bundle: bundleApresentacao)
+    static let subtitulo = String(localized: "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma.", bundle: bundleApresentacao)
+    static let cancelar = String(localized: "Cancelar", bundle: bundleApresentacao)
+    static let voltar = String(localized: "Voltar para Minhas vagas", bundle: bundleApresentacao)
+    static let localDoEvento = String(localized: "O evento é no endereço da casa", bundle: bundleApresentacao)
+
+    static let evento = String(localized: "Evento", bundle: bundleApresentacao)
+    static let nome = String(localized: "Nome do evento", bundle: bundleApresentacao)
+    static let nomeExemplo = String(localized: "Ex.: Formatura de Direito", bundle: bundleApresentacao)
+    static let data = String(localized: "Dia do evento", bundle: bundleApresentacao)
+    static let responsavel = String(localized: "Quem recebe os profissionais no local", bundle: bundleApresentacao)
+    static let responsavelExemplo = String(localized: "Nome de quem recebe", bundle: bundleApresentacao)
+    static let opcional = String(localized: "Opcional", bundle: bundleApresentacao)
+    static let inclusos = String(localized: "Vale para todas as vagas", bundle: bundleApresentacao)
+
+    static let vagas = String(localized: "Vagas da escala", bundle: bundleApresentacao)
+    static let vagaNumero = String(localized: "Vaga %d de %d", bundle: bundleApresentacao)
+    static let funcao = String(localized: "Função", bundle: bundleApresentacao)
+    static let escolherFuncao = String(localized: "Escolher função", bundle: bundleApresentacao)
+    static let inicio = String(localized: "Início", bundle: bundleApresentacao)
+    static let fim = String(localized: "Fim", bundle: bundleApresentacao)
+    static let valor = String(localized: "Valor por pessoa", bundle: bundleApresentacao)
+    static let pessoas = String(localized: "Pessoas", bundle: bundleApresentacao)
+    static let pessoasValor = String(localized: "%d pessoas", bundle: bundleApresentacao)
+    static let pessoasValorUma = String(localized: "1 pessoa", bundle: bundleApresentacao)
+    static let menosUma = String(localized: "Uma pessoa a menos", bundle: bundleApresentacao)
+    static let maisUma = String(localized: "Uma pessoa a mais", bundle: bundleApresentacao)
+    static let remover = String(localized: "Remover esta vaga", bundle: bundleApresentacao)
+    static let adicionar = String(localized: "Adicionar outra vaga", bundle: bundleApresentacao)
+    static let limite = String(localized: "Uma escala tem até %d vagas. Para mais, publique outra escala.", bundle: bundleApresentacao)
+    static let somaDePessoas = String(localized: "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também.", bundle: bundleApresentacao)
+    static let totalDePessoas = String(localized: "Total: %d de 100 pessoas", bundle: bundleApresentacao)
+
+    static let funcaoTitulo = String(localized: "Função da vaga", bundle: bundleApresentacao)
+    static let funcoesIndisponiveis = String(localized: "Não foi possível carregar as funções.", bundle: bundleApresentacao)
+    static let fechar = String(localized: "Fechar", bundle: bundleApresentacao)
+
+    static let publicar = String(localized: "Publicar escala", bundle: bundleApresentacao)
+    static let publicando = String(localized: "Publicando…", bundle: bundleApresentacao)
+    static let tentarDeNovo = String(localized: "Tentar de novo", bundle: bundleApresentacao)
+    static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
+    static let publicada = String(localized: "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos.", bundle: bundleApresentacao)
+    static let publicadaUma = String(localized: "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos.", bundle: bundleApresentacao)
+    static let verMinhasVagas = String(localized: "Ver em Minhas vagas", bundle: bundleApresentacao)
+
+    enum Erro {
+        static let nome = String(localized: "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados.", bundle: bundleApresentacao)
+        static let data = String(localized: "Informe o dia do evento.", bundle: bundleApresentacao)
+        static let responsavel = String(localized: "Informe quem recebe os profissionais no local.", bundle: bundleApresentacao)
+        static let funcao = String(localized: "Escolha a função desta vaga.", bundle: bundleApresentacao)
+        static let horario = String(localized: "O fim precisa ser depois do início, e o início deve estar no futuro.", bundle: bundleApresentacao)
+        static let valor = String(localized: "Informe um valor maior que zero.", bundle: bundleApresentacao)
+        static let pessoas = String(localized: "Informe de 1 a 100 pessoas.", bundle: bundleApresentacao)
+        static let temErro = String(localized: "Confira os campos marcados antes de publicar. Nada foi publicado.", bundle: bundleApresentacao)
+        static let quantidade = String(localized: "Uma escala tem de 1 a 10 vagas. Nada foi publicado.", bundle: bundleApresentacao)
+        static let somaDePessoas = String(localized: "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado.", bundle: bundleApresentacao)
+        static let cadastroDaCasa = String(localized: "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado.", bundle: bundleApresentacao)
+        static let incerta = String(localized: "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo.", bundle: bundleApresentacao)
+        static let generico = String(localized: "Não foi possível publicar a escala. Nada foi publicado. Tente novamente.", bundle: bundleApresentacao)
+        static let semPermissao = String(localized: "Sua conta não pode publicar escalas nesta casa. Nada foi publicado.", bundle: bundleApresentacao)
+        static let contaSuspensa = String(localized: "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado.", bundle: bundleApresentacao)
+        static let perfilIncompativel = String(localized: "Só quem contrata publica escalas. Nada foi publicado.", bundle: bundleApresentacao)
+    }
+}

@@ -315,6 +315,29 @@ struct ContratoDoClienteSupabaseTests {
         #expect(publicada.posicoes.count == 2)
     }
 
+    @Test("publicar_escala (0.2.96) manda o evento, as vagas e uma chave só, e lê o evento e uma vaga publicada por item")
+    func publicarEscala() async throws {
+        try rpc("publicar_escala", "escala-publicada")
+        let escala = try ContratoDaEscalaTests.pedido()
+
+        let publicada = try await cliente().publicarEscala(escala)
+        let corpo = try corpoEnviado(para: "/rest/v1/rpc/publicar_escala")
+
+        #expect(corpo == (try ContratoTests.fixture("requisicao-publicar-escala")))
+        #expect(publicada.eventoID == UUID(uuidString: "70000000-0000-0000-0000-000000000001"))
+        #expect(publicada.vagas.count == escala.vagas.count)
+    }
+
+    @Test("publicar_escala com 422 campo_invalido chega com o caminho do campo em details")
+    func publicarEscalaRecusada() async throws {
+        let resposta = #"{"code":"campo_invalido","message":"campo_invalido","details":"vagas[1].valor_centavos","hint":null}"#
+        BackendDeContrato.preparar(["/rest/v1/rpc/publicar_escala": .init(status: 422, corpo: Data(resposta.utf8))])
+
+        await #expect(throws: ErroDaApi(codigo: .campoInvalido, codigoOriginal: "campo_invalido", detalhes: "vagas[1].valor_centavos")) {
+            try await cliente().publicarEscala(try ContratoDaEscalaTests.pedido())
+        }
+    }
+
     @Test("configuracao_do_app manda plataforma ios e a versao_app do app (0.2.65), e lê versões, mensagem e loja")
     func configuracaoDoApp() async throws {
         try rpc("configuracao_do_app", "configuracao-do-app")

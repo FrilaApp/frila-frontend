@@ -393,6 +393,8 @@ fun AppNavegacao(
     val denunciarCasa: (String, String) -> Unit = { casaId, turnoId ->
         navController.navigate(Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, casaId, turnoId = turnoId))
     }
+    // O relato de ocorrência nasce do turno (antes só o link frila://suporte chegava nele), como a folha de suporte do iOS.
+    val pedirSuporte: (String) -> Unit = { turnoId -> navController.navigate(Rotas.ocorrencia(turnoId)) }
 
     // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de
     // rede apaga fora da thread principal quando o Auth recusa o token, e a navegação só anda na principal.
@@ -626,6 +628,7 @@ fun AppNavegacao(
                                         },
                                         aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                         aoDenunciarEstabelecimento = denunciarCasa,
+                                        aoPedirSuporte = pedirSuporte,
                                         aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                     )
                                 }
@@ -664,6 +667,7 @@ fun AppNavegacao(
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                     aoDenunciarEstabelecimento = denunciarCasa,
+                                    aoPedirSuporte = pedirSuporte,
                                     aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                 )
                             }
@@ -692,6 +696,7 @@ fun AppNavegacao(
                             },
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
+                            aoPedirSuporte = pedirSuporte,
                             aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                             // Raiz com aba: abre sem título de página (a aba já diz onde a pessoa está).
                             comTitulo = false,
@@ -719,8 +724,20 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
                     val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+                    val contexto = LocalContext.current
                     TelaOcorrencia(
                         viewModel = viewModel,
+                        emailDeSuporte = EnderecosOficiais.padrao.emailSuporte,
+                        // O relato só existe no corpo deste e-mail (nunca sobe numa RPC): falhar em abrir tem de avisar, não engolir.
+                        aoAbrirEmailDeSuporte = { pedido ->
+                            try {
+                                contexto.startActivity(intentDoEmailDeSuporte(EnderecosOficiais.padrao.emailSuporte, turnoId, pedido))
+                                true
+                            } catch (_: Exception) {
+                                // Sem app de e-mail (ActivityNotFoundException) ou recusa do sistema: a tela avisa e mantém o relato.
+                                false
+                            }
+                        },
                         aoVoltar = { navController.popBackStack() },
                     )
                 }
@@ -1000,6 +1017,10 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // Denúncia sem turno associado: o alvo é o perfil público do membro da equipe.
+                        aoDenunciar = { profissional ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                        },
                     )
                 }
             }
@@ -1235,6 +1256,7 @@ fun AppNavegacao(
                         aoDenunciarProfissional = { profissionalId, turnoId ->
                             navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
                         },
+                        aoPedirSuporte = pedirSuporte,
                     )
                 }
             }
@@ -1259,6 +1281,10 @@ fun AppNavegacao(
                     TelaCandidatosDaVaga(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        // Denúncia sem turno associado: a candidatura ainda não virou turno.
+                        aoDenunciar = { profissional ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                        },
                     )
                 }
             }

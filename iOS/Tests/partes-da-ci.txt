@@ -13,21 +13,35 @@
 # parte 2 antiga). Os unitários (FrilaTests) valem ~14 min. Total estimado ~170 min em 4 partes de ~41 a 47.
 # Peso novo medido na noturna: troque o número e confira a soma de cada parte.
 #
-# Parte 4 (o resto, ~41 min estimados; não listada de propósito): AcessibilidadeDoContratanteUITests,
-# AparenciaUITests, AuditoriaDeAcessibilidadeUITests, AutenticacaoUITests, AvaliacaoUITests,
+# Rebalanceamento de 19/11/2026: as classes de captura do redesign (CapturasR0, R1, R2, R5, R6, R7 e a da
+# navegação raiz) nasceram fora da lista e caíram todas na última parte, que chegou a ~120 min de teste e
+# estourou o limite do job. Elas e a AutenticacaoUITests foram distribuídas pelas partes 1 a 3 com o tempo
+# medido nas execuções 44388518762, 44327318690, 44307305640 e 44296248436 (18 e 19/11/2026). Medido nessas
+# execuções, por parte, antes: 40,2 / 41,6 / 60,0 / 119,5 min de teste; depois: 70,8 / 70,4 / 74,6 / 45,5.
+# Os pesos antigos das outras linhas não foram remedidos. A última parte fica mais leve de propósito:
+# é nela que caem as classes novas (as capturas do R3, do R4, do R8 e a AberturaUITests ainda vêm).
+#
+# Parte 4 (o resto, ~45,5 min medidos; não listada de propósito): AcessibilidadeDoContratanteUITests,
+# AparenciaUITests, AuditoriaDeAcessibilidadeUITests, AvaliacaoUITests, BuscaDeProfissionaisUITests,
 # CancelamentoDoContratanteUITests, CancelamentoDoProfissionalUITests, CheckinPorCodigoUITests,
 # ExclusaoDeContaUITests, FrilaSearchBarUITests, MinhasVagasUITests, PermissaoDePushUITests,
 # PlacaDaVagaUITests, PorQueReceboVagasUITests, PresencaUITests, PushUITests, RepublicarVagaUITests,
 # SaidaDaContaUITests, TrazerParaATelaCalculoTests e as classes novas.
 
-[parte 1]   # ~47 min
+[parte 1]   # ~71 min medidos em 18/11 (era ~47)
 FrilaUITests/AcessibilidadeDoCatalogoUITests      # 47,0 min
+FrilaUITests/AutenticacaoUITests                  # 14,0 min
+FrilaUITests/CapturasR6UITests                    # 16,6 min
 
-[parte 2]   # ~41,5 min
+[parte 2]   # ~70 min medidos em 18/11 (era ~41,5)
 FrilaTests                                        # ~14,0 min
 FrilaUITests/BarraAceitarTurnoUITests             # 0,2 min
 FrilaUITests/CadastroEstabelecimentoUITests       # 3,3 min
+FrilaUITests/CapturasNavegacaoRaizUITests         # 0,5 min
 FrilaUITests/CapturasPeleNovaUITests              # 0,8 min
+FrilaUITests/CapturasR0FundacaoUITests            # 9,6 min
+FrilaUITests/CapturasR2UITests                    # 8,5 min
+FrilaUITests/CapturasR7UITests                    # 10,2 min
 FrilaUITests/CicloDePontaAPontaUITests            # 3,9 min
 FrilaUITests/ContatoCopiavelUITests               # 2,1 min
 FrilaUITests/DetalheVagaBarraInferiorUITests      # 1,3 min
@@ -45,11 +59,13 @@ FrilaUITests/ServicosDoProfissionalUITests        # 1,1 min
 FrilaUITests/ServidorDeHojeUITests                # 1,5 min
 FrilaUITests/TurnoContrato0231UITests             # 2,1 min
 
-[parte 3]   # ~41,5 min
+[parte 3]   # ~75 min medidos em 18/11 (era ~41,5)
 FrilaUITests/AcessibilidadeDoProfissionalUITests  # 3,0 min
 FrilaUITests/AjudanteDeLancamentoUITestsInternos  # 0,8 min
 FrilaUITests/CandidaturaUITests                   # 4,6 min
 FrilaUITests/CapturasDesignD01UITests             # 0,4 min
+FrilaUITests/CapturasR1UITests                    # 8,0 min
+FrilaUITests/CapturasR5UITests                    # 6,6 min
 FrilaUITests/ChamadaDiretaCompletaUITests         # 1,9 min
 FrilaUITests/ConferenciaVisualLote1e4UITests      # 2,5 min
 FrilaUITests/ContaSuspensaUITests                 # 0,9 min

@@ -1,21 +1,30 @@
 package br.com.frila.app
 
 import android.app.Application
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.dominio.modelo.TipoDeAlvo
+import br.com.frila.core.rede.BloqueioDto
 import br.com.frila.core.rede.CandidatoDto
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PerfilPublicoDto
+import br.com.frila.core.rede.ProtocoloDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ResultadoConfirmacaoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.EstadoEntrada
+import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.candidatos.TextosCandidatosDaVaga
 import io.mockk.every
@@ -83,6 +92,17 @@ class AppNavegacaoCandidatosDaVagaTest {
                         // A tela de desbloqueio (alvo do redirecionamento da guarda) lê a sessão do grafo.
                         single<ArmazenamentoDeSessao> { sessao }
                         viewModel { entrada }
+                        viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
+                            DenunciaViewModel(
+                                alvoTipo = alvoTipo,
+                                alvoId = alvoId,
+                                denunciar = { ProtocoloDto("6f1c2a4e-1111-2222-3333-444455556666", "denuncia", "2026-11-10T12:00:00Z", "2026-11-17") },
+                                bloquear = { tipo, id -> BloqueioDto(tipo, id, "2026-11-10T12:00:00Z") },
+                                turnoId = turnoId,
+                                chamadaId = chamadaId,
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
                         viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: Instant?) ->
                             criados += ParametrosRecebidos(vagaId, posicoesAbertas, inicioDaVaga)
                             CandidatosDaVagaViewModel(
@@ -113,6 +133,11 @@ class AppNavegacaoCandidatosDaVagaTest {
 
     private fun rotaAtual() = nav.currentDestination?.route
 
+    /** O cartão com a ação "Denunciar" ficou mais alto: o segundo candidato sai da primeira tela e a lista é preguiçosa. */
+    private fun rolarAte(texto: String) {
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText(texto))
+    }
+
     private fun esperarCandidatos() {
         rule.waitUntil(5_000) { rule.onAllNodesWithText("Ana").fetchSemanticsNodes().isNotEmpty() }
     }
@@ -129,6 +154,7 @@ class AppNavegacaoCandidatosDaVagaTest {
             assertEquals(listOf("vaga-9"), lidos)
         }
         rule.onNodeWithText(TextosCandidatosDaVaga.TITULO).assertExists()
+        rolarAte("Beto")
         rule.onNodeWithText("Beto").assertExists()
     }
 
@@ -190,6 +216,24 @@ class AppNavegacaoCandidatosDaVagaTest {
 
         rule.runOnIdle { assertEquals(listOf("c1"), escolhidos) }
         rule.onNodeWithText("Você confirmou Ana. Os outros candidatos foram avisados.").assertExists()
+    }
+
+    @Test
+    fun `denunciar um candidato abre a denuncia do perfil publico dele, sem turno nem chamada`() {
+        montar(inicio = Rotas.candidatosDaVaga("vaga-9"))
+        esperarCandidatos()
+
+        rolarAte("Beto")
+        rule.onNodeWithContentDescription("Denunciar Beto").performScrollTo().assertIsDisplayed().performClick()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.DENUNCIA, rotaAtual())
+            val argumentos = nav.currentBackStackEntry?.arguments
+            assertEquals("profissional", argumentos?.getString("alvoTipo"))
+            assertEquals("p-c2", argumentos?.getString("alvoId"))
+            assertNull(argumentos?.getString("turnoId"))
+            assertNull(argumentos?.getString("chamadaId"))
+        }
     }
 
     @Test

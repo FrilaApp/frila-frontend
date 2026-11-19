@@ -408,6 +408,13 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return resposta.dominio()
     }
 
+    /// 0.2.96. Não é retentada pela camada de rede: o reenvio é do chamador, com a mesma `chave` da escala, que o
+    /// servidor devolve sem publicar de novo.
+    public func publicarEscala(_ escala: PublicacaoEscala) async throws -> EscalaPublicada {
+        let resposta: ContratoAPI.EscalaPublicadaDTO = try await rpc("publicar_escala", params: ContratoAPI.NovaEscala(escala))
+        return resposta.dominio()
+    }
+
     public func republicarVaga(id: UUID, periodo: Periodo, chave: UUID) async throws -> VagaPublicada {
         let params = ContratoAPI.RepublicarVaga(
             vagaID: id,
