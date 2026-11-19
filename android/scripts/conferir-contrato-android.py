@@ -235,10 +235,12 @@ def main() -> None:
     }
 
     # Objetos declarados inline dentro de um schema: DTO -> (schema pai, propriedade). Vale para o item de uma
-    # lista (`items`) e para o objeto que aceita nulo (`oneOf` de objeto e `type: null`).
+    # lista (`items`), para o objeto que aceita nulo (`oneOf` de objeto e `type: null`) e para o objeto simples
+    # (`type: object` com `properties`, como `NovaEscala.evento`).
     ITENS_ANINHADOS = {
         "ParteUploadDto": ("UploadVerificacao", "partes"),
         "SuspensaoDaContaDto": ("SituacaoDaConta", "suspensao"),
+        "EventoDaEscalaDto": ("NovaEscala", "evento"),
     }
 
     # Request body de Edge Function
@@ -280,7 +282,8 @@ def main() -> None:
             pai, propriedade = ITENS_ANINHADOS[dto_name]
             declarado = schemas.get(pai, {}).get("properties", {}).get(propriedade, {})
             item = declarado.get("items") or next(
-                (opcao for opcao in declarado.get("oneOf", []) if opcao.get("properties")), {}
+                (opcao for opcao in declarado.get("oneOf", []) if opcao.get("properties")),
+                declarado if declarado.get("properties") else {},
             )
             item_props = set(item.get("properties", {}).keys())
             if not item_props:

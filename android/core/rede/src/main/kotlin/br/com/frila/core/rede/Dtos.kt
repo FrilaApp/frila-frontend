@@ -508,6 +508,20 @@ data class EstabelecimentoDaContaDto(
     @SerialName("reputacao") val reputacao: ReputacaoDto? = null,
 )
 
+/**
+ * Item de `/rpc/membros_do_estabelecimento` (schema `MembroDoEstabelecimento`, contrato 0.2.103): o que o administrador
+ * vê de cada pessoa da casa. `membro_id` é o do vínculo (o que `remover_membro` e `transferir_administracao` recebem),
+ * não o da conta. Sem e-mail, telefone, documento nem `usuario_id` (minimização). `e_voce` marca a linha de quem chama.
+ */
+@Serializable
+data class MembroDoEstabelecimentoDto(
+    @SerialName("membro_id") val membroId: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("papel") val papel: String,
+    @SerialName("desde") val desde: String,
+    @SerialName("e_voce") val eVoce: Boolean,
+)
+
 /** Corpo de `POST /rest/v1/rpc/convidar_membro` (0.2.73, RF21): só o administrador convida. */
 @Serializable
 data class ConvidarMembroDto(
@@ -658,6 +672,60 @@ data class NovaVagaDto(
 data class VagaPublicadaDto(
     @SerialName("vaga_id") val vagaId: String,
     @SerialName("posicoes") val posicoes: List<String>,
+)
+
+/**
+ * Evento de uma escala (corpo de `/rpc/publicar_escala`, contrato 0.2.96): `nome` de 3 a 100 caracteres e `data` no
+ * horário de Brasília (`AAAA-MM-DD`). `local`, `regiao_administrativa` e `ponto` valem para todas as vagas da escala.
+ */
+@Serializable
+data class EventoDaEscalaDto(
+    @SerialName("nome") val nome: String,
+    @SerialName("data") val data: String,
+    @SerialName("local") val local: String,
+    @SerialName("regiao_administrativa") val regiaoAdministrativa: String,
+    @SerialName("ponto") val ponto: CoordenadaDto,
+)
+
+/**
+ * Uma vaga da escala (schema `ItemEscala`): os campos de [NovaVagaDto] menos `estabelecimento_id`, `chave` e os de
+ * endereço, que vêm do evento. `posicoes` vai de 1 a 100 (na vaga avulsa, até 200).
+ */
+@Serializable
+data class ItemEscalaDto(
+    @SerialName("funcao_id") val funcaoId: String,
+    @SerialName("inicio_em") val inicioEm: String,
+    @SerialName("fim_em") val fimEm: String,
+    @SerialName("valor_centavos") val valorCentavos: Long,
+    @SerialName("posicoes") val posicoes: Int,
+    @SerialName("inclui_refeicao") val incluiRefeicao: Boolean,
+    @SerialName("inclui_transporte") val incluiTransporte: Boolean,
+    @SerialName("exige_material_proprio") val exigeMaterialProprio: Boolean,
+    @SerialName("responsavel_local") val responsavelLocal: String,
+    @SerialName("traje") val traje: String? = null,
+    @SerialName("participa_rateio") val participaRateio: Boolean? = null,
+    @SerialName("observacoes") val observacoes: String? = null,
+    @SerialName("modo") val modo: String,
+    @SerialName("alerta_antecedencia_min") val alertaAntecedenciaMin: Int = 180,
+)
+
+/**
+ * Corpo de `/rpc/publicar_escala` (schema `NovaEscala`, RF19): um evento e de 1 a 10 vagas, tudo ou nada. `chave` é
+ * uma só para a escala inteira, gerada uma vez por publicação: reenviar com a mesma devolve a mesma escala.
+ */
+@Serializable
+data class NovaEscalaDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("evento") val evento: EventoDaEscalaDto,
+    @SerialName("vagas") val vagas: List<ItemEscalaDto>,
+    @SerialName("chave") val chave: String,
+)
+
+/** Resposta de `/rpc/publicar_escala` (schema `EscalaPublicada`): uma [VagaPublicadaDto] por item, na mesma ordem. */
+@Serializable
+data class EscalaPublicadaDto(
+    @SerialName("evento_id") val eventoId: String,
+    @SerialName("vagas") val vagas: List<VagaPublicadaDto>,
 )
 
 /**

@@ -89,12 +89,12 @@ public struct DestinoDePublicarVaga: View {
             switch modelo.estado {
             case .carregando:
                 ScrollView {
-                    VStack(spacing: FrilaEspaco.medio) {
+                    VStack(spacing: FrilaEspaco.bloco) {
                         EstadoCarregando()
                         BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
                             .accessibilityIdentifier("voltar-para-minhas-vagas")
                     }
-                    .padding(FrilaEspaco.medio)
+                    .padding(FrilaEspaco.grupo)
                 }
                 .background(FrilaCor.fundo.ignoresSafeArea())
             case let .pronta(estabelecimento, _):
@@ -102,13 +102,13 @@ public struct DestinoDePublicarVaga: View {
                 TelaEstudioDeVaga(api: api, fila: fila, estabelecimento: estabelecimento, rascunhoDaBusca: rascunhoDaBusca, sair: sair, aoPublicar: aoPublicar, aoCancelar: cancelar)
             case let .erro(mensagem):
                 ScrollView {
-                    VStack(spacing: FrilaEspaco.medio) {
+                    VStack(spacing: FrilaEspaco.bloco) {
                         EstadoErro(verbatim: mensagem) { Task { await modelo.carregar() } }
                             .accessibilityIdentifier("publicar-vaga-erro")
                         BotaoSecundario(verbatim: TextosPublicarVagaDaCasa.voltar, acao: cancelar)
                             .accessibilityIdentifier("voltar-para-minhas-vagas")
                     }
-                    .padding(FrilaEspaco.medio)
+                    .padding(FrilaEspaco.grupo)
                 }
                 .background(FrilaCor.fundo.ignoresSafeArea())
             }

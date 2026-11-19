@@ -69,7 +69,7 @@ class PreferenciasChamadaViewModelTest {
         val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
         assertEquals(setOf("aceita_chamadas", "versao_texto_busca"), corpo.keys)
         assertEquals("true", corpo["aceita_chamadas"]!!.jsonPrimitive.content)
-        assertEquals("busca-v1", corpo["versao_texto_busca"]!!.jsonPrimitive.content)
+        assertEquals("busca-1", corpo["versao_texto_busca"]!!.jsonPrimitive.content)
         val tela = vm.estado.value
         assertTrue(tela.sucesso)
         assertFalse(tela.salvando)

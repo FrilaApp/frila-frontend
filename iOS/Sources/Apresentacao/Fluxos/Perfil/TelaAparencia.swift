@@ -30,6 +30,7 @@ struct LinhaDeAparencia: View {
 
 /// Aparência do app: Claro (padrão) ou Escuro. Trocar vale na hora, sem reiniciar: a preferência é
 /// observada na raiz (`aparenciaEscolhida`). Fica guardada no aparelho e nada vai ao servidor.
+/// Tela de escolha, sem laranja: escolha única em lista com visto em tinta (sistema do Fabrício, extrapolado).
 public struct TelaAparencia: View {
     private let preferencia: PreferenciaDeAparencia
 
@@ -39,51 +40,29 @@ public struct TelaAparencia: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 Text(verbatim: TextosAparencia.explicacao)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                GrupoDeLinhas {
-                    ForEach(Array(Aparencia.allCases.enumerated()), id: \.element) { posicao, aparencia in
-                        if posicao > 0 { DivisoriaDeLinha() }
-                        opcao(aparencia)
+                FrilaGrupoDeLinhas(linhasComIcone: false) {
+                    ForEach(Aparencia.allCases, id: \.self) { aparencia in
+                        FrilaLinhaDeOpcao(titulo: TextosAparencia.nome(aparencia), remate: .marcada(preferencia.aparencia == aparencia)) {
+                            preferencia.escolher(aparencia)
+                        }
+                        .accessibilityIdentifier("aparencia-\(aparencia.rawValue)")
                     }
                 }
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosAparencia.titulo))
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("tela-aparencia")
-    }
-
-    private func opcao(_ aparencia: Aparencia) -> some View {
-        let marcada = preferencia.aparencia == aparencia
-        return Button {
-            preferencia.escolher(aparencia)
-        } label: {
-            HStack(spacing: FrilaEspaco.pequeno) {
-                Text(verbatim: TextosAparencia.nome(aparencia))
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: FrilaEspaco.pequeno)
-                Image(systemName: "checkmark")
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                    .opacity(marcada ? 1 : 0)
-                    .accessibilityHidden(true)
-            }
-            .padding(.vertical, FrilaEspaco.minimo)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(marcada ? .isSelected : [])
-        .accessibilityIdentifier("aparencia-\(aparencia.rawValue)")
     }
 }

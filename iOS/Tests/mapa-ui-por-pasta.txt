@@ -17,7 +17,7 @@
 # que não está em nenhum destino, no marcador @visual, na fumaça nem em @so-noturna.
 
 # Marcadores (definições; não são destinos de linha)
-@visual = AcessibilidadeDoContratanteUITests, AcessibilidadeDoProfissionalUITests, AuditoriaDeAcessibilidadeUITests, AparenciaUITests, CapturasDesignD01UITests, CapturasPeleNovaUITests, ConferenciaVisualLote1e4UITests
+@visual = AcessibilidadeDoContratanteUITests, AcessibilidadeDoProfissionalUITests, AuditoriaDeAcessibilidadeUITests, AparenciaUITests, CapturasDesignD01UITests, CapturasNavegacaoRaizUITests, CapturasPeleNovaUITests, ConferenciaVisualLote1e4UITests
 # Classes que só a suíte completa (noturna e TestFlight) roda, sem prefixo que as chame:
 # ajuda do próprio alvo de teste e cálculo puro do alvo.
 @so-noturna = AjudanteDeLancamentoUITestsInternos, TrazerParaATelaCalculoTests
@@ -52,6 +52,7 @@ Sources/Apresentacao/Fluxos/Contratante/*CodigoDaCasa*.swift = CheckinPorCodigoU
 Sources/Apresentacao/Fluxos/Contratante/TextosDoCheckinPorCodigoCasa.swift = CheckinPorCodigoUITests, TurnoDoContratanteUITests
 Sources/Apresentacao/Fluxos/Contratante/Estudio/ = PublicarVagaEmMinhasVagasUITests, MinhasVagasUITests, CicloDePontaAPontaUITests, RepublicarVagaUITests
 Sources/Apresentacao/Fluxos/Contratante/PublicarVaga*.swift = PublicarVagaEmMinhasVagasUITests, CicloDePontaAPontaUITests, MinhasVagasUITests
+Tests/UI/CapturasR5UITests.swift = CapturasR5UITests
 Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift = MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, CancelamentoDoContratanteUITests, VagaEncerradaTrabalhadaUITests, BuscaDeProfissionaisUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarVaga.swift = RepublicarVagaUITests, MinhasVagasUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarPosicoesRestantes.swift = RepublicarPosicoesRestantesUITests, MinhasVagasUITests
@@ -65,6 +66,7 @@ Sources/Apresentacao/Fluxos/Profissional/*Presenca* = PresencaUITests, CheckinPo
 Sources/Apresentacao/Fluxos/Profissional/*Codigo* = CheckinPorCodigoUITests, PresencaUITests, CicloDePontaAPontaUITests
 Sources/Apresentacao/Fluxos/Profissional/*Candidatura* = CandidaturaUITests, ModoSelecaoDoProfissionalUITests, CicloDePontaAPontaUITests, VagasUITests
 Sources/Apresentacao/Fluxos/Profissional/*DetalheVaga* = VagasUITests, CandidaturaUITests, DetalheVagaBarraInferiorUITests, PlacaDaVagaUITests, VagaEncerradaTrabalhadaUITests
+Tests/UI/CapturasR2UITests.swift = CapturasR2UITests
 Sources/Apresentacao/Fluxos/Profissional/*Vagas* = VagasUITests, PlacaDaVagaUITests, FrilaUITests
 Sources/Apresentacao/Fluxos/Profissional/FormatoDataVaga.swift = VagasUITests, PlacaDaVagaUITests
 Sources/Apresentacao/Fluxos/Profissional/HorariosDaSemana.swift = VagasUITests, ServicosDoProfissionalUITests
@@ -78,6 +80,7 @@ Sources/Apresentacao/Fluxos/Profissional/SelecaoDeFuncoes.swift = ServicosDoProf
 Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Push/ = PushUITests, PermissaoDePushUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Suporte/ = SuporteTurnoUITests
+Tests/UI/CapturasR7UITests.swift = CapturasR7UITests
 
 # --- Design system e arquivos soltos de Apresentacao
 Sources/Apresentacao/DesignSystem/ = @visual

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Frila API
-  version: 0.2.95
+  version: 0.2.105
   summary: Contrato entre o app do Frila, em iOS, Android e web, e o backend no Supabase.
   description: |
     Contrato escrito **antes** do backend (decisão B16, 21/09/2026), para que iOS, Android e web
@@ -94,7 +94,7 @@ info:
     | 409 | `midia_indisponivel` | `pedir_nova_analise_midia` em mídia que não está `recusada` nem `nao_publicada`; `details: estado_invalido` ou `expurgada` (0.2.54) |
     | 422 | `midia_invalida` | Mídia recusada na entrada; `details`: `formato`, `tamanho`, `metadados` (tipo pelo cabeçalho ou EXIF presente), `limite_atingido` ou `tipo_indisponivel` (0.2.54) |
     | 422 | `funcao_nao_marcada` | `definir_servicos` com função que o profissional não marcou no perfil (0.2.53, RN27) |
-    | 422 | `campo_invalido` | O campo veio, e o valor é recusado pela regra; `details` diz qual campo. Distinto de `campo_obrigatorio`, que é ausência — a tela destaca o mesmo campo, com texto diferente |
+    | 422 | `campo_invalido` | O campo veio, e o valor é recusado pela regra; `details` diz qual campo. Distinto de `campo_obrigatorio`, que é ausência — a tela destaca o mesmo campo, com texto diferente. Em `publicar_escala`, `details` é o caminho do campo (0.2.96) |
     | 422 | `intervalo_maximo_excedido` | Intervalo entre `de` e `ate` maior que 30 dias na exportação de turnos (pd7zOS5P) |
     | 422 | `menor_de_idade` | Nascimento com menos de 18 anos (RN20) |
     | 422 | `perfil_incompativel` | A ação é do outro perfil: conta de contratante criando perfil de profissional, ou conta de profissional cadastrando estabelecimento (RN25) |
@@ -116,6 +116,96 @@ info:
     | 429 | `limite_excedido` | Limite de requisições |
 
     ## Estado
+
+    **Versão 0.2.105, de 17/11/2026.** Só descrição: o `403 sem_permissao` (`recurso_desligado`) de
+    `solicitar_upload_midia`, `confirmar_upload_midia` e `pedir_nova_analise_midia` vale quando
+    `foto_de_perfil` está desligado em **todas** as plataformas. O servidor não recebe a plataforma nessas
+    operações: `privado.usuario_midia` liga a foto se alguma linha de `configuracao_app` a liga (`bool_or`;
+    medido pela Forja no dev, 17/11/2026). Desligar a foto numa plataforma, ou abaixo de uma versão, é o
+    que o app mostra e esconde, pela `configuracao_do_app` (RN46). Recusar por plataforma pediria uma
+    operação nova, que fica como ideia e não entra agora. Nenhum campo nem código muda.
+
+    **Versão 0.2.104, de 17/11/2026.** Só descrição, para o servidor obedecer ao que já estava escrito
+    (B-052 da Forja; `frila-backend` #553 e o que vier para `remover_membro` e `transferir_administracao`). Nas quatro operações da equipe da casa (`convidar_membro`,
+    `aceitar_convite_membro`, `remover_membro` e `transferir_administracao`), o corpo usa os nomes deste
+    contrato, sem o prefixo `p_` (`estabelecimento_id`, `email`, `papel`, `token`, `membro_id` e
+    `novo_admin_id`). Até agora, o servidor só achava a função pelos nomes com `p_` e respondia `404
+    PGRST202`. `convidar_membro` deixa de declarar o `404`: quem não é administrador da casa, e a casa que
+    não existe, recebem o mesmo `403 sem_permissao`, como em `remover_membro`. Nenhum campo muda.
+
+    **Versão 0.2.103, de 17/11/2026.** Operação nova de leitura: **`GET /rpc/membros_do_estabelecimento`**
+    lista os membros de uma casa, para a tela da equipe da casa (web 3.16; o iOS e o Android usam os
+    mesmos dados quando a tela chegar). É dela que sai o `membro_id` que `remover_membro` e
+    `transferir_administracao` já pediam, sem leitura que o desse. Nenhuma operação que já existe muda.
+    - **Só o administrador daquela casa.** O operador da casa, o membro de outra casa, quem não é membro e
+      a casa que não existe recebem a mesma recusa, `403 sem_permissao`, sem `details`: a resposta não
+      diz se a casa existe nem quem é membro dela. É a mesma regra de `remover_membro`.
+    - **Minimização (LGPD, art. 6º, III).** Cada membro traz só o `membro_id`, o nome da conta, o papel,
+      a data de entrada na casa (`desde`) e `e_voce`. Não traz e-mail, telefone, documento, data de
+      nascimento nem `usuario_id`. Decisão do jurídico do time (17/11/2026), a pedido do O2.
+
+    **Versão 0.2.102, de 17/11/2026.** Só descrição: `versao_texto_busca` passa a ter as versões
+    escritas. **`busca-1`** é o texto que a tela mostra ao ligar a opção: o título "Aceito chamadas
+    diretas" e a explicação "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma
+    vaga." (iOS, `TextosBuscaDeProfissionais.swift:64-65`). O iOS, o Android e a web mostram essas duas
+    frases, palavra por palavra, e mandam `busca-1`. Qualquer mudança de palavra vira `busca-2`, e assim
+    por diante, e o app manda a versão do texto que mostrou. A frase do CD-P11 ("Quero aparecer na busca
+    e receber chamadas de contratantes") era a proposta de 16/11 e não é o texto registrado. Nenhum
+    campo, operação ou código muda.
+
+    **Versão 0.2.101, de 17/11/2026.** `VagaPublica` ganha `estabelecimento_nome`: a página pública da
+    vaga mostra o nome do estabelecimento (decisão do Cauê no painel, 17/11/2026: função, valor, data e
+    horário, região e o nome da casa; endereço exato e contato só para quem foi aceito). Campo novo
+    na resposta; nenhum outro muda.
+    - **Só de casa com CNPJ.** Quando a casa se cadastrou com CPF (pessoa física), o nome que ela deu
+      ao local pode ser o nome de alguém ("Casa da Maria"), e ele não vai à internet aberta: vem
+      `null`. Decisão do jurídico do time (17/11/2026), dentro da ordem do Cauê; base: necessidade
+      (LGPD, art. 6º, III) e o cuidado do art. 9º, I e V, para dado de pessoa física publicado.
+    - **O nome é o que a casa cadastrou** (`Estabelecimento.nome`), o mesmo que o profissional já vê
+      no app. Não é a razão social nem o documento, que nunca saem.
+    - **Só enquanto a vaga está aberta.** Com a vaga encerrada, preenchida, cancelada ou já começada, o
+      nome vem `null`. O MEI tem CNPJ, mas o nome pode ser o dele; quando a conta é excluída, as
+      vagas são canceladas e o nome deixa de sair (LGPD, art. 16).
+
+    **Versão 0.2.100, de 16/11/2026.** Operação nova `GET /rpc/vaga_publica` e esquema `VagaPublica`
+    (web do Frila, pedido do Cauê 2026-11-16-31, item B5 do mapa de paridade
+    `frila-frontend/Web/docs/paridade.md`): o link de uma vaga abre sem login, só com os campos
+    publicáveis. Nenhuma operação que já existe muda. Os PRs abertos #256, #257 e #258 sobem, ao
+    entrar, para a próxima versão livre acima da `main` (a CI não aceita descer). A lista pública de
+    vagas (paridade 5.3) não entra: é outra operação e outra decisão.
+    - **O que aparece:** a função, a região administrativa (só o nome do catálogo), o início e o
+      fim, o valor, a data da publicação, o que está incluso, o modo, as posições abertas e o estado. Basta para a pessoa decidir se entra no app
+      para se candidatar.
+    - **O que não aparece:** o estabelecimento (nome, foto e reputação), o endereço, o ponto, quem
+      recebe, o traje e as observações. O nome da casa pode ser o de uma pessoa física, e os textos
+      livres podem trazer nome ou contato. Tudo isso continua só para quem entra (`detalhe_vaga`).
+    - **Quais vagas:** só a vaga normal, visível no app. Vaga direta, vaga ocultada pela moderação e
+      vaga de conta de demonstração respondem `404 nao_encontrado`, como a vaga inexistente.
+    - **Sem chave de ligar:** a operação só lê. Quem decide mostrar o link é a web (`frilabr.com/app`,
+      com a chave da web). Antes de o link ir ao ar, a Política ganha a linha da página pública da
+      vaga (seção 4).
+
+    **Versão 0.2.97, de 17/11/2026.** Só metadado: `info.contact` passa a ser a titular do Frila,
+    FRILA TECNOLOGIA INOVA SIMPLES (I.S.), com o e-mail `contato@frilabr.com`, no lugar de
+    "BlendOps — Challenge 18", nome da equipe na Academy (pedido do Cauê 16-26). Nenhum campo,
+    operação ou código muda.
+
+    **Versão 0.2.96, de 16/11/2026.** Operação nova `POST /rpc/publicar_escala` (RF19, cartão
+    `6mi66YDp`, pedido do Cauê de 16/11/2026): o estabelecimento publica de uma vez um **evento** e
+    as vagas dele (uma por função e horário). Esquemas novos `NovaEscala`, `ItemEscala` e
+    `EscalaPublicada`. Nenhuma operação que já existe muda, e nenhum app chama esta ainda: é para o
+    servidor e para a web, que não existe.
+    - **Tudo ou nada:** o evento, as vagas e as posições entram numa transação só. Qualquer recusa,
+      em qualquer item, desfaz tudo; nunca fica escala pela metade no ar.
+    - **Cada item vira uma vaga comum,** com as mesmas regras de `publicar_vaga` e o mesmo despacho,
+      depois da gravação (B15). A vaga gravada só difere por ter `evento_id`; o item aceita até 100
+      posições (em `publicar_vaga`, até 200).
+    - **Uma chave para a escala inteira:** o reenvio devolve o mesmo resultado e não despacha de novo.
+      Os itens não têm chave própria.
+    - **Limites:** de 1 a 10 vagas e até 100 posições somadas por escala (os tetos do desenho de 03/11;
+      o Cauê pode mudar). Acima disso, publicam-se escalas separadas.
+    - **Fica para outra versão:** ler a escala (painel), cancelar a escala inteira (hoje, cada vaga com
+      `cancelar_vaga`), editar, vaga da escala em outro endereço e o `evento_id` nas leituras de vaga.
 
     **Versão 0.2.95, de 16/11/2026.** Uma casa não abre duas vagas diretas para o mesmo trabalho
     (frila-backend#520, achado da revisão do app na bateria da busca). Adição compatível: um código
@@ -1863,7 +1953,8 @@ info:
       "mês") obriga o servidor a adivinhar o fuso de quem pergunta, e o produto tem turno que vira a
       noite. O intervalo explícito não tem essa ambiguidade.
   contact:
-    name: BlendOps — Challenge 18
+    name: FRILA TECNOLOGIA INOVA SIMPLES (I.S.)
+    email: contato@frilabr.com
 servers:
   - url: https://{projeto}.supabase.co/rest/v1
     description: API REST do Supabase (PostgREST) — tabelas e funções RPC.
@@ -2037,7 +2128,7 @@ paths:
       summary: Versão mínima do app e aviso de atualização obrigatória
       description: |
         Chamada na abertura, **antes de haver sessão**: um app abaixo da versão mínima precisa
-        conseguir descobrir isso mesmo sem conseguir entrar. Por isso é a única operação de
+        conseguir descobrir isso mesmo sem conseguir entrar. Por isso é uma das operações de
         `rest/v1` que dispensa o token do usuário — a chave publicável basta.
 
         `versao_minima` é por plataforma e é comparada pelo app contra a própria versão de build.
@@ -2632,8 +2723,10 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         '403':
           description: |
-            `sem_permissao` com `details: recurso_desligado` quando `recursos.foto_de_perfil` está
-            desligado; `conta_suspensa` quando a conta está suspensa.
+            `sem_permissao` com `details: recurso_desligado` quando `foto_de_perfil` está desligado em
+            todas as plataformas (0.2.105: o servidor não recebe a plataforma; o desligado por plataforma ou
+            por versão é o app que esconde, pela `configuracao_do_app`); `conta_suspensa` quando a conta está
+            suspensa.
           content:
             application/json:
               schema:
@@ -2676,8 +2769,10 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         '403':
           description: |
-            `sem_permissao` com `details: recurso_desligado` quando `recursos.foto_de_perfil` está
-            desligado; `conta_suspensa` quando a conta está suspensa.
+            `sem_permissao` com `details: recurso_desligado` quando `foto_de_perfil` está desligado em
+            todas as plataformas (0.2.105: o servidor não recebe a plataforma; o desligado por plataforma ou
+            por versão é o app que esconde, pela `configuracao_do_app`); `conta_suspensa` quando a conta está
+            suspensa.
           content:
             application/json:
               schema:
@@ -2794,8 +2889,10 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         '403':
           description: |
-            `sem_permissao` com `details: recurso_desligado` quando `recursos.foto_de_perfil` está
-            desligado; `conta_suspensa` quando a conta está suspensa.
+            `sem_permissao` com `details: recurso_desligado` quando `foto_de_perfil` está desligado em
+            todas as plataformas (0.2.105: o servidor não recebe a plataforma; o desligado por plataforma ou
+            por versão é o app que esconde, pela `configuracao_do_app`); `conta_suspensa` quando a conta está
+            suspensa.
           content:
             application/json:
               schema:
@@ -3119,9 +3216,11 @@ paths:
         e expira automaticamente.
 
         Recusas: `401 nao_autenticado` se sem sessão; `403 sem_permissao` se o chamador não for
-        administrador do estabelecimento; `404 nao_encontrado` se o estabelecimento não existir;
-        `422 campo_obrigatorio` (`details: papel`) quando ausente; `422 campo_invalido` (`details: email`)
+        administrador do estabelecimento, e também quando a casa não existe (0.2.104: a resposta não diz
+        se a casa existe); `422 campo_obrigatorio` (`details: papel`) quando ausente; `422 campo_invalido` (`details: email`)
         quando o formato do e-mail for inválido.
+
+        Os nomes do corpo são os deste contrato, sem `p_` (`estabelecimento_id`, `email` e `papel`), desde o B-052 da Forja (0.2.104).
       x-requisitos: [RF21, US24]
       requestBody:
         required: true
@@ -3166,8 +3265,6 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         '403':
           $ref: '#/components/responses/SemPermissao'
-        '404':
-          $ref: '#/components/responses/NaoEncontrado'
         '422':
           $ref: '#/components/responses/RegraRecusou'
 
@@ -3182,6 +3279,8 @@ paths:
 
         Recusas: `401 nao_autenticado` se sem sessão; `422 perfil_incompativel` se a conta for de profissional;
         `422 convite_invalido` se o token não existir, já tiver sido usado ou estiver expirado.
+
+        Os nomes do corpo são os deste contrato, sem `p_` (`token`), desde o B-052 da Forja (0.2.104).
       x-requisitos: [RF21, US24]
       requestBody:
         required: true
@@ -3218,6 +3317,68 @@ paths:
         '422':
           $ref: '#/components/responses/RegraRecusou'
 
+  /rpc/membros_do_estabelecimento:
+    get:
+      tags: [Estabelecimento]
+      operationId: membrosDoEstabelecimento
+      summary: Membros da casa, para o administrador
+      description: |
+        0.2.103. Lista os membros do estabelecimento (RF21, US24), para a tela da equipe da casa. O
+        `membro_id` de cada um é o que `remover_membro` (`membro_id`) e `transferir_administracao`
+        (`novo_admin_id`) recebem.
+
+        **Só o administrador daquela casa.** O operador da casa, o membro de outra casa, quem não é
+        membro e a casa que não existe recebem a mesma recusa, `403 sem_permissao`, sem `details`. A
+        resposta não diz se a casa existe nem quem é membro dela (é a regra de `remover_membro`, com
+        `privado.eh_administrador`). Um `estabelecimento_id` que não é uuid recebe `400` do PostgREST
+        antes da função; isso fala só do formato, não da casa.
+
+        **O que sai (LGPD, art. 6º, III).** Só o `membro_id`, o nome da conta, o papel, a data de
+        entrada na casa e `e_voce`. Nunca sai e-mail, telefone, documento, data de nascimento nem
+        `usuario_id`. Quem exclui a conta deixa de ser membro na hora (`excluir_conta` apaga o vínculo),
+        então não há membro sem nome na lista. O membro com a conta suspensa continua na lista, para o
+        administrador poder removê-lo.
+
+        **Ordem:** os administradores primeiro, depois os operadores; em cada papel, pela data de
+        entrada, da mais antiga para a mais nova. A lista é curta e vem inteira, sem paginação.
+
+        Recusas: `401 nao_autenticado` sem sessão; `403 sem_permissao` para quem não é administrador da
+        casa (casos acima); `403 sem_permissao` com `details: conta_suspensa` quando a conta de quem chama
+        está suspensa (`privado.exigir_conta_ativa`).
+
+        Implementação esperada no servidor: `security definer`, `grant execute` só a `authenticated`,
+        `privado.exigir_conta_ativa()` e depois `privado.eh_administrador(estabelecimento_id)`, com a
+        mesma recusa para tudo o que não é administrador.
+      x-requisitos: [RF21, US24]
+      parameters:
+        - $ref: '#/components/parameters/EstabelecimentoId'
+      responses:
+        '200':
+          description: Membros da casa.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembroDoEstabelecimento'
+        '400':
+          description: |
+            `estabelecimento_id` que não é uuid. Vem do PostgREST, antes da função, e fala só do formato:
+            não diz nada da casa.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                code: '22P02'
+                message: 'invalid input syntax for type uuid: "nao-e-uuid"'
+                details: null
+                hint: null
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+
   /rpc/remover_membro:
     post:
       tags: [Estabelecimento]
@@ -3230,6 +3391,8 @@ paths:
         Recusas: `401 nao_autenticado` se sem sessão; `403 sem_permissao` se o chamador não for
         administrador do estabelecimento; `404 nao_encontrado` se o membro não pertencer ao estabelecimento;
         `422 ultimo_administrador` se tentar remover o único administrador restante.
+
+        Os nomes do corpo são os deste contrato, sem `p_` (`estabelecimento_id` e `membro_id`), desde o B-052 da Forja (0.2.104).
       x-requisitos: [RF21, US24]
       requestBody:
         required: true
@@ -3283,6 +3446,8 @@ paths:
 
         Recusas: `401 nao_autenticado` se sem sessão; `403 sem_permissao` se o chamador não for
         administrador do estabelecimento; `404 nao_encontrado` se o membro indicado não pertencer ao estabelecimento.
+
+        Os nomes do corpo são os deste contrato, sem `p_` (`estabelecimento_id` e `novo_admin_id`), desde o B-052 da Forja (0.2.104).
       x-requisitos: [RF21, US24]
       requestBody:
         required: true
@@ -3525,6 +3690,99 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VagaPublicada'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '422':
+          $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/publicar_escala:
+    post:
+      tags: [Vagas]
+      operationId: publicarEscala
+      summary: Publicar uma escala de evento em lote
+      description: |
+        0.2.96 (RF19). Grava um evento e as vagas dele de uma vez. Cada item de `vagas` vira uma vaga
+        comum, com `evento_id` apontando para o evento, uma posição por unidade pedida e o despacho de
+        sempre, depois da gravação, pelo agendador (B15, RN23). Nenhum app chama esta operação ainda.
+
+        **Tudo ou nada.** O evento, as vagas e as posições são gravados numa transação só. Se qualquer
+        item for recusado, nada é gravado, nada é despachado e a resposta é a recusa desse item.
+
+        **Ordem da conferência**, que para na primeira recusa: quem pode (perfil, conta suspensa,
+        membro do estabelecimento); a `chave` (ausente, `campo_obrigatorio`; já usada neste
+        estabelecimento, devolve a escala gravada e para aqui); `evento` e `vagas` presentes; o evento;
+        os limites de quantidade e de soma; e os itens, do primeiro ao último.
+
+        **Quem pode e recusas gerais:** as mesmas de `publicar_vaga`, na mesma ordem. Conta de
+        profissional recebe `422 perfil_incompativel`; quem não é membro do estabelecimento, ou
+        estabelecimento que não existe, `403 sem_permissao`; conta suspensa, `403 sem_permissao` com
+        `details: conta_suspensa`.
+
+        **O evento:** `nome`, `data`, `local`, `regiao_administrativa` e `ponto`. Todas as vagas da escala
+        usam o `local`, a `regiao_administrativa` e o `ponto` do evento. `data` é o dia do evento no
+        horário de Brasília; o servidor não a compara com os horários das vagas, porque montagem na
+        véspera e desmontagem de madrugada são comuns.
+
+        Recusas do evento, campo a campo, na ordem acima: ausente ou em branco, `422 campo_obrigatorio`;
+        valor recusado, `422 campo_invalido`; os dois com `details: evento.<campo>`. `local`,
+        `regiao_administrativa` e `ponto` seguem as regras dos mesmos campos em `publicar_vaga` (a região
+        tem de estar no catálogo ativo). `nome` tem de 3 a 100 caracteres, e `data` só precisa ser uma
+        data válida. `nome` e `local` passam pelo mesmo filtro de termos de `publicar_vaga` (diretriz
+        1.2). Em `evento` e nos itens, valor de tipo errado (texto onde vai número, data ou uuid
+        malformado) é `campo_invalido`, com o caminho do campo.
+
+        **Cada item:** os campos de `NovaVaga`, menos `estabelecimento_id`, `chave` e os de endereço,
+        com as mesmas recusas e as mesmas mensagens de `publicar_vaga`: `campo_obrigatorio`,
+        `campo_invalido`, `horario_invalido`, `selecao_sem_antecedencia` (RN24, por item) e o filtro de
+        termos. A implementação usa a mesma validação, como em `republicar_vaga`. Uma diferença:
+        `posicoes` vai de 1 a 100 por item (em `publicar_vaga`, até 200). Fora disso, `422
+        campo_invalido`, `details: vagas[<i>].posicoes`.
+
+        **Onde está o erro (`details`):**
+        - campo do topo: o nome do campo (`chave`, `evento`, `vagas`). `estabelecimento_id` ausente
+          responde `403 sem_permissao`, como em `publicar_vaga`;
+        - campo do evento: `evento.<campo>`, por exemplo `evento.nome`;
+        - campo de um item: `vagas[<i>].<campo>`, com `i` a partir de 0, por exemplo
+          `vagas[2].valor_centavos`;
+        - recusa de um item que não é de um campo só (`horario_invalido`, `selecao_sem_antecedencia`):
+          `vagas[<i>]`.
+
+        **Limites:**
+        - de 1 a 10 itens em `vagas`. Lista vazia ou com mais de 10: `422 campo_invalido`,
+          `details: vagas`;
+        - até 100 posições somadas nos itens (a soma conta só os `posicoes` inteiros de 1 a 100; o
+          item com `posicoes` ausente ou fora disso é recusado depois, no próprio item). Acima:
+          `422 campo_invalido`, `details: posicoes`.
+
+        O limite geral de escrita por minuto vale, como em toda operação.
+
+        **`chave`:** uma só para a escala inteira, gerada pelo cliente uma vez por publicação. Reenviar
+        com a mesma `chave` para o mesmo estabelecimento devolve a mesma `EscalaPublicada`, sem
+        conferir o corpo de novo e sem despachar de novo. Dois envios simultâneos com a mesma `chave`:
+        um grava, o outro espera e devolve o mesmo resultado. Uma escala recusada não grava nada,
+        então a `chave` não fica gasta. Os itens não têm chave própria.
+
+        **Depois de publicada:** cada vaga da escala é uma vaga como outra qualquer. Candidatura,
+        escolha, cancelamento (`cancelar_vaga`) e republicação seguem as regras de cada uma;
+        `republicar_vaga` e `republicar_posicoes_restantes` não copiam o `evento_id`. O profissional
+        que serve a mais de uma função pode ser avisado de mais de uma vaga do evento, dentro do teto
+        de avisos (RN23), e a RN21 o impede de ficar com dois turnos que se cruzam.
+      x-requisitos: [RF19, RF04, RF09, RN02, RN18, RN21, RN23, RN24]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovaEscala'
+      responses:
+        '200':
+          description: Escala publicada, ou a mesma de um reenvio com a mesma `chave`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalaPublicada'
         '401':
           $ref: '#/components/responses/NaoAutenticado'
         '403':
@@ -3841,6 +4099,68 @@ paths:
           $ref: '#/components/responses/NaoEncontrado'
         '422':
           $ref: '#/components/responses/RegraRecusou'
+
+  /rpc/vaga_publica:
+    get:
+      tags: [Vagas]
+      operationId: vagaPublica
+      summary: Vaga pelo link, sem login (só campos publicáveis)
+      description: |
+        0.2.100. A página pública de uma vaga (web, `frilabr.com/app`): quem recebe o link vê o essencial
+        e entra no app para se candidatar. **Dispensa o token do usuário:** a chave publicável basta, como
+        em `configuracao_do_app`. Com sessão, responde o mesmo, sem nada a mais. A web chama sem
+        `Authorization`; um token vencido recebe `401` antes da função. Para o detalhe completo
+        (casa, endereço, quem recebe), a pessoa entra e lê por `detalhe_vaga`.
+
+        **Só os campos de `VagaPublica`.** Do estabelecimento, sai só o nome que ele cadastrou, e só
+        quando a casa tem CNPJ e a vaga está aberta (0.2.101); com CPF, ou com a vaga encerrada,
+        preenchida, cancelada ou já começada, `estabelecimento_nome` vem `null`. Nunca saem a foto,
+        a reputação ou o documento da casa, o `local`, o `ponto`, o `responsavel_local`, o `traje`, as
+        `observacoes`, quem publicou, nem dado de candidato ou de profissional confirmado. A região sai só pelo nome do
+        catálogo; sem casamento, vem `null`.
+
+        **`404 nao_encontrado`, indistinguível de vaga inexistente,** para:
+        - vaga direta (`origem = chamada_direta`, RN28);
+        - vaga ocultada pela moderação da Equipe Frila (diretriz 1.2);
+        - vaga de estabelecimento de conta de demonstração;
+        - `vaga_id` malformado. No servidor, o parâmetro é `text` (`vaga_publica(vaga_id text)`), para
+          que o que não for uuid caia no mesmo `404`, e não no `400 22P02` do PostgREST.
+        Fora disso, responde `200` com o `estado` real, também para a vaga preenchida, encerrada,
+        cancelada ou já passada: o link antigo diz que a vaga não está mais aberta, em vez de parecer
+        quebrado. `posicoes_abertas` segue a regra de `detalhe_vaga`. A web trata como encerrada a vaga
+        com `estado` diferente de `publicada`, ou com `posicoes_abertas = 0`, ou já começada: sem dados
+        estruturados de emprego e fora do índice. Com `estabelecimento_nome` nulo, quem anuncia nos dados
+        estruturados é o Frila (decisão da web).
+
+        **Bloqueio (RF26):** sem sessão, o bloqueio não se aplica, porque não há quem bloquear. A
+        conta bloqueada que entra continua sem ver a vaga em `detalhe_vaga`; aqui ela vê só o que
+        qualquer pessoa vê pelo link. Decisão do jurídico do time (16/11/2026): o que sai é o mesmo
+        que um link repassado mostraria a qualquer pessoa.
+
+        **Limite:** hoje não há limite próprio para leitura sem sessão no `rest/v1`; o
+        `limite_de_escrita` conta só escrita de conta autenticada. A leitura é uma busca pela chave, e
+        o `vaga_id` é um uuid aleatório, que não se adivinha. A operação não lista vagas. Se aparecer
+        raspagem, o limite entra na frente da web, sem mudar este contrato.
+      security:
+        - chaveDoProjeto: []
+        - chaveDoProjeto: []
+          tokenDoUsuario: []
+      x-requisitos: [RF04, RN02, RN28]
+      parameters:
+        - name: vaga_id
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Vaga, só com os campos publicáveis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VagaPublica'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
 
   # ───────────────────────────────────────────── Candidatura e confirmação
 
@@ -4769,8 +5089,9 @@ paths:
 
         **"Aceito chamadas diretas" (0.2.88, CD-P10 a CD-P12, RN40):** `aceita_chamadas: true` põe o
         profissional na busca e o deixa receber chamadas de qualquer contratante; o padrão é `false`.
-        Ligar exige `versao_texto_busca`, a versão do texto da tela ("Quero aparecer na busca e receber
-        chamadas de contratantes", CD-P11); sem ela, `422 campo_obrigatorio` (`versao_texto_busca`). O
+        Ligar exige `versao_texto_busca`, a versão do texto da tela (0.2.102: `busca-1` é "Aceito
+        chamadas diretas" mais "Quem contrata pode te achar na busca e te chamar direto, sem publicar
+        uma vaga."; a lista das versões está em `produto/modulos/contratacao-direta-e-busca-de-perfil.md`); sem ela, `422 campo_obrigatorio` (`versao_texto_busca`). O
         servidor guarda a versão e o instante de cada vez que liga, como registro do pedido do titular
         (LGPD, art. 7º, V, parecer J1); não é consentimento. O registro fica enquanto a conta existir,
         é apagado na exclusão (RF25) e sai na exportação (`MeusDados.registros_aceita_chamadas`). Desligar ou pausar tira da busca na hora.
@@ -4809,7 +5130,7 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 20
-                  example: busca-v1
+                  example: busca-1
       responses:
         '200':
           description: Preferências em vigor.
@@ -7697,6 +8018,30 @@ components:
           latitude: -15.7942
           longitude: -47.8822
         papel: operador
+    MembroDoEstabelecimento:
+      description: |
+        0.2.103. Um membro da casa, como o administrador o vê em `membros_do_estabelecimento`. Sem
+        e-mail, telefone, documento, data de nascimento nem `usuario_id` (minimização).
+      type: object
+      required: [membro_id, nome, papel, desde, e_voce]
+      properties:
+        membro_id:
+          description: O id do vínculo (`membro_estabelecimento.id`), não o da conta.
+          $ref: '#/components/schemas/Uuid'
+        nome:
+          type: string
+          description: O nome da conta, como o membro o cadastrou (`usuario.nome`).
+          example: Ana Souza
+        papel:
+          $ref: '#/components/schemas/PapelMembro'
+        desde:
+          description: Quando a pessoa entrou na casa (`membro_estabelecimento.criado_em`).
+          $ref: '#/components/schemas/Instante'
+        e_voce:
+          type: boolean
+          description: |
+            `true` na linha de quem chama. Serve para a tela marcar "você" sem pedir o `usuario_id`
+            dos outros.
     MembroDaEquipe:
       type: object
       required: [estabelecimento_id, profissional_id]
@@ -8050,6 +8395,155 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Uuid'
+    NovaEscala:
+      type: object
+      required: [estabelecimento_id, evento, vagas, chave]
+      description: Corpo de `publicar_escala` (0.2.96, RF19).
+      properties:
+        estabelecimento_id:
+          $ref: '#/components/schemas/Uuid'
+        evento:
+          type: object
+          required: [nome, data, local, regiao_administrativa, ponto]
+          properties:
+            nome:
+              type: string
+              minLength: 3
+              maxLength: 100
+              example: Formatura de Direito
+            data:
+              type: string
+              format: date
+              description: Dia do evento, no horário de Brasília.
+              example: '2026-12-12'
+            local:
+              type: string
+              description: Endereço. Vale para todas as vagas da escala.
+            regiao_administrativa:
+              type: string
+              description: Região Administrativa do Distrito Federal. Vale para todas as vagas da escala.
+              example: Plano Piloto
+            ponto:
+              $ref: '#/components/schemas/Coordenada'
+        vagas:
+          type: array
+          minItems: 1
+          maxItems: 10
+          description: Uma vaga por item, na ordem em que a resposta as devolve. Até 100 posições somadas.
+          items:
+            $ref: '#/components/schemas/ItemEscala'
+        chave:
+          $ref: '#/components/schemas/ChaveDeIdempotencia'
+    ItemEscala:
+      type: object
+      required:
+        - funcao_id
+        - inicio_em
+        - fim_em
+        - valor_centavos
+        - posicoes
+        - inclui_refeicao
+        - inclui_transporte
+        - exige_material_proprio
+        - responsavel_local
+        - modo
+      description: |
+        Uma vaga da escala. Os campos e as regras são os de `NovaVaga`, menos `estabelecimento_id`,
+        `chave`, `local`, `regiao_administrativa` e `ponto`, que vêm da escala.
+      properties:
+        funcao_id:
+          $ref: '#/components/schemas/Uuid'
+        inicio_em:
+          $ref: '#/components/schemas/Instante'
+        fim_em:
+          $ref: '#/components/schemas/Instante'
+        valor_centavos:
+          $ref: '#/components/schemas/Centavos'
+        posicoes:
+          type: integer
+          minimum: 1
+          maximum: 100
+        inclui_refeicao:
+          type: boolean
+        inclui_transporte:
+          type: boolean
+        exige_material_proprio:
+          type: boolean
+          description: Sim = o profissional leva o material.
+        responsavel_local:
+          type: string
+          description: Quem recebe o profissional no local.
+        traje:
+          type: [string, 'null']
+        participa_rateio:
+          type: [boolean, 'null']
+          description: Participa do rateio dos 10% da taxa de serviço (Lei 13.419/2017).
+        observacoes:
+          type: [string, 'null']
+        modo:
+          $ref: '#/components/schemas/ModoPreenchimento'
+        alerta_antecedencia_min:
+          type: integer
+          minimum: 1
+          default: 180
+          description: Como em `NovaVaga`.
+    EscalaPublicada:
+      type: object
+      required: [evento_id, vagas]
+      properties:
+        evento_id:
+          $ref: '#/components/schemas/Uuid'
+        vagas:
+          type: array
+          description: Uma por item de `NovaEscala.vagas`, na mesma ordem.
+          items:
+            $ref: '#/components/schemas/VagaPublicada'
+    VagaPublica:
+      type: object
+      description: |
+        0.2.100. O que `vaga_publica` mostra a qualquer pessoa. Sem endereço, sem ponto e sem texto
+        livre (ver a operação). Desde a 0.2.101, com o nome do estabelecimento de casa com CNPJ.
+      required: [id, funcao, estabelecimento_nome, regiao_administrativa, inicio_em, fim_em, valor_centavos, publicado_em, inclusos, modo, posicoes_abertas, estado]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        funcao:
+          $ref: '#/components/schemas/Funcao'
+        estabelecimento_nome:
+          type: [string, 'null']
+          description: |
+            0.2.101. O nome que o estabelecimento cadastrou (`Estabelecimento.nome`), só quando a casa
+            tem CNPJ. Casa com CPF (pessoa física): `null`, porque o nome pode ser o de uma pessoa.
+            `null` também quando a vaga não está aberta (`estado` diferente de `publicada`, ou já
+            começada): a página da vaga encerrada não precisa da casa (LGPD, art. 6º, III, e art. 16).
+            O servidor decide pelo documento: só `length(documento) = 14` (CNPJ) mostra o nome; o resto
+            vem `null` (falha fechada).
+          example: Bar do Zé
+        regiao_administrativa:
+          type: [string, 'null']
+          description: |
+            O `nome` do catálogo `GET /regiao_administrativa` (região ativa) igual a
+            `Vaga.regiao_administrativa`, como na região padrão de `buscar_profissionais`. Sem
+            casamento, `null`: o texto que a casa digitou nunca sai aqui.
+          example: Plano Piloto
+        inicio_em:
+          $ref: '#/components/schemas/Instante'
+        fim_em:
+          $ref: '#/components/schemas/Instante'
+        valor_centavos:
+          $ref: '#/components/schemas/Centavos'
+        publicado_em:
+          $ref: '#/components/schemas/Instante'
+        inclusos:
+          $ref: '#/components/schemas/Inclusos'
+        modo:
+          $ref: '#/components/schemas/ModoPreenchimento'
+        posicoes_abertas:
+          type: integer
+          minimum: 0
+          description: Como em `Vaga.posicoes_abertas`.
+        estado:
+          $ref: '#/components/schemas/EstadoVaga'
     Inclusos:
       type: object
       required: [inclui_refeicao, inclui_transporte, exige_material_proprio]

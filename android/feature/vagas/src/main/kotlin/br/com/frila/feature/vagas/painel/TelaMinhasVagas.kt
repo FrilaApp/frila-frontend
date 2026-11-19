@@ -52,6 +52,7 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.feature.vagas.publicacao.formatarData
+import br.com.frila.feature.vagas.escala.TextosEscala
 import br.com.frila.feature.vagas.publicacao.formatarHora
 import br.com.frila.feature.vagas.publicacao.formatarReais
 import java.time.Duration
@@ -64,6 +65,8 @@ data class AcoesMinhasVagas(
     val aoVerCandidatos: (ItemMinhaVaga) -> Unit = {},
     val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     val aoPublicarVaga: () -> Unit = {},
+    /** RF19: "Publicar escala do evento", ao lado de "Publicar vaga". `null` esconde a entrada (a vaga avulsa não muda). */
+    val aoPublicarEscala: (() -> Unit)? = null,
     /** Nulo é a lista como tela raiz (aba "Minhas vagas"): sem a barra do voltar, e o nome da casa abre a tela no lugar do título. */
     val aoVoltar: (() -> Unit)? = {},
     /** As três ações da vaga (L2-3). `null` esconde o botão: a tela só oferece o que quem a abriu sabe atender. */
@@ -86,6 +89,7 @@ fun TelaMinhasVagas(
     aoVerCandidatos: (vagaId: String, posicoesAbertas: Int, inicioDaVaga: Instant?) -> Unit,
     aoPublicarVaga: (estabelecimentoId: String) -> Unit,
     modifier: Modifier = Modifier,
+    aoPublicarEscala: ((estabelecimentoId: String) -> Unit)? = null,
     aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
     aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
@@ -102,6 +106,7 @@ fun TelaMinhasVagas(
             aoVerCandidatos = { aoVerCandidatos(it.id, it.posicoesAbertas, it.inicio) },
             aoAcompanharTurno = aoAcompanharTurno,
             aoPublicarVaga = { aoPublicarVaga(viewModel.estabelecimentoId) },
+            aoPublicarEscala = aoPublicarEscala?.let { abrir -> { abrir(viewModel.estabelecimentoId) } },
             aoVoltar = aoVoltar,
             aoCancelarVaga = aoCancelarVaga,
             aoRepublicarVaga = aoRepublicarVaga,
@@ -138,6 +143,13 @@ fun ConteudoMinhasVagas(
                         aoClicar = acoes.aoPublicarVaga,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    acoes.aoPublicarEscala?.let { publicarEscala ->
+                        BotaoSecundario(
+                            texto = TextosEscala.ENTRADA,
+                            aoClicar = publicarEscala,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         },
