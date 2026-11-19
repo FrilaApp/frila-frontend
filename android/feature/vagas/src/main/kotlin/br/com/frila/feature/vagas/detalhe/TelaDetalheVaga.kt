@@ -39,6 +39,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.rede.ContatoDto
+import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.EstiloDoSelo
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
@@ -84,6 +86,8 @@ fun TelaDetalheVaga(
     aoResultadoPermissao: (Boolean) -> Unit = {},
     /** Nulo (o padrão) deixa a tela sem a barra de topo: quem a abre ainda volta pelo gesto do sistema. */
     aoVoltar: (() -> Unit)? = null,
+    aoNavegarParaConfirmada: ((VagaAbertaDto, ContatoDto?) -> Unit)? = null,
+    aoNavegarParaConflito: ((VagaAbertaDto) -> Unit)? = null,
 ) {
     val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -97,12 +101,18 @@ fun TelaDetalheVaga(
         aoResultadoPermissao(concedida)
     }
 
-    LaunchedEffect(estado.statusCandidatura) {
-        if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA && !jaPediuNaSessao()) {
-            if (!verificarPermissaoNotificacao(contexto)) {
-                marcarPediuNaSessao()
-                dialogoPermissaoVisivel = true
+    LaunchedEffect(estado.statusCandidatura, estado.ehConflitoHorario) {
+        if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA) {
+            aoNavegarParaConfirmada?.invoke(estado.vaga, estado.contato)
+            if (!jaPediuNaSessao()) {
+                if (!verificarPermissaoNotificacao(contexto)) {
+                    marcarPediuNaSessao()
+                    dialogoPermissaoVisivel = true
+                }
             }
+        }
+        if (estado.ehConflitoHorario) {
+            aoNavegarParaConflito?.invoke(estado.vaga)
         }
     }
 
