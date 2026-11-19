@@ -128,21 +128,30 @@ public final class PerfilEstabelecimentoViewModel {
         carregarEstabelecimentos = estabelecimentos; carregarPublico = publico
     }
 
+    /// Cada chamada de `carregar` tem a sua geração. A tela chama de novo ao trocar de casa (`.task(id:)`) e a resposta da casa
+    /// anterior ainda pode chegar depois: só a chamada mais nova, e não cancelada, grava no modelo, e só ela desliga o `carregando`.
+    private var geracao = 0
+
     /// `preferida` é a casa que a conta escolheu em "Trocar de casa"; sem ela, ou se a conta já não é membro dela, vale a primeira.
     /// Trocar de casa limpa o que era da anterior antes de ler a nova: nada de uma casa aparece na outra.
     public func carregar(preferindo preferida: UUID? = nil) async {
+        geracao += 1
+        let minha = geracao
+        func vale() -> Bool { minha == geracao && !Task.isCancelled }
         carregando = true; mensagemErro = nil
         if let preferida, estabelecimento?.id != preferida { estabelecimento = nil; perfilPublico = nil }
-        defer { carregando = false }
+        defer { if minha == geracao { carregando = false } }
         do {
             let todas = try await carregarEstabelecimentos()
+            guard vale() else { return }
             guard let escolhida = todas.first(where: { $0.id == preferida }) ?? todas.first else {
                 estabelecimento = nil; perfilPublico = nil
                 return
             }
             let publico = try await carregarPublico(escolhida.id)
+            guard vale() else { return }
             estabelecimento = escolhida; perfilPublico = publico
-        } catch { mensagemErro = TextosPerfilConta.erro }
+        } catch { if vale() { mensagemErro = TextosPerfilConta.erro } }
     }
 }
 

@@ -296,12 +296,16 @@ struct TrocarDeCasaTests {
 
     // MARK: O perfil da casa escolhida
 
-    private func perfil(_ casas: CasasDaConta, porteira: PorteiraDeLeitura? = nil) -> PerfilEstabelecimentoViewModel {
+    /// A leitura do perfil da Cantina espera na porteira (se houver); com `falhaAoLiberar`, ao seguir ela falha em vez de responder.
+    private func perfil(_ casas: CasasDaConta, porteira: PorteiraDeLeitura? = nil, falhaAoLiberar: Bool = false) -> PerfilEstabelecimentoViewModel {
         let aqui = (bistro, cantina)
         return PerfilEstabelecimentoViewModel(
             estabelecimentos: { try await casas.ler() },
             publico: { id in
-                if let porteira, id == aqui.1.id { await porteira.esperar() }
+                if let porteira, id == aqui.1.id {
+                    await porteira.esperar()
+                    if falhaAoLiberar { throw ErroDaApi(codigo: .semRede) }
+                }
                 return PerfilPublico(
                     id: id, tipo: .estabelecimento, nome: id == aqui.0.id ? "Bistrô Ipê" : "Cantina da Esquina",
                     reputacao: Reputacao(positivas: 0, total: 0, taxaComparecimento: nil, turnosConsiderados: 0, turnosRealizados: 0)
@@ -345,6 +349,64 @@ struct TrocarDeCasaTests {
         await porteira.liberar()
         await troca.value
         #expect(modelo.estabelecimento == cantina)
+        #expect(!modelo.carregando)
+    }
+
+    @Test("A resposta atrasada da casa anterior não sobrescreve a da casa nova")
+    func respostaAtrasadaNaoSobrescreve() async {
+        let casas = CasasDaConta([bistro, cantina])
+        let porteira = PorteiraDeLeitura()
+        let modelo = perfil(casas, porteira: porteira)
+
+        // A 1ª chamada (Cantina) fica presa na leitura do perfil; a 2ª (Bistrô) é a casa que a tela passou a mostrar.
+        let antiga = Task { await modelo.carregar(preferindo: cantina.id) }
+        while await !porteira.chegou { await Task.yield() }
+        await modelo.carregar(preferindo: bistro.id)
+        #expect(modelo.estabelecimento == bistro)
+
+        await porteira.liberar()
+        await antiga.value
+
+        #expect(modelo.estabelecimento == bistro)
+        #expect(modelo.perfilPublico?.nome == "Bistrô Ipê")
+        #expect(!modelo.carregando)
+        #expect(modelo.mensagemErro == nil)
+    }
+
+    @Test("A chamada antiga que falha depois da nova terminar não mostra erro")
+    func falhaAtrasadaNaoMostraErro() async {
+        let casas = CasasDaConta([bistro, cantina])
+        let porteira = PorteiraDeLeitura()
+        let modelo = perfil(casas, porteira: porteira, falhaAoLiberar: true)
+
+        let antiga = Task { await modelo.carregar(preferindo: cantina.id) }
+        while await !porteira.chegou { await Task.yield() }
+        await modelo.carregar(preferindo: bistro.id)
+
+        await porteira.liberar()
+        await antiga.value
+
+        #expect(modelo.estabelecimento == bistro)
+        #expect(modelo.perfilPublico?.nome == "Bistrô Ipê")
+        #expect(modelo.mensagemErro == nil)
+        #expect(!modelo.carregando)
+    }
+
+    @Test("Chamada cancelada, mesmo que a leitura termine, não grava nada")
+    func canceladaNaoGrava() async {
+        let casas = CasasDaConta([bistro, cantina])
+        let porteira = PorteiraDeLeitura()
+        let modelo = perfil(casas, porteira: porteira)
+
+        let tarefa = Task { await modelo.carregar(preferindo: cantina.id) }
+        while await !porteira.chegou { await Task.yield() }
+        tarefa.cancel()
+        await porteira.liberar()
+        await tarefa.value
+
+        #expect(modelo.estabelecimento == nil)
+        #expect(modelo.perfilPublico == nil)
+        #expect(modelo.mensagemErro == nil)
         #expect(!modelo.carregando)
     }
 
