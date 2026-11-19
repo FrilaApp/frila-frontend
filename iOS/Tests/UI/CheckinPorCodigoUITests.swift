@@ -171,6 +171,36 @@ final class CheckinPorCodigoUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["codigo-invalido"].exists)
     }
 
+    /// R8b, item 3: em AX5 o resultado do código fica preso no alto da folha (à vista, fora da rolagem) e o botão se alcança
+    /// rolando com o teclado aberto; antes, os dois ficavam no pé, atrás do teclado.
+    func testEmAX5OResultadoDoCodigoFicaVisivelEOBotaoSeAlcancaComOTecladoAberto() {
+        let app = abrir(["-FRILA_SCENARIO", "checkin-por-codigo", "-FRILA_LOCALIZACAO", "codigo-perto",
+                         "-FRILA_PUSH", "turno_nao_verificado", "-FRILA_PUSH_ID", turnoDoProfissional,
+                         "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        fazerCheckinPendente(app, manual: false)
+        let campo = abrirALeituraDoCodigo(app)
+        campo.garantirFocoDoTeclado()
+        campo.typeText("000001")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: Espera.aparecer), "o teclado fica aberto")
+
+        let confirmar = app.buttons["confirmar-codigo-checkin"]
+        XCTAssertTrue(confirmar.waitForExistence(timeout: Espera.aparecer))
+        let janela = app.windows.firstMatch
+        let meio = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.40))
+        let alto = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18))
+        for _ in 0..<6 where !confirmar.isHittable { meio.press(forDuration: 0.05, thenDragTo: alto) }
+        XCTAssertTrue(confirmar.isHittable, "o botão se alcança com o teclado aberto")
+        confirmar.tap()
+
+        let erro = app.descendants(matching: .any)["codigo-invalido"]
+        XCTAssertTrue(erro.waitForExistence(timeout: Espera.aparecer))
+        RunLoop.current.run(until: Date().addingTimeInterval(1.0))
+        let quadro = erro.frame
+        XCTAssertTrue(erro.isHittable, "o erro fica à vista: \(quadro)")
+        XCTAssertGreaterThanOrEqual(quadro.minY, app.navigationBars.firstMatch.frame.maxY - 1, "o erro não fica sob a barra: \(quadro)")
+        XCTAssertLessThanOrEqual(quadro.maxY, janela.frame.maxY * 0.6, "o erro fica no alto, longe do teclado: \(quadro)")
+    }
+
     func testSemAChaveOProfissionalNaoVeALeituraDoCodigo() {
         let app = XCUIApplication()
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-FRILA_LOCALIZACAO", "longe"]

@@ -25,6 +25,7 @@ public struct EntradaDoCodigo: View {
 
     public var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                     Text(verbatim: Textos.explicacao)
@@ -40,8 +41,10 @@ public struct EntradaDoCodigo: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("aviso-casa-confirma")
 
+                    // Com texto grande o botão vai para o fim do conteúdo (ancorado, cobriria o campo); o resultado, não: ele
+                    // fica preso no alto da tela, abaixo.
                     if tamanhoDoTexto.isAccessibilitySize {
-                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
+                        botaoDeConfirmar
                     }
                 }
                 .padding(.horizontal, FrilaEspaco.grupo)
@@ -50,6 +53,22 @@ public struct EntradaDoCodigo: View {
             }
             .background(FrilaCor.fundo.ignoresSafeArea())
             .modifier(RodapeAncoradoForaDeAX { rodape })
+            // O resultado no alto, fora da rolagem: à vista com o teclado aberto e em qualquer posição da rolagem, como na
+            // tela do código de entrada. Empurra o conteúdo para baixo, e o campo volta para cima do teclado.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if tamanhoDoTexto.isAccessibilitySize, temResultado {
+                    mensagem
+                        .task(id: validacao.resultado) { await manterOCampoNaTela(proxy) }
+                        .padding(.horizontal, FrilaEspaco.grupo)
+                        .padding(.vertical, FrilaEspaco.item)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(FrilaCor.fundo)
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
+                        }
+                }
+            }
+            }
             .navigationTitle(Textos.titulo)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -85,6 +104,7 @@ public struct EntradaDoCodigo: View {
                 .caixaDoCampoFrila(emFoco: campoEmFoco)
                 .accessibilityLabel(Text(verbatim: Textos.rotuloDoCampo))
                 .accessibilityIdentifier("campo-codigo-checkin")
+                .id(Self.idDoCampo)
                 .onChange(of: codigo) { _, novo in
                     let digitos = String(novo.filter { $0.isASCII && $0.isNumber }.prefix(6))
                     if digitos != novo { codigo = digitos }
@@ -94,16 +114,37 @@ public struct EntradaDoCodigo: View {
 
     // MARK: Resultado
 
-    /// O resultado e o botão: ancorados no pé, ou no fim da rolagem com texto de acessibilidade.
+    private static let idDoCampo = "campo-do-codigo-da-casa"
+
+    private var temResultado: Bool {
+        switch validacao.resultado {
+        case .aguardando, .verificado, .jaVerificado: false
+        default: true
+        }
+    }
+
+    /// O resultado e o botão: ancorados no pé, ou (texto grande) o resultado no alto e o botão no fim da rolagem.
     @ViewBuilder
     private var rodape: some View {
         mensagem
+        botaoDeConfirmar
+    }
+
+    private var botaoDeConfirmar: some View {
         BotaoPrimario(verbatim: Textos.confirmar, carregando: ocupado) {
             campoEmFoco = false
             Task { await validacao.validarMedindo(codigo: codigo) }
         }
         .disabled(!ValidacaoDoCodigoViewModel.formatoValido(codigo) || ocupado)
         .accessibilityIdentifier("confirmar-codigo-checkin")
+    }
+
+    @MainActor
+    private func manterOCampoNaTela(_ proxy: ScrollViewProxy) async {
+        // Um instante para a tela assentar com a mensagem já presa no alto.
+        try? await Task.sleep(for: .milliseconds(150))
+        guard !Task.isCancelled else { return }
+        proxy.scrollTo(Self.idDoCampo, anchor: .bottom)
     }
 
     private var ocupado: Bool { validacao.resultado == .enviando }
