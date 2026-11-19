@@ -220,7 +220,8 @@ public struct TelaCodigo: View {
 
     /// Controle nativo: cola sem o aviso "Permitir colar" e sem ler a área de transferência por baixo dos panos.
     /// O sistema só aceita tinta, forma e rótulo; o tamanho vem da escala, a partir da borda esquerda, e o quadro reserva
-    /// o lugar dele (valor padrão da chave "Tamanho do Colar" do Laboratório do Fabrício: alvo, 1,85).
+    /// o lugar dele (valor padrão da chave "Tamanho do Colar" do Laboratório do Fabrício: alvo, 1,85). Com texto grande
+    /// ele fica no tamanho do sistema, que já passa do alvo.
     private var botaoColar: some View {
         PasteButton(payloadType: String.self) { textos in
             viewModel.colar(textos)
@@ -228,8 +229,9 @@ public struct TelaCodigo: View {
         .labelStyle(.titleAndIcon)
         .buttonBorderShape(.capsule)
         .tint(FrilaCor.texto)
-        .scaleEffect(Self.escalaDoColar, anchor: .leading)
-        .frame(height: alturaDoBotaoColar, alignment: .leading)
+        // Com texto grande o próprio controle já cresce (e passa dos 48 pt): sem a escala extra, ele cabe na largura.
+        .scaleEffect(tamanhoDoTexto.isAccessibilitySize ? 1 : Self.escalaDoColar, anchor: .leading)
+        .frame(height: tamanhoDoTexto.isAccessibilitySize ? nil : alturaDoBotaoColar, alignment: .leading)
         .accessibilityLabel(Text("Colar código", bundle: bundleApresentacao))
         .accessibilityIdentifier("codigo-colar")
     }
