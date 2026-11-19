@@ -200,6 +200,9 @@ final class EquipeDaCasaUITests: XCTestCase {
         let app = abrir(ax5: true)
         abrirConta(app)
         capturar("conta", ax5: true)
+        // Em AX5 o topo da Conta não mostra as entradas da casa: rola até elas para a captura ver margem e fios.
+        rolarAteOTopo(elemento("conta-equipe-da-casa", em: app), em: app)
+        capturar("conta-entradas", ax5: true)
 
         abrirEquipe(app)
         capturar("lista", ax5: true)

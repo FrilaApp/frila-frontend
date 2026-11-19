@@ -24,6 +24,14 @@ struct LinhasDaCasaNaConta: Equatable {
     }
 }
 
+/// Para onde cada entrada da casa leva. A navegação é por destino (como as outras linhas da Conta no R4), para a linha ser
+/// uma `FrilaLinhaDeOpcao` com a margem e o chevron do grupo.
+private enum DestinoDaEntradaDaCasa: Hashable {
+    case equipe, trocarDeCasa, convite
+}
+
+/// As entradas entram na Conta como UMA vista do `FrilaGrupoDeLinhas`; por isso o fio entre elas é desenhado aqui, igual ao do
+/// grupo (começa na margem), e não há fio depois da última: quem separa dela a próxima linha é o próprio grupo.
 struct EntradasDaCasaNaConta: View {
     let api: any ApiCliente
     let casa: EstabelecimentoDaConta?
@@ -31,39 +39,40 @@ struct EntradasDaCasaNaConta: View {
     let aoEscolherCasa: (UUID) -> Void
     let aoAtualizarCasas: () -> Void
     let aoAbrirCasa: (UUID) -> Void
+    @State private var destino: DestinoDaEntradaDaCasa?
 
     var body: some View {
         let linhas = LinhasDaCasaNaConta(casa: casa, casas: casas)
         VStack(alignment: .leading, spacing: 0) {
-            if linhas.equipe, let casaEmUso = linhas.casaEmUso {
-                NavigationLink {
-                    DestinoDaEquipeDaCasa(api: api, casa: casaEmUso, aoPerderAdministracao: aoAtualizarCasas)
-                } label: {
-                    RotuloDeLinha(TextosDaEquipeDaCasa.entradaEquipe)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("conta-equipe-da-casa")
-                DivisoriaDeLinha()
+            if linhas.equipe, linhas.casaEmUso != nil {
+                FrilaLinhaDeOpcao(titulo: TextosDaEquipeDaCasa.entradaEquipe, remate: .navega) { destino = .equipe }
+                    .accessibilityIdentifier("conta-equipe-da-casa")
+                fio
             }
             if linhas.trocar {
-                NavigationLink {
-                    DestinoDeTrocarDeCasa(api: api, casaEmUso: linhas.casaEmUso?.id, aoEscolher: aoEscolherCasa)
-                } label: {
-                    RotuloDeLinha(TextosDaEquipeDaCasa.entradaTrocar)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("conta-trocar-de-casa")
-                DivisoriaDeLinha()
+                FrilaLinhaDeOpcao(titulo: TextosDaEquipeDaCasa.entradaTrocar, remate: .navega) { destino = .trocarDeCasa }
+                    .accessibilityIdentifier("conta-trocar-de-casa")
+                fio
             }
-            NavigationLink {
-                DestinoDoConvite(api: api, aoAceitar: aoAtualizarCasas, aoAbrirCasa: aoAbrirCasa)
-            } label: {
-                RotuloDeLinha(TextosDaEquipeDaCasa.entradaConvite)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("conta-tenho-um-convite")
-            DivisoriaDeLinha()
+            FrilaLinhaDeOpcao(titulo: TextosDaEquipeDaCasa.entradaConvite, remate: .navega) { destino = .convite }
+                .accessibilityIdentifier("conta-tenho-um-convite")
         }
+        .navigationDestination(item: $destino) { destino in
+            switch destino {
+            case .equipe:
+                if let casaEmUso = linhas.casaEmUso {
+                    DestinoDaEquipeDaCasa(api: api, casa: casaEmUso, aoPerderAdministracao: aoAtualizarCasas)
+                }
+            case .trocarDeCasa:
+                DestinoDeTrocarDeCasa(api: api, casaEmUso: linhas.casaEmUso?.id, aoEscolher: aoEscolherCasa)
+            case .convite:
+                DestinoDoConvite(api: api, aoAceitar: aoAtualizarCasas, aoAbrirCasa: aoAbrirCasa)
+            }
+        }
+    }
+
+    private var fio: some View {
+        DivisoriaDeLinha().padding(.leading, FrilaMedidaDeLinha.margem)
     }
 }
 
