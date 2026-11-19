@@ -96,6 +96,8 @@ struct FrilaApp: App {
                     TelaDeConfiguracaoInvalida(erro: erro)
                 }
             }
+            // A abertura animada cobre o app só na abertura a frio; ele monta e carrega por baixo, sem esperar por ela.
+            .aberturaAFrio()
             #if DEBUG || FRILA_BETA
             .modoDebugDesignSeAtivo()
             #endif

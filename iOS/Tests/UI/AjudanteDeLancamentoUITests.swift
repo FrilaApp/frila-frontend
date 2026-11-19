@@ -8,6 +8,10 @@ import XCTest
 @objc(AjudanteDeLancamentoUITests)
 public final class AjudanteDeLancamentoUITests: NSObject, XCTestObservation {
     public static let argumentoSemAnimacoes = "-FRILA_SEM_ANIMACOES"
+    /// A abertura animada fica fora de todo teste de interface: somaria quase 3 s a cada lançamento e cobriria a tela.
+    /// Só os testes da própria abertura a pedem, lenta ou parada num instante.
+    public static let argumentoSemAbertura = "-FRILA_SEM_ABERTURA"
+    public static let argumentosQuePedemAAbertura = ["-FRILA_ABERTURA_DURACAO", "-FRILA_ABERTURA_CONGELADA"]
 
     public override init() {
         super.init()
@@ -22,6 +26,10 @@ public final class AjudanteDeLancamentoUITests: NSObject, XCTestObservation {
            !app.launchArguments.contains("-UIAccessibilityReduceMotionEnabled") &&
            !app.launchArguments.contains(argumentoSemAnimacoes) {
             app.launchArguments.append(argumentoSemAnimacoes)
+        }
+        if !app.launchArguments.contains(argumentoSemAbertura) &&
+           !argumentosQuePedemAAbertura.contains(where: app.launchArguments.contains) {
+            app.launchArguments.append(argumentoSemAbertura)
         }
     }
 
@@ -124,6 +132,24 @@ final class AjudanteDeLancamentoUITestsInternos: XCTestCase {
         app.launchArguments = ["-FRILA_SCENARIO", "success", "-UIAccessibilityReduceMotionEnabled", "YES"]
         AjudanteDeLancamentoUITests.preparar(app)
         XCTAssertFalse(app.launchArguments.contains("-FRILA_SEM_ANIMACOES"))
+    }
+
+    func testDesligaAAberturaEmTestesComuns() {
+        for argumentos in [["-FRILA_SCENARIO", "success"], ["-FRILA_SCENARIO", "success", "-FRILA_MEDICAO"]] {
+            let app = XCUIApplication()
+            app.launchArguments = argumentos
+            AjudanteDeLancamentoUITests.preparar(app)
+            XCTAssertEqual(app.launchArguments.filter { $0 == "-FRILA_SEM_ABERTURA" }.count, 1)
+        }
+    }
+
+    func testPreservaAAberturaQuandoOTesteAPede() {
+        for pedido in [["-FRILA_ABERTURA_DURACAO", "20"], ["-FRILA_ABERTURA_CONGELADA", "1.25"]] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-FRILA_ENTRADA"] + pedido
+            AjudanteDeLancamentoUITests.preparar(app)
+            XCTAssertFalse(app.launchArguments.contains("-FRILA_SEM_ABERTURA"))
+        }
     }
 
     func testAlvoMinimoAceitaErroDePontoFlutuanteERecusaAlvoMenor() {

@@ -15,6 +15,10 @@ enum ParteDaMarca: CaseIterable, Sendable {
     /// Tamanho do rótulo inteiro no espaço do SVG.
     static let tamanho = CGSize(width: 1311, height: 439)
 
+    /// Centro e raio do pingo do `i`, de onde a abertura se abre para o app (espaço do SVG).
+    static let centroDoPingo = CGPoint(x: 675, y: 60.5)
+    static let raioDoPingo: CGFloat = 58
+
     /// O `a` tem o furo do bojo: precisa de preenchimento par-ímpar.
     var precisaDeParImpar: Bool { self == .a }
 
