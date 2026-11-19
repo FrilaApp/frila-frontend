@@ -240,7 +240,13 @@ final class EscalaDeEventoUITests: XCTestCase {
             preencherResponsavel(app, vaga: 1, nome: "Marina")
             digitarValor(app, vaga: 1, centavos: "18000")
             tocar(app.buttons["escala-publicar"])
-            XCTAssertTrue(elemento("escala-confirmacao", em: app).waitForExistence(timeout: 15))
+            let confirmou = elemento("escala-confirmacao", em: app).waitForExistence(timeout: 15)
+            if !confirmou {
+                // O que a tela mostra quando a confirmação não vem: a captura e a mensagem da ação, para achar a causa.
+                capturar("FALHA-sem-confirmacao", ax5: ax5)
+                print("FALHA-SEM-CONFIRMACAO ax5=\(ax5) mensagem=\(elemento("escala-mensagem", em: app).exists ? elemento("escala-mensagem", em: app).label : "(sem mensagem)")")
+            }
+            XCTAssertTrue(confirmou, "a confirmação da escala deveria aparecer (ax5=\(ax5))")
             capturar("5-publicada", ax5: ax5)
             app.terminate()
         }
