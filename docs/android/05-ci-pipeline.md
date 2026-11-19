@@ -165,3 +165,13 @@ A assinatura oficial do bundle para envio à Google Play Store depende da criaç
 
 Quando esses quatro segredos forem cadastrados, o workflow os decodificará temporariamente em tempo de execução para assinar o bundle antes do upload. **Nenhum segredo foi criado ou manipulado por agentes de IA.**
 
+## 8. Injeção de Configuração do Firebase por Ambiente (Cartão llLCfQ7J)
+
+Para habilitar o push FCM e serviços do Google por ambiente sem versionar arquivos de configuração no repositório (`android/app/src/debug/google-services.json` e `android/app/src/release/google-services.json` são ignorados no `.gitignore`):
+
+1. **`GOOGLE_SERVICES_DEV`** (ou `FRILA_GOOGLE_SERVICES_DEV_BASE64`): Conteúdo do `google-services.json` do ambiente de DEV (desenvolvimento) codificado em base64 (`base64 -i ~/.config/frila/android/google-services-dev.json`).
+2. **`GOOGLE_SERVICES_PROD`** (ou `FRILA_GOOGLE_SERVICES_PROD_BASE64`): Conteúdo do `google-services.json` do ambiente de PROD (produção) codificado em base64 (`base64 -i ~/.config/frila/android/google-services-prod.json`).
+
+O script `android/scripts/injetar-google-services.sh` decodifica com permissão restrita (`0600`) para os caminhos de build respectivos durante a execução da CI. Em builds de release distribuíveis (push na branch `main` ou tags `v*`), o segredo `GOOGLE_SERVICES_PROD` é obrigatório e o job falha imediatamente caso ausente. Em pull requests ou compilações de validação sem o segredo de produção, um placeholder sintético com identificadores `.invalid` é gerado para permitir a compilação do bundle de release sem vazar ou reutilizar configurações do ambiente de desenvolvimento (DEV nunca é copiado para release).
+
+

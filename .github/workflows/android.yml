@@ -61,6 +61,7 @@ jobs:
         run: |
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
+          scripts/teste-injetar-google-services.sh
 
       - name: Restaurar cache do Robolectric (android-all)
         id: cache-robolectric
@@ -102,6 +103,14 @@ jobs:
                 -o "$DEST_DIR/android-all-instrumented-$v.pom"
             fi
           done
+
+      # Google Services por ambiente (pedido 19-03, cartão llLCfQ7J): injeta o google-services.json
+      # de DEV no app/src/debug e o de PROD no app/src/release a partir de segredos codificados em base64.
+      - name: Injetar google-services.json por ambiente
+        env:
+          GOOGLE_SERVICES_DEV: ${{ secrets.GOOGLE_SERVICES_DEV || secrets.FRILA_GOOGLE_SERVICES_DEV_BASE64 }}
+          GOOGLE_SERVICES_PROD: ${{ secrets.GOOGLE_SERVICES_PROD || secrets.FRILA_GOOGLE_SERVICES_PROD_BASE64 }}
+        run: scripts/injetar-google-services.sh
 
       # Supabase (pedido 16-26): o par DEV vai para o BuildConfig do debug e o par PROD para o do release
       # (app/build.gradle.kts). Cada passo recebe só o par que usa; o Gradle nunca imprime os valores.

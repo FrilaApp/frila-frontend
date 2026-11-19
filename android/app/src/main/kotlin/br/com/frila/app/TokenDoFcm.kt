@@ -11,6 +11,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  */
 suspend fun lerTokenDoFcm(): String? = suspendCancellableCoroutine { continuacao ->
     FirebaseMessaging.getInstance().token.addOnCompleteListener { tarefa ->
-        if (continuacao.isActive) continuacao.resume(if (tarefa.isSuccessful) tarefa.result else null)
+        val token = if (tarefa.isSuccessful) tarefa.result else null
+        if (continuacao.isActive) continuacao.resume(token)
     }
 }
