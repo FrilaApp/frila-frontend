@@ -1497,4 +1497,31 @@ class TelaPerfilTest {
         rule.onAllNodesWithTag("selo-em-analise").assertCountEquals(0)
         rule.onNodeWithText("Reputação").assertIsDisplayed()
     }
+
+    @Test
+    fun switchDeRelatoriosDeFalhasExibeEstadoEChamaCallbackAoAlternar() {
+        var alternouPara: Boolean? = null
+        runBlocking {
+            val viewModel = criarViewModel()
+            viewModel.carregar().join()
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = {},
+                        relatoriosDeFalhasAtivados = false,
+                        aoAlternarRelatoriosDeFalhas = { alternouPara = it },
+                    )
+                }
+            }
+            rule.waitForIdle()
+        }
+
+        val toggle = rule.onNodeWithTag("toggle-relatorios-falhas")
+        toggle.performScrollTo()
+        toggle.assertIsDisplayed()
+        toggle.assertIsOff()
+        toggle.performClick()
+        assertEquals(true, alternouPara)
+    }
 }

@@ -79,4 +79,9 @@ class AppNavegacaoTest {
     fun `rota de turno do aviso embute o id do turno`() {
         assertEquals("meus_turnos/turno-456", Rotas.turnoAviso("turno-456"))
     }
+
+    @Test
+    fun `rota de consentimento de falhas existe no contrato de navegacao`() {
+        assertEquals("consentimento_falhas", Rotas.CONSENTIMENTO_FALHAS)
+    }
 }
