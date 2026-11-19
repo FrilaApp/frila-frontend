@@ -350,7 +350,6 @@ private enum IDScroll: Hashable {
 /// Cadastro do estabelecimento no primeiro acesso do contratante, no quadro "Estabelecimento" do MidFi do Fabrício:
 /// campos contornados, mapa com raio e o responsável da conta em cartão.
 public struct TelaCadastroEstabelecimento: View {
-    @State private var mostrarConfirmacaoDeSaida = false
     @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     @State private var model: CadastroEstabelecimentoViewModel
     @State private var posicaoMapa: MapCameraPosition = .automatic
@@ -392,7 +391,6 @@ public struct TelaCadastroEstabelecimento: View {
 
     public var body: some View {
         conteudoDaTela
-            .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
     }
 
     @ViewBuilder
@@ -419,9 +417,8 @@ public struct TelaCadastroEstabelecimento: View {
     private var formulario: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                     cabecalho
-                    bannerDeErroGlobal
                     secaoNome
                         .id(IDScroll.nome)
                     secaoTipo
@@ -440,15 +437,15 @@ public struct TelaCadastroEstabelecimento: View {
                     secaoResponsavel
                         .id(IDScroll.responsavel)
                 }
-                .padding(.horizontal, FrilaEspaco.medio)
-                .padding(.top, FrilaEspaco.medio)
-                .padding(.bottom, FrilaEspaco.enorme)
+                .padding(.horizontal, FrilaEspaco.grupo)
+                .padding(.top, FrilaEspaco.bloco)
+                .padding(.bottom, FrilaEspaco.secao)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(FrilaCor.fundo.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
-            .barraInferiorFixa {
-                barraInferiorCta
+            .rodapeAncorado {
+                rodape
             }
             .frilaKeyboardDismissScope()
             .onChange(of: tentativaDeEnvio) { _, _ in
@@ -508,21 +505,29 @@ public struct TelaCadastroEstabelecimento: View {
     }
 
     private var cabecalho: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosCadastro.titulo)
                 .font(FrilaTipo.tituloDaTela)
                 .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             Text(verbatim: TextosCadastro.subtitulo)
-                .font(FrilaTipo.subtituloDaTela)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private var barraInferiorCta: some View {
-        VStack(spacing: FrilaEspaco.pequeno) {
+    /// O erro da tela fica logo acima do botão que o provocou, em tinta e sem cartão (o do campo, junto do campo).
+    private var rodape: some View {
+        VStack(spacing: FrilaEspaco.item) {
+            if let erro = model.erro, erro == .falha || erro == .semRede {
+                MensagemJuntoAoBotao(verbatim: mensagem(erro))
+                    .accessibilityIdentifier("erro-cadastro")
+            }
+            if model.erro == .documentoDuplicado {
+                MensagemJuntoAoBotao(verbatim: TextosCadastro.ajudaSobCta)
+            }
             BotaoPrimario(verbatim: TextosCadastro.salvarEPublicar, carregando: model.enviando) {
                 Task {
                     await model.salvar()
@@ -530,25 +535,21 @@ public struct TelaCadastroEstabelecimento: View {
                 }
             }
             .accessibilityIdentifier("continuar-cadastro")
-
-            if model.erro == .documentoDuplicado {
-                Text(verbatim: TextosCadastro.ajudaSobCta)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
-        .padding(.horizontal, FrilaEspaco.medio)
-        .padding(.vertical, FrilaEspaco.compacto)
+    }
+
+    /// O rótulo visível do campo, acima dele (DESIGN.md: rótulo de grupo, em apoio).
+    private func rotuloDoCampo(_ texto: String) -> some View {
+        Text(verbatim: texto)
+            .font(FrilaTipo.rotuloDeGrupo)
+            .foregroundStyle(FrilaCor.textoSecundario)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
     private var secaoNome: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosCadastro.nomeCampo)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDoCampo(TextosCadastro.nomeCampo)
 
             TextField(
                 text: $model.nome,
@@ -559,11 +560,8 @@ public struct TelaCadastroEstabelecimento: View {
             .textFieldStyle(.plain)
             .font(FrilaTipo.corpo)
             .foregroundStyle(FrilaCor.texto)
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(bordaDoCampo(.nome))
+            .caixaDoCampoFrila(emFoco: campoFocado == .nome)
+            .overlay(bordaDeErro(.nome))
             .accessibilityLabel(Text(verbatim: TextosCadastro.nomeCampo))
             .focused($campoFocado, equals: .nome)
             .frilaFormField(id: "cadastro-estabelecimento-nome", isFocused: campoFocado == .nome, onDismiss: { campoFocado = nil })
@@ -572,45 +570,18 @@ public struct TelaCadastroEstabelecimento: View {
         }
     }
 
+    /// Escolha única de poucas opções: lista com check, não menu (DESIGN.md, regra 9).
     @ViewBuilder
     private var secaoTipo: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosCadastro.tipoCampo)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
-
-            Menu {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            FrilaGrupoDeLinhas(verbatim: TextosCadastro.tipoCampo, linhasComIcone: false) {
                 ForEach(TipoEstabelecimento.allCases, id: \.self) { tipo in
-                    Button {
+                    FrilaLinhaDeOpcao(titulo: tipoNome(tipo), remate: .marcada(model.tipo == tipo)) {
                         model.tipo = tipo
-                    } label: {
-                        if model.tipo == tipo {
-                            Label(tipoNome(tipo), systemImage: "checkmark")
-                        } else {
-                            Text(verbatim: tipoNome(tipo))
-                        }
                     }
+                    .accessibilityValue(FrilaAcessibilidade.textoSelecao(selecionado: model.tipo == tipo))
                 }
-            } label: {
-                HStack {
-                    Text(verbatim: tipoNome(model.tipo))
-                        .font(FrilaTipo.corpo)
-                        .foregroundStyle(FrilaCor.texto)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                }
-                .padding(.horizontal, FrilaEspaco.medio)
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                .overlay(bordaDoCampo(.tipo))
             }
-            .accessibilityLabel(Text(verbatim: TextosCadastro.tipo))
-            .accessibilityValue(Text(verbatim: tipoNome(model.tipo)))
             .accessibilityIdentifier("tipo-estabelecimento")
 
             mensagemDeErroAbaixo(do: .tipo)
@@ -619,10 +590,8 @@ public struct TelaCadastroEstabelecimento: View {
 
     @ViewBuilder
     private var secaoDocumento: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosCadastro.documentoCampo)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDoCampo(TextosCadastro.documentoCampo)
 
             CampoMascara(
                 texto: $model.documentoFormatado,
@@ -631,11 +600,8 @@ public struct TelaCadastroEstabelecimento: View {
                 emEdicao: $documentoEmEdicao,
                 formatar: { texto, _ in CadastroEstabelecimentoViewModel.formatarDocumento(texto) }
             )
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(bordaDoCampo(.documento))
+            .caixaDoCampoFrila(emFoco: documentoEmEdicao)
+            .overlay(bordaDeErro(.documento))
             .frilaFormField(id: "cadastro-estabelecimento-documento", isFocused: documentoEmEdicao, onDismiss: { documentoEmEdicao = false })
 
             mensagemDeErroAbaixo(do: .documento)
@@ -644,12 +610,10 @@ public struct TelaCadastroEstabelecimento: View {
 
     @ViewBuilder
     private var secaoEndereco: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosCadastro.endereco)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDoCampo(TextosCadastro.endereco)
 
-            HStack(spacing: FrilaEspaco.compacto) {
+            HStack(spacing: FrilaEspaco.item) {
                 Image(systemName: "mappin")
                     .font(FrilaTipo.corpo)
                     .foregroundStyle(FrilaCor.textoSecundario)
@@ -677,25 +641,22 @@ public struct TelaCadastroEstabelecimento: View {
                     if model.carregandoBusca {
                         ProgressView()
                             .tint(FrilaCor.textoSecundario)
-                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            .frame(minWidth: FrilaMetrica.alvo, minHeight: FrilaMetrica.alvo)
                     } else {
                         Image(systemName: "magnifyingglass")
                             .accessibilityHidden(true)
-                            .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                            .frame(minWidth: FrilaMetrica.alvo, minHeight: FrilaMetrica.alvo)
                             .contentShape(Rectangle())
                     }
                 }
                 .foregroundStyle(FrilaCor.texto)
-                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                .frame(minWidth: FrilaMetrica.alvo, minHeight: FrilaMetrica.alvo)
                 .accessibilityLabel(Text(verbatim: TextosCadastro.buscarEndereco))
                 .accessibilityHint(Text(verbatim: TextosCadastro.buscarEnderecoAjuda))
                 .accessibilityIdentifier("buscar-endereco-botao")
             }
-            .padding(.leading, FrilaEspaco.medio)
-            .padding(.trailing, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(bordaDoCampo(.endereco))
+            .caixaDoCampoFrila(emFoco: campoFocado == .endereco)
+            .overlay(bordaDeErro(.endereco))
 
             mensagemDeErroAbaixo(do: .endereco)
 
@@ -706,23 +667,11 @@ public struct TelaCadastroEstabelecimento: View {
     @ViewBuilder
     private var secaoSugestoes: some View {
         if !model.sugestoes.isEmpty {
-            VStack(spacing: FrilaEspaco.pequeno) {
+            FrilaGrupoDeLinhas(linhasComIcone: false) {
                 ForEach(Array(model.sugestoes.enumerated()), id: \.offset) { _, item in
-                    Button {
+                    FrilaLinhaDeOpcao(titulo: item.placemark.title ?? item.name ?? "", remate: .nenhum) {
                         model.selecionar(item)
-                    } label: {
-                        Text(verbatim: item.placemark.title ?? item.name ?? "")
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .multilineTextAlignment(.leading)
-                            .padding(.horizontal, FrilaEspaco.medio)
-                            .padding(.vertical, FrilaEspaco.pequeno)
-                            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
-                            .contentShape(Rectangle())
                     }
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
                     .accessibilityHint(Text(verbatim: TextosCadastro.selecionarEnderecoAjuda))
                 }
             }
@@ -731,10 +680,8 @@ public struct TelaCadastroEstabelecimento: View {
 
     @ViewBuilder
     private var secaoRegiaoAdministrativa: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosCadastro.regiaoAdministrativa)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            rotuloDoCampo(TextosCadastro.regiaoAdministrativa)
 
             Menu {
                 Button {
@@ -766,14 +713,12 @@ public struct TelaCadastroEstabelecimento: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Image(systemName: "chevron.down")
-                        .font(FrilaTipo.meta)
+                        .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
+                        .accessibilityHidden(true)
                 }
-                .padding(.horizontal, FrilaEspaco.medio)
-                .padding(.vertical, FrilaEspaco.pequeno)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                .overlay(bordaDoCampo(.regiaoAdministrativa))
+                .caixaDoCampoFrila()
+                .overlay(bordaDeErro(.regiaoAdministrativa))
             }
             .accessibilityLabel(Text(verbatim: TextosCadastro.regiaoAdministrativa))
             .accessibilityValue(Text(verbatim: model.regiaoAdministrativa.isEmpty ? TextosCadastro.selecionar : model.regiaoAdministrativa))
@@ -787,7 +732,7 @@ public struct TelaCadastroEstabelecimento: View {
     @ViewBuilder
     private var secaoDoMapa: some View {
         if let ponto = model.ponto {
-            VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                 MapReader { proxy in
                     Map(position: $posicaoMapa) {}
                         .accessibilityIdentifier("mapa-estabelecimento")
@@ -829,31 +774,23 @@ public struct TelaCadastroEstabelecimento: View {
                         }
                 }
                 .frame(minHeight: 140)
-                .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1))
 
                 Text(verbatim: TextosCadastro.dicaMapa)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                Image(systemName: "map")
-                    .font(FrilaTipo.secao)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityHidden(true)
-                Text(verbatim: TextosCadastro.pontoNaoMarcado)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .padding(.vertical, FrilaEspaco.pequeno)
-            .frame(maxWidth: .infinity, minHeight: 140)
-            .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
+            Text(verbatim: TextosCadastro.pontoNaoMarcado)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(FrilaEspaco.bloco)
+                .frame(maxWidth: .infinity, minHeight: 140)
+                .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous))
             .accessibilityIdentifier("mapa-estabelecimento")
             .accessibilityLabel(Text(verbatim: TextosCadastro.pontoNaoMarcado))
         }
@@ -864,7 +801,7 @@ public struct TelaCadastroEstabelecimento: View {
         Image(systemName: "mappin.circle.fill")
             .font(FrilaTipo.secao)
             .foregroundStyle(FrilaCor.texto, FrilaCor.superficie)
-            .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+            .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
             .contentShape(Rectangle())
             .accessibilityLabel(Text(verbatim: TextosCadastro.ponto))
             .accessibilityIdentifier("marcador-mapa")
@@ -891,26 +828,22 @@ public struct TelaCadastroEstabelecimento: View {
 
     @ViewBuilder
     private var secaoResponsavel: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: TextosCadastro.responsavel)
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(FrilaCor.texto)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
                 .accessibilityAddTraits(.isHeader)
 
-            HStack {
-                Text(verbatim: responsavelNome)
-                    .font(FrilaTipo.corpo)
-                    .foregroundStyle(FrilaCor.texto)
-                Spacer()
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                FrilaLinhaDeDado(icone: "person") {
+                    Text(verbatim: responsavelNome).font(FrilaTipo.rotuloSecundario)
+                }
+                FrilaLinhaDeDado(icone: "phone") {
+                    Text(verbatim: formatarTelefoneResponsavel(responsavelTelefone))
+                }
             }
-            .padding(.horizontal, FrilaEspaco.medio)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
-
-            Text(verbatim: formatarTelefoneResponsavel(responsavelTelefone))
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.textoSecundario)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cartaoFrila()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
@@ -938,27 +871,6 @@ public struct TelaCadastroEstabelecimento: View {
         return texto
     }
 
-    @ViewBuilder
-    private var bannerDeErroGlobal: some View {
-        if let erro = model.erro, erro == .falha || erro == .semRede {
-            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-                Image(systemName: erro == .semRede ? "wifi.slash" : "exclamationmark.triangle")
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-                    .accessibilityHidden(true)
-                Text(verbatim: mensagem(erro))
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("erro-cadastro")
-            .id(IDScroll.avisoGlobal)
-        }
-    }
-
     private func temErroNoCampo(_ campo: CampoCadastro) -> Bool {
         if case let .campo(campoErro, _)? = model.erro, campoErro == campo {
             return true
@@ -969,38 +881,29 @@ public struct TelaCadastroEstabelecimento: View {
         return false
     }
 
-    private func bordaDoCampo(_ campo: CampoCadastro) -> some View {
-        let temErro = temErroNoCampo(campo)
-        return RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-            .strokeBorder(temErro ? FrilaCor.texto : FrilaCor.borda, lineWidth: temErro ? 2 : 1)
+    /// O campo com problema ganha o fio de 2 pt em tinta; o foco usa o mesmo desenho, então o erro some ao focar.
+    @ViewBuilder
+    private func bordaDeErro(_ campo: CampoCadastro) -> some View {
+        if temErroNoCampo(campo) {
+            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                .strokeBorder(FrilaCor.texto, lineWidth: 2)
+        }
     }
 
     @ViewBuilder
     private func mensagemDeErroAbaixo(do campo: CampoCadastro) -> some View {
         if campo == .documento, model.erro == .documentoDuplicado {
-            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-                    .accessibilityHidden(true)
-                Text(verbatim: TextosCadastro.documentoDuplicadoMensagem)
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("erro-campo-documento")
+            Text(verbatim: TextosCadastro.documentoDuplicadoMensagem)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("erro-campo-documento")
         } else if case let .campo(campoErro, regra)? = model.erro, campoErro == campo {
-            HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.pequeno) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-                    .accessibilityHidden(true)
-                Text(verbatim: erroCampo(regra))
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.texto)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier(identificadorDeErro(campo))
+            Text(verbatim: erroCampo(regra))
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier(identificadorDeErro(campo))
         }
     }
 
@@ -1035,73 +938,5 @@ public struct TelaCadastroEstabelecimento: View {
 
     private func centralizarMapa(em coordenada: CLLocationCoordinate2D) {
         posicaoMapa = .region(MKCoordinateRegion(center: coordenada, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)))
-    }
-
-    /// Mesmo padrão da exclusão de conta: título rolável e ações fixas, Cancelar primeiro.
-    private var confirmacaoDeSaida: some View {
-        ScrollView {
-            Text("Sair da conta?", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDeEstado)
-                .foregroundStyle(FrilaCor.texto)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(FrilaEspaco.medio)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FrilaEspaco.pequeno) {
-                BotaoSecundario(verbatim: String(localized: "Cancelar", bundle: bundleApresentacao)) {
-                    mostrarConfirmacaoDeSaida = false
-                }
-                .accessibilityIdentifier("botao-cancelar-saida-dialogo")
-                Button(role: .destructive) {
-                    mostrarConfirmacaoDeSaida = false
-                    sair()
-                } label: {
-                    Text("Sair", bundle: bundleApresentacao)
-                        .font(FrilaTipo.botao)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(FrilaCor.sobrePrimaria)
-                .background(FrilaCor.perigo, in: Capsule())
-                .accessibilityIdentifier("botao-confirmar-saida-dialogo")
-            }
-            .padding(FrilaEspaco.medio)
-            .background(FrilaCor.fundo)
-        }
-        .background(FrilaCor.fundo)
-        .presentationDetents([.large])
-        .presentationCornerRadius(FrilaRaio.folha)
-        .presentationDragIndicator(.visible)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        if #available(iOS 26, *) {
-            safeAreaBar(edge: .bottom) {
-                conteudo()
-            }
-        } else {
-            safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(FrilaCor.divisoria)
-                        .frame(height: 1)
-                        .accessibilityHidden(true)
-
-                    conteudo()
-                }
-                .background(.regularMaterial)
-            }
-        }
     }
 }

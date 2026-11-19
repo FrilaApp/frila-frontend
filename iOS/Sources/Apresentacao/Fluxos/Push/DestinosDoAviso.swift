@@ -112,7 +112,8 @@ struct DestinoDaVagaDoAviso<Conteudo: View>: View {
 
 /// A tela própria da vaga que não dá mais para pegar (RN10): diz o que aconteceu e leva de volta à
 /// lista. Os textos são os mesmos do resultado da candidatura.
-/// Segue o quadro "Preenchida" do MidFi do Fabrício: ícone em círculo, título, apoio e o botão de volta.
+/// Desenho do sistema do Fabrício, extrapolado: o estado vazio dele (o fato em corpo e a dica em apoio, sem ícone e
+/// sem cartão) e, abaixo, o botão secundário de volta. Sem laranja: a tela não pede decisão.
 struct TelaVagaIndisponivel: View {
     private typealias Textos = TextosDoProfissional.Candidatura
     private typealias TextosDaSelecao = TextosDaCandidaturaEmSelecao
@@ -130,37 +131,16 @@ struct TelaVagaIndisponivel: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                VStack(spacing: FrilaEspaco.compacto) {
-                    Image(systemName: "lock")
-                        .font(FrilaTipo.secao)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                        .background(FrilaCor.controle, in: Circle())
-                        .accessibilityHidden(true)
-                    VStack(spacing: FrilaEspaco.minimo) {
-                        Text(verbatim: titulo)
-                            .font(FrilaTipo.tituloDeEstado)
-                            .foregroundStyle(FrilaCor.texto)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityAddTraits(.isHeader)
-                        Text(verbatim: mensagem)
-                            .font(FrilaTipo.meta)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .padding(.vertical, FrilaEspaco.grande)
-                .frame(maxWidth: .infinity)
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier("vaga-indisponivel")
+            VStack(spacing: FrilaEspaco.bloco) {
+                FatoEDicaDoAviso(titulo: titulo, mensagem: mensagem)
+                    .accessibilityIdentifier("vaga-indisponivel")
 
                 BotaoSecundario(verbatim: rotuloDoVoltar ?? Textos.voltarParaLista, acao: voltarParaLista)
                     .accessibilityIdentifier("voltar-para-lista")
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.respiro)
+            .padding(.bottom, FrilaEspaco.grupo)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity)
         }
@@ -194,6 +174,31 @@ struct TelaVagaIndisponivel: View {
         case (_, .encerrada): (Textos.encerradaTitulo, Textos.encerradaMensagem)
         case (_, .naoEncontrada): (Textos.encerradaTitulo, Textos.naoEncontrada)
         }
+    }
+}
+
+/// O fato e a dica de um destino de aviso que não abre nada (a vaga que não dá mais, o turno que não é da conta):
+/// o estado vazio do sistema do Fabrício, com o título como cabeçalho e os dois textos lidos como um elemento só.
+private struct FatoEDicaDoAviso: View {
+    let titulo: String
+    let mensagem: String
+
+    var body: some View {
+        VStack(spacing: FrilaEspaco.item) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            Text(verbatim: mensagem)
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -246,8 +251,10 @@ struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
             turno(meuTurno)
         default:
             ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.medio) { semTurno }
-                    .padding(FrilaEspaco.medio)
+                VStack(spacing: FrilaEspaco.bloco) { semTurno }
+                    .padding(.horizontal, FrilaEspaco.grupo)
+                    .padding(.top, FrilaEspaco.respiro)
+                    .padding(.bottom, FrilaEspaco.grupo)
                     .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                     .frame(maxWidth: .infinity)
             }
@@ -264,31 +271,8 @@ struct DestinoDoTurnoDoAviso<Conteudo: View>: View {
         case .carregando, .achou:
             EstadoCarregando()
         case .naoEncontrado:
-            VStack(spacing: FrilaEspaco.compacto) {
-                Image(systemName: "calendar.badge.exclamationmark")
-                    .font(FrilaTipo.secao)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .frame(width: FrilaMetrica.circuloDeEstado, height: FrilaMetrica.circuloDeEstado)
-                    .background(FrilaCor.controle, in: Circle())
-                    .accessibilityHidden(true)
-                VStack(spacing: FrilaEspaco.minimo) {
-                    Text(verbatim: TextosDoPush.Turno.naoEncontradoTitulo)
-                        .font(FrilaTipo.tituloDeEstado)
-                        .foregroundStyle(FrilaCor.texto)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(verbatim: TextosDoPush.Turno.naoEncontradoMensagem)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.vertical, FrilaEspaco.grande)
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("turno-do-aviso-nao-encontrado")
+            FatoEDicaDoAviso(titulo: TextosDoPush.Turno.naoEncontradoTitulo, mensagem: TextosDoPush.Turno.naoEncontradoMensagem)
+                .accessibilityIdentifier("turno-do-aviso-nao-encontrado")
             BotaoSecundario(verbatim: TextosDoPush.Turno.verMeusTurnos, acao: verMeusTurnos)
                 .accessibilityIdentifier("ver-meus-turnos")
         case .semConexao:

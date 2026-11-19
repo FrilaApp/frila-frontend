@@ -26,6 +26,8 @@ object TextosCandidatosDaVaga {
     const val FOTO_DE = "Foto de %s"
     const val ESCOLHER = "Escolher"
     const val ESCOLHER_NOME = "Escolher %s"
+    const val DENUNCIAR = "Denunciar"
+    const val DENUNCIAR_NOME = "Denunciar %s"
     const val ESCOLHENDO = "Confirmando…"
     const val PERGUNTA_DA_ESCOLHA = "Confirmar a escolha?"
     const val AVISO_DA_ESCOLHA = "Você vai confirmar %s nesta vaga."

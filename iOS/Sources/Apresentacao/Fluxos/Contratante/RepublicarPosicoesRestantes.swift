@@ -149,7 +149,7 @@ public final class RepublicarPosicoesRestantesViewModel {
     }
 }
 
-/// Atalho "Publicar de novo" das posições restantes, na pílula escura do quadro "RepetirVaga" do MidFi do Fabrício.
+/// Atalho "Republicar N posições em urgência", em botão secundário, dentro do cartão da vaga ou no detalhe dela.
 public struct BotaoRepublicarPosicoesRestantes: View {
     @State private var viewModel: RepublicarPosicoesRestantesViewModel
     @State private var confirmandoUrgencia = false
@@ -212,33 +212,23 @@ public struct BotaoRepublicarPosicoesRestantes: View {
 
     public var body: some View {
         if podeRepublicar || viewModel.erro != nil {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                 if podeRepublicar {
                     Button {
                         confirmandoUrgencia = true
                     } label: {
-                        HStack(spacing: FrilaEspaco.pequeno) {
-                            if viewModel.carregando {
-                                ProgressView()
-                                    .tint(FrilaCor.sobreAcao)
-                                Text(verbatim: TextosRepublicarPosicoesRestantes.republicando)
-                            } else {
+                        HStack(spacing: FrilaEspaco.item) {
+                            if !viewModel.carregando {
                                 Image(systemName: "bolt.fill")
                                     .accessibilityHidden(true)
-                                Text(verbatim: TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
                             }
+                            Text(verbatim: viewModel.carregando
+                                 ? TextosRepublicarPosicoesRestantes.republicando
+                                 : TextosRepublicarPosicoesRestantes.rotuloBotao(viewModel.posicoesRestantes))
                         }
-                        .font(FrilaTipo.botaoPrimario)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, FrilaEspaco.grande)
-                        .padding(.vertical, FrilaEspaco.pequeno)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo)
-                        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     }
-                    .buttonStyle(.tatil)
-                    .foregroundStyle(viewModel.carregando ? FrilaCor.textoSecundario : FrilaCor.sobreAcao)
-                    .background(viewModel.carregando ? FrilaCor.controle : FrilaCor.acao, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    .overlay { if viewModel.carregando { RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1) } }
+                    // Botão secundário: o caso aparece dentro de cartões de lista, e o laranja fica para a ação que a tela decide.
+                    .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))
                     .disabled(viewModel.carregando)
                     .accessibilityIdentifier(idAcessibilidade)
                 }

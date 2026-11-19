@@ -26,6 +26,9 @@ public struct FolhaCompartilhamento: UIViewControllerRepresentable {
 }
 
 /// Linha "Exportar meus dados" (#24), na lista aberta do perfil; abre o compartilhar do iPhone.
+/// A linha é a do grupo da Conta (a mesma `RotuloDeLinha` das vizinhas); o que muda é o que vem junto: enquanto o
+/// arquivo é gerado, o rótulo passa a `textoSecundario` e a linha fica desligada (sem indicador girando), a explicação
+/// vai em apoio e o erro em `MensagemJuntoAoBotao`, logo abaixo da linha que o provocou.
 public struct ItemExportarDados: View {
     @Bindable private var viewModel: ExportarDadosViewModel
     private let identificador: String
@@ -36,28 +39,12 @@ public struct ItemExportarDados: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
             Button {
                 Task { await viewModel.exportarDados() }
             } label: {
-                if viewModel.estaCarregando {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        Text(verbatim: TextosExportarDados.titulo)
-                            .font(FrilaTipo.corpo)
-                            .foregroundStyle(FrilaCor.texto)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: FrilaEspaco.pequeno)
-                        ProgressView()
-                            .controlSize(.small)
-                            .accessibilityIdentifier("progresso-exportar-dados")
-                    }
-                    .padding(.vertical, FrilaEspaco.minimo)
-                    .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                    .contentShape(Rectangle())
-                } else {
-                    RotuloDeLinha(TextosExportarDados.titulo)
-                }
+                RotuloDeLinha(TextosExportarDados.titulo)
+                    .opacity(viewModel.estaCarregando ? 0.6 : 1)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.estaCarregando)
@@ -65,17 +52,27 @@ public struct ItemExportarDados: View {
             .accessibilityLabel(TextosExportarDados.titulo)
             .accessibilityHint(TextosExportarDados.dicaAcessibilidade)
 
+            if viewModel.estaCarregando {
+                // O "em andamento" do toque: sem indicador girando, a linha esmaece e este elemento mínimo avisa o
+                // leitor de tela e os testes de que o arquivo está sendo gerado.
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text("Carregando", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("progresso-exportar-dados")
+            }
+
             Text(verbatim: TextosExportarDados.explicacao)
-                .font(FrilaTipo.nota)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.bottom, FrilaEspaco.compacto)
+                .padding(.bottom, FrilaEspaco.item)
                 .accessibilityIdentifier("\(identificador)-explicacao")
 
             if let erro = viewModel.mensagemErro {
-                AvisoFrila(verbatim: erro, tom: .erro)
+                MensagemJuntoAoBotao(verbatim: erro)
+                    .padding(.bottom, FrilaEspaco.item)
                     .accessibilityIdentifier("aviso-erro-exportar-dados")
-                    .padding(.top, FrilaEspaco.minimo)
             }
         }
         .sheet(isPresented: $viewModel.mostrarFolhaCompartilhamento, onDismiss: {

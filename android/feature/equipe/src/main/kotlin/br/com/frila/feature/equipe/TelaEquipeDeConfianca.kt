@@ -48,6 +48,7 @@ fun TelaEquipeDeConfianca(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     aoChamarDeNovo: ((PerfilPublicoDto) -> Unit)? = null,
+    aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -58,6 +59,7 @@ fun TelaEquipeDeConfianca(
         aoVoltar = aoVoltar,
         modifier = modifier,
         aoChamarDeNovo = aoChamarDeNovo,
+        aoDenunciar = aoDenunciar,
     )
 }
 
@@ -76,6 +78,8 @@ fun ConteudoEquipeDeConfianca(
     modifier: Modifier = Modifier,
     /** "Chamar de novo" por profissional da equipe (chamada direta). `null`, com a chave desligada, esconde o botão. */
     aoChamarDeNovo: ((PerfilPublicoDto) -> Unit)? = null,
+    /** "Denunciar" por profissional da equipe, discreto no fim do cartão. `null` esconde a ação. */
+    aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
 ) {
     var idParaRemover by rememberSaveable { mutableStateOf<String?>(null) }
     val membros = (tela.estado as? EstadoEquipe.Conteudo)?.membros.orEmpty()
@@ -123,6 +127,7 @@ fun ConteudoEquipeDeConfianca(
                             bloqueado = tela.ocupado,
                             aoRemover = { idParaRemover = perfil.id },
                             aoChamarDeNovo = aoChamarDeNovo?.let { chamar -> { chamar(perfil) } },
+                            aoDenunciar = aoDenunciar?.let { denunciar -> { denunciar(perfil) } },
                         )
                     }
                     item { Spacer(Modifier.height(FrilaEspacamento.grupo)) }
@@ -172,6 +177,7 @@ private fun CartaoDoMembro(
     bloqueado: Boolean,
     aoRemover: () -> Unit,
     aoChamarDeNovo: (() -> Unit)? = null,
+    aoDenunciar: (() -> Unit)? = null,
 ) {
     CartaoFrila(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
@@ -206,6 +212,14 @@ private fun CartaoDoMembro(
                 habilitado = !bloqueado,
                 modifier = Modifier.semantics { contentDescription = TextosEquipe.rotuloRemover(perfil.nome) },
             )
+            if (aoDenunciar != null) {
+                AcaoDiscreta(
+                    texto = TextosEquipe.DENUNCIAR,
+                    aoClicar = aoDenunciar,
+                    habilitado = !bloqueado,
+                    modifier = Modifier.semantics { contentDescription = TextosEquipe.rotuloDenunciar(perfil.nome) },
+                )
+            }
         }
     }
 }

@@ -35,8 +35,16 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         // 3. TelaCadastro: checkbox de termos com alvos >= 44x44 pt
         let termos = app.buttons["cadastro-termos"]
         XCTAssertTrue(termos.waitForExistence(timeout: 10))
-        // Com os campos de 52 pt do MidFi, os termos ficam abaixo da dobra em telas menores.
-        if !termos.isHittable { app.scrollViews.firstMatch.swipeUp() }
+        // Com o rodapé ancorado do redesign, os termos nascem atrás do botão "Continuar": o XCTest os dá como
+        // tocáveis, mas o toque cairia no rodapé. Arrasta o conteúdo (pelo meio da tela, que o rodapé fixo não rola)
+        // até a caixa ficar inteira acima do botão.
+        let continuar = app.buttons["cadastro-continuar"]
+        XCTAssertTrue(continuar.waitForExistence(timeout: Espera.aparecer))
+        for _ in 0..<4 where !termos.isHittable || termos.frame.maxY > continuar.frame.minY {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)))
+        }
+        XCTAssertLessThanOrEqual(termos.frame.maxY, continuar.frame.minY, "a caixa dos Termos deve ficar acima do rodapé")
         XCTAssertAlvoMinimo(termos.frame.width)
         XCTAssertAlvoMinimo(termos.frame.height)
         XCTAssertTrue(termos.isHittable)

@@ -75,12 +75,14 @@ class TelaCandidatosDaVagaTest {
         var desistiu = 0
         var confirmou = 0
         var voltou = 0
+        val denunciados = mutableListOf<String>()
     }
 
     private fun montar(
         estado: EstadoCandidatosDaVaga = estado(),
         chamadas: Chamadas = Chamadas(),
         carregarFoto: suspend (String) -> ImageBitmap? = { null },
+        comDenunciar: Boolean = false,
     ): Chamadas {
         rule.setContent {
             FrilaTheme {
@@ -93,6 +95,7 @@ class TelaCandidatosDaVagaTest {
                         aoDesistirDaEscolha = { chamadas.desistiu++ },
                         aoConfirmarEscolha = { chamadas.confirmou++ },
                         aoVoltar = { chamadas.voltou++ },
+                        aoDenunciar = if (comDenunciar) ({ chamadas.denunciados += it.id }) else null,
                     ),
                     carregarFoto = carregarFoto,
                 )
@@ -143,6 +146,23 @@ class TelaCandidatosDaVagaTest {
         rule.onNodeWithContentDescription("Escolher Beto").performClick()
 
         assertEquals(listOf("c2"), chamadas.escolhas)
+    }
+
+    @Test
+    fun `denunciar entrega o perfil publico do candidato do cartao e tem alvo de toque minimo`() {
+        val chamadas = montar(comDenunciar = true)
+
+        rule.onNodeWithContentDescription("Denunciar Ana").assertIsEnabled().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+        rule.onNodeWithContentDescription("Denunciar Beto").performClick()
+
+        assertEquals(listOf("p-c2"), chamadas.denunciados)
+    }
+
+    @Test
+    fun `sem o callback de denuncia a acao nao aparece`() {
+        montar()
+
+        rule.onNodeWithContentDescription("Denunciar Ana").assertDoesNotExist()
     }
 
     @Test
