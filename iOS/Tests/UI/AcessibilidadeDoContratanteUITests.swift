@@ -24,12 +24,22 @@ final class AcessibilidadeDoContratanteUITests: XCTestCase {
         // 2.1 Botão de busca (lupa): alvo >= 44x44 pt
         let botaoBusca = app.buttons["buscar-endereco-botao"]
         XCTAssertTrue(botaoBusca.waitForExistence(timeout: Espera.aparecer))
+        // No redesign o tipo do estabelecimento virou lista com check (6 linhas), então o endereço nasce mais embaixo,
+        // atrás do rodapé ancorado: a pessoa chega rolando, e o teste rola pelo meio da tela até o botão ficar livre.
+        trazerParaATela(botaoBusca, em: app)
         XCTAssertAlvoMinimo(botaoBusca.frame.width, "Botão de busca deve ter largura >= 44 pt")
         XCTAssertAlvoMinimo(botaoBusca.frame.height, "Botão de busca deve ter altura >= 44 pt")
         XCTAssertTrue(botaoBusca.isHittable)
 
         // 3.7 Marcador do mapa: label e alça >= 44x44 pt
+        // O mapa fica abaixo da região e do tipo: rola até ele para o marcador existir na tela.
         let marcador = app.descendants(matching: .any)["marcador-mapa"]
+        for _ in 0..<8 where !marcador.exists {
+            // Pela margem direita, para o gesto não cair no mapa e arrastá-lo.
+            let janela = app.windows.firstMatch
+            janela.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.85))
+                .press(forDuration: 0.01, thenDragTo: janela.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.25)))
+        }
         XCTAssertTrue(marcador.waitForExistence(timeout: 10))
         XCTAssertEqual(marcador.label, "Ponto do estabelecimento")
         XCTAssertAlvoMinimo(marcador.frame.width)

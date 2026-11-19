@@ -453,13 +453,16 @@ final class ExclusaoDeContaUITests: XCTestCase {
 
         botaoConfirmar.tap()
 
+        // O toque fecha o diálogo e dispara a exclusão, que ao terminar troca a raiz para a entrada: há uma corrida entre
+        // as duas coisas, e na CI lenta do #981 (fatia 4) 3 s + 3 s não bastaram (2 de 3 execuções). As janelas passam a
+        // ser as de aparecer (10 s); o diálogo preso de verdade continua reprovando na asserção final.
         let sumiu = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
             object: botaoConfirmar
         )
-        if XCTWaiter.wait(for: [sumiu], timeout: 3) != .completed {
+        if XCTWaiter.wait(for: [sumiu], timeout: Espera.aparecer) != .completed {
             XCTContext.runActivity(named: "Repetir toque no botão de confirmação de exclusão") { _ in
-                let anexo = XCTAttachment(string: "O diálogo de confirmação não sumiu em até 3 s após o primeiro toque; acionando segundo toque.")
+                let anexo = XCTAttachment(string: "O diálogo de confirmação não sumiu em até \(Int(Espera.aparecer)) s após o primeiro toque; acionando segundo toque.")
                 anexo.name = "RepeticaoDoToqueDeConfirmacaoDeExclusao"
                 anexo.lifetime = .keepAlways
                 add(anexo)
@@ -472,7 +475,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
                 object: botaoConfirmar
             )
             XCTAssertEqual(
-                XCTWaiter.wait(for: [sumiuAposSegundoToque], timeout: 3), .completed,
+                XCTWaiter.wait(for: [sumiuAposSegundoToque], timeout: Espera.aparecer), .completed,
                 "Defeito do app: diálogo de confirmação de exclusão não fechou após o segundo toque"
             )
         }
