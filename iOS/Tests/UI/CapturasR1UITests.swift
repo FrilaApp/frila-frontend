@@ -109,8 +109,46 @@ final class CapturasR1UITests: XCTestCase {
                                  "as caixas do código seguem acima do teclado (caixas \(caixas.frame), fim \(fimDaAreaVisivel))")
         XCTAssertFalse(caixas.frame.intersects(erro.frame),
                        "o erro não cobre as caixas (caixas \(caixas.frame), erro \(erro.frame))")
-        for _ in 0..<4 where !reenvio.isHittable { app.swipeUp() }
-        XCTAssertTrue(reenvio.isHittable, "o reenvio fica ao alcance depois do código errado (reenvio \(reenvio.frame))")
+        // O teclado sai antes de rolar, pelo "OK" dele: com o teclado aberto e texto grande, a faixa livre é menor que o
+        // próprio reenvio. (`swipeUp()` nascia no centro da janela, em cima do erro preso no alto, que fica fora da
+        // rolagem: não movia nada, e o teste só passava porque o reenvio encostava 1,7 pt na tela.)
+        // O "OK" não aparece para o teste como botão (a barra do teclado existe, sem filhos): o toque vai no lugar
+        // dele, no canto direito da barra, logo acima do teclado.
+        let tecladoAberto = app.keyboards.firstMatch
+        if tecladoAberto.exists {
+            let quadroDoTeclado = tecladoAberto.frame
+            let canto = app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+            for recuo in [41.0, 30.0, 52.0] where app.keyboards.count > 0 {
+                canto.withOffset(CGVector(dx: quadroDoTeclado.maxX - 46, dy: quadroDoTeclado.minY - recuo)).tap()
+                _ = tecladoAberto.waitForNonExistence(timeout: 2)
+            }
+        }
+        XCTAssertEqual(app.keyboards.count, 0, "o teclado fecha pelo OK antes da rolagem")
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+
+        // A janela livre: abaixo do erro preso no alto (texto grande) ou da barra, e acima do pé da tela ou do grupo
+        // ancorado, onde o erro fica no tamanho padrão.
+        let janela = app.windows.firstMatch.frame
+        let erroPresoNoAlto = erro.frame.maxY <= caixas.frame.minY
+        let topo = erroPresoNoAlto ? erro.frame.maxY : app.navigationBars.firstMatch.frame.maxY
+        let fundo = erroPresoNoAlto ? janela.maxY - 40 : min(janela.maxY - 40, erro.frame.minY)
+        func dentroDaJanela() -> Bool { reenvio.frame.minY >= topo - 1 && reenvio.frame.maxY <= fundo + 1 }
+        let origem = app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
+        for _ in 0..<6 where !(dentroDaJanela() && reenvio.isHittable) {
+            if dentroDaJanela() { break }
+            // Só o que falta, devagar e sem embalo, pela margem da tela (fora de qualquer controle).
+            let quadro = reenvio.frame
+            let sobe = quadro.maxY > fundo
+            let curso = sobe ? quadro.maxY - fundo + 12 : topo - quadro.minY + 12
+            let partida = sobe ? fundo - 24 : topo + 24
+            let chegada = sobe ? max(partida - curso, janela.minY + 20) : min(partida + curso, janela.maxY - 20)
+            origem.withOffset(CGVector(dx: janela.maxX - 6, dy: partida))
+                .press(forDuration: 0.05, thenDragTo: origem.withOffset(CGVector(dx: janela.maxX - 6, dy: chegada)),
+                       withVelocity: .slow, thenHoldForDuration: 0.2)
+        }
+        let quadros = "reenvio \(reenvio.frame), janela livre de \(topo) a \(fundo), erro \(erro.frame), caixas \(caixas.frame)"
+        XCTAssertTrue(reenvio.isHittable, "o reenvio fica ao alcance depois do código errado (\(quadros))")
+        XCTAssertTrue(dentroDaJanela(), "o reenvio fica inteiro na tela, na janela livre (\(quadros))")
     }
 
     // MARK: - Cadastro
