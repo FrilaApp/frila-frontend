@@ -326,6 +326,8 @@ struct TelaTurnoDoContratante: View {
         Text(verbatim: TextosDoAcompanhamento.titulo)
             .font(FrilaTipo.tituloDaTela)
             .foregroundStyle(FrilaCor.texto)
+            // Em texto grande "Acompanhar" é mais largo que a tela: encolhe um pouco em vez de partir a palavra ao meio.
+            .minimumScaleFactor(0.6)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
 
