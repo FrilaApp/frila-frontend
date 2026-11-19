@@ -1,7 +1,8 @@
 package br.com.frila.app.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -215,7 +216,7 @@ class TelaFeedVagasInstrumentedTest {
 
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Buscar função ou estabelecimento")))
+        composeTestRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
             .performScrollToNode(hasText("Sommelier Especialista"))
 
         composeTestRule.onNodeWithText("Sommelier Especialista")
