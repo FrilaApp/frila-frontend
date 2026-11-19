@@ -305,6 +305,8 @@ public struct TelaMinhasVagas: View {
     private let api: any ApiCliente
     private let fila: (any FilaDeAcoes)?
     private let publicarVaga: (() -> Void)?
+    /// Abre a escala de evento (várias funções de uma vez, tudo ou nada). Sem ele, a entrada não aparece.
+    private let publicarEscala: (() -> Void)?
     /// Abre a publicação já preenchida com a busca vazia ("Publicar para todos"). Sem ele, a entrada da busca não aparece.
     private let publicarParaTodosDaBusca: ((RascunhoDeVagaDaBusca) -> Void)?
     private let sair: (() -> Void)?
@@ -326,6 +328,7 @@ public struct TelaMinhasVagas: View {
         fila: (any FilaDeAcoes)? = nil,
         roteador: RoteadorDoContratante? = nil,
         publicarVaga: (() -> Void)? = nil,
+        publicarEscala: (() -> Void)? = nil,
         publicarParaTodosDaBusca: ((RascunhoDeVagaDaBusca) -> Void)? = nil,
         guardaDaBusca: GuardaDaBuscaDeProfissionais? = nil,
         sair: (() -> Void)? = nil,
@@ -343,6 +346,7 @@ public struct TelaMinhasVagas: View {
         self.api = api
         self.fila = fila
         self.publicarVaga = publicarVaga
+        self.publicarEscala = publicarEscala
         self.publicarParaTodosDaBusca = publicarParaTodosDaBusca
         self.sair = sair
         self.abrirPerfil = abrirPerfil
@@ -461,6 +465,14 @@ public struct TelaMinhasVagas: View {
                         .accessibilityIdentifier("publicar-vaga-entrada")
                     }
                 }
+                if let publicarEscala, !viewModel.vagas.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: publicarEscala) {
+                            Label(TextosDaEscala.entrada, systemImage: "calendar.badge.plus")
+                        }
+                        .accessibilityIdentifier("publicar-escala-entrada")
+                    }
+                }
             }
             .navigationDestination(for: RotaDoContratante.self) { rota in
                 switch rota {
@@ -544,6 +556,12 @@ public struct TelaMinhasVagas: View {
                 BotaoSecundario(verbatim: TextosMinhasVagas.publicarVaga, acao: publicarVaga)
                     .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
                     .accessibilityIdentifier("publicar-vaga-entrada")
+            }
+            if let publicarEscala {
+                BotaoSecundario(verbatim: TextosDaEscala.entrada, acao: publicarEscala)
+                    .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                    .padding(.top, FrilaEspaco.item)
+                    .accessibilityIdentifier("publicar-escala-entrada")
             }
         }
         .frame(maxWidth: .infinity)

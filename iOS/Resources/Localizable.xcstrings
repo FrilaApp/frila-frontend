@@ -15495,6 +15495,479 @@
           }
         }
       }
+    },
+    "Publicar escala do evento" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar escala do evento"
+          }
+        }
+      }
+    },
+    "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma."
+          }
+        }
+      }
+    },
+    "O evento é no endereço da casa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O evento é no endereço da casa"
+          }
+        }
+      }
+    },
+    "Nome do evento" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome do evento"
+          }
+        }
+      }
+    },
+    "Ex.: Formatura de Direito" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ex.: Formatura de Direito"
+          }
+        }
+      }
+    },
+    "Dia do evento" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dia do evento"
+          }
+        }
+      }
+    },
+    "Quem recebe os profissionais no local" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quem recebe os profissionais no local"
+          }
+        }
+      }
+    },
+    "Vale para todas as vagas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vale para todas as vagas"
+          }
+        }
+      }
+    },
+    "Vagas da escala" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vagas da escala"
+          }
+        }
+      }
+    },
+    "Vaga %d de %d" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaga %d de %d"
+          }
+        }
+      }
+    },
+    "Escolher função" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher função"
+          }
+        }
+      }
+    },
+    "Pessoas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pessoas"
+          }
+        }
+      }
+    },
+    "%d pessoas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d pessoas"
+          }
+        }
+      }
+    },
+    "1 pessoa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 pessoa"
+          }
+        }
+      }
+    },
+    "Uma pessoa a menos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma pessoa a menos"
+          }
+        }
+      }
+    },
+    "Uma pessoa a mais" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma pessoa a mais"
+          }
+        }
+      }
+    },
+    "Remover esta vaga" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover esta vaga"
+          }
+        }
+      }
+    },
+    "Adicionar outra vaga" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar outra vaga"
+          }
+        }
+      }
+    },
+    "Uma escala tem até %d vagas. Para mais, publique outra escala." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma escala tem até %d vagas. Para mais, publique outra escala."
+          }
+        }
+      }
+    },
+    "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também."
+          }
+        }
+      }
+    },
+    "Total: %d de 100 pessoas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total: %d de 100 pessoas"
+          }
+        }
+      }
+    },
+    "Função da vaga" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Função da vaga"
+          }
+        }
+      }
+    },
+    "Publicar escala" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicar escala"
+          }
+        }
+      }
+    },
+    "Publicando…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publicando…"
+          }
+        }
+      }
+    },
+    "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos."
+          }
+        }
+      }
+    },
+    "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos."
+          }
+        }
+      }
+    },
+    "Ver em Minhas vagas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver em Minhas vagas"
+          }
+        }
+      }
+    },
+    "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados."
+          }
+        }
+      }
+    },
+    "Informe o dia do evento." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informe o dia do evento."
+          }
+        }
+      }
+    },
+    "Informe quem recebe os profissionais no local." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informe quem recebe os profissionais no local."
+          }
+        }
+      }
+    },
+    "Escolha a função desta vaga." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha a função desta vaga."
+          }
+        }
+      }
+    },
+    "Informe de 1 a 100 pessoas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informe de 1 a 100 pessoas."
+          }
+        }
+      }
+    },
+    "Confira os campos marcados antes de publicar. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confira os campos marcados antes de publicar. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "Uma escala tem de 1 a 10 vagas. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma escala tem de 1 a 10 vagas. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas."
+          }
+        }
+      }
+    },
+    "Não foi possível publicar a escala. Nada foi publicado. Tente novamente." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível publicar a escala. Nada foi publicado. Tente novamente."
+          }
+        }
+      }
+    },
+    "Sua conta não pode publicar escalas nesta casa. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta não pode publicar escalas nesta casa. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "Só quem contrata publica escalas. Nada foi publicado." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só quem contrata publica escalas. Nada foi publicado."
+          }
+        }
+      }
+    },
+    "Opcional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcional"
+          }
+        }
+      }
+    },
+    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
