@@ -33,7 +33,6 @@ enum TextosDoAcompanhamento {
     static let semCheckin = String(localized: "Sem check-in 15 minutos depois do início.", bundle: bundleApresentacao)
     static let acompanharTurno = titulo
     static let vagaNaoEncontrada = String(localized: "Não encontramos esta vaga.", bundle: bundleApresentacao)
-    static let periodo = String(localized: "%@ – %@", bundle: bundleApresentacao)
     static let checkinNoLocal = String(localized: "Check-in no local às %@.", bundle: bundleApresentacao)
     static let checkinManual = String(localized: "Check-in manual às %@.", bundle: bundleApresentacao)
     static let checkinGenerico = String(localized: "Check-in às %@.", bundle: bundleApresentacao)
@@ -326,6 +325,8 @@ struct TelaTurnoDoContratante: View {
         Text(verbatim: TextosDoAcompanhamento.titulo)
             .font(FrilaTipo.tituloDaTela)
             .foregroundStyle(FrilaCor.texto)
+            // O título cresce com o texto até AX3: acima disso "Acompanhar" é mais largo que a tela e a palavra se parte ao meio.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility3)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
 
@@ -369,9 +370,7 @@ struct TelaTurnoDoContratante: View {
                 FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: turno.vaga.funcao) }
                 FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: formatador.data(turno.vaga.periodo.inicio)) }
                 FrilaLinhaDeDado(icone: "clock") {
-                    Text(verbatim: String(
-                        format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
-                    ))
+                    Text(verbatim: FormatoDeHorarioDoTurno().horario(inicio: turno.vaga.periodo.inicio, fim: turno.vaga.periodo.fim))
                 }
                 FrilaLinhaDeDado(icone: "mappin.and.ellipse") { Text(verbatim: turno.vaga.local) }
             }
@@ -828,9 +827,7 @@ struct PendenciasDoContratante: View {
                     FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: turno.vaga.funcao) }
                     FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: formatador.data(turno.vaga.periodo.inicio)) }
                     FrilaLinhaDeDado(icone: "clock") {
-                        Text(verbatim: String(
-                            format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
-                        ))
+                        Text(verbatim: FormatoDeHorarioDoTurno().horario(inicio: turno.vaga.periodo.inicio, fim: turno.vaga.periodo.fim))
                     }
                 }
                 .accessibilityElement(children: .combine)

@@ -308,6 +308,16 @@ public struct TelaRepublicarVaga: View {
     @Environment(\.dismiss) private var dismiss
     private let aoFechar: (@Sendable () -> Void)?
     private let formatador = FormatadorFrila()
+    private static let idDoInicio = "campo-inicio-republicacao"
+    private static let idDoFim = "campo-fim-republicacao"
+    /// O que a folha de horário está editando (só em tamanho de acessibilidade).
+    @State private var editandoHorario: AlvoDeHorario?
+
+    private enum AlvoDeHorario: Hashable, Identifiable {
+        case inicio
+        case fim
+        var id: Self { self }
+    }
 
     public init(viewModel: RepublicarVagaViewModel, aoFechar: (@Sendable () -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
@@ -361,6 +371,9 @@ public struct TelaRepublicarVaga: View {
                     .disabled(viewModel.enviando || viewModel.restaurandoTentativa)
                     .accessibilityIdentifier("botao-cancelar-republicacao")
             }
+        }
+        .sheet(item: $editandoHorario) { alvo in
+            folhaDeHorario(alvo)
         }
         .onChange(of: viewModel.resultado) { _, novo in
             if novo != nil {
@@ -430,7 +443,7 @@ public struct TelaRepublicarVaga: View {
                     seletorPeriodo(
                         titulo: TextosRepublicarVaga.dataInicio,
                         data: $viewModel.inicio,
-                        campoID: "campo-inicio-republicacao"
+                        campoID: Self.idDoInicio
                     )
                     .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
 
@@ -447,7 +460,7 @@ public struct TelaRepublicarVaga: View {
                     seletorPeriodo(
                         titulo: TextosRepublicarVaga.dataFim,
                         data: $viewModel.fim,
-                        campoID: "campo-fim-republicacao"
+                        campoID: Self.idDoFim
                     )
                     .disabled(viewModel.camposBloqueados || !viewModel.podeConfirmar)
 
@@ -472,15 +485,12 @@ public struct TelaRepublicarVaga: View {
                 Text(verbatim: titulo)
                     .font(FrilaTipo.rotuloDeGrupo)
                     .foregroundStyle(FrilaCor.textoSecundario)
-                DatePicker(
-                    titulo,
-                    selection: data,
-                    displayedComponents: [.date, .hourAndMinute]
+                linhaDeHorario(
+                    valor: FormatoDeHorarioDoTurno().instanteComDia(data.wrappedValue),
+                    id: campoID,
+                    titulo: titulo,
+                    alvo: campoID == Self.idDoInicio ? .inicio : .fim
                 )
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-                .tint(FrilaCor.texto)
-                .accessibilityIdentifier(campoID)
             }
         } else {
             DatePicker(
@@ -491,6 +501,66 @@ public struct TelaRepublicarVaga: View {
             .tint(FrilaCor.texto)
             .accessibilityIdentifier(campoID)
         }
+    }
+
+    /// Linha de AX que mostra o valor e abre a folha com as rodas.
+    private func linhaDeHorario(valor: String, id: String, titulo: String, alvo: AlvoDeHorario) -> some View {
+        Button { editandoHorario = alvo } label: {
+            HStack(spacing: FrilaEspaco.item) {
+                Text(verbatim: valor)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: FrilaEspaco.item)
+                Image(systemName: "chevron.forward")
+                    .font(FrilaTipo.apoio.weight(.semibold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
+            }
+            .caixaDoCampoFrila()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityValue(Text(verbatim: valor))
+        .accessibilityIdentifier(id)
+    }
+
+    /// As rodas ficam numa folha, fora da rolagem: dentro dela, rolar a tela pelo meio giraria a roda e mudaria o horário.
+    private func folhaDeHorario(_ alvo: AlvoDeHorario) -> some View {
+        let titulo = alvo == .inicio ? TextosRepublicarVaga.dataInicio : TextosRepublicarVaga.dataFim
+        let data = alvo == .inicio ? $viewModel.inicio : $viewModel.fim
+        return NavigationStack {
+            VStack(spacing: FrilaEspaco.bloco) {
+                // Dia e hora em duas rodas: a roda com os dois não cabe na largura da tela em AX5.
+                DatePicker(titulo, selection: data, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
+                    .environment(\.timeZone, FormatadorFrila.fuso)
+                    .accessibilityIdentifier("republicar-seletor-data")
+                DatePicker(titulo, selection: data, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
+                    .environment(\.timeZone, FormatadorFrila.fuso)
+                    .accessibilityIdentifier("republicar-seletor-hora")
+                Spacer(minLength: 0)
+            }
+            .padding(FrilaEspaco.bloco)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .navigationTitle(Text(verbatim: titulo))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(TextosRepublicarVaga.fechar) { editandoHorario = nil }
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .accessibilityIdentifier("republicar-fechar-horario")
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .accessibilityIdentifier("republicar-folha-de-horario")
     }
 
     /// O erro da ação fica logo acima do botão que o provocou; o botão laranja é o único da folha.

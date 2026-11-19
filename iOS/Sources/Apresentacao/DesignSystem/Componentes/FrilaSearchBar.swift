@@ -100,7 +100,8 @@ public struct FrilaSearchBar: View {
                 Text(verbatim: rotulo)
             }
             .textFieldStyle(.plain)
-            .font(FrilaTipo.valorDoCampo)
+            // Dynamic Type: o texto cresce com o tamanho escolhido, e o campo (altura mínima de 48) cresce com ele.
+            .font(FrilaFormType.input.dynamicFont)
             .foregroundStyle(FrilaCor.texto)
             .submitLabel(submitLabel)
             .autocorrectionDisabled()
@@ -119,7 +120,7 @@ public struct FrilaSearchBar: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                        .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -145,7 +146,7 @@ public struct FrilaSearchBar: View {
                                 .foregroundStyle(FrilaCor.texto)
                         }
                     }
-                    .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                    .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

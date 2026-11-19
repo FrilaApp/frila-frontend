@@ -78,6 +78,7 @@ Sources/Apresentacao/Fluxos/Profissional/*MeusTurnos* = ServidorDeHojeUITests, M
 Sources/Apresentacao/Fluxos/Profissional/*MeuTurno* = ServidorDeHojeUITests, ModoAviaoUITests, TurnoContrato0231UITests, CancelamentoDoProfissionalUITests, AvaliacaoUITests
 Sources/Apresentacao/Fluxos/Profissional/*Avaliacao* = AvaliacaoUITests
 Sources/Apresentacao/Fluxos/Profissional/*Perfil* = PerfilUITests, ServicosDoProfissionalUITests, FrilaUITests
+Tests/UI/CapturasR4UITests.swift = CapturasR4UITests
 Sources/Apresentacao/Fluxos/Profissional/*Servicos* = ServicosDoProfissionalUITests, PerfilUITests
 Sources/Apresentacao/Fluxos/Profissional/*Apresentacao* = PerfilUITests, FrilaUITests
 Sources/Apresentacao/Fluxos/Profissional/SelecaoDeFuncoes.swift = ServicosDoProfissionalUITests, FrilaUITests

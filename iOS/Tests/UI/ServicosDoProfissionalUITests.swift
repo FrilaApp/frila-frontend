@@ -17,16 +17,21 @@ final class ServicosDoProfissionalUITests: XCTestCase {
         return app
     }
 
-    /// Limite de baixo da área livre: a tab bar e, na tela de perfil, a barra fixa do "Salvar alterações" do perfil.
-    /// Em AX5 no iPhone 17 Pro essa barra mede ~170 pt; sem contá-la, o toque no centro de "Editar serviços" caía nela
+    /// Limite de baixo da área livre: a tab bar e, na tela de perfil, a barra fixa do "Salvar alterações" do perfil; no editor
+    /// de serviços, a barra fixa do "Salvar alterações" dele. O XCUITest ainda vê como tocável o que fica atrás dessas barras
+    /// (elas não são elementos de acessibilidade), e o toque no centro cairia nelas.
+    /// Em AX5 no iPhone 17 Pro a barra do perfil mede ~170 pt; sem contá-la, o toque no centro de "Editar serviços" caía nela
     /// e salvava o perfil em vez de abrir o editor.
     private func base(para elemento: XCUIElement, _ app: XCUIApplication) -> CGFloat {
-        let tabBar = app.tabBars.firstMatch.frame.minY
-        let barraDoPerfil = app.buttons["botao-salvar-perfil"]
-        guard elemento.identifier != "botao-salvar-perfil", barraDoPerfil.exists else { return tabBar }
-        // A barra tem 12 pt de folga acima do botão (`FrilaEspaco.compacto` em `barraInferiorConteudo`) e ela também recebe o toque.
-        let topoDaBarra = barraDoPerfil.frame.minY - 12
-        return topoDaBarra > 0 ? min(tabBar, topoDaBarra) : tabBar
+        var limite = app.tabBars.firstMatch.frame.minY
+        for (barra, folga) in [("botao-salvar-perfil", CGFloat(16)), ("salvar-servicos", CGFloat(16))] {
+            let botao = app.buttons[barra]
+            guard elemento.identifier != barra, botao.exists else { continue }
+            // A barra ancorada tem 16 pt de folga acima do botão e ela também recebe o toque.
+            let topoDaBarra = botao.frame.minY - folga
+            if topoDaBarra > 0 { limite = min(limite, topoDaBarra) }
+        }
+        return limite
     }
 
     private func tocar(_ elemento: XCUIElement, _ app: XCUIApplication) {

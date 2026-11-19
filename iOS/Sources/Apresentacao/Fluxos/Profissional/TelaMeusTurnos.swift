@@ -26,6 +26,7 @@ struct LinhaDoTurnoComIcone: View {
 /// Cartão de turno do profissional (T7 do protótipo, "Card de vaga" sem a ação): o selo da etapa, a casa e a função,
 /// as linhas de dado (quando e onde) e o valor. Tocar abre o turno; o cartão não leva botão.
 public struct CartaoMeuTurno: View {
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     private let turno: Turno
     private let formatador = FormatadorFrila()
 
@@ -63,13 +64,16 @@ public struct CartaoMeuTurno: View {
     private var selo: some View {
         if turno.cancelado {
             SeloDeStatus(verbatim: TextosDoProfissional.Turnos.canceladoTitulo, estilo: .encerrado)
+                .seloSemQuebrarPalavra(tamanhoDoTexto)
         } else if turno.verificacao == .naoVerificado {
             SeloDeStatus(verbatim: TextosDoProfissional.Turnos.naoVerificadoTitulo, estilo: .contorno)
+                .seloSemQuebrarPalavra(tamanhoDoTexto)
         } else {
             let etapa = EtapaDoTurno.atual(aCaminho: turno.aCaminhoEm != nil, presenca: turno.checkin != nil,
                                            concluido: turno.checkout != nil)
             let dados = etapa.selo
-            SeloDeStatus(verbatim: dados.titulo, estilo: dados.estilo, icone: dados.icone)
+            SeloDeStatus(verbatim: dados.titulo, estilo: dados.estilo, icone: tamanhoDoTexto.isAccessibilitySize ? nil : dados.icone)
+                .seloSemQuebrarPalavra(tamanhoDoTexto)
         }
     }
 }
