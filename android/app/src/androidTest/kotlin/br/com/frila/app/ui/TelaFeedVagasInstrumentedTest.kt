@@ -1,10 +1,16 @@
 package br.com.frila.app.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
@@ -101,7 +107,7 @@ class TelaFeedVagasInstrumentedTest {
         composeTestRule.onNodeWithText("Vagas abertas")
             .assertIsDisplayed()
 
-        composeTestRule.onNodeWithText("Buscar vagas ou funções")
+        composeTestRule.onNodeWithText("Buscar função ou estabelecimento")
             .assertIsDisplayed()
 
         composeTestRule.onNodeWithText("Menor distância")
@@ -172,7 +178,11 @@ class TelaFeedVagasInstrumentedTest {
 
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Garçom")
+        composeTestRule.onAllNodesWithText("Garçom")
+            .onFirst()
+            .assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("Bar do Lago")
             .assertIsDisplayed()
     }
 
@@ -206,8 +216,10 @@ class TelaFeedVagasInstrumentedTest {
 
         composeTestRule.waitForIdle()
 
+        composeTestRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+            .performScrollToNode(hasText("Sommelier Especialista"))
+
         composeTestRule.onNodeWithText("Sommelier Especialista")
-            .performScrollTo()
             .performClick()
 
         composeTestRule.waitForIdle()
