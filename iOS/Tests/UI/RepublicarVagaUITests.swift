@@ -100,15 +100,15 @@ final class RepublicarVagaUITests: XCTestCase {
             XCTAssertLessThanOrEqual(frame.maxX, larguraTela, "Elemento \(nome) maxX=\(frame.maxX) deve caber na largura \(larguraTela)")
         }
 
-        let dpInicio = app.datePickers["campo-inicio-republicacao"]
-        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "DatePicker Início deve existir")
+        let dpInicio = app.descendants(matching: .any)["campo-inicio-republicacao"]
+        XCTAssertTrue(dpInicio.waitForExistence(timeout: Espera.aparecer), "O campo Início deve existir")
         trazerParaATela(dpInicio, em: app)
-        XCTAssertTrue(dpInicio.isHittable, "DatePicker Início deve ser tocável em AX5")
+        XCTAssertTrue(dpInicio.isHittable, "O campo Início deve ser tocável em AX5")
 
-        let dpFim = app.datePickers["campo-fim-republicacao"]
-        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "DatePicker Fim deve existir")
+        let dpFim = app.descendants(matching: .any)["campo-fim-republicacao"]
+        XCTAssertTrue(dpFim.waitForExistence(timeout: Espera.aparecer), "O campo Término deve existir")
         trazerParaATela(dpFim, em: app)
-        XCTAssertTrue(dpFim.isHittable, "DatePicker Fim deve ser tocável em AX5")
+        XCTAssertTrue(dpFim.isHittable, "O campo Término deve ser tocável em AX5")
 
         let seletores = app.buttons.matching(NSPredicate(format: "label == 'Seletor de Data e Hora'")).allElementsBoundByIndex
         for seletor in seletores {
@@ -167,6 +167,31 @@ final class RepublicarVagaUITests: XCTestCase {
 
         XCTAssertEqual(app.pickerWheels.count, 0, "nenhuma roda solta na rolagem de republicar em AX5")
         XCTAssertEqual(leitura(), antes, "arrastar por cima do início não muda o início nem o término")
+    }
+
+    /// R8b, item 9b: a linha do início abre a folha com as rodas e "Fechar" volta à tela, sem rodas na rolagem.
+    func testEmAX5ALinhaDoInicioAbreAFolhaComAsRodasEFechaVoltandoParaATela() {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-FRILA_ABRIR_MINHAS_VAGAS",
+            "-FRILA_SCENARIO", "vaga-encerrada-contratante",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+        let botaoRepublicar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "republicar-vaga-")).firstMatch
+        XCTAssertTrue(botaoRepublicar.waitForExistence(timeout: 10))
+        botaoRepublicar.tap()
+        let linha = app.buttons["campo-inicio-republicacao"]
+        XCTAssertTrue(linha.waitForExistence(timeout: 10), "o início é uma linha em AX5")
+        XCTAssertEqual(app.pickerWheels.count, 0, "sem rodas soltas na rolagem")
+        trazerParaATela(linha, em: app)
+        linha.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["republicar-folha-de-horario"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertGreaterThan(app.pickerWheels.count, 0, "a folha traz as rodas")
+        app.buttons["republicar-fechar-horario"].tap()
+        XCTAssertTrue(linha.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertEqual(app.pickerWheels.count, 0)
+        XCTAssertFalse(String(describing: linha.value ?? "").isEmpty)
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
