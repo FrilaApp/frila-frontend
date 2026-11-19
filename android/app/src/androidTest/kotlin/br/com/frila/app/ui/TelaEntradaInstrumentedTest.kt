@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
@@ -96,7 +97,7 @@ class TelaEntradaInstrumentedTest {
 
         composeTestRule.waitForIdle()
 
-        assertEquals("demo@frila.com.br", viewModel.estado.value.email)
+        assertEquals(DemonstracaoContas.EMAIL_PROFISSIONAL, viewModel.estado.value.email)
         assertTrue(codigoRecebido)
     }
 

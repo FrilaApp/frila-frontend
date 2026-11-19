@@ -39,7 +39,7 @@ struct ResumoDaChamadaEnviada: View {
                 // O valor já passou pela RN29 no envio; o `max` só protege o `Dinheiro` de um estado inválido.
                 linha(TextosChamadaDireta.valor, formatador.dinheiro(Dinheiro(centavos: max(0, valorCentavos))), destaque: true)
                 linha(TextosChamadaDireta.horario,
-                      TextosChamadaDireta.intervalo(inicio: formatador.dataEHora(inicio), fim: formatador.hora(fim)))
+                      FormatoDeHorarioDoTurno().comDia(inicio: inicio, fim: fim))
                 linha(TextosChamadaDireta.responsavel, responsavel.trimmingCharacters(in: .whitespacesAndNewlines))
             }
             if let api {

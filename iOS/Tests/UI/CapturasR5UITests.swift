@@ -143,6 +143,28 @@ final class CapturasR5UITests: XCTestCase {
     func testConfirmarEscolhaEmAX5() { confirmarEscolha(ax5: true) }
     func testRepublicarVagaNoTamanhoPadrao() { republicar(ax5: false) }
     func testRepublicarVagaEmAX5() { republicar(ax5: true) }
+
+    /// R8b: em texto grande, início e término são linhas que abrem uma folha com as rodas, fora da rolagem.
+    func testRepublicarVagaHorarioEmFolhaEmAX5() {
+        let app = iniciar(["-FRILA_ABRIR_MINHAS_VAGAS", "-FRILA_SCENARIO", "vaga-encerrada-contratante"], ax5: true)
+        let botao = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "republicar-vaga-")).firstMatch
+        XCTAssertTrue(botao.waitForExistence(timeout: 15))
+        rolarAte(botao, em: app)
+        botao.tap()
+        let linha = app.buttons["campo-inicio-republicacao"]
+        XCTAssertTrue(linha.waitForExistence(timeout: Espera.aparecer), "o início é uma linha em texto grande")
+        // O grupo ancorado cobre o pé da tela: a linha vem para a metade de cima, arrastando pelo meio.
+        let janela = app.windows.firstMatch
+        let meio = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        let alto = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+        for _ in 0..<12 where linha.frame.midY > janela.frame.height * 0.45 { meio.press(forDuration: 0.05, thenDragTo: alto) }
+        confirmarAlvo(linha, "a linha do início")
+        capturar("republicar-vaga-linhas", ax5: true)
+        linha.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["republicar-folha-de-horario"].waitForExistence(timeout: Espera.aparecer),
+                      "a folha de horário abre")
+        capturar("republicar-vaga-folha-de-horario", ax5: true)
+    }
     func testCancelarVagaNoTamanhoPadrao() { cancelarVaga(ax5: false) }
     func testCancelarVagaEmAX5() { cancelarVaga(ax5: true) }
 
