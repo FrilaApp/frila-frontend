@@ -1,6 +1,5 @@
 package br.com.frila.app
 
-import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -13,9 +12,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 suspend fun lerTokenDoFcm(): String? = suspendCancellableCoroutine { continuacao ->
     FirebaseMessaging.getInstance().token.addOnCompleteListener { tarefa ->
         val token = if (tarefa.isSuccessful) tarefa.result else null
-        if (BuildConfig.DEBUG && token != null) {
-            Log.d("FrilaFcmToken", "token=$token")
-        }
         if (continuacao.isActive) continuacao.resume(token)
     }
 }
