@@ -161,32 +161,18 @@ struct SecaoDeHorarios: View {
     // MARK: Corpo
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            FrilaWeekStrip(dias: diasDaFaixa, selecionado: diaSelecionado, aoSelecionar: tocarDia)
+        // Sem cartão em volta: os dias e os horários ficam direto sobre o fundo (T1 e T9, "fora de card").
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            FaixaDeDiasDaSemana(dias: diasDaFaixa, selecionado: diaSelecionado, aoSelecionar: tocarDia)
 
-            Rectangle()
-                .fill(FrilaCor.divisoria)
-                .frame(height: 1)
-
-            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 ForEach(diasComConteudo, id: \.self) { dia in
                     grupo(dia)
                         .transition(transicaoDeLinha)
                 }
             }
-            .padding(.horizontal, FrilaEspaco.pequeno)
-            .padding(.bottom, FrilaEspaco.pequeno)
         }
-        .padding(FrilaEspaco.pequeno)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // O fio do contêiner fica atrás do conteúdo, não por cima: quando a bolha dos segmentos estica rumo à
-        // margem e chega perto da borda, ela passa sobre o fio e não é cortada por ele.
-        .background {
-            ZStack {
-                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).fill(FrilaCor.superficie)
-                RoundedRectangle(cornerRadius: FrilaRaio.cartao, style: .continuous).strokeBorder(FrilaCor.divisoria, lineWidth: 1)
-            }
-        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("faixa-semanal")
         .onChange(of: edicao != nil) { _, aberto in
@@ -210,23 +196,24 @@ struct SecaoDeHorarios: View {
     private func grupo(_ dia: Int) -> some View {
         let selecionado = dia == diaSelecionado
         let janelasDoDia = janelas(do: dia)
-        return VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+        // A janela que está no editor sai da lista: o editor ocupa o lugar dela logo abaixo.
+        let listadas = janelasDoDia.filter { edicao?.origem != .existente($0) }
+        return VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             Text(verbatim: PerfilProfissionalViewModel.nomeDoDia(dia))
-                .font(FrilaTipo.meta.weight(.semibold))
-                .foregroundStyle(selecionado ? FrilaCor.texto : FrilaCor.textoSecundario)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .accessibilityAddTraits(.isHeader)
 
-            ForEach(janelasDoDia, id: \.self) { janela in
-                if edicao?.origem == .existente(janela) {
-                    editor
-                        .transition(transicaoDeLinha)
-                    rodapeDoEditor
-                } else {
-                    linhaDeJanela(janela)
-                        .transition(transicaoDeLinha)
+            if !listadas.isEmpty {
+                FrilaGrupoDeLinhas(linhasComIcone: false) {
+                    ForEach(listadas, id: \.self) { janela in
+                        linhaDeJanela(janela)
+                            .transition(transicaoDeLinha)
+                    }
                 }
             }
 
-            if case .nova(dia) = edicao?.origem {
+            if edicao?.dia == dia {
                 editor
                     .transition(transicaoDeLinha)
                 rodapeDoEditor
@@ -236,12 +223,8 @@ struct SecaoDeHorarios: View {
                 } else {
                     Button(action: adicionarOutroHorario) {
                         Text(verbatim: TextosDoProfissional.Perfil.adicionarHorario)
-                            .font(FrilaTipo.meta.weight(.semibold))
-                            .foregroundStyle(FrilaCor.selecao)
-                            .frame(minHeight: 36, alignment: .leading)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.frilaLink)
                     .accessibilityIdentifier("botao-adicionar-janela")
                 }
             }
@@ -253,72 +236,53 @@ struct SecaoDeHorarios: View {
     @ViewBuilder
     private var rodapeDoEditor: some View {
         if avisoDeRascunho {
-            Text(verbatim: TextosDoProfissional.Perfil.horarioConclua)
-                .font(FrilaTipo.nota)
-                .foregroundStyle(FrilaCor.perigo)
-                .fixedSize(horizontal: false, vertical: true)
+            AvisoFrila(verbatim: TextosDoProfissional.Perfil.horarioConclua, tom: .alerta)
                 .accessibilityIdentifier("aviso-rascunho-horario")
         }
     }
 
     // MARK: Linhas
 
-    /// Dia sem horário: um convite de uma linha que começa o fluxo. A seta diz que tem próximo passo.
+    /// Dia sem horário: um convite de uma linha que começa o fluxo.
     private var linhaEscolherHorario: some View {
-        Button { abrirNovo(dia: diaSelecionado) } label: {
-            HStack {
-                Text(verbatim: TextosDoProfissional.Perfil.horarioEscolher)
-                    .font(FrilaTipo.corpo.weight(.semibold))
-                    .foregroundStyle(FrilaCor.texto)
-                Spacer(minLength: FrilaEspaco.pequeno)
-                Image(systemName: "arrow.right")
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .accessibilityHidden(true)
+        FrilaGrupoDeLinhas(linhasComIcone: false) {
+            FrilaLinhaDeOpcao(titulo: TextosDoProfissional.Perfil.horarioEscolher, remate: .navega) {
+                abrirNovo(dia: diaSelecionado)
             }
-            .padding(.horizontal, FrilaEspaco.compacto)
-            .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-            .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-            .contentShape(Rectangle())
+            .accessibilityIdentifier("escolher-horario")
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("escolher-horario")
     }
 
     /// Horário salvo: "18:00 até 02:00" e, quando atravessa a meia-noite, uma nota. Tocar edita; Remover tira.
     private func linhaDeJanela(_ janela: JanelaDeDisponibilidade) -> some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
+        HStack(spacing: 0) {
             Button { abrirExistente(janela) } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-                        Text(verbatim: TextosDoProfissional.Perfil.horarioDeAte(inicio: janela.inicio.contrato, fim: janela.fim.contrato))
-                            .font(FrilaTipo.corpo.weight(.semibold))
-                            .foregroundStyle(FrilaCor.texto)
-                            .monospacedDigit()
-                        if janela.atravessaMeiaNoite {
-                            Text(verbatim: TextosDoProfissional.Perfil.horarioDiaSeguinte)
-                                .font(FrilaTipo.nota)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                        }
+                VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
+                    Text(verbatim: TextosDoProfissional.Perfil.horarioDeAte(inicio: janela.inicio.contrato, fim: janela.fim.contrato))
+                        .font(FrilaTipo.rotuloSecundario)
+                        .foregroundStyle(FrilaCor.texto)
+                        .monospacedDigit()
+                    if janela.atravessaMeiaNoite {
+                        Text(verbatim: TextosDoProfissional.Perfil.horarioDiaSeguinte)
+                            .font(FrilaTipo.apoio)
+                            .foregroundStyle(FrilaCor.textoSecundario)
                     }
-                    Spacer(minLength: 0)
                 }
-                .padding(.horizontal, FrilaEspaco.compacto)
-                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alturaDoCampo, alignment: .leading)
-                .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, FrilaMedidaDeLinha.margem)
+                .padding(.vertical, FrilaEspaco.item)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(EstiloDeLinhaTocavel())
             .accessibilityIdentifier("janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
 
             Button { remover(janela) } label: {
                 Text(verbatim: TextosDoProfissional.Perfil.remover)
-                    .font(FrilaTipo.meta.weight(.semibold))
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.frilaAcaoDiscreta)
+            .padding(.horizontal, FrilaMedidaDeLinha.margem)
             .accessibilityIdentifier("remover-janela-\(janela.diaDaSemana)-\(janela.inicio.contrato)")
         }
     }
@@ -329,7 +293,7 @@ struct SecaoDeHorarios: View {
     @ViewBuilder
     private var editor: some View {
         if let e = edicao {
-            VStack(alignment: .leading, spacing: FrilaEspaco.compacto) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 FrilaLensSegments(
                     segmentos: [
                         FrilaLensSegment(id: CampoDeHorario.inicio.id, titulo: TextosDoProfissional.Perfil.inicio, valor: e.inicio.contrato),
@@ -353,7 +317,7 @@ struct SecaoDeHorarios: View {
 
                 // A linha da nota sempre ocupa o lugar dela: aparecer e sumir não empurra o rodapé.
                 Text(verbatim: TextosDoProfissional.Perfil.horarioTerminaNoDiaSeguinte)
-                    .font(FrilaTipo.nota)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .opacity(e.etapa == .fim && e.fim < e.inicio ? 1 : 0)
                     .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: e.etapa == .fim && e.fim < e.inicio)
@@ -362,12 +326,8 @@ struct SecaoDeHorarios: View {
                 HStack {
                     Button(action: cancelar) {
                         Text(verbatim: TextosDoProfissional.Perfil.horarioCancelar)
-                            .font(FrilaTipo.meta.weight(.semibold))
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .frame(minHeight: 44, alignment: .leading)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.frilaAcaoDiscreta)
                     .accessibilityIdentifier("cancelar-horario")
 
                     Spacer(minLength: 0)
@@ -375,6 +335,7 @@ struct SecaoDeHorarios: View {
                     botaoDeSeta(ultima: e.etapa == .fim)
                 }
             }
+            .cartaoFrila()
             .id(Self.idDoEditor)
         }
     }
@@ -448,7 +409,7 @@ struct SecaoDeHorarios: View {
         edicao = e
     }
 
-    /// Seta Quente que avança do início para o fim e vira o visto na última etapa.
+    /// Seta em tinta (o laranja é só do botão primário da tela) que avança do início para o fim e vira o visto na última etapa.
     private func botaoDeSeta(ultima: Bool) -> some View {
         Button(action: avancar) {
             // Os dois ícones ficam no mesmo lugar e trocam por opacidade: o glifo não salta nem muda de posição.
@@ -461,7 +422,7 @@ struct SecaoDeHorarios: View {
             .font(FrilaTipo.corpo.weight(.bold))
             .foregroundStyle(FrilaCor.sobreSelecao)
             .frame(width: 52, height: 52)
-            .background(Circle().fill(FrilaCor.quente))
+            .background(Circle().fill(FrilaCor.selecao))
             .animation(FrilaMovimento.animacao(FrilaMotion.horarioDestaque, reduzir: reduzirMovimento), value: ultima)
             .contentShape(Circle())
         }
@@ -556,5 +517,58 @@ struct SecaoDeHorarios: View {
             viewModel.removerJanela(janela)
             if edicao?.origem == .existente(janela) { edicao = nil }
         }
+    }
+}
+
+// MARK: - Faixa de dias
+
+/// Os sete dias da semana em caixas de 48 pt (DESIGN.md, "Caixa de dia"): dia com horário é tinta com texto branco, como o
+/// chip marcado; o dia aberto no editor leva um anel de 2 pt em tinta, a 4 pt da caixa. Sem laranja. Com texto grande, as
+/// caixas passam a uma grade que quebra em linhas, para o rótulo não ser cortado.
+struct FaixaDeDiasDaSemana: View {
+    let dias: [FrilaWeekStripDia]
+    let selecionado: Int
+    let aoSelecionar: (Int) -> Void
+
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
+
+    var body: some View {
+        let colunas = tamanhoDoTexto.isAccessibilitySize
+            ? [GridItem(.adaptive(minimum: 96), spacing: FrilaEspaco.item)]
+            : Array(repeating: GridItem(.flexible(), spacing: FrilaEspaco.minimo), count: 7)
+        LazyVGrid(columns: colunas, spacing: FrilaEspaco.item) {
+            ForEach(dias) { dia in caixa(dia) }
+        }
+    }
+
+    private func caixa(_ dia: FrilaWeekStripDia) -> some View {
+        let ativo = dia.id == selecionado
+        let forma = RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+        return Button { aoSelecionar(dia.id) } label: {
+            Text(verbatim: dia.rotulo)
+                .font(FrilaTipo.rotuloSecundario)
+                .foregroundStyle(dia.preenchido ? FrilaCor.sobreSelecao : FrilaCor.texto)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvo)
+                .background {
+                    ZStack {
+                        if ativo { forma.strokeBorder(FrilaCor.texto, lineWidth: 2) }
+                        forma.fill(dia.preenchido ? FrilaCor.selecao : FrilaCor.superficie)
+                            .overlay { if !dia.preenchido { forma.strokeBorder(FrilaCor.borda, lineWidth: 1) } }
+                            .padding(ativo ? 4 : 0)
+                    }
+                }
+                .contentShape(Rectangle())
+                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento, somenteOpacidade: true), value: dia.preenchido)
+                .animation(FrilaMovimento.animacao(FrilaMovimento.transicaoDeEstado, reduzir: reduzirMovimento, somenteOpacidade: true), value: ativo)
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: selecionado)
+        .accessibilityAddTraits(ativo ? .isSelected : [])
+        // O nome acessível é o dia completo, não a abreviação que está desenhada.
+        .accessibilityLabel(Text(verbatim: PerfilProfissionalViewModel.nomeDoDia(dia.id)))
+        .accessibilityIdentifier("dia-semana-\(dia.id)")
     }
 }

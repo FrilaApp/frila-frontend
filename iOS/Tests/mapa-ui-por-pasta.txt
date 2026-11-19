@@ -32,6 +32,8 @@ Tests/UI/AjudanteDeLancamentoUITests.swift = @completa
 # --- Fluxos
 Sources/Apresentacao/Fluxos/Autenticacao/ = AutenticacaoUITests, FrilaUITests, SaidaDaContaUITests, CadastroEstabelecimentoUITests, FluxoDoContratanteUITests
 Tests/UI/CapturasR1UITests.swift = CapturasR1UITests
+Sources/Apresentacao/Fluxos/Abertura/ = AberturaUITests
+Tests/UI/AberturaUITests.swift = AberturaUITests
 Sources/Apresentacao/Fluxos/Cancelamento/ = CancelamentoDoContratanteUITests, CancelamentoDoProfissionalUITests, FrilaUITestsLote4
 Sources/Apresentacao/Fluxos/ChamadaDireta/ = ChamadaDiretaCompletaUITests, EquipeDeConfiancaUITests, VarreduraFinal11UITests, BuscaDeProfissionaisUITests
 Sources/Apresentacao/Fluxos/Busca/ = BuscaDeProfissionaisUITests
@@ -76,6 +78,7 @@ Sources/Apresentacao/Fluxos/Profissional/*MeusTurnos* = ServidorDeHojeUITests, M
 Sources/Apresentacao/Fluxos/Profissional/*MeuTurno* = ServidorDeHojeUITests, ModoAviaoUITests, TurnoContrato0231UITests, CancelamentoDoProfissionalUITests, AvaliacaoUITests
 Sources/Apresentacao/Fluxos/Profissional/*Avaliacao* = AvaliacaoUITests
 Sources/Apresentacao/Fluxos/Profissional/*Perfil* = PerfilUITests, ServicosDoProfissionalUITests, FrilaUITests
+Tests/UI/CapturasR4UITests.swift = CapturasR4UITests
 Sources/Apresentacao/Fluxos/Profissional/*Servicos* = ServicosDoProfissionalUITests, PerfilUITests
 Sources/Apresentacao/Fluxos/Profissional/*Apresentacao* = PerfilUITests, FrilaUITests
 Sources/Apresentacao/Fluxos/Profissional/SelecaoDeFuncoes.swift = ServicosDoProfissionalUITests, FrilaUITests

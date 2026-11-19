@@ -119,7 +119,7 @@ public struct FrilaSearchBar: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(FrilaTipo.corpo)
                         .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                        .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -145,7 +145,7 @@ public struct FrilaSearchBar: View {
                                 .foregroundStyle(FrilaCor.texto)
                         }
                     }
-                    .frame(width: FrilaMetrica.alvoMinimo, height: FrilaMetrica.alvoMinimo)
+                    .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
