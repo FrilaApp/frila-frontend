@@ -26,6 +26,7 @@ import br.com.frila.core.rede.ExclusaoDeContaDto
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ProtocoloDto
 import br.com.frila.core.rede.ServicoMembros
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
 import br.com.frila.feature.conta.TextosContaSuspensa
@@ -39,6 +40,9 @@ import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.suporte.TextosSuporte
+import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.feature.turnos.TextosOcorrencia
+import br.com.frila.core.dominio.modelo.MotivoOcorrencia
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -79,6 +83,8 @@ class AppNavegacaoContaSuporteEquipeTest {
     private val intents = mutableListOf<Intent>()
     private val denuncias = mutableListOf<DenunciarDto>()
     private val equipesPedidas = mutableListOf<String>()
+    private val ocorrenciasAbertas = mutableListOf<Pair<String, String>>()
+    private var semAppDeEmail = false
     private var exclusoes = 0
     private val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
         every { estaAutenticado() } returns false
@@ -108,6 +114,7 @@ class AppNavegacaoContaSuporteEquipeTest {
             val origem = LocalContext.current
             val contexto = object : ContextWrapper(origem) {
                 override fun startActivity(intent: Intent) {
+                    if (semAppDeEmail && intent.action == Intent.ACTION_SENDTO) throw android.content.ActivityNotFoundException("sem app de e-mail")
                     intents += intent
                 }
             }
@@ -144,6 +151,15 @@ class AppNavegacaoContaSuporteEquipeTest {
                             )
                         }
                         viewModel { meusTurnos }
+                        viewModel { (turnoId: String) ->
+                            val servicoTurnos = mockk<ServicoTurnos> {
+                                coEvery { abrirSuporte(any(), any(), any()) } answers {
+                                    ocorrenciasAbertas += firstArg<String>() to secondArg<String>()
+                                    protocolo
+                                }
+                            }
+                            OcorrenciaTurnoViewModel(turnoId = turnoId, servicoTurnos = servicoTurnos, escopo = CoroutineScope(Dispatchers.Unconfined))
+                        }
                         viewModel { (estabelecimentoId: String) ->
                             EquipeDeConfiancaViewModel(
                                 estabelecimentoId = estabelecimentoId,
@@ -201,6 +217,76 @@ class AppNavegacaoContaSuporteEquipeTest {
             assertEquals("e1", argumentos?.getString("alvoId"))
             assertEquals("turno-7", argumentos?.getString("turnoId"))
         }
+    }
+
+    private val relatoDeTeste = "O portão estava fechado e ninguém atendeu."
+
+    /** Da rota de Meus turnos até a confirmação do chamado, com motivo e relato escritos. */
+    private fun abrirOcorrenciaEEnviar() {
+        montar(inicio = Rotas.MEUS_TURNOS)
+        rule.onNodeWithContentDescription("Pedir ajuda com o turno em Bar do Zé").performScrollTo().performClick()
+        rule.onNodeWithText(MotivoOcorrencia.ATRASO_OU_IMPREVISTO.descricao).performClick()
+        rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput(relatoDeTeste)
+        rule.onNodeWithText("Enviar").performClick()
+    }
+
+    @Test
+    fun `de Meus turnos a profissional chega ao relato de ocorrencia e envia o chamado do turno`() {
+        montar(inicio = Rotas.MEUS_TURNOS)
+
+        rule.onNodeWithContentDescription("Pedir ajuda com o turno em Bar do Zé").performScrollTo().performClick()
+
+        rule.runOnIdle {
+            assertEquals(Rotas.OCORRENCIA, rotaAtual())
+            assertEquals("turno-7", nav.currentBackStackEntry?.arguments?.getString("turnoId"))
+        }
+        rule.onNodeWithText(MotivoOcorrencia.ATRASO_OU_IMPREVISTO.descricao).performClick()
+        rule.onNodeWithText("Enviar").performClick()
+        rule.runOnIdle { assertEquals(listOf("turno-7" to "atraso"), ocorrenciasAbertas) }
+    }
+
+    @Test
+    fun `o e-mail de suporte sai com o relato, o motivo, o turno e o protocolo no corpo`() {
+        abrirOcorrenciaEEnviar()
+
+        rule.onNodeWithText(TextosOcorrencia.ABRIR_EMAIL).performClick()
+
+        rule.runOnIdle {
+            val email = intents.single { it.action == Intent.ACTION_SENDTO }
+            assertEquals("mailto:", email.data.toString().substringBefore(":") + ":")
+            assertEquals(listOf("suporte@frilabr.com"), email.getStringArrayExtra(Intent.EXTRA_EMAIL)?.toList())
+            assertTrue(email.getStringExtra(Intent.EXTRA_SUBJECT).orEmpty().contains("6F1C2A4E"))
+            val corpo = email.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+            assertTrue("o relato precisa estar no corpo: $corpo", corpo.contains(relatoDeTeste))
+            assertTrue(corpo.contains(MotivoOcorrencia.ATRASO_OU_IMPREVISTO.descricao))
+            assertTrue(corpo.contains("turno-7"))
+            assertTrue(corpo.contains("6F1C2A4E"))
+            assertNull("a tela não promete mais anexo: não vai EXTRA_STREAM", email.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM))
+        }
+    }
+
+    @Test
+    fun `sem app de e-mail a tela avisa, mostra o relato para copiar e deixa tentar de novo`() {
+        abrirOcorrenciaEEnviar()
+        semAppDeEmail = true
+
+        rule.onNodeWithText(TextosOcorrencia.ABRIR_EMAIL).performClick()
+
+        rule.onNodeWithText(TextosOcorrencia.FALHA_AO_ABRIR_EMAIL.format("suporte@frilabr.com", "6F1C2A4E")).assertExists()
+        rule.onNodeWithText(relatoDeTeste).assertExists()
+        rule.runOnIdle { assertTrue(intents.none { it.action == Intent.ACTION_SENDTO }) }
+
+        semAppDeEmail = false
+        rule.onNodeWithText(TextosOcorrencia.ABRIR_EMAIL).performClick()
+        rule.runOnIdle { assertEquals(1, intents.count { it.action == Intent.ACTION_SENDTO }) }
+    }
+
+    @Test
+    fun `a tela de ocorrencia nao promete anexar foto`() {
+        montar(inicio = Rotas.ocorrencia("turno-7"))
+
+        rule.onNodeWithText("Anexar foto").assertDoesNotExist()
+        rule.onNodeWithText("Foto anexada").assertDoesNotExist()
     }
 
     @Test

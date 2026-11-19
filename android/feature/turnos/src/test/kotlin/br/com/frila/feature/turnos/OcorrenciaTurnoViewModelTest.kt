@@ -92,6 +92,15 @@ class OcorrenciaTurnoViewModelTest {
     }
 
     @Test
+    fun `o relato e cortado no limite que o e-mail aguenta`() {
+        val viewModel = viewModelComEngine(MockEngine { respond(content = protocoloJson(), status = HttpStatusCode.OK) })
+
+        viewModel.atualizarRelato("a".repeat(TextosOcorrencia.LIMITE_DO_RELATO + 500))
+
+        assertEquals(TextosOcorrencia.LIMITE_DO_RELATO, viewModel.estado.value.relato.length)
+    }
+
+    @Test
     fun `relato e anexo de foto nunca entram no corpo da requisicao`() = runBlocking {
         var corpoChamado: String? = null
         val engine = MockEngine { request ->
