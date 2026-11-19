@@ -175,6 +175,30 @@ final class PresencaUITests: XCTestCase {
         salvarCaptura(app.screenshot(), nome: "a-caminho-enviado-ax5.png")
     }
 
+    /// R8b, item 9a: em texto grande a explicação da localização ocupa mais de uma tela e, quando some depois do "Continuar",
+    /// a página ficava onde estava, com a confirmação e o botão de check-out acima da tela. Depois do check-in, os dois
+    /// têm de estar na tela sem rolar, entre a barra de navegação e a barra de abas.
+    func testEmAX5DepoisDoCheckinAConfirmacaoEOCheckoutEstaoNaTelaSemRolar() {
+        let app = abrirMeuTurno(localizacao: "perto", argumentos: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        fazerCheckinComPermissao(app)
+
+        let checkin = app.descendants(matching: .any)["checkin-situacao"]
+        XCTAssertTrue(checkin.waitForExistence(timeout: Espera.aparecer))
+        let checkout = app.buttons["fazer-checkout"]
+        XCTAssertTrue(checkout.waitForExistence(timeout: Espera.aparecer))
+        // Folga para a rolagem que acompanha o fim da explicação terminar.
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))
+
+        let topo = app.navigationBars.firstMatch.frame.maxY
+        let base = app.tabBars.firstMatch.frame.minY
+        for (nome, elemento) in [("a confirmação do check-in", checkin), ("o botão de check-out", checkout)] {
+            let quadro = elemento.frame
+            XCTAssertTrue(elemento.isHittable, "\(nome) deve estar na tela sem rolar")
+            XCTAssertGreaterThanOrEqual(quadro.minY, topo - 1, "\(nome) não pode ficar acima da barra de navegação (\(quadro))")
+            XCTAssertLessThanOrEqual(quadro.maxY, base + 1, "\(nome) não pode ficar sob a barra de abas (\(quadro))")
+        }
+    }
+
     private func salvarCaptura(_ screenshot: XCUIScreenshot, nome: String) {
         let anexo = XCTAttachment(screenshot: screenshot)
         anexo.name = nome
