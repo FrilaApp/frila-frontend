@@ -100,7 +100,8 @@ public struct FrilaSearchBar: View {
                 Text(verbatim: rotulo)
             }
             .textFieldStyle(.plain)
-            .font(FrilaTipo.valorDoCampo)
+            // Dynamic Type: o texto cresce com o tamanho escolhido, e o campo (altura mínima de 48) cresce com ele.
+            .font(FrilaFormType.input.dynamicFont)
             .foregroundStyle(FrilaCor.texto)
             .submitLabel(submitLabel)
             .autocorrectionDisabled()

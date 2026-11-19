@@ -53,6 +53,12 @@ public struct TelaPerfilProfissional: View {
     private var corpoComRolagem: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                // O título é do conteúdo (quebra linha com texto grande); a barra fica sem título.
+                Text(verbatim: TextosDoProfissional.Perfil.titulo)
+                    .font(FrilaTipo.tituloDaTela)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
                 conteudoDoCorpo
             }
             .accessibilityElement(children: .contain)
@@ -66,8 +72,7 @@ public struct TelaPerfilProfissional: View {
         .scrollDismissesKeyboard(.interactively)
         .frilaKeyboardDismissScope()
         .background(FrilaCor.fundo)
-        .navigationTitle(Text(verbatim: TextosDoProfissional.Perfil.titulo))
-        .tituloGrandeForaDeAX()
+        .modifier(TituloSoNoConteudoDoPerfil(nome: TextosDoProfissional.Perfil.titulo))
         .navigationDestination(isPresented: $abrirServicos) {
             TelaEditarServicos(modelo: viewModel.editorDeServicos())
         }
@@ -453,5 +458,24 @@ extension View {
                 }
             }
         }
+    }
+}
+
+/// A barra de navegação sem título visível: o nome da tela fica nela só para o leitor de tela e para quem a procura pelo
+/// nome, e o título que se lê é o do conteúdo (o título grande da barra truncava com reticências em texto grande).
+private struct TituloSoNoConteudoDoPerfil: ViewModifier {
+    let nome: String
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(Text(verbatim: nome))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(verbatim: nome)
+                        .opacity(0)
+                        .accessibilityHidden(true)
+                }
+            }
     }
 }
