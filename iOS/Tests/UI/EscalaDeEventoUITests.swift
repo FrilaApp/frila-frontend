@@ -271,7 +271,8 @@ final class EscalaDeEventoUITests: XCTestCase {
         trazer(linha, em: app)
         tocar(linha)
         XCTAssertTrue(elemento("escala-folha-de-horario", em: app).waitForExistence(timeout: Espera.aparecer), "a folha de horário deve abrir")
-        XCTAssertEqual(app.pickerWheels.count, 2, "a folha tem a roda do dia e a da hora")
+        // A roda do dia tem 3 colunas (dia, mês, ano) e a da hora 2 (hora, minuto): 5 no total.
+        XCTAssertEqual(app.pickerWheels.count, 5, "a folha tem a roda do dia e a da hora")
         tocar(app.buttons["escala-fechar-horario"])
         XCTAssertFalse(elemento("escala-folha-de-horario", em: app).waitForExistence(timeout: 2), "a folha deve fechar")
         XCTAssertEqual(app.pickerWheels.count, 0)
