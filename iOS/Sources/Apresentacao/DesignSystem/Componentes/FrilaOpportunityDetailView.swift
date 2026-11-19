@@ -14,6 +14,7 @@ public struct FrilaOpportunityDetailView: View {
     public let onApply: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let typography = FrilaTypography()
 
@@ -74,7 +75,7 @@ public struct FrilaOpportunityDetailView: View {
 
             // Card 1: Quando, Horário, Valor e Posições (2x2 Grid)
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
+                linhaDaGrade {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Quando", tableName: "Estudio", bundle: bundleApresentacao)
                             .font(FrilaTypography.caption)
@@ -96,7 +97,7 @@ public struct FrilaOpportunityDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(alignment: .top) {
+                linhaDaGrade {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Valor", tableName: "Estudio", bundle: bundleApresentacao)
                             .font(FrilaTypography.caption)
@@ -166,21 +167,16 @@ public struct FrilaOpportunityDetailView: View {
             // Card 3 & 4: Métricas de Reputação e Urgência
             metricsSectionView
 
-            // Botão Principal de Candidatura (100% Capsule)
-            Button(action: {
+            // Botão principal: o único laranja da folha (publicar, na prévia da casa).
+            BotaoPrimario(verbatim: applyTitle) {
                 if let onApply = onApply {
                     onApply()
                 } else {
                     dismiss()
                 }
-            }) {
-                Text(verbatim: applyTitle)
-                    .font(FrilaTypography.button)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: FrilaGeometry.buttonHeightProminent)
             }
-            .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
             .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : item.client.isEmpty ? String(localized: "Candidatar-me para a vaga", table: "Estudio", bundle: bundleApresentacao) : String(localized: "Candidatar-me para a vaga de \(item.role) no \(item.client)", table: "Estudio", bundle: bundleApresentacao))
+            .accessibilityIdentifier("publicar-da-previa-botao")
 
             // Ações Secundárias no Rodapé. Na prévia do contratante o anúncio é dele mesmo e os dois
             // botões não têm ação (denúncia e bloqueio moram no perfil do estabelecimento): botão
@@ -223,6 +219,14 @@ public struct FrilaOpportunityDetailView: View {
         return segments
     }
 
+    /// A grade "Quando | Horário" e "Valor | Posições": duas colunas no tamanho padrão, uma coluna em tamanho de
+    /// acessibilidade (a palavra "Posições" quebrava letra a letra numa coluna estreita).
+    private var linhaDaGrade: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+            : AnyLayout(HStackLayout(alignment: .top))
+    }
+
     @ViewBuilder
     private var headerSubtitleView: some View {
         let segments = headerSubtitleSegments
@@ -230,6 +234,15 @@ public struct FrilaOpportunityDetailView: View {
             Text("Local a definir", tableName: "Estudio", bundle: bundleApresentacao)
                 .font(FrilaTypography.caption)
                 .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+        } else if dynamicTypeSize.isAccessibilitySize {
+            // Em tamanho de acessibilidade o nome da casa fica acima do endereço, sem a vírgula solta.
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    Text(verbatim: segment.text)
+                        .font(segment.isPrimary ? FrilaTypography.captionMedium : FrilaTypography.caption)
+                        .foregroundColor(segment.isPrimary ? FrilaColor.dynamicTextPrimary(isDark: isDark) : FrilaColor.dynamicTextMuted(isDark: isDark))
+                }
+            }
         } else {
             HStack(spacing: 4) {
                 ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
@@ -496,21 +509,14 @@ public struct FrilaOpportunityDetailView: View {
 
             Spacer()
 
-            Button(action: {
+            BotaoPrimario(verbatim: applyTitle) {
                 if let onApply = onApply {
                     onApply()
                 } else {
                     dismiss()
                 }
-            }) {
-                HStack(spacing: 8) {
-                    Text(verbatim: applyTitle)
-                        .font(FrilaTypography.button)
-                    Image(systemName: "arrow.up.right")
-                        .font(FrilaFonteDoSistema.fonte(size: 13, weight: .bold))
-                }
             }
-            .buttonStyle(FrilaPillButtonStyle(variant: .primary, isDark: isDark))
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityLabel(isPublisherPreview ? publishAccessibilityLabel : String(localized: "Candidatar-me à vaga de \(item.client)", table: "Estudio", bundle: bundleApresentacao))
         }
         .padding(.top, 10)
