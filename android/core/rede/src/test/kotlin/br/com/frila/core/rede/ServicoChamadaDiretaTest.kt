@@ -181,13 +181,13 @@ class ServicoChamadaDiretaTest {
     fun `definirPreferenciaChamadas liga com versao do texto e nao manda o que ficou de fora`() = runTest {
         val visto = Visto()
         val preferencias = servico(visto, preferenciaJson).definirPreferenciaChamadas(
-            DefinirPreferenciaChamadasDto(aceitaChamadas = true, versaoTextoBusca = "busca-v1"),
+            DefinirPreferenciaChamadasDto(aceitaChamadas = true, versaoTextoBusca = "busca-1"),
         )
 
         assertEquals("/rest/v1/rpc/definir_preferencia_chamadas", visto.caminho)
         assertEquals(setOf("aceita_chamadas", "versao_texto_busca"), visto.corpo!!.keys)
         assertTrue(visto.corpo!!["aceita_chamadas"]!!.jsonPrimitive.boolean)
-        assertEquals("busca-v1", visto.corpo!!["versao_texto_busca"]!!.jsonPrimitive.content)
+        assertEquals("busca-1", visto.corpo!!["versao_texto_busca"]!!.jsonPrimitive.content)
         assertEquals(true, preferencias.aceitaChamadas)
         assertEquals(listOf("sem_regiao"), preferencias.pendenciasParaBusca)
         assertEquals(6, preferencias.antecedenciaMinimaH)

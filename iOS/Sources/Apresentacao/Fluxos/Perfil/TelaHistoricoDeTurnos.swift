@@ -1,12 +1,12 @@
 import FrilaDominio
 import SwiftUI
 
-/// Histórico de turnos (#23), com seções editoriais e fios do Hi-Fi.
+/// Histórico de turnos (#23).
+/// Desenho do sistema do Fabrício (extrapolado: a tela não está no protótipo). Período e formato são escolha única:
+/// lista com visto, não chip. O resultado da exportação (sem turnos, erro) vem em `MensagemJuntoAoBotao` logo acima do
+/// "Exportar", que fica ancorado embaixo.
 public struct TelaHistoricoDeTurnos: View {
     @State private var model: HistoricoDeTurnosViewModel
-    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    private static let idDoResultado = "historico-resultado"
 
     public init(api: any ApiCliente, estabelecimentoID: UUID? = nil) {
         _model = State(initialValue: HistoricoDeTurnosViewModel(api: api, estabelecimentoID: estabelecimentoID))
@@ -17,46 +17,26 @@ public struct TelaHistoricoDeTurnos: View {
     }
 
     public var body: some View {
-        ScrollViewReader { rolagem in
-            ScrollView {
-                VStack(alignment: .leading, spacing: FrilaEspaco.grande) {
-                    Text(verbatim: TextosHistoricoDeTurnos.explicacao)
-                        .font(FrilaTipo.meta)
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    secaoPeriodo
-                    secaoFormato
-                    VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                        BotaoPrimario(verbatim: TextosHistoricoDeTurnos.exportar, carregando: model.estaCarregando) {
-                            Task { await model.exportar() }
-                        }
-                        .disabled(model.periodo == nil)
-                        .accessibilityHint(Text(verbatim: TextosHistoricoDeTurnos.dicaExportar))
-                        .accessibilityIdentifier("historico-exportar")
-                        // O respiro de baixo faz a rolagem parar com folga acima da barra de abas.
-                        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { resultado }
-                            .padding(.bottom, FrilaEspaco.medio)
-                            .id(Self.idDoResultado)
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                Text(verbatim: TextosHistoricoDeTurnos.explicacao)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(FrilaEspaco.medio)
-                .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
-                .frame(maxWidth: .infinity)
+                secaoPeriodo
+                secaoFormato
             }
-            // No iPhone SE o aviso nasce abaixo da dobra, atrás da barra de abas: a tela rola até ele.
-            .onChange(of: model.estado) { _, novo in
-                guard novo == .semTurnos || novo.ehErro else { return }
-                withAnimation(FrilaMovimento.animacao(reduzir: reduzirMovimento)) {
-                    rolagem.scrollTo(Self.idDoResultado, anchor: .bottom)
-                }
-            }
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(FrilaCor.fundo)
+        .rodapeAncorado { rodape }
         .navigationTitle(Text(verbatim: TextosHistoricoDeTurnos.titulo))
         .navigationBarTitleDisplayMode(.inline)
-
         .sheet(isPresented: Bindable(model).mostrarFolhaCompartilhamento, onDismiss: {
             model.folhaCompartilhamentoFechada()
         }) {
@@ -72,34 +52,32 @@ public struct TelaHistoricoDeTurnos: View {
     // MARK: Período
 
     private var secaoPeriodo: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosHistoricoDeTurnos.periodo)
-                .font(FrilaTipo.microRotulo)
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .accessibilityLabel(Text(verbatim: TextosHistoricoDeTurnos.periodo))
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
-            // Os três numa linha; no iPhone SE, dois e um; no maior texto, um por linha.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: FrilaEspaco.pequeno) { esteMes; mesPassado; intervalo }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-                    HStack(spacing: FrilaEspaco.pequeno) { esteMes; mesPassado }
-                    intervalo
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            FrilaGrupoDeLinhas(verbatim: TextosHistoricoDeTurnos.periodo, linhasComIcone: false) {
+                FrilaLinhaDeOpcao(titulo: TextosHistoricoDeTurnos.esteMes, remate: .marcada(model.atalho == .esteMes)) {
+                    model.escolher(.esteMes)
                 }
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) { esteMes; mesPassado; intervalo }
+                .accessibilityIdentifier("historico-este-mes")
+                FrilaLinhaDeOpcao(titulo: TextosHistoricoDeTurnos.mesPassado, remate: .marcada(model.atalho == .mesPassado)) {
+                    model.escolher(.mesPassado)
+                }
+                .accessibilityIdentifier("historico-mes-passado")
+                FrilaLinhaDeOpcao(titulo: TextosHistoricoDeTurnos.intervalo, remate: .marcada(model.atalho == .intervalo)) {
+                    model.escolher(.intervalo)
+                }
+                .accessibilityIdentifier("historico-intervalo")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             if model.atalho == .intervalo {
-                seletorDeData(TextosHistoricoDeTurnos.de, selecao: inicio, faixa: model.faixaDe, identificador: "historico-de")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                seletorDeData(TextosHistoricoDeTurnos.ate, selecao: fim, faixa: model.faixaAte, identificador: "historico-ate")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+                    seletorDeData(TextosHistoricoDeTurnos.de, selecao: inicio, faixa: model.faixaDe, identificador: "historico-de")
+                    seletorDeData(TextosHistoricoDeTurnos.ate, selecao: fim, faixa: model.faixaAte, identificador: "historico-ate")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cartaoFrila()
             }
             if let periodo = model.periodo {
                 Text(verbatim: TextosHistoricoDeTurnos.resumo(de: Self.texto(periodo.de), ate: Self.texto(periodo.ate)))
-                    .font(FrilaTipo.meta)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,25 +89,7 @@ public struct TelaHistoricoDeTurnos: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, FrilaEspaco.medio)
-        .overlay(alignment: .top) { DivisoriaDeLinha() }
-        .overlay(alignment: .bottom) { DivisoriaDeLinha() }
         .disabled(model.estaCarregando)
-    }
-
-    private var esteMes: some View {
-        FiltroPill(verbatim: TextosHistoricoDeTurnos.esteMes, selecionado: model.atalho == .esteMes) { model.escolher(.esteMes) }
-            .accessibilityIdentifier("historico-este-mes")
-    }
-
-    private var mesPassado: some View {
-        FiltroPill(verbatim: TextosHistoricoDeTurnos.mesPassado, selecionado: model.atalho == .mesPassado) { model.escolher(.mesPassado) }
-            .accessibilityIdentifier("historico-mes-passado")
-    }
-
-    private var intervalo: some View {
-        FiltroPill(verbatim: TextosHistoricoDeTurnos.intervalo, selecionado: model.atalho == .intervalo) { model.escolher(.intervalo) }
-            .accessibilityIdentifier("historico-intervalo")
     }
 
     /// O rótulo fica fora do seletor para acompanhar o Dynamic Type inteiro; o seletor compacto
@@ -140,8 +100,10 @@ public struct TelaHistoricoDeTurnos: View {
         faixa: ClosedRange<Date>,
         identificador: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: titulo).font(FrilaTipo.meta)
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+            Text(verbatim: titulo)
+                .font(FrilaTipo.rotuloDeGrupo)
+                .foregroundStyle(FrilaCor.textoSecundario)
             DatePicker(titulo, selection: selecao, in: faixa, displayedComponents: .date)
                 .labelsHidden()
                 .datePickerStyle(.compact)
@@ -151,6 +113,7 @@ public struct TelaHistoricoDeTurnos: View {
                 .environment(\.locale, FormatadorFrila.locale)
                 .accessibilityIdentifier(identificador)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var inicio: Binding<Date> {
@@ -164,67 +127,48 @@ public struct TelaHistoricoDeTurnos: View {
     // MARK: Formato
 
     private var secaoFormato: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: TextosHistoricoDeTurnos.formato)
-                .font(FrilaTipo.microRotulo)
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .accessibilityLabel(Text(verbatim: TextosHistoricoDeTurnos.formato))
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
-            if dynamicTypeSize.isAccessibilitySize {
-                // O controle segmentado do sistema não acompanha o Dynamic Type: nos tamanhos de
-                // acessibilidade os formatos viram pílulas, como as do período.
-                HStack(spacing: FrilaEspaco.pequeno) {
-                    ForEach(FormatoExportacao.allCases, id: \.self) { formato in
-                        FiltroPill(verbatim: formato.rawValue.uppercased(), selecionado: model.formato == formato) {
-                            model.escolher(formato: formato)
-                        }
-                        .accessibilityIdentifier("historico-formato-\(formato.rawValue)")
-                    }
+        FrilaGrupoDeLinhas(verbatim: TextosHistoricoDeTurnos.formato, linhasComIcone: false) {
+            ForEach(FormatoExportacao.allCases, id: \.self) { formato in
+                FrilaLinhaDeOpcao(titulo: formato.rawValue.uppercased(), remate: .marcada(model.formato == formato)) {
+                    model.escolher(formato: formato)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Picker(selection: Binding(get: { model.formato }, set: { model.escolher(formato: $0) })) {
-                    ForEach(FormatoExportacao.allCases, id: \.self) { formato in
-                        Text(verbatim: formato.rawValue.uppercased()).tag(formato)
-                    }
-                } label: {
-                    Text(verbatim: TextosHistoricoDeTurnos.formato)
-                }
-                .pickerStyle(.segmented)
-                .frame(minHeight: FrilaMetrica.alvoMinimo)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("historico-formato")
+                .accessibilityIdentifier("historico-formato-\(formato.rawValue)")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, FrilaEspaco.medio)
-        .overlay(alignment: .bottom) { DivisoriaDeLinha() }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("historico-formato")
         .disabled(model.estaCarregando)
     }
 
-    // MARK: Resultado
+    // MARK: Rodapé (resultado e botão)
 
+    /// O resultado da exportação logo acima do botão que a disparou: nada de turnos, ou o erro (com tentar de novo
+    /// quando vale tentar).
     @ViewBuilder
-    private var resultado: some View {
+    private var rodape: some View {
         switch model.estado {
         case .semTurnos:
-            AvisoFrila(verbatim: TextosHistoricoDeTurnos.semTurnos, tom: .informativo)
+            MensagemJuntoAoBotao(verbatim: TextosHistoricoDeTurnos.semTurnos)
                 .accessibilityIdentifier("historico-sem-turnos")
         case let .erro(mensagem, repetivel):
-            AvisoFrila(verbatim: mensagem, tom: .erro)
+            MensagemJuntoAoBotao(verbatim: mensagem)
                 .accessibilityIdentifier("historico-erro")
             if repetivel {
-                BotaoSecundario(verbatim: TextosHistoricoDeTurnos.tentarNovamente) {
-                    Task { await model.exportar() }
-                }
-                .accessibilityIdentifier("historico-tentar-novamente")
+                Button { Task { await model.exportar() } } label: { Text(verbatim: TextosHistoricoDeTurnos.tentarNovamente) }
+                    .buttonStyle(.frilaLink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("historico-tentar-novamente")
             }
         case .ocioso, .carregando:
             EmptyView()
         }
+        BotaoPrimario(verbatim: TextosHistoricoDeTurnos.exportar, carregando: model.estaCarregando) {
+            Task { await model.exportar() }
+        }
+        .disabled(model.periodo == nil)
+        .accessibilityHint(Text(verbatim: TextosHistoricoDeTurnos.dicaExportar))
+        .accessibilityIdentifier("historico-exportar")
     }
 
     /// O VoiceOver ouve o que mudou sem precisar procurar o aviso na tela.

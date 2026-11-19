@@ -22,6 +22,9 @@ import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.contratante.TelaTurnoDoContratante
+import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
+import br.com.frila.feature.vagas.escala.TelaEscalaDeEvento
+import br.com.frila.feature.vagas.escala.TextosEscala
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
@@ -134,6 +137,43 @@ internal fun RotaPublicarVaga(
             val viewModel: PublicarVagaViewModel = koinViewModel(parameters = { parametersOf(atual.estabelecimento) })
             if (aoPreparar != null) LaunchedEffect(viewModel) { aoPreparar(viewModel) }
             TelaPublicarVaga(viewModel = viewModel, aoPublicar = { }, aoVoltar = aoVoltar)
+        }
+    }
+}
+
+/**
+ * Rota da escala de evento (RF19): como a publicação de vaga, lê o estabelecimento da rota (endereço, região e ponto
+ * vêm do cadastro) e só então cria o [EscalaDeEventoViewModel]. Falha de carga mostra o erro com "Tentar novamente";
+ * quem não é membro (`403 sem_permissao`) vê o motivo, sem retentativa. Publicada, "Ver minhas vagas" chama [aoConcluir].
+ */
+@Composable
+internal fun RotaEscalaDeEvento(
+    estabelecimentoId: String,
+    servicoMembros: ServicoMembros?,
+    aoVoltar: () -> Unit,
+    aoConcluir: () -> Unit,
+) {
+    var tentativa by remember { mutableIntStateOf(0) }
+    var estado by remember(estabelecimentoId) { mutableStateOf<EstadoDoEstabelecimentoDaRota>(EstadoDoEstabelecimentoDaRota.Carregando) }
+    LaunchedEffect(estabelecimentoId, tentativa, servicoMembros) {
+        estado = EstadoDoEstabelecimentoDaRota.Carregando
+        estado = carregarEstabelecimentoDaVaga(servicoMembros, estabelecimentoId)
+    }
+
+    when (val atual = estado) {
+        EstadoDoEstabelecimentoDaRota.Carregando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            IndicadorCarregando()
+        }
+        is EstadoDoEstabelecimentoDaRota.Falha -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            EstadoErro(
+                titulo = TextosEscala.ROTA_TITULO_FALHA,
+                mensagem = if (atual.semPermissao) TextosPublicarVagaDaRota.SEM_PERMISSAO else TextosPublicarVagaDaRota.FALHA,
+                aoTentarNovamente = if (atual.semPermissao) null else { { tentativa++ } },
+            )
+        }
+        is EstadoDoEstabelecimentoDaRota.Pronto -> {
+            val viewModel: EscalaDeEventoViewModel = koinViewModel(parameters = { parametersOf(atual.estabelecimento) })
+            TelaEscalaDeEvento(viewModel = viewModel, aoConcluir = aoConcluir, aoVoltar = aoVoltar)
         }
     }
 }

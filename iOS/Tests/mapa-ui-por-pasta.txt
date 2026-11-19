@@ -51,6 +51,7 @@ Sources/Apresentacao/Fluxos/Contratante/Escala/ = EscalaDeEventoUITests, MinhasV
 Sources/Apresentacao/Fluxos/Contratante/EquipeDaCasa/ = EquipeDaCasaUITests, FluxoDoContratanteUITests
 Sources/Apresentacao/Fluxos/Contratante/Estudio/ =PublicarVagaEmMinhasVagasUITests, MinhasVagasUITests, CicloDePontaAPontaUITests, RepublicarVagaUITests
 Sources/Apresentacao/Fluxos/Contratante/PublicarVaga*.swift = PublicarVagaEmMinhasVagasUITests, CicloDePontaAPontaUITests, MinhasVagasUITests
+Tests/UI/CapturasR5UITests.swift = CapturasR5UITests
 Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift = MinhasVagasUITests, PublicarVagaEmMinhasVagasUITests, RepublicarVagaUITests, RepublicarPosicoesRestantesUITests, CancelamentoDoContratanteUITests, VagaEncerradaTrabalhadaUITests, BuscaDeProfissionaisUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarVaga.swift = RepublicarVagaUITests, MinhasVagasUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarPosicoesRestantes.swift = RepublicarPosicoesRestantesUITests, MinhasVagasUITests
@@ -78,6 +79,7 @@ Sources/Apresentacao/Fluxos/Profissional/SelecaoDeFuncoes.swift = ServicosDoProf
 Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Push/ = PushUITests, PermissaoDePushUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Suporte/ = SuporteTurnoUITests
+Tests/UI/CapturasR7UITests.swift = CapturasR7UITests
 
 # --- Design system e arquivos soltos de Apresentacao
 Sources/Apresentacao/DesignSystem/ = @visual

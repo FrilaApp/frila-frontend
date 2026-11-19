@@ -807,7 +807,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         tocar(app.buttons["abrir-perfil-estabelecimento"], em: app)
         guard esperar(elemento("perfil-publico-estabelecimento", em: app), "O perfil deve abrir") else { return }
         tocar(app.buttons["denunciar"], em: app)
-        guard esperar(app.buttons["motivo-denuncia"], "A folha de denúncia deve abrir") else { return }
+        guard esperar(elemento("motivo-denuncia", em: app), "A folha de denúncia deve abrir") else { return }
         auditar(app, tela: "folha-de-denuncia", pendente: Self.folhaDeDenunciaBotaoBarra, estrito: true)
         app.swipeUp()
         auditar(app, tela: "folha-de-denuncia-rolada", pendente: Self.folhaDeDenunciaBotaoBarra, estrito: true)
