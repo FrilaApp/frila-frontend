@@ -508,6 +508,20 @@ data class EstabelecimentoDaContaDto(
     @SerialName("reputacao") val reputacao: ReputacaoDto? = null,
 )
 
+/**
+ * Item de `/rpc/membros_do_estabelecimento` (schema `MembroDoEstabelecimento`, contrato 0.2.103): o que o administrador
+ * vê de cada pessoa da casa. `membro_id` é o do vínculo (o que `remover_membro` e `transferir_administracao` recebem),
+ * não o da conta. Sem e-mail, telefone, documento nem `usuario_id` (minimização). `e_voce` marca a linha de quem chama.
+ */
+@Serializable
+data class MembroDoEstabelecimentoDto(
+    @SerialName("membro_id") val membroId: String,
+    @SerialName("nome") val nome: String,
+    @SerialName("papel") val papel: String,
+    @SerialName("desde") val desde: String,
+    @SerialName("e_voce") val eVoce: Boolean,
+)
+
 /** Corpo de `POST /rest/v1/rpc/convidar_membro` (0.2.73, RF21): só o administrador convida. */
 @Serializable
 data class ConvidarMembroDto(
