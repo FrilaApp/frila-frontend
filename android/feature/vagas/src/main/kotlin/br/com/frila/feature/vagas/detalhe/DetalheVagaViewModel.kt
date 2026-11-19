@@ -55,7 +55,14 @@ class DetalheVagaViewModel(
                     )
                 }
             } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(statusCandidatura = StatusCandidatura.ERRO, mensagem = mensagemDeErro(erro)) }
+                val ehConflito = erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "turno_sobreposto"
+                _estado.update {
+                    it.copy(
+                        statusCandidatura = StatusCandidatura.ERRO,
+                        mensagem = mensagemDeErro(erro),
+                        ehConflitoHorario = ehConflito,
+                    )
+                }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (_: Exception) {

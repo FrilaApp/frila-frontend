@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.EstiloDoSelo
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
@@ -57,6 +58,8 @@ data class AcoesTurnoDoContratante(
     val aoDenunciarProfissional: ((profissionalId: String, turnoId: String) -> Unit)? = null,
     /** Pedir ajuda com este turno (relato de ocorrência, RF12/RN15), como a folha de suporte do iOS. Nulo esconde o botão. */
     val aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
+    /** Item #27 da Paridade: avaliar o profissional pela casa. Nulo esconde o cartão. */
+    val aoAvaliarTurno: ((turnoId: String) -> Unit)? = null,
 )
 
 /** Liga o [AcompanhamentoContratanteViewModel] ao [ConteudoTurnoDoContratante]. */
@@ -71,6 +74,7 @@ fun TelaTurnoDoContratante(
     codigoDaCasa: CodigoDaCasaViewModel? = null,
     /** O que o app põe depois da chegada e antes das ações de risco (incluir na equipe de confiança). Nulo não põe nada. */
     depoisDaChegada: (@Composable () -> Unit)? = null,
+    aoAvaliarTurno: ((turnoId: String) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
@@ -83,6 +87,7 @@ fun TelaTurnoDoContratante(
             aoDesistirDaReabertura = viewModel::desistirDaReabertura,
             aoDenunciarProfissional = aoDenunciarProfissional,
             aoPedirSuporte = aoPedirSuporte,
+            aoAvaliarTurno = aoAvaliarTurno,
         ),
         modifier = modifier,
         cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
@@ -170,6 +175,23 @@ fun ConteudoTurnoDoContratante(
             }
 
             depoisDaChegada?.invoke()
+
+            if (acoes.aoAvaliarTurno != null && estado.presenca == PresencaDoTurno.VERIFICADA) {
+                CartaoFrila(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                        Text(
+                            text = "Como foi sua experiência no turno?",
+                            style = FrilaTipo.corpo,
+                            color = FrilaTema.cores.tinta,
+                        )
+                        BotaoSecundario(
+                            texto = "Avaliar turno",
+                            aoClicar = { acoes.aoAvaliarTurno.invoke(contexto.turnoId) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
 
             // Ações de risco no fim da tela, uma por linha.
             val reabrirVisivel = estado.presenca == PresencaDoTurno.EM_ATRASO &&

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tela Turno Confirmado (Item #6 da Paridade) -->
+    <string name="turno_confirmado_titulo">Turno confirmado!</string>
+    <string name="turno_confirmado_ver_turnos">Ver meus turnos</string>
+    <string name="turno_confirmado_ver_outras_vagas">Ver outras vagas</string>
+    <string name="turno_confirmado_quem_recebe">Quem recebe: %s</string>
+
+    <!-- Tela Conflito de Horário (Item #9 da Paridade) -->
+    <string name="conflito_horario_titulo">Conflito de horário</string>
+    <string name="conflito_horario_mensagem">Você já tem um turno confirmado que coincide com o horário desta vaga. Não é possível assumir dois turnos ao mesmo tempo.</string>
+    <string name="conflito_horario_vaga_original">Vaga original</string>
+    <string name="conflito_horario_ver_outras_vagas">Ver outras vagas</string>
+</resources>

@@ -72,8 +72,11 @@ import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
 import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
+import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
+import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
 import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
+import br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
@@ -186,6 +189,15 @@ object Rotas {
     const val BLOQUEIOS = "bloqueios"
     const val CONTESTAR_DESPACHO = "contestar_despacho"
     const val CONSENTIMENTO_FALHAS = "consentimento_falhas"
+
+    // Paridade iOS - Lote A (#6, #9, #27)
+    const val TURNO_CONFIRMADO = "turno_confirmado/{vagaId}"
+    const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
+    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}"
+
+    fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
+    fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
+    fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
 
     fun codigo(email: String) = "codigo/$email"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
@@ -575,7 +587,16 @@ fun AppNavegacao(
                                 "Disponibilidade não confirmada. Conecte-se e atualize o feed antes de se candidatar.",
                                 modifier = Modifier.padding(16.dp),
                             )
-                            TelaDetalheVaga(viewModel = viewModel, aoVoltar = voltarDoDetalhe)
+                            TelaDetalheVaga(
+                                viewModel = viewModel,
+                                aoVoltar = voltarDoDetalhe,
+                                aoNavegarParaConfirmada = { vagaConfirmada, _ ->
+                                    navController.navigate(Rotas.turnoConfirmado(vagaConfirmada.id))
+                                },
+                                aoNavegarParaConflito = { vagaConflito ->
+                                    navController.navigate(Rotas.conflitoHorario(vagaConflito.id))
+                                },
+                            )
                         }
                     } else {
                         // L2-4: a vaga fora da lista (link, aviso, candidatura) é lida do servidor pelo id; 404 é "não encontrada".
@@ -589,7 +610,16 @@ fun AppNavegacao(
                             },
                         ) { detalhe ->
                             val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(detalhe.paraVagaAberta(), detalhe) })
-                            TelaDetalheVaga(viewModel = viewModel, aoVoltar = voltarDoDetalhe)
+                            TelaDetalheVaga(
+                                viewModel = viewModel,
+                                aoVoltar = voltarDoDetalhe,
+                                aoNavegarParaConfirmada = { vagaConfirmada, _ ->
+                                    navController.navigate(Rotas.turnoConfirmado(vagaConfirmada.id))
+                                },
+                                aoNavegarParaConflito = { vagaConflito ->
+                                    navController.navigate(Rotas.conflitoHorario(vagaConflito.id))
+                                },
+                            )
                         }
                     }
                 }
@@ -605,6 +635,67 @@ fun AppNavegacao(
                             }
                         },
                     )
+                }
+            }
+
+            composable(Rotas.TURNO_CONFIRMADO) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
+                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
+                    }
+                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
+                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
+                    if (vaga != null) {
+                        TelaTurnoConfirmado(
+                            vaga = vaga,
+                            aoVerMeusTurnos = {
+                                navController.navigate(Rotas.MEUS_TURNOS) {
+                                    popUpTo(Rotas.FEED) { saveState = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                            aoVoltarAoFeed = {
+                                navController.navigate(Rotas.FEED) {
+                                    popUpTo(Rotas.FEED) { inclusive = true }
+                                }
+                            },
+                        )
+                    } else {
+                        // Fallback se a vaga não estiver em memória: volta ao feed
+                        LaunchedEffect(Unit) {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        }
+                    }
+                }
+            }
+
+            composable(Rotas.CONFLITO_HORARIO) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
+                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
+                    }
+                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
+                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
+                    if (vaga != null) {
+                        TelaConflitoHorario(
+                            vaga = vaga,
+                            aoVoltarAoFeed = {
+                                navController.navigate(Rotas.FEED) {
+                                    popUpTo(Rotas.FEED) { inclusive = true }
+                                }
+                            },
+                        )
+                    } else {
+                        LaunchedEffect(Unit) {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -744,6 +835,18 @@ fun AppNavegacao(
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
                     val viewModel: AvaliacaoViewModel = koinViewModel()
                     TelaAvaliacao(
+                        turnoId = turnoId,
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(Rotas.AVALIACAO_DO_CONTRATANTE) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                    val viewModel: AvaliacaoViewModel = koinViewModel()
+                    TelaAvaliacaoDoContratante(
                         turnoId = turnoId,
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
@@ -1297,6 +1400,9 @@ fun AppNavegacao(
                             navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
                         },
                         aoPedirSuporte = pedirSuporte,
+                        aoAvaliarTurno = { turnoId ->
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                        },
                     )
                 }
             }

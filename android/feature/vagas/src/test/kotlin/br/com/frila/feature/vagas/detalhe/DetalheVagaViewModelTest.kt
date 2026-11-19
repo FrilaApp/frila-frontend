@@ -189,6 +189,23 @@ class DetalheVagaViewModelTest {
     }
 
     @Test
+    fun `candidatar com turno_sobreposto marca ehConflitoHorario como verdadeiro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"inelegivel","message":"inelegivel","details":"turno_sobreposto"}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.ehConflitoHorario)
+    }
+
+    @Test
     fun `candidatar com inelegivel por perfil_suspenso explica a suspensao`() {
         val mensagem = mensagemAposErro(
             HttpStatusCode.UnprocessableEntity,

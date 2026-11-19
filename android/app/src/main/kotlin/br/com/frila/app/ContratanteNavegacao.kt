@@ -282,6 +282,8 @@ internal fun RotaTurnoDoContratante(
     aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     /** L1-5: chave `checkin_por_codigo`; ligada, a casa vê o código de chegada do turno e, ao confirmar, o turno é relido. */
     checkinPorCodigoHabilitado: Boolean = false,
+    /** Item #27 da Paridade: avaliar o profissional pela casa. */
+    aoAvaliarTurno: ((turnoId: String) -> Unit)? = null,
 ) {
     var tentativa by remember { mutableIntStateOf(0) }
     var estado by remember(estabelecimentoId, vagaId, posicaoId) { mutableStateOf<EstadoDoTurnoDaRota>(EstadoDoTurnoDaRota.Carregando) }
@@ -314,6 +316,7 @@ internal fun RotaTurnoDoContratante(
                 aoDenunciarProfissional = aoDenunciarProfissional,
                 aoPedirSuporte = aoPedirSuporte,
                 codigoDaCasa = codigoDaCasa,
+                aoAvaliarTurno = aoAvaliarTurno,
                 depoisDaChegada = profissional?.let {
                     {
                         val incluir: IncluirNaEquipeViewModel = koinViewModel(
