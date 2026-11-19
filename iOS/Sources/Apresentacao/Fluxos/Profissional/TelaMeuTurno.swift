@@ -14,13 +14,30 @@ public struct TelaMeuTurno: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
     private let formatador = FormatadorFrila()
+
+    private static let idDaSecaoDePresenca = "secao-de-presenca-do-turno"
 
     public init(viewModel: MeuTurnoViewModel) {
         self.viewModel = viewModel
     }
 
     public var body: some View {
+        ScrollViewReader { proxy in
+            corpo
+                // Com texto grande a explicação da localização ocupa mais de uma tela e, quando some, a página ficava onde
+                // estava, com a confirmação e o botão de check-out acima da tela: ao voltar à etapa parada, mostra a seção.
+                .onChange(of: viewModel.presenca?.etapa) { antiga, nova in
+                    guard nova == .parada, let antiga, antiga != .parada else { return }
+                    withAnimation(FrilaMovimento.animacao(.easeOut(duration: 0.25), reduzir: reduzirMovimento)) {
+                        proxy.scrollTo(Self.idDaSecaoDePresenca, anchor: .top)
+                    }
+                }
+        }
+    }
+
+    private var corpo: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 cabecalho
@@ -40,6 +57,7 @@ public struct TelaMeuTurno: View {
                 if viewModel.permiteAcoesDoTurno {
                     if let presenca = viewModel.presenca {
                         SecaoDePresenca(viewModel: presenca, turno: viewModel)
+                            .id(Self.idDaSecaoDePresenca)
                     } else if viewModel.podeAvisarACaminho || viewModel.aCaminhoEm != nil {
                         blocoACaminhoSemPresenca
                     }
