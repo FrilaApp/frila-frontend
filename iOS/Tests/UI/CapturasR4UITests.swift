@@ -34,11 +34,46 @@ final class CapturasR4UITests: XCTestCase {
         }
     }
 
-    /// Rola até o elemento ficar tocável (a lista e o rodapé ancorado cobrem parte da tela) e toca.
+    /// Os botões ancorados no pé das telas do lote: o XCUITest os trata como transparentes (o fundo deles não é elemento de
+    /// acessibilidade) e ainda vê como tocável o que fica atrás deles, onde o toque cai no rodapé.
+    private static let rodapes = ["botao-salvar-perfil", "salvar-servicos", "botao-salvar-apresentacao", "salvar-preferencias-chamada",
+                                  "aceitar-chamada", "confirmar-recusa-chamada", "ver-turno-aceito"]
+
+    /// A faixa livre da tela: abaixo da barra de navegação e acima do que estiver no pé (rodapé ancorado e barra de abas).
+    private func faixaLivre(_ app: XCUIApplication) -> (topo: CGFloat, pe: CGFloat) {
+        let janela = app.windows.firstMatch.frame
+        let barra = app.navigationBars.firstMatch
+        let topo = (barra.exists ? barra.frame.maxY : 120) + 8
+        var pe = (app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : janela.height - 110) - 8
+        for id in Self.rodapes {
+            let botao = app.buttons[id]
+            // O rodapé tem 16 pt de folga acima do botão, e ela também recebe o toque.
+            if botao.exists, botao.frame.minY > 0 { pe = min(pe, botao.frame.minY - 16 - 8) }
+        }
+        return (topo, pe)
+    }
+
+    /// Traz o elemento para a faixa livre, arrastando pelo meio da tela em passos curtos, e só então toca. Imprime o quadro
+    /// antes do toque (a prova de onde o controle estava) e confere que a pessoa o alcança rolando.
     private func tocarRolando(_ elemento: XCUIElement, _ app: XCUIApplication) {
         XCTAssertTrue(elemento.waitForExistence(timeout: Espera.aparecer), "o elemento \(elemento.identifier) deve existir")
-        for _ in 0..<12 where !elemento.isHittable { app.swipeUp() }
-        XCTAssertTrue(elemento.isHittable, "o elemento \(elemento.identifier) deve estar tocável")
+        let meio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        for _ in 0..<40 {
+            let faixa = faixaLivre(app)
+            let quadro = elemento.frame
+            if quadro.midY > faixa.pe {
+                meio.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.32)))
+            } else if quadro.midY < faixa.topo {
+                meio.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.68)))
+            } else {
+                break
+            }
+        }
+        let faixa = faixaLivre(app)
+        let quadro = elemento.frame
+        print("ALVO \(elemento.identifier): quadro \(quadro), faixa livre \(faixa.topo) a \(faixa.pe), tocável \(elemento.isHittable)")
+        XCTAssertTrue(quadro.midY >= faixa.topo && quadro.midY <= faixa.pe && elemento.isHittable,
+                      "o elemento \(elemento.identifier) deve ficar na faixa livre: quadro \(quadro), faixa \(faixa.topo) a \(faixa.pe)")
         elemento.tap()
     }
 
