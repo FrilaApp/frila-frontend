@@ -76,6 +76,7 @@ Sources/Apresentacao/Fluxos/Profissional/SelecaoDeFuncoes.swift = ServicosDoProf
 Sources/Apresentacao/Fluxos/Profissional/TextosDoProfissional.swift = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Push/ = PushUITests, PermissaoDePushUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Suporte/ = SuporteTurnoUITests
+Tests/UI/CapturasR7UITests.swift = CapturasR7UITests
 
 # --- Design system e arquivos soltos de Apresentacao
 Sources/Apresentacao/DesignSystem/ = @visual

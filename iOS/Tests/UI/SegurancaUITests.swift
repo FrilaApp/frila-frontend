@@ -88,13 +88,18 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(enviar, em: app)
         esperarHabilitado(enviar, false)
         XCTAssertFalse(enviar.isEnabled)
-        let motivo = app.buttons["motivo-denuncia"]
-        trazerParaATela(motivo, em: app)
-        motivo.tap()
+        // O motivo é uma lista com visto (escolha única): o grupo `motivo-denuncia` já traz as quatro opções, sem abrir
+        // outra tela. Antes, o toque em `motivo-denuncia` abria o seletor e mostrava as opções.
+        XCTAssertTrue(app.descendants(matching: .any)["motivo-denuncia"].waitForExistence(timeout: Espera.aparecer), "o grupo do motivo está na folha")
         for opcao in ["Assédio", "Discriminação", "Risco à segurança", "Outro"] {
             XCTAssertTrue(app.buttons[opcao].waitForExistence(timeout: Espera.aparecer))
+            // O motivo inicial é "Assédio" (o padrão do modelo): só ele vem marcado antes da escolha.
+            XCTAssertEqual(app.buttons[opcao].isSelected, opcao == "Assédio", "\(opcao): só o motivo padrão vem marcado")
         }
+        trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()
+        XCTAssertTrue(app.buttons["Risco à segurança"].isSelected, "o motivo escolhido fica marcado")
+        XCTAssertFalse(app.buttons["Assédio"].isSelected, "e só ele: a escolha é única")
         let aviso = app.staticTexts["aviso-risco-imediato"]
         trazerParaATela(aviso, em: app)
         XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))
@@ -196,10 +201,10 @@ final class SegurancaUITests: XCTestCase {
         trazerParaATela(enviar, em: app)
         XCTAssertFalse(enviar.isEnabled)
 
-        let motivo = app.buttons["motivo-denuncia"]
-        trazerParaATela(motivo, em: app)
-        motivo.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["motivo-denuncia"].waitForExistence(timeout: Espera.aparecer), "o grupo do motivo está na folha")
+        trazerParaATela(app.buttons["Risco à segurança"], em: app)
         app.buttons["Risco à segurança"].tap()
+        XCTAssertTrue(app.buttons["Risco à segurança"].isSelected, "o motivo escolhido fica marcado")
         let aviso = app.staticTexts["aviso-risco-imediato"]
         trazerParaATela(aviso, em: app)
         XCTAssertTrue(aviso.label.contains("190 (Polícia Militar)"))
