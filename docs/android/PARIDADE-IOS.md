@@ -79,6 +79,14 @@ A auditoria anterior (02/11/2026) reportava apenas 17 telas existentes e 22 falt
 
 ---
 
+## Fora do ecossistema: verificação de identidade (decisão do Cauê, 19/11/2026)
+
+A verificação de identidade (envio de RG/CNH e selfie, o selo "Identidade Verificada" e a exigência depois de denúncia grave) está **fora do Frila nas três plataformas**: sem análise, sem verba, com jurídico trabalhoso e telas faltando. Não é falta de paridade: o iOS e a web não a terão, e o Android não a liga.
+
+- **Android:** o código existe (`core/rede/.../ServicoVerificacaoIdentidade.kt`, `RepositorioVerificacaoIdentidade.kt`, `feature/perfil/.../TelaVerificacaoDocumento.kt` e `TelaConsentimentoSelo.kt`, `core/dominio/.../RegraSeloConfianca.kt`), mas fica atrás da chave `recursoSeloHabilitado` (`app/.../AppNavegacao.kt:297`), que é `false` por padrão e não é ligada em lugar nenhum do código. Desligada, a rota `selo_confianca` nem entra no grafo e o perfil não consulta o selo. Ela não pede permissão de câmera nem traz biblioteca de câmera; a foto da tela de perfil usa o seletor do sistema (`PickVisualMedia`), sem permissão. Por isso nada disso aparece na ficha de Segurança dos Dados da Play.
+- **Não ligar a chave** (vale também o alerta do parecer P-059 da Bússola: a Política não cobre esse envio). Se a decisão mudar, o caminho é um parecer novo, a Política nova e as telas do Fabrício.
+- **iOS e web:** não há código de verificação; só o espelho do contrato (`/rpc/solicitar_upload_verificacao` e `/rpc/confirmar_envio_verificacao` em `iOS/Contrato/openapi.yaml` e `Web/contrato/openapi.yaml`).
+
 ## 3. O Que Falta de Verdade (Organização em Lotes)
 
 A auditoria comprova que restam apenas **4 telas totalmente não iniciadas** e **7 superfícies parciais** (que funcionam inline ou em componentes compartilhados, mas carecem de transição dedicada ou tela cheia independente).
