@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaMetricas
@@ -83,7 +84,9 @@ class TelaEntradaTest {
             .assertIsDisplayed()
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
 
+        // A tela rola: com o rótulo e a arte no topo, o botão de demonstração fica abaixo da dobra na tela pequena do teste.
         rule.onNodeWithText("Entrar em modo demonstração")
+            .performScrollTo()
             .assertIsDisplayed()
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
     }
@@ -118,7 +121,7 @@ class TelaEntradaTest {
             }
         }
 
-        rule.onNodeWithText("Entrar em modo demonstração").performClick()
+        rule.onNodeWithText("Entrar em modo demonstração").performScrollTo().performClick()
         rule.waitUntil(5000) { avancou }
         rule.waitForIdle()
 

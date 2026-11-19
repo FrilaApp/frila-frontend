@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
@@ -13,10 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.FragmentActivity
 import br.com.frila.app.desempenho.MedidorDeColdStart
+import br.com.frila.core.designsystem.abertura.AberturaAnimada
+import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import org.koin.core.context.GlobalContext
 
@@ -27,6 +31,13 @@ class MainActivity : FragmentActivity() {
         // O app desenha de borda a borda em todas as versões (no Android 15+ já é obrigatório): as telas recuam para as
         // barras do sistema e o rodapé ancorado sobe com o teclado. Sem isto, no Android 14 ou menos o teclado cobria o botão.
         enableEdgeToEdge()
+        // A abertura animada toca só na abertura a frio do processo (ver PoliticaDaAbertura) e cobre o app SEM segurá-lo:
+        // a configuração do app, o registro do push e a primeira tela carregam por baixo desde o primeiro quadro.
+        val inicioDaActivity = SystemClock.elapsedRealtime()
+        val tocarAbertura = PoliticaDaAbertura().deveTocar(intent, primeiraCriacao = savedInstanceState == null)
+        val tempoCongelado = PoliticaDaAbertura.tempoCongelado(intent, BuildConfig.DEBUG)
+        val aberturaCobrindo = AtomicBoolean(tocarAbertura)
+        if (tocarAbertura) aquecerAberturaAnimada()
         setContent {
             FrilaTheme {
                 val cliente = remember {
@@ -66,6 +77,7 @@ class MainActivity : FragmentActivity() {
                             // Falha transitória de rede ou offline nunca bloqueia o acesso
                         } finally {
                             verificando = false
+                            registrarAbertura("configuração do app resolvida", inicioDaActivity, aberturaCobrindo.get())
                         }
                     } else {
                         verificando = false
@@ -83,40 +95,50 @@ class MainActivity : FragmentActivity() {
                     }
                 }
 
-                PortaoDeAtualizacao(
-                    versaoAtual = BuildConfig.VERSION_NAME,
-                    versaoMinima = versaoMinima,
-                    verificando = verificando,
-                    mensagem = mensagemBloqueio,
-                    aoAtualizar = {
-                        val uriLoja = Uri.parse("market://details?id=$packageName")
-                        val intent = Intent(Intent.ACTION_VIEW, uriLoja).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        try {
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://play.google.com/store/apps/details?id=$packageName"),
-                                ).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                },
-                            )
-                        }
+                AberturaAnimada(
+                    ligada = tocarAbertura,
+                    tempoCongelado = tempoCongelado,
+                    aoTerminar = {
+                        aberturaCobrindo.set(false)
+                        registrarAbertura("abertura saiu de cena", inicioDaActivity, cobrindo = false)
                     },
                 ) {
-                    AppNavegacao(
-                        perfilRicoHabilitado = perfilRico,
-                        fotoDePerfilHabilitada = fotoDePerfil,
-                        chamadaDiretaHabilitada = chamadaDireta,
-                        buscaProfissionaisHabilitada = buscaProfissionais,
-                        checkinPorCodigoHabilitado = checkinPorCodigo,
-                        aoPronto = {
-                            MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
+                    PortaoDeAtualizacao(
+                        versaoAtual = BuildConfig.VERSION_NAME,
+                        versaoMinima = versaoMinima,
+                        verificando = verificando,
+                        mensagem = mensagemBloqueio,
+                        aoAtualizar = {
+                            val uriLoja = Uri.parse("market://details?id=$packageName")
+                            val intent = Intent(Intent.ACTION_VIEW, uriLoja).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            try {
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://play.google.com/store/apps/details?id=$packageName"),
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    },
+                                )
+                            }
                         },
-                    )
+                    ) {
+                        AppNavegacao(
+                            perfilRicoHabilitado = perfilRico,
+                            fotoDePerfilHabilitada = fotoDePerfil,
+                            chamadaDiretaHabilitada = chamadaDireta,
+                            buscaProfissionaisHabilitada = buscaProfissionais,
+                            checkinPorCodigoHabilitado = checkinPorCodigo,
+                            aoPronto = {
+                                MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
+                                registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())
+                            },
+                        )
+                    }
                 }
             }
         }

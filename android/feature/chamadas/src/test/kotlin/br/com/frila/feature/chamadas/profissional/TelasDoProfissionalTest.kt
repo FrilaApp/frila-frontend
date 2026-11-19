@@ -101,6 +101,7 @@ class TelasDoProfissionalTest {
         assertEquals(1, p.voltou)
         rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TITULO).assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.ACEITO_TEXTO).assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaProfissional.ACEITO_EXPLICACAO).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.ACEITO_O_QUE_APARECE).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.RECEBER_DE_QUEM_JA_TRABALHOU).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaProfissional.PAUSAR_CHAMADAS).performScrollTo().assertIsDisplayed()

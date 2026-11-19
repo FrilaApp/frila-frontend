@@ -197,7 +197,7 @@ private fun Formulario(
     if (buscaProfissionaisHabilitada) {
         // "Aceito chamadas diretas" (CD-P10 a CD-P12): o pedido do titular, sem "autorizo" nem "consinto" (J1).
         Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
-            FrilaGrupoDeLinhas(titulo = TextosChamadaProfissional.ACEITO_TITULO) {
+            FrilaGrupoDeLinhas {
                 linha {
                     LinhaComChave(
                         titulo = TextosChamadaProfissional.ACEITO_TEXTO,
@@ -208,6 +208,7 @@ private fun Formulario(
                     )
                 }
             }
+            Text(text = TextosChamadaProfissional.ACEITO_EXPLICACAO, style = FrilaTipo.apoio, color = cores.tintaSuave)
             Text(text = TextosChamadaProfissional.ACEITO_O_QUE_APARECE, style = FrilaTipo.apoio, color = cores.tintaSuave)
             Text(text = TextosChamadaProfissional.ACEITO_DESLIGAR, style = FrilaTipo.apoio, color = cores.tintaSuave)
             val pendencias = tela.pendencias.mapNotNull(TextosChamadaProfissional::pendencia)
