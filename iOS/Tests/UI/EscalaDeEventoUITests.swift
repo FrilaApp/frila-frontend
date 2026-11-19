@@ -244,6 +244,10 @@ final class EscalaDeEventoUITests: XCTestCase {
             if !confirmou {
                 // O que a tela mostra quando a confirmação não vem: a captura e a mensagem da ação, para achar a causa.
                 capturar("FALHA-sem-confirmacao", ax5: ax5)
+                let marcas = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'escala-erro-'")).allElementsBoundByIndex
+                print("FALHA-CAMPOS-MARCADOS: " + marcas.map { "\($0.identifier)=\($0.label)" }.joined(separator: " | "))
+                let valores = app.textFields.allElementsBoundByIndex.map { "\($0.identifier)=\(($0.value as? String) ?? "")" }
+                print("FALHA-VALORES: " + valores.joined(separator: " | "))
                 print("FALHA-SEM-CONFIRMACAO ax5=\(ax5) mensagem=\(elemento("escala-mensagem", em: app).exists ? elemento("escala-mensagem", em: app).label : "(sem mensagem)")")
             }
             XCTAssertTrue(confirmou, "a confirmação da escala deveria aparecer (ax5=\(ax5))")
