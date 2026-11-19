@@ -30,6 +30,7 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.dominio.modelo.Dinheiro
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.feature.vagas.R
 import java.time.Duration
@@ -55,12 +56,12 @@ fun TelaConflitoHorario(
     modifier: Modifier = Modifier,
 ) {
     val inicio = try {
-        Instant.parse(vaga.inicioEm).atZone(FUSO_BRASILIA)
+        instanteDoServidor(vaga.inicioEm).atZone(FUSO_BRASILIA)
     } catch (_: Exception) {
         Instant.now().atZone(FUSO_BRASILIA)
     }
     val fim = try {
-        Instant.parse(vaga.fimEm).atZone(FUSO_BRASILIA)
+        instanteDoServidor(vaga.fimEm).atZone(FUSO_BRASILIA)
     } catch (_: Exception) {
         inicio.plusHours(6)
     }
