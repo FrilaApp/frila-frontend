@@ -17,10 +17,42 @@ class ResolvedorDeDeepLinkPushTest {
     }
 
     @Test
-    fun `push de turno emite deep link para meus turnos`() {
+    fun `push de turno sem id emite deep link para meus turnos`() {
         val notificacao = notificacao(canal = GerenciadorDeCanais.CANAL_TURNOS)
 
         assertEquals("frila://meus_turnos", ResolvedorDeDeepLinkPush.resolver(notificacao))
+    }
+
+    @Test
+    fun `push de turno com id UUID valido emite deep link para o turno especifico`() {
+        val uuid = "de698e95-c9a0-4e4e-b01e-4b7fe31a4ef6"
+        val notificacao = notificacao(
+            canal = GerenciadorDeCanais.CANAL_TURNOS,
+            turnoId = uuid,
+        )
+
+        assertEquals("frila://meus_turnos/$uuid", ResolvedorDeDeepLinkPush.resolver(notificacao))
+    }
+
+    @Test
+    fun `push de turno com id invalido nao UUID emite fallback para meus turnos`() {
+        val notificacao = notificacao(
+            canal = GerenciadorDeCanais.CANAL_TURNOS,
+            turnoId = "id-invalido-123",
+        )
+
+        assertEquals("frila://meus_turnos", ResolvedorDeDeepLinkPush.resolver(notificacao))
+    }
+
+    @Test
+    fun `push de turno neutralizado por RN15 nunca emite link sensivel mesmo com turnoId`() {
+        val notificacao = notificacao(
+            canal = GerenciadorDeCanais.CANAL_TURNOS,
+            turnoId = "de698e95-c9a0-4e4e-b01e-4b7fe31a4ef6",
+            neutralizada = true,
+        )
+
+        assertNull(ResolvedorDeDeepLinkPush.resolver(notificacao))
     }
 
     @Test
@@ -47,6 +79,7 @@ class ResolvedorDeDeepLinkPushTest {
         vagaId: String? = null,
         neutralizada: Boolean = false,
         chamadaId: String? = null,
+        turnoId: String? = null,
     ) = NotificacaoParaExibir(
         canal = canal,
         titulo = "Frila",
@@ -54,5 +87,6 @@ class ResolvedorDeDeepLinkPushTest {
         vagaId = vagaId,
         neutralizada = neutralizada,
         chamadaId = chamadaId,
+        turnoId = turnoId,
     )
 }

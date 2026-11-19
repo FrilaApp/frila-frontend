@@ -2,7 +2,7 @@
 # testar-push-fcm-dev.sh: Envia um push de teste FCM v1 contra o app Frila no emulador Android (Cartão llLCfQ7J).
 #
 # Uso:
-#   FCM_DEVICE_TOKEN="<token>" scripts/testar-push-fcm-dev.sh [tipo] [titulo] [corpo]
+#   FCM_DEVICE_TOKEN="<token>" scripts/testar-push-fcm-dev.sh [tipo] [titulo] [corpo] [turno_id]
 #   ou colocando o token em ~/.config/frila/android/fcm-device-token.txt
 #
 # Pré-requisitos:
@@ -16,6 +16,7 @@ FCM_SA="${FCM_SERVICE_ACCOUNT_PATH:-$HOME/.config/frila/fcm-service-account-dev.
 TIPO="${1:-vaga}"
 TITULO="${2:-Nova vaga disponível}"
 CORPO="${3:-Garçom no Plano Piloto hoje às 19h}"
+TURNO_ID="${4:-${PUSH_TURNO_ID:-}}"
 
 if [ ! -f "$FCM_SA" ]; then
   echo "Erro: Credencial de serviço FCM não encontrada em $FCM_SA" >&2
@@ -45,6 +46,7 @@ export FCM_SA_PATH="$FCM_SA"
 export PUSH_TIPO="$TIPO"
 export PUSH_TITULO="$TITULO"
 export PUSH_CORPO="$CORPO"
+export PUSH_TURNO_ID="$TURNO_ID"
 
 deno eval --allow-read --allow-net --allow-env "
 import { getAccessToken, sendFcmMessage } from '/Users/cauecarneiro/Documents/Projetos/Frila/frila-backend/supabase/functions/enviar-push/fcm.ts';
@@ -54,6 +56,7 @@ const token = Deno.env.get('FCM_DEVICE_TOKEN');
 const tipo = Deno.env.get('PUSH_TIPO') || 'vaga';
 const titulo = Deno.env.get('PUSH_TITULO') || 'Notificação';
 const corpo = Deno.env.get('PUSH_CORPO') || '';
+const turnoId = Deno.env.get('PUSH_TURNO_ID') || '';
 
 if (!saPath || !token) {
   console.error('Erro: Parâmetros obrigatórios ausentes.');
@@ -74,6 +77,7 @@ const res = await sendFcmMessage(sa.project_id, accessToken, {
     tipo,
     titulo,
     corpo,
+    ...(turnoId ? { turno_id: turnoId } : {}),
   },
 });
 

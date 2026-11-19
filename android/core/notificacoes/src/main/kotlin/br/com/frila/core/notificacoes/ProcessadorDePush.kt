@@ -11,6 +11,7 @@ data class DadosDoPush(
     val titulo: String?,
     val corpo: String?,
     val chamadaId: String? = null,
+    val turnoId: String? = null,
 ) {
     companion object {
         private const val CHAVE_VINCULO_ID = "vinculo_id"
@@ -19,6 +20,7 @@ data class DadosDoPush(
         private const val CHAVE_TITULO = "titulo"
         private const val CHAVE_CORPO = "corpo"
         private const val CHAVE_CHAMADA_ID = "chamada_id"
+        private const val CHAVE_TURNO_ID = "turno_id"
 
         fun doPayload(payload: Map<String, String>): DadosDoPush = DadosDoPush(
             vinculoId = payload[CHAVE_VINCULO_ID],
@@ -27,6 +29,7 @@ data class DadosDoPush(
             titulo = payload[CHAVE_TITULO],
             corpo = payload[CHAVE_CORPO],
             chamadaId = payload[CHAVE_CHAMADA_ID],
+            turnoId = payload[CHAVE_TURNO_ID],
         )
     }
 }
@@ -43,6 +46,7 @@ data class NotificacaoParaExibir(
     val silenciada: Boolean = false,
     /** Só nos avisos da chamada ao profissional (como o `RoteadorDePush` do iOS): vira `frila://chamadas/<id>`. */
     val chamadaId: String? = null,
+    val turnoId: String? = null,
 )
 
 /**
@@ -79,6 +83,8 @@ class ProcessadorDePush(
                 vagaId = null,
                 neutralizada = true,
                 silenciada = !preferenciasNotificacao.estaAtivado(canal),
+                chamadaId = null,
+                turnoId = null,
             )
         }
 
@@ -89,6 +95,7 @@ class ProcessadorDePush(
             corpo = dados.corpo ?: "",
             vagaId = dados.vagaId,
             chamadaId = dados.chamadaId?.takeIf { dados.tipo in TIPOS_DA_CHAMADA_RECEBIDA },
+            turnoId = dados.turnoId,
             neutralizada = false,
             silenciada = !preferenciasNotificacao.estaAtivado(canal),
         )
