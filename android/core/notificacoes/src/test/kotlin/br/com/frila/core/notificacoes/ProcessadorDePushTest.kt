@@ -223,4 +223,20 @@ class ProcessadorDePushTest {
         assertTrue(deOutraConta.neutralizada)
     }
 
+    @Test
+    fun `turno_id so aparece quando o conteudo original e permitido`() {
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
+
+        val autorizado = processador.processar(
+            mapOf("vinculo_id" to "vinculo-abc", "tipo" to "confirmacao", "turno_id" to "de698e95-c9a0-4e4e-b01e-4b7fe31a4ef6"),
+        )
+        val neutralizado = processador.processar(
+            mapOf("vinculo_id" to "vinculo-de-outra-conta", "tipo" to "confirmacao", "turno_id" to "de698e95-c9a0-4e4e-b01e-4b7fe31a4ef6"),
+        )
+
+        assertEquals("de698e95-c9a0-4e4e-b01e-4b7fe31a4ef6", autorizado.turnoId)
+        assertNull(neutralizado.turnoId)
+        assertTrue(neutralizado.neutralizada)
+    }
+
 }
