@@ -211,12 +211,7 @@ struct RodapeAncoradoForaDeAX<Rodape: View>: ViewModifier {
 extension View {
     /// Selo de status em texto grande: a palavra não se parte ao meio. O ícone sai (quem monta o selo o omite) e, se o rótulo
     /// ainda não couber, o texto encolhe um pouco em vez de hifenizar.
-    @ViewBuilder
     func seloSemQuebrarPalavra(_ tamanho: DynamicTypeSize) -> some View {
-        if tamanho.isAccessibilitySize {
-            self.minimumScaleFactor(0.6)
-        } else {
-            self
-        }
+        minimumScaleFactor(tamanho.isAccessibilitySize ? 0.6 : 1)
     }
 }
