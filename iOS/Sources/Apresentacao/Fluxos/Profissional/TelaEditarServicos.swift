@@ -8,40 +8,52 @@ public struct TelaEditarServicos: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 Text("Serviços são opcionais. Você recebe o valor integral; o Frila não desconta nada.", bundle: bundleApresentacao)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                 if modelo.carregando { EstadoCarregando() }
                 ForEach($modelo.rascunhos) { $rascunho in
                     EditorDeServico(rascunho: $rascunho, especialidades: modelo.especialidades[rascunho.id] ?? [],
                                     campoComErro: modelo.funcaoComErro == nil || modelo.funcaoComErro == rascunho.id ? modelo.erro?.detalhes : nil)
                 }
-                if let erro = modelo.erro {
-                    AvisoFrila(verbatim: MensagemDoErroAPI.texto(erro), tom: .erro)
-                    if !modelo.carregou {
-                        BotaoSecundario("Tentar de novo") { Task { await modelo.carregar() } }
-                    }
+                // Sem a lista carregada, o erro é da tela e o "tentar de novo" recarrega; com ela, o erro é do salvar e vai ao pé.
+                if let erro = modelo.erro, !modelo.carregou {
+                    EstadoErro(verbatim: MensagemDoErroAPI.texto(erro)) { Task { await modelo.carregar() } }
                 }
-                // V18: o sucesso é um aviso, e não um texto cinza solto acima do botão.
-                if modelo.sucesso { AvisoFrila("Serviços salvos", tom: .informativo).accessibilityIdentifier("servicos-sucesso") }
-                BotaoPrimario("Salvar alterações", carregando: modelo.salvando) {
-                    // V16: com o teclado aberto, o aviso de erro ficava escondido atrás dele.
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    Task { await modelo.salvar() }
-                }
-                    .disabled(!modelo.carregou || modelo.carregando)
-                    .accessibilityIdentifier("salvar-servicos")
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.bloco)
+            .padding(.bottom, FrilaEspaco.grupo)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
             .frame(maxWidth: .infinity)
         }
         .font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto).background(FrilaCor.fundo)
         .navigationTitle(Text("Editar serviços", bundle: bundleApresentacao))
         .scrollDismissesKeyboard(.interactively).frilaKeyboardDismissScope()
+        // O identificador da tela fica na rolagem, antes do rodapé: posto depois, ele cobria o do botão "Salvar alterações".
+        .accessibilityIdentifier("tela-editar-servicos")
+        .rodapeAncorado {
+            if let erro = modelo.erro, modelo.carregou {
+                MensagemJuntoAoBotao(verbatim: MensagemDoErroAPI.texto(erro))
+            }
+            // V18: o sucesso é uma mensagem junto ao botão, e não um texto cinza solto.
+            if modelo.sucesso {
+                MensagemJuntoAoBotao(verbatim: String(localized: "Serviços salvos", bundle: bundleApresentacao))
+                    .accessibilityIdentifier("servicos-sucesso")
+            }
+            BotaoPrimario("Salvar alterações", carregando: modelo.salvando) {
+                // V16: com o teclado aberto, o aviso de erro ficava escondido atrás dele.
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                Task { await modelo.salvar() }
+            }
+            .disabled(!modelo.carregou || modelo.carregando)
+            .accessibilityIdentifier("salvar-servicos")
+        }
         .disabled(modelo.salvando)
         .task { await modelo.carregar() }
         .onChange(of: modelo.rascunhos) { _, _ in modelo.limparSucesso() }
-        .accessibilityIdentifier("tela-editar-servicos")
     }
 }
 
@@ -51,28 +63,28 @@ private struct EditorDeServico: View {
     let campoComErro: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Toggle(isOn: $rascunho.habilitado) { Text(verbatim: rascunho.funcao.nome).font(FrilaTipo.secao) }
-                .frame(minHeight: 44)
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            Toggle(isOn: $rascunho.habilitado) { Text(verbatim: rascunho.funcao.nome).font(FrilaTipo.nome) }
+                .frame(minHeight: FrilaMetrica.alvo)
             if rascunho.habilitado {
-                if let dica = rascunho.funcao.dicaPerfil { Text(verbatim: dica).font(FrilaTipo.nota) }
+                if let dica = rascunho.funcao.dicaPerfil { Text(verbatim: dica).font(FrilaTipo.apoio).foregroundStyle(FrilaCor.textoSecundario) }
                 Picker(selection: $rascunho.dados.unidade) {
                     ForEach(UnidadePreco.allCases, id: \.self) { Text(verbatim: TextosDosServicos.unidade($0)).tag($0) }
                 } label: { Text("Unidade de preço", bundle: bundleApresentacao) }
                     .labelsHidden()
                     .accessibilityIdentifier("unidade-servico")
-                    .campoDeServico("Unidade de preço")
+                    .seletorDeServico("Unidade de preço")
                     .onChange(of: rascunho.dados.unidade) { _, _ in rascunho.trocarUnidade() }
                 if rascunho.dados.unidade == .aCombinar {
-                    Text("A combinar: o total será confirmado na chamada.", bundle: bundleApresentacao)
+                    Text("A combinar: o total será confirmado na chamada.", bundle: bundleApresentacao).font(FrilaTipo.apoio)
                 } else {
                     TextField(text: $rascunho.valor, prompt: Text("0,00", bundle: bundleApresentacao)) { Text("Valor em reais", bundle: bundleApresentacao) }.keyboardType(.decimalPad).accessibilityIdentifier("valor-servico").campoDeServico("Valor em reais")
                     if [.hora, .diaria, .pacote].contains(rascunho.dados.unidade) {
                         TextField(text: $rascunho.valorMaximo, prompt: Text("0,00", bundle: bundleApresentacao)) { Text("Valor máximo em reais (opcional)", bundle: bundleApresentacao) }.keyboardType(.decimalPad).campoDeServico("Valor máximo em reais (opcional)")
                     }
-                    Text("De R$ 10 a R$ 10.000 por unidade.", bundle: bundleApresentacao).font(FrilaTipo.nota)
+                    Text("De R$ 10 a R$ 10.000 por unidade.", bundle: bundleApresentacao).font(FrilaTipo.apoio).foregroundStyle(FrilaCor.textoSecundario)
                 }
-                if let resumo = TextosDosServicos.resumoDaDiaria(rascunho) { Text(verbatim: resumo).font(FrilaTipo.nota) }
+                if let resumo = TextosDosServicos.resumoDaDiaria(rascunho) { Text(verbatim: resumo).font(FrilaTipo.apoio).foregroundStyle(FrilaCor.textoSecundario) }
                 camposDaUnidade
                 Picker(selection: $rascunho.dados.levaMaterial) {
                     Text("Não informado", bundle: bundleApresentacao).tag(LevaMaterial?.none)
@@ -80,7 +92,7 @@ private struct EditorDeServico: View {
                 } label: { Text("Leva material?", bundle: bundleApresentacao) }
                     .labelsHidden()
                     .accessibilityIdentifier("material-servico")
-                    .campoDeServico("Leva material?")
+                    .seletorDeServico("Leva material?")
                 TextField(text: $rascunho.dados.itensInclusos.valorOuVazio, prompt: Text(verbatim: ""), axis: .vertical) {
                     Text("O que está incluído (até 300 caracteres)", bundle: bundleApresentacao)
                 }
@@ -89,19 +101,18 @@ private struct EditorDeServico: View {
                 ForEach(especialidades) { especialidade in
                     Toggle(isOn: selecionada(especialidade.id)) { Text(verbatim: especialidade.nome) }
                         .disabled(!(rascunho.dados.especialidadeIDs ?? []).contains(especialidade.id) && (rascunho.dados.especialidadeIDs?.count ?? 0) >= 8)
-                        .frame(minHeight: 44)
+                        .frame(minHeight: FrilaMetrica.alvo)
                 }
-                if !especialidades.isEmpty { Text("Escolha até 8 especialidades.", bundle: bundleApresentacao).font(FrilaTipo.nota) }
+                if !especialidades.isEmpty { Text("Escolha até 8 especialidades.", bundle: bundleApresentacao).font(FrilaTipo.apoio).foregroundStyle(FrilaCor.textoSecundario) }
                 if let campoComErro, campoComErro != "inclui" { erroDoCampo(campoComErro) }
             }
         }
-        .textFieldStyle(.roundedBorder)
-        .padding(FrilaEspaco.medio)
-        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada))
+        .cartaoFrila()
     }
 
     private func erroDoCampo(_ campo: String) -> some View {
-        Text(verbatim: TextosDosServicos.campo(campo)).foregroundStyle(FrilaCor.perigo)
+        // Problema não tem cor: o texto vai em tinta e diz o que corrigir.
+        Text(verbatim: TextosDosServicos.campo(campo)).font(FrilaTipo.corpo.weight(.semibold)).foregroundStyle(FrilaCor.texto)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("erro-servico-\(campo)")
     }
@@ -141,11 +152,20 @@ private extension Optional where Wrapped == String {
 }
 
 private extension View {
+    /// Campo de texto: rótulo visível acima, em rótulo de grupo, e a caixa do sistema (48 pt, fio em `bordaDoCampo`).
     func campoDeServico(_ titulo: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            // O campo já tem o mesmo rótulo para o VoiceOver: o texto visível não é lido duas vezes.
-            Text(titulo, bundle: bundleApresentacao).font(FrilaTipo.nota).accessibilityHidden(true)
-            self.frame(minHeight: 44, alignment: .leading)
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            // O campo já tem o mesmo rótulo para o leitor de tela: o texto visível não é lido duas vezes.
+            Text(titulo, bundle: bundleApresentacao).font(FrilaTipo.rotuloDeGrupo).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
+            self.textFieldStyle(.plain).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto).caixaDoCampoFrila()
+        }
+    }
+
+    /// Seletor em menu (controle nativo): o mesmo rótulo visível acima e o alvo de 48 pt.
+    func seletorDeServico(_ titulo: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text(titulo, bundle: bundleApresentacao).font(FrilaTipo.rotuloDeGrupo).foregroundStyle(FrilaCor.textoSecundario).accessibilityHidden(true)
+            self.frame(minHeight: FrilaMetrica.alvo, alignment: .leading)
         }
     }
 }

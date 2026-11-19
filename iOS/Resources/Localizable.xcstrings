@@ -11687,6 +11687,17 @@
         }
       }
     },
+    "Se isso não parece certo, fale com o suporte em Ajuda.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se isso não parece certo, fale com o suporte em Ajuda."
+          }
+        }
+      }
+    },
     "Se você acha que deveria ter recebido uma vaga, peça a revisão. A Equipe Frila responde por e-mail em até 5 dias úteis.": {
       "extractionState": "stale",
       "localizations": {
