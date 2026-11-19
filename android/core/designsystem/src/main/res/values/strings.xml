@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nome da marca: rótulo falado da abertura animada, que não tem texto visível. Não traduzir. -->
+    <string name="abertura_nome_da_marca" translatable="false">Frila</string>
+    <!-- Ação do leitor de tela na abertura animada: ir direto para o app. -->
+    <string name="abertura_pular">Pular abertura</string>
+</resources>

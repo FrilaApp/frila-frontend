@@ -1,9 +1,9 @@
 import FrilaDominio
 import SwiftUI
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício.
-// O cartão provisório da busca: foto pequena e circular quando o servidor mandou `foto_url` (contrato 0.2.90, CD-B07),
-// senão a inicial do nome. Só `AsyncImage` nativo e os tokens que o app já usa; nenhum componente novo.
+// O cartão da busca: foto pequena e circular quando o servidor mandou `foto_url` (contrato 0.2.90, CD-B07), senão a
+// inicial do nome. Desenho do sistema do Fabrício extrapolado para a casa (R6); o nome do tipo ficou, para não mexer
+// no projeto e nos testes.
 
 /// A foto (ou a inicial) do cartão da busca. Foto que não carrega (404, qualquer erro) ou que ainda carrega mostra a
 /// INICIAL, sem mensagem de erro na tela.
@@ -58,34 +58,46 @@ public struct FotoDoCartaoDaBusca: View {
 
     private var letra: some View {
         Text(verbatim: Self.inicial(de: nome))
-            .font(FrilaTipo.resumo)
+            .font(FrilaTipo.nome)
             .foregroundStyle(FrilaCor.textoSecundario)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(FrilaCor.controle)
     }
 }
 
-/// O cartão de um resultado da busca, provisório: foto ou inicial, nome, serviço com preço, faixa de distância e o
-/// selo "disponível nesse horário". É o rótulo da linha da lista em `TelaBuscaDeProfissionais`.
+/// O cartão de um resultado da busca: foto ou inicial, nome, serviço com preço, faixa de distância, reputação escrita
+/// como fato (na voz de quem avalia) e o selo "disponível nesse horário". É o rótulo da linha da lista em
+/// `TelaBuscaDeProfissionais`; sem laranja: a lista é de escolha.
 public struct CartaoDaBuscaProvisorio: View {
     private let cartao: CartaoProfissional
 
     public init(cartao: CartaoProfissional) { self.cartao = cartao }
 
     public var body: some View {
-        HStack(spacing: FrilaEspaco.pequeno) {
+        HStack(alignment: .top, spacing: FrilaEspaco.bloco) {
             FotoDoCartaoDaBusca(nome: cartao.nome, fotoURL: cartao.fotoURL)
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
                 Text(verbatim: cartao.nome)
+                    .font(FrilaTipo.nome)
+                    .foregroundStyle(FrilaCor.texto)
                 Text(verbatim: TextosDosServicos.resumoDoServico(cartao.servico.servico) ?? cartao.servico.funcao.nome)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
                 Text(verbatim: cartao.distanciaFaixa.rotulo)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                Text(verbatim: SeloReputacao.descricao(cartao.reputacao))
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
                 if cartao.disponivelNoHorario == true {
-                    Text(verbatim: TextosBuscaDeProfissionais.disponivelNesseHorario)
+                    SeloDeStatus(verbatim: TextosBuscaDeProfissionais.disponivelNesseHorario, estilo: .contorno, icone: "checkmark")
+                        .padding(.top, FrilaEspaco.junto)
                         .accessibilityIdentifier("disponivel-\(cartao.id)")
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
-        .frame(minHeight: 44)
+        .frame(minHeight: FrilaMetrica.alvo)
     }
 }

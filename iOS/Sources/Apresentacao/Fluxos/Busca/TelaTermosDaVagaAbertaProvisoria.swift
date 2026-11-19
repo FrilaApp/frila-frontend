@@ -1,8 +1,8 @@
 import FrilaDominio
 import SwiftUI
 
-// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício.
-// Só componentes nativos, sem estilo novo e sem componente novo do design system. O texto é o do contrato 0.2.95.
+// O texto é o do contrato 0.2.95. O desenho é o do sistema do Fabrício, extrapolado para a casa (R6); o nome do tipo
+// ficou, para não mexer no projeto e nos testes.
 
 /// O que a busca mostra quando a casa já tem o trabalho aberto numa vaga com valor ou inclusos diferentes dos digitados
 /// (`409 trabalho_ja_aberto`, contrato 0.2.95): a chamada vai com os termos da vaga já aberta e só sai com Confirmar.
@@ -46,26 +46,22 @@ public struct TelaTermosDaVagaAbertaProvisoria: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
             Text("Esta chamada vai com os termos da vaga já aberta: \(Self.linha(termos))", bundle: bundleApresentacao)
-                .font(.body)
+                .font(FrilaTipo.corpo)
+                .foregroundStyle(FrilaCor.texto)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("termos-vaga-aberta-texto")
 
-            Button(action: confirmar) {
-                Text("Confirmar", bundle: bundleApresentacao)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+            // A chamada só sai com Confirmar (o único laranja da folha); Cancelar não manda nada.
+            VStack(spacing: FrilaEspaco.item) {
+                BotaoPrimario("Confirmar") { confirmar() }
+                    .accessibilityIdentifier("termos-vaga-aberta-confirmar")
+                BotaoSecundario("Cancelar") { cancelar() }
+                    .accessibilityIdentifier("termos-vaga-aberta-cancelar")
             }
-            .buttonStyle(.borderedProminent)
-            .accessibilityIdentifier("termos-vaga-aberta-confirmar")
-
-            Button(role: .cancel, action: cancelar) {
-                Text("Cancelar", bundle: bundleApresentacao)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-            }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("termos-vaga-aberta-cancelar")
         }
-        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FrilaEspaco.grupo)
     }
 }

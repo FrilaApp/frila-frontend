@@ -52,7 +52,7 @@ class OcorrenciaTurnoViewModel(
     }
 
     fun atualizarRelato(relato: String) {
-        _estado.update { it.copy(relato = relato) }
+        _estado.update { it.copy(relato = relato.take(TextosOcorrencia.LIMITE_DO_RELATO)) }
     }
 
     fun anexarFoto(uri: String?) {

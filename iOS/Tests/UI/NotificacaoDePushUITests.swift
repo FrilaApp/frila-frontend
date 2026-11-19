@@ -91,6 +91,9 @@ final class NotificacaoDePushUITests: XCTestCase {
 
         XCUIDevice.shared.press(.home)
         tocarNaNotificacao()
+        // O toque tira o app do segundo plano, mas ele ainda está voltando à frente quando o teste começa a procurar o
+        // detalhe (na CI do #981 falhou 2 de 2, com o toque feito): espera com prazo, como na variante com o app fechado.
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15), "o app deve voltar à frente em resposta ao toque")
         conferirDetalheDaVaga(app)
     }
 

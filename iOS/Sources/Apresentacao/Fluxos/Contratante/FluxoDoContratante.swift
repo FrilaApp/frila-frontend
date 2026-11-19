@@ -81,6 +81,7 @@ public struct FluxoDoContratante: View {
     public var body: some View {
         TabView(selection: $aba) {
             conteudoPrincipal
+                .tint(FrilaCor.primaria)
                 .tabItem {
                     Label(String(localized: "Minhas vagas", bundle: bundleApresentacao), systemImage: "briefcase")
                 }
@@ -89,11 +90,15 @@ public struct FluxoDoContratante: View {
             NavigationStack {
                 TelaPerfilEstabelecimento(api: api, sair: sair)
             }
+            .tint(FrilaCor.primaria)
             .tabItem {
                 Label(String(localized: "Conta", bundle: bundleApresentacao), systemImage: "person.crop.circle")
             }
             .tag(AbaDoContratante.conta)
         }
+        // Barra de abas do desenho do Fabrício: o ícone da aba ativa vai na cor de ação. Cada aba devolve a tinta ao
+        // seu conteúdo (`.tint(FrilaCor.primaria)` acima), para link e controle nativo não virarem texto laranja.
+        .tint(FrilaCor.acao)
         .sheet(isPresented: $mostrarConfirmacaoDeSaida) { confirmacaoDeSaida }
         .sheet(isPresented: $mostrandoExclusaoDeConta) {
             NavigationStack {

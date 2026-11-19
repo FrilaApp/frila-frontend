@@ -60,6 +60,7 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.rede.CandidatoDto
+import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.feature.vagas.publicacao.formatarData
 import br.com.frila.feature.vagas.publicacao.formatarHora
 import java.time.Instant
@@ -73,6 +74,8 @@ data class AcoesCandidatosDaVaga(
     val aoDesistirDaEscolha: () -> Unit = {},
     val aoConfirmarEscolha: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
+    /** Denunciar quem se candidatou (id do perfil público no [PerfilPublicoDto]). `null` esconde a ação. */
+    val aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
 )
 
 /**
@@ -86,6 +89,7 @@ fun TelaCandidatosDaVaga(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     carregarFoto: suspend (String) -> ImageBitmap? = { null },
+    aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -98,6 +102,7 @@ fun TelaCandidatosDaVaga(
             aoDesistirDaEscolha = viewModel::desistirDaEscolha,
             aoConfirmarEscolha = { viewModel.confirmarEscolha() },
             aoVoltar = aoVoltar,
+            aoDenunciar = aoDenunciar,
         ),
         carregarFoto = carregarFoto,
         modifier = modifier,
@@ -187,6 +192,7 @@ fun ConteudoCandidatosDaVaga(
                                 escolhendoEste = estado.escolhendo == candidato.candidaturaId,
                                 podeEscolher = estado.escolhendo == null,
                                 aoEscolher = { acoes.aoPedirEscolha(candidato) },
+                                aoDenunciar = acoes.aoDenunciar?.let { denunciar -> { denunciar(candidato.profissional) } },
                                 carregarFoto = carregarFoto,
                             )
                         }
@@ -274,6 +280,7 @@ private fun CartaoDoCandidato(
     escolhendoEste: Boolean,
     podeEscolher: Boolean,
     aoEscolher: () -> Unit,
+    aoDenunciar: (() -> Unit)?,
     carregarFoto: suspend (String) -> ImageBitmap?,
 ) {
     val perfil = candidato.profissional
@@ -313,6 +320,13 @@ private fun CartaoDoCandidato(
                     .fillMaxWidth()
                     .semantics { contentDescription = TextosCandidatosDaVaga.ESCOLHER_NOME.format(perfil.nome) },
             )
+            if (aoDenunciar != null) {
+                AcaoDiscreta(
+                    texto = TextosCandidatosDaVaga.DENUNCIAR,
+                    aoClicar = aoDenunciar,
+                    modifier = Modifier.semantics { contentDescription = TextosCandidatosDaVaga.DENUNCIAR_NOME.format(perfil.nome) },
+                )
+            }
         }
     }
 }

@@ -236,4 +236,80 @@ class ServicoMembrosTest {
 
         assertEquals(CodigoErroAPI.SEM_PERMISSAO, (excecao as ErroDaApi).codigo)
     }
+
+    @Test
+    fun `listarMembrosDaCasa faz GET com estabelecimento_id na query e decodifica os membros sem dado pessoal`() = runTest {
+        val visto = PedidoVisto()
+        val servico = ServicoMembros(
+            clienteDeTeste(
+                visto,
+                """
+                [
+                  {"membro_id": "aaaaaaaa-0000-4000-8000-000000000001", "nome": "Ana Souza", "papel": "administrador",
+                   "desde": "2026-10-01T12:00:00Z", "e_voce": true},
+                  {"membro_id": "aaaaaaaa-0000-4000-8000-000000000002", "nome": "Beto Lima", "papel": "operador",
+                   "desde": "2026-11-02T09:30:00Z", "e_voce": false}
+                ]
+                """.trimIndent(),
+            ),
+        )
+
+        val membros = servico.listarMembrosDaCasa(estabelecimentoId)
+
+        assertEquals(1, visto.vezes)
+        assertEquals(HttpMethod.Get, visto.metodo)
+        assertEquals("/rest/v1/rpc/membros_do_estabelecimento", visto.caminho)
+        assertEquals(listOf("Ana Souza", "Beto Lima"), membros.map { it.nome })
+        assertEquals(listOf(PapelMembro.ADMINISTRADOR, PapelMembro.OPERADOR), membros.map { PapelMembro.deChave(it.papel) })
+        assertEquals(listOf(true, false), membros.map { it.eVoce })
+        assertEquals("aaaaaaaa-0000-4000-8000-000000000002", membros[1].membroId)
+    }
+
+    @Test
+    fun `listarMembrosDaCasa manda o id da casa na query`() = runTest {
+        var query: String? = null
+        val engine = MockEngine { request ->
+            query = request.url.parameters["estabelecimento_id"]
+            respond("[]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val servico = ServicoMembros(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        assertTrue(servico.listarMembrosDaCasa(estabelecimentoId).isEmpty())
+        assertEquals(estabelecimentoId, query)
+    }
+
+    @Test
+    fun `listarMembrosDaCasa lanca o codigo de cada recusa do contrato`() = runTest {
+        conferirRecusas(
+            listOf(
+                Recusa(HttpStatusCode.Forbidden, "sem_permissao", CodigoErroAPI.SEM_PERMISSAO),
+                CONTA_SUSPENSA,
+                TOKEN_VENCIDO,
+            ),
+        ) { cliente -> ServicoMembros(cliente).listarMembrosDaCasa(estabelecimentoId) }
+    }
+
+    @Test
+    fun `aceitarConviteMembro, removerMembro e transferirAdministracao lancam o codigo de cada recusa do contrato`() = runTest {
+        conferirRecusas(
+            listOf(
+                Recusa(HttpStatusCode.UnprocessableEntity, "convite_invalido", CodigoErroAPI.CONVITE_INVALIDO),
+                Recusa(HttpStatusCode.UnprocessableEntity, "perfil_incompativel", CodigoErroAPI.PERFIL_INCOMPATIVEL),
+                TOKEN_VENCIDO,
+            ),
+        ) { cliente -> ServicoMembros(cliente).aceitarConviteMembro("a".repeat(64)) }
+        conferirRecusas(
+            listOf(
+                Recusa(HttpStatusCode.UnprocessableEntity, "ultimo_administrador", CodigoErroAPI.ULTIMO_ADMINISTRADOR),
+                Recusa(HttpStatusCode.Forbidden, "sem_permissao", CodigoErroAPI.SEM_PERMISSAO),
+                Recusa(HttpStatusCode.NotFound, "nao_encontrado", CodigoErroAPI.NAO_ENCONTRADO),
+            ),
+        ) { cliente -> ServicoMembros(cliente).removerMembro(estabelecimentoId, "m1") }
+        conferirRecusas(
+            listOf(
+                Recusa(HttpStatusCode.Forbidden, "sem_permissao", CodigoErroAPI.SEM_PERMISSAO),
+                Recusa(HttpStatusCode.NotFound, "nao_encontrado", CodigoErroAPI.NAO_ENCONTRADO),
+            ),
+        ) { cliente -> ServicoMembros(cliente).transferirAdministracao(estabelecimentoId, "m1") }
+    }
 }

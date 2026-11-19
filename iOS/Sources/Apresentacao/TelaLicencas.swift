@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Licença de um pacote ou fonte embutida do build, como sai de `Scripts/gerar-licencas.py`.
-public struct LicencaDePacote: Decodable, Identifiable, Equatable, Sendable {
+public struct LicencaDePacote: Decodable, Identifiable, Hashable, Sendable {
     /// Identidade do pacote no Package.resolved ou da fonte em FONTES_EMBUTIDAS.
     public let id: String
     public let nome: String
@@ -50,9 +50,9 @@ enum TextosDeLicencas {
     static let dicaAbrir = String(localized: "Abre o texto da licença", bundle: bundleApresentacao)
 }
 
-/// Lista das dependências do build com a licença de cada uma, em linhas sobre o canvas com hairlines,
-/// seguindo o padrão Hi-Fi do Fabrício. Precisa estar dentro de um `NavigationStack`,
-/// que é quem abre o detalhe.
+/// Lista das dependências do build com a licença de cada uma, num grupo de linhas do sistema do Fabrício (nome e
+/// "versão · licença", com a seta de quem abre outra tela). Tela de leitura, sem laranja. Precisa estar dentro de um
+/// `NavigationStack`, que é quem abre o detalhe.
 public struct TelaLicencas: View {
     private enum Estado {
         case carregando
@@ -61,46 +61,52 @@ public struct TelaLicencas: View {
     }
 
     @State private var estado = Estado.carregando
+    @State private var aberta: LicencaDePacote?
 
     public init() {}
 
     public var body: some View {
-        Group {
-            switch estado {
-            case .carregando:
-                EstadoCarregando()
-            case let .carregada(licencas):
-                List(licencas) { licenca in
-                    NavigationLink { TelaDetalheDaLicenca(licenca) } label: { linha(licenca) }
-                        .listRowBackground(FrilaCor.fundo)
-                        .accessibilityIdentifier("licenca-\(licenca.id)")
-                        .accessibilityHint(TextosDeLicencas.dicaAbrir)
+        ScrollView {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                switch estado {
+                case .carregando:
+                    EstadoCarregando()
+                case let .carregada(licencas):
+                    FrilaGrupoDeLinhas(linhasComIcone: false) {
+                        ForEach(licencas) { licenca in
+                            FrilaLinhaDeOpcao(
+                                titulo: licenca.nome,
+                                subtitulo: "\(licenca.versao) · \(licenca.tipo)",
+                                remate: .navega
+                            ) {
+                                aberta = licenca
+                            }
+                            .accessibilityIdentifier("licenca-\(licenca.id)")
+                            .accessibilityHint(TextosDeLicencas.dicaAbrir)
+                        }
+                    }
+                case .falha:
+                    AvisoFrila(verbatim: TextosDeLicencas.falha, tom: .erro)
+                        .accessibilityIdentifier("licencas-erro")
                 }
-                .scrollContentBackground(.hidden)
-            case .falha:
-                AvisoFrila(verbatim: TextosDeLicencas.falha, tom: .erro)
-                    .padding(FrilaEspaco.medio)
-                    .frame(maxHeight: .infinity, alignment: .top)
-                    .accessibilityIdentifier("licencas-erro")
             }
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(FrilaCor.fundo)
         .navigationTitle(TextosDeLicencas.titulo)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $aberta) { licenca in
+            TelaDetalheDaLicenca(licenca)
+        }
         // O JSON é lido uma vez, quando a tela aparece: o destino de um NavigationLink é criado
         // junto com a tela de origem, e ler no init repetiria a leitura a cada redesenho dela.
         .task {
             guard case .carregando = estado else { return }
             estado = (try? Licencas.carregar()).map(Estado.carregada) ?? .falha
         }
-    }
-
-    private func linha(_ licenca: LicencaDePacote) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-            Text(verbatim: licenca.nome).font(FrilaTipo.tituloDoCartao).foregroundStyle(FrilaCor.texto)
-            Text(verbatim: "\(licenca.versao) · \(licenca.tipo)").font(FrilaTipo.meta).foregroundStyle(FrilaCor.textoSecundario)
-        }
-        .frame(minHeight: FrilaMetrica.alvoMinimo)
     }
 }
 
@@ -111,28 +117,34 @@ public struct TelaDetalheDaLicenca: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
-                VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
+                VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                     campo(TextosDeLicencas.versao, licenca.versao)
                     campo(TextosDeLicencas.licenca, licenca.tipo)
                     Link(destination: licenca.url) {
-                        campo(TextosDeLicencas.repositorio, licenca.url.absoluteString, cor: FrilaCor.primaria)
+                        campo(TextosDeLicencas.repositorio, licenca.url.absoluteString, sublinhado: true)
                             .frame(minHeight: FrilaMetrica.alvoMinimo)
                             .contentShape(Rectangle())
                     }
                     .accessibilityIdentifier("repositorio-da-licenca")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .cartaoFrila()
 
                 texto(licenca.texto).accessibilityIdentifier("texto-da-licenca")
 
                 if let aviso = licenca.aviso {
-                    Text(verbatim: TextosDeLicencas.aviso).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
-                        .accessibilityAddTraits(.isHeader)
-                    texto(aviso).accessibilityIdentifier("aviso-da-licenca")
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                        Text(verbatim: TextosDeLicencas.aviso)
+                            .font(FrilaTipo.rotuloDeGrupo)
+                            .foregroundStyle(FrilaCor.textoSecundario)
+                            .accessibilityAddTraits(.isHeader)
+                        texto(aviso).accessibilityIdentifier("aviso-da-licenca")
+                    }
                 }
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.vertical, FrilaEspaco.bloco)
             .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
@@ -142,10 +154,12 @@ public struct TelaDetalheDaLicenca: View {
         .accessibilityIdentifier("tela-detalhe-da-licenca")
     }
 
-    private func campo(_ titulo: String, _ valor: String, cor: Color = FrilaCor.texto) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.fio) {
-            Text(verbatim: titulo).font(FrilaTipo.nota).foregroundStyle(FrilaCor.textoSecundario)
-            Text(verbatim: valor).font(FrilaTipo.corpo).foregroundStyle(cor).multilineTextAlignment(.leading)
+    private func campo(_ titulo: String, _ valor: String, sublinhado: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+            Text(verbatim: titulo).font(FrilaTipo.apoio).foregroundStyle(FrilaCor.textoSecundario)
+            Text(verbatim: valor).font(FrilaTipo.corpo).foregroundStyle(FrilaCor.texto)
+                .underline(sublinhado)
+                .multilineTextAlignment(.leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -153,7 +167,7 @@ public struct TelaDetalheDaLicenca: View {
 
     // O texto da licença entra como veio do pacote, com as quebras de linha originais.
     private func texto(_ conteudo: String) -> some View {
-        Text(verbatim: conteudo).font(FrilaTipo.nota).foregroundStyle(FrilaCor.texto)
+        Text(verbatim: conteudo).font(FrilaTipo.legenda).foregroundStyle(FrilaCor.texto)
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
             .cartaoFrila()

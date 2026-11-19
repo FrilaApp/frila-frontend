@@ -2351,6 +2351,17 @@
         }
       }
     },
+    "Ativa no Feed": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativa no Feed"
+          }
+        }
+      }
+    },
     "Ativar notificações": {
       "extractionState": "stale",
       "localizations": {
@@ -7779,6 +7790,17 @@
         }
       }
     },
+    "Nenhum profissional encontrado com esses filtros.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum profissional encontrado com esses filtros."
+          }
+        }
+      }
+    },
     "Nenhum turno confirmado": {
       "extractionState": "stale",
       "localizations": {
@@ -10340,6 +10362,17 @@
         }
       }
     },
+    "Presença a confirmar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença a confirmar"
+          }
+        }
+      }
+    },
     "Presença confirmada.": {
       "extractionState": "stale",
       "localizations": {
@@ -10358,6 +10391,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença marcada"
+          }
+        }
+      }
+    },
+    "Presença não verificada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença não verificada"
           }
         }
       }
@@ -10389,6 +10433,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença não verificada. O turno terminou sem a sua presença confirmada e ficou registrado como não verificado. Se algo não bate, fale com o Frila em Ajuda no turno."
+          }
+        }
+      }
+    },
+    "Presença verificada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença verificada"
           }
         }
       }
@@ -14198,6 +14253,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você pode mudar isso quando quiser, nos Ajustes do iPhone."
+          }
+        }
+      }
+    },
+    "Você pode publicar a vaga para todos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode publicar a vaga para todos."
           }
         }
       }

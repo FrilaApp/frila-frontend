@@ -75,6 +75,7 @@ import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import br.com.frila.feature.vagas.feed.TelaFeedVagas
+import br.com.frila.feature.vagas.escala.TextosEscala
 import br.com.frila.feature.vagas.painel.CancelarVagaViewModel
 import br.com.frila.feature.vagas.painel.ItemMinhaVaga
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
@@ -85,6 +86,11 @@ import br.com.frila.feature.vagas.painel.TelaMinhasVagas
 import br.com.frila.feature.vagas.painel.TelaRepublicarPosicoesRestantes
 import br.com.frila.feature.vagas.painel.TelaRepublicarVaga
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
+import br.com.frila.feature.equipe.casa.TelaTenhoUmConvite
+import br.com.frila.feature.equipe.casa.TelaTrocarDeCasa
+import br.com.frila.feature.equipe.casa.TenhoUmConviteViewModel
+import br.com.frila.feature.equipe.casa.TextosEquipeDaCasa
+import br.com.frila.feature.equipe.casa.TrocarDeCasaViewModel
 import br.com.frila.feature.equipe.TelaEquipeDeConfianca
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.estabelecimento.TelaCadastroEstabelecimento
@@ -128,6 +134,10 @@ import org.koin.core.parameter.parametersOf
 /** Rotas da navegação declarativa. Única fonte de verdade dos destinos possíveis do app. */
 /** Marcas de teste das duas linhas que o app põe no grupo da conta do Perfil. */
 internal const val ENTRADA_BLOQUEIOS = "entrada-bloqueios"
+internal const val ENTRADA_PUBLICAR_ESCALA = "entrada-publicar-escala"
+internal const val ENTRADA_EQUIPE_DA_CASA = "entrada-equipe-da-casa"
+internal const val ENTRADA_TENHO_UM_CONVITE = "entrada-tenho-um-convite"
+internal const val ENTRADA_TROCAR_DE_CASA = "entrada-trocar-de-casa"
 internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
 
 object Rotas {
@@ -159,6 +169,10 @@ object Rotas {
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
+    const val PUBLICAR_ESCALA = "publicar_escala/{estabelecimentoId}"
+    const val EQUIPE_DA_CASA = "equipe_da_casa/{estabelecimentoId}"
+    const val TENHO_UM_CONVITE = "tenho_um_convite"
+    const val TROCAR_DE_CASA = "trocar_de_casa?atual={atual}"
     const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
@@ -208,6 +222,12 @@ object Rotas {
         "republicar_vaga/${Uri.encode(vagaId)}?selecao=$selecao&duracaoMin=$duracaoMin"
 
     fun publicarVaga(estabelecimentoId: String) = "publicar_vaga/${Uri.encode(estabelecimentoId)}"
+
+    fun publicarEscala(estabelecimentoId: String) = "publicar_escala/${Uri.encode(estabelecimentoId)}"
+
+    fun equipeDaCasa(estabelecimentoId: String) = "equipe_da_casa/${Uri.encode(estabelecimentoId)}"
+
+    fun trocarDeCasa(atual: String? = null) = if (atual == null) "trocar_de_casa" else "trocar_de_casa?atual=${Uri.encode(atual)}"
 
     /** O turno da posição `posicaoId` da vaga `vagaId`, lido do painel do estabelecimento. */
     fun turnoDoContratante(estabelecimentoId: String, vagaId: String, posicaoId: String) =
@@ -339,6 +359,8 @@ fun AppNavegacao(
     // RN: o papel da conta diz que abas a raiz mostra. Vem da abertura; quando só a rota diz quem é (link que cai direto
     // numa raiz do profissional, grafo sem a abertura), a rota decide, e o papel fica lembrado para a aba Conta.
     var papelDaRaiz by rememberSaveable(stateSaver = SalvadorDoPapelDaRaiz) { mutableStateOf<PapelDaRaiz?>(null) }
+    // "Trocar de casa": a casa que a pessoa escolheu vale até ela sair do app; sem escolha, vale a primeira por nome.
+    var casaEscolhidaId by rememberSaveable { mutableStateOf<String?>(null) }
     val padraoAtual = padraoDoTopoDaPilha(navController)
     LaunchedEffect(padraoAtual) {
         if (papelDaRaiz == null) papelPelaRota(padraoAtual)?.let { papelDaRaiz = it }
@@ -350,6 +372,8 @@ fun AppNavegacao(
     fun irParaEntrada() {
         guardaBiometrico.liberarAposLimparSessao()
         papelDaRaiz = null
+        // A casa escolhida em "Trocar de casa" é da conta que saiu: a próxima abertura vale a padrão do servidor.
+        casaEscolhidaId = null
         if (navController.currentDestination?.route == Rotas.ENTRADA && navController.previousBackStackEntry == null) return
         navController.navigate(Rotas.ENTRADA) {
             popUpTo(0) { inclusive = true }
@@ -369,6 +393,8 @@ fun AppNavegacao(
     val denunciarCasa: (String, String) -> Unit = { casaId, turnoId ->
         navController.navigate(Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, casaId, turnoId = turnoId))
     }
+    // O relato de ocorrência nasce do turno (antes só o link frila://suporte chegava nele), como a folha de suporte do iOS.
+    val pedirSuporte: (String) -> Unit = { turnoId -> navController.navigate(Rotas.ocorrencia(turnoId)) }
 
     // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de
     // rede apaga fora da thread principal quando o Auth recusa o token, e a navegação só anda na principal.
@@ -433,6 +459,8 @@ fun AppNavegacao(
                         RotaDeAbertura(
                             avaliador = avaliadorDeDestino,
                             aoDecidir = { destino ->
+                                // Cada abertura decide a casa pelo servidor; uma escolha de antes não vale para esta conta.
+                                casaEscolhidaId = null
                                 val casa = (destino as? DestinoDaConta.Contratante)?.casa
                                 if (destino is DestinoDaConta.Contratante && casa == null) {
                                     // Contratante ainda sem casa não tem abas: o Perfil (Sair, Excluir conta) fica como
@@ -600,6 +628,7 @@ fun AppNavegacao(
                                         },
                                         aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                         aoDenunciarEstabelecimento = denunciarCasa,
+                                        aoPedirSuporte = pedirSuporte,
                                         aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                     )
                                 }
@@ -638,6 +667,7 @@ fun AppNavegacao(
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                     aoDenunciarEstabelecimento = denunciarCasa,
+                                    aoPedirSuporte = pedirSuporte,
                                     aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                 )
                             }
@@ -666,6 +696,7 @@ fun AppNavegacao(
                             },
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
+                            aoPedirSuporte = pedirSuporte,
                             aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                             // Raiz com aba: abre sem título de página (a aba já diz onde a pessoa está).
                             comTitulo = false,
@@ -693,8 +724,20 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
                     val viewModel: OcorrenciaTurnoViewModel = koinViewModel(parameters = { parametersOf(turnoId) })
+                    val contexto = LocalContext.current
                     TelaOcorrencia(
                         viewModel = viewModel,
+                        emailDeSuporte = EnderecosOficiais.padrao.emailSuporte,
+                        // O relato só existe no corpo deste e-mail (nunca sobe numa RPC): falhar em abrir tem de avisar, não engolir.
+                        aoAbrirEmailDeSuporte = { pedido ->
+                            try {
+                                contexto.startActivity(intentDoEmailDeSuporte(EnderecosOficiais.padrao.emailSuporte, turnoId, pedido))
+                                true
+                            } catch (_: Exception) {
+                                // Sem app de e-mail (ActivityNotFoundException) ou recusa do sistema: a tela avisa e mantém o relato.
+                                false
+                            }
+                        },
                         aoVoltar = { navController.popBackStack() },
                     )
                 }
@@ -739,7 +782,7 @@ fun AppNavegacao(
                     // Ao voltar do fluxo do selo a rota entra de novo em composição e relê o estado.
                     LaunchedEffect(viewModelSelo) { viewModelSelo?.carregar() }
                     var casas by remember { mutableStateOf<CasasDaConta>(CasasDaConta.Desconhecidas) }
-                    LaunchedEffect(servicoMembros) { casas = buscarCasasDaConta(servicoMembros) }
+                    LaunchedEffect(servicoMembros, casaEscolhidaId) { casas = buscarCasasDaConta(servicoMembros, casaEscolhidaId) }
                     val primeiraCasa = casas as? CasasDaConta.Primeira
                     // L2-5 e L2-6: "Pessoas e locais bloqueados" é dos dois papéis; contestar o despacho é só do profissional
                     // (mesma regra de `casas` das outras entradas dele). São linhas do grupo da conta, no Perfil.
@@ -750,6 +793,23 @@ fun AppNavegacao(
                             null
                         },
                         AtalhoDaConta(TextosBloqueios.TITULO, ENTRADA_BLOQUEIOS) { navController.navigate(Rotas.BLOQUEIOS) },
+                        // RF19: a escala do evento é da casa; entra ao lado de "Publicar vaga", que continua como está.
+                        primeiraCasa?.let { casa ->
+                            AtalhoDaConta(TextosEscala.ENTRADA, ENTRADA_PUBLICAR_ESCALA) { navController.navigate(Rotas.publicarEscala(casa.id)) }
+                        },
+                        // RF21: só o administrador vê a equipe da casa; o operador não tem esta linha (o servidor recusaria).
+                        primeiraCasa?.takeIf { it.papel?.podeGerenciarEquipe == true }?.let { casa ->
+                            AtalhoDaConta(TextosEquipeDaCasa.ENTRADA_EQUIPE, ENTRADA_EQUIPE_DA_CASA) { navController.navigate(Rotas.equipeDaCasa(casa.id)) }
+                        },
+                        primeiraCasa?.takeIf { it.total > 1 }?.let { casa ->
+                            AtalhoDaConta(TextosEquipeDaCasa.ENTRADA_TROCAR, ENTRADA_TROCAR_DE_CASA) { navController.navigate(Rotas.trocarDeCasa(casa.id)) }
+                        },
+                        // Sem deep link: quem recebeu o link cola aqui. Só contas de contratante (com casa ou a caminho da primeira).
+                        if (casas is CasasDaConta.Primeira || casas == CasasDaConta.Nenhuma) {
+                            AtalhoDaConta(TextosEquipeDaCasa.ENTRADA_CONVITE, ENTRADA_TENHO_UM_CONVITE) { navController.navigate(Rotas.TENHO_UM_CONVITE) }
+                        } else {
+                            null
+                        },
                     )
                     TelaPerfil(
                         viewModel = viewModel,
@@ -957,6 +1017,10 @@ fun AppNavegacao(
                         } else {
                             null
                         },
+                        // Denúncia sem turno associado: o alvo é o perfil público do membro da equipe.
+                        aoDenunciar = { profissional ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                        },
                     )
                 }
             }
@@ -997,6 +1061,75 @@ fun AppNavegacao(
             }
 
             composable(
+                route = Rotas.EQUIPE_DA_CASA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    RotaEquipeDaCasa(
+                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        servicoMembros = servicoMembros,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(Rotas.TENHO_UM_CONVITE) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: TenhoUmConviteViewModel = koinViewModel()
+                    TelaTenhoUmConvite(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoAbrirCasa = { id ->
+                            if (id == null) {
+                                navController.popBackStack()
+                            } else {
+                                abrirCasa(navController, id, null, { papelDaRaiz = it }, { casaEscolhidaId = it })
+                            }
+                        },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.TROCAR_DE_CASA,
+                arguments = listOf(navArgument("atual") { type = NavType.StringType; nullable = true; defaultValue = null }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: TrocarDeCasaViewModel = koinViewModel()
+                    TelaTrocarDeCasa(
+                        viewModel = viewModel,
+                        casaEmUsoId = entrada.arguments?.getString("atual"),
+                        aoEscolher = { casa -> abrirCasa(navController, casa.id, casa.nome, { papelDaRaiz = it }, { casaEscolhidaId = it }) },
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.PUBLICAR_ESCALA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    RotaEscalaDeEvento(
+                        estabelecimentoId = estabelecimentoId,
+                        servicoMembros = servicoMembros,
+                        aoVoltar = { navController.popBackStack() },
+                        // "Ver minhas vagas" abre Minhas vagas sempre, também quando a escala veio do Perfil: com a lista na
+                        // pilha, volta até ela; sem a lista (rota aberta direto), abre a da casa no lugar da escala.
+                        aoConcluir = {
+                            if (!navController.popBackStack(Rotas.MINHAS_VAGAS, inclusive = false)) {
+                                navController.navigate(Rotas.minhasVagas(estabelecimentoId)) {
+                                    popUpTo(Rotas.PUBLICAR_ESCALA) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+
+            composable(
                 route = Rotas.MINHAS_VAGAS,
                 arguments = listOf(
                     navArgument("estabelecimentoId") { type = NavType.StringType },
@@ -1026,6 +1159,7 @@ fun AppNavegacao(
                             navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
+                        aoPublicarEscala = { id -> navController.navigate(Rotas.publicarEscala(id)) },
                         aoAcompanharTurno = { vagaId, posicaoId ->
                             navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
                         },
@@ -1122,6 +1256,7 @@ fun AppNavegacao(
                         aoDenunciarProfissional = { profissionalId, turnoId ->
                             navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
                         },
+                        aoPedirSuporte = pedirSuporte,
                     )
                 }
             }
@@ -1146,6 +1281,10 @@ fun AppNavegacao(
                     TelaCandidatosDaVaga(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        // Denúncia sem turno associado: a candidatura ainda não virou turno.
+                        aoDenunciar = { profissional ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                        },
                     )
                 }
             }

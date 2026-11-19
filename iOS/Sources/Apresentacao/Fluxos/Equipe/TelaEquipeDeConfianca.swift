@@ -22,10 +22,11 @@ public struct TelaEquipeDeConfianca: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 Text(verbatim: TextosEquipeDeConfianca.explicacao)
-                    .font(FrilaTipo.meta)
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("equipe-explicacao")
 
@@ -40,12 +41,14 @@ public struct TelaEquipeDeConfianca: View {
 
                 conteudo
             }
-            .padding(FrilaEspaco.medio)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.top, FrilaEspaco.item)
+            .padding(.bottom, FrilaEspaco.grupo)
         }
         .background(FrilaCor.fundo)
+        // O título fica na barra (cromo nativo), pequeno: a lista começa logo abaixo.
         .navigationTitle(Text(verbatim: TextosEquipeDeConfianca.titulo))
-        .tituloGrandeForaDeAX()
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
 
         .task {
             if let api {
@@ -87,38 +90,48 @@ public struct TelaEquipeDeConfianca: View {
             EstadoErro(verbatim: TextosEquipeDeConfianca.erroCarregar) { Task { await viewModel.carregar() } }
                 .accessibilityIdentifier("equipe-erro")
         case let .conteudo(membros):
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
                 ForEach(membros) { perfil in
                     linha(perfil)
-                    Divider().overlay(FrilaCor.divisoria)
                 }
             }
         }
     }
 
+    /// Um membro da equipe num cartão: quem é, o que faz e a reputação escrita como fato (na voz de quem avalia);
+    /// "Chamar de novo" é o botão secundário e "Remover" a ação discreta, no fim do cartão.
     private func linha(_ perfil: PerfilPublico) -> some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
-            Text(verbatim: perfil.nome)
-                .font(FrilaTipo.tituloDoCartao.weight(.bold))
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityAddTraits(.isHeader)
-            if !perfil.funcoes.isEmpty {
-                Text(verbatim: perfil.funcoes.joined(separator: ", "))
-                    .font(FrilaTipo.meta)
+        VStack(alignment: .leading, spacing: FrilaEspaco.bloco) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                Text(verbatim: perfil.nome)
+                    .font(FrilaTipo.nome)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                if !perfil.funcoes.isEmpty {
+                    Text(verbatim: perfil.funcoes.joined(separator: ", "))
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text(verbatim: SeloReputacao.descricao(perfil.reputacao))
+                    .font(FrilaTipo.apoio)
                     .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            SeloReputacao(perfil.reputacao)
-            if chamadaHabilitada, let api, !bloqueios.contem(perfil) {
-                BotaoChamarDeNovo(api: api, profissionalID: perfil.id, estabelecimentoID: viewModel.estabelecimentoID)
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                if chamadaHabilitada, let api, !bloqueios.contem(perfil) {
+                    BotaoChamarDeNovo(api: api, profissionalID: perfil.id, estabelecimentoID: viewModel.estabelecimentoID)
+                }
+                Button { aRemover = perfil } label: { Text(verbatim: TextosEquipeDeConfianca.remover) }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .disabled(viewModel.removendo != nil)
+                    .accessibilityLabel(Text(verbatim: "\(TextosEquipeDeConfianca.remover) \(perfil.nome)"))
+                    .accessibilityIdentifier("remover-da-equipe-\(perfil.id)")
             }
-            BotaoSecundario(verbatim: TextosEquipeDeConfianca.remover) { aRemover = perfil }
-                .disabled(viewModel.removendo != nil)
-                .accessibilityLabel(Text(verbatim: "\(TextosEquipeDeConfianca.remover) \(perfil.nome)"))
-                .accessibilityIdentifier("remover-da-equipe-\(perfil.id)")
-            if viewModel.removendo == perfil.id { ProgressView() }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, FrilaEspaco.medio)
+        .cartaoFrila()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("membro-da-equipe-\(perfil.id)")
     }
@@ -149,43 +162,20 @@ struct BotaoIncluirNaEquipe: View {
 
     var body: some View {
         if !bloqueios.contem(perfil) {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                 if model.situacao == .naEquipe {
-                    Label {
-                        Text(verbatim: TextosEquipeDeConfianca.naEquipe)
-                    } icon: {
-                        Image(systemName: "checkmark.seal")
-                    }
-                    .font(FrilaTipo.meta)
-                    .foregroundStyle(FrilaCor.sucesso)
-                    .padding(.horizontal, FrilaEspaco.compacto)
-                    .padding(.vertical, FrilaEspaco.pequeno)
-                    .background(FrilaCor.sucesso.opacity(0.1), in: Capsule())
-                    .overlay(Capsule().strokeBorder(FrilaCor.sucesso.opacity(0.3), lineWidth: 1))
-                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                    .accessibilityIdentifier("na-equipe-\(identificador)")
+                    // Selo informa, não se toca: contorno, sem verde.
+                    SeloDeStatus(verbatim: TextosEquipeDeConfianca.naEquipe, estilo: .contorno, icone: "checkmark")
+                        .accessibilityIdentifier("na-equipe-\(identificador)")
                 } else {
-                    Button { Task { await model.incluir() } } label: {
-                        Label {
-                            Text(verbatim: TextosEquipeDeConfianca.incluir)
-                        } icon: {
-                            Image(systemName: "person.badge.plus")
-                        }
-                        .font(FrilaTipo.botaoPadrao)
-                        .foregroundStyle(FrilaCor.texto)
-                        .padding(.horizontal, FrilaEspaco.medio)
-                        .frame(maxWidth: .infinity, minHeight: FrilaMetrica.alvoMinimo)
-                        .overlay(Capsule().strokeBorder(FrilaCor.borda, lineWidth: 1))
-                        .contentShape(Capsule())
+                    // O erro da ação fica logo acima do botão que a disparou.
+                    if let erro = model.mensagemErro {
+                        MensagemJuntoAoBotao(verbatim: erro)
+                            .accessibilityIdentifier("erro-\(identificador)")
                     }
-                    .buttonStyle(.tatil)
-                    .disabled(model.incluindo)
-                    .accessibilityIdentifier(identificador)
-                    if model.incluindo { ProgressView() }
-                }
-                if let erro = model.mensagemErro {
-                    AvisoFrila(verbatim: erro, tom: .erro)
-                        .accessibilityIdentifier("erro-\(identificador)")
+                    BotaoSecundario(verbatim: TextosEquipeDeConfianca.incluir) { Task { await model.incluir() } }
+                        .disabled(model.incluindo)
+                        .accessibilityIdentifier(identificador)
                 }
             }
             .task { await model.carregar() }

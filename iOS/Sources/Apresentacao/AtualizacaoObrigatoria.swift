@@ -78,7 +78,8 @@ public final class AtualizacaoObrigatoriaViewModel {
     }
 }
 
-/// Tela cheia de atualização obrigatória: segue o padrão de estados Hi-Fi do Fabrício (ícone limpo, título display, apoio em corpo e botão primário cápsula).
+/// Tela cheia de atualização obrigatória. O Fabrício não desenhou esta tela: extrapolada do sistema da entrada. O
+/// título em Prodigy e a mensagem do servidor em apoio, à esquerda, e o botão primário ancorado embaixo (único laranja).
 public struct PortaoDeAtualizacao<Conteudo: View>: View {
     @State private var viewModel: AtualizacaoObrigatoriaViewModel
     @Environment(\.openURL) private var abrirURL
@@ -97,36 +98,37 @@ public struct PortaoDeAtualizacao<Conteudo: View>: View {
             case .liberado:
                 conteudo()
             case let .bloqueado(mensagem, url):
-                ScrollView {
-                    VStack(spacing: FrilaEspaco.grande) {
-                        Image(systemName: "arrow.down.app.fill")
-                            .font(FrilaTipo.tituloGrande)
-                            .foregroundStyle(FrilaCor.textoSecundario)
-                            .accessibilityHidden(true)
-                        VStack(spacing: FrilaEspaco.pequeno) {
-                            Text("Atualização necessária", bundle: bundleApresentacao)
-                                .font(FrilaTipo.tituloGrande)
-                                .foregroundStyle(FrilaCor.texto)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityAddTraits(.isHeader)
-                            Text(verbatim: mensagem)
-                                .font(FrilaTipo.corpo)
-                                .multilineTextAlignment(.center)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        BotaoPrimario("Atualizar agora") { abrirURL(url) }
-                    }
-                    .padding(FrilaEspaco.grande)
-                    .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityElement(children: .contain)
-                }
+                telaBloqueada(mensagem: mensagem, url: url)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(FrilaCor.fundo.ignoresSafeArea())
         .task { await viewModel.verificar() }
+    }
+
+    private func telaBloqueada(mensagem: String, url: URL) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+                Text("Atualização necessária", bundle: bundleApresentacao)
+                    .font(FrilaTipo.tituloDaTela)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text(verbatim: mensagem)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, FrilaEspaco.respiro)
+            .padding(.horizontal, FrilaEspaco.grupo)
+            .padding(.bottom, FrilaEspaco.grupo)
+            .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .contain)
+        }
+        .rodapeAncorado {
+            BotaoPrimario("Atualizar agora") { abrirURL(url) }
+        }
     }
 }
