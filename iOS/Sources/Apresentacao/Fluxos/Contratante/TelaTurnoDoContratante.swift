@@ -33,7 +33,6 @@ enum TextosDoAcompanhamento {
     static let semCheckin = String(localized: "Sem check-in 15 minutos depois do início.", bundle: bundleApresentacao)
     static let acompanharTurno = titulo
     static let vagaNaoEncontrada = String(localized: "Não encontramos esta vaga.", bundle: bundleApresentacao)
-    static let periodo = String(localized: "%@ – %@", bundle: bundleApresentacao)
     static let checkinNoLocal = String(localized: "Check-in no local às %@.", bundle: bundleApresentacao)
     static let checkinManual = String(localized: "Check-in manual às %@.", bundle: bundleApresentacao)
     static let checkinGenerico = String(localized: "Check-in às %@.", bundle: bundleApresentacao)
