@@ -4,7 +4,6 @@ import SwiftUI
 /// A tela guarda o modelo em `@State`, e o `@State` sobrevive quando o roteador troca a chamada do aviso
 /// por outra na mesma posição da pilha. A identidade pela chamada recria o estado e carrega a nova.
 public struct TelaDetalheChamadaRecebida: View {
-    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     private let viewModel: ChamadaRecebidaViewModel
     private let onAbrirTurno: ((UUID) -> Void)?
 
@@ -23,6 +22,7 @@ private struct ConteudoDaChamadaRecebida: View {
     @State private var viewModel: ChamadaRecebidaViewModel
     var onAbrirTurno: ((UUID) -> Void)?
     @Environment(\.dismiss) private var fechar
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var bloqueiosLocais = BloqueiosDaSessao()
     private var bloqueios: BloqueiosDaSessao { bloqueiosDaSessao ?? bloqueiosLocais }
