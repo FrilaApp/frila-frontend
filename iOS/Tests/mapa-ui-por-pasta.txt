@@ -55,6 +55,7 @@ Sources/Apresentacao/Fluxos/Contratante/MinhasVagas.swift = MinhasVagasUITests, 
 Sources/Apresentacao/Fluxos/Contratante/RepublicarVaga.swift = RepublicarVagaUITests, MinhasVagasUITests
 Sources/Apresentacao/Fluxos/Contratante/RepublicarPosicoesRestantes.swift = RepublicarPosicoesRestantesUITests, MinhasVagasUITests
 Sources/Apresentacao/Fluxos/Equipe/ = EquipeDeConfiancaUITests, VarreduraFinal11UITests, ChamadaDiretaCompletaUITests
+Tests/UI/CapturasR6UITests.swift = CapturasR6UITests
 Sources/Apresentacao/Fluxos/Perfil/ = PerfilUITests, FotoDePerfilUITests, ExportarDadosUITests, HistoricoDeTurnosUITests, PorQueReceboVagasUITests, ContatoCopiavelUITests, AparenciaUITests, ReputacaoDosPerfisPublicosUITests
 # Profissional: o que não casa com uma linha mais específica abaixo cai neste conjunto largo.
 Sources/Apresentacao/Fluxos/Profissional/ = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
