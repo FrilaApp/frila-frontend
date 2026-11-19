@@ -9,8 +9,9 @@ final class MinhasVagasUITests: XCTestCase {
 
         let estadoVazio = app.descendants(matching: .any)["estado-vazio-minhas-vagas"]
         XCTAssertTrue(estadoVazio.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Nenhuma vaga aberta"].exists)
-        XCTAssertTrue(app.staticTexts["Publique uma vaga e avisamos os profissionais da função perto do local."].exists)
+        // O estado vazio do sistema lê o fato e a dica como um elemento só.
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Nenhuma vaga aberta'")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Publique uma vaga e avisamos os profissionais da função perto do local.'")).firstMatch.exists)
     }
 
     func testVagaConfirmadaAbrePerfilPublicoSemContato() {

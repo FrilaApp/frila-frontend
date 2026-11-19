@@ -55,9 +55,11 @@ struct ModoDaVagaDoEstudio: View {
             }
 
             if let erro = vaga.erros[.modo] {
-                Label(erro, systemImage: "exclamationmark.circle.fill")
+                // Problema não tem cor: o erro vai em tinta, junto do campo.
+                Text(verbatim: erro)
                     .frilaType(FrilaFormType.detail, dynamic: true)
-                    .foregroundStyle(FrilaColor.dynamicError(isDark: isDark))
+                    .foregroundStyle(FrilaColor.dynamicTextPrimary(isDark: isDark))
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("erro-publicacao-modo")
             }
         }
@@ -92,15 +94,9 @@ struct AvisosDoEstudio: View {
                 VStack(alignment: .leading, spacing: FrilaGeometry.space8) {
                     AvisoDoEstudio(icone: "exclamationmark.triangle", texto: TextosDaFila.texto(recusa.tipo), isDark: isDark)
                         .accessibilityIdentifier("aviso-publicacao-recusada")
-                    Button {
+                    BotaoSecundario("Fechar") {
                         Task { await vaga.fecharAvisoDaFila() }
-                    } label: {
-                        Text("Fechar", bundle: bundleApresentacao)
-                            .font(FrilaTypography.button)
-                            .padding(.horizontal, FrilaGeometry.space20)
-                            .frame(height: FrilaGeometry.buttonHeightStandard)
                     }
-                    .buttonStyle(FrilaPillButtonStyle(variant: .outline, isDark: isDark))
                     .accessibilityIdentifier("fechar-aviso-publicacao-recusada")
                 }
             }
@@ -122,34 +118,14 @@ struct AvisosDoEstudio: View {
     }
 }
 
-/// Cartão de aviso no desenho dos cartões do formulário da origem (superfície, borda e elevação).
+/// Aviso do estúdio: o `AvisoFrila` do sistema (bloco neutro, sem vermelho nem amarelo). O ícone que o chamador
+/// passa só decide o tom: triângulo é alerta; o resto, informação.
 struct AvisoDoEstudio: View {
     let icone: String
     let texto: String
     let isDark: Bool
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: FrilaGeometry.space10) {
-            Image(systemName: icone)
-                .font(FrilaFonteDoSistema.fonte(size: 15, weight: .semibold))
-                .foregroundStyle(FrilaColor.dynamicBrandAccent(isDark: isDark))
-                .accessibilityHidden(true)
-            Text(verbatim: texto)
-                .frilaType(FrilaFormType.support, dynamic: true)
-                .foregroundStyle(FrilaColor.dynamicTextPrimary(isDark: isDark))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FrilaGeometry.space16)
-        .background(FrilaColor.dynamicFormCardSurface(isDark: isDark))
-        .clipShape(RoundedRectangle(cornerRadius: FrilaGeometry.radiusCard, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: FrilaGeometry.radiusCard, style: .continuous)
-                .strokeBorder(FrilaColor.dynamicFormCardBorder(isDark: isDark), lineWidth: 1)
-        }
-        .frilaFormLift(isDark: isDark)
-        // O cartão é um elemento com rótulo (o texto), e o texto segue consultável por dentro.
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(texto)
+        AvisoFrila(verbatim: texto, tom: icone.hasPrefix("exclamationmark") ? .alerta : .informativo)
     }
 }
