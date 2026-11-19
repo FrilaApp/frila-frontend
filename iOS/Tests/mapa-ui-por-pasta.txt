@@ -62,6 +62,7 @@ Sources/Apresentacao/Fluxos/Profissional/ = FrilaUITests, VagasUITests, Candidat
 Sources/Apresentacao/Fluxos/Profissional/FluxoDoProfissional.swift = FrilaUITests, VagasUITests, CandidaturaUITests, ServidorDeHojeUITests, PresencaUITests, CheckinPorCodigoUITests, AvaliacaoUITests, ServicosDoProfissionalUITests, ModoSelecaoDoProfissionalUITests, DetalheVagaBarraInferiorUITests, BarraAceitarTurnoUITests, ReputacaoDosPerfisPublicosUITests, CicloDePontaAPontaUITests, TurnoContrato0231UITests, ModoAviaoUITests, CancelamentoDoProfissionalUITests, VagaEncerradaTrabalhadaUITests, PlacaDaVagaUITests, ChamadaDiretaCompletaUITests, NotificacaoDePushUITests
 Sources/Apresentacao/Fluxos/Profissional/CacheDeLeituras.swift = VagasUITests, ServidorDeHojeUITests, ModoAviaoUITests, PerfilUITests, ServicosDoProfissionalUITests
 Sources/Apresentacao/Fluxos/Profissional/*Presenca* = PresencaUITests, CheckinPorCodigoUITests, ModoAviaoUITests, CicloDePontaAPontaUITests, ServidorDeHojeUITests
+Tests/UI/CapturasR3UITests.swift = CapturasR3UITests
 Sources/Apresentacao/Fluxos/Profissional/*Codigo* = CheckinPorCodigoUITests, PresencaUITests, CicloDePontaAPontaUITests
 Sources/Apresentacao/Fluxos/Profissional/*Candidatura* = CandidaturaUITests, ModoSelecaoDoProfissionalUITests, CicloDePontaAPontaUITests, VagasUITests
 Sources/Apresentacao/Fluxos/Profissional/*DetalheVaga* = VagasUITests, CandidaturaUITests, DetalheVagaBarraInferiorUITests, PlacaDaVagaUITests, VagaEncerradaTrabalhadaUITests

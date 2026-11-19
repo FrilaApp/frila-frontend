@@ -5929,6 +5929,50 @@
         }
       }
     },
+    "Etapa atual": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa atual"
+          }
+        }
+      }
+    },
+    "Etapa feita": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa feita"
+          }
+        }
+      }
+    },
+    "Etapa que falta": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapa que falta"
+          }
+        }
+      }
+    },
+    "Etapas do turno": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etapas do turno"
+          }
+        }
+      }
+    },
     "Evento": {
       "extractionState": "stale",
       "localizations": {
@@ -10336,6 +10380,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Presença confirmada."
+          }
+        }
+      }
+    },
+    "Presença marcada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presença marcada"
           }
         }
       }
