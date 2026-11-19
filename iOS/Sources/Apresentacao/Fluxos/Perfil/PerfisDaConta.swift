@@ -131,6 +131,7 @@ public final class PerfilEstabelecimentoViewModel {
     /// Cada chamada de `carregar` tem a sua geração. A tela chama de novo ao trocar de casa (`.task(id:)`) e a resposta da casa
     /// anterior ainda pode chegar depois: só a chamada mais nova, e não cancelada, grava no modelo, e só ela desliga o `carregando`.
     private var geracao = 0
+    private var ultimaPreferida: UUID?
 
     /// `preferida` é a casa que a conta escolheu em "Trocar de casa"; sem ela, ou se a conta já não é membro dela, vale a primeira.
     /// Trocar de casa limpa o que era da anterior antes de ler a nova: nada de uma casa aparece na outra.
@@ -138,6 +139,7 @@ public final class PerfilEstabelecimentoViewModel {
         geracao += 1
         let minha = geracao
         func vale() -> Bool { minha == geracao && !Task.isCancelled }
+        ultimaPreferida = preferida
         carregando = true; mensagemErro = nil
         if let preferida, estabelecimento?.id != preferida { estabelecimento = nil; perfilPublico = nil }
         defer { if minha == geracao { carregando = false } }
@@ -153,6 +155,9 @@ public final class PerfilEstabelecimentoViewModel {
             estabelecimento = escolhida; perfilPublico = publico
         } catch { if vale() { mensagemErro = TextosPerfilConta.erro } }
     }
+
+    /// "Tentar de novo" relê a casa que a última leitura pedia, e não a primeira da lista.
+    public func tentarDeNovo() async { await carregar(preferindo: ultimaPreferida) }
 }
 
 /// Linha de lista do MidFi: texto 17 à esquerda e chevron em `textoSecundario` à direita, com 52 pt de altura mínima.
@@ -648,7 +653,7 @@ public struct TelaPerfilEstabelecimento: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.medio) {
                 if model.carregando { EstadoCarregando() }
-                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
+                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.tentarDeNovo() } } }
                 else if let estabelecimento = model.estabelecimento {
                     VStack(alignment: .leading, spacing: FrilaEspaco.pequeno) {
                         Text(verbatim: estabelecimento.nome)

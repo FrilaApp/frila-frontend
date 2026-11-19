@@ -410,6 +410,25 @@ struct TrocarDeCasaTests {
         #expect(!modelo.carregando)
     }
 
+    @Test("Tentar de novo depois de uma falha relê a casa escolhida, não a primeira da lista")
+    func tentarDeNovoNaCasaEscolhida() async {
+        let casas = CasasDaConta([bistro, cantina])
+        let modelo = perfil(casas)
+        await casas.falhar(com: ErroDaApi(codigo: .semRede))
+
+        await modelo.carregar(preferindo: cantina.id)
+        #expect(modelo.mensagemErro != nil)
+        #expect(modelo.estabelecimento == nil)
+
+        await casas.falhar(com: nil)
+        await modelo.tentarDeNovo()
+
+        #expect(modelo.estabelecimento == cantina)
+        #expect(modelo.perfilPublico?.nome == "Cantina da Esquina")
+        #expect(modelo.mensagemErro == nil)
+        #expect(!modelo.carregando)
+    }
+
     @Test("Conta que ficou sem casa não mostra a casa antiga no perfil")
     func contaSemCasaNoPerfil() async {
         let casas = CasasDaConta([bistro])
