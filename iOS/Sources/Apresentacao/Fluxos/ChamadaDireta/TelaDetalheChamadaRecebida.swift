@@ -165,7 +165,7 @@ private struct ConteudoDaChamadaRecebida: View {
 
           VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: detalhe.funcao.nome) }
-            FrilaLinhaDeDado(icone: "clock") { Text(verbatim: viewModel.intervaloFormatado) }
+            FrilaLinhaDeDado(icone: "clock") { Text(verbatim: FormatoDeHorarioDoTurno().comDia(inicio: detalhe.inicioEm, fim: detalhe.fimEm)) }
             FrilaLinhaDeDado(icone: "mappin") {
                 if let faixa = detalhe.distanciaFaixa {
                     Text(verbatim: "\(detalhe.regiaoAdministrativa) • \(faixa.rotulo)")

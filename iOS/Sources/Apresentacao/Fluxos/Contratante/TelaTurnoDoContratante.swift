@@ -371,9 +371,7 @@ struct TelaTurnoDoContratante: View {
                 FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: turno.vaga.funcao) }
                 FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: formatador.data(turno.vaga.periodo.inicio)) }
                 FrilaLinhaDeDado(icone: "clock") {
-                    Text(verbatim: String(
-                        format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
-                    ))
+                    Text(verbatim: FormatoDeHorarioDoTurno().horario(inicio: turno.vaga.periodo.inicio, fim: turno.vaga.periodo.fim))
                 }
                 FrilaLinhaDeDado(icone: "mappin.and.ellipse") { Text(verbatim: turno.vaga.local) }
             }
@@ -830,9 +828,7 @@ struct PendenciasDoContratante: View {
                     FrilaLinhaDeDado(icone: "briefcase") { Text(verbatim: turno.vaga.funcao) }
                     FrilaLinhaDeDado(icone: "calendar") { Text(verbatim: formatador.data(turno.vaga.periodo.inicio)) }
                     FrilaLinhaDeDado(icone: "clock") {
-                        Text(verbatim: String(
-                            format: TextosDoAcompanhamento.periodo, formatador.hora(turno.vaga.periodo.inicio), formatador.hora(turno.vaga.periodo.fim)
-                        ))
+                        Text(verbatim: FormatoDeHorarioDoTurno().horario(inicio: turno.vaga.periodo.inicio, fim: turno.vaga.periodo.fim))
                     }
                 }
                 .accessibilityElement(children: .combine)
