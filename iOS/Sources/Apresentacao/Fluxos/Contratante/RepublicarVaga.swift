@@ -486,7 +486,7 @@ public struct TelaRepublicarVaga: View {
                     .font(FrilaTipo.rotuloDeGrupo)
                     .foregroundStyle(FrilaCor.textoSecundario)
                 linhaDeHorario(
-                    valor: formatador.dataEHora(data.wrappedValue),
+                    valor: FormatoDeHorarioDoTurno().instanteComDia(data.wrappedValue),
                     id: campoID,
                     titulo: titulo,
                     alvo: campoID == Self.idDoInicio ? .inicio : .fim

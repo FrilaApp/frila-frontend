@@ -30,4 +30,10 @@ struct FormatoDeHorarioDoTurnoTests {
         let texto = FormatoDeHorarioDoTurno().comDia(inicio: inicio, fim: fim)
         #expect(texto == "Qua, 18/11, 22:30 às 02:30")
     }
+
+    @Test("Um instante só vem como \"Qua, 18/11, 06:30\", com espaço para quebrar a linha em texto grande")
+    func instanteComDia() throws {
+        let momento = try instante("2026-11-18T09:30:00Z")
+        #expect(FormatoDeHorarioDoTurno().instanteComDia(momento) == "Qua, 18/11, 06:30")
+    }
 }

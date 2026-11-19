@@ -16,7 +16,17 @@ public struct FormatoDeHorarioDoTurno: Sendable {
 
     /// "Qua, 18/11, 06:30 às 09:30".
     public func comDia(inicio: Date, fim: Date) -> String {
-        let dia = FrilaShiftCalendar.weekdayShort(inicio).capitalized(with: Locale(identifier: "pt_BR"))
-        return "\(dia), \(FrilaShiftCalendar.dayMonth(inicio)), \(horario(inicio: inicio, fim: fim))"
+        "\(dia(inicio)), \(horario(inicio: inicio, fim: fim))"
+    }
+
+    /// Um instante só, com o dia: "Qua, 18/11, 06:30". Quebra entre as partes em texto grande, sem partir o ano ao meio.
+    public func instanteComDia(_ instante: Date) -> String {
+        "\(dia(instante)), \(formatador.hora(instante))"
+    }
+
+    /// "Qua, 18/11".
+    private func dia(_ instante: Date) -> String {
+        let diaDaSemana = FrilaShiftCalendar.weekdayShort(instante).capitalized(with: Locale(identifier: "pt_BR"))
+        return "\(diaDaSemana), \(FrilaShiftCalendar.dayMonth(instante))"
     }
 }
