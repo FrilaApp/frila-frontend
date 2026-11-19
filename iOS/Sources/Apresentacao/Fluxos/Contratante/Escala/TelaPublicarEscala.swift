@@ -16,8 +16,17 @@ public struct TelaPublicarEscala: View {
 
     private static let idDoAviso = "escala-aviso"
 
+    /// O que a folha de horário está editando (só em tamanho de acessibilidade).
+    private enum AlvoDeHorario: Hashable, Identifiable {
+        case dia
+        case inicio(UUID)
+        case fim(UUID)
+        var id: Self { self }
+    }
+
     @State private var modelo: PublicarEscalaViewModel
     @State private var escolhendoFuncaoDe: UUID?
+    @State private var editandoHorario: AlvoDeHorario?
     @FocusState private var foco: Foco?
     @AccessibilityFocusState private var focoDoAviso: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -105,6 +114,9 @@ public struct TelaPublicarEscala: View {
         }
         .sheet(isPresented: Binding(get: { escolhendoFuncaoDe != nil }, set: { if !$0 { escolhendoFuncaoDe = nil } })) {
             folhaDeFuncao
+        }
+        .sheet(item: $editandoHorario) { alvo in
+            folhaDeHorario(alvo)
         }
     }
 
@@ -224,9 +236,9 @@ public struct TelaPublicarEscala: View {
             campo(rotulo: nil, erro: erros[.horario], id: "escala-erro-horario-\(indice)") {
                 VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                     seletorDeHorario(TextosDaEscala.inicio, id: "escala-inicio-\(indice)",
-                                     data: ligacao(vaga.id, \.inicio))
+                                     data: ligacao(vaga.id, \.inicio), alvo: .inicio(vaga.id))
                     seletorDeHorario(TextosDaEscala.fim, id: "escala-fim-\(indice)",
-                                     data: ligacao(vaga.id, \.fim))
+                                     data: ligacao(vaga.id, \.fim), alvo: .fim(vaga.id))
                 }
             }
 
@@ -336,15 +348,12 @@ public struct TelaPublicarEscala: View {
         }
     }
 
-    /// Em AX5 o seletor compacto não encolhe abaixo do texto da data e alarga a tela inteira: lá vai a roleta, que tem largura própria.
+    /// Em AX5 a roda de data dentro da rolagem gira quando o dedo passa por cima e muda o dia sem querer: lá o dia é uma
+    /// linha que abre uma folha com a roda (fora da rolagem).
     @ViewBuilder
     private var seletorDoDia: some View {
         if dynamicTypeSize.isAccessibilitySize {
-            DatePicker(TextosDaEscala.data, selection: $modelo.data, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.wheel)
-                .environment(\.timeZone, FormatadorFrila.fuso)
-                .accessibilityIdentifier("escala-dia")
+            linhaDeHorario(valor: formatador.data(modelo.data), id: "escala-dia", titulo: TextosDaEscala.data, alvo: .dia)
         } else {
             DatePicker(TextosDaEscala.data, selection: $modelo.data, displayedComponents: .date)
                 .labelsHidden()
@@ -404,23 +413,10 @@ public struct TelaPublicarEscala: View {
     }
 
     @ViewBuilder
-    private func seletorDeHorario(_ titulo: String, id: String, data: Binding<Date>) -> some View {
+    private func seletorDeHorario(_ titulo: String, id: String, data: Binding<Date>, alvo: AlvoDeHorario) -> some View {
         if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                Text(verbatim: titulo).font(FrilaTipo.rotuloDoCampo).foregroundStyle(FrilaCor.texto)
-                // Dia e hora em duas roletas: a roleta com os dois não cabe na largura da tela em AX5.
-                DatePicker(titulo, selection: data, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.wheel)
-                    .environment(\.timeZone, FormatadorFrila.fuso)
-                    .disabled(modelo.camposBloqueados)
-                    .accessibilityIdentifier(id)
-                DatePicker(titulo, selection: data, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                    .datePickerStyle(.wheel)
-                    .environment(\.timeZone, FormatadorFrila.fuso)
-                    .disabled(modelo.camposBloqueados)
-                    .accessibilityIdentifier("\(id)-hora")
+            linhaDeSeletor(titulo) {
+                linhaDeHorario(valor: formatador.dataEHora(data.wrappedValue), id: id, titulo: titulo, alvo: alvo)
             }
         } else {
             linhaDeSeletor(titulo) {
@@ -431,6 +427,30 @@ public struct TelaPublicarEscala: View {
                     .accessibilityIdentifier(id)
             }
         }
+    }
+
+    /// Linha de AX que mostra o valor e abre a folha com as rodas.
+    private func linhaDeHorario(valor: String, id: String, titulo: String, alvo: AlvoDeHorario) -> some View {
+        Button { editandoHorario = alvo } label: {
+            HStack(spacing: FrilaEspaco.item) {
+                Text(verbatim: valor)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.texto)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: FrilaEspaco.item)
+                Image(systemName: "chevron.forward")
+                    .font(FrilaTipo.apoio.weight(.semibold))
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .accessibilityHidden(true)
+            }
+            .caixaDoCampoFrila()
+        }
+        .buttonStyle(.plain)
+        .disabled(modelo.camposBloqueados)
+        .accessibilityLabel(Text(verbatim: titulo))
+        .accessibilityValue(Text(verbatim: valor))
+        .accessibilityIdentifier(id)
     }
 
     /// Rótulo à esquerda e o seletor à direita; em tamanho de acessibilidade o seletor vai para baixo do rótulo.
@@ -575,6 +595,62 @@ public struct TelaPublicarEscala: View {
         .presentationDetents([.large])
         .presentationCornerRadius(FrilaRaio.folha)
         .accessibilityIdentifier("escala-folha-de-funcao")
+    }
+
+    // MARK: Horário (tamanho de acessibilidade)
+
+    /// As rodas ficam numa folha, fora da rolagem: dentro dela, rolar a tela pelo meio giraria a roda.
+    private func folhaDeHorario(_ alvo: AlvoDeHorario) -> some View {
+        let titulo: String
+        let data: Binding<Date>
+        let comHora: Bool
+        switch alvo {
+        case .dia:
+            titulo = TextosDaEscala.data
+            data = $modelo.data
+            comHora = false
+        case .inicio(let id):
+            titulo = TextosDaEscala.inicio
+            data = ligacao(id, \.inicio)
+            comHora = true
+        case .fim(let id):
+            titulo = TextosDaEscala.fim
+            data = ligacao(id, \.fim)
+            comHora = true
+        }
+        return NavigationStack {
+            VStack(spacing: FrilaEspaco.bloco) {
+                // Dia e hora em duas rodas: a roda com os dois não cabe na largura da tela em AX5.
+                DatePicker(titulo, selection: data, displayedComponents: .date)
+                    .labelsHidden()
+                    .datePickerStyle(.wheel)
+                    .environment(\.timeZone, FormatadorFrila.fuso)
+                    .accessibilityIdentifier("escala-seletor-data")
+                if comHora {
+                    DatePicker(titulo, selection: data, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .datePickerStyle(.wheel)
+                        .environment(\.timeZone, FormatadorFrila.fuso)
+                        .accessibilityIdentifier("escala-seletor-hora")
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(FrilaEspaco.bloco)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(FrilaCor.fundo.ignoresSafeArea())
+            .navigationTitle(Text(verbatim: titulo))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(TextosDaEscala.fechar) { editandoHorario = nil }
+                        .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                        .accessibilityIdentifier("escala-fechar-horario")
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationCornerRadius(FrilaRaio.folha)
+        .accessibilityIdentifier("escala-folha-de-horario")
     }
 
     private var funcaoEscolhida: UUID? {

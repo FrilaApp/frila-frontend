@@ -263,6 +263,20 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertEqual(app.pickerWheels.count, 0)
     }
 
+    /// Em AX5 a linha do início abre a folha com as duas rodas (dia e hora) e fecha pelo botão.
+    func testEmAX5OHorarioSeEscolheNaFolha() {
+        let app = abrir(ax5: true)
+        abrirEscala(app)
+        let linha = elemento("escala-inicio-0", em: app)
+        trazer(linha, em: app)
+        tocar(linha)
+        XCTAssertTrue(elemento("escala-folha-de-horario", em: app).waitForExistence(timeout: Espera.aparecer), "a folha de horário deve abrir")
+        XCTAssertEqual(app.pickerWheels.count, 2, "a folha tem a roda do dia e a da hora")
+        tocar(app.buttons["escala-fechar-horario"])
+        XCTAssertFalse(elemento("escala-folha-de-horario", em: app).waitForExistence(timeout: 2), "a folha deve fechar")
+        XCTAssertEqual(app.pickerWheels.count, 0)
+    }
+
     // MARK: Capturas (tamanho padrão e AX5)
 
     func testCapturasDaEscala() {
