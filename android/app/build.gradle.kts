@@ -33,6 +33,14 @@ val temKeystoreDeRelease: Boolean = !releaseKeystorePath.isNullOrBlank() &&
     !releaseKeyAlias.isNullOrBlank() &&
     !releaseKeyPassword.isNullOrBlank()
 
+// Smoke test no emulador na CI (Cartão 7ekYEzOl): para poder instalar e executar o APK de release
+// minificado no emulador Linux da CI sem expor keystore oficial de produção, permitimos assinar com debug
+// EXCLUSIVAMENTE quando FRILA_SMOKE_RELEASE for true e a URL do Supabase for sintética (.invalid).
+// Em qualquer outro cenário (build de release normal ou URL real), o release nunca assina com debug.
+val assinarReleaseComDebugParaSmoke: Boolean = (
+    project.findProperty("frila.smoke.release") as? String ?: System.getenv("FRILA_SMOKE_RELEASE")
+)?.toBoolean() == true
+
 // Supabase (pedido 16-26): a URL e a chave PUBLICÁVEL vão para o BuildConfig. Debug = par DEV,
 // release = par PROD. Fonte: variável de ambiente ou android/local.properties (ignorado pelo Git).
 // Nenhum valor é impresso: as mensagens citam só o nome da variável. A regra da chave proibida é a
@@ -164,6 +172,14 @@ android {
             )
             if (temKeystoreDeRelease) {
                 signingConfig = signingConfigs.getByName("release")
+            } else if (assinarReleaseComDebugParaSmoke) {
+                if (!supabaseProdUrl.endsWith(".invalid")) {
+                    throw GradleException(
+                        "FRILA_SMOKE_RELEASE só pode ser usado com FRILA_SUPABASE_PROD_URL terminando em .invalid " +
+                            "para impedir que builds com servidores reais usem assinatura de debug.",
+                    )
+                }
+                signingConfig = signingConfigs.getByName("debug")
             }
             buildConfigField("String", "SUPABASE_URL", literalJava(supabaseProdUrl))
             buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalJava(supabaseProdChave))
