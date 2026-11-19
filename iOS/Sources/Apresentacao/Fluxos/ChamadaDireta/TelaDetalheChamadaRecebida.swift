@@ -4,6 +4,7 @@ import SwiftUI
 /// A tela guarda o modelo em `@State`, e o `@State` sobrevive quando o roteador troca a chamada do aviso
 /// por outra na mesma posição da pilha. A identidade pela chamada recria o estado e carrega a nova.
 public struct TelaDetalheChamadaRecebida: View {
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     private let viewModel: ChamadaRecebidaViewModel
     private let onAbrirTurno: ((UUID) -> Void)?
 
@@ -71,6 +72,10 @@ private struct ConteudoDaChamadaRecebida: View {
                 case .nada:
                     EmptyView()
                 }
+                // Com texto grande o grupo de botões ocuparia quase metade da tela: vai para o fim do conteúdo.
+                if tamanhoDoTexto.isAccessibilitySize, rodapeVisivel {
+                    VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
+                }
             }
             .padding(.horizontal, FrilaEspaco.grupo)
             .padding(.top, FrilaEspaco.bloco)
@@ -79,7 +84,7 @@ private struct ConteudoDaChamadaRecebida: View {
         .background(FrilaCor.fundo)
         .navigationTitle(Text(verbatim: TextosChamadaDireta.chamadaRecebidaTitulo))
         .navigationBarTitleDisplayMode(.inline)
-        .rodapeAncoradoDoPerfilSe(rodapeVisivel) {
+        .rodapeAncoradoDoPerfilSe(rodapeVisivel && !tamanhoDoTexto.isAccessibilitySize) {
             rodape
         }
         .task { await viewModel.carregar() }
