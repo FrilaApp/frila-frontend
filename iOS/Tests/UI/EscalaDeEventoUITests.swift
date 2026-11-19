@@ -42,13 +42,32 @@ final class EscalaDeEventoUITests: XCTestCase {
         return antes
     }
 
+    /// Arrasta a rolagem pela margem direita da tela: o centro pode cair numa roda de data ou hora e girá-la (e mudar um
+    /// horário sem querer). `paraCima` leva o conteúdo para cima (mostra o que está abaixo).
+    private func arrastarPelaMargem(_ app: XCUIApplication, paraCima: Bool) {
+        let de = app.coordinate(withNormalizedOffset: CGVector(dx: 0.985, dy: paraCima ? 0.65 : 0.30))
+        let ate = app.coordinate(withNormalizedOffset: CGVector(dx: 0.985, dy: paraCima ? 0.30 : 0.65))
+        de.press(forDuration: 0.1, thenDragTo: ate)
+    }
+
     /// Rola até o elemento ficar inteiro entre a barra e o rodapé (o rodapé ancorado cobre a base da janela).
     private func trazer(_ elemento: XCUIElement, em app: XCUIApplication) {
         let janela = app.windows.firstMatch.frame
-        for _ in 0..<12 {
+        for _ in 0..<14 {
             let quadro = elemento.frame
             if elemento.exists, quadro.minY > 130, quadro.maxY < janela.height - 150 { return }
-            if elemento.exists, quadro.minY <= 130 { app.swipeDown(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
+            arrastarPelaMargem(app, paraCima: !(elemento.exists && quadro.minY <= 130))
+        }
+    }
+
+    /// Fecha o teclado (texto ou numérico). O numérico não tem Return: arrasta a rolagem para baixo pela margem, que o
+    /// `scrollDismissesKeyboard(.interactively)` da tela recolhe.
+    private func fecharTecladoEscala(_ app: XCUIApplication) {
+        for _ in 0..<3 {
+            guard app.keyboards.firstMatch.exists else { return }
+            arrastarPelaMargem(app, paraCima: false)
+            let sumiu = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.keyboards.firstMatch)
+            if XCTWaiter.wait(for: [sumiu], timeout: 2) == .completed { return }
         }
     }
 
@@ -102,15 +121,33 @@ final class EscalaDeEventoUITests: XCTestCase {
         let campo = app.textFields["escala-responsavel-\(vaga)"]
         trazer(campo, em: app)
         digitarNoCampo(campo, por: nome)
-        fecharTeclado(app)
+        fecharTecladoEscala(app)
     }
 
+    /// "16000" -> "R$ 160,00", como o campo mostra (o espaço pode vir inseparável).
+    private func textoDoValor(_ centavos: String) -> String {
+        let n = Int(centavos) ?? 0
+        return String(format: "R$ %d,%02d", n / 100, n % 100)
+    }
+
+    private func normalizado(_ texto: String?) -> String {
+        (texto ?? "").replacingOccurrences(of: "\u{00A0}", with: " ")
+    }
+
+    /// Digita o valor, confere o foco e o valor final ("R$ 180,00") e refaz uma vez se não bater.
     private func digitarValor(_ app: XCUIApplication, vaga: Int, centavos: String) {
         let campo = app.textFields.matching(identifier: "valor-vaga-campo").element(boundBy: vaga)
+        let esperado = textoDoValor(centavos)
         trazer(campo, em: app)
-        tocar(campo)
-        campo.typeText(centavos)
-        fecharTeclado(app)
+        for tentativa in 0..<2 {
+            tocar(campo)
+            XCTAssertTrue(esperarFocoDoTeclado(campo, timeout: 5), "o campo de valor deveria receber o foco")
+            if tentativa > 0 { campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12)) }
+            campo.typeText(centavos)
+            if normalizado(campo.value as? String) == esperado { break }
+        }
+        XCTAssertEqual(normalizado(campo.value as? String), esperado, "o valor final do campo")
+        fecharTecladoEscala(app)
     }
 
     // MARK: Caminho feliz
@@ -120,7 +157,7 @@ final class EscalaDeEventoUITests: XCTestCase {
         let antes = abrirEscala(app)
 
         digitarNoCampo(app.textFields["escala-nome"], por: "Formatura de Direito")
-        fecharTeclado(app)
+        fecharTecladoEscala(app)
 
         escolherFuncao(app, vaga: 0, opcao: 0)
         digitarValor(app, vaga: 0, centavos: "16000")
@@ -206,6 +243,26 @@ final class EscalaDeEventoUITests: XCTestCase {
         XCTAssertTrue(app.keyboards.firstMatch.exists, "o teclado segue aberto depois de digitar no campo marcado")
     }
 
+    /// Em AX5 não há roda de data ou hora dentro da rolagem: dia, início e fim são linhas que abrem uma folha. Rolar a tela
+    /// inteira pelo centro não pode girar nada e mudar um horário sem querer.
+    func testEmAX5RolarATelaPeloCentroNaoMudaNenhumHorario() {
+        let app = abrir(ax5: true)
+        abrirEscala(app)
+        XCTAssertEqual(app.pickerWheels.count, 0, "em AX5 não há roda de data ou hora dentro da rolagem")
+
+        func horarios() -> [String] {
+            ["escala-dia", "escala-inicio-0", "escala-fim-0"].map { id in
+                let e = elemento(id, em: app)
+                return "\(id)=\(e.exists ? "\(e.label)|\((e.value as? String) ?? "")" : "-")"
+            }
+        }
+        let antes = horarios()
+        for _ in 0..<5 { app.swipeUp(velocity: .slow) }
+        for _ in 0..<5 { app.swipeDown(velocity: .slow) }
+        XCTAssertEqual(horarios(), antes, "rolar pelo centro não muda nenhum horário")
+        XCTAssertEqual(app.pickerWheels.count, 0)
+    }
+
     // MARK: Capturas (tamanho padrão e AX5)
 
     func testCapturasDaEscala() {
@@ -219,7 +276,7 @@ final class EscalaDeEventoUITests: XCTestCase {
             capturar("2-erros-de-campo", ax5: ax5)
 
             digitarNoCampo(app.textFields["escala-nome"], por: "Formatura de Direito")
-            fecharTeclado(app)
+            fecharTecladoEscala(app)
             let funcao = app.buttons["escala-funcao-0"]
             trazer(funcao, em: app)
             tocar(funcao)
