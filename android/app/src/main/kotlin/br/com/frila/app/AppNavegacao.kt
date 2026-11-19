@@ -727,15 +727,16 @@ fun AppNavegacao(
                     val contexto = LocalContext.current
                     TelaOcorrencia(
                         viewModel = viewModel,
-                        // O relato e a foto só existem no e-mail (nunca sobem numa RPC): sem abrir o e-mail, o relato se perde.
-                        aoAbrirEmailDeSuporte = { protocoloCurto ->
+                        emailDeSuporte = EnderecosOficiais.padrao.emailSuporte,
+                        // O relato só existe no corpo deste e-mail (nunca sobe numa RPC): falhar em abrir tem de avisar, não engolir.
+                        aoAbrirEmailDeSuporte = { pedido ->
                             try {
-                                val destino = "mailto:${EnderecosOficiais.padrao.emailSuporte}?subject=" + Uri.encode("Ocorrência no turno · protocolo #$protocoloCurto")
-                                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse(destino)).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                contexto.startActivity(intent)
-                            } catch (_: Exception) { }
+                                contexto.startActivity(intentDoEmailDeSuporte(EnderecosOficiais.padrao.emailSuporte, turnoId, pedido))
+                                true
+                            } catch (_: Exception) {
+                                // Sem app de e-mail (ActivityNotFoundException) ou recusa do sistema: a tela avisa e mantém o relato.
+                                false
+                            }
                         },
                         aoVoltar = { navController.popBackStack() },
                     )
