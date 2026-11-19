@@ -129,15 +129,36 @@ public final class PerfilEstabelecimentoViewModel {
         carregarEstabelecimentos = estabelecimentos; carregarPublico = publico
     }
 
-    public func carregar() async {
+    /// Cada chamada de `carregar` tem a sua geração. A tela chama de novo ao trocar de casa (`.task(id:)`) e a resposta da casa
+    /// anterior ainda pode chegar depois: só a chamada mais nova, e não cancelada, grava no modelo, e só ela desliga o `carregando`.
+    private var geracao = 0
+    private var ultimaPreferida: UUID?
+
+    /// `preferida` é a casa que a conta escolheu em "Trocar de casa"; sem ela, ou se a conta já não é membro dela, vale a primeira.
+    /// Trocar de casa limpa o que era da anterior antes de ler a nova: nada de uma casa aparece na outra.
+    public func carregar(preferindo preferida: UUID? = nil) async {
+        geracao += 1
+        let minha = geracao
+        func vale() -> Bool { minha == geracao && !Task.isCancelled }
+        ultimaPreferida = preferida
         carregando = true; mensagemErro = nil
-        defer { carregando = false }
+        if let preferida, estabelecimento?.id != preferida { estabelecimento = nil; perfilPublico = nil }
+        defer { if minha == geracao { carregando = false } }
         do {
-            guard let primeiro = try await carregarEstabelecimentos().first else { return }
-            let publico = try await carregarPublico(primeiro.id)
-            estabelecimento = primeiro; perfilPublico = publico
-        } catch { mensagemErro = TextosPerfilConta.erro }
+            let todas = try await carregarEstabelecimentos()
+            guard vale() else { return }
+            guard let escolhida = todas.first(where: { $0.id == preferida }) ?? todas.first else {
+                estabelecimento = nil; perfilPublico = nil
+                return
+            }
+            let publico = try await carregarPublico(escolhida.id)
+            guard vale() else { return }
+            estabelecimento = escolhida; perfilPublico = publico
+        } catch { if vale() { mensagemErro = TextosPerfilConta.erro } }
     }
+
+    /// "Tentar de novo" relê a casa que a última leitura pedia, e não a primeira da lista.
+    public func tentarDeNovo() async { await carregar(preferindo: ultimaPreferida) }
 }
 
 /// Linha de lista de tela que ainda não passou para o `FrilaGrupoDeLinhas`: texto à esquerda e seta em `textoSecundario`,
@@ -601,10 +622,17 @@ public struct TelaPerfilEstabelecimento: View {
     public let enderecos: EnderecosOficiais
     @State private var mostrarAjuda = false
     @State private var destino: DestinoDoEstabelecimento?
-    public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, sair: @escaping () -> Void) {
+    private let casaEscolhida: UUID?
+    private let entradasDaCasa: ((EstabelecimentoDaConta?) -> AnyView)?
+    /// `casaEscolhida`: a casa de "Trocar de casa" (a tela relê quando ela muda). `entradasDaCasa` põe no topo da lista as linhas
+    /// da equipe da casa, do convite e da troca de casa; recebe a casa que a tela mostra (`nil` enquanto a conta não tem uma).
+    public init(api: any ApiCliente, enderecos: EnderecosOficiais = .padrao, casaEscolhida: UUID? = nil,
+                entradasDaCasa: ((EstabelecimentoDaConta?) -> AnyView)? = nil, sair: @escaping () -> Void) {
         self.api = api
         self.sair = sair
         self.enderecos = enderecos
+        self.casaEscolhida = casaEscolhida
+        self.entradasDaCasa = entradasDaCasa
         _model = State(initialValue: PerfilEstabelecimentoViewModel(api: api))
         _exportarModel = State(initialValue: ExportarDadosViewModel(api: api))
     }
@@ -626,7 +654,7 @@ public struct TelaPerfilEstabelecimento: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 if model.carregando { EstadoCarregando() }
-                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.carregar() } } }
+                else if let erro = model.mensagemErro { EstadoErro(verbatim: erro) { Task { await model.tentarDeNovo() } } }
                 else if let estabelecimento = model.estabelecimento {
                     VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                         Text(verbatim: estabelecimento.nome)
@@ -648,6 +676,10 @@ public struct TelaPerfilEstabelecimento: View {
                 }
 
                 FrilaGrupoDeLinhas(linhasComIcone: false) {
+                    // As linhas da casa não dependem de o perfil ter carregado: um 404 dele (bloqueio) não as esconde.
+                    if !model.carregando, let entradasDaCasa {
+                        entradasDaCasa(model.estabelecimento)
+                    }
                     if !model.carregando, model.mensagemErro == nil, model.estabelecimento != nil {
                         FrilaLinhaDeOpcao(titulo: TextosHistoricoDeTurnos.titulo, remate: .navega) {
                             destino = .historico
@@ -704,7 +736,7 @@ public struct TelaPerfilEstabelecimento: View {
         .navigationDestination(item: $destino) { destino in
             telaDo(destino)
         }
-        .task { await model.carregar() }
+        .task(id: casaEscolhida) { await model.carregar(preferindo: casaEscolhida) }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
     }
 

@@ -179,6 +179,14 @@ public actor ApiClienteEmMemoria: ApiCliente {
         /// Como `buscaDeProfissionais`, com a conta que ainda não aceitou os Termos 1.1 (0.2.90): `buscar_profissionais`
         /// responde `403 sem_permissao` (`termos_pendentes`) até `aceitar_termos`, e a busca passa a funcionar.
         case buscaComTermosPendentes = "busca-com-termos-pendentes"
+        /// Equipe da casa (0.2.73 e 0.2.103): conta de contratante administradora do Bistrô Ipê, que tem quatro pessoas na equipe, e
+        /// operadora da Cantina da Esquina (a segunda casa, para trocar de casa). O convite `tokenDeConviteDeExemplo` vale para entrar
+        /// como operadora na Padaria do Bairro.
+        case equipeDaCasa = "equipe-da-casa"
+        /// Como `equipeDaCasa`, mas a conta é só operadora da única casa: não vê a equipe, e o servidor recusa a lista (403).
+        case equipeDaCasaOperador = "equipe-da-casa-operador"
+        /// Os cenários da equipe da casa.
+        var deEquipeDaCasa: Bool { self == .equipeDaCasa || self == .equipeDaCasaOperador }
         /// Os cenários com a busca de profissionais ligada.
         var deBusca: Bool { self == .buscaDeProfissionais || self == .buscaComTermosPendentes }
         #if DEBUG
@@ -328,6 +336,45 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var escalasRecebidas: [PublicacaoEscala] = []
     /// As escalas gravadas por chave, como o backend guarda: repetir a chave devolve a mesma, sem gravar de novo.
     private var escalasPorChave: [UUID: EscalaPublicada] = [:]
+
+    // MARK: Equipe da casa (0.2.73 e 0.2.103)
+
+    /// Uma pessoa da casa como o servidor a guarda: o `id` é o do vínculo (`membro_id`).
+    private struct MembroGuardado {
+        let id: UUID
+        var nome: String
+        var papel: PapelMembro
+        let desde: Date
+        let eVoce: Bool
+    }
+
+    /// Um convite como o servidor o guarda: de uso único, com validade.
+    private struct ConviteGuardado {
+        let estabelecimentoID: UUID
+        let papel: PapelMembro
+        let expiraEm: Date
+        var usado = false
+    }
+
+    public static let cantinaDaEsquinaID = UUID(uuidString: "30000000-0000-0000-0000-000000000002")!
+    public static let padariaDoBairroID = UUID(uuidString: "30000000-0000-0000-0000-000000000003")!
+    public static let membroDaContaID = UUID(uuidString: "93000000-0000-0000-0000-000000000001")!
+    public static let membroRenataID = UUID(uuidString: "93000000-0000-0000-0000-000000000002")!
+    public static let membroMarinaID = UUID(uuidString: "93000000-0000-0000-0000-000000000003")!
+    public static let membroPauloID = UUID(uuidString: "93000000-0000-0000-0000-000000000004")!
+    /// O token do convite de exemplo do cenário `equipeDaCasa`: montado na hora, sem um segredo no código.
+    public static let tokenDeConviteDeExemplo = String(repeating: "ef", count: 32)
+
+    private var membrosPorCasa: [UUID: [MembroGuardado]] = [:]
+    private var convitesPorToken: [String: ConviteGuardado] = [:]
+    /// As casas que só entram na conta pelo aceite de um convite.
+    private var casasDeConvite: [UUID: Estabelecimento] = [:]
+    public private(set) var chamadasAMembrosDaCasa = 0
+    public private(set) var convitesGerados: [(estabelecimentoID: UUID, email: String, papel: PapelMembro)] = []
+    /// O que chegou a `aceitarConviteDeMembro`, na ordem: o teste confere que texto inválido nunca chega aqui.
+    public private(set) var tokensRecebidosNoAceite: [String] = []
+    public private(set) var membrosRemovidos: [UUID] = []
+    public private(set) var administracoesTransferidas: [UUID] = []
     /// Registros de presença gravados por turno, como o backend guarda: repetir devolve o gravado.
     private var checkins: [UUID: ResultadoRegistro] = [:]
     private var checkouts: [UUID: ResultadoRegistro] = [:]
@@ -451,7 +498,7 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 conta = nil
                 perfilProfissional = nil
             } else {
-                if cenario == .contratante || cenario.checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede || cenario == .turnoNaoVerificadoContratante {
+                if cenario == .contratante || cenario.checkinManualPendente || cenario == .atrasoNoTurno || cenario == .painelContratante || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) || cenario == .painelVazio || cenario == .alertaVagaVazia || cenario == .contratanteSemEstabelecimento || cenario == .vagaEncerradaContratante || cenario == .checkinConfirmado || cenario == .posicaoCanceladaComMotivo || cenario == .servidorAntigo || cenario.selecaoDoContratante || ehCicloContratante || cenario == .erroAoLerMeuEstabelecimento || cenario == .publicarSemRede || cenario == .turnoNaoVerificadoContratante || cenario.deEquipeDaCasa {
                     conta = Conta(
                         id: usuario.id,
                         perfil: .contratante,
@@ -501,6 +548,41 @@ public actor ApiClienteEmMemoria: ApiCliente {
                 )
             }
             estabelecimentos = (conta == nil || cenario == .contratanteSemEstabelecimento) ? [] : [try FixturesDoContrato.carregar("estabelecimento", como: ContratoAPI.EstabelecimentoDTO.self).dominio()]
+            if cenario.deEquipeDaCasa, let casa = estabelecimentos.first, let conta {
+                let agora = relogio.agora
+                let dia: TimeInterval = 24 * 60 * 60
+                let operadora = cenario == .equipeDaCasaOperador
+                let outras = Estabelecimento(
+                    id: Self.cantinaDaEsquinaID, nome: "Cantina da Esquina", tipo: .foodService, endereco: "CLN 207, Asa Norte, Brasília - DF",
+                    regiaoAdministrativa: casa.regiaoAdministrativa, ponto: casa.ponto, papel: .operador
+                )
+                let padaria = Estabelecimento(
+                    id: Self.padariaDoBairroID, nome: "Padaria do Bairro", tipo: .foodService, endereco: "SQS 308, Asa Sul, Brasília - DF",
+                    regiaoAdministrativa: casa.regiaoAdministrativa, ponto: casa.ponto, papel: .operador
+                )
+                if operadora {
+                    estabelecimentos = [Estabelecimento(
+                        id: casa.id, nome: casa.nome, tipo: casa.tipo, endereco: casa.endereco,
+                        regiaoAdministrativa: casa.regiaoAdministrativa, ponto: casa.ponto, papel: .operador
+                    )]
+                } else {
+                    estabelecimentos = estabelecimentos + [outras]
+                }
+                membrosPorCasa[casa.id] = [
+                    MembroGuardado(id: Self.membroDaContaID, nome: conta.nome, papel: operadora ? .operador : .administrador,
+                                   desde: agora.addingTimeInterval(-400 * dia), eVoce: true),
+                    MembroGuardado(id: Self.membroRenataID, nome: "Renata Dias", papel: .administrador,
+                                   desde: agora.addingTimeInterval(-200 * dia), eVoce: false),
+                    MembroGuardado(id: Self.membroMarinaID, nome: "Marina Souza", papel: .operador,
+                                   desde: agora.addingTimeInterval(-120 * dia), eVoce: false),
+                    MembroGuardado(id: Self.membroPauloID, nome: "Paulo Lima", papel: .operador,
+                                   desde: agora.addingTimeInterval(-30 * dia), eVoce: false),
+                ]
+                casasDeConvite[Self.padariaDoBairroID] = padaria
+                convitesPorToken[Self.tokenDeConviteDeExemplo] = ConviteGuardado(
+                    estabelecimentoID: padaria.id, papel: .operador, expiraEm: agora.addingTimeInterval(7 * dia)
+                )
+            }
             if let casa = estabelecimentos.first, conta?.perfil == .profissional || (cenario == .equipeDeConfiancaComMembro || cenario.deChamada) {
                 equipesDeConfianca[casa.id] = [perfilPublicoDeExemplo.id]
             }
@@ -1265,6 +1347,80 @@ public actor ApiClienteEmMemoria: ApiCliente {
             ponto: estabelecimento.ponto,
             papel: estabelecimento.papel
         )
+    }
+
+    // MARK: Equipe da casa (RF21, US24)
+
+    /// Só o administrador da casa: o operador, quem não é membro e a casa que não existe recebem o mesmo `403 sem_permissao`.
+    private func exigirAdministradorDaEquipe(de estabelecimentoID: UUID) throws {
+        guard conta?.perfil == .contratante,
+              estabelecimentos.first(where: { $0.id == estabelecimentoID })?.papel == .administrador else { throw erro("sem_permissao") }
+    }
+
+    public func membrosDaCasa(estabelecimentoID: UUID) async throws -> [MembroDaCasa] {
+        chamadasAMembrosDaCasa += 1
+        try verificarFalhaGeral()
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
+        let membros = membrosPorCasa[estabelecimentoID] ?? []
+        // Como o servidor: os administradores primeiro e, em cada papel, do mais antigo ao mais novo.
+        return membros
+            .sorted { ($0.papel == .administrador ? 0 : 1, $0.desde) < ($1.papel == .administrador ? 0 : 1, $1.desde) }
+            .map { MembroDaCasa(id: $0.id, nome: $0.nome, papel: $0.papel, desde: $0.desde, eVoce: $0.eVoce) }
+    }
+
+    public func convidarMembro(estabelecimentoID: UUID, email: String, papel: PapelMembro) async throws -> ConviteDeMembro {
+        try verificarFalhaGeral()
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
+        let limpo = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let partes = limpo.split(separator: "@", omittingEmptySubsequences: false)
+        guard partes.count == 2, !partes[0].isEmpty, partes[1].contains("."), !limpo.contains(" ") else {
+            throw erro("campo_invalido", detalhes: "email")
+        }
+        convitesGerados.append((estabelecimentoID, limpo, papel))
+        // O token é de 64 hexadecimais: dois UUIDs sem hífen.
+        let token = (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "").lowercased()
+        let expiraEm = relogio.agora.addingTimeInterval(7 * 24 * 60 * 60)
+        convitesPorToken[token] = ConviteGuardado(estabelecimentoID: estabelecimentoID, papel: papel, expiraEm: expiraEm)
+        return ConviteDeMembro(token: token, expiraEm: expiraEm)
+    }
+
+    public func aceitarConviteDeMembro(token: String) async throws -> MembroAdicionado {
+        tokensRecebidosNoAceite.append(token)
+        try verificarFalhaGeral()
+        guard conta?.perfil == .contratante else { throw erro("perfil_incompativel") }
+        guard let convite = convitesPorToken[token], !convite.usado, convite.expiraEm > relogio.agora,
+              !estabelecimentos.contains(where: { $0.id == convite.estabelecimentoID }) else { throw erro("convite_invalido") }
+        convitesPorToken[token]?.usado = true
+        if let casa = casasDeConvite[convite.estabelecimentoID] {
+            estabelecimentos.append(Estabelecimento(
+                id: casa.id, nome: casa.nome, tipo: casa.tipo, endereco: casa.endereco,
+                regiaoAdministrativa: casa.regiaoAdministrativa, ponto: casa.ponto, papel: convite.papel
+            ))
+        }
+        return MembroAdicionado(estabelecimentoID: convite.estabelecimentoID, papel: convite.papel)
+    }
+
+    public func removerMembro(estabelecimentoID: UUID, membroID: UUID) async throws {
+        try verificarFalhaGeral()
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
+        var membros = membrosPorCasa[estabelecimentoID] ?? []
+        guard let indice = membros.firstIndex(where: { $0.id == membroID }) else { throw erro("nao_encontrado") }
+        if membros[indice].papel == .administrador, membros.filter({ $0.papel == .administrador }).count == 1 {
+            throw erro("ultimo_administrador")
+        }
+        membros.remove(at: indice)
+        membrosPorCasa[estabelecimentoID] = membros
+        membrosRemovidos.append(membroID)
+    }
+
+    public func transferirAdministracao(estabelecimentoID: UUID, novoAdministradorID: UUID) async throws {
+        try verificarFalhaGeral()
+        try exigirAdministradorDaEquipe(de: estabelecimentoID)
+        guard let indice = membrosPorCasa[estabelecimentoID]?.firstIndex(where: { $0.id == novoAdministradorID }) else {
+            throw erro("nao_encontrado")
+        }
+        membrosPorCasa[estabelecimentoID]?[indice].papel = .administrador
+        administracoesTransferidas.append(novoAdministradorID)
     }
 
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
@@ -2214,6 +2370,8 @@ public actor ApiClienteEmMemoria: ApiCliente {
         if id == perfilPublicoDeExemplo.id { return perfilPublicoDeExemplo }
         if let candidato = candidaturas.first(where: { $0.profissional.id == id }) { return candidato.profissional }
         if let daBusca = profissionalNaBusca(id) { return perfilPublicoDaBusca(daBusca) }
+        // A casa da conta que ainda não publicou vaga também tem perfil público (a Conta o lê ao trocar de casa).
+        if let casa = estabelecimentos.first(where: { $0.id == id }) { return perfilDo(casa) }
         guard let perfil = vagas.map(\.estabelecimento).first(where: { $0.id == id }) else { throw erro("nao_encontrado") }
         return perfil
     }

@@ -220,6 +220,45 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return try converter { try resposta.dominio() }
     }
 
+    // MARK: Equipe da casa (RF21, US24)
+
+    /// 0.2.103. Leitura (o contrato a descreve em GET; vai por POST como as outras): só o administrador.
+    public func membrosDaCasa(estabelecimentoID: UUID) async throws -> [MembroDaCasa] {
+        try await lista(
+            "membros_do_estabelecimento", params: ContratoAPI.EstabelecimentoParametros(estabelecimentoID: estabelecimentoID)
+        ) { (item: ContratoAPI.MembroDoEstabelecimentoDTO) in item.dominio() }
+    }
+
+    /// 0.2.73. Não é retentada pela camada de rede: cada convite gerado é um token novo.
+    public func convidarMembro(estabelecimentoID: UUID, email: String, papel: PapelMembro) async throws -> ConviteDeMembro {
+        let resposta: ContratoAPI.ConviteMembroDTO = try await rpc(
+            "convidar_membro",
+            params: ContratoAPI.ConvidarMembroParametros(estabelecimentoID: estabelecimentoID, email: email, papel: papel)
+        )
+        return resposta.dominio()
+    }
+
+    /// 0.2.73. O token é de uso único e não vai para log nem para a telemetria (`rpc` só registra o nome e o código).
+    public func aceitarConviteDeMembro(token: String) async throws -> MembroAdicionado {
+        let resposta: ContratoAPI.MembroAdicionadoDTO = try await rpc(
+            "aceitar_convite_membro", params: ContratoAPI.AceitarConviteParametros(token: token)
+        )
+        return resposta.dominio()
+    }
+
+    public func removerMembro(estabelecimentoID: UUID, membroID: UUID) async throws {
+        let _: ContratoAPI.ConfirmacaoDeMembroDTO = try await rpc(
+            "remover_membro", params: ContratoAPI.RemoverMembroParametros(estabelecimentoID: estabelecimentoID, membroID: membroID)
+        )
+    }
+
+    public func transferirAdministracao(estabelecimentoID: UUID, novoAdministradorID: UUID) async throws {
+        let _: ContratoAPI.ConfirmacaoDeMembroDTO = try await rpc(
+            "transferir_administracao",
+            params: ContratoAPI.TransferirAdministracaoParametros(estabelecimentoID: estabelecimentoID, novoAdminID: novoAdministradorID)
+        )
+    }
+
     public func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel {
         let params = ContratoAPI.PainelParametros(
             estabelecimentoID: id,
@@ -820,6 +859,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         "criterios_de_notificacao",
         "meus_estabelecimentos",
         "meu_estabelecimento",
+        "membros_do_estabelecimento",
         "painel_estabelecimento",
         "equipe_de_confianca",
         "vagas_abertas",

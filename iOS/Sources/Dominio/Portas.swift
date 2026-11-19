@@ -438,6 +438,25 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func meuEstabelecimento(id: UUID) async throws -> Estabelecimento
     func painelEstabelecimento(id: UUID, periodo: Periodo) async throws -> Painel
 
+    // Equipe da casa (RF21, US24; contratos 0.2.73 e 0.2.103)
+    /// `membros_do_estabelecimento` (0.2.103): as pessoas da casa, os administradores primeiro e, em cada papel, do mais
+    /// antigo ao mais novo. **Só o administrador**: o operador, quem não é membro e a casa que não existe recebem a mesma
+    /// recusa, `semPermissao` sem `detalhes`; conta suspensa, `semPermissao` com `conta_suspensa`.
+    func membrosDaCasa(estabelecimentoID: UUID) async throws -> [MembroDaCasa]
+    /// `convidar_membro` (0.2.73): gera o convite de uso único, válido por 7 dias. Só o administrador (`semPermissao`,
+    /// também para a casa que não existe); `campoObrigatorio` (`papel`) e `campoInvalido` (`email`) no 422.
+    func convidarMembro(estabelecimentoID: UUID, email: String, papel: PapelMembro) async throws -> ConviteDeMembro
+    /// `aceitar_convite_membro` (0.2.73): consome o token e põe a conta na equipe da casa. Exige conta com perfil de
+    /// contratante (`perfilIncompativel`); token que não existe, já usado ou vencido é `422 convite_invalido`
+    /// (`ErroDaApi.conviteInvalido`).
+    func aceitarConviteDeMembro(token: String) async throws -> MembroAdicionado
+    /// `remover_membro` (0.2.73): só o administrador. `naoEncontrado` se o membro não é da casa e `422 ultimo_administrador`
+    /// (`ErroDaApi.ultimoAdministrador`) ao tirar o único administrador.
+    func removerMembro(estabelecimentoID: UUID, membroID: UUID) async throws
+    /// `transferir_administracao` (0.2.73): promove outro membro a administrador; quem chama continua administrador. Só o
+    /// administrador; `naoEncontrado` se o membro não é da casa.
+    func transferirAdministracao(estabelecimentoID: UUID, novoAdministradorID: UUID) async throws
+
     // Equipe de confiança (RF18, UC11)
     /// Os profissionais da equipe, do mais recente para o mais antigo, como a casa os vê (perfil
     /// público, sem contato). Só membro do estabelecimento: quem não é recebe `semPermissao`.
@@ -621,6 +640,13 @@ public extension ApiCliente {
         try await fazerCheckin(turnoID: turnoID, distanciaMetros: distanciaMetros, registradoEm: registradoEm)
     }
     func publicarEscala(_ escala: PublicacaoEscala) async throws -> EscalaPublicada { throw ErroDaApi(codigo: .respostaInvalida) }
+    func membrosDaCasa(estabelecimentoID: UUID) async throws -> [MembroDaCasa] { throw ErroDaApi(codigo: .respostaInvalida) }
+    func convidarMembro(estabelecimentoID: UUID, email: String, papel: PapelMembro) async throws -> ConviteDeMembro {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+    func aceitarConviteDeMembro(token: String) async throws -> MembroAdicionado { throw ErroDaApi(codigo: .respostaInvalida) }
+    func removerMembro(estabelecimentoID: UUID, membroID: UUID) async throws { throw ErroDaApi(codigo: .respostaInvalida) }
+    func transferirAdministracao(estabelecimentoID: UUID, novoAdministradorID: UUID) async throws { throw ErroDaApi(codigo: .respostaInvalida) }
     func gerarCodigoCheckin(turnoID: UUID) async throws -> CodigoDeCheckin { throw ErroDaApi(codigo: .respostaInvalida) }
     func validarCodigoCheckin(turnoID: UUID, codigo: String, distanciaMetros: Int?) async throws -> ResultadoRegistro {
         throw ErroDaApi(codigo: .respostaInvalida)

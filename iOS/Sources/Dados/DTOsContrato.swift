@@ -1807,6 +1807,96 @@ enum ContratoAPI {
         enum CodingKeys: String, CodingKey { case estabelecimentoID = "estabelecimento_id" }
     }
 
+    // MARK: Equipe da casa (RF21, US24; contratos 0.2.73 e 0.2.103)
+
+    /// Item de `membros_do_estabelecimento` (schema `MembroDoEstabelecimento`): sem e-mail, telefone, documento nem `usuario_id`.
+    struct MembroDoEstabelecimentoDTO: Decodable {
+        let membroID: UUID
+        let nome: String
+        /// Texto cru: um papel que o app não conhece não derruba a lista nem vira administrador (`dominio()`).
+        let papel: String
+        let desde: String
+        let eVoce: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case nome, papel, desde
+            case membroID = "membro_id"
+            case eVoce = "e_voce"
+        }
+
+        func dominio() -> MembroDaCasa {
+            let conhecido = PapelMembro(rawValue: papel)
+            return MembroDaCasa(
+                id: membroID, nome: nome, papel: conhecido ?? .operador, papelConhecido: conhecido != nil,
+                desde: ContratoAPI.instante(desde), eVoce: eVoce
+            )
+        }
+    }
+
+    /// Corpo de `convidar_membro`: os nomes do contrato, sem `p_` (desde o B-052, 0.2.104).
+    struct ConvidarMembroParametros: Encodable {
+        let estabelecimentoID: UUID
+        let email: String
+        let papel: PapelMembro
+        enum CodingKeys: String, CodingKey {
+            case email, papel
+            case estabelecimentoID = "estabelecimento_id"
+        }
+    }
+
+    /// Resposta de `convidar_membro`: o token de 64 hexadecimais e quando vence.
+    struct ConviteMembroDTO: Decodable {
+        let token: String
+        let expiraEm: String
+        enum CodingKeys: String, CodingKey {
+            case token
+            case expiraEm = "expira_em"
+        }
+        func dominio() -> ConviteDeMembro { ConviteDeMembro(token: token, expiraEm: ContratoAPI.instante(expiraEm)) }
+    }
+
+    /// Corpo de `aceitar_convite_membro`.
+    struct AceitarConviteParametros: Encodable {
+        let token: String
+    }
+
+    /// Resposta de `aceitar_convite_membro`: a casa e o papel; os dois podem faltar.
+    struct MembroAdicionadoDTO: Decodable {
+        let estabelecimentoID: UUID?
+        let papel: PapelMembro?
+        enum CodingKeys: String, CodingKey {
+            case papel
+            case estabelecimentoID = "estabelecimento_id"
+        }
+        func dominio() -> MembroAdicionado { MembroAdicionado(estabelecimentoID: estabelecimentoID, papel: papel) }
+    }
+
+    /// Corpo de `remover_membro`: `membro_id` é o do vínculo, o que `membros_do_estabelecimento` devolve.
+    struct RemoverMembroParametros: Encodable {
+        let estabelecimentoID: UUID
+        let membroID: UUID
+        enum CodingKeys: String, CodingKey {
+            case estabelecimentoID = "estabelecimento_id"
+            case membroID = "membro_id"
+        }
+    }
+
+    /// Corpo de `transferir_administracao`: `novo_admin_id` é o `membro_id` de quem vira administrador.
+    struct TransferirAdministracaoParametros: Encodable {
+        let estabelecimentoID: UUID
+        let novoAdminID: UUID
+        enum CodingKeys: String, CodingKey {
+            case estabelecimentoID = "estabelecimento_id"
+            case novoAdminID = "novo_admin_id"
+        }
+    }
+
+    /// Respostas de `remover_membro` e `transferir_administracao`: só o `status` importa, e a ausência dele não derruba
+    /// a chamada que o servidor já concluiu com 200.
+    struct ConfirmacaoDeMembroDTO: Decodable {
+        let status: String?
+    }
+
     /// `MembroDaEquipe` do contrato: corpo e resposta de `incluir_na_equipe` e `remover_da_equipe`.
     struct MembroDaEquipeDTO: Codable {
         let estabelecimentoID: UUID

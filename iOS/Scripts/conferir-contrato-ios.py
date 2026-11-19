@@ -226,17 +226,8 @@ def conferir_rpcs(
     # Operações do contrato ainda não consumidas pelo app iOS (e.g. novas RPCs da RN14
     # pendentes de adoção no cliente iOS).
     RPCS_NAO_CONSUMIDAS_PELO_APP = {
-        **dict.fromkeys(
-            (
-                "aceitar_convite_membro",
-                "convidar_membro",
-                "remover_membro",
-                "sair_da_equipe",
-                "transferir_administracao",
-            ),
-            "Contrato 0.2.73: múltiplos membros por estabelecimento com papéis; pendente de adoção no app iOS.",
-        ),
-        "membros_do_estabelecimento": "Contrato 0.2.103: lista da equipe da casa; pendente de adoção no app iOS (pedido 18-02, PR da equipe).",
+        # Aceitar, convidar, remover, transferir e listar a equipe da casa entraram no pedido 18-02; sair da equipe segue de fora.
+        "sair_da_equipe": "Contrato 0.2.73: o membro sai da equipe da casa por conta própria; pendente de adoção no app iOS.",
         "vaga_publica": "Contrato 0.2.100: página pública da vaga, sem login, que só a web lê; o app não a consome.",
         **dict.fromkeys(
             ("responder_chamada", "cancelar_chamada"),
@@ -510,6 +501,9 @@ def conferir_dtos(
         "RegioesAtendidasDTO",       # Parâmetros de /rpc/definir_regioes_atendidas
         "PaginaChamadasDTO",         # Resposta paginada de /rpc/minhas_chamadas (0.2.56)
         "AceiteDeTermosDTO",         # Resposta de /rpc/aceitar_termos (objeto inline, 0.2.90)
+        "ConviteMembroDTO",          # Resposta de /rpc/convidar_membro (objeto inline, 0.2.73)
+        "MembroAdicionadoDTO",       # Resposta de /rpc/aceitar_convite_membro (objeto inline, 0.2.73)
+        "ConfirmacaoDeMembroDTO",    # Respostas de /rpc/remover_membro e /rpc/transferir_administracao (objeto inline, 0.2.73)
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)
@@ -525,7 +519,6 @@ def conferir_dtos(
             "pendente de adoção no cliente iOS."
         ),
         "PreferenciaChamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
-        "MembroDoEstabelecimento": "Resposta de membros_do_estabelecimento (0.2.103); pendente de adoção no app iOS (pedido 18-02, PR da equipe).",
         "VagaPublica": "Resposta de vaga_publica (0.2.100); só a web lê, o app não consome.",
     }
 

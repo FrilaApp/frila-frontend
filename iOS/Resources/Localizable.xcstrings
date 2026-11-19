@@ -15979,6 +15979,578 @@
           }
         }
       }
+    },
+    "Equipe da casa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equipe da casa"
+          }
+        }
+      }
+    },
+    "Tenho um convite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tenho um convite"
+          }
+        }
+      }
+    },
+    "Trocar de casa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trocar de casa"
+          }
+        }
+      }
+    },
+    "Quem você convidar entra com o próprio e-mail e passa a usar o Frila por esta casa, como administrador ou operador." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quem você convidar entra com o próprio e-mail e passa a usar o Frila por esta casa, como administrador ou operador."
+          }
+        }
+      }
+    },
+    "Só o administrador da casa gerencia as pessoas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só o administrador da casa gerencia as pessoas."
+          }
+        }
+      }
+    },
+    "Quem faz parte da casa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quem faz parte da casa"
+          }
+        }
+      }
+    },
+    "Nenhuma pessoa na lista da casa." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma pessoa na lista da casa."
+          }
+        }
+      }
+    },
+    "Você" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você"
+          }
+        }
+      }
+    },
+    "Desde %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desde %@"
+          }
+        }
+      }
+    },
+    "Convidar alguém" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convidar alguém"
+          }
+        }
+      }
+    },
+    "E-mail de quem você vai convidar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mail de quem você vai convidar"
+          }
+        }
+      }
+    },
+    "Papel de quem entra" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel de quem entra"
+          }
+        }
+      }
+    },
+    "Gerar convite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerar convite"
+          }
+        }
+      }
+    },
+    "Gerando…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerando…"
+          }
+        }
+      }
+    },
+    "Convite pronto. Mande o link à pessoa. Ele vale uma vez, até %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convite pronto. Mande o link à pessoa. Ele vale uma vez, até %@."
+          }
+        }
+      }
+    },
+    "Convite pronto. Mande o link à pessoa. Ele vale uma vez." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convite pronto. Mande o link à pessoa. Ele vale uma vez."
+          }
+        }
+      }
+    },
+    "Convite para %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convite para %@"
+          }
+        }
+      }
+    },
+    "Link do convite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link do convite"
+          }
+        }
+      }
+    },
+    "Compartilhar convite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compartilhar convite"
+          }
+        }
+      }
+    },
+    "Convite para a casa no Frila" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convite para a casa no Frila"
+          }
+        }
+      }
+    },
+    "Remover %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover %@"
+          }
+        }
+      }
+    },
+    "Tornar administrador" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tornar administrador"
+          }
+        }
+      }
+    },
+    "Tornar %@ administrador" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tornar %@ administrador"
+          }
+        }
+      }
+    },
+    "Remover esta pessoa?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover esta pessoa?"
+          }
+        }
+      }
+    },
+    "%@ deixará de ter acesso a esta casa." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ deixará de ter acesso a esta casa."
+          }
+        }
+      }
+    },
+    "Tornar administrador?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tornar administrador?"
+          }
+        }
+      }
+    },
+    "%@ poderá administrar a casa. Seu acesso não é removido por esta ação." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ poderá administrar a casa. Seu acesso não é removido por esta ação."
+          }
+        }
+      }
+    },
+    "Pessoa removida da casa." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pessoa removida da casa."
+          }
+        }
+      }
+    },
+    "A pessoa agora é administradora da casa." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pessoa agora é administradora da casa."
+          }
+        }
+      }
+    },
+    "Escolha o papel." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha o papel."
+          }
+        }
+      }
+    },
+    "Sua conta está suspensa. Não é possível gerenciar as pessoas da casa agora." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta está suspensa. Não é possível gerenciar as pessoas da casa agora."
+          }
+        }
+      }
+    },
+    "Esta casa ou pessoa não está mais disponível. Reabra a lista." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta casa ou pessoa não está mais disponível. Reabra a lista."
+          }
+        }
+      }
+    },
+    "Não é possível remover o último administrador. Torne outra pessoa administradora antes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não é possível remover o último administrador. Torne outra pessoa administradora antes."
+          }
+        }
+      }
+    },
+    "Sua sessão expirou. Entre de novo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua sessão expirou. Entre de novo."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir agora. Tente novamente." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível concluir agora. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível ler as pessoas da casa." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível ler as pessoas da casa."
+          }
+        }
+      }
+    },
+    "Cole aqui o link do convite que você recebeu." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cole aqui o link do convite que você recebeu."
+          }
+        }
+      }
+    },
+    "Link ou código do convite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link ou código do convite"
+          }
+        }
+      }
+    },
+    "Cole o link ou o código" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cole o link ou o código"
+          }
+        }
+      }
+    },
+    "Aceitar convite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceitar convite"
+          }
+        }
+      }
+    },
+    "Aceitando…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceitando…"
+          }
+        }
+      }
+    },
+    "Convite aceito" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convite aceito"
+          }
+        }
+      }
+    },
+    "Você agora faz parte da casa como %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você agora faz parte da casa como %@."
+          }
+        }
+      }
+    },
+    "Você agora faz parte da casa." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você agora faz parte da casa."
+          }
+        }
+      }
+    },
+    "Abrir a casa" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir a casa"
+          }
+        }
+      }
+    },
+    "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada."
+          }
+        }
+      }
+    },
+    "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou."
+          }
+        }
+      }
+    },
+    "Convites de casa são para contas de quem contrata. A sua conta é de profissional." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convites de casa são para contas de quem contrata. A sua conta é de profissional."
+          }
+        }
+      }
+    },
+    "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta."
+          }
+        }
+      }
+    },
+    "Escolha de qual casa você quer cuidar agora." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha de qual casa você quer cuidar agora."
+          }
+        }
+      }
+    },
+    "Não foi possível carregar suas casas." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar suas casas."
+          }
+        }
+      }
+    },
+    "Outro papel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro papel"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

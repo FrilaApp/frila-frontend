@@ -598,6 +598,54 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     func testEscalaDeEvento() { escalaDeEvento(ax5: false) }
     func testEscalaDeEventoEmAX5() { escalaDeEvento(ax5: true) }
 
+    /// A equipe da casa, o convite por link, a troca de casa e o "Tenho um convite" (0.2.73 e 0.2.103): a Conta com as linhas da
+    /// casa, a lista, o convite gerado, a confirmação, a troca e o convite colado (com a recusa local).
+    private func equipeDaCasa(ax5: Bool) {
+        let app = abrir(["-FRILA_SCENARIO", "equipe-da-casa", "-FRILA_CACHE_VAZIO_UI_TEST"], ax5: ax5)
+        guard esperar(elemento("minhas-vagas", em: app), "Minhas vagas deve abrir") else { return }
+        tocar(app.tabBars.buttons["Conta"], em: app)
+        guard esperar(elemento("conta-equipe-da-casa", em: app), "A Conta deve trazer as linhas da casa") else { return }
+        auditar(app, tela: "conta-com-as-linhas-da-casa")
+
+        tocar(elemento("conta-equipe-da-casa", em: app), em: app)
+        guard esperar(elemento("equipe-membro-93000000-0000-0000-0000-000000000001", em: app), "A lista da equipe deve carregar") else { return }
+        auditar(app, tela: "equipe-da-casa")
+
+        let email = app.textFields["equipe-email"]
+        tocar(email, em: app)
+        substituirTexto(email, por: "convidada@exemplo.com")
+        fecharTeclado(app)
+        tocar(app.buttons["equipe-gerar-convite"], em: app)
+        guard esperar(elemento("equipe-convite-pronto", em: app), "O convite deve aparecer") else { return }
+        auditar(app, tela: "equipe-da-casa-convite-gerado")
+
+        let remover = app.buttons["equipe-remover-93000000-0000-0000-0000-000000000003"]
+        tocar(remover, em: app)
+        guard esperar(elemento("equipe-confirmar", em: app), "A confirmação deve abrir") else { return }
+        auditar(app, tela: "equipe-da-casa-confirmacao")
+        tocar(app.buttons["equipe-confirmar-cancelar"], em: app)
+        tocar(app.navigationBars.buttons.element(boundBy: 0), em: app)
+
+        tocar(elemento("conta-trocar-de-casa", em: app), em: app)
+        guard esperar(elemento("trocar-casa-30000000-0000-0000-0000-000000000001", em: app), "A lista de casas deve carregar") else { return }
+        auditar(app, tela: "trocar-de-casa")
+        tocar(app.navigationBars.buttons.element(boundBy: 0), em: app)
+
+        tocar(elemento("conta-tenho-um-convite", em: app), em: app)
+        guard esperar(elemento("convite-campo", em: app), "O Tenho um convite deve abrir") else { return }
+        auditar(app, tela: "tenho-um-convite")
+        let campo = app.textFields["convite-campo"]
+        tocar(campo, em: app)
+        substituirTexto(campo, por: "oi")
+        fecharTeclado(app)
+        tocar(app.buttons["convite-aceitar"], em: app)
+        guard esperar(elemento("convite-erro", em: app), "O texto inválido deve ser recusado no app") else { return }
+        auditar(app, tela: "tenho-um-convite-recusado")
+    }
+
+    func testEquipeDaCasa() { equipeDaCasa(ax5: false) }
+    func testEquipeDaCasaEmAX5() { equipeDaCasa(ax5: true) }
+
     private func auditarMinhasVagas(_ app: XCUIApplication, tela: String, ax5: Bool) {
         auditar(app, tela: tela)
     }

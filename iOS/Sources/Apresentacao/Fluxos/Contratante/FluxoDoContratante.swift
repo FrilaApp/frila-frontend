@@ -18,6 +18,14 @@ public enum EstadoDoFluxoContratante: Equatable, Sendable {
 @MainActor @Observable
 public final class FluxoDoContratanteViewModel {
     public private(set) var estado: EstadoDoFluxoContratante = .carregando
+    /// As casas de que a conta é membro, como o servidor as devolveu na última leitura (`meus_estabelecimentos`).
+    public private(set) var casas: [EstabelecimentoDaConta] = []
+    /// A casa que a conta escolheu em "Trocar de casa". Só vive na memória deste modelo, que é da sessão: sair da conta, a sessão
+    /// vencer ou entrar com outra conta tira o fluxo da tela (`destinoAtual = nil`) e o modelo vai junto, então a escolha volta a
+    /// `nil`. Toda leitura confere se a conta ainda é membro dela; se não é, vale a primeira casa.
+    public private(set) var escolhidaID: UUID?
+    /// As guardas de dinheiro (escala e busca) de cada casa: ver `GuardasPorCasa`. Trocar de casa não apaga a da outra.
+    public let guardas = GuardasPorCasa()
     private let meusEstabelecimentos: @Sendable () async throws -> [EstabelecimentoDaConta]
     private let minhaConta: @Sendable () async throws -> Conta
     private var carregando = false
@@ -35,23 +43,75 @@ public final class FluxoDoContratanteViewModel {
         self.minhaConta = minhaConta
     }
 
-    public func carregar() async {
+    /// `preferida` é a casa que a pessoa acabou de abrir (aceitou um convite, por exemplo); sem ela vale a escolha anterior e, sem
+    /// esta, a primeira casa na ordem do servidor.
+    public func carregar(preferindo preferida: UUID? = nil) async {
         guard !carregando else { return }
         carregando = true
         estado = .carregando
         defer { carregando = false }
         do {
-            if let primeiro = try await meusEstabelecimentos().first {
-                estado = .vagas(primeiro)
+            let lidas = try await meusEstabelecimentos()
+            casas = lidas
+            if let casa = Self.casa(entre: lidas, preferida: preferida ?? escolhidaID) {
+                escolhidaID = casa.id
+                estado = .vagas(casa)
             } else {
+                escolhidaID = nil
                 estado = .cadastro(try await minhaConta())
             }
         } catch is CancellationError {
             // A saída da tela cancela o carregamento, sem apresentar uma falha de rede.
         } catch {
+            casas = []
             let erro = error as? ErroDaApi ?? ErroDaApi(codigo: .desconhecido)
             estado = erro.codigo == .semRede ? .offline : .erro(mensagem: MensagemDoErroAPI.texto(erro))
         }
+    }
+
+    /// Troca de casa: só diz de qual delas o app fala agora. Não vai ao servidor; a casa tem de estar na última lista lida.
+    public func escolher(_ id: UUID) {
+        guard let casa = casas.first(where: { $0.id == id }) else { return }
+        escolhidaID = id
+        estado = .vagas(casa)
+    }
+
+    /// Relê a lista de casas sem trocar a tela (depois de aceitar um convite, a conta pode ter uma casa a mais). Quem estava no
+    /// cadastro passa para Minhas vagas assim que tem uma casa; se a casa em uso deixou de ser da conta, a leitura inteira recomeça.
+    public func atualizarCasas() async {
+        let leitura = meusEstabelecimentos
+        guard let lidas = try? await PrazoDaAbertura.esperar(.seconds(20), { try await leitura() }) else { return }
+        casas = lidas
+        switch estado {
+        case let .vagas(atual) where !lidas.contains(where: { $0.id == atual.id }):
+            await carregar()
+        case .cadastro, .erro, .offline:
+            if let casa = Self.casa(entre: lidas, preferida: escolhidaID) {
+                escolhidaID = casa.id
+                estado = .vagas(casa)
+            }
+        default:
+            break
+        }
+    }
+
+    /// A casa em uso: a que o perfil da Conta carregou ou, se a leitura do perfil falhou (404 de bloqueio, rede), a escolhida da
+    /// lista de casas. É ela que decide as linhas "Equipe da casa" e "Trocar de casa", que não dependem do perfil.
+    public func casaEmUso(doPerfil casa: EstabelecimentoDaConta?) -> EstabelecimentoDaConta? {
+        casa ?? casas.first { $0.id == escolhidaID }
+    }
+
+    /// O fim da sessão (sair da conta, sessão vencida, outra conta): a casa escolhida, as casas lidas e todas as guardas se vão.
+    /// O modelo é do fluxo, que sai da tela nesses casos; este método deixa a regra escrita e testada.
+    public func encerrarSessao() {
+        escolhidaID = nil
+        casas = []
+        guardas.apagarTudo()
+        estado = .carregando
+    }
+
+    private static func casa(entre casas: [EstabelecimentoDaConta], preferida: UUID?) -> EstabelecimentoDaConta? {
+        casas.first(where: { $0.id == preferida }) ?? casas.first
     }
 }
 
@@ -88,7 +148,7 @@ public struct FluxoDoContratante: View {
                 .tag(AbaDoContratante.vagas)
 
             NavigationStack {
-                TelaPerfilEstabelecimento(api: api, sair: sair)
+                TelaPerfilEstabelecimento(api: api, casaEscolhida: model.escolhidaID, entradasDaCasa: entradasDaCasa, sair: sair)
             }
             .tint(FrilaCor.primaria)
             .tabItem {
@@ -153,9 +213,12 @@ public struct FluxoDoContratante: View {
                 fila: fila,
                 estabelecimento: estabelecimento,
                 roteador: roteador,
+                guardas: model.guardas,
                 publicando: $publicando,
                 sair: sair
             )
+            // Trocar de casa recria Minhas vagas, a publicação e a busca: nada de uma casa fica na tela da outra.
+            .id(estabelecimento.id)
         case let .erro(mensagem):
             erro(mensagem)
         case .offline:
@@ -166,6 +229,31 @@ public struct FluxoDoContratante: View {
 
     private func erro(_ mensagem: String) -> some View {
         EstadoErro(verbatim: mensagem) { Task { await model.carregar() } }
+    }
+
+    /// As linhas da equipe da casa, do convite e da troca de casa, no topo da Conta.
+    private func entradasDaCasa(_ casa: EstabelecimentoDaConta?) -> AnyView {
+        // Sem a casa do perfil (a leitura dele falhou, 404 incluso), a da lista de casas segura as linhas da Conta.
+        let emUso = model.casaEmUso(doPerfil: casa)
+        return AnyView(
+            EntradasDaCasaNaConta(
+                api: api,
+                casa: emUso,
+                casas: model.casas,
+                aoEscolherCasa: { id in
+                    publicando = false
+                    model.escolher(id)
+                },
+                aoAtualizarCasas: { Task { await model.atualizarCasas() } },
+                aoAbrirCasa: { id in
+                    publicando = false
+                    Task {
+                        await model.carregar(preferindo: id)
+                        aba = .vagas
+                    }
+                }
+            )
+        )
     }
 
     private var solicitarSaida: () -> Void {
@@ -239,7 +327,7 @@ private struct DestinoDasVagasDoContratante: View {
     /// A escala de evento toma o lugar da lista, como a publicação de uma vaga.
     @State private var escalando = false
     /// Guarda a escala que saiu sem resposta conhecida (com a chave) enquanto a pessoa cancela e reabre a tela.
-    @State private var guardaDaEscala = GuardaDaEscala()
+    @State private var guardaDaEscala: GuardaDaEscala
     @Environment(PermissaoDePushModelo.self) private var permissaoDePush: PermissaoDePushModelo?
 
     init(
@@ -247,6 +335,7 @@ private struct DestinoDasVagasDoContratante: View {
         fila: (any FilaDeAcoes)?,
         estabelecimento: EstabelecimentoDaConta,
         roteador: RoteadorDoContratante?,
+        guardas: GuardasPorCasa,
         publicando: Binding<Bool>,
         sair: (() -> Void)? = nil,
         abrirPerfil: (() -> Void)? = nil
@@ -260,9 +349,11 @@ private struct DestinoDasVagasDoContratante: View {
         _model = State(initialValue: MinhasVagasViewModel(api: api, estabelecimento: estabelecimento))
         _publicacao = State(initialValue: PublicacaoDaCasaViewModel(api: api, estabelecimentoID: estabelecimento.id))
         let estabelecimentoID = estabelecimento.id
-        _guardaDaBusca = State(initialValue: GuardaDaBuscaDeProfissionais {
+        // As guardas vêm do fluxo, acima do `.id` da casa: trocar de casa e voltar devolve as mesmas, com a chave de antes.
+        _guardaDaBusca = State(initialValue: guardas.busca(de: estabelecimentoID) {
             BuscaDeProfissionaisViewModel(api: api, estabelecimentoID: estabelecimentoID)
         })
+        _guardaDaEscala = State(initialValue: guardas.escala(de: estabelecimentoID))
     }
 
     var body: some View {
