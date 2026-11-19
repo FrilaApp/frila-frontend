@@ -1263,6 +1263,10 @@ fun AppNavegacao(
                     TelaCandidatosDaVaga(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        // Denúncia sem turno associado: a candidatura ainda não virou turno.
+                        aoDenunciar = { profissional ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                        },
                     )
                 }
             }
