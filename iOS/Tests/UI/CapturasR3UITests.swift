@@ -37,6 +37,39 @@ final class CapturasR3UITests: XCTestCase {
 
     private func sufixo(_ ax5: Bool) -> String { ax5 ? "ax5" : "padrao" }
 
+    /// Traz o elemento para a faixa livre da tela antes do toque. Com texto grande a explicação da localização ocupa
+    /// mais de uma tela; quando ela some depois do "Continuar", a página fica onde estava e o botão de check-out acaba
+    /// ACIMA do topo da tela (medido: y de −235 a −89 numa janela de 874 pt). O XCTest tocava sem rolar e o toque não
+    /// chegava ao botão. Arrasta pelo meio da tela, em passos curtos, e confere que o botão ficou inteiro na faixa
+    /// livre, abaixo da barra de navegação e acima da barra de abas.
+    private func trazerParaAFaixaLivre(_ elemento: XCUIElement, em app: XCUIApplication) {
+        XCTAssertTrue(elemento.waitForExistence(timeout: Espera.aparecer))
+        let janela = app.windows.firstMatch.frame
+        let barraDeAbas = app.tabBars.firstMatch
+        let topoLivre: CGFloat = 120
+        let peLivre = (barraDeAbas.exists ? barraDeAbas.frame.minY : janela.height - 110) - 8
+        for _ in 0..<40 {
+            let quadro = elemento.frame
+            let meio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            if quadro.maxY > peLivre {
+                meio.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
+            } else if quadro.minY < topoLivre {
+                meio.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)))
+            } else {
+                break
+            }
+        }
+        let quadro = elemento.frame
+        XCTAssertTrue(quadro.minY >= topoLivre && quadro.maxY <= peLivre,
+                      "o botão deve caber inteiro entre as barras: quadro \(quadro), faixa livre \(topoLivre) a \(peLivre)")
+    }
+
+    /// Rola o Meu turno até o fim, para a captura mostrar que o fim do conteúdo passa da barra de abas.
+    private func rolarAteOFim(_ app: XCUIApplication) {
+        let meio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+        for _ in 0..<14 { meio.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))) }
+    }
+
     private func abrirListaDeTurnos(_ app: XCUIApplication) {
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: Espera.aparecer), "o feed abre")
         tocar(app.tabBars.buttons["Meus turnos"])
@@ -141,6 +174,8 @@ final class CapturasR3UITests: XCTestCase {
 
     func testCheckoutRegistradoNoTamanhoPadrao() {
         presenca(localizacao: "perto", esperar: "checkin-situacao", nome: "checkout", ax5: false) { app in
+            self.trazerParaAFaixaLivre(app.buttons["fazer-checkout"], em: app)
+            self.capturar("r3-presenca-checkout-botao-padrao")
             tocar(app.buttons["fazer-checkout"])
             XCTAssertTrue(app.descendants(matching: .any)["checkout-situacao"].waitForExistence(timeout: Espera.aparecer))
         }
@@ -148,6 +183,11 @@ final class CapturasR3UITests: XCTestCase {
 
     func testCheckoutRegistradoEmAX5() {
         presenca(localizacao: "perto", esperar: "checkin-situacao", nome: "checkout", ax5: true) { app in
+            // O fim da rolagem, para a captura mostrar que o conteúdo termina acima da barra de abas.
+            self.rolarAteOFim(app)
+            self.capturar("r3-meu-turno-fim-da-rolagem-ax5")
+            self.trazerParaAFaixaLivre(app.buttons["fazer-checkout"], em: app)
+            self.capturar("r3-presenca-checkout-botao-ax5")
             tocar(app.buttons["fazer-checkout"])
             XCTAssertTrue(app.descendants(matching: .any)["checkout-situacao"].waitForExistence(timeout: Espera.aparecer))
         }
