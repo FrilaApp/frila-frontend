@@ -133,24 +133,40 @@ final class RepublicarVagaUITests: XCTestCase {
         botaoRepublicar.tap()
         XCTAssertTrue(app.descendants(matching: .any)["tela-republicar-vaga"].waitForExistence(timeout: 10))
 
-        let inicio = app.descendants(matching: .any)["campo-inicio-republicacao"]
-        let fim = app.descendants(matching: .any)["campo-fim-republicacao"]
-        XCTAssertTrue(inicio.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertTrue(fim.waitForExistence(timeout: Espera.aparecer))
+        // O campo é um seletor de data na rolagem (antes do conserto) ou uma linha que abre a folha (depois): o que vale é o
+        // identificador, buscado de novo a cada leitura.
+        func campo(_ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
+        XCTAssertTrue(campo("campo-inicio-republicacao").waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(campo("campo-fim-republicacao").waitForExistence(timeout: Espera.aparecer))
         func leitura() -> [String] {
-            [inicio, fim].map { "\($0.label)|\(String(describing: $0.value ?? ""))" }
-                + app.pickerWheels.allElementsBoundByIndex.map { String(describing: $0.value ?? "") }
+            ["campo-inicio-republicacao", "campo-fim-republicacao"].map { id in
+                let elemento = campo(id)
+                return elemento.exists ? "\(elemento.label)|\(String(describing: elemento.value ?? ""))" : "ausente"
+            } + app.pickerWheels.allElementsBoundByIndex.map { String(describing: $0.value ?? "") }
+        }
+        // Leva o início para o meio da janela arrastando pela margem (fora de qualquer controle) e arrasta por cima dele, como
+        // quem rola a tela com o dedo passando pelo seletor: a roda, se houver, gira com o dedo.
+        let janela = app.windows.firstMatch
+        let margem = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5))
+        let altura = janela.frame.height
+        for _ in 0..<12 {
+            let meioDoCampo = campo("campo-inicio-republicacao").frame.midY
+            if meioDoCampo > altura * 0.62 {
+                margem.press(forDuration: 0.05, thenDragTo: janela.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.3)))
+            } else if meioDoCampo < altura * 0.38 {
+                margem.press(forDuration: 0.05, thenDragTo: janela.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.7)))
+            } else {
+                break
+            }
         }
         let antes = leitura()
-
-        let janela = app.windows.firstMatch
-        let alto = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
-        let baixo = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.28))
-        for _ in 0..<4 { alto.press(forDuration: 0.05, thenDragTo: baixo) }
-        for _ in 0..<4 { baixo.press(forDuration: 0.05, thenDragTo: alto) }
+        let meio = campo("campo-inicio-republicacao").frame.midY / altura
+        let de = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: meio + 0.05))
+        let ate = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: meio - 0.05))
+        de.press(forDuration: 0.05, thenDragTo: ate)
 
         XCTAssertEqual(app.pickerWheels.count, 0, "nenhuma roda solta na rolagem de republicar em AX5")
-        XCTAssertEqual(leitura(), antes, "rolar pelo centro não muda o início nem o término")
+        XCTAssertEqual(leitura(), antes, "arrastar por cima do início não muda o início nem o término")
     }
 
     private func trazerParaATela(_ elemento: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) {
