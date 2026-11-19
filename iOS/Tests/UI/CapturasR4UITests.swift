@@ -44,7 +44,9 @@ final class CapturasR4UITests: XCTestCase {
         let janela = app.windows.firstMatch.frame
         let barra = app.navigationBars.firstMatch
         let topo = (barra.exists ? barra.frame.maxY : 120) + 8
-        var pe = (app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : janela.height - 110) - 8
+        // A barra de abas só conta quando está na frente: dentro de uma folha ela continua na árvore, mas fica atrás.
+        let abas = app.tabBars.firstMatch
+        var pe = (abas.exists && abas.isHittable ? abas.frame.minY : janela.height - 34) - 8
         for id in Self.rodapes {
             let botao = app.buttons[id]
             // O rodapé tem 16 pt de folga acima do botão, e ela também recebe o toque.
@@ -58,8 +60,10 @@ final class CapturasR4UITests: XCTestCase {
     private func tocarRolando(_ elemento: XCUIElement, _ app: XCUIApplication) {
         XCTAssertTrue(elemento.waitForExistence(timeout: Espera.aparecer), "o elemento \(elemento.identifier) deve existir")
         let meio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        // A faixa é calculada uma vez por toque: as barras não mudam enquanto o conteúdo é arrastado.
+        let faixaDoArraste = faixaLivre(app)
         for _ in 0..<40 {
-            let faixa = faixaLivre(app)
+            let faixa = faixaDoArraste
             let quadro = elemento.frame
             if quadro.midY > faixa.pe {
                 meio.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.32)))
