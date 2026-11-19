@@ -46,11 +46,10 @@ class CapturasConsentimentoCrashlyticsTest {
         vista.draw(Canvas(imagem))
 
         val pastaDestino = System.getenv("FRILA_CAPTURAS_DIR")?.takeIf { it.isNotBlank() }
-            ?: "/Users/cauecarneiro/Documents/Projetos/Frila/orquestracao/retornos/ANDROID-CRASHLYTICS-provas"
+            ?: "/Users/cauecarneiro/Documents/Projetos/Frila/orquestracao/retornos/ANDROID-CRASHLYTICS-provas".takeIf { File(it).exists() }
+            ?: return null
         val pasta = File(pastaDestino)
-        if (!pasta.exists()) {
-            pasta.mkdirs()
-        }
+        pasta.mkdirs()
         val arquivo = File(pasta, "$nome.png")
         arquivo.outputStream().use { imagem.compress(Bitmap.CompressFormat.PNG, 100, it) }
         return arquivo
