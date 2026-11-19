@@ -9,6 +9,7 @@ public struct FolhaSuporteTurno: View {
     @FocusState private var focoNoRelato: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @Environment(\.accessibilityReduceMotion) private var sistemaReduzirMovimento
     private var reduzirMovimento: Bool {
         #if DEBUG
@@ -36,6 +37,10 @@ public struct FolhaSuporteTurno: View {
                     blocoRelato
                     dadosTurno
                     secaoAuxiliar
+                    // Com texto grande o grupo do botão ocuparia mais da metade da tela: vai para o fim do conteúdo.
+                    if tamanhoDoTexto.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: FrilaEspaco.item) { rodape }
+                    }
                 }
                 .padding(.horizontal, FrilaEspaco.grupo)
                 .padding(.top, FrilaEspaco.bloco)
@@ -48,7 +53,7 @@ public struct FolhaSuporteTurno: View {
             // O identificador da folha fica no conteúdo, antes do grupo ancorado: posto na pilha de navegação, ele
             // passava por cima dos identificadores do botão e das mensagens do rodapé.
             .accessibilityIdentifier("folha-suporte-turno")
-            .rodapeAncorado { rodape }
+            .rodapeAncoradoSeNaoForAX(!tamanhoDoTexto.isAccessibilitySize) { rodape }
             .navigationTitle(Text(verbatim: TextosDoSuporte.titulo))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -276,5 +281,17 @@ public struct FolhaSuporteTurno: View {
         .disabled(viewModel.enviando || !viewModel.relatoValido)
         .accessibilityIdentifier("botao-enviar-email-suporte")
         .accessibilityHint(Text(verbatim: viewModel.relatoValido ? TextosDoSuporte.dicaEnviarEmail : TextosDoSuporte.dicaRelatoObrigatorio))
+    }
+}
+
+private extension View {
+    /// O grupo ancorado no pé só quando cabe: com texto de acessibilidade o conteúdo dele vai para o fim da rolagem.
+    @ViewBuilder
+    func rodapeAncoradoSeNaoForAX<Conteudo: View>(_ ativo: Bool, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        if ativo {
+            rodapeAncorado(conteudo)
+        } else {
+            self
+        }
     }
 }
