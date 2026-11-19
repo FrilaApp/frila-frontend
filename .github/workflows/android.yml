@@ -62,6 +62,7 @@ jobs:
           scripts/teste-contrato-android-confere.sh
           python3 scripts/conferir-contrato-android.py
           scripts/teste-injetar-google-services.sh
+          scripts/teste-smoke-apk-release.sh
 
       - name: Restaurar cache do Robolectric (android-all)
         id: cache-robolectric
@@ -240,7 +241,15 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Executar testes de interface com emulador Android
+      # Cartão 7ekYEzOl: Gera APK de release minificado com par sintético e assinatura de debug para smoke test
+      - name: Gerar APK de release minificado para smoke test
+        env:
+          FRILA_SUPABASE_PROD_URL: https://sintetico.supabase.invalid
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: sb_publishable_sintetica_so_para_teste_de_ci
+          FRILA_SMOKE_RELEASE: "true"
+        run: ./gradlew --no-daemon :app:assembleRelease -Pfrila.smoke.release=true
+
+      - name: Executar testes instrumentados e smoke test do release com emulador Android
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           FRILA_SUPABASE_PROD_URL: https://sintetico.supabase.invalid
@@ -253,7 +262,9 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -no-audio -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect
           working-directory: android
-          script: ./gradlew --no-daemon connectedDebugAndroidTest
+          script: |
+            ./gradlew --no-daemon connectedDebugAndroidTest
+            scripts/smoke-apk-release.sh
 
       - name: Publicar relatórios dos testes instrumentados
         if: always()
