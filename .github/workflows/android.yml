@@ -198,3 +198,51 @@ jobs:
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 2
+
+  ui-tests-instrumentados:
+    name: "Testes instrumentados do Android (Emulador)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    if: github.repository == 'FrilaApp/frila-frontend' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    defaults:
+      run:
+        shell: bash
+        working-directory: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configurar JDK 17 (Temurin)
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Gradle e cache
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+
+      - name: Habilitar KVM no runner Linux
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Executar testes de interface com emulador Android
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          FRILA_SUPABASE_PROD_URL: https://sintetico.supabase.invalid
+          FRILA_SUPABASE_PROD_PUBLISHABLE_KEY: sb_publishable_sintetica_so_para_teste_de_ci
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect
+          working-directory: android
+          script: ./gradlew --no-daemon connectedDebugAndroidTest
+
