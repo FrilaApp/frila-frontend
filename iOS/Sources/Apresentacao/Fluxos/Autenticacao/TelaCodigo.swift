@@ -1,14 +1,20 @@
 import FrilaDominio
 import SwiftUI
 
-/// Confirmação do código (#13), com pergunta editorial e campos do Hi-Fi.
+/// Confirmação do código (#13, T6b do redesign): título, as seis caixas, o Colar do sistema, o reenvio e, ancorados
+/// embaixo, a mensagem do envio e o botão "Entrar". Sem a ilustração do Fabrício (precisaria de asset novo).
 public struct TelaCodigo: View {
     @Bindable var viewModel: CodigoViewModel
     var aoVoltar: () -> Void
     var aoConcluir: (DestinoCodigo) -> Void
     @FocusState private var campoFocado: Bool
+    @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
 
-    @ScaledMetric(relativeTo: .body) private var alturaDoBotaoColar: CGFloat = FrilaMetrica.alvoMinimo
+    /// 56 pt: o passo da grade de 8 acima do campo de 48, para o dígito em `.title2` respirar.
+    private static let alturaDaCaixa: CGFloat = 56
+    /// O Colar do sistema cresce por escala (1,85 dá o alvo de 48 pt); o quadro reserva o lugar dele.
+    private static let escalaDoColar: CGFloat = 1.85
+    @ScaledMetric(relativeTo: .body) private var alturaDoBotaoColar: CGFloat = 26 * 1.85
     @State private var concluido = false
     @State private var codigoComErro: String?
 
@@ -27,76 +33,45 @@ public struct TelaCodigo: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Bloco do título e subtítulo (T6b · Confira seu e-mail)
-                        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
-                            Text("Confira seu e-mail", bundle: bundleApresentacao)
-                                .font(FrilaTipo.tituloGrande)
-                                .foregroundStyle(FrilaCor.texto)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityAddTraits(.isHeader)
-
-                            Text(String(format: String(localized: "Digite o código de 6 dígitos enviado para %@.", bundle: bundleApresentacao), viewModel.email))
-                                .font(FrilaTipo.meta)
-                                .foregroundStyle(FrilaCor.textoSecundario)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Button(action: aoVoltar) {
-                                Text("Trocar e-mail", bundle: bundleApresentacao)
-                                    .font(FrilaTipo.corpo.weight(.semibold))
-                                    .foregroundStyle(FrilaCor.texto)
-                                    .frame(minHeight: FrilaMetrica.alvoMinimo)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        cabecalho
 
                         // Rótulo do campo Código
                         Text("Código de acesso", bundle: bundleApresentacao)
-                            .font(FrilaTipo.rotuloDoCampo)
+                            .font(FrilaTipo.rotuloDeGrupo)
                             .foregroundStyle(FrilaCor.textoSecundario)
-                            .padding(.top, FrilaEspaco.medio)
+                            .padding(.top, FrilaEspaco.grupo)
 
                         // Seis caixas de código
                         caixasDeCodigo
-                            .padding(.top, FrilaEspaco.minimo)
+                            .padding(.top, FrilaEspaco.item)
+                            .id(Self.idDasCaixas)
 
                         botaoColar
-                            .padding(.top, FrilaEspaco.compacto)
+                            .padding(.top, FrilaEspaco.bloco)
 
-                        if let aviso = viewModel.avisoDeColagem {
-                            AvisoFrila(verbatim: aviso, tom: .alerta)
-                                .accessibilityIdentifier("codigo-colar-aviso")
-                                .padding(.top, FrilaEspaco.compacto)
-                        }
-
-                        // Erro da API / verificação
-                        if let erro = viewModel.erro {
-                            AvisoFrila(verbatim: erro, tom: .alerta)
-                                .accessibilityIdentifier("codigo-erro")
-                                .padding(.top, FrilaEspaco.compacto)
-                        }
-
-                        // Reenvio (logo abaixo das caixas ou erro)
+                        // Reenvio (logo abaixo das caixas)
                         blocoReenvio
-                            .id("bloco-reenvio")
-                            .padding(.top, FrilaEspaco.compacto)
-
-                        // Mensagem informativa do reenvio
-                        if let info = viewModel.mensagemInformativa {
-                            blocoInformativo(info)
-                                .padding(.top, FrilaEspaco.compacto)
-                        }
+                            .padding(.top, FrilaEspaco.grupo)
 
                         // Contexto da conta
                         Text("Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta.", bundle: bundleApresentacao)
-                            .font(FrilaTipo.nota)
+                            .font(FrilaTipo.legenda)
                             .foregroundStyle(FrilaCor.textoSecundario)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, FrilaEspaco.compacto)
+                            .padding(.top, FrilaEspaco.bloco)
+
+                        // Com texto grande, o botão vai para o fim do conteúdo: ancorado, cobriria as caixas.
+                        if tamanhoDoTexto.isAccessibilitySize {
+                            VStack(spacing: FrilaEspaco.item) {
+                                if !temResultado { oQueFaltaParaEntrar }
+                                botaoEntrar
+                            }
+                            .padding(.top, FrilaEspaco.grupo)
+                        }
                     }
-                    .padding(.top, FrilaEspaco.pequeno)
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .padding(.bottom, FrilaEspaco.enorme * 3)
+                    .padding(.top, FrilaEspaco.item)
+                    .padding(.horizontal, FrilaEspaco.grupo)
+                    .padding(.bottom, FrilaEspaco.secao)
                     .frame(maxWidth: FrilaMetrica.larguraMaximaDeLeitura)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -115,29 +90,42 @@ public struct TelaCodigo: View {
                         Button(action: aoVoltar) {
                             Image(systemName: "chevron.left")
                                 .foregroundStyle(FrilaCor.texto)
-                                .frame(minWidth: FrilaMetrica.alvoMinimo, minHeight: FrilaMetrica.alvoMinimo)
+                                .frame(minWidth: FrilaMetrica.alvo, minHeight: FrilaMetrica.alvo)
                         }
                         .accessibilityLabel(Text("Voltar", bundle: bundleApresentacao))
                         .accessibilityIdentifier("codigo-voltar")
                     }
                 }
                 .navigationBarBackButtonHidden(true)
-                .barraInferiorFixa {
-                    botaoEntrar
+                // O erro, o aviso da colagem e o resultado do reenvio ficam junto do botão; sem nenhum deles, enquanto
+                // faltam números, o que falta para entrar.
+                .rodapeAncoradoQuando(!tamanhoDoTexto.isAccessibilitySize) { rodape }
+                // Com texto grande o botão sai do rodapé ancorado e vai para o fim da rolagem, atrás do teclado; o
+                // resultado não pode ir junto. Fica preso no alto da tela, fora da rolagem: à vista com o teclado aberto,
+                // em qualquer posição da rolagem, e com as caixas livres para a pessoa digitar de novo.
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if tamanhoDoTexto.isAccessibilitySize, temResultado {
+                        mensagemDoResultado
+                            // A mensagem presa no alto empurra o conteúdo para baixo: as caixas voltam para cima do teclado.
+                            .task(id: viewModel.erro) { await manterAsCaixasNaTela(proxy) }
+                            .padding(.horizontal, FrilaEspaco.grupo)
+                            .padding(.vertical, FrilaEspaco.item)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(FrilaCor.fundo)
+                            .overlay(alignment: .bottom) {
+                                Rectangle().fill(FrilaCor.divisoria).frame(height: 1).accessibilityHidden(true)
+                            }
+                    }
                 }
                 .onAppear {
                     campoFocado = true
                     #if DEBUG
-                    aplicarEstadoCapturaSeNecessario(proxy: proxy)
+                    aplicarEstadoCapturaSeNecessario()
                     #endif
                 }
                 .onChange(of: viewModel.erro) { _, novoErro in
                     if novoErro != nil {
                         codigoComErro = viewModel.codigo
-                        Task { @MainActor in
-                            await Task.yield()
-                            proxy.scrollTo("bloco-reenvio", anchor: .bottom)
-                        }
                     }
                 }
             }
@@ -159,6 +147,27 @@ public struct TelaCodigo: View {
         }
     }
 
+    /// T6b: o título, para onde o código foi e o caminho de volta para trocar o e-mail.
+    private var cabecalho: some View {
+        VStack(alignment: .leading, spacing: FrilaEspaco.item) {
+            Text("Confira seu e-mail", bundle: bundleApresentacao)
+                .font(FrilaTipo.tituloDaTela)
+                .foregroundStyle(FrilaCor.texto)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(String(format: String(localized: "Digite o código de 6 dígitos enviado para %@.", bundle: bundleApresentacao), viewModel.email))
+                .font(FrilaTipo.apoio)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: aoVoltar) {
+                Text("Trocar e-mail", bundle: bundleApresentacao)
+            }
+            .buttonStyle(.frilaLink)
+        }
+    }
+
     private var temErroNoCodigo: Bool {
         codigoComErro != nil && codigoComErro == viewModel.codigo && viewModel.erro != nil
     }
@@ -173,30 +182,29 @@ public struct TelaCodigo: View {
             .textContentType(.oneTimeCode)
             .focused($campoFocado)
             .opacity(0.01)
-            .frame(maxWidth: .infinity, minHeight: 60)
+            .frame(maxWidth: .infinity, minHeight: Self.alturaDaCaixa)
             .accessibilityLabel(Text("Código de acesso", bundle: bundleApresentacao))
             .accessibilityValue(viewModel.textoAcessibilidadeCodigo)
             .accessibilityHint(Text("Digite os seis números enviados para seu e-mail", bundle: bundleApresentacao))
             .accessibilityIdentifier("codigo-campo")
 
-            // Seis caixas de código
-            HStack(spacing: FrilaEspaco.pequeno) {
+            // Seis caixas de código: a da vez tem o contorno de 2 pt em tinta, como o foco dos campos; com erro, todas.
+            HStack(spacing: FrilaEspaco.item) {
                 ForEach(0..<6, id: \.self) { indice in
                     let caractere = caractereNoIndice(indice)
                     let estaAtiva = campoFocado && indice == viewModel.codigo.count
-                    let bordaCor = temErroNoCodigo ? FrilaCor.perigo : (estaAtiva ? FrilaCor.texto : FrilaCor.bordaDoCampo)
-                    let bordaLargura: CGFloat = (temErroNoCodigo || estaAtiva) ? 2 : 1
+                    let destacada = temErroNoCodigo || estaAtiva
 
                     Text(verbatim: caractere)
-                        .font(FrilaTipo.secao.monospacedDigit())
+                        .font(Font.title2.weight(.semibold).monospacedDigit())
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
                         .foregroundStyle(FrilaCor.texto)
-                        .frame(maxWidth: .infinity, minHeight: 60)
+                        .frame(maxWidth: .infinity, minHeight: Self.alturaDaCaixa)
                         .background(FrilaCor.superficieDoCampo, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                .strokeBorder(bordaCor, lineWidth: bordaLargura)
+                                .strokeBorder(destacada ? FrilaCor.texto : FrilaCor.bordaDoCampo, lineWidth: destacada ? 2 : 1)
                         )
                         .accessibilityHidden(true)
                 }
@@ -211,6 +219,8 @@ public struct TelaCodigo: View {
     }
 
     /// Controle nativo: cola sem o aviso "Permitir colar" e sem ler a área de transferência por baixo dos panos.
+    /// O sistema só aceita tinta, forma e rótulo; o tamanho vem da escala, a partir da borda esquerda, e o quadro reserva
+    /// o lugar dele (valor padrão da chave "Tamanho do Colar" do Laboratório do Fabrício: alvo, 1,85).
     private var botaoColar: some View {
         PasteButton(payloadType: String.self) { textos in
             viewModel.colar(textos)
@@ -218,7 +228,7 @@ public struct TelaCodigo: View {
         .labelStyle(.titleAndIcon)
         .buttonBorderShape(.capsule)
         .tint(FrilaCor.texto)
-        .scaleEffect(1.3, anchor: .leading)
+        .scaleEffect(Self.escalaDoColar, anchor: .leading)
         .frame(height: alturaDoBotaoColar, alignment: .leading)
         .accessibilityLabel(Text("Colar código", bundle: bundleApresentacao))
         .accessibilityIdentifier("codigo-colar")
@@ -238,83 +248,91 @@ public struct TelaCodigo: View {
 
     @ViewBuilder
     private var blocoReenvio: some View {
-        VStack(alignment: .leading, spacing: FrilaEspaco.minimo) {
+        VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
             Text("Não chegou? Veja a caixa de spam.", bundle: bundleApresentacao)
-                .font(FrilaTipo.meta)
+                .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
             if viewModel.segundosRestantes > 0 {
-                HStack {
-                    Text("Reenviar código em \(textoContagemReenvio)", bundle: bundleApresentacao)
-                        .font(FrilaTipo.meta.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(FrilaCor.textoSecundario)
-                        .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                        .accessibilityIdentifier("codigo-reenviar-aguarde")
-                    Spacer()
-                }
+                Text("Reenviar código em \(textoContagemReenvio)", bundle: bundleApresentacao)
+                    .font(FrilaTipo.corpo)
+                    .monospacedDigit()
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(minHeight: FrilaMetrica.alvo, alignment: .leading)
+                    .accessibilityIdentifier("codigo-reenviar-aguarde")
             } else {
-                Button(action: {
-                    Task {
-                        await viewModel.reenviarCodigo()
-                        if let anuncio = viewModel.anuncioDoReenvio {
-                            UIAccessibility.post(notification: .announcement, argument: anuncio)
-                        }
-                    }
-                }) {
-                    HStack(spacing: FrilaEspaco.pequeno) {
-                        if viewModel.carregando {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                        Text("Reenviar código", bundle: bundleApresentacao)
-                            .font(FrilaTipo.corpo.weight(.semibold))
-                            .foregroundStyle(FrilaCor.texto)
-                    }
-                    .frame(minHeight: FrilaMetrica.alvoMinimo, alignment: .leading)
-                    .padding(.horizontal, FrilaEspaco.medio)
-                    .overlay(RoundedRectangle(cornerRadius: FrilaMetrica.alvoMinimo / 2, style: .continuous).strokeBorder(FrilaCor.borda, lineWidth: 1))
-                    .contentShape(RoundedRectangle(cornerRadius: FrilaMetrica.alvoMinimo / 2, style: .continuous))
+                Button(action: reenviar) {
+                    Text("Reenviar código", bundle: bundleApresentacao)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.frilaLink)
                 .disabled(viewModel.carregando)
                 .accessibilityIdentifier("codigo-reenviar")
             }
         }
     }
 
-    private func blocoInformativo(_ info: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FrilaEspaco.compacto) {
-            Image(systemName: "checkmark")
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.texto)
-                .accessibilityHidden(true)
+    /// Junto do botão: o resultado da última ação; sem nenhum, enquanto faltam números, o que falta para entrar.
+    /// É o rodapé ancorado do tamanho padrão. Com texto grande as partes vão para o conteúdo (ver `body`).
+    @ViewBuilder
+    private var rodape: some View {
+        if temResultado { mensagemDoResultado } else { oQueFaltaParaEntrar }
+        botaoEntrar
+    }
 
-            Text(verbatim: info)
-                .font(FrilaTipo.meta)
-                .foregroundStyle(FrilaCor.texto)
+    private var temResultado: Bool {
+        viewModel.erro != nil || viewModel.avisoDeColagem != nil || viewModel.mensagemInformativa != nil
+    }
+
+    /// O erro, o aviso da colagem ou o resultado do reenvio: um só, nessa ordem.
+    @ViewBuilder
+    private var mensagemDoResultado: some View {
+        if let erro = viewModel.erro {
+            MensagemJuntoAoBotao(verbatim: erro)
+                .accessibilityLabel(Text(verbatim: AvisoFrila.rotuloAcessibilidade(texto: erro, tom: .alerta)))
+                .accessibilityIdentifier("codigo-erro")
+        } else if let aviso = viewModel.avisoDeColagem {
+            MensagemJuntoAoBotao(verbatim: aviso)
+                .accessibilityIdentifier("codigo-colar-aviso")
+        } else if let info = viewModel.mensagemInformativa {
+            MensagemJuntoAoBotao(verbatim: info)
+                .accessibilityIdentifier("codigo-info")
         }
-        .padding(FrilaEspaco.medio)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FrilaCor.controle, in: RoundedRectangle(cornerRadius: FrilaRaio.aviso, style: .continuous))
-        .accessibilityIdentifier("codigo-info")
+    }
+
+    @ViewBuilder
+    private var oQueFaltaParaEntrar: some View {
+        if !viewModel.codigoValido {
+            Text("Digite os 6 números para entrar.", bundle: bundleApresentacao)
+                .font(FrilaTipo.legenda)
+                .foregroundStyle(FrilaCor.textoSecundario)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var botaoEntrar: some View {
-        VStack(spacing: FrilaEspaco.minimo) {
-            BotaoPrimario("Entrar", carregando: viewModel.carregando, acao: confirmar)
-                .disabled(!viewModel.codigoValido || viewModel.carregando)
-                .accessibilityIdentifier("codigo-entrar")
+        BotaoPrimario("Entrar", carregando: viewModel.carregando, acao: confirmar)
+            .disabled(!viewModel.codigoValido || viewModel.carregando)
+            .accessibilityIdentifier("codigo-entrar")
+    }
 
-            if !viewModel.codigoValido {
-                Text("Digite os 6 números para entrar.", bundle: bundleApresentacao)
-                    .font(FrilaTipo.nota)
-                    .foregroundStyle(FrilaCor.textoSecundario)
-                    .multilineTextAlignment(.center)
+    private static let idDasCaixas = "caixas-do-codigo"
+
+    @MainActor
+    private func manterAsCaixasNaTela(_ proxy: ScrollViewProxy) async {
+        guard campoFocado else { return }
+        // Um instante para a tela assentar com a mensagem já presa no alto.
+        try? await Task.sleep(for: .milliseconds(150))
+        guard !Task.isCancelled else { return }
+        proxy.scrollTo(Self.idDasCaixas, anchor: .bottom)
+    }
+
+    private func reenviar() {
+        Task {
+            await viewModel.reenviarCodigo()
+            if let anuncio = viewModel.anuncioDoReenvio {
+                UIAccessibility.post(notification: .announcement, argument: anuncio)
             }
         }
-        .padding(.horizontal, FrilaEspaco.medio)
-        .padding(.vertical, FrilaEspaco.compacto)
     }
 
     private func confirmar() {
@@ -343,7 +361,7 @@ public struct TelaCodigo: View {
         return false
     }
 
-    private func aplicarEstadoCapturaSeNecessario(proxy: ScrollViewProxy) {
+    private func aplicarEstadoCapturaSeNecessario() {
         guard let indice = ProcessInfo.processInfo.arguments.firstIndex(of: "-FRILA_CAPTURA"),
               indice + 1 < ProcessInfo.processInfo.arguments.count else { return }
         let estado = ProcessInfo.processInfo.arguments[indice + 1]
@@ -354,26 +372,14 @@ public struct TelaCodigo: View {
             viewModel.codigo = "123456"
             viewModel.erro = String(localized: "Código incorreto. Confira os números e tente novamente.", bundle: bundleApresentacao)
             codigoComErro = "123456"
-            Task { @MainActor in
-                await Task.yield()
-                proxy.scrollTo("bloco-reenvio", anchor: .bottom)
-            }
         case "expirado":
             viewModel.codigo = "123456"
             viewModel.segundosRestantes = 0
             viewModel.erro = String(localized: "Código expirado. Peça um novo código para continuar.", bundle: bundleApresentacao)
             codigoComErro = "123456"
-            Task { @MainActor in
-                await Task.yield()
-                proxy.scrollTo("bloco-reenvio", anchor: .bottom)
-            }
         case "sem-conexao", "sem-rede":
             viewModel.codigo = "123456"
             viewModel.erro = String(localized: "Sem conexão com a internet. Tente novamente.", bundle: bundleApresentacao)
-            Task { @MainActor in
-                await Task.yield()
-                proxy.scrollTo("bloco-reenvio", anchor: .bottom)
-            }
         case "reenvio":
             viewModel.segundosRestantes = 0
         case "info":
@@ -388,16 +394,13 @@ public struct TelaCodigo: View {
 }
 
 private extension View {
-    func barraInferiorFixa<Content: View>(@ViewBuilder conteudo: () -> Content) -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(FrilaCor.divisoria)
-                    .frame(height: 1)
-                    .accessibilityHidden(true)
-                conteudo()
-            }
-            .background(FrilaCor.fundo)
+    /// O rodapé ancorado só quando cabe: com texto grande a ação vai para o fim do conteúdo.
+    @ViewBuilder
+    func rodapeAncoradoQuando<Conteudo: View>(_ ativo: Bool, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+        if ativo {
+            rodapeAncorado(conteudo)
+        } else {
+            self
         }
     }
 }
