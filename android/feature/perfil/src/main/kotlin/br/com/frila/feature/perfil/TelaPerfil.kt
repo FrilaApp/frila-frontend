@@ -143,6 +143,8 @@ fun TelaPerfil(
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
     /** Atalho para o histórico de turnos e extrato (Item #32 da Paridade, Lote C). Nulo esconde o atalho da lista. */
     aoAbrirHistoricoTurnos: (() -> Unit)? = null,
+    /** Atalho do profissional para transparência de vagas (Item #34 da Paridade, Lote C). Nulo esconde o atalho. */
+    aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     /**
      * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
      * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
@@ -354,6 +356,7 @@ fun TelaPerfil(
                     aoAbrirPontoBase = aoAbrirPontoBase,
                     aoAbrirFuncoesEHorarios = aoAbrirFuncoesEHorarios,
                     aoAbrirHistoricoTurnos = aoAbrirHistoricoTurnos,
+                    aoAbrirPorQueReceboVagas = aoAbrirPorQueReceboVagas,
                     aoEncontrarProfissional = aoEncontrarProfissional,
                     verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                     podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -467,6 +470,7 @@ private fun ConteudoDoPerfil(
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
     aoAbrirHistoricoTurnos: (() -> Unit)? = null,
+    aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -535,6 +539,7 @@ private fun ConteudoDoPerfil(
             aoAbrirPontoBase = aoAbrirPontoBase,
             aoAbrirFuncoesEHorarios = aoAbrirFuncoesEHorarios,
             aoAbrirHistoricoTurnos = aoAbrirHistoricoTurnos,
+            aoAbrirPorQueReceboVagas = aoAbrirPorQueReceboVagas,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
@@ -602,6 +607,7 @@ private fun ConteudoDaCasa(
             aoAbrirFotoDePerfil = null,
             aoAbrirPontoBase = null,
             aoAbrirFuncoesEHorarios = null,
+            aoAbrirPorQueReceboVagas = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
@@ -1074,6 +1080,7 @@ private fun BlocoDeConta(
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
     aoAbrirHistoricoTurnos: (() -> Unit)? = null,
+    aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
     relatoriosDeFalhasAtivados: Boolean = false,
@@ -1117,6 +1124,9 @@ private fun BlocoDeConta(
                 }
                 if (aoAbrirHistoricoTurnos != null) {
                     linha { FrilaLinhaDeNavegacao(stringResource(R.string.historico_turnos_titulo), aoAbrirHistoricoTurnos, Modifier.testTag("perfil-historico-turnos")) }
+                }
+                if (aoAbrirPorQueReceboVagas != null) {
+                    linha { FrilaLinhaDeNavegacao(stringResource(R.string.por_que_recebo_vagas_titulo), aoAbrirPorQueReceboVagas, Modifier.testTag("perfil-por-que-recebo")) }
                 }
                 if (aoAbrirApresentacao != null) {
                     linha { FrilaLinhaDeNavegacao(TextosApresentacaoERegioes.TITULO, aoAbrirApresentacao, Modifier.testTag("perfil-apresentacao")) }

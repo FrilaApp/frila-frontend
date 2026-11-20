@@ -105,12 +105,14 @@ import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.FuncoesEHorariosViewModel
 import br.com.frila.feature.perfil.HistoricoDeTurnosViewModel
+import br.com.frila.feature.perfil.PorQueReceboVagasViewModel
 import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.TelaApresentacaoERegioes
 import br.com.frila.feature.perfil.TelaPontoBase
 import br.com.frila.feature.perfil.TelaFuncoesEHorarios
 import br.com.frila.feature.perfil.TelaHistoricoDeTurnos
+import br.com.frila.feature.perfil.TelaPorQueReceboVagas
 import br.com.frila.feature.perfil.TelaFotoDePerfilConectada
 import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
@@ -164,6 +166,7 @@ object Rotas {
     const val PONTO_BASE = "perfil_ponto_base"
     const val FUNCOES_E_HORARIOS = "perfil_funcoes_e_horarios"
     const val HISTORICO_TURNOS = "perfil_historico_turnos"
+    const val POR_QUE_RECEBO_VAGAS = "por_que_recebo_vagas"
     const val FOTO_DE_PERFIL = "perfil_foto"
     const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
@@ -1023,6 +1026,11 @@ fun AppNavegacao(
                             null
                         },
                         aoAbrirHistoricoTurnos = { navController.navigate(Rotas.HISTORICO_TURNOS) },
+                        aoAbrirPorQueReceboVagas = if (casas == CasasDaConta.Desconhecidas) {
+                            { navController.navigate(Rotas.POR_QUE_RECEBO_VAGAS) }
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -1056,6 +1064,17 @@ fun AppNavegacao(
                     TelaHistoricoDeTurnos(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(Rotas.POR_QUE_RECEBO_VAGAS) {
+                RotaProtegida(guardaBiometrico) {
+                    val viewModel: PorQueReceboVagasViewModel = koinViewModel()
+                    TelaPorQueReceboVagas(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                        aoContestar = { navController.navigate(Rotas.CONTESTAR_DESPACHO) },
                     )
                 }
             }

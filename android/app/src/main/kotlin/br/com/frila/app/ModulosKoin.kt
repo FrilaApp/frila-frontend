@@ -94,6 +94,7 @@ import br.com.frila.feature.perfil.OpcaoDePontoBase
 import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.FuncoesEHorariosViewModel
 import br.com.frila.feature.perfil.HistoricoDeTurnosViewModel
+import br.com.frila.feature.perfil.PorQueReceboVagasViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
 import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
 import br.com.frila.feature.perfil.FluxoDaFotoDePerfil
@@ -521,6 +522,14 @@ val moduloFeatures = module {
         HistoricoDeTurnosViewModel(
             servicoTurnos = get<ServicoTurnos>(),
         )
+    }
+    /**
+     * Por que recebo vagas (Item #34 da Paridade, Lote C): transparência dos critérios de notificação
+     * e acompanhamento de revisão do despacho.
+     */
+    viewModel {
+        val conta = get<ServicoConta>()
+        PorQueReceboVagasViewModel(carregarCriterios = conta::criteriosDeNotificacao)
     }
     /**
      * Foto de perfil (L1-3): o detector e o preparo do JPEG são do aparelho (sem rede); só o envio fala com o servidor. O `Context` só é pedido
