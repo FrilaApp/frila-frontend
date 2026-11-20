@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Funções e Horários (Item #17 da Paridade, Lote B) -->
+    <string name="funcoes_horarios_titulo">Funções e horários</string>
+    <string name="funcoes_horarios_dica">Defina as funções que você exerce e sua disponibilidade semanal para receber convites e vagas adequadas.</string>
+    <string name="funcoes_horarios_secao_funcoes">Funções exercidas</string>
+    <string name="funcoes_horarios_dica_funcoes">Escolha ao menos uma função:</string>
+    <string name="funcoes_horarios_secao_disponibilidade">Disponibilidade semanal</string>
+    <string name="funcoes_horarios_dica_disponibilidade">Adicione faixas de horário para cada dia da semana em que pode trabalhar:</string>
+    <string name="funcoes_horarios_adicionar_horario">Adicionar horário</string>
+    <string name="funcoes_horarios_remover_horario">Remover</string>
+    <string name="funcoes_horarios_sem_horarios">Sem horários definidos para este dia (livre).</string>
+    <string name="funcoes_horarios_inicio">Início</string>
+    <string name="funcoes_horarios_fim">Término</string>
+    <string name="funcoes_horarios_erro_horario_invalido">O horário de início deve ser anterior ao de término.</string>
+    <string name="funcoes_horarios_erro_sem_funcao">Escolha ao menos uma função.</string>
+    <string name="funcoes_horarios_erro_formato_hora">Informe horários válidos no formato HH:mm.</string>
+    <string name="funcoes_horarios_salvar">Salvar alterações</string>
+    <string name="funcoes_horarios_salvando">Salvando…</string>
+    <string name="funcoes_horarios_sucesso">Alterações salvas com sucesso</string>
+</resources>

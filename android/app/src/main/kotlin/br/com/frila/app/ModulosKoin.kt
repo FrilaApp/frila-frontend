@@ -92,6 +92,7 @@ import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.OpcaoDePontoBase
 import br.com.frila.feature.perfil.PontoBaseViewModel
+import br.com.frila.feature.perfil.FuncoesEHorariosViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
 import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
 import br.com.frila.feature.perfil.FluxoDaFotoDePerfil
@@ -493,6 +494,19 @@ val moduloFeatures = module {
         val perfil = get<ServicoPerfil>()
         PontoBaseViewModel(
             opcoes = GeocodificadorDfOffline.REGIOES_ADMINISTRATIVAS.map { OpcaoDePontoBase(it.nome, it.centroide) },
+            carregarPerfil = perfil::obterMeuPerfilProfissional,
+            carregarFuncoes = get<ServicoVagas>()::listarFuncoes,
+            criarPerfil = perfil::criarPerfilProfissional,
+            atualizarPerfil = perfil::atualizarPerfilProfissional,
+        )
+    }
+    /**
+     * Funções e horários (Item #17 da Paridade, Lote B): o profissional vê e edita as funções exercidas
+     * e a grade semanal de disponibilidade (7 dias, início e fim).
+     */
+    viewModel {
+        val perfil = get<ServicoPerfil>()
+        FuncoesEHorariosViewModel(
             carregarPerfil = perfil::obterMeuPerfilProfissional,
             carregarFuncoes = get<ServicoVagas>()::listarFuncoes,
             criarPerfil = perfil::criarPerfilProfissional,
