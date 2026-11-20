@@ -141,6 +141,8 @@ fun TelaPerfil(
     aoAbrirPontoBase: (() -> Unit)? = null,
     /** Atalho do profissional para funções e horários (Item #17 da Paridade, Lote B). Nulo esconde o atalho. */
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
+    /** Atalho do profissional para transparência de vagas (Item #34 da Paridade, Lote C). Nulo esconde o atalho. */
+    aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     /**
      * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
      * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
@@ -351,6 +353,7 @@ fun TelaPerfil(
                     aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
                     aoAbrirPontoBase = aoAbrirPontoBase,
                     aoAbrirFuncoesEHorarios = aoAbrirFuncoesEHorarios,
+                    aoAbrirPorQueReceboVagas = aoAbrirPorQueReceboVagas,
                     aoEncontrarProfissional = aoEncontrarProfissional,
                     verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                     podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -463,6 +466,7 @@ private fun ConteudoDoPerfil(
     /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
+    aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -530,6 +534,7 @@ private fun ConteudoDoPerfil(
             aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
             aoAbrirPontoBase = aoAbrirPontoBase,
             aoAbrirFuncoesEHorarios = aoAbrirFuncoesEHorarios,
+            aoAbrirPorQueReceboVagas = aoAbrirPorQueReceboVagas,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
@@ -597,6 +602,7 @@ private fun ConteudoDaCasa(
             aoAbrirFotoDePerfil = null,
             aoAbrirPontoBase = null,
             aoAbrirFuncoesEHorarios = null,
+            aoAbrirPorQueReceboVagas = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
@@ -1068,6 +1074,7 @@ private fun BlocoDeConta(
     /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
+    aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
     relatoriosDeFalhasAtivados: Boolean = false,
@@ -1108,6 +1115,9 @@ private fun BlocoDeConta(
                 }
                 if (aoAbrirFuncoesEHorarios != null) {
                     linha { FrilaLinhaDeNavegacao(stringResource(R.string.funcoes_horarios_titulo), aoAbrirFuncoesEHorarios, Modifier.testTag("perfil-funcoes-horarios")) }
+                }
+                if (aoAbrirPorQueReceboVagas != null) {
+                    linha { FrilaLinhaDeNavegacao(stringResource(R.string.por_que_recebo_vagas_titulo), aoAbrirPorQueReceboVagas, Modifier.testTag("perfil-por-que-recebo")) }
                 }
                 if (aoAbrirApresentacao != null) {
                     linha { FrilaLinhaDeNavegacao(TextosApresentacaoERegioes.TITULO, aoAbrirApresentacao, Modifier.testTag("perfil-apresentacao")) }

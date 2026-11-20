@@ -23,4 +23,33 @@
     <string name="funcoes_horarios_salvar">Salvar alterações</string>
     <string name="funcoes_horarios_salvando">Salvando…</string>
     <string name="funcoes_horarios_sucesso">Alterações salvas com sucesso</string>
+
+    <!-- Por que recebo vagas (Item #34 da Paridade, Lote C) -->
+    <string name="por_que_recebo_vagas_titulo">Por que recebo vagas</string>
+    <string name="por_que_recebo_vagas_explicacao">Veja os critérios que definem quais vagas chegam até você por notificação no Frila.</string>
+    <string name="por_que_recebo_vagas_secao_funcao">Sua função</string>
+    <string name="por_que_recebo_vagas_sem_funcao">Nenhuma função cadastrada.</string>
+    <string name="por_que_recebo_vagas_secao_horarios">Seus horários</string>
+    <string name="por_que_recebo_vagas_horarios_explicacao">A vaga só chega quando o turno inteiro cabe em um destes horários.</string>
+    <string name="por_que_recebo_vagas_sem_horarios">Nenhum horário cadastrado. Sem horários, nenhuma vaga chega por notificação.</string>
+    <string name="por_que_recebo_vagas_secao_distancia">Distância</string>
+    <string name="por_que_recebo_vagas_distancia">Até %s km do seu ponto base.</string>
+    <string name="por_que_recebo_vagas_secao_equipes">Equipes de confiança</string>
+    <string name="por_que_recebo_vagas_equipes_explicacao">As vagas destes estabelecimentos chegam mesmo além da distância máxima, desde que a função e os horários batam.</string>
+    <string name="por_que_recebo_vagas_sem_equipes">Você ainda não faz parte da equipe de confiança de nenhum estabelecimento.</string>
+    <string name="por_que_recebo_vagas_secao_frequencia">Frequência</string>
+    <string name="por_que_recebo_vagas_frequencia">No máximo uma notificação a cada %d minutos.</string>
+    <string name="por_que_recebo_vagas_vazio_titulo">Nenhum critério cadastrado</string>
+    <string name="por_que_recebo_vagas_vazio_mensagem">Cadastre sua função e seus horários em Funções e horários para começar a receber vagas.</string>
+    <string name="por_que_recebo_vagas_erro_sem_rede">Sem conexão. Verifique sua internet e tente novamente.</string>
+    <string name="por_que_recebo_vagas_erro_carregar">Não foi possível carregar seus critérios. Tente novamente.</string>
+    <string name="por_que_recebo_vagas_secao_contestar">Algo não bate?</string>
+    <string name="por_que_recebo_vagas_contestar_explicacao">Se você acha que deveria ter recebido uma vaga, peça a revisão. A Equipe Frila responde por e-mail em até 5 dias úteis.</string>
+    <string name="por_que_recebo_vagas_botao_contestar">Contestar</string>
+    <string name="por_que_recebo_vagas_contestacao_ja_aberta">Já existe uma contestação deste despacho. A resposta da Equipe Frila vai por e-mail. Qualquer recurso adicional deve ser enviado por e-mail.</string>
+    <string name="por_que_recebo_vagas_pedido_enviado">Pedido de revisão enviado</string>
+    <string name="por_que_recebo_vagas_protocolo_numero">Número do protocolo</string>
+    <string name="por_que_recebo_vagas_protocolo_data">Enviado em</string>
+    <string name="por_que_recebo_vagas_prazo_resposta">Previsão de resposta até</string>
+    <string name="por_que_recebo_vagas_mensagem_enviado">A Equipe Frila vai responder por e-mail dentro do prazo informado.</string>
 </resources>

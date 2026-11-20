@@ -241,6 +241,7 @@ def main() -> None:
         "ParteUploadDto": ("UploadVerificacao", "partes"),
         "SuspensaoDaContaDto": ("SituacaoDaConta", "suspensao"),
         "EventoDaEscalaDto": ("NovaEscala", "evento"),
+        "EquipeDeConfiancaCriterioDto": ("CriteriosDeNotificacao", "equipes_de_confianca"),
     }
 
     # Request body de Edge Function
