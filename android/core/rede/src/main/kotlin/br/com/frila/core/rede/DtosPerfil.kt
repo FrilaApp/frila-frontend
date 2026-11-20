@@ -81,9 +81,5 @@ data class CriteriosDeNotificacaoDto(
     @SerialName("equipes_de_confianca") val equipesDeConfianca: List<EquipeDeConfiancaCriterioDto> = emptyList(),
     @SerialName("notificacoes_no_maximo_a_cada_min") val notificacoesNoMaximoACadaMin: Int = 30,
     @SerialName("contestacao") val contestacao: ProtocoloDto? = null,
-) {
-    /** Sem função, grade nem equipe: nenhuma vaga chega por notificação. */
-    val semCriterios: Boolean
-        get() = funcoes.isEmpty() && disponibilidades.isEmpty() && equipesDeConfianca.isEmpty()
-}
+)
 

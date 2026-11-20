@@ -25,6 +25,10 @@ data class ProtocoloExibido(
     val prazoRespostaAte: String,
 )
 
+/** Sem função, grade nem equipe: nenhuma vaga chega por notificação (regra de tela). */
+val CriteriosDeNotificacaoDto.semCriterios: Boolean
+    get() = funcoes.isEmpty() && disponibilidades.isEmpty() && equipesDeConfianca.isEmpty()
+
 /** Estados da tela "Por que recebo vagas" (RF27, paridade com o iOS). */
 sealed interface EstadoPorQueReceboVagas {
     data object Carregando : EstadoPorQueReceboVagas
