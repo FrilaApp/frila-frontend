@@ -93,6 +93,7 @@ import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.OpcaoDePontoBase
 import br.com.frila.feature.perfil.PontoBaseViewModel
 import br.com.frila.feature.perfil.FuncoesEHorariosViewModel
+import br.com.frila.feature.perfil.HistoricoDeTurnosViewModel
 import br.com.frila.feature.perfil.PorQueReceboVagasViewModel
 import br.com.frila.feature.perfil.ConferidorDeRostoDaFoto
 import br.com.frila.feature.perfil.ConferidorDeRostoDoAndroid
@@ -512,6 +513,14 @@ val moduloFeatures = module {
             carregarFuncoes = get<ServicoVagas>()::listarFuncoes,
             criarPerfil = perfil::criarPerfilProfissional,
             atualizarPerfil = perfil::atualizarPerfilProfissional,
+        )
+    }
+    /**
+     * Histórico de turnos e extrato (Item #32 da Paridade, Lote C).
+     */
+    viewModel {
+        HistoricoDeTurnosViewModel(
+            servicoTurnos = get<ServicoTurnos>(),
         )
     }
     /**

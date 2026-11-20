@@ -129,9 +129,10 @@ object GeradorExtratoPdf {
         turnos: List<TurnoDto>,
         nomeProfissional: String,
         instanteGeracao: Instant = Instant.now(),
+        nomeArquivoPersonalizado: String? = null,
     ): File {
         diretorioSaida.mkdirs()
-        val arquivo = File(diretorioSaida, nomeArquivo(instanteGeracao))
+        val arquivo = File(diretorioSaida, nomeArquivoPersonalizado ?: nomeArquivo(instanteGeracao))
 
         val ordenados = turnos.sortedByDescending { runCatching { instanteDoServidor(it.vaga.inicioEm) }.getOrNull() }
         val paginas = dividirEmPaginas(ordenados)
