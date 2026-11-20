@@ -80,6 +80,16 @@ fun nomeDoDiaSemana(dia: Int): String = when (dia) {
     else -> ""
 }
 
+fun JanelaDeDisponibilidadeDto.atravessaMeiaNoite(): Boolean {
+    val regex = Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
+    if (!regex.matches(inicio) || !regex.matches(fim)) return false
+    val (hIni, mIni) = inicio.split(":").map { it.toInt() }
+    val (hFim, mFim) = fim.split(":").map { it.toInt() }
+    val minIni = hIni * 60 + mIni
+    val minFim = hFim * 60 + mFim
+    return minFim < minIni
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ConteudoFuncoesEHorarios(
@@ -232,8 +242,13 @@ fun ConteudoFuncoesEHorarios(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
+                                        val textoFaixa = if (janela.atravessaMeiaNoite()) {
+                                            stringResource(R.string.funcoes_horarios_faixa_ate_dia_seguinte, janela.inicio, janela.fim)
+                                        } else {
+                                            stringResource(R.string.funcoes_horarios_faixa, janela.inicio, janela.fim)
+                                        }
                                         Text(
-                                            text = "${janela.inicio} às ${janela.fim}",
+                                            text = textoFaixa,
                                             style = FrilaTipo.corpo,
                                             color = cores.tinta,
                                         )

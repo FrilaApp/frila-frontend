@@ -120,20 +120,82 @@ class FuncoesEHorariosViewModelTest {
     }
 
     @Test
-    fun `validacao inicio menor que fim recusa horarios invertidos ou iguais`() = runBlocking {
+    fun `validacao aceita janelas noturnas que cruzam a meia-noite como 18h ate 02h`() = runBlocking {
         val servidor = ServidorFalso()
         val vm = servidor.viewModel()
         vm.carregar().join()
 
-        // Início posterior ao fim (ex.: 18:00 até 08:00)
-        val resultadoInvertido = vm.adicionarJanela(diaSemana = 1, inicio = "18:00", fim = "08:00")
-        assertFalse(resultadoInvertido)
-        assertEquals("O horário de início deve ser anterior ao de término.", vm.estado.value.erroValidacaoHorario)
+        // 18:00 até 02:00 cruza a meia-noite e deve ser aceito conforme contrato OpenAPI
+        val aceitou = vm.adicionarJanela(diaSemana = 6, inicio = "18:00", fim = "02:00")
+        assertTrue(aceitou)
+        assertNull(vm.estado.value.erroValidacaoHorario)
+        assertTrue(vm.estado.value.disponibilidades.any { it.diaSemana == 6 && it.inicio == "18:00" && it.fim == "02:00" })
+    }
 
-        // Início igual ao fim (ex.: 12:00 até 12:00)
-        val resultadoIgual = vm.adicionarJanela(diaSemana = 2, inicio = "12:00", fim = "12:00")
+    @Test
+    fun `validacao recusa horarios iguais como 09h ate 09h`() = runBlocking {
+        val servidor = ServidorFalso()
+        val vm = servidor.viewModel()
+        vm.carregar().join()
+
+        val resultadoIgual = vm.adicionarJanela(diaSemana = 1, inicio = "09:00", fim = "09:00")
         assertFalse(resultadoIgual)
-        assertEquals("O horário de início deve ser anterior ao de término.", vm.estado.value.erroValidacaoHorario)
+        assertEquals(TextosFuncoesEHorarios.ERRO_HORARIOS_IGUAIS, vm.estado.value.erroValidacaoHorario)
+    }
+
+    @Test
+    fun `validacao recusa dia da semana fora de 0 a 6`() = runBlocking {
+        val servidor = ServidorFalso()
+        val vm = servidor.viewModel()
+        vm.carregar().join()
+
+        assertFalse(vm.adicionarJanela(diaSemana = -1, inicio = "08:00", fim = "16:00"))
+        assertEquals(TextosFuncoesEHorarios.ERRO_DIA_INVALIDO, vm.estado.value.erroValidacaoHorario)
+
+        assertFalse(vm.adicionarJanela(diaSemana = 7, inicio = "08:00", fim = "16:00"))
+        assertEquals(TextosFuncoesEHorarios.ERRO_DIA_INVALIDO, vm.estado.value.erroValidacaoHorario)
+    }
+
+    @Test
+    fun `adicionar janela duplicada identica e recusada`() = runBlocking {
+        val servidor = ServidorFalso()
+        val vm = servidor.viewModel()
+        vm.carregar().join()
+
+        // Já existe janelaSegunda (dia 1, 08:00 até 16:00)
+        val duplicada = vm.adicionarJanela(diaSemana = 1, inicio = "08:00", fim = "16:00")
+        assertFalse(duplicada)
+        assertEquals(TextosFuncoesEHorarios.ERRO_JANELA_DUPLICADA, vm.estado.value.erroValidacaoHorario)
+    }
+
+    @Test
+    fun `adicionar janelas mantem lista ordenada por dia e inicio`() = runBlocking {
+        val servidor = ServidorFalso()
+        val vm = servidor.viewModel()
+        vm.carregar().join()
+
+        // Remove a janela inicial
+        vm.removerJanela(janelaSegunda)
+
+        // Adiciona fora de ordem
+        vm.adicionarJanela(diaSemana = 5, inicio = "18:00", fim = "02:00")
+        vm.adicionarJanela(diaSemana = 0, inicio = "12:00", fim = "16:00")
+        vm.adicionarJanela(diaSemana = 5, inicio = "08:00", fim = "12:00")
+        vm.adicionarJanela(diaSemana = 2, inicio = "10:00", fim = "18:00")
+
+        val ordenadas = vm.estado.value.disponibilidades
+        assertEquals(4, ordenadas.size)
+        assertEquals(0, ordenadas[0].diaSemana)
+        assertEquals("12:00", ordenadas[0].inicio)
+
+        assertEquals(2, ordenadas[1].diaSemana)
+        assertEquals("10:00", ordenadas[1].inicio)
+
+        assertEquals(5, ordenadas[2].diaSemana)
+        assertEquals("08:00", ordenadas[2].inicio)
+
+        assertEquals(5, ordenadas[3].diaSemana)
+        assertEquals("18:00", ordenadas[3].inicio)
     }
 
     @Test

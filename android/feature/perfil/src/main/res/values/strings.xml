@@ -12,10 +12,14 @@
     <string name="funcoes_horarios_sem_horarios">Sem horários definidos para este dia (livre).</string>
     <string name="funcoes_horarios_inicio">Início</string>
     <string name="funcoes_horarios_fim">Término</string>
-    <string name="funcoes_horarios_erro_horario_invalido">O horário de início deve ser anterior ao de término.</string>
+    <string name="funcoes_horarios_faixa">%1$s às %2$s</string>
+    <string name="funcoes_horarios_faixa_ate_dia_seguinte">%1$s às %2$s (até o dia seguinte)</string>
+    <string name="funcoes_horarios_erro_horarios_iguais">O horário de início e término não podem ser iguais.</string>
     <string name="funcoes_horarios_erro_sem_ponto_base">Defina seu ponto base no perfil antes de salvar funções e horários.</string>
     <string name="funcoes_horarios_erro_sem_funcao">Escolha ao menos uma função.</string>
     <string name="funcoes_horarios_erro_formato_hora">Informe horários válidos no formato HH:mm.</string>
+    <string name="funcoes_horarios_erro_dia_invalido">Dia da semana inválido.</string>
+    <string name="funcoes_horarios_erro_janela_duplicada">Esta faixa de horário já foi adicionada.</string>
     <string name="funcoes_horarios_salvar">Salvar alterações</string>
     <string name="funcoes_horarios_salvando">Salvando…</string>
     <string name="funcoes_horarios_sucesso">Alterações salvas com sucesso</string>

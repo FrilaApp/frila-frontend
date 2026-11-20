@@ -118,6 +118,10 @@ class FuncoesEHorariosViewModel(
     }
 
     fun adicionarJanela(diaSemana: Int, inicio: String, fim: String): Boolean {
+        if (diaSemana !in 0..6) {
+            _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_DIA_INVALIDO) }
+            return false
+        }
         val iniFormatado = padronizarHora(inicio)
         val fimFormatado = padronizarHora(fim)
         val regex = Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
@@ -125,10 +129,8 @@ class FuncoesEHorariosViewModel(
             _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_FORMATO_HORA) }
             return false
         }
-        val minIni = converterParaMinutos(iniFormatado)
-        val minFim = converterParaMinutos(fimFormatado)
-        if (minIni >= minFim) {
-            _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_HORARIO_INVALIDO) }
+        if (iniFormatado == fimFormatado) {
+            _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_HORARIOS_IGUAIS) }
             return false
         }
         val nova = JanelaDeDisponibilidadeDto(
@@ -136,9 +138,20 @@ class FuncoesEHorariosViewModel(
             inicio = iniFormatado,
             fim = fimFormatado,
         )
+        val atual = _estado.value
+        val jaExiste = atual.disponibilidades.any {
+            it.diaSemana == nova.diaSemana && it.inicio == nova.inicio && it.fim == nova.fim
+        }
+        if (jaExiste) {
+            _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_JANELA_DUPLICADA) }
+            return false
+        }
+        val listaOrdenada = (atual.disponibilidades + nova).sortedWith(
+            compareBy({ it.diaSemana }, { converterParaMinutos(it.inicio) }, { converterParaMinutos(it.fim) }),
+        )
         _estado.update {
             it.copy(
-                disponibilidades = it.disponibilidades + nova,
+                disponibilidades = listaOrdenada,
                 erroValidacaoHorario = null,
                 erro = if (it.precisaDefinirPontoBase) TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE else null,
             )
@@ -197,7 +210,7 @@ class FuncoesEHorariosViewModel(
         }
     }
 
-    private fun padronizarHora(hora: String): String {
+    internal fun padronizarHora(hora: String): String {
         val limpa = hora.trim()
         val partes = limpa.split(":")
         return if (partes.size == 2) {
@@ -207,7 +220,7 @@ class FuncoesEHorariosViewModel(
         } else limpa
     }
 
-    private fun converterParaMinutos(hora: String): Int {
+    internal fun converterParaMinutos(hora: String): Int {
         val (h, m) = hora.split(":").map { it.toInt() }
         return h * 60 + m
     }

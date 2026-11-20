@@ -119,10 +119,18 @@ class TelaFuncoesEHorariosTest {
 
     @Test
     fun `exibe erro de validacao quando presente no estado`() {
-        montar(estadoPadrao.copy(erroValidacaoHorario = "O horário de início deve ser anterior ao de término."))
+        montar(estadoPadrao.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_HORARIOS_IGUAIS))
 
         rule.onNodeWithTag("erro-validacao-horario").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("O horário de início deve ser anterior ao de término.").assertIsDisplayed()
+        rule.onNodeWithText(TextosFuncoesEHorarios.ERRO_HORARIOS_IGUAIS).assertIsDisplayed()
+    }
+
+    @Test
+    fun `janela que cruza meia-noite exibe indicacao de ate o dia seguinte`() {
+        val janelaNoturna = JanelaDeDisponibilidadeDto(diaSemana = 1, inicio = "18:00", fim = "02:00")
+        montar(estadoPadrao.copy(disponibilidades = listOf(janelaNoturna)))
+
+        rule.onNodeWithText("18:00 às 02:00 (até o dia seguinte)").assertIsDisplayed()
     }
 
     @Test

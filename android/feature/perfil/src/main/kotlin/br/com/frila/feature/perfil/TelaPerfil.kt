@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationManagerCompat
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
@@ -1106,7 +1107,7 @@ private fun BlocoDeConta(
                     linha { FrilaLinhaDeNavegacao(TextosPontoBase.TITULO, aoAbrirPontoBase, Modifier.testTag("perfil-ponto-base")) }
                 }
                 if (aoAbrirFuncoesEHorarios != null) {
-                    linha { FrilaLinhaDeNavegacao("Funções e horários", aoAbrirFuncoesEHorarios, Modifier.testTag("perfil-funcoes-horarios")) }
+                    linha { FrilaLinhaDeNavegacao(stringResource(R.string.funcoes_horarios_titulo), aoAbrirFuncoesEHorarios, Modifier.testTag("perfil-funcoes-horarios")) }
                 }
                 if (aoAbrirApresentacao != null) {
                     linha { FrilaLinhaDeNavegacao(TextosApresentacaoERegioes.TITULO, aoAbrirApresentacao, Modifier.testTag("perfil-apresentacao")) }
