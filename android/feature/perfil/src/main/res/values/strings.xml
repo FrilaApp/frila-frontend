@@ -23,4 +23,22 @@
     <string name="funcoes_horarios_salvar">Salvar alterações</string>
     <string name="funcoes_horarios_salvando">Salvando…</string>
     <string name="funcoes_horarios_sucesso">Alterações salvas com sucesso</string>
+
+    <!-- Histórico de turnos e extrato (Item #32 da Paridade, Lote C) -->
+    <string name="historico_turnos_titulo">Histórico de turnos</string>
+    <string name="historico_turnos_explicacao">Exporte os turnos de um período com data, função, horários registrados, valor acordado e contraparte. O valor é o combinado entre as partes, e não um pagamento feito pelo Frila. Turno não verificado sai marcado.</string>
+    <string name="historico_turnos_periodo">Período</string>
+    <string name="historico_turnos_este_mes">Este mês</string>
+    <string name="historico_turnos_mes_passado">Mês passado</string>
+    <string name="historico_turnos_intervalo">Escolher datas</string>
+    <string name="historico_turnos_de">De</string>
+    <string name="historico_turnos_ate">Até</string>
+    <string name="historico_turnos_periodo_invalido">A data inicial precisa ser igual ou anterior à final, e nenhuma pode estar no futuro.</string>
+    <string name="historico_turnos_intervalo_maximo_excedido">Escolha um período de até 30 dias para exportar os turnos.</string>
+    <string name="historico_turnos_formato">Formato</string>
+    <string name="historico_turnos_exportar">Exportar</string>
+    <string name="historico_turnos_dica_exportar">Gera o arquivo do período e abre o compartilhamento do sistema.</string>
+    <string name="historico_turnos_gerando">Gerando o arquivo…</string>
+    <string name="historico_turnos_sem_turnos">Nenhum turno nesse período. Nenhum arquivo foi gerado.</string>
+    <string name="historico_turnos_tentar_novamente">Tentar novamente</string>
 </resources>

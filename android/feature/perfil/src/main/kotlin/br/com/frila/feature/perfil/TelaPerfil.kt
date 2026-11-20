@@ -141,6 +141,8 @@ fun TelaPerfil(
     aoAbrirPontoBase: (() -> Unit)? = null,
     /** Atalho do profissional para funções e horários (Item #17 da Paridade, Lote B). Nulo esconde o atalho. */
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
+    /** Atalho para o histórico de turnos e extrato (Item #32 da Paridade, Lote C). Nulo esconde o atalho da lista. */
+    aoAbrirHistoricoTurnos: (() -> Unit)? = null,
     /**
      * Busca de profissionais pela casa (tela provisória): nulo esconde o atalho "Encontrar profissional". O chamador só
      * informa com `recursos.busca_profissionais` ligado (RN46) e para quem é membro de um estabelecimento.
@@ -297,7 +299,7 @@ fun TelaPerfil(
                     funcoes = estado.perfil?.funcoes.orEmpty(),
                     reputacao = estado.perfil?.reputacao,
                     resumoFinanceiro = estado.resumoFinanceiro,
-                    aoExportarExtrato = {
+                    aoExportarExtrato = aoAbrirHistoricoTurnos ?: {
                         // DEDUZIDO: PerfilProfissionalDto não traz nome do profissional (só id,
                         // usuario_id, funcoes, ponto_base, disponibilidades, reputacao — MEDIDO em
                         // Dtos.kt:282-289). Sem esse campo no contrato, o cabeçalho do PDF usa um
@@ -351,6 +353,7 @@ fun TelaPerfil(
                     aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
                     aoAbrirPontoBase = aoAbrirPontoBase,
                     aoAbrirFuncoesEHorarios = aoAbrirFuncoesEHorarios,
+                    aoAbrirHistoricoTurnos = aoAbrirHistoricoTurnos,
                     aoEncontrarProfissional = aoEncontrarProfissional,
                     verificacaoIdentidade = verificacaoIdentidade.takeIf { recursoSeloHabilitado },
                     podeSolicitarSelo = podeSolicitarSelo && recursoSeloHabilitado,
@@ -463,6 +466,7 @@ private fun ConteudoDoPerfil(
     /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
+    aoAbrirHistoricoTurnos: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     verificacaoIdentidade: VerificacaoIdentidade? = null,
     podeSolicitarSelo: Boolean = false,
@@ -530,6 +534,7 @@ private fun ConteudoDoPerfil(
             aoAbrirFotoDePerfil = aoAbrirFotoDePerfil,
             aoAbrirPontoBase = aoAbrirPontoBase,
             aoAbrirFuncoesEHorarios = aoAbrirFuncoesEHorarios,
+            aoAbrirHistoricoTurnos = aoAbrirHistoricoTurnos,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
@@ -1068,6 +1073,7 @@ private fun BlocoDeConta(
     /** Atalho do profissional para o ponto base. Nulo esconde o atalho. */
     aoAbrirPontoBase: (() -> Unit)? = null,
     aoAbrirFuncoesEHorarios: (() -> Unit)? = null,
+    aoAbrirHistoricoTurnos: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
     relatoriosDeFalhasAtivados: Boolean = false,
@@ -1108,6 +1114,9 @@ private fun BlocoDeConta(
                 }
                 if (aoAbrirFuncoesEHorarios != null) {
                     linha { FrilaLinhaDeNavegacao(stringResource(R.string.funcoes_horarios_titulo), aoAbrirFuncoesEHorarios, Modifier.testTag("perfil-funcoes-horarios")) }
+                }
+                if (aoAbrirHistoricoTurnos != null) {
+                    linha { FrilaLinhaDeNavegacao(stringResource(R.string.historico_turnos_titulo), aoAbrirHistoricoTurnos, Modifier.testTag("perfil-historico-turnos")) }
                 }
                 if (aoAbrirApresentacao != null) {
                     linha { FrilaLinhaDeNavegacao(TextosApresentacaoERegioes.TITULO, aoAbrirApresentacao, Modifier.testTag("perfil-apresentacao")) }
