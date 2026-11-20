@@ -13,6 +13,7 @@
     <string name="funcoes_horarios_inicio">Início</string>
     <string name="funcoes_horarios_fim">Término</string>
     <string name="funcoes_horarios_erro_horario_invalido">O horário de início deve ser anterior ao de término.</string>
+    <string name="funcoes_horarios_erro_sem_ponto_base">Defina seu ponto base no perfil antes de salvar funções e horários.</string>
     <string name="funcoes_horarios_erro_sem_funcao">Escolha ao menos uma função.</string>
     <string name="funcoes_horarios_erro_formato_hora">Informe horários válidos no formato HH:mm.</string>
     <string name="funcoes_horarios_salvar">Salvar alterações</string>

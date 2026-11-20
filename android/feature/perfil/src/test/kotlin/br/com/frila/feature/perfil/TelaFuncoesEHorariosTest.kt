@@ -1,6 +1,7 @@
 package br.com.frila.feature.perfil
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -122,6 +123,20 @@ class TelaFuncoesEHorariosTest {
 
         rule.onNodeWithTag("erro-validacao-horario").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("O horário de início deve ser anterior ao de término.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `quando precisa definir ponto base desabilita botao salvar e exibe mensagem`() {
+        montar(
+            estadoPadrao.copy(
+                semPerfil = true,
+                pontoBaseExistente = null,
+                erro = "Defina seu ponto base no perfil antes de salvar funções e horários.",
+            ),
+        )
+
+        rule.onNodeWithTag("botao-salvar-funcoes-horarios").assertIsNotEnabled()
+        rule.onNodeWithText("Defina seu ponto base no perfil antes de salvar funções e horários.").assertIsDisplayed()
     }
 
     @Test

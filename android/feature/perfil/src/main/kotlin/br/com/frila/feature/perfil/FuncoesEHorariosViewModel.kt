@@ -31,7 +31,14 @@ data class EstadoFuncoesEHorarios(
     val diaSelecionado: Int = 1, // 1 = Segunda-feira
     val semPerfil: Boolean = false,
     val pontoBaseExistente: CoordenadaDto? = null,
-)
+) {
+    /**
+     * Sem perfil profissional cadastrado e sem ponto base salvo, o salvar não pode criar
+     * perfil com coordenadas fictícias. A pessoa deve definir o ponto base antes.
+     */
+    val precisaDefinirPontoBase: Boolean
+        get() = semPerfil && pontoBaseExistente == null
+}
 
 /**
  * Funções e horários de disponibilidade (Item #17 da Paridade, Lote B).
@@ -70,6 +77,8 @@ class FuncoesEHorariosViewModel(
                             funcoesSelecionadas = emptySet(),
                             disponibilidades = emptyList(),
                             semPerfil = true,
+                            pontoBaseExistente = null,
+                            erro = TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE,
                         )
                     }
                 } else {
@@ -81,6 +90,7 @@ class FuncoesEHorariosViewModel(
                             disponibilidades = perfil.disponibilidades,
                             pontoBaseExistente = perfil.pontoBase,
                             semPerfil = false,
+                            erro = if (perfil.pontoBase == null) TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE else null,
                         )
                     }
                 }
@@ -89,7 +99,7 @@ class FuncoesEHorariosViewModel(
             } catch (e: ErroDaApi) {
                 _estado.update { it.copy(carregando = false, erro = e.detalhes ?: e.mensagemCrua) }
             } catch (e: Exception) {
-                _estado.update { it.copy(carregando = false, erro = "Não foi possível carregar suas informações. Tente novamente.") }
+                _estado.update { it.copy(carregando = false, erro = TextosFuncoesEHorarios.ERRO_CARREGAR) }
             }
         }
     }
@@ -97,7 +107,7 @@ class FuncoesEHorariosViewModel(
     fun alternarFuncao(id: String) {
         _estado.update {
             val novas = if (id in it.funcoesSelecionadas) it.funcoesSelecionadas - id else it.funcoesSelecionadas + id
-            it.copy(funcoesSelecionadas = novas, erro = null)
+            it.copy(funcoesSelecionadas = novas, erro = if (it.precisaDefinirPontoBase) TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE else null)
         }
     }
 
@@ -112,13 +122,13 @@ class FuncoesEHorariosViewModel(
         val fimFormatado = padronizarHora(fim)
         val regex = Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
         if (!regex.matches(iniFormatado) || !regex.matches(fimFormatado)) {
-            _estado.update { it.copy(erroValidacaoHorario = "Informe horários válidos no formato HH:mm.") }
+            _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_FORMATO_HORA) }
             return false
         }
         val minIni = converterParaMinutos(iniFormatado)
         val minFim = converterParaMinutos(fimFormatado)
         if (minIni >= minFim) {
-            _estado.update { it.copy(erroValidacaoHorario = "O horário de início deve ser anterior ao de término.") }
+            _estado.update { it.copy(erroValidacaoHorario = TextosFuncoesEHorarios.ERRO_HORARIO_INVALIDO) }
             return false
         }
         val nova = JanelaDeDisponibilidadeDto(
@@ -130,7 +140,7 @@ class FuncoesEHorariosViewModel(
             it.copy(
                 disponibilidades = it.disponibilidades + nova,
                 erroValidacaoHorario = null,
-                erro = null,
+                erro = if (it.precisaDefinirPontoBase) TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE else null,
             )
         }
         return true
@@ -138,25 +148,33 @@ class FuncoesEHorariosViewModel(
 
     fun removerJanela(janela: JanelaDeDisponibilidadeDto) {
         _estado.update {
-            it.copy(disponibilidades = it.disponibilidades - janela, erro = null)
+            it.copy(
+                disponibilidades = it.disponibilidades - janela,
+                erro = if (it.precisaDefinirPontoBase) TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE else null,
+            )
         }
     }
 
     fun salvar(): Job {
         val atual = _estado.value
         if (atual.salvando) return escopoDeTrabalho.launch {}
+        if (atual.semPerfil && atual.pontoBaseExistente == null) {
+            _estado.update { it.copy(erro = TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE) }
+            return escopoDeTrabalho.launch {}
+        }
         if (atual.funcoesSelecionadas.isEmpty()) {
-            _estado.update { it.copy(erro = "Escolha ao menos uma função.") }
+            _estado.update { it.copy(erro = TextosFuncoesEHorarios.ERRO_SEM_FUNCAO) }
             return escopoDeTrabalho.launch {}
         }
         _estado.update { it.copy(salvando = true, erro = null) }
         return escopoDeTrabalho.launch {
             try {
                 if (atual.semPerfil) {
+                    val pontoBase = checkNotNull(atual.pontoBaseExistente)
                     criarPerfil(
                         DadosDoPerfilProfissionalDto(
                             funcoes = atual.funcoesSelecionadas.toList(),
-                            pontoBase = atual.pontoBaseExistente ?: CoordenadaDto(-15.793889, -47.882778),
+                            pontoBase = pontoBase,
                             disponibilidades = atual.disponibilidades,
                         ),
                     )
@@ -174,7 +192,7 @@ class FuncoesEHorariosViewModel(
             } catch (e: ErroDaApi) {
                 _estado.update { it.copy(salvando = false, erro = e.detalhes ?: e.mensagemCrua) }
             } catch (e: Exception) {
-                _estado.update { it.copy(salvando = false, erro = "Não foi possível salvar as alterações. Tente novamente.") }
+                _estado.update { it.copy(salvando = false, erro = TextosFuncoesEHorarios.ERRO_SALVAR) }
             }
         }
     }

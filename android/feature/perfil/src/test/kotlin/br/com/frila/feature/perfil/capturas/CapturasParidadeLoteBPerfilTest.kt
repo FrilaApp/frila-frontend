@@ -1,20 +1,17 @@
 package br.com.frila.feature.perfil.capturas
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.ViewRootForTest
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.JanelaDeDisponibilidadeDto
 import br.com.frila.feature.perfil.ConteudoFuncoesEHorarios
 import br.com.frila.feature.perfil.EstadoFuncoesEHorarios
-import java.io.File
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,21 +33,6 @@ class CapturasParidadeLoteBPerfilTest {
             LocalDensity provides Density(densidadeAtual.density, fontScale = escala),
             content = conteudo,
         )
-    }
-
-    private fun salvarCaptura(nome: String): File? {
-        compose.waitForIdle()
-        val vista = (compose.onRoot().fetchSemanticsNode().root as ViewRootForTest).view
-        val imagem = Bitmap.createBitmap(vista.width, vista.height, Bitmap.Config.ARGB_8888)
-        vista.draw(Canvas(imagem))
-
-        val pastaDestino = System.getenv("FRILA_CAPTURAS_DIR")?.takeIf { it.isNotBlank() }
-            ?: "/Users/cauecarneiro/Documents/Projetos/Frila/orquestracao/retornos/ANDROID-PARIDADE-B-provas"
-        val pasta = File(pastaDestino)
-        pasta.mkdirs()
-        val arquivo = File(pasta, "$nome.png")
-        arquivo.outputStream().use { imagem.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        return arquivo
     }
 
     private val estadoExemplo = EstadoFuncoesEHorarios(
@@ -88,7 +70,10 @@ class CapturasParidadeLoteBPerfilTest {
                 }
             },
         )
-        salvarCaptura("01-item17-funcoes-e-horarios-padrao")
+        compose.onNodeWithText("Funções e horários").assertIsDisplayed()
+        compose.onNodeWithText("Funções exercidas").assertIsDisplayed()
+        compose.onNodeWithText("Disponibilidade semanal").assertIsDisplayed()
+        compose.capturar("01-item17-funcoes-e-horarios-padrao")
     }
 
     @Test
@@ -109,6 +94,9 @@ class CapturasParidadeLoteBPerfilTest {
                 }
             },
         )
-        salvarCaptura("02-item17-funcoes-e-horarios-fonte-grande")
+        compose.onNodeWithText("Funções e horários").assertIsDisplayed()
+        compose.onNodeWithText("Funções exercidas").assertIsDisplayed()
+        compose.onNodeWithText("Disponibilidade semanal").assertIsDisplayed()
+        compose.capturar("02-item17-funcoes-e-horarios-fonte-grande")
     }
 }

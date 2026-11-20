@@ -103,11 +103,14 @@ fun ConteudoFuncoesEHorarios(
         topBar = { BarraDeTopoDoPerfil(aoVoltar = aoVoltar) },
         bottomBar = {
             RodapeAncorado {
-                estado.erro?.let { MensagemJuntoAoBotao(it) }
+                val mensagemAbaixo = estado.erro ?: if (estado.precisaDefinirPontoBase) {
+                    stringResource(R.string.funcoes_horarios_erro_sem_ponto_base)
+                } else null
+                mensagemAbaixo?.let { MensagemJuntoAoBotao(it) }
                 BotaoPrimario(
                     texto = if (estado.salvando) stringResource(R.string.funcoes_horarios_salvando) else stringResource(R.string.funcoes_horarios_salvar),
                     aoClicar = aoSalvar,
-                    habilitado = !estado.salvando && !estado.carregando,
+                    habilitado = !estado.salvando && !estado.carregando && !estado.precisaDefinirPontoBase,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("botao-salvar-funcoes-horarios"),

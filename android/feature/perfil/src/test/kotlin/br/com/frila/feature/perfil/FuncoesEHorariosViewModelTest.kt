@@ -104,7 +104,7 @@ class FuncoesEHorariosViewModelTest {
     }
 
     @Test
-    fun `carregar quando perfil nao existe (404) marca semPerfil e listas vazias`() = runBlocking {
+    fun `carregar quando perfil nao existe (404) marca semPerfil e exibe aviso de ponto base`() = runBlocking {
         val servidor = ServidorFalso(perfilSalvo = null)
         val vm = servidor.viewModel()
 
@@ -112,7 +112,8 @@ class FuncoesEHorariosViewModelTest {
         val estado = vm.estado.value
         assertFalse(estado.carregando)
         assertTrue(estado.semPerfil)
-        assertNull(estado.erro)
+        assertTrue(estado.precisaDefinirPontoBase)
+        assertEquals(TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE, estado.erro)
         assertEquals(3, estado.funcoesDisponiveis.size)
         assertTrue(estado.funcoesSelecionadas.isEmpty())
         assertTrue(estado.disponibilidades.isEmpty())
@@ -223,7 +224,7 @@ class FuncoesEHorariosViewModelTest {
     }
 
     @Test
-    fun `salvar com sucesso cria perfil quando sem perfil`() = runBlocking {
+    fun `salvar quando semPerfil e sem ponto base nao cria perfil e exibe erro`() = runBlocking {
         val servidor = ServidorFalso(perfilSalvo = null)
         val vm = servidor.viewModel()
         vm.carregar().join()
@@ -232,12 +233,10 @@ class FuncoesEHorariosViewModelTest {
         vm.adicionarJanela(diaSemana = 5, inicio = "18:00", fim = "23:00")
         vm.salvar().join()
 
-        assertTrue(vm.estado.value.salvo)
-        assertNull(vm.estado.value.erro)
-        assertEquals(1, servidor.criacoes.size)
-        val criacao = servidor.criacoes.first()
-        assertEquals(listOf("f-cozinheiro"), criacao.funcoes)
-        assertEquals(1, criacao.disponibilidades.size)
+        assertFalse(vm.estado.value.salvo)
+        assertEquals(TextosFuncoesEHorarios.ERRO_SEM_PONTO_BASE, vm.estado.value.erro)
+        assertTrue(servidor.criacoes.isEmpty())
+        assertTrue(servidor.atualizacoes.isEmpty())
     }
 
     @Test
