@@ -61,3 +61,29 @@ data class DefinirRegioesAtendidasDto(
     @SerialName("regioes") val regioes: List<Int>,
     @SerialName("atende_todo_df") val atendeTodoDf: Boolean,
 )
+
+/** Item de estabelecimento em `equipes_de_confianca` de `CriteriosDeNotificacao` (RF27). */
+@Serializable
+data class EquipeDeConfiancaCriterioDto(
+    @SerialName("estabelecimento_id") val estabelecimentoId: String,
+    @SerialName("nome") val nome: String,
+)
+
+/**
+ * Resposta de `GET /rest/v1/rpc/criterios_de_notificacao` (schema `CriteriosDeNotificacao`, RF27, LGPD art. 20).
+ * Os critérios que decidem se o profissional recebe a notificação de uma vaga (função, grade, distância, equipes).
+ */
+@Serializable
+data class CriteriosDeNotificacaoDto(
+    @SerialName("funcoes") val funcoes: List<FuncaoDto> = emptyList(),
+    @SerialName("disponibilidades") val disponibilidades: List<JanelaDeDisponibilidadeDto> = emptyList(),
+    @SerialName("distancia_maxima_km") val distanciaMaximaKm: Double = 15.0,
+    @SerialName("equipes_de_confianca") val equipesDeConfianca: List<EquipeDeConfiancaCriterioDto> = emptyList(),
+    @SerialName("notificacoes_no_maximo_a_cada_min") val notificacoesNoMaximoACadaMin: Int = 30,
+    @SerialName("contestacao") val contestacao: ProtocoloDto? = null,
+) {
+    /** Sem função, grade nem equipe: nenhuma vaga chega por notificação. */
+    val semCriterios: Boolean
+        get() = funcoes.isEmpty() && disponibilidades.isEmpty() && equipesDeConfianca.isEmpty()
+}
+
