@@ -93,32 +93,33 @@ final class CheckinPorCodigoUITests: XCTestCase {
 
     // MARK: O profissional
 
-    func testChegadaPendenteOfereceNovoGPSSemEsconderCheckout() {
-        conferirRenovacao(extras: [])
+    func testCodigoLiberadoEscondeNovoGPSSemEsconderCheckout() {
+        conferirCodigoLiberadoSemRenovacao(extras: [])
     }
 
-    func testRenovacaoDaChegadaEmAX5() {
-        conferirRenovacao(extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+    func testCodigoLiberadoEscondeNovoGPSEmAX5() {
+        conferirCodigoLiberadoSemRenovacao(extras: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
     }
 
-    private func conferirRenovacao(extras: [String]) {
+    /// Chegada pendente com o código da casa liberado: ler o código é o caminho; "Tentar o GPS de novo" some e o
+    /// check-out continua à mão. (Sem código liberado, o botão aparece: coberto em `RenovacaoDoCheckinTests`, porque
+    /// o dublê do check-in por código libera o código em toda chegada pendente.)
+    private func conferirCodigoLiberadoSemRenovacao(extras: [String]) {
         let app = abrir(["-FRILA_SCENARIO", "checkin-por-codigo", "-FRILA_LOCALIZACAO", "codigo-perto",
                          "-FRILA_PUSH", "turno_nao_verificado", "-FRILA_PUSH_ID", turnoDoProfissional] + extras)
         fazerCheckinPendente(app, manual: false)
-        let renovar = app.buttons["renovar-chegada"]
-        XCTAssertTrue(renovar.waitForExistence(timeout: Espera.aparecer))
-        XCTAssertEqual(renovar.label, "Tentar o GPS de novo")
-        rolarAte(renovar, em: app)
-        XCTAssertTrue(renovar.isHittable)
-        XCTAssertGreaterThanOrEqual(renovar.frame.height, 44)
-        tocar(renovar)
+        let ler = app.buttons["ler-codigo-da-casa"]
+        XCTAssertTrue(ler.waitForExistence(timeout: Espera.aparecer))
+        XCTAssertFalse(app.buttons["renovar-chegada"].exists, "Com o código liberado, 'Tentar o GPS de novo' some")
+        rolarAte(ler, em: app)
+        XCTAssertTrue(ler.isHittable)
+        XCTAssertGreaterThanOrEqual(ler.frame.height, 44)
         let checkout = app.buttons["fazer-checkout"]
         XCTAssertTrue(checkout.waitForExistence(timeout: Espera.aparecer))
         rolarAte(checkout, em: app)
         XCTAssertTrue(checkout.isHittable)
         XCTAssertTrue(checkout.isEnabled)
         XCTAssertGreaterThanOrEqual(checkout.frame.height, 44)
-        XCTAssertTrue(app.buttons["ler-codigo-da-casa"].exists)
     }
 
     private func abrirTurnoDoProfissional(localizacao: String) -> XCUIApplication {
