@@ -193,9 +193,11 @@ public final class PresencaDoTurnoViewModel {
 
     /// A chegada pendente pode renovar a proximidade no servidor, mesmo sem código disponível
     /// no cache ou depois dos 900 s de frescor. Uma ação ainda na fila não vira outro toque.
+    /// Quando o servidor já liberou o código da casa (`podeLerOCodigo`), "Tentar o GPS de novo" some: a
+    /// tela oferece um só caminho para confirmar a chegada. Se o cache expirar, o botão volta sozinho.
     public var podeRenovarChegada: Bool {
         guard checkinPorCodigoLigado, verificacao == .pendente,
-              case .registrado = checkin else { return false }
+              case .registrado = checkin, !podeLerOCodigo else { return false }
         return isentoDaJanela || dentroDaJanelaDoCheckin
     }
 

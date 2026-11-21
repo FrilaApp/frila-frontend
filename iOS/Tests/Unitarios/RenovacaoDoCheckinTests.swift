@@ -80,6 +80,9 @@ struct RenovacaoDoCheckinTests {
         #expect(api.distancias == [30])
         #expect(api.toques == [relogio.agora])
         #expect(vm.podeLerOCodigo)
+        #expect(!vm.podeRenovarChegada, "Com o código liberado, 'Tentar o GPS de novo' some")
+        #expect(!vm.podeFazerCheckin)
+        #expect(vm.podeFazerCheckout)
         #expect(vm.verificacao == .pendente)
         if case let .registrado(feito) = vm.checkin {
             #expect(feito.instante == inicio.addingTimeInterval(300))
@@ -95,6 +98,18 @@ struct RenovacaoDoCheckinTests {
         await vm.iniciar(.checkin)
         #expect(api.toques == [relogio.agora])
         #expect(vm.podeLerOCodigo)
+    }
+
+    @Test("Código da casa liberado esconde a renovação; se o caminho do código se encerra, ela volta")
+    func codigoLiberadoEscondeARenovacao() async throws {
+        let (vm, _, _) = try await cena(distancia: 30)
+        #expect(vm.podeRenovarChegada)
+        await vm.iniciar(.checkin)
+        #expect(vm.podeLerOCodigo)
+        #expect(!vm.podeRenovarChegada)
+        vm.aoEncerrarOCaminhoDoCodigo()
+        #expect(!vm.podeLerOCodigo)
+        #expect(vm.podeRenovarChegada, "Sem o código para digitar, a renovação não pode sumir junto")
     }
 
     @Test("Renovação respeita a borda do fim do turno, sem folga extra")
