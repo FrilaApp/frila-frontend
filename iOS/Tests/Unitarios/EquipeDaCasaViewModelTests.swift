@@ -14,6 +14,8 @@ private actor ServidorDaEquipe {
     var respostaDaAcao: Result<Void, Error> = .success(())
     /// A primeira leitura espera aqui até o teste liberar: a resposta que chega depois de outra mais nova.
     private var porteiraDaPrimeiraLeitura: Porteira?
+    /// O convite espera aqui até o teste liberar: confere os campos travados durante a geração.
+    private var porteiraDoConvite: Porteira?
     /// Quanto tempo a ação demora (para o prazo).
     var demoraDaAcao: Duration?
     var demoraDaLeitura: Duration?
@@ -25,6 +27,7 @@ private actor ServidorDaEquipe {
     func trocarDemoraDaAcao(_ demora: Duration?) { demoraDaAcao = demora }
     func trocarDemoraDaLeitura(_ demora: Duration?) { demoraDaLeitura = demora }
     func segurarPrimeiraLeitura(_ porteira: Porteira) { porteiraDaPrimeiraLeitura = porteira }
+    func segurarConvite(_ porteira: Porteira) { porteiraDoConvite = porteira }
 
     func listar() async throws -> [MembroDaCasa] {
         leituras += 1
@@ -38,6 +41,7 @@ private actor ServidorDaEquipe {
 
     func convidar(_ casa: UUID, _ email: String, _ papel: PapelMembro) async throws -> ConviteDeMembro {
         convites.append((casa, email, papel))
+        if let porteira = porteiraDoConvite { await porteira.esperar() }
         return try respostaDoConvite.get()
     }
 
@@ -472,17 +476,37 @@ struct EquipeDaCasaViewModelTests {
 
     @Test("Enquanto o convite está sendo gerado, o e-mail e o papel não mudam")
     func camposTravadosEnquantoGera() async {
+        let porteira = Porteira()
         let servidor = ServidorDaEquipe([.success(todos)])
+        await servidor.segurarConvite(porteira)
         let vm = modelo(servidor)
         vm.email = "alguem@exemplo.com"
         let tarefa = Task { await vm.gerarConvite() }
-        while !vm.gerandoConvite { await Task.yield() }
+
+        var tentativas = 0
+        while tentativas < 200 {
+            let temConvite = await servidor.convites.count > 0
+            if vm.gerandoConvite && temConvite { break }
+            tentativas += 1
+            if tentativas <= 5 {
+                await Task.yield()
+            } else {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+        }
+
+        let totalConvites = await servidor.convites.count
+        #expect(vm.gerandoConvite, "O convite não começou a ser gerado dentro do limite de espera")
+        #expect(totalConvites == 1, "A chamada de convite não chegou ao servidor")
 
         vm.email = "outro@exemplo.com"
         vm.papelConvidado = .administrador
         #expect(vm.email == "alguem@exemplo.com")
         #expect(vm.papelConvidado == .operador)
+
+        await porteira.liberar()
         await tarefa.value
+        #expect(!vm.gerandoConvite)
     }
 
     // MARK: Remover e tornar administrador
