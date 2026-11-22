@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test
 
 class CadastroViewModelTest {
 
+    private val hojeFixo = DataCivil.de(2026, 11, 16)
+
     private fun preencherCamposObrigatorios(viewModel: CadastroViewModel, nascimento: DataCivil) {
         viewModel.aoMudarNome("Profissional de Teste")
         viewModel.aoMudarCpf("52998224725") // CPF válido
@@ -34,7 +36,7 @@ class CadastroViewModelTest {
 
     @Test
     fun `aoMudarNascimento com menor de 18 anos expoe a mensagem de bloqueio em tempo real`() {
-        val viewModel = CadastroViewModel()
+        val viewModel = CadastroViewModel(hoje = { hojeFixo })
         val nascimentoDeMenor = DataCivil.de(2015, 1, 1)
 
         viewModel.aoMudarNascimento(nascimentoDeMenor)
@@ -45,7 +47,7 @@ class CadastroViewModelTest {
 
     @Test
     fun `aoMudarNascimento com maior de 18 anos nao expoe erro`() {
-        val viewModel = CadastroViewModel()
+        val viewModel = CadastroViewModel(hoje = { hojeFixo })
         val nascimentoDeMaior = DataCivil.de(1995, 5, 10)
 
         viewModel.aoMudarNascimento(nascimentoDeMaior)
@@ -86,7 +88,7 @@ class CadastroViewModelTest {
 
     @Test
     fun `concluirCadastro bloqueia menor de 18 anos mesmo com todos os outros campos validos (RN20)`() {
-        val viewModel = CadastroViewModel()
+        val viewModel = CadastroViewModel(hoje = { hojeFixo })
         preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2010, 1, 1))
 
         viewModel.concluirCadastro()
@@ -119,7 +121,12 @@ class CadastroViewModelTest {
                 resposta()
             },
         )
-        return CadastroViewModel(ServicoConta(cliente), CoroutineScope(Dispatchers.Default), termosVersao)
+        return CadastroViewModel(
+            servicoConta = ServicoConta(cliente),
+            escopo = CoroutineScope(Dispatchers.Default),
+            termosVersao = termosVersao,
+            hoje = { hojeFixo },
+        )
     }
 
     private fun erroDaApi(codigo: String, status: HttpStatusCode, detalhes: String? = null): suspend MockRequestHandleScope.() -> HttpResponseData = {

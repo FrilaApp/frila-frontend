@@ -40,6 +40,7 @@ class CadastroViewModel(
     private val servicoConta: ServicoConta? = null,
     escopo: CoroutineScope? = null,
     private val termosVersao: String = TERMOS_VERSAO_ATUAL,
+    private val hoje: () -> DataCivil = DataCivil::hoje,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -74,7 +75,7 @@ class CadastroViewModel(
     }
 
     fun aoMudarNascimento(novaData: DataCivil) {
-        val maiorDeIdade = ValidadorMaioridade.ehMaiorDeIdade(novaData)
+        val maiorDeIdade = ValidadorMaioridade.ehMaiorDeIdade(novaData, hoje())
         _estado.update {
             it.copy(
                 nascimento = novaData,
@@ -97,7 +98,7 @@ class CadastroViewModel(
             return null
         }
 
-        if (!ValidadorMaioridade.ehMaiorDeIdade(nascimento)) {
+        if (!ValidadorMaioridade.ehMaiorDeIdade(nascimento, hoje())) {
             // RN20: bloqueio inegociável
             _estado.update { it.copy(erro = MENSAGEM_MENOR_DE_IDADE, concluido = false) }
             return null
