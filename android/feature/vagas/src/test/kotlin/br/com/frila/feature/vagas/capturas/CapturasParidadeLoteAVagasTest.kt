@@ -13,6 +13,9 @@ import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
+import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
+import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
+import br.com.frila.feature.vagas.detalhe.ModoPreenchimentoVaga
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,5 +121,36 @@ class CapturasParidadeLoteAVagasTest {
             },
         )
         compose.capturar("04-item9-conflito-horario-fonte-grande")
+    }
+
+    @Test
+    fun capturaItem7VagaPreenchidaPadrao() {
+        compose.setContent(
+            comFonte(1.0f) {
+                FrilaTheme(temaEscuro = false) {
+                    TelaVagaIndisponivel(
+                        motivo = MotivoIndisponibilidadeVaga.PREENCHIDA,
+                        modo = ModoPreenchimentoVaga.URGENCIA,
+                        aoVoltarParaFeed = {},
+                    )
+                }
+            },
+        )
+        compose.capturar("05-item7-vaga-preenchida-padrao")
+    }
+
+    @Test
+    fun capturaItem8VagaEncerradaPadrao() {
+        compose.setContent(
+            comFonte(1.0f) {
+                FrilaTheme(temaEscuro = false) {
+                    TelaVagaIndisponivel(
+                        motivo = MotivoIndisponibilidadeVaga.ENCERRADA,
+                        aoVoltarParaFeed = {},
+                    )
+                }
+            },
+        )
+        compose.capturar("06-item8-vaga-encerrada-padrao")
     }
 }

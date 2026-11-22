@@ -70,6 +70,7 @@ import br.com.frila.feature.vagas.candidaturas.TextosCandidaturas
 import br.com.frila.feature.vagas.detalhe.AberturaDeVagaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
+import br.com.frila.feature.vagas.detalhe.ModoPreenchimentoVaga
 import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
@@ -199,13 +200,17 @@ object Rotas {
     const val CONTESTAR_DESPACHO = "contestar_despacho"
     const val CONSENTIMENTO_FALHAS = "consentimento_falhas"
 
-    // Paridade iOS - Lote A (#6, #9, #27)
+    // Paridade iOS - Lote A (#6, #7, #8, #9, #10, #27)
     const val TURNO_CONFIRMADO = "turno_confirmado/{vagaId}"
     const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
+    const val VAGA_PREENCHIDA = "vaga_preenchida/{vagaId}"
+    const val VAGA_ENCERRADA = "vaga_encerrada/{vagaId}"
     const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}"
 
     fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
     fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
+    fun vagaPreenchida(vagaId: String) = "vaga_preenchida/$vagaId"
+    fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
     fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
 
     fun codigo(email: String) = "codigo/$email"
@@ -605,6 +610,15 @@ fun AppNavegacao(
                                 aoNavegarParaConflito = { vagaConflito ->
                                     navController.navigate(Rotas.conflitoHorario(vagaConflito.id))
                                 },
+                                aoNavegarParaVagaPreenchida = { vagaPreenchida ->
+                                    navController.navigate(Rotas.vagaPreenchida(vagaPreenchida.id))
+                                },
+                                aoNavegarParaVagaEncerrada = { vagaEncerrada ->
+                                    navController.navigate(Rotas.vagaEncerrada(vagaEncerrada.id))
+                                },
+                                aoNavegarParaContaSuspensa = {
+                                    navController.navigate(Rotas.contaSuspensa())
+                                },
                             )
                         }
                     } else {
@@ -627,6 +641,15 @@ fun AppNavegacao(
                                 },
                                 aoNavegarParaConflito = { vagaConflito ->
                                     navController.navigate(Rotas.conflitoHorario(vagaConflito.id))
+                                },
+                                aoNavegarParaVagaPreenchida = { vagaPreenchida ->
+                                    navController.navigate(Rotas.vagaPreenchida(vagaPreenchida.id))
+                                },
+                                aoNavegarParaVagaEncerrada = { vagaEncerrada ->
+                                    navController.navigate(Rotas.vagaEncerrada(vagaEncerrada.id))
+                                },
+                                aoNavegarParaContaSuspensa = {
+                                    navController.navigate(Rotas.contaSuspensa())
                                 },
                             )
                         }
@@ -705,6 +728,40 @@ fun AppNavegacao(
                             }
                         }
                     }
+                }
+            }
+
+            composable(Rotas.VAGA_PREENCHIDA) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
+                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
+                    }
+                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
+                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
+                    val modo = if (vaga?.modo == "selecao") ModoPreenchimentoVaga.SELECAO else ModoPreenchimentoVaga.URGENCIA
+                    TelaVagaIndisponivel(
+                        motivo = MotivoIndisponibilidadeVaga.PREENCHIDA,
+                        modo = modo,
+                        aoVoltarParaFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
+                }
+            }
+
+            composable(Rotas.VAGA_ENCERRADA) {
+                RotaProtegida(guardaBiometrico) {
+                    TelaVagaIndisponivel(
+                        motivo = MotivoIndisponibilidadeVaga.ENCERRADA,
+                        aoVoltarParaFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
                 }
             }
 

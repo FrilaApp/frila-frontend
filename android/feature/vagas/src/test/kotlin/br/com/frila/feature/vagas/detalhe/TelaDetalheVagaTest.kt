@@ -510,4 +510,76 @@ class TelaDetalheVagaTest {
             compose.onNodeWithText("Candidatura confirmada! Confira o contato abaixo.").assertExists()
         }
     }
+
+    @Test
+    fun `quando candidatura falha por posicao_ja_preenchida aciona callback aoNavegarParaVagaPreenchida`() {
+        runBlocking {
+            val respostaJson = """{"code":"posicao_ja_preenchida","message":"preenchida"}"""
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson, status = HttpStatusCode.Conflict)
+            var vagaPreenchidaNavegada: VagaAbertaDto? = null
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaDetalheVaga(
+                        viewModel = viewModel,
+                        aoNavegarParaVagaPreenchida = { vagaPreenchidaNavegada = it },
+                    )
+                }
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            org.junit.Assert.assertEquals(vaga.id, vagaPreenchidaNavegada?.id)
+        }
+    }
+
+    @Test
+    fun `quando candidatura falha por vaga_encerrada aciona callback aoNavegarParaVagaEncerrada`() {
+        runBlocking {
+            val respostaJson = """{"code":"vaga_encerrada","message":"encerrada"}"""
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson, status = HttpStatusCode.Conflict)
+            var vagaEncerradaNavegada: VagaAbertaDto? = null
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaDetalheVaga(
+                        viewModel = viewModel,
+                        aoNavegarParaVagaEncerrada = { vagaEncerradaNavegada = it },
+                    )
+                }
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            org.junit.Assert.assertEquals(vaga.id, vagaEncerradaNavegada?.id)
+        }
+    }
+
+    @Test
+    fun `quando candidatura falha por conta_suspensa aciona callback aoNavegarParaContaSuspensa`() {
+        runBlocking {
+            val respostaJson = """{"code":"conta_suspensa","message":"suspensa"}"""
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson, status = HttpStatusCode.Forbidden)
+            var contaSuspensaNavegada = false
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaDetalheVaga(
+                        viewModel = viewModel,
+                        aoNavegarParaContaSuspensa = { contaSuspensaNavegada = true },
+                    )
+                }
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            org.junit.Assert.assertTrue("Deveria acionar navegação para conta suspensa", contaSuspensaNavegada)
+        }
+    }
 }
