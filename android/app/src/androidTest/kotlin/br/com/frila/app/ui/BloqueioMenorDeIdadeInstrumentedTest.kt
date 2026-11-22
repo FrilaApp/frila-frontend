@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import br.com.frila.core.dominio.modelo.DataCivil
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.cadastro.MENSAGEM_MENOR_DE_IDADE
@@ -28,7 +29,7 @@ class BloqueioMenorDeIdadeInstrumentedTest {
 
     @Test
     fun aoDigitarNascimentoMenorDe18ExibeMensagemDeBloqueio() {
-        val viewModel = CadastroViewModel()
+        val viewModel = CadastroViewModel(hoje = { DataCivil.de(2026, 11, 16) })
 
         composeTestRule.setContent {
             FrilaTheme {
@@ -59,7 +60,7 @@ class BloqueioMenorDeIdadeInstrumentedTest {
 
     @Test
     fun aoDigitarNascimentoMaiorDe18PermiteAvancoSemBloqueio() {
-        val viewModel = CadastroViewModel()
+        val viewModel = CadastroViewModel(hoje = { DataCivil.de(2026, 11, 16) })
 
         composeTestRule.setContent {
             FrilaTheme {

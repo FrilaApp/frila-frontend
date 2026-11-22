@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
+import br.com.frila.core.dominio.modelo.DataCivil
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import org.junit.Rule
 import org.junit.Test
@@ -140,7 +141,7 @@ class TelaCadastroTest {
 
     @Test
     fun erroNascimentoExibeTextoDedicadoComLiveRegionAssertive() {
-        val viewModel = CadastroViewModel()
+        val viewModel = CadastroViewModel(hoje = { DataCivil.de(2026, 11, 16) })
         rule.setContent {
             FrilaTheme {
                 TelaCadastro(
