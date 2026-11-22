@@ -16,9 +16,10 @@ A auditoria anterior (02/11/2026) reportava apenas 17 telas existentes e 22 falt
 
 | Situação no Android | Quantidade | Percentual | Descrição |
 |---|:---:|:---:|---|
-| **Existe** | **35** | **76,1%** | Telas e fluxos plenamente funcionais com ViewModel, regras de domínio e cobertura de testes unitários/Compose na `main` |
-| **Parcial** | **7** | **15,2%** | Funcionalidades implementadas e ativas, porém integradas em cartões expansíveis/inline ou cobrindo parte do fluxo (ex.: histórico no feed de turnos, detalhes no cartão de Minhas Vagas) |
-| **Falta** | **4** | **8,7%** | Telas que ainda não possuem interface dedicada no Android |
+| **Existe** | **38** | **82,6%** | Telas e fluxos plenamente funcionais com ViewModel, regras de domínio e cobertura de testes unitários/Compose na `main` |
+| **Existe (provisória)** | **6** | **13,0%** | Telas completas e ativas, com `// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício` (desenho final é do Fabrício) |
+| **Parcial aceito** | **2** | **4,3%** | Itens 13 (Meu turno) e 23 (Detalhe da vaga do contratante): cobertos por `CartaoDoTurno` e `CartaoDaVaga`; extração de rota opcional, decidido em 20/11/2026 |
+| **Falta** | **0** | **0,0%** | Nenhuma tela sem interface no Android |
 | **Total** | **46** | **100,0%** | **Cobertura integral da camada de apresentação da v1.0** |
 
 ---
@@ -87,11 +88,13 @@ A verificação de identidade (envio de RG/CNH e selfie, o selo "Identidade Veri
 - **Não ligar a chave** (vale também o alerta do parecer P-059 da Bússola: a Política não cobre esse envio). Se a decisão mudar, o caminho é um parecer novo, a Política nova e as telas do Fabrício.
 - **iOS e web:** não há código de verificação; só o espelho do contrato (`/rpc/solicitar_upload_verificacao` e `/rpc/confirmar_envio_verificacao` em `iOS/Contrato/openapi.yaml` e `Web/contrato/openapi.yaml`).
 
-## 3. O Que Falta de Verdade (Organização em Lotes)
+## 3. O Que Faltava (Organização em Lotes, concluídos)
 
-A auditoria comprova que restam apenas **4 telas totalmente não iniciadas** e **7 superfícies parciais** (que funcionam inline ou em componentes compartilhados, mas carecem de transição dedicada ou tela cheia independente).
+**Estado em 21/11/2026: os três lotes estão concluídos** (#1018, #1019, #1020, #1021 e #1025). Restam 0 telas faltando e 2 parciais aceitas (itens 13 e 23). A organização abaixo fica como histórico do que foi feito em cada lote.
 
-Seguindo as regras permanentes 16-11 e 16-14 (telas novas com `// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício`, sem esperar design), o trabalho restante é organizado em 3 lotes objetivos:
+Antes (auditoria de 19/11/2026): restavam **4 telas totalmente não iniciadas** e **7 superfícies parciais** (que funcionavam inline ou em componentes compartilhados, mas careciam de transição dedicada ou tela cheia independente).
+
+Seguindo as regras permanentes 16-11 e 16-14 (telas novas com `// TELA PROVISÓRIA: substituir pelo high-fi do Fabrício`, sem esperar design), o trabalho foi organizado em 3 lotes objetivos:
 
 ### Lote A: Desfechos de Candidatura e Avaliação pelo Contratante
 1. **Turno confirmado! (`TurnoConfirmado`) — Item 6 (Falta):**
