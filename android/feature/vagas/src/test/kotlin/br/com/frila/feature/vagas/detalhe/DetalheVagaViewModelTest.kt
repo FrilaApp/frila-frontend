@@ -206,6 +206,100 @@ class DetalheVagaViewModelTest {
     }
 
     @Test
+    fun `candidatar com posicao_ja_preenchida marca ehVagaPreenchida como verdadeiro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"posicao_ja_preenchida","message":"alguém chegou antes"}""",
+                    status = HttpStatusCode.Conflict,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.ehVagaPreenchida)
+        assertFalse(viewModel.estado.value.ehConflitoHorario)
+        assertFalse(viewModel.estado.value.ehVagaEncerrada)
+        assertFalse(viewModel.estado.value.ehContaSuspensa)
+    }
+
+    @Test
+    fun `candidatar com vaga_encerrada marca ehVagaEncerrada como verdadeiro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("selecao"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"vaga_encerrada","message":"fechou 24h antes do inicio"}""",
+                    status = HttpStatusCode.Conflict,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.ehVagaEncerrada)
+        assertFalse(viewModel.estado.value.ehVagaPreenchida)
+        assertFalse(viewModel.estado.value.ehConflitoHorario)
+        assertFalse(viewModel.estado.value.ehContaSuspensa)
+    }
+
+    @Test
+    fun `candidatar com conta_suspensa marca ehContaSuspensa como verdadeiro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"conta_suspensa","message":"conta suspensa"}""",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.ehContaSuspensa)
+        assertFalse(viewModel.estado.value.ehVagaPreenchida)
+        assertFalse(viewModel.estado.value.ehVagaEncerrada)
+        assertFalse(viewModel.estado.value.ehConflitoHorario)
+    }
+
+    @Test
+    fun `candidatar com sem_permissao conta_suspensa marca ehContaSuspensa como verdadeiro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"sem_permissao","message":"sem permissao","details":"conta_suspensa"}""",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.ehContaSuspensa)
+    }
+
+    @Test
+    fun `candidatar com inelegivel perfil_suspenso marca ehContaSuspensa como verdadeiro`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"inelegivel","message":"inelegivel","details":"perfil_suspenso"}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertTrue(viewModel.estado.value.ehContaSuspensa)
+    }
+
+    @Test
     fun `candidatar com inelegivel por perfil_suspenso explica a suspensao`() {
         val mensagem = mensagemAposErro(
             HttpStatusCode.UnprocessableEntity,

@@ -37,7 +37,16 @@ class DetalheVagaViewModel(
     val estado: StateFlow<EstadoDetalheVaga> = _estado.asStateFlow()
 
     fun candidatar(): Job {
-        _estado.update { it.copy(statusCandidatura = StatusCandidatura.ENVIANDO, mensagem = null) }
+        _estado.update {
+            it.copy(
+                statusCandidatura = StatusCandidatura.ENVIANDO,
+                mensagem = null,
+                ehConflitoHorario = false,
+                ehVagaPreenchida = false,
+                ehVagaEncerrada = false,
+                ehContaSuspensa = false,
+            )
+        }
 
         return escopoDeTrabalho.launch {
             try {
@@ -56,11 +65,19 @@ class DetalheVagaViewModel(
                 }
             } catch (erro: ErroDaApi) {
                 val ehConflito = erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "turno_sobreposto"
+                val ehPreenchida = erro.codigo == CodigoErroAPI.POSICAO_JA_PREENCHIDA
+                val ehEncerrada = erro.codigo == CodigoErroAPI.VAGA_ENCERRADA
+                val ehSuspensa = erro.codigo == CodigoErroAPI.CONTA_SUSPENSA ||
+                    (erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "conta_suspensa") ||
+                    (erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "perfil_suspenso")
                 _estado.update {
                     it.copy(
                         statusCandidatura = StatusCandidatura.ERRO,
                         mensagem = mensagemDeErro(erro),
                         ehConflitoHorario = ehConflito,
+                        ehVagaPreenchida = ehPreenchida,
+                        ehVagaEncerrada = ehEncerrada,
+                        ehContaSuspensa = ehSuspensa,
                     )
                 }
             } catch (erro: CancellationException) {

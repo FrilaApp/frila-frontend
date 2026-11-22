@@ -66,6 +66,12 @@ class AppNavegacaoTest {
     }
 
     @Test
+    fun `rotas de vaga preenchida e vaga encerrada embutem o id da vaga`() {
+        assertEquals("vaga_preenchida/vaga-123", Rotas.vagaPreenchida("vaga-123"))
+        assertEquals("vaga_encerrada/vaga-123", Rotas.vagaEncerrada("vaga-123"))
+    }
+
+    @Test
     fun `rota de atualizacao obrigatoria existe no contrato de navegacao`() {
         assertEquals("atualizacao_obrigatoria", Rotas.ATUALIZACAO_OBRIGATORIA)
     }

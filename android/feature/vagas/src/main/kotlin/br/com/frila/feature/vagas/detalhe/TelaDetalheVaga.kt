@@ -88,6 +88,9 @@ fun TelaDetalheVaga(
     aoVoltar: (() -> Unit)? = null,
     aoNavegarParaConfirmada: ((VagaAbertaDto, ContatoDto?) -> Unit)? = null,
     aoNavegarParaConflito: ((VagaAbertaDto) -> Unit)? = null,
+    aoNavegarParaVagaPreenchida: ((VagaAbertaDto) -> Unit)? = null,
+    aoNavegarParaVagaEncerrada: ((VagaAbertaDto) -> Unit)? = null,
+    aoNavegarParaContaSuspensa: (() -> Unit)? = null,
 ) {
     val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -101,7 +104,13 @@ fun TelaDetalheVaga(
         aoResultadoPermissao(concedida)
     }
 
-    LaunchedEffect(estado.statusCandidatura, estado.ehConflitoHorario) {
+    LaunchedEffect(
+        estado.statusCandidatura,
+        estado.ehConflitoHorario,
+        estado.ehVagaPreenchida,
+        estado.ehVagaEncerrada,
+        estado.ehContaSuspensa,
+    ) {
         if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA) {
             aoNavegarParaConfirmada?.invoke(estado.vaga, estado.contato)
             if (!jaPediuNaSessao()) {
@@ -113,6 +122,15 @@ fun TelaDetalheVaga(
         }
         if (estado.ehConflitoHorario) {
             aoNavegarParaConflito?.invoke(estado.vaga)
+        }
+        if (estado.ehVagaPreenchida) {
+            aoNavegarParaVagaPreenchida?.invoke(estado.vaga)
+        }
+        if (estado.ehVagaEncerrada) {
+            aoNavegarParaVagaEncerrada?.invoke(estado.vaga)
+        }
+        if (estado.ehContaSuspensa) {
+            aoNavegarParaContaSuspensa?.invoke()
         }
     }
 

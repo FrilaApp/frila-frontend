@@ -16,6 +16,9 @@ data class EstadoDetalheVaga(
     /** O detalhe lido do servidor (`detalhe_vaga`), quando a vaga foi aberta pelo id; nulo quando veio da lista. */
     val detalhe: VagaDto? = null,
     val ehConflitoHorario: Boolean = false,
+    val ehVagaPreenchida: Boolean = false,
+    val ehVagaEncerrada: Boolean = false,
+    val ehContaSuspensa: Boolean = false,
 ) {
     /** A lista sempre traz a distância; o detalhe pode não trazer, e aí a tela não a mostra. */
     val mostraDistancia: Boolean
