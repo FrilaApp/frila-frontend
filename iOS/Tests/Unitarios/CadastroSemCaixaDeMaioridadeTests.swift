@@ -14,9 +14,11 @@ struct CadastroSemCaixaDeMaioridadeTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
-    /// Relógio do sistema: as datas de nascimento dos testes (1995 e 2015) não mudam de lado até 2033.
+    /// Relógio fixo em 16/11/2026: as datas de nascimento dos testes (1995 e 2015) não mudam de lado com o tempo
+    /// (com o relógio do sistema, "15/05/2015" viraria maior de idade em 15/05/2033).
     private func viewModel() -> CadastroViewModel {
-        CadastroViewModel(api: ApiClienteEmMemoria(), email: "a5@frila.app")
+        let hoje = Date(timeIntervalSince1970: 1_794_830_400) // 2026-11-16T12:00:00Z
+        return CadastroViewModel(api: ApiClienteEmMemoria(), email: "a5@frila.app", relogio: RelogioFixo(agora: hoje))
     }
 
     @Test("Para quem tem 18 anos ou mais, nome, telefone, nascimento e termos bastam: não há outra confirmação de idade")
