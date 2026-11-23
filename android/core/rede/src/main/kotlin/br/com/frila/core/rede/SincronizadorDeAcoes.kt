@@ -18,6 +18,10 @@ typealias EnvioDeAcao = suspend (AcaoPendente) -> Unit
  * mesma chave de idempotência da ação. Sem rede: a ação fica e a passada para. Recusa definitiva do servidor: sai dos
  * reenvios e vira aviso mínimo. Qualquer outro erro: a ação fica para uma nova tentativa idempotente. Ação de outra
  * conta é descartada sem enviar; sem conhecer a conta atual, nada é enviado. [contaAtual] confirma a conta no servidor.
+ *
+ * A conta é relida a cada passada. Antes de cada envio, a passada confere que a fila não foi limpa desde o começo dela
+ * ([FilaDeAcoes.geracao]: logout, troca de conta, expiração) e que a ação ainda está pendente; limpa, a passada para sem
+ * enviar mais nada, porque a lista e a conta que ela leu são de uma sessão que já saiu.
  */
 class SincronizadorDeAcoes(
     private val fila: FilaDeAcoes,
@@ -32,12 +36,15 @@ class SincronizadorDeAcoes(
     }
 
     suspend fun sincronizar() = passada.withLock {
+        val geracao = fila.geracao()
         if (fila.pendentes().isEmpty()) return@withLock
         val conta = try { contaAtual() } catch (erro: Exception) {
             if (erro is CancellationException) throw erro
             return@withLock
         }
         for (acao in fila.pendentes()) {
+            if (fila.geracao() != geracao) return@withLock
+            if (fila.pendentes().none { it.id == acao.id }) continue
             if (acao.contaId != conta) { guardando { fila.remover(acao.id) }; continue }
             val envio = envios[acao.tipo] ?: continue
             try {

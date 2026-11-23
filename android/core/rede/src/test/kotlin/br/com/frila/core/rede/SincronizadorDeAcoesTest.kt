@@ -113,4 +113,42 @@ class SincronizadorDeAcoesTest {
         assertEquals(listOf(a), enviadas)
         assertTrue(fila.pendentes().isEmpty())
     }
+
+    /** Revisão do #1039 (R1): limpar a fila e trocar de conta durante um envio encerra a passada da conta que saiu. */
+    @Test fun `fila limpa e troca de conta durante o envio param a passada antes do proximo envio`() = runTest {
+        var dona = "conta-a"
+        conta = { dona }
+        val entrada = acao(); val saida = acao(TipoAcaoPendente.CHECKOUT)
+        val daB = acao(dono = "conta-b", turno = "turno-b")
+        fila.enfileirar(entrada); fila.enfileirar(saida)
+        val vistos = mutableListOf<String>()
+        val envioQueTrocaDeConta: EnvioDeAcao = { a ->
+            vistos += "${a.tipo}:dono=${a.contaId}:sessao=$dona"
+            if (a.id == entrada.id) { fila.limpar(); dona = "conta-b"; fila.enfileirar(daB) }
+        }
+        val sinc = SincronizadorDeAcoes(fila, { conta() }, TipoAcaoPendente.entries.associateWith { envioQueTrocaDeConta })
+        sinc.sincronizar()
+        assertEquals(listOf("CHECKIN:dono=conta-a:sessao=conta-a"), vistos)
+        // A ação da conta nova não foi descartada pela passada antiga: sai na próxima, com a conta relida.
+        assertEquals(listOf(daB), fila.pendentes())
+        sinc.sincronizar()
+        assertEquals(listOf("CHECKIN:dono=conta-a:sessao=conta-a", "CHECKIN:dono=conta-b:sessao=conta-b"), vistos)
+        assertTrue(fila.pendentes().isEmpty())
+    }
+
+    @Test fun `logout enquanto a conta e confirmada nao envia nada`() = runTest {
+        fila.enfileirar(acao())
+        conta = { fila.limpar(); "conta-a" }
+        sincronizador().sincronizar()
+        assertTrue(enviadas.isEmpty())
+        assertTrue(fila.pendentes().isEmpty())
+    }
+
+    @Test fun `acao que saiu da fila durante a passada nao e enviada`() = runTest {
+        val a = acao(); val b = acao(TipoAcaoPendente.CHECKOUT)
+        fila.enfileirar(a); fila.enfileirar(b)
+        falha = { if (it.id == a.id) fila.remover(b.id); null }
+        sincronizador().sincronizar()
+        assertEquals(listOf(a), enviadas)
+    }
 }
