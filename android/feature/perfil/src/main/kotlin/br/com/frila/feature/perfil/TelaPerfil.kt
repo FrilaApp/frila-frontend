@@ -191,6 +191,10 @@ fun TelaPerfil(
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
+    val exportacao: ExportarDadosViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
+        ExportarDadosViewModel(viewModel.exportarMeusDados)
+    }
+    val itemExportarDados: @Composable () -> Unit = { ItemExportarDados(exportacao) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     // Com o recurso desligado o hardware nem é consultado: o app não declara a permissão de biometria, e a consulta sem ela lança.
@@ -272,6 +276,7 @@ fun TelaPerfil(
                     aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
                     modifier = Modifier.weight(1f),
                     atalhosExtras = atalhosExtras,
+                    itemExportarDados = itemExportarDados,
                 )
             } else when (estado.status) {
                 StatusPerfil.CARREGANDO -> Carregando(Modifier.weight(1f))
@@ -291,6 +296,7 @@ fun TelaPerfil(
                     aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                     modifier = Modifier.weight(1f),
                     atalhosExtras = atalhosExtras,
+                    itemExportarDados = itemExportarDados,
                 )
                 StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                     nome = estado.conta?.nome,
@@ -365,6 +371,7 @@ fun TelaPerfil(
                     aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
                     modifier = Modifier.weight(1f),
                     atalhosExtras = atalhosExtras,
+                    itemExportarDados = itemExportarDados,
                 )
             }
         }
@@ -476,6 +483,7 @@ private fun ConteudoDoPerfil(
     podeSolicitarSelo: Boolean = false,
     aoAbrirSelo: () -> Unit = {},
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    itemExportarDados: @Composable () -> Unit = {},
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
@@ -542,6 +550,7 @@ private fun ConteudoDoPerfil(
             aoAbrirPorQueReceboVagas = aoAbrirPorQueReceboVagas,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
+            itemExportarDados = itemExportarDados,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
             aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
         )
@@ -571,6 +580,7 @@ private fun ConteudoDaCasa(
     aoEncontrarProfissional: (() -> Unit)?,
     modifier: Modifier = Modifier,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    itemExportarDados: @Composable () -> Unit = {},
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
@@ -610,6 +620,7 @@ private fun ConteudoDaCasa(
             aoAbrirPorQueReceboVagas = null,
             aoEncontrarProfissional = aoEncontrarProfissional,
             atalhosExtras = atalhosExtras,
+            itemExportarDados = itemExportarDados,
             relatoriosDeFalhasAtivados = relatoriosDeFalhasAtivados,
             aoAlternarRelatoriosDeFalhas = aoAlternarRelatoriosDeFalhas,
         )
@@ -1083,6 +1094,7 @@ private fun BlocoDeConta(
     aoAbrirPorQueReceboVagas: (() -> Unit)? = null,
     aoEncontrarProfissional: (() -> Unit)? = null,
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    itemExportarDados: @Composable () -> Unit = {},
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
 ) {
@@ -1140,6 +1152,7 @@ private fun BlocoDeConta(
                 atalhosExtras.forEach { atalho ->
                     linha { FrilaLinhaDeNavegacao(atalho.rotulo, atalho.aoAbrir, Modifier.testTag(atalho.tag)) }
                 }
+                linha { itemExportarDados() }
                 linha { FrilaLinhaDeNavegacao("Ajuda", aoAbrirAjuda, Modifier.testTag("perfil-ajuda")) }
             }
             if (mostrarBiometria && disponibilidadeBiometrica != DisponibilidadeBiometrica.DISPONIVEL) {
@@ -1289,6 +1302,7 @@ private fun Erro(
     modifier: Modifier = Modifier,
     /** Bloqueados e contestar não dependem do perfil ter carregado: continuam ao alcance com o perfil em erro. */
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
+    itemExportarDados: @Composable () -> Unit = {},
 ) {
     val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null ||
         atalhosExtras.isNotEmpty()
@@ -1319,6 +1333,7 @@ private fun Erro(
                     }
                 }
             }
+            itemExportarDados()
             // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
             AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
         }

@@ -48,6 +48,7 @@ class PerfilViewModel(
      * da casa. Nulo só nos testes que não falam da conta: o perfil carregado é sempre o profissional.
      */
     private val servicoConta: ServicoConta? = null,
+    val exportarMeusDados: suspend () -> ByteArray = { requireNotNull(servicoConta).exportarMeusDados() },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope

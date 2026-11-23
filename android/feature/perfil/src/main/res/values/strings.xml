@@ -69,4 +69,9 @@
     <string name="por_que_recebo_vagas_protocolo_data">Enviado em</string>
     <string name="por_que_recebo_vagas_prazo_resposta">Previsão de resposta até</string>
     <string name="por_que_recebo_vagas_mensagem_enviado">A Equipe Frila vai responder por e-mail dentro do prazo informado.</string>
+    <string name="exportar_dados_titulo">Exportar meus dados</string>
+    <string name="exportar_dados_explicacao">Gera um arquivo JSON com seus dados cadastrais, turnos, avaliações e dispositivos registrados, conforme a LGPD.</string>
+    <string name="exportar_dados_sessao_expirada">Sua sessão expirou. Entre de novo.</string>
+    <string name="exportar_dados_nao_encontrado">Não encontramos seu perfil.</string>
+    <string name="exportar_dados_erro">Não foi possível exportar seus dados. Tente novamente.</string>
 </resources>
