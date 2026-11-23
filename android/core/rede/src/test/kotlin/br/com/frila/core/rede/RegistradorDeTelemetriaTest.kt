@@ -36,6 +36,23 @@ class RegistradorDeTelemetriaTest {
     }
 
     @Test
+    fun `reenvio descarta data invalida e continua com ocorrido em deslocamento UTC`() = runTest {
+        val fila = FilaDeTelemetria(File(pasta, "eventos.json"))
+        val contexto = requireNotNull(fila.contexto("conta-a"))
+        fila.guardar(contexto, RegistroDeEventoDto(evento, ocorridoEm = "data-invalida"), instante, 200)
+        fila.guardar(contexto, RegistroDeEventoDto(EventoDeTelemetria.VAGA_VISTA,
+            ocorridoEm = "2026-11-23T12:00:00+00:00"), instante, 200)
+        val enviados = mutableListOf<RegistroDeEventoDto>()
+
+        RegistradorDeTelemetria({ enviados += it; true }, fila, { "conta-a" }, { "conta-a" }, backgroundScope) { instante }
+            .reenviar()
+
+        assertEquals(listOf(RegistroDeEventoDto(EventoDeTelemetria.VAGA_VISTA, ocorridoEm = instante.toString())), enviados)
+        assertTrue(FilaDeTelemetria(File(pasta, "eventos.json")).eventosPendentes().isEmpty())
+        assertFalse(fila.reenvio.isLocked)
+    }
+
+    @Test
     fun `limite de 200 descarta os mais antigos`() = runTest {
         val fila = FilaDeTelemetria(File(pasta, "eventos.json"))
         val registrador = RegistradorDeTelemetria({ throw IOException() }, fila, { "a" }, { "a" }, backgroundScope) { instante }

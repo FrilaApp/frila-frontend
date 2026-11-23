@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.seguranca.Sessao
 import java.util.Base64
 import kotlinx.serialization.json.Json
@@ -81,8 +82,10 @@ class RegistradorDeTelemetria(
                 val instante = agora()
                 for (pendente in pendentes) {
                     if (!contextoAtual(contexto)) return@silenciosamente
-                    val ocorrido = Instant.parse(pendente.registro.ocorridoEm ?: pendente.guardadoEm)
-                    if (pendente.contaId != contaAtual || Duration.between(ocorrido, instante) > IDADE_MAXIMA) {
+                    val ocorrido = runCatching {
+                        instanteDoServidor(pendente.registro.ocorridoEm ?: pendente.guardadoEm)
+                    }.getOrNull()
+                    if (ocorrido == null || pendente.contaId != contaAtual || Duration.between(ocorrido, instante) > IDADE_MAXIMA) {
                         fila.remover(contexto, pendente.id)
                         continue
                     }
