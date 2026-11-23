@@ -17,11 +17,11 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.abertura.AberturaAnimada
 import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
-import kotlinx.coroutines.flow.flowOf
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.flowOf
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */

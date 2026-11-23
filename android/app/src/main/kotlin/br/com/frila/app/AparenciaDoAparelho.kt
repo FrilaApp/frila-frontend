@@ -1,11 +1,17 @@
 package br.com.frila.app
 
+import android.graphics.Color.TRANSPARENT
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.feature.perfil.TelaAparencia
@@ -18,6 +24,12 @@ import kotlinx.coroutines.withTimeout
 @Composable
 internal fun TemaDoAparelho(temaEscuro: Flow<Boolean>, conteudo: @Composable () -> Unit) {
     val escuro by temaEscuro.collectAsStateWithLifecycle(initialValue = false)
+    val atividade = LocalContext.current as? ComponentActivity
+    SideEffect {
+        // O contraste das barras acompanha a escolha, inclusive quando difere do sistema.
+        val estilo = SystemBarStyle.auto(TRANSPARENT, TRANSPARENT) { escuro }
+        atividade?.enableEdgeToEdge(statusBarStyle = estilo, navigationBarStyle = estilo)
+    }
     FrilaTheme(temaEscuro = escuro, content = conteudo)
 }
 
