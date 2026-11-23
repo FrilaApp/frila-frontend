@@ -92,6 +92,24 @@ struct PerfilProfissionalViewModelTests {
         #expect(api.dadosPerfilCriado?.disponibilidades.count == 1)
     }
 
+    @Test("Sem limite de 4: o contrato e o Android não limitam, então a 5ª e a 6ª função marcam e vão ao servidor (P-083-G2)")
+    func maisDeQuatroFuncoesMarcamEVaoAoServidor() async throws {
+        let ids = (1...6).map { UUID(uuidString: String(format: "20000000-0000-0000-0000-%012d", $0))! }
+        let funcoes = ids.enumerated().map { Funcao(id: $1, nome: "Função \($0 + 1)", categoria: "Teste") }
+        let api = criarDubleApi(funcoes: funcoes)
+        let vm = PerfilProfissionalViewModel(api: api, modo: .criacao)
+        await vm.carregar()
+
+        for id in ids { vm.alternarFuncao(id) }
+        #expect(vm.funcoesSelecionadas == Set(ids))
+        #expect(OrganizacaoDeFuncoes.escolhidasVisiveis(vm.funcoesDisponiveis, selecionadas: vm.funcoesSelecionadas).count == 6)
+
+        vm.definirPontoBase(try Coordenada(latitude: -15.8267, longitude: -47.9218), nome: "Guará II")
+        vm.adicionarJanela(diaDaSemana: 5, inicio: try HoraDoDia("18:00"), fim: try HoraDoDia("02:00"))
+        #expect(await vm.salvar())
+        #expect(Set(api.dadosPerfilCriado?.funcoes ?? []) == Set(ids))
+    }
+
     @Test("Salvar inclui a faixa pendente, inclusive noturna, na criação e na edição",
           arguments: [PerfilProfissionalViewModel.Modo.criacao, .edicao])
     func salvarIncluiJanelaPendente(modo: PerfilProfissionalViewModel.Modo) async throws {
