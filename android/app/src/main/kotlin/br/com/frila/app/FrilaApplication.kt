@@ -1,6 +1,8 @@
 package br.com.frila.app
 
 import android.app.Application
+import br.com.frila.core.rede.RegistradorDeTelemetria
+import br.com.frila.core.rede.EventoDeTelemetria
 import android.util.Log
 import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.app.falhas.ColetaDeFalhas
@@ -38,6 +40,9 @@ class FrilaApplication : Application(), KoinComponent {
         GerenciadorDeCanais.criarCanais(this)
         registrarIntegridade()
         cancelarGeofencesAntigos()
+        val telemetria = get<RegistradorDeTelemetria>()
+        telemetria.disparar(EventoDeTelemetria.APP_ABERTO)
+        telemetria.acompanharConectividade(get())
     }
 
     /**

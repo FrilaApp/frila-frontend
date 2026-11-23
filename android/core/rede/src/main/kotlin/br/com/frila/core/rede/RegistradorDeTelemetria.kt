@@ -12,6 +12,7 @@ import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 /** Envio desacoplado da UI; falhas de rede, RPC ou persistência nunca viram erro de tela. */
 class RegistradorDeTelemetria(
@@ -58,6 +59,10 @@ class RegistradorDeTelemetria(
             }
             false
         }
+    }
+
+    fun acompanharConectividade(monitor: MonitorDeConectividade): Job = escopo.launch {
+        monitor.status.collect { if (it == StatusConectividade.CONECTADO) reenviar() }
     }
 
     /** Reserva na fila compartilhada: até registradores diferentes reenviam um de cada vez. */

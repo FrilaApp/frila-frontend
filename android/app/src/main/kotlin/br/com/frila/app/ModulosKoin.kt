@@ -315,15 +315,15 @@ val moduloFeatures = module {
             permitirDominioDeTeste = BuildConfig.DEBUG,
         )
     }
-    viewModel { CadastroViewModel(get()) }
-    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
+    viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
+    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
-    viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>()) }
+    viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
-        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get())
+        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar)
     }
-    viewModel { AvaliacaoViewModel(get()) }
+    viewModel { AvaliacaoViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
     viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get(), servicoConta = get(), exportarMeusDados = get<ServicoConta>()::exportarMeusDados) }
     viewModel { VerificacaoIdentidadeViewModel(get()) }
@@ -617,6 +617,7 @@ val moduloFeatures = module {
             retirar = vagas::retirarCandidatura,
             minhasCandidaturas = { vagas.minhasCandidaturas() },
             aoRetirar = aoRetirar,
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
         )
     }
     /** L2-5: a situação da conta e a contestação da suspensão (`aoReativar` reavalia a abertura); o pedido de revisão do despacho. */

@@ -20,6 +20,7 @@ import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -105,6 +106,7 @@ fun TelaFeedVagas(
                     }
                     StatusFeed.VAZIO -> item(key = "vazio") { VazioFeed(textoBusca = estado.textoBusca) }
                     StatusFeed.SUCESSO -> items(estado.vagas, key = { it.id }) { vaga ->
+                        LaunchedEffect(vaga.id) { viewModel.registrarVagaVista(vaga.id) }
                         CartaoDeVagaDoFeed(
                             vaga = vaga,
                             emDestaque = vaga.id == estado.vagas.first().id,

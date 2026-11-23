@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
 class AvaliacaoViewModel(
     private val servicoTurnos: ServicoTurnos,
     escopo: CoroutineScope? = null,
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -42,6 +44,7 @@ class AvaliacaoViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val avaliacao = servicoTurnos.avaliarTurno(turnoId = turnoId, resposta = resposta)
+                registrarEvento(EventoDeTelemetria.AVALIACAO_ENVIADA, null, turnoId)
                 _estado.update {
                     it.copy(status = StatusAvaliacao.SUCESSO, respostaRegistrada = avaliacao.resposta)
                 }
