@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /** Inclui instâncias ainda em uso e arquivos de execuções anteriores. Sem Context, só memória. */
-internal class CacheVagasDaSessao(private val raiz: File?) {
+internal class CacheVagasDaSessao(private val raiz: File?, private val limparTelemetria: () -> Unit = {}) {
     private val repositorios = Collections.newSetFromMap(WeakHashMap<RepositorioVagas, Boolean>())
     @Synchronized fun criar(armazenamento: ArmazenamentoDeSessao, rede: suspend () -> List<VagaAbertaDto>): RepositorioVagas =
         RepositorioVagas(raiz?.let { arquivoCacheVagas(it, armazenamento.obterSessao()) }, buscarNaRede = rede)
@@ -22,6 +22,7 @@ internal class CacheVagasDaSessao(private val raiz: File?) {
 
     @Synchronized fun limpar() {
         var falha: IOException? = null
+        try { limparTelemetria() } catch (erro: IOException) { falha = erro }
         repositorios.forEach { repositorio ->
             try { repositorio.invalidar() } catch (erro: IOException) { falha = erro }
         }
