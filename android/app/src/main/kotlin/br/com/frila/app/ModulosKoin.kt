@@ -250,10 +250,12 @@ val moduloRede = module {
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
     /**
-     * A6.1: fila das ações sem rede (limpa com o cache da sessão) e o reenvio, com um envio por tipo. Ninguém enfileira
-     * ainda: cada fatia seguinte (check-in e check-out, avaliação, cancelamentos, publicação) enfileira o seu tipo.
+     * A6.1: fila das ações sem rede (limpa com o cache da sessão) e o reenvio, com um envio por tipo. Enfileiram: o
+     * check-in e o check-out (A6.2); as fatias seguintes (avaliação, cancelamentos, publicação) enfileiram o seu tipo.
      */
     single { get<CacheVagasDaSessao>().filaDeAcoes }
+    /** O reenvio da fila vive o app todo (o logout cancela só o escopo da sessão): reenvia a cada vez que a rede volta. */
+    single(named("escopoDaFilaDeAcoes")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) } onClose { it?.cancel() }
     single {
         val turnos = get<ServicoTurnos>()
         val vagas = get<ServicoVagas>()
@@ -351,7 +353,13 @@ val moduloFeatures = module {
     viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
-        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar)
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        CheckinViewModel(
+            turnoId, coordenadaDaVaga, get(), get(),
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
+            filaDeAcoes = get(),
+            contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+        )
     }
     viewModel { AvaliacaoViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */

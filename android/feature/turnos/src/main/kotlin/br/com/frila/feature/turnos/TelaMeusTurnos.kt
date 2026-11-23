@@ -681,6 +681,10 @@ private fun SecaoDeCheckin(
                 FatoDoCheckin(texto = TextosCheckin.CHECKIN_SEM_VERIFICACAO, descricao = TextosCheckin.CHECKIN_SEM_VERIFICACAO)
                 BotaoVerComprovante { aoExibirComprovante(comprovante) }
             }
+            estado.status == StatusCheckin.NA_FILA -> {
+                val texto = estado.checkinNaFila?.let(TextosDaFilaDePresenca::checkinNaFila) ?: TextosCheckin.REGISTRANDO
+                FatoDoCheckin(texto = texto, descricao = texto)
+            }
             estado.status == StatusCheckin.ERRO -> {
                 MensagemDeAcao(texto = estado.mensagemErro ?: TextosCheckin.ERRO_PADRAO)
                 BotaoDeAcaoDoTurno(
@@ -691,6 +695,7 @@ private fun SecaoDeCheckin(
                 )
             }
             else -> {
+                estado.avisoCheckin?.let { MensagemDeAcao(texto = it) }
                 BotaoDeAcaoDoTurno(
                     texto = TextosCheckin.BOTAO_FAZER_CHECKIN,
                     aoClicar = { emitirFeedback(); viewModel.fazerCheckin() },

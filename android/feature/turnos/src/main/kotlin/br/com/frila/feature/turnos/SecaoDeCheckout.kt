@@ -51,11 +51,17 @@ internal fun SecaoDeCheckout(
                 destaque = destaque,
                 habilitado = false,
             )
+            estado.checkout == StatusCheckout.NA_FILA -> Text(
+                estado.checkoutNaFila?.let(TextosDaFilaDePresenca::checkoutNaFila) ?: TextosCheckoutECodigo.CHECKOUT_REGISTRANDO,
+                style = FrilaTipo.corpo,
+                color = FrilaTema.cores.tinta,
+            )
             RegraDePresenca.podeFazerCheckout(checkinFeito, checkoutFeito = false, fim = turno.fim, agora = agora) -> {
                 val comErro = estado.checkout == StatusCheckout.ERRO
                 if (comErro) {
                     MensagemDeAcao(texto = estado.mensagemErroCheckout ?: TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO)
                 }
+                estado.avisoCheckout?.let { MensagemDeAcao(texto = it) }
                 BotaoDeAcaoDoTurno(
                     texto = if (comErro) TextosCheckoutECodigo.BOTAO_CHECKOUT_TENTAR_DE_NOVO else TextosCheckoutECodigo.BOTAO_CHECKOUT,
                     aoClicar = { viewModel.fazerCheckout() },
