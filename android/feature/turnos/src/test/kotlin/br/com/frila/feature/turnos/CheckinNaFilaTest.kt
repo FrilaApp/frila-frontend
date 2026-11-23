@@ -68,12 +68,25 @@ class CheckinNaFilaTest {
     }
 
     /** Escopo sem despachante: o que a fila avisa chega ao ViewModel na hora, sem corrida nos testes. */
-    private fun viewModel(dono: String? = conta, comFila: Boolean = true) = CheckinViewModel(
-        turnoId = turnoId, coordenadaDaVaga = vaga, servicoTurnos = servico, provedorDeLocalizacao = provedor(),
+    private var pedidosDeReenvio = 0
+    private fun viewModel(dono: String? = conta, comFila: Boolean = true, servicoTurnos: ServicoTurnos = servico) = CheckinViewModel(
+        turnoId = turnoId, coordenadaDaVaga = vaga, servicoTurnos = servicoTurnos, provedorDeLocalizacao = provedor(),
         instanteAtual = { agora }, escopo = CoroutineScope(Dispatchers.Unconfined),
         registrarEvento = { evento, _, turno -> eventos += evento to turno },
         filaDeAcoes = if (comFila) fila else null, contaAtual = { dono },
+        pedirReenvio = { pedidosDeReenvio++ },
     )
+
+    /** O servidor recusa o check-out com 409 `checkin_pendente`; [antes] roda quando o pedido chega. */
+    private fun servicoQueRecusaPorCheckinPendente(antes: () -> Unit = {}) = ServicoTurnos(ClienteSupabase(
+        "https://frila.supabase.co", "chave-teste",
+        engine = MockEngine { request ->
+            pedidos += request.url.encodedPath
+            antes()
+            respond("""{"message":"checkin_pendente","code":"checkin_pendente"}""", HttpStatusCode.Conflict,
+                headersOf(HttpHeaders.ContentType, "application/json"))
+        },
+    ))
 
     private fun sincronizador(envioDoCheckin: suspend (br.com.frila.core.rede.AcaoPendente) -> Unit = {
         servico.fazerCheckin(it.turnoId!!, it.distanciaMetros, it.instanteDoToque)
@@ -215,5 +228,72 @@ class CheckinNaFilaTest {
     @Test fun `o que e de outra conta ou de outro turno nao aparece na tela`() = runBlocking {
         viewModel(dono = "outra-conta").fazerCheckin().join()
         assertEquals(StatusCheckin.OCIOSO, viewModel().estado.value.status)
+    }
+
+    /** Revisão do #1039 (R3): com rede, o check-out não passa na frente do check-in que ainda está na fila. */
+    @Test fun `com rede e o check-in desta conta na fila o checkout entra atras dele sem ir ao servidor`() = runBlocking {
+        offline = false
+        fila.enfileirar(AcaoPendente(TipoAcaoPendente.CHECKIN, conta, agora.minusSeconds(600).toString(), turnoId = turnoId))
+        val vm = viewModel()
+        assertEquals(StatusCheckin.NA_FILA, vm.estado.value.status)
+
+        vm.fazerCheckout().join()
+
+        assertTrue(pedidos.isEmpty(), "o check-out não foi direto ao servidor: $pedidos")
+        assertEquals(StatusCheckout.NA_FILA, vm.estado.value.checkout)
+        assertEquals(listOf(TipoAcaoPendente.CHECKIN, TipoAcaoPendente.CHECKOUT), fila.pendentes().map { it.tipo })
+        val saida = fila.pendentes().last()
+        assertEquals(agora.toString(), saida.instanteDoToque)
+        assertEquals(111, saida.distanciaMetros)
+        assertEquals(1, pedidosDeReenvio, "com rede, o reenvio é pedido na hora")
+
+        val sinc = sincronizador()
+        sinc.sincronizar()
+        assertEquals(listOf("/rest/v1/rpc/fazer_checkin", "/rest/v1/rpc/fazer_checkout"), pedidos.filter { !it.endsWith("meus_turnos") })
+        assertTrue(fila.pendentes().isEmpty())
+        assertEquals(StatusCheckout.FEITO, vm.estado.value.checkout)
+    }
+
+    @Test fun `409 checkin pendente com o check-in na fila guarda o checkout em vez de virar erro`() = runBlocking {
+        // O check-in entra na fila entre a conferência do check-out e a resposta do servidor.
+        val servidor = servicoQueRecusaPorCheckinPendente {
+            if (fila.pendentes().none { it.tipo == TipoAcaoPendente.CHECKIN }) {
+                fila.enfileirar(AcaoPendente(TipoAcaoPendente.CHECKIN, conta, agora.toString(), turnoId = turnoId))
+            }
+        }
+        val vm = viewModel(servicoTurnos = servidor)
+
+        vm.fazerCheckout().join()
+
+        assertEquals(listOf("/rest/v1/rpc/fazer_checkout"), pedidos)
+        assertEquals(StatusCheckout.NA_FILA, vm.estado.value.checkout)
+        assertNull(vm.estado.value.mensagemErroCheckout)
+        assertEquals(listOf(TipoAcaoPendente.CHECKIN, TipoAcaoPendente.CHECKOUT), fila.pendentes().map { it.tipo })
+        assertEquals(agora.toString(), fila.pendentes().last().instanteDoToque)
+        assertEquals(111, fila.pendentes().last().distanciaMetros)
+        assertEquals(1, pedidosDeReenvio)
+    }
+
+    @Test fun `409 checkin pendente sem check-in na fila continua erro e nada e guardado`() = runBlocking {
+        val vm = viewModel(servicoTurnos = servicoQueRecusaPorCheckinPendente())
+
+        vm.fazerCheckout().join()
+
+        assertEquals(StatusCheckout.ERRO, vm.estado.value.checkout)
+        assertEquals(TextosCheckoutECodigo.CHECKOUT_SEM_CHECKIN, vm.estado.value.mensagemErroCheckout)
+        assertTrue(fila.pendentes().isEmpty())
+        assertEquals(0, pedidosDeReenvio)
+    }
+
+    @Test fun `check-in de outra conta na fila nao segura o checkout desta`() = runBlocking {
+        offline = false
+        fila.enfileirar(AcaoPendente(TipoAcaoPendente.CHECKIN, "outra-conta", agora.toString(), turnoId = turnoId))
+        val vm = viewModel()
+
+        vm.fazerCheckout().join()
+
+        assertEquals(listOf("/rest/v1/rpc/fazer_checkout"), pedidos)
+        assertEquals(StatusCheckout.FEITO, vm.estado.value.checkout)
+        assertEquals(0, pedidosDeReenvio)
     }
 }

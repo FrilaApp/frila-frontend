@@ -127,6 +127,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.koin.core.qualifier.named
 import org.koin.dsl.onClose
 import org.koin.dsl.module
@@ -355,11 +356,14 @@ val moduloFeatures = module {
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
         val armazenamento = get<ArmazenamentoDeSessao>()
+        val sincronizador = get<SincronizadorDeAcoes>()
+        val escopoDaFila = get<CoroutineScope>(named("escopoDaFilaDeAcoes"))
         CheckinViewModel(
             turnoId, coordenadaDaVaga, get(), get(),
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,
             filaDeAcoes = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            pedirReenvio = { escopoDaFila.launch { sincronizador.sincronizar() } },
         )
     }
     viewModel { AvaliacaoViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
