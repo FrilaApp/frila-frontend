@@ -33,7 +33,16 @@ try {
   const csp = pagina.headers.get("content-security-policy") ?? "";
   const nonce = /'nonce-([^']+)'/.exec(csp)?.[1];
   confere("GET /app/ responde 200 em HTML", pagina.status === 200 && (pagina.headers.get("content-type") ?? "").startsWith("text/html"));
-  confere("a página vem em pt-BR", html.includes('<html lang="pt-BR">'));
+  confere("a página vem em pt-BR", /<html\b[^>]*\blang="pt-BR"[^>]*>/.test(html));
+  confere("sem cookie de aparência, o HTML já vem em Claro", /<html\b[^>]*\bdata-aparencia="claro"[^>]*>/.test(html));
+  for (const [valor, esperado] of [["escuro", "escuro"], ["invalido", "claro"]]) {
+    const resposta = await fetch(`${BASE}/app/`, { headers: { Cookie: `frila-aparencia=${valor}` } });
+    const documento = await resposta.text();
+    confere(
+      `cookie de aparência ${valor}: o HTML já vem em ${esperado}`,
+      resposta.status === 200 && new RegExp(`<html\\b[^>]*\\bdata-aparencia="${esperado}"[^>]*>`).test(documento),
+    );
+  }
   confere("a CSP traz um nonce e não tem unsafe-inline", Boolean(nonce) && !csp.includes("unsafe-inline"), csp);
   const scriptsEmbutidos = [...html.matchAll(/<script(?![^>]*\ssrc=)([^>]*)>/g)].map((achado) => achado[1] ?? "");
   confere(

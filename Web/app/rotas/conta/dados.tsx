@@ -48,6 +48,10 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
       <p className="font-titulo text-xl font-bold">{textos.marca}</p>
       <h1 className="font-titulo text-3xl font-bold">{t.titulo}</h1>
 
+      <Link to="/conta/aparencia" className={classeDoLink}>
+        {textos.aparencia.titulo}
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4" aria-labelledby="titulo-exportar">
         <h2 id="titulo-exportar" className="font-titulo text-xl font-bold">
           {t.exportar.titulo}

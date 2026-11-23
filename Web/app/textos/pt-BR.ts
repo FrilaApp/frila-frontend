@@ -24,6 +24,16 @@ import { vagaPublica } from "./vaga-publica";
 
 export const textos = {
   marca: "Frila",
+  aparencia: {
+    titulo: "Aparência",
+    tituloDaAba: "Aparência · Frila",
+    claro: "Claro",
+    escuro: "Escuro",
+    explicacao: "Escolha como o Frila aparece. A escolha fica só neste navegador e vale também depois de trocar de conta.",
+    salvar: "Salvar aparência",
+    salvando: "Salvando…",
+    voltar: "Voltar à minha conta",
+  },
   // Conta suspensa e contestação (os dois lados).
   suspensao,
   // Suporte a partir de um turno (os dois lados).

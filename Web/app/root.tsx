@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useHref } from "react-router";
+import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration, useHref, useRouteLoaderData } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import fonteDoTitulo from "./marca/fontes/ProdigySans-Bold.woff2?url";
 import { AvisoDoNavegadorEmbutido } from "./pwa/aviso-do-navegador-embutido";
 import { comecarNoNavegador } from "./pwa/navegador";
+import { lerAparencia } from "./servidor/aparencia";
 import { middlewareDeSessao } from "./servidor/middleware-de-sessao";
 import { textos } from "./textos/pt-BR";
 
@@ -14,6 +15,10 @@ const IMAGEM_DE_COMPARTILHAMENTO = "https://frilabr.com/app/og-1200x630.png";
 
 // A sessão é decidida aqui, uma vez por pedido, para todas as rotas.
 export const middleware: Route.MiddlewareFunction[] = [middlewareDeSessao];
+
+export function loader({ request }: Route.LoaderArgs) {
+  return { aparencia: lerAparencia(request) };
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/app/favicon.svg", type: "image/svg+xml" },
@@ -24,8 +29,9 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const dados = useRouteLoaderData<typeof loader>("root");
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-aparencia={dados?.aparencia ?? "claro"}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
