@@ -61,6 +61,8 @@ class CheckinViewModel(
     private val filaDeAcoes: FilaDeAcoes? = null,
     /** A conta dona do toque (o `sub` da sessão); sem ela nada é enfileirado. */
     private val contaAtual: () -> String? = { null },
+    /** Pede uma passada do reenvio: o check-out guardado atrás de um check-in com rede não espera a rede cair e voltar. */
+    private val pedirReenvio: () -> Unit = {},
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -136,6 +138,11 @@ class CheckinViewModel(
      * sem GPS ou com leitura imprecisa segue com `distancia_m` nulo (o servidor aceita no check-out), sem diálogo:
      * o profissional nunca fica sem poder encerrar o turno. Um toque com outro em voo, ou depois de feito, não
      * envia nada. O estado do check-in não muda.
+     *
+     * Com o check-in desta conta e deste turno ainda na fila, o check-out não vai direto ao servidor, nem com rede: entra
+     * na fila atrás dele, com o instante do toque e a distância, e sai na mesma ordem. Se o servidor mesmo assim responder
+     * `CHECKIN_PENDENTE` com o check-in na fila (ele entrou entre a conferência e o envio), o check-out também vai para a
+     * fila em vez de virar erro.
      */
     fun fazerCheckout(): Job {
         var iniciou = false
@@ -151,22 +158,42 @@ class CheckinViewModel(
             var distanciaMetros: Int? = null
             try {
                 distanciaMetros = MedidorDeDistancia(provedorDeLocalizacao, coordenadaDaVaga).medir()
+                if (checkinDestaContaNaFila() && guardarCheckoutNaFila(distanciaMetros, toque, pedirEnvio = true)) return@launch
                 servicoTurnos.fazerCheckout(turnoId = turnoId, distanciaMetros = distanciaMetros, registradoEm = toque.toString())
                 registrarEvento(EventoDeTelemetria.CHECKOUT_CONCLUIDO, null, turnoId)
                 _estado.update { it.copy(checkout = StatusCheckout.FEITO, mensagemErroCheckout = null) }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
-                if (erro is ErroDaApi && erro.codigo == CodigoErroAPI.SEM_REDE) {
-                    guardarNaFila(TipoAcaoPendente.CHECKOUT, distanciaMetros, toque)?.let { registro ->
-                        _estado.update { it.copy(checkout = StatusCheckout.NA_FILA, checkoutNaFila = registro, mensagemErroCheckout = null) }
-                        return@launch
-                    }
-                }
+                val codigo = (erro as? ErroDaApi)?.codigo
+                val atrasDoCheckin = codigo == CodigoErroAPI.CHECKIN_PENDENTE && checkinDestaContaNaFila()
+                if ((codigo == CodigoErroAPI.SEM_REDE || atrasDoCheckin) &&
+                    guardarCheckoutNaFila(distanciaMetros, toque, pedirEnvio = atrasDoCheckin)
+                ) return@launch
                 // Também a resposta que não é JSON: sem isto o botão ficaria preso em "Registrando…" (R2 da A-001).
                 _estado.update { it.copy(checkout = StatusCheckout.ERRO, mensagemErroCheckout = mensagemDeErroDoCheckout(erro)) }
             }
         }
+    }
+
+    private fun checkinDestaContaNaFila(): Boolean {
+        val fila = filaDeAcoes ?: return false
+        val conta = contaAtual() ?: return false
+        return try {
+            fila.pendentes().any { it.tipo == TipoAcaoPendente.CHECKIN && it.turnoId == turnoId && it.contaId == conta }
+        } catch (_: IOException) {
+            false
+        }
+    }
+
+    /** `false` se não deu para guardar (sem fila, sem conta, disco): aí segue o caminho de antes. */
+    private fun guardarCheckoutNaFila(distanciaMetros: Int?, toque: Instant, pedirEnvio: Boolean): Boolean {
+        val registro = guardarNaFila(TipoAcaoPendente.CHECKOUT, distanciaMetros, toque) ?: return false
+        _estado.update { it.copy(checkout = StatusCheckout.NA_FILA, checkoutNaFila = registro, mensagemErroCheckout = null) }
+        // O reenvio pode ter levado a ação entre guardar e mostrar: relê para não ficar preso em "na fila".
+        reconciliarComAFila()
+        if (pedirEnvio) pedirReenvio()
+        return true
     }
 
     private fun mensagemDeErroDoCheckout(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo) {

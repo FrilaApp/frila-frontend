@@ -1,11 +1,22 @@
 package br.com.frila.app
 
+import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TipoAcaoPendente
+import br.com.frila.core.rede.contaDaSessaoParaTelemetria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.feature.turnos.CheckinViewModel
+import io.mockk.mockk
 import java.io.File
 import java.util.Base64
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -53,6 +64,57 @@ class FilaDeAcoesDaSessaoTest {
     @Test fun `limpar o cache direto, como na expiracao, tambem apaga a fila`() {
         val (cache, _) = montar()
         cache.limpar()
+        assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
+        assertFalse(arquivo.exists())
+    }
+
+    /**
+     * Revisão do #1039 (R4): a tela de check-in relê a conta a cada mudança da fila. Antes, sem sessão, ler a conta limpava
+     * o cache, a limpeza mudava a fila e a tela relia, sem fim (o limitador abaixo só existe para o teste não travar).
+     */
+    @Test fun `logout com a tela de check-in observando a fila nao entra em ciclo`() = runTest {
+        for (comAcaoNaFila in listOf(false, true)) {
+            val cache = CacheVagasDaSessao(File(raiz, "caso-$comAcaoNaFila"))
+            val armazenamento = SessaoComCacheVagas(ArmazenamentoDeSessaoEmMemoria(), cache)
+            armazenamento.salvarSessao(sessao("pessoa-a"))
+            if (comAcaoNaFila) cache.filaDeAcoes.enfileirar(acao.copy(contaId = "pessoa-a"))
+            val escopo = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+            var leituras = 0
+            CheckinViewModel("turno", null, mockk<ServicoTurnos>(), mockk<ProvedorDeLocalizacao>(), escopo = escopo,
+                filaDeAcoes = cache.filaDeAcoes, contaAtual = {
+                    leituras++
+                    if (leituras >= 20) escopo.cancel()
+                    contaDaSessaoParaTelemetria(armazenamento.obterSessao())
+                })
+            runCurrent()
+            val leiturasAntes = leituras
+            val versaoAntes = cache.filaDeAcoes.versao.value
+            armazenamento.limparSessao()
+            runCurrent()
+            val versoes = cache.filaDeAcoes.versao.value - versaoAntes
+            println("R4 comAcaoNaFila=$comAcaoNaFila leiturasAntes=$leiturasAntes leiturasDepois=$leituras versoesGeradas=$versoes")
+            // Com a fila vazia o logout não muda a fila; com uma ação, muda uma vez e a tela relê uma vez, sem limpar de novo.
+            assertEquals(if (comAcaoNaFila) 1 else 0, versoes)
+            assertTrue(leituras <= leiturasAntes + 1, "leituras: $leiturasAntes -> $leituras")
+            assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
+            escopo.cancel()
+        }
+    }
+
+    @Test fun `sem sessao a primeira leitura limpa o que sobrou e as seguintes nao limpam de novo`() {
+        val cache = CacheVagasDaSessao(raiz)
+        cache.filaDeAcoes.enfileirar(acao)
+        val armazenamento = SessaoComCacheVagas(ArmazenamentoDeSessaoEmMemoria(), cache)
+        assertNull(armazenamento.obterSessao())
+        assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
+        assertFalse(arquivo.exists())
+        val versao = cache.filaDeAcoes.versao.value
+        repeat(3) { assertNull(armazenamento.obterSessao()) }
+        assertEquals(versao, cache.filaDeAcoes.versao.value)
+        // Nova sessão e novo logout: limpa de novo.
+        armazenamento.salvarSessao(sessao("pessoa-b"))
+        cache.filaDeAcoes.enfileirar(acao.copy(contaId = "pessoa-b"))
+        armazenamento.limparSessao()
         assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
         assertFalse(arquivo.exists())
     }

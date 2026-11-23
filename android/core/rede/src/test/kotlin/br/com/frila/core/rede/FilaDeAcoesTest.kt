@@ -71,4 +71,20 @@ class FilaDeAcoesTest {
         emMemoria.enfileirar(acao())
         assertEquals(1, emMemoria.pendentes().size)
     }
+
+    @Test fun `limpar fila ja vazia nao muda a versao mas sempre muda a geracao`() {
+        val fila = FilaDeAcoes(File(diretorio, "vazia.json"))
+        val versao = fila.versao.value
+        val geracao = fila.geracao()
+        fila.limpar()
+        assertEquals(versao, fila.versao.value)
+        assertEquals(geracao + 1, fila.geracao())
+        fila.enfileirar(AcaoPendente(TipoAcaoPendente.CHECKIN, "conta-a", "2026-11-23T12:00:00Z", turnoId = "turno-1"))
+        val comAcao = fila.versao.value
+        fila.limpar()
+        assertEquals(comAcao + 1, fila.versao.value)
+        assertEquals(geracao + 2, fila.geracao())
+        fila.limpar()
+        assertEquals(comAcao + 1, fila.versao.value)
+    }
 }
