@@ -1,5 +1,6 @@
 package br.com.frila.app
 
+import br.com.frila.core.rede.FilaDeAcoes
 import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -16,6 +17,10 @@ import kotlinx.coroutines.flow.update
 /** Inclui instâncias ainda em uso e arquivos de execuções anteriores. Sem Context, só memória. */
 internal class CacheVagasDaSessao(private val raiz: File?) {
     private val repositorios = Collections.newSetFromMap(WeakHashMap<RepositorioVagas, Boolean>())
+
+    /** A fila de ações sem rede (A6) é da conta que saiu: sai junto com o cache, em logout, troca e expiração. */
+    val filaDeAcoes = FilaDeAcoes(raiz?.resolve("acoes/fila.json"))
+
     @Synchronized fun criar(armazenamento: ArmazenamentoDeSessao, rede: suspend () -> List<VagaAbertaDto>): RepositorioVagas =
         RepositorioVagas(raiz?.let { arquivoCacheVagas(it, armazenamento.obterSessao()) }, buscarNaRede = rede)
             .also { repositorios.add(it) }
@@ -28,6 +33,10 @@ internal class CacheVagasDaSessao(private val raiz: File?) {
         repositorios.clear()
         raiz?.resolve("vagas")?.let {
             if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar o cache de vagas")
+        }
+        try { filaDeAcoes.limpar() } catch (erro: IOException) { falha = erro }
+        raiz?.resolve("acoes")?.let {
+            if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar a fila de ações")
         }
         // O destino guardado (tela inicial por papel) é da conta que saiu; a próxima avalia de novo.
         raiz?.resolve(DestinoGuardadoEmArquivo.PASTA)?.let {
