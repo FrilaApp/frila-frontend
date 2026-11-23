@@ -20,14 +20,22 @@ private data class ConteudoDaFila(val pendentes: List<AcaoPendente> = emptyList(
  * Fila das ações sem rede, num arquivo privado fora do backup (padrão de [RepositorioVagas]). Cada ação traz a conta
  * dona. Guardar a recusa e tirar a ação dos reenvios é uma gravação só. Não há arquivo legível, ou ele está
  * corrompido: a fila começa vazia. [limpar] apaga memória e arquivo e invalida gravações em voo.
+ *
+ * [versao] só muda quando a fila muda de fato: [limpar] numa fila já vazia não avisa ninguém (quem relê a fila a cada
+ * versão e, sem sessão, limpa de novo não entra em ciclo). [geracao] muda a cada [limpar], vazia ou não: a passada do
+ * reenvio a confere antes de cada envio e para quando a fila foi limpa (logout, troca de conta, expiração).
  */
 class FilaDeAcoes(private val arquivo: File?) {
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
     private var conteudo: ConteudoDaFila? = null
     private val _versao = MutableStateFlow(0)
+    private var geracaoAtual = 0L
 
     /** Soma um a cada mudança (enfileirar, enviar, recusar, limpar): quem mostra a fila na tela relê quando ela muda. */
     val versao: StateFlow<Int> = _versao.asStateFlow()
+
+    /** Muda a cada [limpar]: o que foi lido numa geração anterior é de uma sessão que já saiu. */
+    @Synchronized fun geracao(): Long = geracaoAtual
 
     @Synchronized fun pendentes(): List<AcaoPendente> = ler().pendentes
 
@@ -72,8 +80,10 @@ class FilaDeAcoes(private val arquivo: File?) {
     }
 
     @Synchronized fun limpar() {
+        geracaoAtual++
+        val tinhaAlgo = arquivo?.exists() == true || conteudo?.let { it.pendentes.isNotEmpty() || it.recusadas.isNotEmpty() } == true
         conteudo = ConteudoDaFila()
-        _versao.value++
+        if (tinhaAlgo) _versao.value++
         arquivo?.let { if (it.exists() && !it.delete()) throw IOException("Não foi possível apagar a fila de ações") }
     }
 
