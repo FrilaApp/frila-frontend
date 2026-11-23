@@ -12,6 +12,16 @@
   color-scheme: light;
 }
 
+/* Neutros escuros do iOS (FrilaColorDesignTokens); a escolha vem no HTML do servidor. */
+html[data-aparencia="escuro"] {
+  color-scheme: dark;
+  --cor-fundo: #111111;
+  --cor-superficie: #171717;
+  --cor-tinta: #FFFFFF;
+  --cor-tinta-suave: #A3A3A3;
+  --cor-borda: #44433E;
+}
+
 @theme inline {
   --color-fundo: var(--cor-fundo);
   --color-superficie: var(--cor-superficie);
