@@ -87,6 +87,18 @@ extension FrilaJobCreationDraft {
 
 // MARK: - Modelo das seções
 
+/// Campo obrigatório do formulário. Usado para marcar o que falta quando se toca em Publicar.
+enum FrilaJobMissingField: Hashable, Sendable {
+    case role, address, date, startTime, endTime, contactPerson, value
+}
+
+extension FrilaJobCreationDraft {
+    /// O valor do modo de pagamento atual está definido (maior que zero).
+    var hasValue: Bool {
+        (paymentMode == .perShift ? payPerPosition : rateHourly) > 0
+    }
+}
+
 /// Seções do formulário único, em ordem. Alimentam as barras do cabeçalho,
 /// a pergunta fixa, o resumo da seção completa e o foco do Publicar.
 enum FrilaJobFormSection: Int, CaseIterable, Identifiable, Sendable {
@@ -130,21 +142,34 @@ enum FrilaJobFormSection: Int, CaseIterable, Identifiable, Sendable {
         )
     }
 
-    /// Campos obrigatórios da seção, na ordem em que aparecem.
-    private func requiredChecks(_ draft: FrilaJobCreationDraft) -> [Bool] {
+    /// Campos obrigatórios da seção, na ordem em que aparecem, e se cada um está preenchido.
+    private func requiredFields(_ draft: FrilaJobCreationDraft) -> [(campo: FrilaJobMissingField, preenchido: Bool)] {
         switch self {
         case .vaga:
-            return [draft.role.isFilled, draft.address.isFilled]
+            return [(.role, draft.role.isFilled), (.address, draft.address.isFilled)]
         case .turno:
             // O fim só conta quando forma um turno válido com o início
             let validEnd = draft.endTime.isFilled
                 && FrilaJobShiftFormat.blockingIssue(start: draft.startTime, end: draft.endTime) == nil
             // Enxerto: quem recebe vira `responsavel_local`, obrigatório na validação do app
-            return [draft.shiftDate.isFilled, draft.startTime.isFilled, validEnd, draft.contactPerson.isFilled]
+            return [
+                (.date, draft.shiftDate.isFilled), (.startTime, draft.startTime.isFilled),
+                (.endTime, validEnd), (.contactPerson, draft.contactPerson.isFilled)
+            ]
         case .valor:
             // O contador de vagas nunca fica abaixo de 1, então só o valor conta como preenchimento
-            let value = draft.paymentMode == .perShift ? draft.payPerPosition : draft.rateHourly
-            return [value > 0]
+            return [(.value, draft.hasValue)]
+        }
+    }
+
+    private func requiredChecks(_ draft: FrilaJobCreationDraft) -> [Bool] {
+        requiredFields(draft).map(\.preenchido)
+    }
+
+    /// Obrigatórios que ainda faltam, na ordem do formulário. Vazio: dá para publicar.
+    static func missingFields(in draft: FrilaJobCreationDraft) -> [FrilaJobMissingField] {
+        allCases.flatMap { secao in
+            secao.requiredFields(draft).filter { !$0.preenchido }.map(\.campo)
         }
     }
 
@@ -505,7 +530,7 @@ struct FrilaJobFormLabeledField<Content: View>: View {
 
 extension View {
     /// Contorno padrão dos campos de digitação do formulário.
-    func jobFormInputChrome(isDark: Bool, horizontalPadding: CGFloat = FrilaGeometry.space14) -> some View {
+    func jobFormInputChrome(isDark: Bool, horizontalPadding: CGFloat = FrilaGeometry.space14, isError: Bool = false) -> some View {
         self
             .frilaType(FrilaFormType.input, dynamic: true)
             .padding(.horizontal, horizontalPadding)
@@ -514,7 +539,7 @@ extension View {
             .clipShape(RoundedRectangle(cornerRadius: FrilaGeometry.radiusInput, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: FrilaGeometry.radiusInput, style: .continuous)
-                    .strokeBorder(FrilaColor.dynamicFormFieldBorder(isDark: isDark), lineWidth: 1)
+                    .strokeBorder(isError ? FrilaColor.dynamicError(isDark: isDark) : FrilaColor.dynamicFormFieldBorder(isDark: isDark), lineWidth: isError ? 2 : 1)
             }
     }
 }
@@ -525,6 +550,8 @@ struct FrilaJobFormVagaSection: View {
     @Binding var draft: FrilaJobCreationDraft
     let isDark: Bool
     let groupStyle: FrilaPickerGroupStyle
+    /// Depois de tentar publicar incompleto, o endereço vazio ganha contorno de erro.
+    var showsMissing: Bool = false
     /// Folga abaixo da experiência desejada: torna a seção mais alta que a tela, então ela rola livre
     /// por dentro e o usuário pode trazer o seletor de experiência até o meio da tela antes de abri-lo.
     static let experienceScrollRoom: CGFloat = 200
@@ -570,7 +597,9 @@ struct FrilaJobFormVagaSection: View {
                 TextField(String(localized: "CLN 408, Bloco B, Asa Norte", table: "Estudio", bundle: bundleApresentacao), text: $draft.address)
                     .accessibilityIdentifier("endereco-vaga-campo")
                     .focused($focusedField, equals: .address)
-                    .jobFormInputChrome(isDark: isDark)
+                    .jobFormInputChrome(isDark: isDark, isError: showsMissing && !draft.address.isFilled)
+                    // O erro não pode depender só da cor do contorno.
+                    .accessibilityHint(showsMissing && !draft.address.isFilled ? TextosPublicarVaga.campoObrigatorio : "")
                     .frilaFormField(id: "job_form_address", isFocused: focusedField == .address, onDismiss: { focusedField = nil })
             }
 
@@ -609,7 +638,8 @@ struct FrilaJobFormTurnoSection: View {
                 TextField(String(localized: "Renata, no balcão", table: "Estudio", bundle: bundleApresentacao), text: $draft.contactPerson)
                     .accessibilityIdentifier("responsavel-local-campo")
                     .focused($focusedField, equals: .contactPerson)
-                    .jobFormInputChrome(isDark: isDark)
+                    .jobFormInputChrome(isDark: isDark, isError: showsMissing && !draft.contactPerson.isFilled)
+                    .accessibilityHint(showsMissing && !draft.contactPerson.isFilled ? TextosPublicarVaga.campoObrigatorio : "")
                     .frilaFormField(id: "job_form_contact_person", isFocused: focusedField == .contactPerson, onDismiss: { focusedField = nil })
             }
 
@@ -728,6 +758,8 @@ struct FrilaJobFormYesNoRow: View {
 struct FrilaJobFormValorSection: View {
     @Binding var draft: FrilaJobCreationDraft
     let isDark: Bool
+    /// Depois de tentar publicar incompleto, "Escolha um valor" ganha a cor de erro.
+    var showsMissing: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -770,7 +802,7 @@ struct FrilaJobFormValorSection: View {
                     } else {
                         Text("Escolha um valor", tableName: "Estudio", bundle: bundleApresentacao)
                             .frilaType(FrilaFormType.detail, dynamic: true)
-                            .foregroundColor(FrilaColor.dynamicTextMuted(isDark: isDark))
+                            .foregroundStyle(showsMissing ? FrilaColor.dynamicError(isDark: isDark) : FrilaColor.dynamicTextMuted(isDark: isDark))
                     }
                 }
 
@@ -893,11 +925,21 @@ struct FrilaJobFormValorSection: View {
                     .textCase(.uppercase)
                     .frilaType(FrilaFormType.microLabel, dynamic: true)
                     .foregroundColor(FrilaColor.dynamicFormTextMuted(isDark: isDark))
-                FrilaPriceTag(texto: FrilaMoney.total(draft.totalBudget), tamanho: 22, isDark: isDark)
-                    .font(FrilaTypography.metricTabular(size: 22, weight: .bold))
-                    .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
-                    .contentTransition(.numericText())
-                    .accessibilityIdentifier("total-vaga-calculado")
+                // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício. Sem valor escolhido, o total não
+                // começa em R$ 0,00: o aviso de escolher ocupa o lugar do preço.
+                Group {
+                    if draft.hasValue {
+                        FrilaPriceTag(texto: FrilaMoney.total(draft.totalBudget), tamanho: 22, isDark: isDark)
+                            .font(FrilaTypography.metricTabular(size: 22, weight: .bold))
+                            .foregroundColor(FrilaColor.dynamicTextPrimary(isDark: isDark))
+                            .contentTransition(.numericText())
+                    } else {
+                        Text("Escolha um valor", tableName: "Estudio", bundle: bundleApresentacao)
+                            .font(FrilaTypography.metricTabular(size: 22, weight: .bold))
+                            .foregroundStyle(showsMissing ? FrilaColor.dynamicError(isDark: isDark) : FrilaColor.dynamicTextMuted(isDark: isDark))
+                    }
+                }
+                .accessibilityIdentifier("total-vaga-calculado")
                 if let breakdown = totalBreakdown {
                     Text(verbatim: breakdown)
                         .frilaType(FrilaFormType.detail, dynamic: true)

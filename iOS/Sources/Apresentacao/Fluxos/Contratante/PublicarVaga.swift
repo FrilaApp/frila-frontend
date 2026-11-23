@@ -55,6 +55,8 @@ enum TextosPublicarVaga {
     static let tentarNovamente = String(localized: "Tentar novamente", bundle: bundleApresentacao)
     static let campoObrigatorio = String(localized: "Preencha este campo.", bundle: bundleApresentacao)
     static let campoInvalido = String(localized: "Confira o valor informado.", bundle: bundleApresentacao)
+    /// A mesma mensagem do Android (#1034): Publicar com obrigatório faltando.
+    static let confiraCampos = String(localized: "Confira os campos indicados.", bundle: bundleApresentacao)
     static let erroAntiContato = String(localized: "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila.", bundle: bundleApresentacao)
     static let erroPublicar = String(localized: "Não foi possível publicar a vaga. Tente novamente.", bundle: bundleApresentacao)
     static let semFuncoes = String(localized: "Não foi possível carregar as funções.", bundle: bundleApresentacao)

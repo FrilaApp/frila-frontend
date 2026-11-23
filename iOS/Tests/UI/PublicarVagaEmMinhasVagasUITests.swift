@@ -52,6 +52,8 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         concluirCelebracao(app)
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
+        // Concluir fecha também o formulário de publicação, não só a folha "Vaga Publicada!" (P-083, item 6).
+        XCTAssertFalse(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 3), "o formulário não fica aberto atrás")
         let depois = NSPredicate(format: "count == %d", antes + 1)
         expectation(for: depois, evaluatedWith: vagas(app))
         waitForExpectations(timeout: 10)
@@ -317,8 +319,88 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         salvarCaptura("02-publicar-vaga-padrao")
     }
 
-    /// O Estúdio não escreve avisos de validação por campo: com obrigatório faltando, Publicar
-    /// não publica e leva à primeira etapa incompleta (aqui a função, que o cenário não preenche).
+    /// Capturas do Publicar incompleto (P-083, itens 1 e 5): o aviso, "Quem recebe" marcado e "Escolha um valor"
+    /// no lugar de R$ 0,00. Padrão e AX5; as imagens vão para `FRILA_CAPTURAS_DIR`.
+    private func capturarPublicarIncompleto(_ sufixo: String, extras: [String] = []) {
+        let app = abrir(extras)
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        tocar(app.buttons["publicar-vaga-entrada"])
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
+        salvarCaptura("g1-\(sufixo)-0-valor-sem-marca")
+
+        let botaoPublicar = app.buttons["publicar-vaga-botao"]
+        rolarAte(botaoPublicar, em: app)
+        tocar(botaoPublicar)
+        XCTAssertTrue(app.alerts.firstMatch.staticTexts["Confira os campos indicados."].waitForExistence(timeout: 5))
+        salvarCaptura("g1-\(sufixo)-1-aviso")
+        app.alerts.firstMatch.buttons["OK"].tap()
+
+        let total = app.descendants(matching: .any).matching(identifier: "total-vaga-calculado").firstMatch
+        rolarAte(total, em: app)
+        salvarCaptura("g1-\(sufixo)-3-valor-marcado")
+    }
+
+    /// Só "Quem recebe" faltando (o roteiro de teste preenche o resto e este teste apaga o responsável):
+    /// Publicar diz "Confira os campos indicados." e leva à etapa do Turno, com o campo marcado.
+    private func capturarQuemRecebeMarcado(_ sufixo: String, extras: [String] = []) {
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST"] + extras)
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        tocar(app.buttons["publicar-vaga-entrada"])
+        XCTAssertTrue(esperarFormularioDePublicarVaga(app))
+
+        let responsavel = app.textFields["responsavel-local-campo"]
+        rolarAte(responsavel, em: app)
+        responsavel.tap()
+        let atual = (responsavel.value as? String) ?? ""
+        responsavel.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: atual.count))
+        fecharTeclado(app)
+
+        let botaoPublicar = app.buttons["publicar-vaga-botao"]
+        rolarAte(botaoPublicar, em: app)
+        tocar(botaoPublicar)
+        XCTAssertTrue(app.alerts.firstMatch.staticTexts["Confira os campos indicados."].waitForExistence(timeout: 5))
+        app.alerts.firstMatch.buttons["OK"].tap()
+        XCTAssertFalse(app.buttons["celebracao-concluir"].exists, "sem quem recebe a vaga não é publicada")
+        rolarAte(responsavel, em: app)
+        // Arrasto curto: o campo para sob o dock; sobe uns 20% da tela sem trocar de etapa.
+        let janela = app.windows.firstMatch
+        janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62))
+            .press(forDuration: 0.1, thenDragTo: janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)))
+        salvarCaptura("g1-\(sufixo)-2-quem-recebe-marcado")
+    }
+
+    func testCapturasDoPublicarIncompletoPadrao() {
+        capturarPublicarIncompleto("padrao")
+        capturarQuemRecebeMarcado("padrao")
+    }
+
+    func testCapturasDoPublicarIncompletoAX5() {
+        let ax5 = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        capturarPublicarIncompleto("ax5", extras: ax5)
+    }
+
+    /// Arrastar a folha "Vaga Publicada!" para baixo também leva à lista: a vaga já foi publicada, e o
+    /// formulário não pode ficar aberto com a chance de publicar de novo (P-083, item 6).
+    func testArrastarAFolhaDaVagaPublicadaTambemFechaOFormulario() {
+        let app = abrir(["-FRILA_CADASTRO_UI_TEST"])
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 15))
+        XCTAssertTrue(vagas(app).firstMatch.waitForExistence(timeout: 10))
+        tocar(app.buttons["publicar-vaga-entrada"])
+
+        preencherEPublicar(app)
+        XCTAssertTrue(app.buttons["celebracao-concluir"].waitForExistence(timeout: 20))
+        let janela = app.windows.firstMatch
+        janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            .press(forDuration: 0.1, thenDragTo: janela.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
+
+        XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["publicar-vaga-formulario"].waitForExistence(timeout: 3))
+    }
+
+    /// Com obrigatório faltando, Publicar não publica, diz "Confira os campos indicados." (a mesma mensagem
+    /// do Android) e leva à primeira etapa incompleta (aqui a função, que o cenário não preenche).
     func testPublicarComObrigatorioFaltandoNaoPublicaEVoltaAEtapaIncompleta() {
         let app = abrir()
 
@@ -333,6 +415,9 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         tocar(botaoPublicar)
 
         XCTAssertFalse(app.buttons["celebracao-concluir"].waitForExistence(timeout: 3), "sem função a vaga não é publicada")
+        let aviso = app.alerts.firstMatch.staticTexts["Confira os campos indicados."]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5), "Publicar incompleto explica o que aconteceu")
+        app.alerts.firstMatch.buttons["OK"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["publicar-vaga-formulario"].exists)
         let etapa = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Publicar vaga, etapa 1 de 3")).firstMatch
         XCTAssertTrue(etapa.waitForExistence(timeout: 5), "a barra volta à etapa da vaga, a primeira incompleta")
@@ -359,6 +444,9 @@ final class PublicarVagaEmMinhasVagasUITests: XCTestCase {
         rolarAte(botaoPublicar, em: app)
         tocar(botaoPublicar)
         XCTAssertFalse(app.buttons["celebracao-concluir"].waitForExistence(timeout: 3), "sem função a vaga não é publicada")
+        // O aviso "Confira os campos indicados." cobre a tela até o OK.
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        app.alerts.firstMatch.buttons["OK"].tap()
         let etapaUm = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Publicar vaga, etapa 1 de 3")).firstMatch
         XCTAssertTrue(etapaUm.waitForExistence(timeout: 5), "a barra volta à etapa da vaga, a primeira incompleta")
 

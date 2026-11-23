@@ -15869,6 +15869,17 @@
         }
       }
     },
+    "Confira os campos indicados." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confira os campos indicados."
+          }
+        }
+      }
+    },
     "Confira os campos marcados antes de publicar. Nada foi publicado." : {
       "extractionState" : "manual",
       "localizations" : {
