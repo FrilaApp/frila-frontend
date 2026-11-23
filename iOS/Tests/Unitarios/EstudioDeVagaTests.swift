@@ -180,6 +180,58 @@ struct EstudioDeVagaTests {
         #expect(FrilaJobFormSection.firstIncomplete(in: rascunho) == .turno)
     }
 
+    // MARK: - P-083 G1: Publicar vaga com obrigatório faltando
+
+    @Test("Publicar incompleto indica os campos que faltam, na ordem do formulário (P-083, item 1)")
+    func camposQueFaltam() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        // Rascunho inicial: a casa e o horário padrão já vêm; faltam função, quem recebe e valor.
+        var rascunho = formulario.rascunhoInicial
+        #expect(FrilaJobFormSection.missingFields(in: rascunho) == [.role, .contactPerson, .value])
+        rascunho = rascunhoCompleto(formulario)
+        #expect(FrilaJobFormSection.missingFields(in: rascunho).isEmpty)
+        rascunho.contactPerson = "  "
+        #expect(FrilaJobFormSection.missingFields(in: rascunho) == [.contactPerson])
+        rascunho.payPerPosition = 0
+        #expect(FrilaJobFormSection.missingFields(in: rascunho) == [.contactPerson, .value])
+        // A lista vazia é o mesmo que "nenhuma seção incompleta".
+        #expect((FrilaJobFormSection.firstIncomplete(in: rascunho) == nil) == FrilaJobFormSection.missingFields(in: rascunho).isEmpty)
+    }
+
+    @Test("A mensagem de Publicar incompleto é a mesma do Android (#1034)")
+    func mensagemDeConfiraCampos() {
+        #expect(TextosPublicarVaga.confiraCampos == "Confira os campos indicados.")
+    }
+
+    @Test("O horário padrão mostrado conta sem passar pelo seletor (P-083, item 2)")
+    func horarioPadraoContaSemSeletor() async throws {
+        let api = ApiClienteEmMemoria(relogio: RelogioDoEstudio(agora: agora))
+        let formulario = try formulario { try await api.publicarVaga($0) }
+        var rascunho = formulario.rascunhoInicial
+        // Só o que a pessoa precisa escolher: função, valor e quem recebe. Data, Início e Fim ficam como vieram.
+        rascunho.role = "garcom"
+        rascunho.payPerPosition = 140
+        rascunho.contactPerson = "Renata no balcão"
+        #expect(!rascunho.startTime.isEmpty && !rascunho.endTime.isEmpty && !rascunho.shiftDate.isEmpty)
+        #expect(FrilaJobFormSection.missingFields(in: rascunho).isEmpty)
+        #expect(await formulario.publicar(rascunho) == .published)
+        let enviada = try #require(await api.publicacoesRecebidas.first)
+        #expect(enviada.periodo.fim.timeIntervalSince(enviada.periodo.inicio) == 3 * 3_600)
+    }
+
+    @Test("Valor zero não é valor: a vaga não começa com R$ 0 sem indicação (P-083, item 5)")
+    func valorZeroNaoContaComoValor() throws {
+        let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }
+        var rascunho = formulario.rascunhoInicial
+        #expect(!rascunho.hasValue)
+        rascunho.payPerPosition = 140
+        #expect(rascunho.hasValue)
+        rascunho.paymentMode = .hourly
+        #expect(!rascunho.hasValue)
+        rascunho.rateHourly = 20
+        #expect(rascunho.hasValue)
+    }
+
     @Test("Rascunho vira os campos do contrato, com o turno que passa da meia-noite")
     func aplicarRascunho() throws {
         let formulario = try formulario { _ in throw ErroDaApi(codigo: .desconhecido) }

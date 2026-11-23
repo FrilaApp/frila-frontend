@@ -502,21 +502,21 @@ public struct FrilaJobCreationStudioView: View {
         }
         // Seletor de data e horários: camada do formulário sobre a pilha inteira (cobre também a barra superior)
         .overlay { FrilaJobShiftOverlay(editing: $editingShift, draft: $draft, isDark: isDark, navigationStyle: shiftNavigationStyle) }
-        .sheet(isPresented: $showingCelebrationSheet) {
+        // O formulário só sai depois de a folha "Vaga Publicada!" terminar de fechar (P-083, item 6): fechar as
+        // duas no mesmo instante deixava o formulário aberto atrás. Concluir, Ver Detalhes ou arrastar a folha
+        // para baixo levam ao mesmo lugar, porque a vaga já foi publicada.
+        .sheet(isPresented: $showingCelebrationSheet, onDismiss: {
+            guard let published = publishedItem else { return }
+            publishedItem = nil
+            dismiss()
+            onPublish(published)
+        }) {
             if let published = publishedItem {
                 FrilaJobCelebrationSheet(
                     isDark: isDark,
                     item: published,
-                    onViewDetail: {
-                        showingCelebrationSheet = false
-                        dismiss()
-                        onPublish(published)
-                    },
-                    onFinish: {
-                        showingCelebrationSheet = false
-                        dismiss()
-                        onPublish(published)
-                    }
+                    onViewDetail: { showingCelebrationSheet = false },
+                    onFinish: { showingCelebrationSheet = false }
                 )
             }
         }
@@ -735,9 +735,9 @@ public struct FrilaJobCreationStudioView: View {
         VStack(alignment: .leading, spacing: FrilaGeometry.space20) {
             Group {
                 switch section {
-                case .vaga: FrilaJobFormVagaSection(draft: $draft, isDark: isDark, groupStyle: pickerGroupStyle)
+                case .vaga: FrilaJobFormVagaSection(draft: $draft, isDark: isDark, groupStyle: pickerGroupStyle, showsMissing: showsMissingFields)
                 case .turno: FrilaJobFormTurnoSection(draft: $draft, editingShift: $editingShift, isDark: isDark, navigationStyle: shiftNavigationStyle, showsMissing: showsMissingFields)
-                case .valor: FrilaJobFormValorSection(draft: $draft, isDark: isDark)
+                case .valor: FrilaJobFormValorSection(draft: $draft, isDark: isDark, showsMissing: showsMissingFields)
                 }
             }
             // Enxerto: com publicação pendente na fila, os campos ficam travados até ela concluir
@@ -794,6 +794,8 @@ public struct FrilaJobCreationStudioView: View {
         ) {
             if let missing {
                 showsMissingFields = true
+                // Mesma mensagem do Android (#1034): a pessoa não fica sem saber por que nada aconteceu.
+                erroDaPublicacao = TextosPublicarVaga.confiraCampos
                 missingTapTrigger += 1
                 jump(to: missing, scrollProxy: scrollProxy)
             } else {
