@@ -5,6 +5,9 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
@@ -21,6 +24,10 @@ private data class ConteudoDaFila(val pendentes: List<AcaoPendente> = emptyList(
 class FilaDeAcoes(private val arquivo: File?) {
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
     private var conteudo: ConteudoDaFila? = null
+    private val _versao = MutableStateFlow(0)
+
+    /** Soma um a cada mudança (enfileirar, enviar, recusar, limpar): quem mostra a fila na tela relê quando ela muda. */
+    val versao: StateFlow<Int> = _versao.asStateFlow()
 
     @Synchronized fun pendentes(): List<AcaoPendente> = ler().pendentes
 
@@ -66,6 +73,7 @@ class FilaDeAcoes(private val arquivo: File?) {
 
     @Synchronized fun limpar() {
         conteudo = ConteudoDaFila()
+        _versao.value++
         arquivo?.let { if (it.exists() && !it.delete()) throw IOException("Não foi possível apagar a fila de ações") }
     }
 
@@ -77,6 +85,7 @@ class FilaDeAcoes(private val arquivo: File?) {
 
     private fun gravar(novo: ConteudoDaFila) {
         conteudo = novo
+        _versao.value++
         val destino = arquivo?.absoluteFile ?: return
         destino.parentFile.mkdirs()
         val temporario = File.createTempFile("acoes-", ".tmp", destino.parentFile)

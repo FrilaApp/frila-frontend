@@ -27,6 +27,10 @@ import java.time.Instant
  */
 val LocalCriarValidacaoDoCodigo = staticCompositionLocalOf<(@Composable (turno: ItemTurno) -> ValidacaoDoCodigoViewModel)?> { null }
 
+/** Como o iOS (`podeFazerCheckout`: `checkin != .naoFeito`): o check-in já feito, ou guardado na fila, libera o check-out. */
+internal fun checkinFeitoOuNaFila(turno: ItemTurno, estado: EstadoCheckin): Boolean =
+    estado.comprovante != null || turno.comprovante != null || estado.status == StatusCheckin.NA_FILA
+
 /**
  * O check-out do turno (L1-4). Aparece com o check-in feito e o check-out ainda não, até 60 min depois do fim; feito,
  * só diz que foi registrado. O botão é o primário só quando [destaque] (nenhum outro laranja no cartão); enquanto o
@@ -41,7 +45,7 @@ internal fun SecaoDeCheckout(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val feito = turno.checkoutEm != null || estado.checkout == StatusCheckout.FEITO
-    val checkinFeito = estado.comprovante != null || turno.comprovante != null
+    val checkinFeito = checkinFeitoOuNaFila(turno, estado)
     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
         when {
             feito -> Text(TextosCheckoutECodigo.CHECKOUT_FEITO, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
@@ -51,11 +55,17 @@ internal fun SecaoDeCheckout(
                 destaque = destaque,
                 habilitado = false,
             )
+            estado.checkout == StatusCheckout.NA_FILA -> Text(
+                estado.checkoutNaFila?.let(TextosDaFilaDePresenca::checkoutNaFila) ?: TextosCheckoutECodigo.CHECKOUT_REGISTRANDO,
+                style = FrilaTipo.corpo,
+                color = FrilaTema.cores.tinta,
+            )
             RegraDePresenca.podeFazerCheckout(checkinFeito, checkoutFeito = false, fim = turno.fim, agora = agora) -> {
                 val comErro = estado.checkout == StatusCheckout.ERRO
                 if (comErro) {
                     MensagemDeAcao(texto = estado.mensagemErroCheckout ?: TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO)
                 }
+                estado.avisoCheckout?.let { MensagemDeAcao(texto = it) }
                 BotaoDeAcaoDoTurno(
                     texto = if (comErro) TextosCheckoutECodigo.BOTAO_CHECKOUT_TENTAR_DE_NOVO else TextosCheckoutECodigo.BOTAO_CHECKOUT,
                     aoClicar = { viewModel.fazerCheckout() },

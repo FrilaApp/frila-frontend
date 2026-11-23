@@ -8,9 +8,13 @@ import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.FilaDeAcoes
 import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.TipoAcaoPendente
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.time.Instant
 import kotlin.math.roundToInt
 
@@ -38,6 +43,10 @@ import kotlin.math.roundToInt
  * turno confirmado), repassado pela navegação desde o C0-7. Se vier nulo, o check-in segue o
  * caminho "sem localização": `distancia_m` nulo, check-in manual pendente.
  *
+ * A6.2: sem rede (`SEM_REDE`), o toque vai para a [FilaDeAcoes] com o instante do toque e a distância medida, e o estado
+ * vira `NA_FILA`; o `SincronizadorDeAcoes` envia quando a rede voltar. Um segundo toque no mesmo registro não enfileira de
+ * novo. A tela reabre ou a fila muda: o estado é relido da fila (enviado, ainda na fila ou recusado de vez).
+ *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel` sobre por que
  * testes injetam um escopo próprio em vez de depender de `viewModelScope`/`Dispatchers.Main`.
  */
@@ -49,6 +58,9 @@ class CheckinViewModel(
     private val instanteAtual: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    /** A conta dona do toque (o `sub` da sessão); sem ela nada é enfileirado. */
+    private val contaAtual: () -> String? = { null },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -59,6 +71,14 @@ class CheckinViewModel(
     /** C0-7: o pedido de permissão do sistema já foi respondido; depois dele, sem permissão, vem o diálogo das Configurações. */
     private var permissaoJaPedida = false
     private var checkinConcluidoEmitido = false
+    private var enfileiramentoEmitido = false
+
+    init {
+        if (filaDeAcoes != null) {
+            reconciliarComAFila()
+            escopoDeTrabalho.launch { filaDeAcoes.versao.collect { reconciliarComAFila() } }
+        }
+    }
 
     /**
      * RN06/RN22: antes de tocar no GPS, confere permissão e se a localização do sistema está
@@ -68,8 +88,11 @@ class CheckinViewModel(
      * tentar de novo ou seguir no modo manual pela ação [prosseguirCheckinManual].
      */
     fun fazerCheckin(): Job {
+        if (_estado.value.status == StatusCheckin.NA_FILA) return escopoDeTrabalho.launch { }
         registrarEvento(EventoDeTelemetria.CHECKIN_TENTADO, null, turnoId)
-        _estado.update { it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null) }
+        reconhecerRecusas(TipoAcaoPendente.CHECKIN)
+        val toque = instanteAtual()
+        _estado.update { it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null, avisoCheckin = null) }
         return escopoDeTrabalho.launch {
             if (!provedorDeLocalizacao.temPermissaoDeLocalizacao()) {
                 _estado.update {
@@ -101,7 +124,7 @@ class CheckinViewModel(
                 // Sem leitura no prazo (sem sinal): segue como "sem localização", check-in manual (RN06).
                 val coordenadaAtual = leitura?.coordenada
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
-                registrarCheckin(distanciaMetros)
+                registrarCheckin(distanciaMetros, toque)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
@@ -117,20 +140,29 @@ class CheckinViewModel(
     fun fazerCheckout(): Job {
         var iniciou = false
         _estado.update {
-            iniciou = it.checkout != StatusCheckout.REGISTRANDO && it.checkout != StatusCheckout.FEITO
-            if (iniciou) it.copy(checkout = StatusCheckout.REGISTRANDO, mensagemErroCheckout = null) else it
+            iniciou = it.checkout != StatusCheckout.REGISTRANDO && it.checkout != StatusCheckout.FEITO &&
+                it.checkout != StatusCheckout.NA_FILA
+            if (iniciou) it.copy(checkout = StatusCheckout.REGISTRANDO, mensagemErroCheckout = null, avisoCheckout = null) else it
         }
         if (!iniciou) return escopoDeTrabalho.launch { }
+        reconhecerRecusas(TipoAcaoPendente.CHECKOUT)
         val toque = instanteAtual()
         return escopoDeTrabalho.launch {
+            var distanciaMetros: Int? = null
             try {
-                val distanciaMetros = MedidorDeDistancia(provedorDeLocalizacao, coordenadaDaVaga).medir()
+                distanciaMetros = MedidorDeDistancia(provedorDeLocalizacao, coordenadaDaVaga).medir()
                 servicoTurnos.fazerCheckout(turnoId = turnoId, distanciaMetros = distanciaMetros, registradoEm = toque.toString())
                 registrarEvento(EventoDeTelemetria.CHECKOUT_CONCLUIDO, null, turnoId)
                 _estado.update { it.copy(checkout = StatusCheckout.FEITO, mensagemErroCheckout = null) }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
+                if (erro is ErroDaApi && erro.codigo == CodigoErroAPI.SEM_REDE) {
+                    guardarNaFila(TipoAcaoPendente.CHECKOUT, distanciaMetros, toque)?.let { registro ->
+                        _estado.update { it.copy(checkout = StatusCheckout.NA_FILA, checkoutNaFila = registro, mensagemErroCheckout = null) }
+                        return@launch
+                    }
+                }
                 // Também a resposta que não é JSON: sem isto o botão ficaria preso em "Registrando…" (R2 da A-001).
                 _estado.update { it.copy(checkout = StatusCheckout.ERRO, mensagemErroCheckout = mensagemDeErroDoCheckout(erro)) }
             }
@@ -169,12 +201,14 @@ class CheckinViewModel(
      * (RN06), igual ao caminho de falha silenciosa de [obterCoordenadaAtual].
      */
     fun prosseguirCheckinManual(): Job {
+        if (_estado.value.status == StatusCheckin.NA_FILA) return escopoDeTrabalho.launch { }
+        val toque = instanteAtual()
         _estado.update {
-            it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null)
+            it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null, avisoCheckin = null)
         }
         return escopoDeTrabalho.launch {
             try {
-                registrarCheckin(distanciaMetros = null)
+                registrarCheckin(distanciaMetros = null, toque = toque)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
             }
@@ -186,14 +220,20 @@ class CheckinViewModel(
         _estado.update { it.copy(dialogoDefensivo = null, status = StatusCheckin.OCIOSO) }
     }
 
-    private suspend fun registrarCheckin(distanciaMetros: Int?) {
-        val agora = instanteAtual()
+    private suspend fun registrarCheckin(distanciaMetros: Int?, toque: Instant) {
+        val agora = toque
 
-        val resultado = servicoTurnos.fazerCheckin(
-            turnoId = turnoId,
-            distanciaMetros = distanciaMetros,
-            registradoEm = agora.toString(),
-        )
+        val resultado = try {
+            servicoTurnos.fazerCheckin(turnoId = turnoId, distanciaMetros = distanciaMetros, registradoEm = agora.toString())
+        } catch (erro: ErroDaApi) {
+            if (erro.codigo == CodigoErroAPI.SEM_REDE) {
+                guardarNaFila(TipoAcaoPendente.CHECKIN, distanciaMetros, agora)?.let { registro ->
+                    _estado.update { it.copy(status = StatusCheckin.NA_FILA, checkinNaFila = registro, mensagemErro = null) }
+                    return
+                }
+            }
+            throw erro
+        }
 
         if (!checkinConcluidoEmitido) {
             checkinConcluidoEmitido = true
@@ -210,18 +250,113 @@ class CheckinViewModel(
             tipoVerificacao = tipoVerificacao,
         )
 
-        val status = when (tipoVerificacao) {
-            TipoVerificacaoCheckin.GEOLOCALIZADO,
-            TipoVerificacaoCheckin.MANUAL_CONFIRMADO -> StatusCheckin.VERIFICADO
-            TipoVerificacaoCheckin.MANUAL_PENDENTE -> StatusCheckin.MANUAL_PENDENTE
-            TipoVerificacaoCheckin.NAO_VERIFICADO -> StatusCheckin.OCIOSO
-        }
+        _estado.update { it.copy(status = statusDoCheckin(tipoVerificacao), comprovante = comprovante, checkinNaFila = null) }
+    }
 
-        _estado.update {
-            it.copy(
-                status = status,
-                comprovante = comprovante,
-            )
+    private fun statusDoCheckin(tipoVerificacao: TipoVerificacaoCheckin): StatusCheckin = when (tipoVerificacao) {
+        TipoVerificacaoCheckin.GEOLOCALIZADO,
+        TipoVerificacaoCheckin.MANUAL_CONFIRMADO -> StatusCheckin.VERIFICADO
+        TipoVerificacaoCheckin.MANUAL_PENDENTE -> StatusCheckin.MANUAL_PENDENTE
+        TipoVerificacaoCheckin.NAO_VERIFICADO -> StatusCheckin.OCIOSO
+    }
+
+    /**
+     * Guarda o toque na fila e devolve o que a tela mostra, ou `null` se não deu (sem fila, sem conta, disco): aí vale o
+     * erro de sem conexão de antes. Já haver o mesmo registro na fila não enfileira de novo; o evento sai uma vez.
+     */
+    private fun guardarNaFila(tipo: TipoAcaoPendente, distanciaMetros: Int?, toque: Instant): RegistroNaFila? {
+        val fila = filaDeAcoes ?: return null
+        val conta = contaAtual() ?: return null
+        val acao = try {
+            fila.pendentes().firstOrNull { it.tipo == tipo && it.turnoId == turnoId && it.contaId == conta }
+                ?: AcaoPendente(tipo, conta, toque.toString(), turnoId = turnoId, distanciaMetros = distanciaMetros)
+                    .also { fila.enfileirar(it) }
+        } catch (_: IOException) {
+            return null
+        }
+        if (!enfileiramentoEmitido) {
+            enfileiramentoEmitido = true
+            registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, turnoId)
+        }
+        return acao.registroNaFila()
+    }
+
+    private fun AcaoPendente.registroNaFila() =
+        RegistroNaFila(runCatching { instanteDoServidor(instanteDoToque) }.getOrDefault(instanteAtual()), manual = distanciaMetros == null)
+
+    /** Quem toca de novo depois de uma recusa de vez fecha o aviso dela; o registro fica para o envio não voltar. */
+    private fun reconhecerRecusas(tipo: TipoAcaoPendente) {
+        val fila = filaDeAcoes ?: return
+        runCatching { fila.recusadas().filter { it.tipo == tipo && it.turnoId == turnoId }.forEach { fila.reconhecerRecusa(it.id) } }
+    }
+
+    /**
+     * Relê a fila (ao abrir a tela e a cada mudança dela): o que está pendente vira `NA_FILA`; o que saiu da fila foi
+     * recusado de vez (aviso) ou enviado (o servidor diz o que ficou gravado). Só conta o que é desta conta e deste turno.
+     */
+    private fun reconciliarComAFila() {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual() ?: return
+        val pendentes = fila.pendentes().filter { it.turnoId == turnoId && it.contaId == conta }
+        val recusadas = fila.recusadas().filter { it.turnoId == turnoId && it.contaId == conta }
+        val entrada = pendentes.firstOrNull { it.tipo == TipoAcaoPendente.CHECKIN }
+        val saida = pendentes.firstOrNull { it.tipo == TipoAcaoPendente.CHECKOUT }
+        val recusouEntrada = recusadas.any { it.tipo == TipoAcaoPendente.CHECKIN }
+        val recusouSaida = recusadas.any { it.tipo == TipoAcaoPendente.CHECKOUT }
+        var entradaEnviadaEm: Instant? = null
+        var saidaEnviada = false
+        _estado.update { e ->
+            entradaEnviadaEm = null
+            saidaEnviada = false
+            var novo = e
+            val livreEntrada = e.status == StatusCheckin.OCIOSO || e.status == StatusCheckin.ERRO
+            when {
+                entrada != null && livreEntrada ->
+                    novo = novo.copy(status = StatusCheckin.NA_FILA, checkinNaFila = entrada.registroNaFila(), mensagemErro = null, avisoCheckin = null)
+                entrada == null && e.status == StatusCheckin.NA_FILA && recusouEntrada ->
+                    novo = novo.copy(status = StatusCheckin.OCIOSO, checkinNaFila = null, avisoCheckin = TextosDaFilaDePresenca.CHECKIN_RECUSADO)
+                entrada == null && e.status == StatusCheckin.NA_FILA -> {
+                    entradaEnviadaEm = e.checkinNaFila?.instante ?: instanteAtual()
+                    novo = novo.copy(status = StatusCheckin.REGISTRANDO, checkinNaFila = null)
+                }
+                entrada == null && recusouEntrada && e.status == StatusCheckin.OCIOSO && e.comprovante == null && e.avisoCheckin == null ->
+                    novo = novo.copy(avisoCheckin = TextosDaFilaDePresenca.CHECKIN_RECUSADO)
+            }
+            val livreSaida = e.checkout == StatusCheckout.OCIOSO || e.checkout == StatusCheckout.ERRO
+            when {
+                saida != null && livreSaida ->
+                    novo = novo.copy(checkout = StatusCheckout.NA_FILA, checkoutNaFila = saida.registroNaFila(), mensagemErroCheckout = null, avisoCheckout = null)
+                saida == null && e.checkout == StatusCheckout.NA_FILA && recusouSaida ->
+                    novo = novo.copy(checkout = StatusCheckout.OCIOSO, checkoutNaFila = null, avisoCheckout = TextosDaFilaDePresenca.CHECKOUT_RECUSADO)
+                saida == null && e.checkout == StatusCheckout.NA_FILA -> {
+                    saidaEnviada = true
+                    novo = novo.copy(checkout = StatusCheckout.FEITO, checkoutNaFila = null)
+                }
+                saida == null && recusouSaida && e.checkout == StatusCheckout.OCIOSO && e.avisoCheckout == null ->
+                    novo = novo.copy(avisoCheckout = TextosDaFilaDePresenca.CHECKOUT_RECUSADO)
+            }
+            novo
+        }
+        if (saidaEnviada) registrarEvento(EventoDeTelemetria.CHECKOUT_CONCLUIDO, null, turnoId)
+        entradaEnviadaEm?.let { confirmarEntradaEnviada(it) }
+    }
+
+    /** O check-in saiu da fila e o servidor o aceitou: ele diz se ficou verificado ou à espera da casa; sem resposta, o mais prudente. */
+    private fun confirmarEntradaEnviada(toque: Instant) {
+        escopoDeTrabalho.launch {
+            val doServidor = try {
+                servicoTurnos.listarMeusTurnos().firstOrNull { it.id == turnoId }?.paraItem()?.comprovante
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                null
+            }
+            val comprovante = doServidor ?: GeradorComprovanteCheckin.gerar(turnoId, toque, TipoVerificacaoCheckin.MANUAL_PENDENTE)
+            if (!checkinConcluidoEmitido) {
+                checkinConcluidoEmitido = true
+                registrarEvento(EventoDeTelemetria.CHECKIN_CONCLUIDO, null, turnoId)
+            }
+            _estado.update { it.copy(status = statusDoCheckin(comprovante.tipoVerificacao), comprovante = comprovante) }
         }
     }
 

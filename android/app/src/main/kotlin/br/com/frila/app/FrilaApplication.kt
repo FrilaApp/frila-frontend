@@ -4,7 +4,9 @@ import android.app.Application
 import android.app.Activity
 import android.os.Bundle
 import br.com.frila.core.rede.EventoDeTelemetria
+import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.RegistradorDeTelemetria
+import br.com.frila.core.rede.SincronizadorDeAcoes
 import android.util.Log
 import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.app.falhas.ColetaDeFalhas
@@ -24,6 +26,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
+import org.koin.core.qualifier.named
 
 class FrilaApplication : Application(), KoinComponent {
 
@@ -45,6 +48,15 @@ class FrilaApplication : Application(), KoinComponent {
         val telemetria = get<RegistradorDeTelemetria>()
         telemetria.iniciar(get())
         registerActivityLifecycleCallbacks(AberturasDaTelemetria { telemetria.disparar(EventoDeTelemetria.APP_ABERTO) })
+        iniciarReenvioDaFilaDeAcoes()
+    }
+
+    /** A6.2: a fila das ações sem rede reenvia ao abrir o app e a cada vez que a rede volta. Nunca derruba a inicialização. */
+    private fun iniciarReenvioDaFilaDeAcoes() {
+        try {
+            get<SincronizadorDeAcoes>().observar(get<MonitorDeConectividade>(), get<CoroutineScope>(named("escopoDaFilaDeAcoes")))
+        } catch (_: Exception) {
+        }
     }
 
     /**
