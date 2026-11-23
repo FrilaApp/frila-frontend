@@ -55,6 +55,26 @@ class TelaPerfilTest {
     @get:Rule
     val rule = createComposeRule()
 
+    @Test
+    fun exportarDadosDisponivelParaProfissional() {
+        runBlocking {
+            val vm = criarViewModel()
+            vm.carregar().join()
+            rule.setContent { FrilaTheme { TelaPerfil(vm) } }
+            rule.onNodeWithTag("perfil-exportar-dados").performScrollTo().assertIsDisplayed().assertIsEnabled()
+        }
+    }
+
+    @Test
+    fun exportarDadosDisponivelParaContratante() {
+        runBlocking {
+            val vm = criarViewModel(respostaContaJson = contaJson("contratante"))
+            vm.carregar().join()
+            rule.setContent { FrilaTheme { TelaPerfil(vm) } }
+            rule.onNodeWithTag("perfil-exportar-dados").performScrollTo().assertIsDisplayed().assertIsEnabled()
+        }
+    }
+
     private val perfilJson = """
         {
           "id": "11111111-1111-1111-1111-111111111111",
