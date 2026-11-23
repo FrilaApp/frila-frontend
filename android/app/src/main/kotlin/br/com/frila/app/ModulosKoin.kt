@@ -27,6 +27,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemori
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.FilaDeTelemetria
 import br.com.frila.core.rede.RegistradorDeTelemetria
 import br.com.frila.core.rede.ServicoTelemetria
@@ -50,6 +51,8 @@ import br.com.frila.core.rede.ServicoVerificacaoIdentidade
 import br.com.frila.core.rede.RepositorioVerificacaoIdentidade
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.RepositorioVagas
+import br.com.frila.core.rede.SincronizadorDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.rede.VagaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -246,6 +249,33 @@ val moduloRede = module {
     }
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }
+    /**
+     * A6.1: fila das ações sem rede (limpa com o cache da sessão) e o reenvio, com um envio por tipo. Ninguém enfileira
+     * ainda: cada fatia seguinte (check-in e check-out, avaliação, cancelamentos, publicação) enfileira o seu tipo.
+     */
+    single { get<CacheVagasDaSessao>().filaDeAcoes }
+    single {
+        val turnos = get<ServicoTurnos>()
+        val vagas = get<ServicoVagas>()
+        val conta = get<ServicoConta>()
+        SincronizadorDeAcoes(
+            fila = get(),
+            contaAtual = { conta.minhaConta().id },
+            envios = mapOf(
+                TipoAcaoPendente.CHECKIN to { a -> turnos.fazerCheckin(checkNotNull(a.turnoId), a.distanciaMetros, a.instanteDoToque); Unit },
+                TipoAcaoPendente.CHECKOUT to { a -> turnos.fazerCheckout(checkNotNull(a.turnoId), a.distanciaMetros, a.instanteDoToque); Unit },
+                TipoAcaoPendente.AVALIACAO to { a -> turnos.avaliarTurno(checkNotNull(a.turnoId), checkNotNull(a.resposta)); Unit },
+                TipoAcaoPendente.PUBLICACAO_VAGA to { a -> vagas.publicarVaga(checkNotNull(a.publicacao)); Unit },
+                TipoAcaoPendente.REPUBLICACAO_VAGA to { a ->
+                    val r = checkNotNull(a.republicacao)
+                    vagas.republicarVaga(r.vagaId, instanteDoServidor(r.inicioEm), instanteDoServidor(r.fimEm), a.chave)
+                    Unit
+                },
+                TipoAcaoPendente.CANCELAMENTO_POSICAO to { a -> turnos.cancelarPosicao(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
+                TipoAcaoPendente.CANCELAMENTO_VAGA to { a -> vagas.cancelarVaga(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
+            ),
+        )
+    }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
     /** Foto de perfil (contrato 0.2.54): pedir o envio, PUT na URL assinada, confirmar, remover e listar. */
     single { ServicoMidia { get<GestorClienteKtor>().clienteAtual } }
