@@ -82,6 +82,7 @@ public final class PresencaDoTurnoViewModel {
     private let telemetria: RegistradorDeTelemetria?
     private let cache: CacheDeLeituras?
     private let aoRegistrar: @MainActor () -> Void
+    private let prazoDoPedidoDePermissao: Duration
     /// Os recursos do servidor, lidos só na hora de montar o check-in com leitura de GPS. Os `sinais` do
     /// check-in por código só saem com `checkinPorCodigo` ligado (0.2.68); por padrão, desligado.
     private let recursos: @Sendable () async -> RecursosDoApp
@@ -104,9 +105,11 @@ public final class PresencaDoTurnoViewModel {
         telemetria: RegistradorDeTelemetria? = nil,
         cache: CacheDeLeituras? = nil,
         recursos: (@Sendable () async -> RecursosDoApp)? = nil,
-        isentoDaJanela: Bool = false
+        isentoDaJanela: Bool = false,
+        prazoDoPedidoDePermissao: Duration = RegraDePresenca.prazoDoPedidoDePermissao
     ) {
         self.isentoDaJanela = isentoDaJanela
+        self.prazoDoPedidoDePermissao = prazoDoPedidoDePermissao
         if let recursos {
             self.recursos = recursos
         } else {
@@ -332,7 +335,10 @@ public final class PresencaDoTurnoViewModel {
     public func continuarComPermissao() async {
         guard case let .explicando(registro) = etapa else { return }
         etapa = .lendo(registro)
-        _ = await localizacao.pedirPermissao()
+        // O alerta é do sistema e pode ficar sem resposta: passado o prazo segue o caminho sem GPS (a
+        // permissão que continua indecisa cai em `semGPS`), e "Tentar o GPS de novo" vale a resposta de depois.
+        let leitor = localizacao
+        _ = await executarComPrazo(prazoDoPedidoDePermissao) { await leitor.pedirPermissao() }
         await lerEEnviar(registro)
     }
 

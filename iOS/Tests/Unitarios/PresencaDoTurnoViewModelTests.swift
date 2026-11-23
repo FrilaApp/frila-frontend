@@ -67,6 +67,43 @@ private final class ApiDePresenca: ApiClienteEncaminhador, @unchecked Sendable {
     }
 }
 
+/// O GPS com o alerta de permissão do sistema aberto e sem resposta: `pedirPermissao` só volta quando
+/// o teste fecha o alerta, e ignora o cancelamento, como a chamada do sistema.
+private final class LeitorComAlertaAberto: LeitorDeLocalizacao, @unchecked Sendable {
+    private let trava = NSLock()
+    private var espera: CheckedContinuation<Void, Never>?
+    private var _pedidos = 0
+
+    var pedidos: Int { trava.withLock { _pedidos } }
+
+    func permissao() async -> PermissaoDeLocalizacao { .naoDeterminada }
+
+    func pedirPermissao() async -> PermissaoDeLocalizacao {
+        await withCheckedContinuation { continuacao in
+            trava.withLock {
+                _pedidos += 1
+                espera = continuacao
+            }
+        }
+        return .naoDeterminada
+    }
+
+    func pedirPrecisaoTemporaria(chave: String) async -> PermissaoDeLocalizacao { .naoDeterminada }
+
+    func lerUmaVez(tempoLimite: Duration, precisaoSuficienteMetros: Double) async throws(ErroDeLocalizacao) -> LeituraDeLocalizacao {
+        throw .semSinal
+    }
+
+    /// Fecha o alerta, para a chamada pendente do teste voltar.
+    func fecharAlerta() {
+        let pendente = trava.withLock { () -> CheckedContinuation<Void, Never>? in
+            defer { espera = nil }
+            return espera
+        }
+        pendente?.resume()
+    }
+}
+
 /// Um turno confirmado no dublê, o ponto da vaga dele e o relógio do aparelho.
 private struct Cena {
     let api: ApiDePresenca
@@ -252,6 +289,35 @@ struct PresencaDoTurnoViewModelTests {
         await vm.continuarComPermissao()
         #expect(vm.etapa == .semGPS(.checkin, .permissaoNegada))
         #expect(await leitor.leituras == 0)
+
+        await vm.registrarSemGPS()
+        #expect(vm.aguardandoConfirmacao)
+        #expect(cena.api.checkins.map(\.distanciaMetros) == [nil])
+    }
+
+    @Test("Alerta de permissão sem resposta: passado o prazo, cai no caminho sem GPS e o manual funciona")
+    func alertaDePermissaoSemResposta() async throws {
+        let cena = try await Cena.montar()
+        let leitor = LeitorComAlertaAberto()
+        let vm = ViewModel(
+            turno: cena.turno, api: cena.api, localizacao: leitor, fila: cena.fila, relogio: cena.relogio,
+            pontoDaVaga: cena.ponto, prazoDoPedidoDePermissao: .milliseconds(100)
+        )
+        defer { leitor.fecharAlerta() }
+
+        await vm.iniciar(.checkin)
+        #expect(vm.etapa == .explicando(.checkin))
+
+        // O pedido tem de voltar sozinho, com o alerta ainda aberto: o limite do teste é só a trava.
+        let voltou = await executarComPrazo(.seconds(5)) {
+            await vm.continuarComPermissao()
+            return true
+        }
+
+        #expect(voltou == true, "continuarComPermissao ficou preso no alerta do sistema")
+        #expect(leitor.pedidos == 1)
+        #expect(vm.etapa == .semGPS(.checkin, .permissaoNegada))
+        #expect(!vm.ocupado)
 
         await vm.registrarSemGPS()
         #expect(vm.aguardandoConfirmacao)

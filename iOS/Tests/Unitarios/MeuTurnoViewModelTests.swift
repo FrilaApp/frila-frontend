@@ -463,6 +463,15 @@ private final class EsperaRegistrada: @unchecked Sendable {
     func registrar(_ valor: TimeInterval) { trava.withLock { _valores.append(valor) } }
 }
 
+/// As leituras do turno em ordem: a casa confirma depois da `n`-ésima.
+private actor LeiturasEmSequencia {
+    private(set) var leituras = 0
+    func proxima(confirmadaDepoisDe quantas: Int) -> Bool {
+        leituras += 1
+        return leituras > quantas
+    }
+}
+
 private actor LeiturasContadas {
     private(set) var valor = 0
     func somar() { valor += 1 }
@@ -700,6 +709,76 @@ struct AtualizarMeuTurnoTests {
             Issue.record("o check-in já feito não pode sumir porque a leitura veio sem ele")
             return
         }
+    }
+
+    private func meuTurno(_ aberto: Turno, api: any ApiCliente, presenca: PresencaDoTurnoViewModel) -> MeuTurnoViewModel {
+        MeuTurnoViewModel(
+            turno: aberto, api: api, contaID: UUID(), armazenamentoAvaliacoes: ArmazenamentoAvaliacoesEmMemoria(),
+            relogio: RelogioSimulado(agora), presenca: presenca
+        )
+    }
+
+    @Test("Aguardando a casa: a tela relê em intervalos curtos e sai da espera sozinha quando a casa confirma")
+    func acompanharAteACasaConfirmar() async throws {
+        let aberto = try turno(verificacao: .pendente)
+        let confirmado = try turno(verificacao: .verificado, base: aberto)
+        let sequencia = LeiturasEmSequencia()
+        let api = ApiClienteDuble()
+        // A casa confirma entre a primeira e a segunda leitura.
+        api.onMeusTurnos = { [aberto, confirmado] in await sequencia.proxima(confirmadaDepoisDe: 1) ? [confirmado] : [aberto] }
+        let presenca = presenca(aberto, api: api)
+        let vm = meuTurno(aberto, api: api, presenca: presenca)
+        #expect(presenca.aguardandoConfirmacao)
+
+        let esperas = EsperaRegistrada()
+        await vm.acompanharConfirmacaoDaCasa { esperas.registrar($0) }
+
+        #expect(!presenca.aguardandoConfirmacao)
+        #expect(presenca.verificacao == .verificado)
+        #expect(vm.turno.verificacao == .verificado)
+        #expect(await sequencia.leituras == 2)
+        #expect(esperas.valores == [MeuTurnoViewModel.intervaloDaConfirmacaoDaCasa, MeuTurnoViewModel.intervaloDaConfirmacaoDaCasa])
+    }
+
+    @Test("Sem check-in manual pendente, não há consulta nem espera")
+    func acompanharSemNadaAguardando() async throws {
+        let verificado = try turno(verificacao: .verificado)
+        let sequencia = LeiturasEmSequencia()
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { [verificado] in _ = await sequencia.proxima(confirmadaDepoisDe: 0); return [verificado] }
+        let presenca = presenca(verificado, api: api)
+        let vm = meuTurno(verificado, api: api, presenca: presenca)
+        #expect(!presenca.aguardandoConfirmacao)
+
+        let esperas = EsperaRegistrada()
+        await vm.acompanharConfirmacaoDaCasa { esperas.registrar($0) }
+
+        #expect(esperas.valores.isEmpty)
+        #expect(await sequencia.leituras == 0)
+    }
+
+    @Test("Sem rede a consulta segue tentando, e a tela fechada para a espera sem reler")
+    func acompanharParaComATelaFechada() async throws {
+        let aberto = try turno(verificacao: .pendente)
+        let sequencia = LeiturasEmSequencia()
+        let api = ApiClienteDuble()
+        api.onMeusTurnos = { _ = await sequencia.proxima(confirmadaDepoisDe: 0); throw ErroDaApi(codigo: .semRede) }
+        let presenca = presenca(aberto, api: api)
+        let vm = meuTurno(aberto, api: api, presenca: presenca)
+
+        let esperas = EsperaRegistrada()
+        let tarefa = Task { @MainActor in
+            await vm.acompanharConfirmacaoDaCasa { espera in
+                esperas.registrar(espera)
+                // A terceira espera é a tela fechando: a tarefa da tela é cancelada.
+                if esperas.valores.count == 3 { withUnsafeCurrentTask { $0?.cancel() } }
+            }
+        }
+        await tarefa.value
+
+        #expect(esperas.valores.count == 3)
+        #expect(await sequencia.leituras == 2)
+        #expect(presenca.aguardandoConfirmacao)
     }
 
     @Test("Sem rede, atualizar deixa a presença como estava")
