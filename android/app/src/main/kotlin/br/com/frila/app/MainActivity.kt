@@ -17,7 +17,7 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.abertura.AberturaAnimada
 import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
 import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
-import br.com.frila.core.designsystem.tema.FrilaTheme
+import kotlinx.coroutines.flow.flowOf
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import java.util.concurrent.atomic.AtomicBoolean
@@ -38,8 +38,9 @@ class MainActivity : FragmentActivity() {
         val tempoCongelado = PoliticaDaAbertura.tempoCongelado(intent, BuildConfig.DEBUG)
         val aberturaCobrindo = AtomicBoolean(tocarAbertura)
         if (tocarAbertura) aquecerAberturaAnimada()
+        val preferenciasAparencia = GlobalContext.getOrNull()?.getOrNull<PreferenciasAparencia>()
         setContent {
-            FrilaTheme {
+            TemaDoAparelho(preferenciasAparencia?.temaEscuro ?: remember { flowOf(false) }) {
                 val cliente = remember {
                     try {
                         GlobalContext.getOrNull()?.getOrNull<ClienteSupabase>()

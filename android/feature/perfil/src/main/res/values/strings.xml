@@ -74,4 +74,9 @@
     <string name="exportar_dados_sessao_expirada">Sua sessão expirou. Entre de novo.</string>
     <string name="exportar_dados_nao_encontrado">Não encontramos seu perfil.</string>
     <string name="exportar_dados_erro">Não foi possível exportar seus dados. Tente novamente.</string>
+    <string name="aparencia_titulo">Aparência</string>
+    <string name="aparencia_explicacao">Escolha como o Frila aparece. A escolha fica só neste aparelho e vale também depois de trocar de conta.</string>
+    <string name="aparencia_claro">Claro</string>
+    <string name="aparencia_escuro">Escuro</string>
+    <string name="aparencia_erro">Não foi possível guardar a aparência. Tente novamente.</string>
 </resources>
