@@ -247,7 +247,7 @@ class PublicarVagaViewModel(
             val validado = atual.copy(agora = hora)
             val erros = validar(validado)
             if (erros.isNotEmpty()) {
-                _estado.update { it.copy(errosDeCampo = erros, erro = null, agora = hora) }
+                _estado.update { it.copy(errosDeCampo = erros, erro = ErroGlobalPublicacao.CONFIRA_CAMPOS, agora = hora) }
                 return escopoDeTrabalho.launch { }
             }
             montarCorpo(validado)

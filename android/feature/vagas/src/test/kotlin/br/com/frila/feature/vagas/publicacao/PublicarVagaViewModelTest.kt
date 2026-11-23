@@ -178,6 +178,34 @@ class PublicarVagaViewModelTest {
     }
 
     @Test
+    fun `validacao local mostra confira os campos no rodape sem chamar a rede`() = runBlocking {
+        val rede = redeOk()
+        val vm = viewModelCom(rede)
+
+        vm.publicar().join()
+
+        assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, vm.estado.value.erro)
+        assertTrue(rede.publicacoes.isEmpty())
+    }
+
+    @Test
+    fun `o confira os campos some ao corrigir e a publicacao seguinte segue sem erro`() = runBlocking {
+        val rede = redeOk()
+        val vm = viewModelCom(rede)
+        vm.publicar().join()
+        assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, vm.estado.value.erro)
+
+        vm.preencher()
+        assertNull(vm.estado.value.erro)
+
+        vm.publicar().join()
+
+        assertEquals(1, rede.publicacoes.size)
+        assertNull(vm.estado.value.erro)
+        assertEquals("v1", vm.estado.value.publicada?.vagaId)
+    }
+
+    @Test
     fun `inicio no passado e fim antes do inicio sao recusados`() = runBlocking {
         val rede = redeOk()
         val vm = viewModelCom(rede)
