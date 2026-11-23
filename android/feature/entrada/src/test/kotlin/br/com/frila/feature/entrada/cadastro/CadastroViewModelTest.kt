@@ -1,6 +1,7 @@
 package br.com.frila.feature.entrada.cadastro
 
 import br.com.frila.core.dominio.modelo.DataCivil
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoConta
 import io.ktor.client.engine.mock.MockEngine
@@ -32,6 +33,20 @@ class CadastroViewModelTest {
         viewModel.aoMudarTelefone("11987654321") // Celular válido
         viewModel.aoMudarNascimento(nascimento)
         viewModel.aoMudarAceiteDeTermos(true)
+    }
+
+    @Test
+    fun `telemetria de cadastro so emite depois de criar conta sem dados pessoais`() = runBlocking {
+        val eventos = mutableListOf<Triple<EventoDeTelemetria, String?, String?>>()
+        val vm = viewModelComServidor(Envios(), registrarEvento = { evento, vaga, turno -> eventos += Triple(evento, vaga, turno) })
+        preencherCamposObrigatorios(vm, DataCivil(java.time.LocalDate.of(2000, 6, 15)))
+        vm.concluirCadastro()!!.join()
+        assertEquals(listOf(Triple(EventoDeTelemetria.CADASTRO_CONCLUIDO, null, null)), eventos)
+        val recusado = viewModelComServidor(Envios(), registrarEvento = { evento, vaga, turno -> eventos += Triple(evento, vaga, turno) },
+            resposta = erroDaApi("campo_invalido", HttpStatusCode.UnprocessableEntity))
+        preencherCamposObrigatorios(recusado, DataCivil(java.time.LocalDate.of(2000, 6, 15)))
+        recusado.concluirCadastro()!!.join()
+        assertEquals(1, eventos.size)
     }
 
     @Test
@@ -108,6 +123,7 @@ class CadastroViewModelTest {
     private fun viewModelComServidor(
         envios: Envios,
         termosVersao: String = TERMOS_VERSAO_ATUAL,
+        registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
         resposta: suspend MockRequestHandleScope.() -> HttpResponseData = {
             respond(corpoUsuario, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         },
@@ -126,6 +142,7 @@ class CadastroViewModelTest {
             escopo = CoroutineScope(Dispatchers.Default),
             termosVersao = termosVersao,
             hoje = { hojeFixo },
+            registrarEvento = registrarEvento,
         )
     }
 

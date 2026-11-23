@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.detalhe
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ContatoDto
 import br.com.frila.core.rede.FuncaoDto
@@ -49,6 +50,23 @@ class DetalheVagaViewModelTest {
     private fun viewModelComEngine(vaga: VagaAbertaDto, engine: MockEngine): DetalheVagaViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         return DetalheVagaViewModel(vaga, ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+    }
+
+    @Test
+    fun `telemetria emite abertura e candidatura confirmada com identificadores`() = runBlocking {
+        val eventos = mutableListOf<Triple<EventoDeTelemetria, String?, String?>>()
+        val vaga = vagaDe("selecao")
+        val cliente = ClienteSupabase("https://sintetico.supabase.invalid", "chave-sintetica", engine = MockEngine {
+            respond("""{"estado":"pendente","candidatura_id":"c1","posicao_id":null,"turno_id":null,"contato":null}""",
+                headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        })
+        cliente.use {
+            val vm = DetalheVagaViewModel(vaga, ServicoVagas(it), escopo = CoroutineScope(Dispatchers.Default),
+                registrarEvento = { evento, id, turno -> eventos += Triple(evento, id, turno) })
+            vm.candidatar().join()
+            assertEquals(listOf(Triple(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null),
+                Triple(EventoDeTelemetria.CANDIDATURA_ENVIADA, vaga.id, null)), eventos)
+        }
     }
 
     @Test

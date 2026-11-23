@@ -48,4 +48,17 @@ class ServicoTelemetriaTest {
             assertEquals(CodigoErroAPI.SEM_REDE, (erro as ErroDaApi).codigo)
         }
     }
+    @Test
+    fun `422 com codigo desconhecido continua sendo recusa definitiva`() = runTest {
+        val cliente = ClienteSupabase("https://sintetico.supabase.invalid", "chave-sintetica", engine = MockEngine {
+            respond("""{"code":"codigo_futuro","message":"sintetico"}""", HttpStatusCode.UnprocessableEntity,
+                headersOf(HttpHeaders.ContentType, "application/json"))
+        })
+        cliente.use {
+            val erro = runCatching { ServicoTelemetria(it).registrarEvento(RegistroDeEventoDto(EventoDeTelemetria.APP_ABERTO)) }.exceptionOrNull()
+            assertTrue(erro is ErroDaApi)
+            assertFalse(RegistradorDeTelemetria.deveGuardar(erro as ErroDaApi))
+        }
+    }
+
 }

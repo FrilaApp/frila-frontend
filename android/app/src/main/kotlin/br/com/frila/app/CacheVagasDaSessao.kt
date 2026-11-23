@@ -22,7 +22,8 @@ internal class CacheVagasDaSessao(private val raiz: File?, private val limparTel
 
     @Synchronized fun limpar() {
         var falha: IOException? = null
-        try { limparTelemetria() } catch (erro: IOException) { falha = erro }
+        // A limpeza de telemetria também é silenciosa; nunca impede encerrar a sessão.
+        try { limparTelemetria() } catch (_: IOException) { }
         repositorios.forEach { repositorio ->
             try { repositorio.invalidar() } catch (erro: IOException) { falha = erro }
         }

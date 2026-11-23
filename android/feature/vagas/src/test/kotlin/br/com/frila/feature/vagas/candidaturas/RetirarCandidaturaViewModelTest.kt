@@ -1,6 +1,7 @@
 package br.com.frila.feature.vagas.candidaturas
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.CandidaturaDto
 import br.com.frila.core.rede.ErroDaApi
 import kotlinx.coroutines.CompletableDeferred
@@ -21,16 +22,31 @@ class RetirarCandidaturaViewModelTest {
     private fun viewModel(
         lista: suspend () -> List<CandidaturaDto> = { emptyList() },
         retirar: suspend () -> CandidaturaDto = { candidatura("c1", "retirada") },
+        registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
     ) = RetirarCandidaturaViewModel(
         candidaturaId = "c1",
         retirar = { id -> pedidos += id; retirar() },
         minhasCandidaturas = { leiturasDaLista++; lista() },
         aoRetirar = { avisos++ },
+        registrarEvento = registrarEvento,
         escopo = CoroutineScope(Dispatchers.Unconfined),
     )
 
     private fun aoRetirar(lista: suspend () -> List<CandidaturaDto> = { emptyList() }, retirar: suspend () -> CandidaturaDto): EstadoRetirarCandidatura =
         viewModel(lista, retirar).also { it.retirar() }.estado.value
+
+    @Test
+    fun `telemetria registra retirada uma vez e nunca na falha de rede`() {
+        val eventos = mutableListOf<Triple<EventoDeTelemetria, String?, String?>>()
+        val callback: (EventoDeTelemetria, String?, String?) -> Unit = { evento, vaga, turno -> eventos += Triple(evento, vaga, turno) }
+        val vm = viewModel(registrarEvento = callback)
+        vm.retirar()
+        vm.retirar()
+        val retirada = candidatura("c1", "retirada")
+        assertEquals(listOf(Triple(EventoDeTelemetria.CANDIDATURA_RETIRADA, retirada.vaga.id, retirada.turnoId)), eventos)
+        viewModel(retirar = { throw erro(CodigoErroAPI.SEM_REDE) }, registrarEvento = callback).retirar()
+        assertEquals(1, eventos.size)
+    }
 
     @Test
     fun `retirar manda a candidatura, fica retirada e avisa quem abriu, e nao envia de novo`() {

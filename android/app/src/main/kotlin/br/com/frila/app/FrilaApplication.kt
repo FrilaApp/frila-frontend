@@ -1,8 +1,10 @@
 package br.com.frila.app
 
 import android.app.Application
-import br.com.frila.core.rede.RegistradorDeTelemetria
+import android.app.Activity
+import android.os.Bundle
 import br.com.frila.core.rede.EventoDeTelemetria
+import br.com.frila.core.rede.RegistradorDeTelemetria
 import android.util.Log
 import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.app.falhas.ColetaDeFalhas
@@ -41,8 +43,8 @@ class FrilaApplication : Application(), KoinComponent {
         registrarIntegridade()
         cancelarGeofencesAntigos()
         val telemetria = get<RegistradorDeTelemetria>()
-        telemetria.disparar(EventoDeTelemetria.APP_ABERTO)
-        telemetria.acompanharConectividade(get())
+        telemetria.iniciar(get())
+        registerActivityLifecycleCallbacks(AberturasDaTelemetria { telemetria.disparar(EventoDeTelemetria.APP_ABERTO) })
     }
 
     /**
@@ -87,4 +89,27 @@ class FrilaApplication : Application(), KoinComponent {
             // Jamais pode ser a causa de uma falha de inicialização do app.
         }
     }
+}
+
+/** A primeira abertura já saiu em iniciar(); rotação e navegação entre Activities não são novas aberturas. */
+internal class AberturasDaTelemetria(private val registrar: () -> Unit) : Application.ActivityLifecycleCallbacks {
+    private var iniciadas = 0
+    private var primeira = true
+    private var recriando = false
+
+    override fun onActivityStarted(activity: Activity) {
+        if (iniciadas++ == 0 && !recriando) {
+            if (primeira) primeira = false else registrar()
+        }
+        recriando = false
+    }
+    override fun onActivityStopped(activity: Activity) {
+        recriando = activity.isChangingConfigurations
+        iniciadas--
+    }
+    override fun onActivityCreated(activity: Activity, estado: Bundle?) = Unit
+    override fun onActivityResumed(activity: Activity) = Unit
+    override fun onActivityPaused(activity: Activity) = Unit
+    override fun onActivitySaveInstanceState(activity: Activity, estado: Bundle) = Unit
+    override fun onActivityDestroyed(activity: Activity) = Unit
 }

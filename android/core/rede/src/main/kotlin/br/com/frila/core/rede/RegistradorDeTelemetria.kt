@@ -61,8 +61,11 @@ class RegistradorDeTelemetria(
         }
     }
 
-    fun acompanharConectividade(monitor: MonitorDeConectividade): Job = escopo.launch {
-        monitor.status.collect { if (it == StatusConectividade.CONECTADO) reenviar() }
+    fun iniciar(monitor: MonitorDeConectividade): Job {
+        disparar(EventoDeTelemetria.APP_ABERTO)
+        return escopo.launch {
+            monitor.status.collect { if (it == StatusConectividade.CONECTADO) reenviar() }
+        }
     }
 
     /** Reserva na fila compartilhada: até registradores diferentes reenviam um de cada vez. */
@@ -106,7 +109,7 @@ class RegistradorDeTelemetria(
 
         internal fun deveGuardar(erro: Exception): Boolean {
             if (erro !is ErroDaApi) return true
-            if (erro.codigoOriginal in setOf("400", "http_400")) return false
+            if (erro.codigoOriginal in setOf("400", "http_400", "422", "http_422")) return false
             return erro.codigo in setOf(
                 CodigoErroAPI.SEM_REDE, CodigoErroAPI.DESCONHECIDO, CodigoErroAPI.RESPOSTA_INVALIDA,
                 CodigoErroAPI.LIMITE_EXCEDIDO, CodigoErroAPI.NAO_AUTENTICADO,

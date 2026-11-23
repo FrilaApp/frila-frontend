@@ -6,6 +6,9 @@ import br.com.frila.core.rede.RegistradorDeTelemetria
 import br.com.frila.core.rede.contaDaSessaoParaTelemetria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
+import android.app.Activity
+import io.mockk.every
+import io.mockk.mockk
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -57,4 +60,38 @@ class TelemetriaDaSessaoTest {
         assertNull(contaDaSessaoParaTelemetria(sessao("")))
         assertEquals("conta-sintetica", contaDaSessaoParaTelemetria(sessao("conta-sintetica")))
     }
+    @Test
+    fun `falha de limpeza da telemetria nao impede logout`() {
+        val armazenamento = SessaoComCacheVagas(ArmazenamentoDeSessaoEmMemoria(),
+            CacheVagasDaSessao(null) { throw IOException("sintetico") })
+        armazenamento.salvarSessao(sessao("a"))
+        armazenamento.limparSessao()
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `retorno do segundo plano registra abertura mas primeira activity rotacao e navegacao nao duplicam`() {
+        var chamadas = 0
+        var rotacao = false
+        val activity = mockk<Activity>()
+        every { activity.isChangingConfigurations } answers { rotacao }
+        val aberturas = AberturasDaTelemetria { chamadas++ }
+        aberturas.onActivityStarted(activity)
+        assertEquals(0, chamadas) // iniciar() já registrou a abertura do processo.
+        rotacao = true
+        aberturas.onActivityStopped(activity)
+        aberturas.onActivityStarted(activity)
+        assertEquals(0, chamadas)
+        rotacao = false
+        aberturas.onActivityStarted(activity) // Outra Activity antes de a anterior parar.
+        aberturas.onActivityStopped(activity)
+        assertEquals(0, chamadas)
+        aberturas.onActivityStopped(activity)
+        aberturas.onActivityStarted(activity)
+        assertEquals(1, chamadas)
+        aberturas.onActivityStopped(activity)
+        aberturas.onActivityStarted(activity)
+        assertEquals(2, chamadas)
+    }
+
 }

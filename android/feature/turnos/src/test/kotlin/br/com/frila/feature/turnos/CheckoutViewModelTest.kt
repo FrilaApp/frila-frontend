@@ -3,6 +3,7 @@ package br.com.frila.feature.turnos
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.LeituraDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import io.ktor.client.engine.mock.MockEngine
@@ -46,6 +47,7 @@ class CheckoutViewModelTest {
         rede: Rede,
         provedor: ProvedorDeLocalizacao,
         antesDeResponder: suspend () -> Unit = {},
+        registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
     ): CheckinViewModel {
         val engine = MockEngine { request ->
             rede.caminhos += request.url.encodedPath
@@ -60,6 +62,7 @@ class CheckoutViewModelTest {
             servicoTurnos = ServicoTurnos(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine)),
             provedorDeLocalizacao = provedor,
             instanteAtual = { agora },
+            registrarEvento = registrarEvento,
             escopo = CoroutineScope(Dispatchers.Default),
         )
     }
@@ -74,6 +77,30 @@ class CheckoutViewModelTest {
         every { p.isGpsAtivado() } returns gps
         coEvery { p.lerParaCheckin() } returns leitura
         return p
+    }
+
+    @Test
+    fun `telemetria registra tentativa checkin e checkout sem repetir conclusoes`() = runBlocking {
+        val eventos = mutableListOf<Triple<EventoDeTelemetria, String?, String?>>()
+        val vm = viewModel(Rede { HttpStatusCode.OK to registroJson }, provedor(),
+            registrarEvento = { evento, vaga, turno -> eventos += Triple(evento, vaga, turno) })
+        vm.fazerCheckin().join()
+        vm.fazerCheckin().join()
+        vm.fazerCheckout().join()
+        vm.fazerCheckout().join()
+        assertEquals(listOf(EventoDeTelemetria.CHECKIN_TENTADO, EventoDeTelemetria.CHECKIN_CONCLUIDO,
+            EventoDeTelemetria.CHECKIN_TENTADO, EventoDeTelemetria.CHECKOUT_CONCLUIDO), eventos.map { it.first })
+        assertTrue(eventos.all { it.second == null && it.third == turnoId })
+    }
+
+    @Test
+    fun `telemetria de checkin recusado so registra tentativa`() = runBlocking {
+        val eventos = mutableListOf<EventoDeTelemetria>()
+        val vm = viewModel(Rede { HttpStatusCode.UnprocessableEntity to """{"code":"fora_da_janela","message":"sintetico"}""" }, provedor(),
+            registrarEvento = { evento, _, _ -> eventos += evento })
+        vm.fazerCheckin().join()
+        vm.fazerCheckout().join()
+        assertEquals(listOf(EventoDeTelemetria.CHECKIN_TENTADO), eventos)
     }
 
     @Test

@@ -155,4 +155,46 @@ class RegistradorDeTelemetriaTest {
         val fila = FilaDeTelemetria(File(arquivo, "eventos.json"))
         assertFalse(RegistradorDeTelemetria({ throw IOException() }, fila, { "a" }, { "a" }, backgroundScope) { instante }.registrar(evento))
     }
+    @Test
+    fun `abertura registra app e reenvia pendentes na abertura e ao reconectar`() = runTest {
+        val fila = FilaDeTelemetria(null)
+        RegistradorDeTelemetria({ throw IOException() }, fila, { "a" }, { "a" }, backgroundScope) { instante }.registrar(EventoDeTelemetria.VAGA_VISTA)
+        val monitor = MonitorDeConectividadeFalso()
+        val enviados = mutableListOf<EventoDeTelemetria>()
+        val registrador = RegistradorDeTelemetria({
+            if (!monitor.estaConectado) throw IOException()
+            enviados += it.evento
+            true
+        }, fila, { "a" }, { "a" }, backgroundScope) { instante }
+        val tarefa = registrador.iniciar(monitor)
+        runCurrent()
+        assertTrue(enviados.containsAll(listOf(EventoDeTelemetria.APP_ABERTO, EventoDeTelemetria.VAGA_VISTA)))
+        assertTrue(fila.eventosPendentes().isEmpty())
+        monitor.definirStatus(StatusConectividade.SEM_CONEXAO)
+        runCurrent()
+        registrador.registrar(EventoDeTelemetria.AVALIACAO_ENVIADA)
+        assertEquals(1, fila.eventosPendentes().size)
+        monitor.definirStatus(StatusConectividade.CONECTADO)
+        runCurrent()
+        assertEquals(1, enviados.count { it == EventoDeTelemetria.AVALIACAO_ENVIADA })
+        assertTrue(fila.eventosPendentes().isEmpty())
+        tarefa.cancel()
+    }
+
+    @Test
+    fun `sucesso online tambem esvazia fila e troca durante reenvio impede proximo evento`() = runTest {
+        val fila = FilaDeTelemetria(null)
+        val offline = RegistradorDeTelemetria({ throw IOException() }, fila, { "a" }, { "a" }, backgroundScope) { instante }
+        offline.registrar(EventoDeTelemetria.VAGA_VISTA)
+        val enviados = mutableListOf<EventoDeTelemetria>()
+        RegistradorDeTelemetria({ enviados += it.evento; true }, fila, { "a" }, { "a" }, backgroundScope) { instante }.registrar(evento)
+        runCurrent()
+        assertEquals(listOf(evento, EventoDeTelemetria.VAGA_VISTA), enviados)
+        repeat(2) { offline.registrar(evento) }
+        var conta = "a"
+        var chamadas = 0
+        RegistradorDeTelemetria({ chamadas++; conta = "b"; true }, fila, { conta }, { "a" }, backgroundScope) { instante }.reenviar()
+        assertEquals(1, chamadas)
+    }
+
 }
