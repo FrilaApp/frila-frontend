@@ -2,6 +2,8 @@ package br.com.frila.app
 
 import android.app.Application
 import android.net.Uri
+import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -86,6 +88,7 @@ class AppNavegacaoFotoDePerfilChaveTest {
             KoinApplication(application = {
                 modules(
                     module {
+                        single { PreferenciasAparencia(mockk { every { data } returns flowOf(emptyPreferences()) }) }
                         viewModel { entrada }
                         viewModel { perfilVm }
                         viewModel { fotoVm }
@@ -155,5 +158,19 @@ class AppNavegacaoFotoDePerfilChaveTest {
 
         rule.onAllNodesWithTag("perfil-foto").assertCountEquals(0)
         rule.onAllNodesWithTag("perfil-apresentacao").assertCountEquals(0)
+        abrirAparencia()
+    }
+
+    @Test fun profissionalAbreAparenciaSemChavesDePerfil() {
+        montar(fotoDePerfil = false, perfilRico = false)
+        abrirAparencia()
+    }
+
+    private fun abrirAparencia() {
+        rule.onNodeWithTag("perfil-aparencia").performScrollTo().performClick()
+        rule.waitForIdle()
+        rule.runOnIdle { assertEquals(Rotas.APARENCIA, rotaAtual()) }
+        rule.onAllNodesWithText("Claro").assertCountEquals(1)
+        rule.onAllNodesWithText("Escuro").assertCountEquals(1)
     }
 }

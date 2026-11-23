@@ -332,6 +332,7 @@ val moduloLocalizacao = module {
 
 val moduloFeatures = module {
     single { PreferenciasAndroid(get()) } onClose { it?.close() }
+    single { PreferenciasAparencia(get<PreferenciasAndroid>().dados) }
     single<ArmazenamentoPreferenciasFiltro> {
         getOrNull<Context>()
             ?.let { _ ->
