@@ -191,4 +191,36 @@ class TelaAvaliacaoTest {
                 .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         }
     }
+    @Test fun `fila mostra aviso acessivel e voltar na avaliacao do profissional`() = conferirFila(false)
+
+    @Test fun `fila mostra o mesmo aviso na avaliacao do contratante`() = conferirFila(true)
+
+    private fun conferirFila(contratante: Boolean) {
+        val fila = br.com.frila.core.rede.FilaDeAcoes(null)
+        fila.enfileirar(br.com.frila.core.rede.AcaoPendente(
+            br.com.frila.core.rede.TipoAcaoPendente.AVALIACAO, "conta", "2026-11-23T12:00:00Z",
+            turnoId = turnoId, resposta = false,
+        ))
+        val cliente = ClienteSupabase("https://sintetico.supabase.invalid", "chave-sintetica", engine = MockEngine {
+            error("a tela reaberta deve ler a fila sem pedido de rede")
+        })
+        val escopo = CoroutineScope(Dispatchers.Unconfined + kotlinx.coroutines.SupervisorJob())
+        try {
+            val vm = AvaliacaoViewModel(ServicoTurnos(cliente), escopo, filaDeAcoes = fila, contaAtual = { "conta" })
+            var voltou = false
+            compose.setContent {
+                FrilaTheme {
+                    if (contratante) br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante(turnoId, vm, { voltou = true })
+                    else TelaAvaliacao(turnoId, vm, { voltou = true })
+                }
+            }
+            compose.onNodeWithText("Avaliação guardada").assertIsDisplayed()
+            compose.onNodeWithText(TextosDaFilaDeAvaliacao.NA_FILA).assertIsDisplayed()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            compose.onNodeWithText("Voltar").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+            assertTrue(voltou)
+            assertEquals(1, fila.pendentes().size)
+        } finally { escopo.coroutineContext[kotlinx.coroutines.Job]?.cancel(); cliente.close() }
+    }
+
 }

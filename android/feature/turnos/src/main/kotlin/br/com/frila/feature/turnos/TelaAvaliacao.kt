@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ fun TelaAvaliacao(
     aoVoltar: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(turnoId, viewModel) { viewModel.observar(turnoId) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     // A opção tocada fica marcada enquanto o voto é enviado (sem indicador girando); sem envio, nada marcado.
     var emEnvio by remember { mutableStateOf<Boolean?>(null) }
@@ -68,6 +70,7 @@ fun TelaAvaliacao(
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
             when (estado.status) {
+                StatusAvaliacao.NA_FILA -> AvaliacaoNaFila(aoVoltar)
                 StatusAvaliacao.SUCESSO -> ConfirmacaoDeAvaliacao(resposta = estado.respostaRegistrada, aoVoltar = aoVoltar)
                 StatusAvaliacao.ERRO -> PerguntaDeAvaliacao(
                     escolha = null,
@@ -115,6 +118,18 @@ private fun ConfirmacaoDeAvaliacao(resposta: Boolean?, aoVoltar: () -> Unit) {
         modifier = Modifier.semantics {
             liveRegion = LiveRegionMode.Polite
         },
+    )
+    BotaoSecundario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
+}
+
+@Composable
+internal fun AvaliacaoNaFila(aoVoltar: () -> Unit) {
+    TituloDaTela("Avaliação guardada")
+    Text(
+        text = TextosDaFilaDeAvaliacao.NA_FILA,
+        style = FrilaTipo.corpo,
+        color = FrilaTema.cores.tinta,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
     BotaoSecundario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
 }
