@@ -144,6 +144,9 @@ export default function Perfil({ loaderData, actionData }: Route.ComponentProps)
           </Form>
         </>
       )}
+      <Link to="/por-que-recebo-vagas" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
+        {textos.profissional.porQueRecebo.link}
+      </Link>
       <Link to="/" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
         {tv.voltarAoInicio}
       </Link>
