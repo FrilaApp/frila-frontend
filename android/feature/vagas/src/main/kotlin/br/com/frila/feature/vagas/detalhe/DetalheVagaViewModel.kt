@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.detalhe
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -29,12 +30,15 @@ class DetalheVagaViewModel(
     /** O detalhe lido por `detalhe_vaga`, quando a vaga foi aberta pelo id (link ou aviso). */
     detalhe: VagaDto? = null,
     escopo: CoroutineScope? = null,
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     private val _estado = MutableStateFlow(EstadoDetalheVaga(vaga = vaga, detalhe = detalhe))
     val estado: StateFlow<EstadoDetalheVaga> = _estado.asStateFlow()
+
+    init { registrarEvento(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null) }
 
     fun candidatar(): Job {
         _estado.update {
@@ -51,6 +55,7 @@ class DetalheVagaViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val resultado = servicoVagas.candidatar(_estado.value.vaga.id)
+                registrarEvento(EventoDeTelemetria.CANDIDATURA_ENVIADA, _estado.value.vaga.id, resultado.turnoId)
                 val confirmada = resultado.estado == "confirmada"
                 _estado.update {
                     it.copy(

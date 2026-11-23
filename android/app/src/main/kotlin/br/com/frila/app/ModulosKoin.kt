@@ -28,6 +28,11 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPr
 import br.com.frila.core.notificacoes.ProcessadorDePush
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.rede.FilaDeTelemetria
+import br.com.frila.core.rede.RegistradorDeTelemetria
+import br.com.frila.core.rede.ServicoTelemetria
+import br.com.frila.core.rede.contaDaSessaoParaTelemetria
+import kotlinx.coroutines.cancel
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividade
@@ -134,7 +139,11 @@ const val ESCOPO_DA_SESSAO = "escopoDaSessao"
 
 /** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
-    single { CacheVagasDaSessao(getOrNull<Context>()?.noBackupFilesDir) }
+    single { FilaDeTelemetria(getOrNull<Context>()?.noBackupFilesDir?.resolve("telemetria/eventos.json")) }
+    single {
+        val fila = get<FilaDeTelemetria>()
+        CacheVagasDaSessao(getOrNull<Context>()?.noBackupFilesDir, limparTelemetria = fila::limpar)
+    }
     single<ArmazenamentoDeSessao> {
         val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
@@ -219,6 +228,19 @@ val moduloRede = module {
     /** Serviços singleton, mas leem o cliente vigente do gestor a cada chamada. */
     single { ServicoAutenticacao { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoConta { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoTelemetria { get<GestorClienteKtor>().clienteAtual } }
+    single(named("escopoDaTelemetria")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) } onClose { it?.cancel() }
+    single {
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        val conta = get<ServicoConta>()
+        RegistradorDeTelemetria(
+            enviar = get<ServicoTelemetria>()::registrarEvento,
+            fila = get(),
+            contaLocal = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            consultarConta = { conta.minhaConta().id },
+            escopo = get(named("escopoDaTelemetria")),
+        )
+    }
     single { ServicoVagas { get<GestorClienteKtor>().clienteAtual } }
     factory {
         val servico = get<ServicoVagas>()
@@ -323,15 +345,15 @@ val moduloFeatures = module {
             permitirDominioDeTeste = BuildConfig.DEBUG,
         )
     }
-    viewModel { CadastroViewModel(get()) }
-    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get()) }
+    viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
+    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
-    viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>()) }
+    viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     viewModel { MeusTurnosViewModel(get()) }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
-        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get())
+        CheckinViewModel(turnoId, coordenadaDaVaga, get(), get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar)
     }
-    viewModel { AvaliacaoViewModel(get()) }
+    viewModel { AvaliacaoViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
     viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get(), servicoConta = get(), exportarMeusDados = get<ServicoConta>()::exportarMeusDados) }
     viewModel { VerificacaoIdentidadeViewModel(get()) }
@@ -625,6 +647,7 @@ val moduloFeatures = module {
             retirar = vagas::retirarCandidatura,
             minhasCandidaturas = { vagas.minhasCandidaturas() },
             aoRetirar = aoRetirar,
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
         )
     }
     /** L2-5: a situação da conta e a contestação da suspensão (`aoReativar` reavalia a abertura); o pedido de revisão do despacho. */

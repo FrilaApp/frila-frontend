@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /** Inclui instâncias ainda em uso e arquivos de execuções anteriores. Sem Context, só memória. */
-internal class CacheVagasDaSessao(private val raiz: File?) {
+internal class CacheVagasDaSessao(private val raiz: File?, private val limparTelemetria: () -> Unit = {}) {
     private val repositorios = Collections.newSetFromMap(WeakHashMap<RepositorioVagas, Boolean>())
 
     /** A fila de ações sem rede (A6) é da conta que saiu: sai junto com o cache, em logout, troca e expiração. */
@@ -27,6 +27,8 @@ internal class CacheVagasDaSessao(private val raiz: File?) {
 
     @Synchronized fun limpar() {
         var falha: IOException? = null
+        // A limpeza de telemetria também é silenciosa; nunca impede encerrar a sessão.
+        try { limparTelemetria() } catch (_: IOException) { }
         repositorios.forEach { repositorio ->
             try { repositorio.invalidar() } catch (erro: IOException) { falha = erro }
         }

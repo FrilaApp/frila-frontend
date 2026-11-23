@@ -1,6 +1,10 @@
 package br.com.frila.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import br.com.frila.core.rede.RegistradorDeTelemetria
+import br.com.frila.core.rede.EventoDeTelemetria
+import org.koin.core.context.GlobalContext
 import androidx.compose.runtime.remember
 import br.com.frila.core.designsystem.componentes.ComparadorDeVersao
 import br.com.frila.core.designsystem.componentes.TelaAtualizacaoObrigatoria
@@ -94,6 +98,10 @@ fun PortaoDeAtualizacao(
     verificando: Boolean = false,
     mensagem: String = TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO,
     aoAtualizar: () -> Unit = {},
+    registrarExibicao: () -> Unit = {
+        GlobalContext.getOrNull()?.getOrNull<RegistradorDeTelemetria>()
+            ?.disparar(EventoDeTelemetria.ATUALIZACAO_OBRIGATORIA_EXIBIDA)
+    },
     conteudo: @Composable () -> Unit,
 ) {
     if (verificando) {
@@ -105,6 +113,7 @@ fun PortaoDeAtualizacao(
     }
 
     if (precisaAtualizar) {
+        LaunchedEffect(Unit) { registrarExibicao() }
         TelaAtualizacaoObrigatoria(
             aoAtualizar = aoAtualizar,
             mensagem = mensagem,

@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.candidaturas
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -43,6 +44,7 @@ class RetirarCandidaturaViewModel(
     private val minhasCandidaturas: suspend () -> List<CandidaturaDto>,
     private val aoRetirar: () -> Unit = {},
     escopo: CoroutineScope? = null,
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -58,6 +60,7 @@ class RetirarCandidaturaViewModel(
             try {
                 val candidatura = retirar(candidaturaId)
                 if (candidatura.estado == ESTADO_RETIRADA) {
+                    registrarEvento(EventoDeTelemetria.CANDIDATURA_RETIRADA, candidatura.vaga.id, candidatura.turnoId)
                     _estado.value = EstadoRetirarCandidatura(SituacaoDaRetirada.RETIRADA)
                     aoRetirar()
                 } else {

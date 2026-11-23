@@ -166,6 +166,7 @@ def main() -> None:
 
     # Request bodies declarados inline em operations RPC de paths
     RPCS_REQUEST_BODY = {
+        "RegistroDeEventoDto": "/rpc/registrar_evento",
         "SolicitarUploadMidiaDto": "/rpc/solicitar_upload_midia",
         "ConfirmarUploadMidiaDto": "/rpc/confirmar_upload_midia",
         "RemoverMidiaDto": "/rpc/remover_midia",
@@ -210,6 +211,7 @@ def main() -> None:
 
     # Respostas 200 declaradas inline em operations RPC de paths
     RPCS_RESPONSE_BODY = {
+        "EventoRegistradoDto": "/rpc/registrar_evento",
         "UploadMidiaDto": "/rpc/solicitar_upload_midia",
         "ConviteMembroDto": "/rpc/convidar_membro",
         "MembroAdicionadoDto": "/rpc/aceitar_convite_membro",

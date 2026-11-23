@@ -36,6 +36,24 @@ class PortaoDeAtualizacaoTest {
     val rule = createComposeRule()
 
     @Test
+    fun `telemetria registra exibicao uma vez e nao durante verificacao ou versao liberada`() {
+        var chamadas = 0
+        val versao = androidx.compose.runtime.mutableStateOf<String?>(null)
+        val verificando = androidx.compose.runtime.mutableStateOf(true)
+        val mensagem = androidx.compose.runtime.mutableStateOf("Mensagem sintetica")
+        rule.setContent {
+            PortaoDeAtualizacao(versaoAtual = "1.0.0", versaoMinima = versao.value, verificando = verificando.value,
+                mensagem = mensagem.value, registrarExibicao = { chamadas++ }) { Text("Conteudo") }
+        }
+        rule.runOnIdle { assertEquals(0, chamadas); verificando.value = false }
+        rule.runOnIdle { assertEquals(0, chamadas); versao.value = "2.0.0" }
+        rule.waitForIdle()
+        rule.runOnIdle { assertEquals(1, chamadas); mensagem.value = "Outra mensagem sintetica" }
+        rule.waitForIdle()
+        rule.runOnIdle { assertEquals(1, chamadas) }
+    }
+
+    @Test
     fun `quando versao for menor que versaoMinima portao exibe tela de atualizacao e oculta conteudo`() {
         rule.setContent {
             PortaoDeAtualizacao(
