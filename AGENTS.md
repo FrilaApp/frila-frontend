@@ -22,6 +22,7 @@ Também existem `conferir-movimento.sh`, `conferir-datas-fixas.sh`, `conferir-re
 - Commit em português, no imperativo e específico; o trailer `Co-Authored-By: <IA> <noreply@…>` é bem-vindo.
 - Executado é o que você rodou e viu; o que só leu vai como "não executado". Alterou um teste para passar: explique no PR.
 - `ios.yml` roda em PR que toque `iOS/**` (~70 a ~135 min de macOS). Hoje não bloqueia o merge, então o gate local é obrigatório e a saída vai no PR. CI vermelha na `main` passa na frente de qualquer trabalho novo; "instável" não é diagnóstico.
+- **Nenhuma checagem de CI é obrigatória na `main`** (verificado em 23/11/2026): o ruleset exige só PR, sem aprovação de revisor e sem check. Os workflows (`ios.yml`, `android.yml`, web) rodam só quando o PR toca a pasta deles; por isso não dá para exigir um check sem travar PR que não o dispara (por exemplo, só documentação). Quem mescla confere a CI do PR na mão. Decisão do JP de 23/11/2026: não exigir aprovação por repositório, para não atrasar a produção.
 - Pergunte antes de: dependência nova (pacote, SDK, action de CI), mudar o contrato da API, mexer em CI, em arquivo gerado ou em segredo, apagar arquivo ou branch que não é seu.
 - Peça uma revisão independente (outra pessoa, ou um agente em contexto limpo que não escreveu o código); revisão é conselho, não trava.
 - Quem mescla é o dono do PR. Agente não aprova nem mescla por conta própria. Mudança de risco (dinheiro, dado pessoal, autenticação e sessão, RLS, migração, segredos, push, check-in): peça a outro sócio que leia o diff inteiro.
