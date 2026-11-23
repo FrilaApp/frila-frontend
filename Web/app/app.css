@@ -19,7 +19,8 @@ html[data-aparencia="escuro"] {
   --cor-superficie: #171717;
   --cor-tinta: #FFFFFF;
   --cor-tinta-suave: #A3A3A3;
-  --cor-borda: #44433E;
+  /* PROVISÓRIO: contraste 1.4.11; cor final do Fabrício */
+  --cor-borda: #68675F;
 }
 
 @theme inline {
