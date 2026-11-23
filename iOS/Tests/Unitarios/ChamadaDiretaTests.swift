@@ -152,6 +152,16 @@ struct ChamadaDiretaTests {
                 throw ErroDaApi(codigo: .campoInvalido, detalhes: "valor_centavos")
             }
         }
+        final class ApiChamadaRecusadaPorOutroCampo: ApiClienteEncaminhador, @unchecked Sendable {
+            let campo: String?
+            init(base: ApiClienteEmMemoria, campo: String?) {
+                self.campo = campo
+                super.init(base: base)
+            }
+            override func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+                throw ErroDaApi(codigo: .campoInvalido, detalhes: campo)
+            }
+        }
         final class ApiChamadaErroDeRede: ApiClienteEncaminhador, @unchecked Sendable {
             override func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
                 throw ErroDaApi(codigo: .semRede)
@@ -167,7 +177,7 @@ struct ChamadaDiretaTests {
         let casa = try #require(try await base.meusEstabelecimentos().first)
         let perfil = try await base.perfilPublico(id: profissionalID)
 
-        // 1. campo_invalido (valor_centavos) vira TextosChamadaDireta.valorInvalido ("Confira o valor informado.")
+        // 1. campo_invalido estritamente em valor_centavos vira TextosChamadaDireta.valorInvalido ("Confira o valor informado.")
         let apiValor = ApiChamadaRecusadaPorValor(base: base)
         let modelValor = ChamadaDiretaViewModel(api: apiValor, profissionalID: profissionalID, estabelecimentoID: casa.id)
         await modelValor.carregar()
@@ -178,7 +188,21 @@ struct ChamadaDiretaTests {
         #expect(modelValor.erro == TextosChamadaDireta.valorInvalido)
         #expect(modelValor.erro != TextosChamadaDireta.erro)
 
-        // 2. Erro de rede ou regra genérica continuam exibindo TextosChamadaDireta.erro
+        // 2. Teste de controle: campo_invalido com outros detalhes ("recado", "ponto_encontro", nil) NÃO mostra texto de valor
+        let outrosCasos: [String?] = ["recado", "ponto_encontro", nil]
+        for detalhe in outrosCasos {
+            let apiOutro = ApiChamadaRecusadaPorOutroCampo(base: base, campo: detalhe)
+            let modelOutro = ChamadaDiretaViewModel(api: apiOutro, profissionalID: profissionalID, estabelecimentoID: casa.id)
+            await modelOutro.carregar()
+            modelOutro.funcaoID = try #require(modelOutro.funcoes.first { perfil.funcoes.contains($0.nome) }).id
+            modelOutro.valorCentavos = 15_000
+            modelOutro.totalConfirmado = true
+            await modelOutro.enviar()
+            #expect(modelOutro.erro != TextosChamadaDireta.valorInvalido)
+            #expect(modelOutro.erro == TextosChamadaDireta.erro)
+        }
+
+        // 3. Erro de rede ou regra genérica continuam exibindo TextosChamadaDireta.erro
         let apiRede = ApiChamadaErroDeRede(base: base)
         let modelRede = ChamadaDiretaViewModel(api: apiRede, profissionalID: profissionalID, estabelecimentoID: casa.id)
         await modelRede.carregar()
