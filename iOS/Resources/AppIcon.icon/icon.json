@@ -1,17 +1,35 @@
 {
-  "fill": {
-    "solid": "srgb:0.91765,0.35294,0.21176,1.00000"
-  },
+  "fill-specializations": [
+    {
+      "value": {
+        "solid": "srgb:0.95686,0.40392,0.00000,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "solid": "srgb:0.62745,0.25098,0.00000,1.00000"
+      }
+    },
+    {
+      "appearance": "tinted",
+      "value": {
+        "solid": "gray:0.10000,1.00000"
+      }
+    }
+  ],
   "groups": [
     {
       "layers": [
         {
           "blend-mode": "normal",
-          "image-name": "f.svg",
-          "name": "f",
+          "glass": false,
+          "hidden": false,
+          "image-name": "logo.svg",
+          "name": "logo",
           "opacity": 1,
           "position": {
-            "scale": 1.05,
+            "scale": 1,
             "translation-in-points": [
               0,
               0
@@ -19,79 +37,14 @@
           }
         }
       ],
+      "lighting": "individual",
       "shadow": {
         "kind": "neutral",
         "opacity": 0.5
       },
       "translucency": {
-        "enabled": true,
-        "value": 0.3
-      }
-    },
-    {
-      "hidden": false,
-      "layers": [
-        {
-          "blend-mode": "normal",
-          "fill": {
-            "solid": "srgb:0.91765,0.35294,0.21176,1.00000"
-          },
-          "glass": true,
-          "hidden": false,
-          "image-name": "grade.svg",
-          "name": "grade",
-          "opacity": 1,
-          "position": {
-            "scale": 1,
-            "translation-in-points": [
-              0,
-              0
-            ]
-          }
-        }
-      ],
-      "lighting": "individual",
-      "opacity": 0.35,
-      "shadow": {
-        "kind": "layer-color",
-        "opacity": 0.5
-      },
-      "translucency": {
-        "enabled": true,
-        "value": 0.3
-      }
-    },
-    {
-      "hidden": false,
-      "layers": [
-        {
-          "blend-mode": "normal",
-          "fill": {
-            "solid": "srgb:0.91765,0.35294,0.21176,1.00000"
-          },
-          "glass": false,
-          "hidden": false,
-          "image-name": "grade.svg",
-          "name": "grade",
-          "opacity": 1,
-          "position": {
-            "scale": 1,
-            "translation-in-points": [
-              0,
-              0
-            ]
-          }
-        }
-      ],
-      "lighting": "individual",
-      "opacity": 1,
-      "shadow": {
-        "kind": "layer-color",
-        "opacity": 0.5
-      },
-      "translucency": {
-        "enabled": true,
-        "value": 0.3
+        "enabled": false,
+        "value": 0
       }
     }
   ],
