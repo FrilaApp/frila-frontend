@@ -366,7 +366,14 @@ val moduloFeatures = module {
             pedirReenvio = { escopoDaFila.launch { sincronizador.sincronizar() } },
         )
     }
-    viewModel { AvaliacaoViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
+    viewModel {
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        AvaliacaoViewModel(
+            get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar,
+            filaDeAcoes = get(),
+            contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+        )
+    }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
     viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get(), servicoConta = get(), exportarMeusDados = get<ServicoConta>()::exportarMeusDados) }
     viewModel { VerificacaoIdentidadeViewModel(get()) }

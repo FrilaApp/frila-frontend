@@ -7,7 +7,9 @@ import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.contaDaSessaoParaTelemetria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
+import br.com.frila.feature.turnos.StatusAvaliacao
 import io.mockk.mockk
 import java.io.File
 import java.util.Base64
@@ -97,6 +99,39 @@ class FilaDeAcoesDaSessaoTest {
             assertEquals(if (comAcaoNaFila) 1 else 0, versoes)
             assertTrue(leituras <= leiturasAntes + 1, "leituras: $leiturasAntes -> $leituras")
             assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
+            escopo.cancel()
+        }
+    }
+
+    /** Mesmo ciclo do R4, agora na tela de avaliação (#1042): logout com a tela aberta não pode reler em laço. */
+    @Test fun `logout com a tela de avaliacao observando a fila nao entra em ciclo`() = runTest {
+        for (comAcaoNaFila in listOf(false, true)) {
+            val cache = CacheVagasDaSessao(File(raiz, "avaliacao-$comAcaoNaFila"))
+            val armazenamento = SessaoComCacheVagas(ArmazenamentoDeSessaoEmMemoria(), cache)
+            armazenamento.salvarSessao(sessao("pessoa-a"))
+            if (comAcaoNaFila) {
+                cache.filaDeAcoes.enfileirar(AcaoPendente(TipoAcaoPendente.AVALIACAO, "pessoa-a", "2026-11-23T12:00:00Z",
+                    turnoId = "turno", resposta = true))
+            }
+            val escopo = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+            var leituras = 0
+            val modelo = AvaliacaoViewModel(mockk<ServicoTurnos>(), escopo = escopo, filaDeAcoes = cache.filaDeAcoes, contaAtual = {
+                leituras++
+                if (leituras >= 20) escopo.cancel()
+                contaDaSessaoParaTelemetria(armazenamento.obterSessao())
+            })
+            modelo.observar("turno")
+            runCurrent()
+            val leiturasAntes = leituras
+            val versaoAntes = cache.filaDeAcoes.versao.value
+            armazenamento.limparSessao()
+            runCurrent()
+            val versoes = cache.filaDeAcoes.versao.value - versaoAntes
+            println("R4-avaliacao comAcaoNaFila=$comAcaoNaFila leiturasAntes=$leiturasAntes leiturasDepois=$leituras versoesGeradas=$versoes")
+            assertEquals(if (comAcaoNaFila) 1 else 0, versoes)
+            assertTrue(leituras <= leiturasAntes + 1, "leituras: $leiturasAntes -> $leituras")
+            assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
+            assertEquals(StatusAvaliacao.OCIOSO, modelo.estado.value.status)
             escopo.cancel()
         }
     }

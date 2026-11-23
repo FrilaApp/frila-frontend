@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import br.com.frila.feature.turnos.AvaliacaoNaFila
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.EscolhaBinaria
 import br.com.frila.feature.turnos.MensagemDeAcao
@@ -47,6 +49,7 @@ fun TelaAvaliacaoDoContratante(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(turnoId, viewModel) { viewModel.observar(turnoId) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     var emEnvio by remember { mutableStateOf<Boolean?>(null) }
     val avaliar = { resposta: Boolean ->
@@ -69,6 +72,7 @@ fun TelaAvaliacaoDoContratante(
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
             when (estado.status) {
+                StatusAvaliacao.NA_FILA -> AvaliacaoNaFila(aoVoltar)
                 StatusAvaliacao.SUCESSO -> ConfirmacaoAvaliacaoContratante(
                     resposta = estado.respostaRegistrada,
                     aoVoltar = aoVoltar,

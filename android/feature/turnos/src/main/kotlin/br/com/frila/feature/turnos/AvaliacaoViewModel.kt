@@ -4,6 +4,11 @@ import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
+import java.io.IOException
+import java.time.Instant
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
 import kotlinx.coroutines.CancellationException
@@ -28,6 +33,9 @@ class AvaliacaoViewModel(
     private val servicoTurnos: ServicoTurnos,
     escopo: CoroutineScope? = null,
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    private val contaAtual: () -> String? = { null },
+    private val instanteAtual: () -> Instant = Instant::now,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -38,8 +46,84 @@ class AvaliacaoViewModel(
     /** A avaliação em voo: um segundo toque ("sim" e "não" em sequência) não envia de novo. */
     private var envio: Job? = null
 
+    private var observacao: Job? = null
+    private var turnoObservado: String? = null
+    private var contaObservada: String? = null
+
+    /** Relê ao abrir e a cada mudança da fila; só considera o turno e a conta desta tela. */
+    fun observar(turnoId: String) {
+        if (turnoObservado == turnoId) return
+        observacao?.cancel()
+        turnoObservado = turnoId
+        contaObservada = contaAtual()
+        _estado.value = EstadoAvaliacao()
+        reconciliarComAFila(turnoId)
+        val fila = filaDeAcoes ?: return
+        observacao = escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila(turnoId) } }
+    }
+
+    private fun reconciliarComAFila(turnoId: String) {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual()
+        if (conta != contaObservada) {
+            contaObservada = conta
+            _estado.value = EstadoAvaliacao()
+        }
+        if (conta == null) return
+        synchronized(fila) {
+            val pendente = fila.pendentes().firstOrNull {
+                it.tipo == TipoAcaoPendente.AVALIACAO && it.turnoId == turnoId && it.contaId == conta
+            }
+            val recusada = fila.recusadas().any {
+                it.tipo == TipoAcaoPendente.AVALIACAO && it.turnoId == turnoId && it.contaId == conta
+            }
+            var enviada = false
+            _estado.update { e ->
+                enviada = false
+                when {
+                    pendente != null -> e.copy(status = StatusAvaliacao.NA_FILA, respostaRegistrada = pendente.resposta, mensagemErro = null)
+                    recusada && e.status != StatusAvaliacao.ENVIANDO ->
+                        EstadoAvaliacao(status = StatusAvaliacao.ERRO, mensagemErro = TextosDaFilaDeAvaliacao.RECUSADA)
+                    e.status == StatusAvaliacao.NA_FILA -> {
+                        enviada = true
+                        e.copy(status = StatusAvaliacao.SUCESSO)
+                    }
+                    else -> e
+                }
+            }
+            if (enviada) registrarEvento(EventoDeTelemetria.AVALIACAO_ENVIADA, null, turnoId)
+        }
+    }
+
+    private fun guardarNaFila(turnoId: String, resposta: Boolean, toque: Instant, conta: String?): Boolean {
+        val fila = filaDeAcoes ?: return false
+        if (conta == null || contaAtual() != conta) return false
+        return try {
+            synchronized(fila) {
+                val existente = fila.pendentes().firstOrNull {
+                    it.tipo == TipoAcaoPendente.AVALIACAO && it.turnoId == turnoId && it.contaId == conta
+                }
+                val acao = existente ?: AcaoPendente(TipoAcaoPendente.AVALIACAO, conta, toque.toString(),
+                    turnoId = turnoId, resposta = resposta).also { fila.enfileirar(it) }
+                _estado.update { it.copy(status = StatusAvaliacao.NA_FILA, respostaRegistrada = acao.resposta, mensagemErro = null) }
+                if (existente == null) registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, turnoId)
+            }
+            true
+        } catch (_: IOException) { false }
+    }
+
     fun avaliar(turnoId: String, resposta: Boolean): Job {
+        observar(turnoId)
+        reconciliarComAFila(turnoId)
+        if (_estado.value.status in setOf(StatusAvaliacao.NA_FILA, StatusAvaliacao.SUCESSO)) return escopoDeTrabalho.launch { }
         envio?.takeIf { it.isActive }?.let { return it }
+        val toque = instanteAtual()
+        val conta = contaAtual()
+        filaDeAcoes?.let { fila ->
+            runCatching { fila.recusadas().filter {
+                it.tipo == TipoAcaoPendente.AVALIACAO && it.turnoId == turnoId && it.contaId == conta
+            }.forEach { fila.reconhecerRecusa(it.id) } }
+        }
         _estado.update { it.copy(status = StatusAvaliacao.ENVIANDO, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
@@ -49,6 +133,7 @@ class AvaliacaoViewModel(
                     it.copy(status = StatusAvaliacao.SUCESSO, respostaRegistrada = avaliacao.resposta)
                 }
             } catch (erro: ErroDaApi) {
+                if (erro.codigo == CodigoErroAPI.SEM_REDE && guardarNaFila(turnoId, resposta, toque, conta)) return@launch
                 _estado.update { it.copy(status = StatusAvaliacao.ERRO, mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {
                 throw erro
