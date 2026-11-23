@@ -1,7 +1,6 @@
 package br.com.frila.core.designsystem.tema
 
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
@@ -104,7 +103,7 @@ internal val FormasFrila = Shapes(
 )
 
 /**
- * Tema raiz do app: paleta clara/escura automática pelo sistema, tipografia e formas do Frila.
+ * Tema raiz do app: paleta clara/escura escolhida no aparelho (clara por padrão), tipografia e formas do Frila.
  *
  * `dynamicColor` (Material You, API 31+) gera o esquema a partir do papel de parede do aparelho
  * e sempre aplica [comCoresCriticasFrila] por cima; a paleta do Frila (`FrilaTema.cores`) não muda.
@@ -112,7 +111,7 @@ internal val FormasFrila = Shapes(
  */
 @Composable
 fun FrilaTheme(
-    temaEscuro: Boolean = isSystemInDarkTheme(),
+    temaEscuro: Boolean = false,
     dynamicColor: Boolean = false,
     modoOled: Boolean = false,
     content: @Composable () -> Unit,

@@ -172,6 +172,7 @@ object Rotas {
     const val SELO_CONFIANCA = "selo_confianca"
     const val OCORRENCIA = "ocorrencia/{turnoId}"
     const val DESBLOQUEIO = "desbloqueio"
+    const val APARENCIA = "aparencia"
     const val AJUDA = "ajuda"
     const val LICENCAS = "licencas"
     const val VAGA_INDISPONIVEL = "vaga_indisponivel"
@@ -990,6 +991,7 @@ fun AppNavegacao(
                     // L2-5 e L2-6: "Pessoas e locais bloqueados" é dos dois papéis; contestar o despacho é só do profissional
                     // (mesma regra de `casas` das outras entradas dele). São linhas do grupo da conta, no Perfil.
                     val atalhosDaConta = listOfNotNull(
+                        AtalhoDaConta(androidx.compose.ui.res.stringResource(br.com.frila.feature.perfil.R.string.aparencia_titulo), "perfil-aparencia") { navController.navigate(Rotas.APARENCIA) },
                         if (casas == CasasDaConta.Desconhecidas) {
                             AtalhoDaConta(TextosContestarDespacho.TITULO, ENTRADA_CONTESTAR_DESPACHO) { navController.navigate(Rotas.CONTESTAR_DESPACHO) }
                         } else {
@@ -1553,6 +1555,13 @@ fun AppNavegacao(
                             aoVoltar = { navController.popBackStack() },
                         )
                     }
+                }
+            }
+
+            composable(Rotas.APARENCIA) {
+                RotaProtegida(guardaBiometrico) {
+                    val preferencias: PreferenciasAparencia = koinInject()
+                    AparenciaDoAparelho(preferencias, aoVoltar = { navController.popBackStack() })
                 }
             }
 
