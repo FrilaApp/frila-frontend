@@ -55,11 +55,17 @@ internal class SessaoComCacheVagas(
 ) : ArmazenamentoDeSessao by origem {
     private val _encerramentos = MutableStateFlow(0)
 
+    /**
+     * Já limpou desde que a sessão sumiu: ler de novo sem sessão não limpa outra vez. Sem isto, quem relê a conta a cada
+     * mudança da fila (a tela de check-in) limpava, mudava a fila e relia, em ciclo, depois do logout.
+     */
+    private var limpoSemSessao = false
+
     /** C0-8: soma um a cada sessão apagada (token recusado, Sair, exclusão), para a navegação voltar à entrada. */
     val encerramentos: StateFlow<Int> = _encerramentos.asStateFlow()
 
     override fun limparSessao() = synchronized(cache) {
-        try { cache.limpar() } finally {
+        try { cache.limpar(); limpoSemSessao = true } finally {
             origem.limparSessao()
             _encerramentos.update { it + 1 }
         }
@@ -70,9 +76,15 @@ internal class SessaoComCacheVagas(
         val proxima = arquivoCacheVagas(File("."), sessao)
         if (anterior == null || anterior != proxima) cache.limpar()
         origem.salvarSessao(sessao)
+        limpoSemSessao = false
     }
     override fun obterSessao(): Sessao? = synchronized(cache) {
-        origem.obterSessao().also { if (it == null) cache.limpar() }
+        origem.obterSessao().also {
+            when {
+                it != null -> limpoSemSessao = false
+                !limpoSemSessao -> { cache.limpar(); limpoSemSessao = true }
+            }
+        }
     }
     override fun estaAutenticado(): Boolean = obterSessao() != null
 }
