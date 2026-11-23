@@ -203,6 +203,23 @@ public final class MeuTurnoViewModel {
         await reler()
     }
 
+    /// De quanto em quanto tempo a tela relê o turno enquanto o check-in manual espera a casa.
+    public static let intervaloDaConfirmacaoDaCasa: TimeInterval = 15
+
+    /// Com o check-in manual à espera da casa (`aguardandoConfirmacao`), relê o turno a cada
+    /// `intervaloDaConfirmacaoDaCasa` até a casa confirmar: "Aguardando a confirmação da casa" some sem
+    /// puxar a tela. Só enquanto aguarda, e cancelada com a tela (`.task`). `dormir` existe para o teste
+    /// não esperar de verdade.
+    public func acompanharConfirmacaoDaCasa(
+        dormir: @Sendable (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+    ) async {
+        while presenca?.aguardandoConfirmacao == true {
+            await dormir(Self.intervaloDaConfirmacaoDaCasa)
+            guard !Task.isCancelled else { return }
+            await reler()
+        }
+    }
+
     /// Troca o turno pela leitura mais nova. Sem rede ou sem o turno na resposta, fica o que havia.
     private func reler() async {
         guard let lidos = try? await api.meusTurnos(), let atualizado = lidos.first(where: { $0.id == turno.id }) else { return }

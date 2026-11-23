@@ -78,6 +78,10 @@ public enum RegraDePresenca {
     /// Check-in por código legado (0.2.68).
     public static let raioDoCodigoMetros = 100
     public static let tempoLimiteDaLeitura: Duration = .seconds(10)
+    /// Quanto o app espera a resposta ao alerta de permissão do sistema antes de seguir pelo caminho sem
+    /// GPS. O alerta é do sistema e pode ficar aberto (ou nunca voltar); passado o prazo, a pessoa pode
+    /// tentar o GPS de novo, e a resposta que ela deu depois já vale.
+    public static let prazoDoPedidoDePermissao: Duration = .seconds(30)
     public static let chaveDaPrecisaoTemporaria = "CheckIn"
 
     /// Decisão de envio do código semiautomático (Etapa 1, backend bedcd4c):

@@ -49,10 +49,15 @@ public struct SecaoDePresenca: View {
             await viewModel.carregarRecursos()
             await viewModel.atualizarPermissaoDaLocalizacao()
         }
+        // Check-in manual à espera da casa: a tela relê o turno em intervalos curtos até a casa confirmar. A tarefa
+        // recomeça quando a espera começa ou acaba e para com a tela.
+        .task(id: viewModel.aguardandoConfirmacao) { await turno?.acompanharConfirmacaoDaCasa() }
         .sheet(isPresented: $mostrarEntradaDoCodigo) { EntradaDoCodigo(presenca: viewModel) }
-        // Voltando dos Ajustes, a permissão pode ter mudado.
+        // Voltando dos Ajustes, a permissão pode ter mudado; voltando do segundo plano, a casa pode ter confirmado.
         .onChange(of: fase) { _, nova in
-            if nova == .active { Task { await viewModel.atualizarPermissaoDaLocalizacao() } }
+            guard nova == .active else { return }
+            Task { await viewModel.atualizarPermissaoDaLocalizacao() }
+            if viewModel.aguardandoConfirmacao { Task { await turno?.atualizar() } }
         }
         .onChange(of: turno?.aCaminhoEm) { _, _ in anunciar(situacaoACaminho?.texto) }
         .onChange(of: viewModel.checkin) { _, _ in anunciar(situacaoDoCheckin?.texto) }
