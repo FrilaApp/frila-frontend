@@ -4,6 +4,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.LeituraDeLocalizacao
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
+import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.EventoDeTelemetria
@@ -101,6 +102,18 @@ class CheckinNaFilaTest {
         assertEquals(listOf(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE to turnoId), eventos.filter { it.first == EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE })
         assertEquals("Sem conexão. O check-in das 00:10 está guardado neste aparelho e será enviado quando a internet voltar, com esse horário.",
             TextosDaFilaDePresenca.checkinNaFila(vm.estado.value.checkinNaFila!!))
+    }
+
+    @Test fun `tela reaberta preserva o instante da fila com deslocamento UTC`() {
+        fila.enfileirar(AcaoPendente(
+            TipoAcaoPendente.CHECKIN, conta, "2026-11-02T02:40:00+00:00", turnoId = turnoId, distanciaMetros = 111,
+        ))
+
+        val vm = viewModel()
+
+        assertEquals(StatusCheckin.NA_FILA, vm.estado.value.status)
+        assertEquals(RegistroNaFila(agora.minusSeconds(1800), manual = false), vm.estado.value.checkinNaFila)
+        assertTrue(pedidos.isEmpty(), "reabrir a tela lê o instante guardado sem chamar a rede")
     }
 
     @Test fun `o mesmo toque nao enfileira duas vezes, nem em outra abertura da tela`() = runBlocking {

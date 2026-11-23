@@ -8,6 +8,7 @@ import br.com.frila.core.dominio.modelo.ComprovanteCheckin
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.ErroDaApi
@@ -281,7 +282,7 @@ class CheckinViewModel(
     }
 
     private fun AcaoPendente.registroNaFila() =
-        RegistroNaFila(runCatching { Instant.parse(instanteDoToque) }.getOrDefault(instanteAtual()), manual = distanciaMetros == null)
+        RegistroNaFila(runCatching { instanteDoServidor(instanteDoToque) }.getOrDefault(instanteAtual()), manual = distanciaMetros == null)
 
     /** Quem toca de novo depois de uma recusa de vez fecha o aviso dela; o registro fica para o envio não voltar. */
     private fun reconhecerRecusas(tipo: TipoAcaoPendente) {
