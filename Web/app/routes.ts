@@ -44,6 +44,8 @@ export default [
   route("denunciar", "rotas/profissional/denunciar.tsx"),
   route("bloqueados", "rotas/profissional/bloqueados.tsx"),
   route("preferencias", "rotas/profissional/preferencias.tsx"),
+  // "Por que recebo vagas" com os critérios da conta e o pedido de revisão do despacho (RF27)
+  route("por-que-recebo-vagas", "rotas/profissional/por-que-recebo-vagas.tsx"),
   // Cadastro do profissional em passos (2.8): funções, ponto base e regiões atendidas
   route("perfil/cadastro", "rotas/profissional/cadastro.tsx"),
 

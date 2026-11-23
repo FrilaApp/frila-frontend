@@ -295,4 +295,47 @@ export const profissional = {
       indisponivel: "Não deu para salvar agora. Tente de novo em instantes.",
     },
   },
+  // "Por que recebo vagas" (RF27): as frases seguem as do iOS (TextosPorQueReceboVagas, TextosPerfilConta).
+  porQueRecebo: {
+    tituloDaAba: "Por que recebo vagas · Frila",
+    titulo: "Por que recebo vagas",
+    link: "Por que recebo vagas",
+    explicacao:
+      "Você recebe notificações de vagas da sua função, a até 15 km do seu ponto base, quando o turno inteiro cabe nos horários em que você marcou disponibilidade. Todas as vagas do DF aparecem na lista.",
+    secaoFuncao: "Sua função",
+    semFuncao: "Nenhuma função cadastrada.",
+    secaoHorarios: "Seus horários",
+    horariosExplicacao: "A vaga só chega quando o turno inteiro cabe em um destes horários.",
+    semHorarios: "Nenhum horário cadastrado. Sem horários, nenhuma vaga chega por notificação.",
+    secaoDistancia: "Distância",
+    // "{km}" é trocado pela distância.
+    distancia: "Até {km} km do seu ponto base.",
+    secaoEquipes: "Equipes de confiança",
+    equipesExplicacao: "As vagas destes estabelecimentos chegam mesmo além da distância máxima, desde que a função e os horários batam.",
+    semEquipes: "Você ainda não faz parte da equipe de confiança de nenhum estabelecimento.",
+    secaoFrequencia: "Frequência",
+    // "{minutos}" é trocado pelo intervalo.
+    frequencia: "No máximo uma notificação a cada {minutos} minutos.",
+    erroCarregar: "Não foi possível carregar seus critérios. Tente novamente.",
+    secaoContestar: "Algo não bate?",
+    contestarExplicacao:
+      "Se você acha que deveria ter recebido uma vaga, peça a revisão. A Equipe Frila responde por e-mail em até 5 dias úteis.",
+    rotuloDoRelato: "O que aconteceu",
+    dicaDoRelato: "Mínimo de 10 caracteres.",
+    enviar: "Enviar pedido",
+    enviando: "Enviando pedido…",
+    pedidoEnviado: "Pedido de revisão enviado",
+    numero: "Número do protocolo",
+    enviadoEm: "Enviado em",
+    prazo: "Previsão de resposta até",
+    mensagemEnviado: "A Equipe Frila vai responder por e-mail dentro do prazo informado.",
+    jaAberta:
+      "Já existe uma contestação deste despacho. A resposta da Equipe Frila vai por e-mail. Qualquer recurso adicional deve ser enviado por e-mail.",
+    resultado: {
+      relato_curto: "O relato deve conter pelo menos 10 caracteres.",
+      conta_suspensa: "Sua conta está suspensa. Enquanto a suspensão durar, não é possível pedir a revisão.",
+      limite: "Muitos pedidos em pouco tempo. Aguarde antes de tentar novamente.",
+      indisponivel: "Não foi possível enviar o pedido. Tente novamente.",
+    },
+  },
 } as const;
