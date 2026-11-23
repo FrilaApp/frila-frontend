@@ -23,11 +23,12 @@ export type LeituraDosCriterios =
 export async function lerCriteriosDeNotificacao(api: Api | null): Promise<LeituraDosCriterios> {
   if (!api) return { estado: "indisponivel" };
   try {
-    const { data, response } = await api.GET("/rpc/criterios_de_notificacao", { signal: AbortSignal.timeout(5000) });
+    const { data, error, response } = await api.GET("/rpc/criterios_de_notificacao", { signal: AbortSignal.timeout(5000) });
     if (data) return { estado: "ok", criterios: data };
     if (response.status === 401) return { estado: "sem_sessao" };
     if (response.status === 403) return { estado: "conta_suspensa" };
     if (response.status === 404) return { estado: "sem_perfil" };
+    if (response.status === 422 && error?.code === "perfil_incompativel") return { estado: "perfil_incompativel" };
     return { estado: "indisponivel" };
   } catch {
     return { estado: "indisponivel" };

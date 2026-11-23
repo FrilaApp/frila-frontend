@@ -56,6 +56,11 @@ describe("critérios de notificação (servidor)", () => {
     expect(await lerCriteriosDeNotificacao(apiQueResponde(recusa(500, "erro")).api)).toEqual({ estado: "indisponivel" });
     expect(await lerCriteriosDeNotificacao(null)).toEqual({ estado: "indisponivel" });
   });
+
+  it("422 perfil_incompativel vira o estado da tela; 422 com outro code é indisponível", async () => {
+    expect(await lerCriteriosDeNotificacao(apiQueResponde(recusa(422, "perfil_incompativel")).api)).toEqual({ estado: "perfil_incompativel" });
+    expect(await lerCriteriosDeNotificacao(apiQueResponde(recusa(422, "campo_invalido")).api)).toEqual({ estado: "indisponivel" });
+  });
 });
 
 describe("pedido de revisão do despacho (servidor)", () => {

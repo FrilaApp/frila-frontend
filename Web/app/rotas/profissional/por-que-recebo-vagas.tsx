@@ -48,8 +48,9 @@ export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
   const resultado = await pedirRevisaoDoDespacho(apiDoUsuario(sessao.acesso), String(formulario.get("relato") ?? ""));
-  if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
-  return { resultado: resultado.ok ? ("enviado" as const) : resultado.motivo === "sem_sessao" ? ("indisponivel" as const) : resultado.motivo };
+  if (resultado.ok) return { resultado: "enviado" as const };
+  if (resultado.motivo === "sem_sessao") throw redirect("/entrar");
+  return { resultado: resultado.motivo };
 }
 
 const classeDoLink = "inline-flex min-h-11 items-center font-semibold underline underline-offset-4";
