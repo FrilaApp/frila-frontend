@@ -19,6 +19,7 @@ export default [
   route("conta/suspensa", "rotas/conta/suspensa.tsx"),
   // Minha conta: exportar os dados e excluir a conta (2.11)
   route("conta", "rotas/conta/dados.tsx"),
+  route("conta/aparencia", "rotas/conta/aparencia.tsx"),
   route("conta/meus-dados", "rotas/conta/meus-dados.ts"),
   // Relatório dos turnos para baixar (3.17)
   route("conta/relatorio", "rotas/conta/relatorio.tsx"),
