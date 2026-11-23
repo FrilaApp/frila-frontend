@@ -209,6 +209,8 @@ public final class ChamadaDiretaViewModel {
 
     private static func mensagem(_ erro: Error) -> String {
         switch (erro as? ErroDaApi)?.codigo {
+        case .campoInvalido where (erro as? ErroDaApi)?.detalhes == "valor_centavos": TextosChamadaDireta.valorInvalido
+        case .campoInvalido: TextosChamadaDireta.valorInvalido
         case .chamadaJaAberta: TextosChamadaDireta.jaAberta
         case .chamadaIndisponivel, .profissionalIndisponivel, .naoEncontrado: TextosChamadaDireta.indisponivel
         case .limiteDeChamadas: TextosChamadaDireta.limite

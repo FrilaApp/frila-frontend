@@ -35,6 +35,10 @@ public enum TextosChamadaDireta {
     public static let indisponivel = String(localized: "Este profissional não está disponível para esta chamada.", bundle: bundleApresentacao)
     public static let limite = String(localized: "Você atingiu o limite de chamadas. Aguarde antes de tentar novamente.", bundle: bundleApresentacao)
     public static let desligado = String(localized: "A chamada direta está indisponível no momento.", bundle: bundleApresentacao)
+    /// Constante única para a mensagem de valor de diária inválido na chamada direta.
+    /// Texto temporário do catálogo ("Confira o valor informado.") enquanto o Fabrício
+    /// define no #design a redação final ("Informe um valor entre R$ 50 e R$ 2.000 por posição.").
+    public static let valorInvalido = String(localized: "Confira o valor informado.", bundle: bundleApresentacao)
     public static let erro = String(localized: "Não foi possível concluir a chamada. Verifique sua conexão e tente novamente.", bundle: bundleApresentacao)
 
     // I5b: Receber, aceitar e recusar

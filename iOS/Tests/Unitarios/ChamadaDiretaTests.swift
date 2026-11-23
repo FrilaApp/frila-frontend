@@ -144,4 +144,57 @@ struct ChamadaDiretaTests {
         let cache = try JSONEncoder().encode(nova.resumo)
         #expect(try JSONDecoder().decode(VagaResumo.self, from: cache).vagaOrigemId == origemID)
     }
+
+    @Test("Erro 422 campo_invalido em valor_centavos mostra mensagem do valor e não erro genérico de rede")
+    func erroValorInvalidoNaoViraRede() async throws {
+        final class ApiChamadaRecusadaPorValor: ApiClienteEncaminhador, @unchecked Sendable {
+            override func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+                throw ErroDaApi(codigo: .campoInvalido, detalhes: "valor_centavos")
+            }
+        }
+        final class ApiChamadaErroDeRede: ApiClienteEncaminhador, @unchecked Sendable {
+            override func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+                throw ErroDaApi(codigo: .semRede)
+            }
+        }
+        final class ApiChamadaErroGenerico: ApiClienteEncaminhador, @unchecked Sendable {
+            override func chamarProfissional(_ pedido: PedidoChamada) async throws -> Chamada {
+                throw ErroDaApi(codigo: .limiteExcedido)
+            }
+        }
+
+        let base = ApiClienteEmMemoria(cenario: .chamadaDireta)
+        let casa = try #require(try await base.meusEstabelecimentos().first)
+        let perfil = try await base.perfilPublico(id: profissionalID)
+
+        // 1. campo_invalido (valor_centavos) vira TextosChamadaDireta.valorInvalido ("Confira o valor informado.")
+        let apiValor = ApiChamadaRecusadaPorValor(base: base)
+        let modelValor = ChamadaDiretaViewModel(api: apiValor, profissionalID: profissionalID, estabelecimentoID: casa.id)
+        await modelValor.carregar()
+        modelValor.funcaoID = try #require(modelValor.funcoes.first { perfil.funcoes.contains($0.nome) }).id
+        modelValor.valorCentavos = 4_000
+        modelValor.totalConfirmado = true
+        await modelValor.enviar()
+        #expect(modelValor.erro == TextosChamadaDireta.valorInvalido)
+        #expect(modelValor.erro != TextosChamadaDireta.erro)
+
+        // 2. Erro de rede ou regra genérica continuam exibindo TextosChamadaDireta.erro
+        let apiRede = ApiChamadaErroDeRede(base: base)
+        let modelRede = ChamadaDiretaViewModel(api: apiRede, profissionalID: profissionalID, estabelecimentoID: casa.id)
+        await modelRede.carregar()
+        modelRede.funcaoID = try #require(modelRede.funcoes.first { perfil.funcoes.contains($0.nome) }).id
+        modelRede.valorCentavos = 15_000
+        modelRede.totalConfirmado = true
+        await modelRede.enviar()
+        #expect(modelRede.erro == TextosChamadaDireta.erro)
+
+        let apiGenerica = ApiChamadaErroGenerico(base: base)
+        let modelGenerica = ChamadaDiretaViewModel(api: apiGenerica, profissionalID: profissionalID, estabelecimentoID: casa.id)
+        await modelGenerica.carregar()
+        modelGenerica.funcaoID = try #require(modelGenerica.funcoes.first { perfil.funcoes.contains($0.nome) }).id
+        modelGenerica.valorCentavos = 15_000
+        modelGenerica.totalConfirmado = true
+        await modelGenerica.enviar()
+        #expect(modelGenerica.erro == TextosChamadaDireta.erro)
+    }
 }
