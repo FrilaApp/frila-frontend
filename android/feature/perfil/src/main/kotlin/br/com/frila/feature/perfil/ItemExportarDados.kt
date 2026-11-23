@@ -2,6 +2,7 @@ package br.com.frila.feature.perfil
 
 import android.content.ClipData
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -24,7 +25,10 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
 @Composable
-fun ItemExportarDados(viewModel: ExportarDadosViewModel) {
+fun ItemExportarDados(
+    viewModel: ExportarDadosViewModel,
+    abrir: (Intent) -> Unit = LocalContext.current::startActivity,
+) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val titulo = stringResource(R.string.exportar_dados_titulo)
@@ -32,19 +36,20 @@ fun ItemExportarDados(viewModel: ExportarDadosViewModel) {
         val arquivo = estado.arquivo ?: return@LaunchedEffect
         try {
             val uri = FileProvider.getUriForFile(contexto, "${contexto.packageName}.fileprovider", arquivo)
-            val envio = Intent(Intent.ACTION_SEND).apply {
-                type = "application/json"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newRawUri(null, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            contexto.startActivity(Intent.createChooser(envio, titulo))
+            abrir(Intent.createChooser(intentDeEnvioDosDados(uri), titulo))
             viewModel.compartilhamentoAberto()
         } catch (_: Exception) {
             viewModel.falhouAoCompartilhar()
         }
     }
     ConteudoItemExportarDados(estado) { viewModel.exportar(contexto.cacheDir) }
+}
+
+internal fun intentDeEnvioDosDados(uri: Uri): Intent = Intent(Intent.ACTION_SEND).apply {
+    type = "application/json"
+    putExtra(Intent.EXTRA_STREAM, uri)
+    clipData = ClipData.newRawUri(null, uri)
+    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 }
 
 @Composable

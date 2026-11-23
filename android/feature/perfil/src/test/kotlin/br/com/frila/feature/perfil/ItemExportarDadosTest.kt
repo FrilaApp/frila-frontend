@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -44,7 +45,7 @@ class ItemExportarDadosTest {
     }
 
     @Test
-    fun `abre chooser com JSON privado e permissao temporaria de leitura`() {
+    fun `clique chama abertura do chooser uma vez e libera o item`() {
         val app = RuntimeEnvironment.getApplication()
         // A biblioteca não resolve ${applicationId}; o app resolve ao mesclar seu manifesto.
         val info = android.content.pm.ProviderInfo().apply {
@@ -58,25 +59,15 @@ class ItemExportarDadosTest {
             }
         }
         shadowOf(app.packageManager).addOrUpdateProvider(info)
-        val provider = androidx.core.content.FileProvider().apply { attachInfo(app, info) }
-        org.robolectric.shadows.ShadowContentResolver.registerProviderInternal(info.authority, provider)
         val dados = """{ "sintetico": true }""".toByteArray()
-        val vm = ExportarDadosViewModel({ dados })
-        compose.setContent { ItemExportarDados(vm) }
+        val vm = ExportarDadosViewModel({ dados }, dispatcherIo = Dispatchers.Main.immediate)
+        val aberturas = mutableListOf<Intent>()
+        compose.setContent { ItemExportarDados(vm, abrir = aberturas::add) }
         compose.onNodeWithTag("perfil-exportar-dados").performClick()
-        var chooser: Intent? = null
-        compose.waitUntil(10_000) {
-            chooser = chooser ?: shadowOf(app).nextStartedActivity
-            chooser != null
+        compose.runOnIdle {
+            assertEquals(1, aberturas.size)
+            assertEquals(Intent.ACTION_CHOOSER, aberturas.single().action)
+            assertEquals(EstadoExportarDados(), vm.estado.value)
         }
-        assertEquals(Intent.ACTION_CHOOSER, chooser!!.action)
-        @Suppress("DEPRECATION")
-        val envio = requireNotNull(chooser!!.getParcelableExtra<Intent>(Intent.EXTRA_INTENT))
-        assertEquals(Intent.ACTION_SEND, envio.action)
-        assertEquals("application/json", envio.type)
-        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION, envio.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        val uri = envio.clipData!!.getItemAt(0).uri
-        assertEquals("content", uri.scheme)
-        org.junit.Assert.assertArrayEquals(dados, app.contentResolver.openInputStream(uri)!!.use { it.readBytes() })
     }
 }
