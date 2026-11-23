@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -47,6 +48,7 @@ class CheckinViewModel(
     private val provedorDeLocalizacao: ProvedorDeLocalizacao,
     private val instanteAtual: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -56,6 +58,7 @@ class CheckinViewModel(
 
     /** C0-7: o pedido de permissão do sistema já foi respondido; depois dele, sem permissão, vem o diálogo das Configurações. */
     private var permissaoJaPedida = false
+    private var checkinConcluidoEmitido = false
 
     /**
      * RN06/RN22: antes de tocar no GPS, confere permissão e se a localização do sistema está
@@ -65,6 +68,7 @@ class CheckinViewModel(
      * tentar de novo ou seguir no modo manual pela ação [prosseguirCheckinManual].
      */
     fun fazerCheckin(): Job {
+        registrarEvento(EventoDeTelemetria.CHECKIN_TENTADO, null, turnoId)
         _estado.update { it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null) }
         return escopoDeTrabalho.launch {
             if (!provedorDeLocalizacao.temPermissaoDeLocalizacao()) {
@@ -122,6 +126,7 @@ class CheckinViewModel(
             try {
                 val distanciaMetros = MedidorDeDistancia(provedorDeLocalizacao, coordenadaDaVaga).medir()
                 servicoTurnos.fazerCheckout(turnoId = turnoId, distanciaMetros = distanciaMetros, registradoEm = toque.toString())
+                registrarEvento(EventoDeTelemetria.CHECKOUT_CONCLUIDO, null, turnoId)
                 _estado.update { it.copy(checkout = StatusCheckout.FEITO, mensagemErroCheckout = null) }
             } catch (erro: CancellationException) {
                 throw erro
@@ -190,6 +195,10 @@ class CheckinViewModel(
             registradoEm = agora.toString(),
         )
 
+        if (!checkinConcluidoEmitido) {
+            checkinConcluidoEmitido = true
+            registrarEvento(EventoDeTelemetria.CHECKIN_CONCLUIDO, null, turnoId)
+        }
         val tipoVerificacao = mapearTipoVerificacaoCheckin(
             verificacao = resultado.verificacao,
             checkinTipo = resultado.tipo,

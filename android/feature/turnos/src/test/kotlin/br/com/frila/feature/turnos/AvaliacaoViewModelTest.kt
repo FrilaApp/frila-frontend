@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import io.ktor.client.engine.mock.MockEngine
@@ -33,6 +34,24 @@ class AvaliacaoViewModelTest {
     private fun viewModelComEngine(engine: MockEngine): AvaliacaoViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         return AvaliacaoViewModel(ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Default))
+    }
+
+    @Test
+    fun `telemetria de avaliacao so registra resposta aceita e seu turno`() = runBlocking {
+        val eventos = mutableListOf<Triple<EventoDeTelemetria, String?, String?>>()
+        for (aceita in listOf(true, false)) {
+            val cliente = ClienteSupabase("https://sintetico.supabase.invalid", "chave-sintetica", engine = MockEngine {
+                if (aceita) respond(avaliacaoJson(true), headers = headersOf(HttpHeaders.ContentType, "application/json"))
+                else respond("""{"code":"avaliacao_indisponivel","message":"sintetico"}""", HttpStatusCode.Conflict,
+                    headersOf(HttpHeaders.ContentType, "application/json"))
+            })
+            cliente.use {
+                val vm = AvaliacaoViewModel(ServicoTurnos(it), escopo = CoroutineScope(Dispatchers.Default),
+                    registrarEvento = { evento, vaga, turno -> eventos += Triple(evento, vaga, turno) })
+                vm.avaliar(turnoId, true).join()
+            }
+        }
+        assertEquals(listOf(Triple(EventoDeTelemetria.AVALIACAO_ENVIADA, null, turnoId)), eventos)
     }
 
     @Test

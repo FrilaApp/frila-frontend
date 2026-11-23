@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.feed
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -43,12 +44,19 @@ class FeedVagasViewModel(
     escopo: CoroutineScope? = null,
     private val repositorioVagas: RepositorioVagas? = null,
     private val agora: () -> Instant = Instant::now,
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     private val _estado = MutableStateFlow(EstadoFeed())
     val estado: StateFlow<EstadoFeed> = _estado.asStateFlow()
+
+    private val vagasVistas = mutableSetOf<String>()
+
+    fun registrarVagaVista(id: String) {
+        if (vagasVistas.add(id)) registrarEvento(EventoDeTelemetria.VAGA_VISTA, id, null)
+    }
 
     private var vagasCarregadas: List<VagaAbertaDto> = emptyList()
     private var validadeDoCache: Job? = null

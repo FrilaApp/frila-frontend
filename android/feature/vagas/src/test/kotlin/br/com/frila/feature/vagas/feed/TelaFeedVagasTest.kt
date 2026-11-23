@@ -2,6 +2,8 @@ package br.com.frila.feature.vagas.feed
 
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import io.ktor.client.engine.mock.MockEngine
@@ -76,6 +79,7 @@ class TelaFeedVagasTest {
     private fun criarViewModel(
         respostaJson: String = "[]",
         status: HttpStatusCode = HttpStatusCode.OK,
+        registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
     ): FeedVagasViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -91,7 +95,34 @@ class TelaFeedVagasTest {
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(cliente),
             escopo = CoroutineScope(Dispatchers.Default),
+            registrarEvento = registrarEvento,
         )
+    }
+
+    @Test
+    fun `telemetria de vaga vista nao duplica ao rolar a lista e voltar`() = runBlocking {
+        val eventos = mutableListOf<String?>()
+        val json = (0 until 24).joinToString(prefix = "[", postfix = "]") {
+            vagaJson(id = "vaga-$it", estabelecimento = "Casa sintetica $it")
+        }
+        val vm = criarViewModel(json, registrarEvento = { evento, vaga, turno ->
+            assertEquals(EventoDeTelemetria.VAGA_VISTA, evento)
+            assertEquals(null, turno)
+            eventos += vaga
+        })
+        vm.carregar().join()
+        compose.setContent { FrilaTheme { TelaFeedVagas(vm, aoAbrirDetalhe = {}) } }
+        compose.waitForIdle()
+        val antesDeRolar = eventos.toSet()
+        compose.onNode(hasScrollToIndexAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).performScrollToIndex(22)
+        compose.waitForIdle()
+        compose.onNode(hasScrollToIndexAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).performScrollToIndex(0)
+        compose.waitForIdle()
+        compose.runOnIdle {
+            assertEquals(1, eventos.count { it == "vaga-0" })
+            assertEquals(eventos.distinct(), eventos)
+            org.junit.Assert.assertTrue(eventos.any { it !in antesDeRolar })
+        }
     }
 
     @Test

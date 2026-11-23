@@ -1,5 +1,6 @@
 package br.com.frila.feature.entrada.cadastro
 
+import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -41,6 +42,7 @@ class CadastroViewModel(
     escopo: CoroutineScope? = null,
     private val termosVersao: String = TERMOS_VERSAO_ATUAL,
     private val hoje: () -> DataCivil = DataCivil::hoje,
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -152,6 +154,7 @@ class CadastroViewModel(
         return escopoDeTrabalho.launch {
             try {
                 servico.criarConta(dados)
+                registrarEvento(EventoDeTelemetria.CADASTRO_CONCLUIDO, null, null)
                 _estado.update { it.copy(enviando = false, concluido = true) }
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(enviando = false, erro = mensagemDeErro(erro)) }
