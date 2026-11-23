@@ -165,6 +165,29 @@ class CheckinNaFilaTest {
         assertTrue(fila.recusadas().isEmpty(), "o aviso fechado não volta")
     }
 
+    @Test fun `check-in na fila libera o checkout, que tambem enfileira, e a volta da rede envia um de cada em ordem`() = runBlocking {
+        val vm = viewModel()
+        val turno = ItemTurno(turnoId, "posicao", agora, agora.plusSeconds(3600), "Função", "Casa", "02/11 00:10", "R$ 100,00", "confirmada")
+        assertTrue(!checkinFeitoOuNaFila(turno, vm.estado.value), "sem check-in não há check-out")
+
+        vm.fazerCheckin().join()
+        assertEquals(StatusCheckin.NA_FILA, vm.estado.value.status)
+        assertTrue(checkinFeitoOuNaFila(turno, vm.estado.value), "check-in na fila libera o check-out")
+        vm.fazerCheckout().join()
+
+        assertEquals(StatusCheckout.NA_FILA, vm.estado.value.checkout)
+        assertEquals(listOf(TipoAcaoPendente.CHECKIN, TipoAcaoPendente.CHECKOUT), fila.pendentes().map { it.tipo })
+
+        offline = false
+        pedidos.clear()
+        val sinc = sincronizador()
+        sinc.sincronizar(); sinc.sincronizar()
+
+        assertEquals(listOf("/rest/v1/rpc/fazer_checkin", "/rest/v1/rpc/fazer_checkout"), pedidos.filter { !it.endsWith("meus_turnos") })
+        assertTrue(fila.pendentes().isEmpty())
+        assertEquals(StatusCheckout.FEITO, vm.estado.value.checkout)
+    }
+
     @Test fun `sem conta ou sem fila nada e guardado e vale o erro de sem conexao de antes`() = runBlocking {
         val semConta = viewModel(dono = null)
         semConta.fazerCheckin().join()
