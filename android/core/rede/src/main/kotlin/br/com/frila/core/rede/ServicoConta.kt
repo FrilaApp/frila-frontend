@@ -31,6 +31,13 @@ class ServicoConta(private val provedorDeCliente: () -> ClienteSupabase) {
     /** Lido a cada chamada: após `GestorClienteKtor.recriar()` o cliente anterior está fechado. */
     private val cliente: ClienteSupabase get() = provedorDeCliente()
 
+    /** JSON bruto do titular: o cliente autenticado mapeia erros sem decodificar os dados pessoais. */
+    suspend fun exportarMeusDados(): ByteArray {
+        val clienteAtual = cliente
+        val resposta = clienteAtual.http.post(clienteAtual.urlFunction("exportar-meus-dados"))
+        return clienteAtual.corpoOuErro(resposta)
+    }
+
     /**
      * `situacao_da_conta` (RF24, RN13): o estado da conta e, se suspensa, o motivo, a data e o protocolo da
      * contestação já aberta. Vai em POST com corpo vazio, como no iOS. Conta suspensa lê normalmente: é a tela
