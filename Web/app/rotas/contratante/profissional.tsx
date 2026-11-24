@@ -24,8 +24,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
   const volta = caminhoDeVolta(new URL(request.url).searchParams.get("volta"));
   // A foto vem por outro caminho (perfil por POST + miniatura no servidor), em paralelo com o perfil.
   const [leitura, foto] = await Promise.all([
-    lerPerfilDoProfissional(apiDoUsuario(sessao.acesso), params.profissionalId),
-    fotoDoProfissional(sessao.acesso, params.profissionalId),
+    lerPerfilDoProfissional(apiDoUsuario(sessao), params.profissionalId),
+    fotoDoProfissional(sessao, params.profissionalId),
   ]);
   if (leitura.estado === "nao_encontrado") return data({ estado: "nao_encontrado" as const, volta, perfil: null }, { status: 404 });
   if (leitura.estado !== "ok") return { estado: "indisponivel" as const, volta, perfil: null };

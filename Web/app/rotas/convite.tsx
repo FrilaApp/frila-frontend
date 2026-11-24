@@ -22,7 +22,7 @@ export function loader({ context }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
-  const aceite = await aceitarConvite(apiDoUsuario(sessao.acesso), String(formulario.get("token") ?? "").trim().toLowerCase());
+  const aceite = await aceitarConvite(apiDoUsuario(sessao), String(formulario.get("token") ?? "").trim().toLowerCase());
   if (aceite.ok) throw redirect(aceite.casaId ? `/painel?casa=${aceite.casaId}` : "/painel");
   if (aceite.motivo === "sem_sessao") throw redirect("/entrar");
   return { falha: aceite.motivo };

@@ -23,7 +23,7 @@ export function meta() {
 /** O turno sai da lista do servidor (não há leitura de um turno só); o que não é da pessoa responde 404. */
 export async function loader({ context, params }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await listarMeusTurnos(apiDoUsuario(sessao.acesso));
+  const leitura = await listarMeusTurnos(apiDoUsuario(sessao));
   if (leitura.estado !== "ok") return { estado: leitura.estado, turno: null };
   const turno = leitura.turnos.find((item) => item.id === params.turnoId);
   if (!turno) return data({ estado: "nao_encontrado" as const, turno: null }, { status: 404 });
@@ -61,7 +61,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
 
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const intencao = formulario.get("intencao");
   if (intencao === "avaliar") {
@@ -72,13 +72,13 @@ export async function action({ context, request }: Route.ActionArgs) {
         : ({ ok: false, motivo: "indisponivel" } as const);
     const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
     if (avaliacao === "sem_sessao") throw redirect("/entrar");
-    if (resultado.ok) registrarEvento(sessao.acesso, "avaliacao_enviada", { turno_id: String(formulario.get("turno_id") ?? "") });
+    if (resultado.ok) registrarEvento(sessao, "avaliacao_enviada", { turno_id: String(formulario.get("turno_id") ?? "") });
     return { avaliacao };
   }
   if (intencao === "chegar" || intencao === "validar" || intencao === "encerrar") {
     const turnoId = String(formulario.get("turno_id") ?? "");
     const distancia = distanciaDoFormulario(formulario.get("distancia_m"));
-    if (intencao === "chegar") registrarEvento(sessao.acesso, "checkin_tentado", { turno_id: turnoId });
+    if (intencao === "chegar") registrarEvento(sessao, "checkin_tentado", { turno_id: turnoId });
     const resultado =
       intencao === "chegar"
         ? await marcarChegada(api, turnoId, distancia)
@@ -87,8 +87,8 @@ export async function action({ context, request }: Route.ActionArgs) {
           : await marcarSaida(api, turnoId, distancia);
     if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
     // Como no app: a presença conta como concluída quando fica verificada; a saída, quando o servidor a grava.
-    if (resultado.ok && intencao === "encerrar") registrarEvento(sessao.acesso, "checkout_concluido", { turno_id: turnoId });
-    else if (resultado.ok && resultado.verificado) registrarEvento(sessao.acesso, "checkin_concluido", { turno_id: turnoId });
+    if (resultado.ok && intencao === "encerrar") registrarEvento(sessao, "checkout_concluido", { turno_id: turnoId });
+    else if (resultado.ok && resultado.verificado) registrarEvento(sessao, "checkin_concluido", { turno_id: turnoId });
     const presenca = resultado.ok
       ? intencao === "encerrar"
         ? ("saida" as const)

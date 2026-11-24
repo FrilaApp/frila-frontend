@@ -42,7 +42,7 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const leitura = await lerMinhasCasas(api);
   if (leitura.estado === "sem_sessao") throw redirect("/entrar");
   // Sem casa, conta de profissional ou servidor fora: o painel explica cada caso.
@@ -158,7 +158,7 @@ type Retorno = Lista | { estado: "erro"; filtros: FiltrosDaBusca; campo?: CampoD
 
 export async function action({ request, context }: Route.ActionArgs): Promise<Retorno> {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const filtros = filtrosDoFormulario(formulario);
   const casaId = String(formulario.get("casa") ?? "");

@@ -19,7 +19,7 @@ export function meta() {
 /** Detalhe da vaga. O que aparece (endereço incluso) é o que o servidor devolve para esta pessoa. */
 export async function loader({ context, params }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const [leitura, minhas] = await Promise.all([lerVaga(api, params.vagaId), listarMinhasCandidaturas(api)]);
   if (leitura.estado === "nao_encontrada") {
     return data({ estado: "nao_encontrada" as const, vaga: null, candidatura: null }, { status: 404 });
@@ -28,7 +28,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
     return { estado: leitura.estado, vaga: null, candidatura: null };
   }
   const vaga = leitura.vaga;
-  registrarEvento(sessao.acesso, "vaga_detalhe_aberto", { vaga_id: vaga.id });
+  registrarEvento(sessao, "vaga_detalhe_aberto", { vaga_id: vaga.id });
   const itens: Array<string | null> = [
     vaga.inclusos.inclui_refeicao ? t.refeicao : null,
     vaga.inclusos.inclui_transporte ? t.transporte : null,
@@ -70,18 +70,18 @@ export async function loader({ context, params }: Route.LoaderArgs) {
 /** Candidatar-se ou retirar. Sempre um envio; a regra (corrida, elegibilidade) é do servidor. */
 export async function action({ context, params, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   if (formulario.get("intencao") === "retirar") {
     const retirada = await retirarCandidatura(api, String(formulario.get("candidatura_id") ?? ""));
     const motivo = retirada.ok ? ("retirada" as const) : retirada.motivo;
-    if (retirada.ok) registrarEvento(sessao.acesso, "candidatura_retirada", { vaga_id: params.vagaId });
+    if (retirada.ok) registrarEvento(sessao, "candidatura_retirada", { vaga_id: params.vagaId });
     if (motivo === "sem_sessao") throw redirect("/entrar");
     return { resultado: motivo };
   }
   const candidatura = await candidatar(api, params.vagaId);
   const resultado = candidatura.ok ? candidatura.estado : candidatura.motivo;
-  if (candidatura.ok) registrarEvento(sessao.acesso, "candidatura_enviada", { vaga_id: params.vagaId });
+  if (candidatura.ok) registrarEvento(sessao, "candidatura_enviada", { vaga_id: params.vagaId });
   if (resultado === "sem_sessao") throw redirect("/entrar");
   return { resultado };
 }

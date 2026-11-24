@@ -18,7 +18,7 @@ type Casa = { id: string; nome: string };
 /** A conta pode operar mais de uma casa: a tela mostra uma por vez (?casa=), e as outras viram links. */
 export async function loader({ context, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const casas = await listarMinhasCasas(api);
   const vazio = { casa: null, outrasCasas: [] as Casa[], turnos: [] };
   if (casas.estado !== "ok") return { estado: casas.estado, ...vazio };

@@ -6,6 +6,7 @@
  * private, no-store. Qualquer coisa fora do esperado vira "sem foto".
  */
 import type { AmbienteDoSupabase } from "../ambiente";
+import { restDoUsuario, type ChavesDoIp, type OrigemDaSaida } from "../saida-rest";
 
 export const LIMITE_DA_FOTO = 256 * 1024;
 const TIPOS = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -54,12 +55,20 @@ function emBase64(bytes: Uint8Array): string {
   return btoa(texto);
 }
 
-export async function fotoDoPerfil(ambiente: AmbienteDoSupabase, acesso: string, profissionalId: string, buscar: typeof fetch = fetch): Promise<string | null> {
+export async function fotoDoPerfil(
+  ambiente: AmbienteDoSupabase,
+  sessao: OrigemDaSaida,
+  profissionalId: string,
+  opcoes: { buscar?: typeof fetch; chaves?: ChavesDoIp } = {},
+): Promise<string | null> {
   if (!UUID.test(profissionalId)) return null;
+  const buscar = opcoes.buscar ?? ((entrada: RequestInfo | URL, inicio?: RequestInit) => fetch(entrada, inicio));
+  // O perfil sai pelo ponto único da API com token (saida-rest.ts: token e IP do visitante assinado); a miniatura é do link da ler-midia, sem nada disso.
+  const rest = restDoUsuario(ambiente, sessao, { chaves: opcoes.chaves ?? {}, fetch: buscar });
   try {
-    const perfil = await buscar(`${ambiente.url}/rest/v1/rpc/perfil_publico`, {
+    const perfil = await rest("/rpc/perfil_publico", {
       method: "POST",
-      headers: { apikey: ambiente.chavePublicavel, Authorization: `Bearer ${acesso}`, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: profissionalId }),
       signal: AbortSignal.timeout(5000),
     });

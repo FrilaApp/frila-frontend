@@ -40,7 +40,7 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const [conta, perfil, funcoes, regioes] = await Promise.all([lerMinhaConta(api), lerSeTemPerfil(api), lerFuncoes(api), lerRegioes(api)]);
   if (perfil === "sem_sessao") throw redirect("/entrar");
   if (conta.estado === "sem_conta") throw redirect("/cadastro");
@@ -98,7 +98,7 @@ const AVISO_DO_HORARIO = { sem_dia: t.erros.horarioSemDia, invalido: t.erros.hor
 
 export async function action({ context, request }: Route.ActionArgs): Promise<Retorno> {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const passo = passoDoFormulario(formulario);
   let valores = valoresDoFormulario(formulario);

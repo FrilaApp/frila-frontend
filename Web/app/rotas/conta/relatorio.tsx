@@ -18,7 +18,7 @@ export function meta() {
 export async function loader({ context, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
   const busca = new URL(request.url).searchParams;
-  const leitura = await lerMinhasCasas(apiDoUsuario(sessao.acesso));
+  const leitura = await lerMinhasCasas(apiDoUsuario(sessao));
   const casas = leitura.estado === "ok" ? leitura.casas.map((casa) => ({ id: casa.id, nome: casa.nome })) : [];
   const erro = busca.get("erro");
   // Padrão: os últimos 15 dias, como o servidor.

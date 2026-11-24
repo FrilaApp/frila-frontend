@@ -19,7 +19,7 @@ export function loader({ context, request }: Route.LoaderArgs) {
 
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  return agirNaDenuncia(apiDoUsuario(sessao.acesso), await request.formData(), "profissional");
+  return agirNaDenuncia(apiDoUsuario(sessao), await request.formData(), "profissional");
 }
 
 export default function DenunciarProfissional({ loaderData, actionData }: Route.ComponentProps) {

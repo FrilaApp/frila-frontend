@@ -13,12 +13,12 @@ export function meta() {
 /** Só as casas (o lado do profissional bloqueia casas); o par vai ao desbloquear como o servidor mandou. */
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  return carregarBloqueios(apiDoUsuario(sessao.acesso), "estabelecimento");
+  return carregarBloqueios(apiDoUsuario(sessao), "estabelecimento");
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  return desbloquear(apiDoUsuario(sessao.acesso), await request.formData(), "estabelecimento");
+  return desbloquear(apiDoUsuario(sessao), await request.formData(), "estabelecimento");
 }
 
 export default function Bloqueados({ loaderData, actionData }: Route.ComponentProps) {

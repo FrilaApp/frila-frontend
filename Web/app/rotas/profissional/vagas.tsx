@@ -18,7 +18,7 @@ export function meta() {
 export async function loader({ context, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
   const filtros = filtrosDaUrl(new URL(request.url));
-  const leitura = await listarVagasAbertas(apiDoUsuario(sessao.acesso), filtros);
+  const leitura = await listarVagasAbertas(apiDoUsuario(sessao), filtros);
   // Só o que a tela mostra, já formatado no servidor.
   const vagas =
     leitura.estado === "ok"

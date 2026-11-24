@@ -17,7 +17,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   // Push na web (RN15): antes de encerrar, o token deste navegador deixa de ser da conta. Se isso falhar, o Sair falha
   // como na falha do Auth (achado A4 do Juiz): não diz que saiu com o aparelho ainda registrado para a conta.
   const tokenDoAparelho = lerTokenDoAparelho(request);
-  if (sessao && tokenDoAparelho && !(await removerAparelho(apiDoUsuario(sessao.acesso), tokenDoAparelho))) {
+  if (sessao && tokenDoAparelho && !(await removerAparelho(apiDoUsuario(sessao), tokenDoAparelho))) {
     throw redirect("/?sair=falhou");
   }
   const encerrada = sessao

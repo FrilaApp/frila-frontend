@@ -13,12 +13,12 @@ export function meta() {
 /** Os profissionais que a casa bloqueou (o bloqueio vale para todo o estabelecimento), com o desbloquear. */
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  return carregarBloqueios(apiDoUsuario(sessao.acesso), "profissional");
+  return carregarBloqueios(apiDoUsuario(sessao), "profissional");
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  return desbloquear(apiDoUsuario(sessao.acesso), await request.formData(), "profissional");
+  return desbloquear(apiDoUsuario(sessao), await request.formData(), "profissional");
 }
 
 export default function BloqueadosDaCasa({ loaderData, actionData }: Route.ComponentProps) {

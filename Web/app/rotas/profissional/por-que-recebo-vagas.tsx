@@ -24,7 +24,7 @@ export function meta() {
 /** Só o que a tela mostra: as frases já montadas e o protocolo curto. O relato nunca passa por aqui. */
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await lerCriteriosDeNotificacao(apiDoUsuario(sessao.acesso));
+  const leitura = await lerCriteriosDeNotificacao(apiDoUsuario(sessao));
   if (leitura.estado === "sem_sessao") throw redirect("/entrar");
   if (leitura.estado !== "ok") return { estado: leitura.estado, criterios: null };
   const c = leitura.criterios;
@@ -47,7 +47,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
-  const resultado = await pedirRevisaoDoDespacho(apiDoUsuario(sessao.acesso), String(formulario.get("relato") ?? ""));
+  const resultado = await pedirRevisaoDoDespacho(apiDoUsuario(sessao), String(formulario.get("relato") ?? ""));
   if (resultado.ok) return { resultado: "enviado" as const };
   if (resultado.motivo === "sem_sessao") throw redirect("/entrar");
   return { resultado: resultado.motivo };

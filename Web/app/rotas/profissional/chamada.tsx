@@ -19,7 +19,7 @@ const hora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", d
 /** A chamada como o servidor a mostra a esta pessoa: sem endereço antes do aceite. */
 export async function loader({ context, params }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await lerChamada(apiDoUsuario(sessao.acesso), params.chamadaId);
+  const leitura = await lerChamada(apiDoUsuario(sessao), params.chamadaId);
   if (leitura.estado === "nao_encontrada") return data({ estado: "nao_encontrada" as const, chamada: null }, { status: 404 });
   if (leitura.estado !== "ok") return { estado: leitura.estado, chamada: null };
   const c = leitura.chamada;
@@ -53,7 +53,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   const escolhido = (MOTIVOS_DA_RECUSA as readonly string[]).includes(motivo) ? (motivo as MotivoDaRecusa) : null;
   const resultado =
     resposta === "aceitar" || resposta === "recusar"
-      ? await responderChamada(apiDoUsuario(sessao.acesso), params.chamadaId, resposta, escolhido)
+      ? await responderChamada(apiDoUsuario(sessao), params.chamadaId, resposta, escolhido)
       : ({ ok: false, motivo: "indisponivel" } as const);
   const chave = resultado.ok ? (resultado.aceita ? ("aceita" as const) : ("recusada" as const)) : resultado.motivo;
   if (chave === "sem_sessao") throw redirect("/entrar");

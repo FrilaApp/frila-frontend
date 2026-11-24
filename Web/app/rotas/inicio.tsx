@@ -18,7 +18,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const sessao = context.get(contextoDaSessao);
   const [leitura, conta, linkDaAppStore] = await Promise.all([
     lerConfiguracaoDesteAmbiente(),
-    sessao ? lerMinhaConta(apiDoUsuario(sessao.acesso)) : null,
+    sessao ? lerMinhaConta(apiDoUsuario(sessao)) : null,
     // Só quem não entrou vê a página pública com o botão da loja.
     sessao ? null : lerLinkDaAppStore(),
   ]);

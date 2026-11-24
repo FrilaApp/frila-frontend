@@ -22,7 +22,7 @@ const PODE_PUBLICAR = new Set(["aberta", "recusada", "expirada", "cancelada"]);
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const busca = new URL(request.url).searchParams;
   const leitura = await lerMinhasCasas(api);
   if (leitura.estado === "sem_sessao") throw redirect("/entrar");
@@ -56,7 +56,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs): Promise<{ falha: Exclude<FalhaNaChamada, "sem_sessao"> }> {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const intencao = String(formulario.get("intencao") ?? "");
   const casaId = String(formulario.get("casa") ?? "");

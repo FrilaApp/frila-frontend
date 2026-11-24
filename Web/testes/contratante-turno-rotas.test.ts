@@ -46,7 +46,7 @@ function servidor(turnosPorCasa: Record<string, unknown[]>) {
 }
 const argumentos = (endereco: string, dados: Record<string, string> | null = null, logado = true) => {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com" } : null);
+  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com", visitante: null } : null);
   const url = `https://frilabr.com/app${endereco}`;
   const request = dados
     ? new Request(url, { method: "POST", headers: { Origin: "https://frilabr.com" }, body: new URLSearchParams(dados) })
