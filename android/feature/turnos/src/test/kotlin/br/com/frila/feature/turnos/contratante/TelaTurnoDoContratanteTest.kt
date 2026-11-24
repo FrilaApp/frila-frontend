@@ -9,9 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.compose.runtime.mutableStateOf
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.PerfilPublicoDto
@@ -31,21 +29,29 @@ class TelaTurnoDoContratanteTest {
     @get:Rule
     val rule = createComposeRule()
 
-    @Test fun `cancelar posicao abre motivo valida texto e confirma com alvo minimo`() {
+    @Test fun `cancelar posicao abre motivo confirma sem digitar e mostra aviso com alvo minimo`() {
         var recebido: String? = null
-        val vm = AcompanhamentoContratanteViewModel(
-            ContextoDoTurnoContratante("turno", "Função", "Casa", null, Instant.EPOCH.plusSeconds(3600),
-                null, null, null, null, null, false, "posicao", "confirmada"),
-            { error("não confirma") }, CoroutineScope(Dispatchers.Unconfined), relogio = { Instant.EPOCH },
-            cancelar = { id, motivo -> recebido = motivo; br.com.frila.core.dominio.modelo.ResultadoCancelamento(id, false, true) })
-        rule.setContent { FrilaTheme { TelaTurnoDoContratante(vm, {}) } }
+        val inicial = estado().let { it.copy(
+            contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            cancelamentoDisponivel = true, agora = { Instant.EPOCH },
+        ) }
+        val tela = mutableStateOf(inicial)
+        val aviso = "O cancelamento não foi aceito. Atualize a tela e tente de novo."
+        rule.setContent { FrilaTheme {
+            ConteudoTurnoDoContratante(tela.value, AcoesTurnoDoContratante(
+                aoPedirCancelamento = { tela.value = tela.value.copy(pedindoCancelamento = true) },
+                aoDesistir = { tela.value = tela.value.copy(pedindoCancelamento = false) },
+                aoConfirmarCancelamento = { motivo ->
+                    recebido = motivo
+                    tela.value = tela.value.copy(avisoDoCancelamento = aviso)
+                },
+            ))
+        } }
         rule.onNodeWithText("Cancelar posição").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithText("Motivo").assertIsDisplayed()
         rule.onNodeWithText("Confirmar cancelamento").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
-        rule.onNodeWithText("Informe um motivo com pelo menos 3 caracteres.").assertIsDisplayed()
-        rule.onNodeWithText("Motivo").performTextInput("Imprevisto")
-        rule.onNodeWithText("Confirmar cancelamento").performClick()
-        rule.runOnIdle { assertEquals("Imprevisto", recebido) }
-        rule.onNodeWithText("Posição cancelada. A vaga voltou a procurar profissional.").assertIsDisplayed()
+        rule.runOnIdle { assertEquals("", recebido) }
+        rule.onNodeWithText(aviso).assertIsDisplayed()
     }
 
     private val ana = PerfilPublicoDto("p1", "profissional", "Ana", listOf("garçom", "barman"), ReputacaoDto(1, 1, null, 1, 1))
