@@ -122,6 +122,38 @@ class AutenticacaoComSenhaViewModelsTest {
     }
 
     @Test
+    fun `demonstracao abre a conta digitada (profissional ou contratante) e, sem e-mail de demo, a do profissional, sempre sem senha`() {
+        val corpos = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            corpos += request.url.encodedPath
+            respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val servico = ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave", engine = engine))
+        val vm = EntradaComSenhaViewModel(servico, ArmazenamentoDeSessaoEmMemoria(), escopo = escopo())
+
+        assertFalse(vm.digitouContaDeDemonstracao())
+        assertEquals(DemonstracaoContas.EMAIL_PROFISSIONAL, vm.emailDaDemonstracao())
+
+        vm.aoMudarEmail("  ${DemonstracaoContas.EMAIL_CONTRATANTE.uppercase()} ")
+        assertTrue(vm.digitouContaDeDemonstracao())
+        assertEquals(DemonstracaoContas.EMAIL_CONTRATANTE, vm.emailDaDemonstracao())
+
+        vm.aoMudarEmail(DemonstracaoContas.EMAIL_PROFISSIONAL)
+        assertTrue(vm.digitouContaDeDemonstracao())
+        assertEquals(DemonstracaoContas.EMAIL_PROFISSIONAL, vm.emailDaDemonstracao())
+
+        vm.aoMudarEmail("conta@exemplo.test")
+        assertFalse(vm.digitouContaDeDemonstracao())
+        assertEquals(DemonstracaoContas.EMAIL_PROFISSIONAL, vm.emailDaDemonstracao())
+
+        // Demo nunca habilita senha: o login por senha continua recusando as duas contas, sem chamar a rede.
+        vm.aoMudarSenha("SenhaSintetica#2026")
+        vm.aoMudarEmail(DemonstracaoContas.EMAIL_CONTRATANTE)
+        assertNull(vm.entrar())
+        assertTrue(corpos.isEmpty())
+    }
+
+    @Test
     fun `criar conta envia create_user true e bloqueia conta de demonstracao`() = runBlocking {
         val corpos = mutableListOf<String>()
         val engine = MockEngine { request ->

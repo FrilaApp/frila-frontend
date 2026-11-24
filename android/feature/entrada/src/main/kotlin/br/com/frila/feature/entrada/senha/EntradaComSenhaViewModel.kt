@@ -73,6 +73,17 @@ class EntradaComSenhaViewModel(
         _estado.update { it.copy(carregando = false) }
     }
 
+    /** O e-mail digitado é de uma conta de demonstração (a entrada dela é pela tela de código em modo demo, nunca por senha). */
+    fun digitouContaDeDemonstracao(): Boolean =
+        DemonstracaoContas.ehContaDeDemonstracao(_estado.value.email, permitirDominioDeTeste)
+
+    /**
+     * Qual conta de demonstração abrir: a que foi digitada (profissional ou contratante), como o app fazia antes da
+     * senha; sem e-mail de demonstração digitado, a do profissional.
+     */
+    fun emailDaDemonstracao(): String =
+        if (digitouContaDeDemonstracao()) _estado.value.email.trim().lowercase() else DemonstracaoContas.EMAIL_PROFISSIONAL
+
     fun entrar(): Job? {
         pedido?.takeIf { it.isActive }?.let { return it }
         val email = _estado.value.email.trim().lowercase()

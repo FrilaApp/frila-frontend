@@ -59,7 +59,7 @@ fun TelaEntradaComSenha(
     aoAutenticar: () -> Unit,
     aoCriarConta: (String) -> Unit,
     aoRecuperarSenha: (String) -> Unit,
-    aoEntrarDemonstracao: () -> Unit,
+    aoEntrarDemonstracao: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -77,6 +77,19 @@ fun TelaEntradaComSenha(
 
     DisposableEffect(Unit) {
         onDispose { viewModel.cancelarTentativaAtual() }
+    }
+
+    // Conta de demonstração digitada (profissional ou contratante) segue para o modo demonstração, sem senha.
+    val entrarDemonstracao = {
+        viewModel.cancelarTentativaAtual()
+        aoEntrarDemonstracao(viewModel.emailDaDemonstracao())
+    }
+    val entrar: () -> Unit = {
+        if (viewModel.digitouContaDeDemonstracao()) {
+            entrarDemonstracao()
+        } else {
+            viewModel.entrar()
+        }
     }
 
     Scaffold(
@@ -104,7 +117,7 @@ fun TelaEntradaComSenha(
                 }
                 BotaoPrimario(
                     texto = if (estado.carregando) "Entrando…" else "Entrar",
-                    aoClicar = viewModel::entrar,
+                    aoClicar = entrar,
                     habilitado = !estado.carregando,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -168,7 +181,7 @@ fun TelaEntradaComSenha(
                         imeAction = ImeAction.Done,
                         autoCorrectEnabled = false,
                     ),
-                    keyboardActions = KeyboardActions(onDone = { viewModel.entrar() }),
+                    keyboardActions = KeyboardActions(onDone = { entrar() }),
                     modifier = Modifier.semantics {
                         contentType = ContentType.Password
                         if (erroSenha != null) liveRegion = LiveRegionMode.Assertive
@@ -198,10 +211,7 @@ fun TelaEntradaComSenha(
 
                 LinkFrila(
                     texto = "Entrar em modo demonstração",
-                    aoClicar = {
-                        viewModel.cancelarTentativaAtual()
-                        aoEntrarDemonstracao()
-                    },
+                    aoClicar = entrarDemonstracao,
                     habilitado = !estado.carregando,
                 )
             }

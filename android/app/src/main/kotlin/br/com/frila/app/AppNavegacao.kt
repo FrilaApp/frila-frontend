@@ -39,7 +39,6 @@ import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.dominio.regra.instanteDoServidor
-import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoVagas
@@ -506,8 +505,8 @@ fun AppNavegacao(
                         },
                         aoCriarConta = { email -> navController.navigate(Rotas.criarConta(email)) },
                         aoRecuperarSenha = { email -> navController.navigate(Rotas.recuperarSenha(email)) },
-                        aoEntrarDemonstracao = {
-                            navController.navigate(Rotas.codigo(DemonstracaoContas.EMAIL_PROFISSIONAL, ModoCodigo.DEMO))
+                        aoEntrarDemonstracao = { email ->
+                            navController.navigate(Rotas.codigo(email, ModoCodigo.DEMO))
                         },
                     )
                 } else {

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
@@ -54,7 +55,7 @@ class TelasSenhaComposeTest {
         )
         var clicouCriar = false
         var clicouRecuperar = false
-        var clicouDemo = false
+        var emailDaDemo: String? = null
 
         rule.setContent {
             FrilaTheme {
@@ -63,7 +64,7 @@ class TelasSenhaComposeTest {
                     aoAutenticar = {},
                     aoCriarConta = { clicouCriar = true },
                     aoRecuperarSenha = { clicouRecuperar = true },
-                    aoEntrarDemonstracao = { clicouDemo = true },
+                    aoEntrarDemonstracao = { email -> emailDaDemo = email },
                 )
             }
         }
@@ -77,7 +78,42 @@ class TelasSenhaComposeTest {
 
         assertTrue(clicouRecuperar)
         assertTrue(clicouCriar)
-        assertTrue(clicouDemo)
+        assertEquals(DemonstracaoContas.EMAIL_PROFISSIONAL, emailDaDemo)
+    }
+
+    @Test
+    fun telaEntradaComSenhaAbreADemoDoContratanteQuandoEleFoiDigitadoETambemPeloBotaoEntrar() {
+        val servico = ServicoAutenticacao(
+            ClienteSupabase(
+                "https://frila.supabase.co",
+                "chave",
+                engine = MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+        )
+        val vm = EntradaComSenhaViewModel(
+            servico,
+            ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        )
+        val demos = mutableListOf<String>()
+
+        rule.setContent {
+            FrilaTheme {
+                TelaEntradaComSenha(
+                    viewModel = vm,
+                    aoAutenticar = {},
+                    aoCriarConta = {},
+                    aoRecuperarSenha = {},
+                    aoEntrarDemonstracao = { email -> demos += email },
+                )
+            }
+        }
+
+        rule.onNodeWithText("E-mail").performTextInput(DemonstracaoContas.EMAIL_CONTRATANTE)
+        rule.onNodeWithText("Entrar em modo demonstração").performScrollTo().performClick()
+        rule.onNodeWithText("Entrar").performClick()
+
+        assertEquals(listOf(DemonstracaoContas.EMAIL_CONTRATANTE, DemonstracaoContas.EMAIL_CONTRATANTE), demos)
     }
 
     @Test
