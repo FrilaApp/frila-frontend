@@ -22,7 +22,8 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -80,7 +81,7 @@ class TelasSenhaComposeTest {
     }
 
     @Test
-    fun telaRecuperacaoExibeEstadoNeutroSemAvancarParaIdentidadeInexistente() {
+    fun telaRecuperacaoAvancaParaOCodigoTambemQuandoNaoHaContaSemMostrarErro() {
         val servico = ServicoAutenticacao(
             ClienteSupabase(
                 "https://frila.supabase.co",
@@ -95,13 +96,13 @@ class TelasSenhaComposeTest {
             ),
         )
         val vm = RecuperacaoSenhaViewModel(servico, escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
-        var avancou = false
+        var emailQueAvancou: String? = null
 
         rule.setContent {
             FrilaTheme {
                 TelaRecuperacaoSenha(
                     viewModel = vm,
-                    aoAvancarParaCodigo = { avancou = true },
+                    aoAvancarParaCodigo = { emailQueAvancou = it },
                     aoVoltarParaLogin = {},
                 )
             }
@@ -109,12 +110,10 @@ class TelasSenhaComposeTest {
 
         rule.onNodeWithText("E-mail").performTextInput("naoexiste@exemplo.test")
         rule.onNodeWithText("Enviar código").performClick()
-        rule.waitUntil(timeoutMillis = 3_000) {
-            vm.estado.value.mensagemNeutra != null
-        }
+        rule.waitUntil(timeoutMillis = 3_000) { emailQueAvancou != null }
 
-        rule.onNodeWithText(RecuperacaoSenhaViewModel.MENSAGEM_NEUTRA_RECUPERACAO).assertIsDisplayed()
-        assertFalse(avancou)
+        assertEquals("naoexiste@exemplo.test", emailQueAvancou)
+        assertNull(vm.estado.value.erro)
     }
 
     @Test

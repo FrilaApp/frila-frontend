@@ -143,12 +143,38 @@ class AutenticacaoComSenhaViewModelsTest {
     }
 
     @Test
-    fun `recuperacao envia create_user false, mostra estado neutro em otp_disabled e nao esconde 429`() = runBlocking {
+    fun `recuperacao envia create_user false e mostra o MESMO resultado com conta (200) e sem conta (422 otp_disabled)`() = runBlocking {
         val corpos = mutableListOf<String>()
-        var statusAtual = HttpStatusCode.UnprocessableEntity
-        var corpoAtual = """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}"""
+        var statusAtual = HttpStatusCode.OK
+        var corpoAtual = "{}"
         val engine = MockEngine { request ->
             corpos += (request.body as TextContent).text
+            respond(corpoAtual, statusAtual, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val servico = ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave", engine = engine))
+
+        val vmComConta = RecuperacaoSenhaViewModel(servico, escopo = escopo(), emailInicial = "legado@exemplo.test")
+        vmComConta.solicitarRecuperacao()?.join()
+        assertTrue(corpos.last().contains("\"create_user\":false"))
+
+        statusAtual = HttpStatusCode.UnprocessableEntity
+        corpoAtual = """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}"""
+        val vmSemConta = RecuperacaoSenhaViewModel(servico, escopo = escopo(), emailInicial = "legado@exemplo.test")
+        vmSemConta.solicitarRecuperacao()?.join()
+        assertTrue(corpos.last().contains("\"create_user\":false"))
+
+        // Mesmo estado visível: avança para o código, sem erro e sem carregando.
+        assertTrue(vmComConta.estado.value.avancarParaCodigo)
+        assertEquals(vmComConta.estado.value, vmSemConta.estado.value)
+        assertNull(vmSemConta.estado.value.erro)
+        assertFalse(vmSemConta.estado.value.carregando)
+    }
+
+    @Test
+    fun `recuperacao trata user_not_found como sem conta e nao esconde 429, sem rede nem 5xx`() = runBlocking {
+        var statusAtual = HttpStatusCode.NotFound
+        var corpoAtual = """{"code":404,"error_code":"user_not_found"}"""
+        val engine = MockEngine {
             respond(corpoAtual, statusAtual, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         val servico = ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave", engine = engine))
@@ -156,21 +182,24 @@ class AutenticacaoComSenhaViewModelsTest {
 
         vm.aoMudarEmail(DemonstracaoContas.EMAIL_CONTRATANTE)
         assertNull(vm.solicitarRecuperacao())
-        assertTrue(corpos.isEmpty())
 
         vm.aoMudarEmail("inexistente@exemplo.test")
         vm.solicitarRecuperacao()?.join()
-        assertEquals(RecuperacaoSenhaViewModel.MENSAGEM_NEUTRA_RECUPERACAO, vm.estado.value.mensagemNeutra)
+        assertTrue(vm.estado.value.avancarParaCodigo)
         assertNull(vm.estado.value.erro)
-        assertFalse(vm.estado.value.avancarParaCodigo)
-        assertTrue(corpos.last().contains("\"create_user\":false"))
 
         statusAtual = HttpStatusCode.TooManyRequests
         corpoAtual = """{"code":429,"error_code":"over_email_send_rate_limit"}"""
+        vm.aoNavegarParaCodigo()
         vm.aoMudarEmail("legado@exemplo.test")
         vm.solicitarRecuperacao()?.join()
         assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, vm.estado.value.erro)
-        assertNull(vm.estado.value.mensagemNeutra)
+        assertFalse(vm.estado.value.avancarParaCodigo)
+
+        statusAtual = HttpStatusCode.InternalServerError
+        corpoAtual = """{"code":500,"error_code":"unexpected_failure"}"""
+        vm.solicitarRecuperacao()?.join()
+        assertEquals("Não foi possível enviar o código. Tente de novo em instantes.", vm.estado.value.erro)
         assertFalse(vm.estado.value.avancarParaCodigo)
     }
 
@@ -196,7 +225,6 @@ class AutenticacaoComSenhaViewModelsTest {
         assertFalse(vm.estado.value.avancarParaCodigo)
         assertFalse(vm.estado.value.carregando)
         assertNull(vm.estado.value.erro)
-        assertNull(vm.estado.value.mensagemNeutra)
     }
 
     @Test

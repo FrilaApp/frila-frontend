@@ -41,7 +41,7 @@ private const val ERRO_EMAIL_INVALIDO = "Informe um e-mail válido."
  * - redefinir senha esquecida;
  * - migrar contas legadas OTP-only para senha preservando o mesmo `auth.uid`.
  *
- * Para e-mail inexistente ou social-only, exibe estado neutro anti-enumeração sem avançar.
+ * Anti-enumeração: com ou sem conta, o resultado é o mesmo (segue para a tela do código, com texto neutro).
  */
 @Composable
 fun TelaRecuperacaoSenha(
@@ -122,15 +122,6 @@ fun TelaRecuperacaoSenha(
                         if (erroEmail != null) liveRegion = LiveRegionMode.Assertive
                     },
                 )
-
-                estado.mensagemNeutra?.let { neutra ->
-                    Text(
-                        text = neutra,
-                        style = FrilaTipo.apoio,
-                        color = cores.tintaSuave,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                    )
-                }
             }
 
             LinkFrila(

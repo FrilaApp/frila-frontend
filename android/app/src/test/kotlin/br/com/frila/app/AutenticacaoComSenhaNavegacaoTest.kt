@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -69,7 +70,7 @@ class AutenticacaoComSenhaNavegacaoTest {
     private val perfilProfissional =
         """{"id":"22222222-2222-4222-8222-222222222222","usuario_id":"11111111-1111-4111-8111-111111111111","funcoes":[],"disponibilidades":[],"reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
 
-    private fun montarApp(contaExiste: Boolean) {
+    private fun montarApp(contaExiste: Boolean, otpDesativado: Boolean = false) {
         val engine = MockEngine { req ->
             val path = req.url.encodedPath
             chamadas += path
@@ -77,6 +78,8 @@ class AutenticacaoComSenhaNavegacaoTest {
                 corposOtp += (req.body as TextContent).text
             }
             val (corpo, status) = when {
+                path == "/auth/v1/otp" && otpDesativado ->
+                    """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}""" to HttpStatusCode.UnprocessableEntity
                 path == "/auth/v1/otp" -> "{}" to HttpStatusCode.OK
                 path == "/auth/v1/verify" ->
                     """{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
@@ -225,5 +228,39 @@ class AutenticacaoComSenhaNavegacaoTest {
         assertTrue("esperava FEED preservando a conta, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
         assertEquals(1, corposOtp.size)
         assertTrue(chamadas.contains("/auth/v1/user"))
+    }
+
+    private fun recuperarSenhaDe(email: String) {
+        rule.onNodeWithText("Esqueci ou ainda não tenho senha").performScrollTo().performClick()
+        assertTrue(aguardar { rotaAtual() == Rotas.RECUPERAR_SENHA })
+        rule.onNodeWithText("E-mail").performTextInput(email)
+        rule.onNodeWithText("Enviar código").performClick()
+    }
+
+    private val textoNeutroDaRecuperacao =
+        "Se houver uma conta com este e-mail, enviamos um código de 6 dígitos para legado@exemplo.test."
+
+    @Test
+    fun recuperacaoComContaAvancaParaOCodigoComOTextoNeutro() {
+        montarApp(contaExiste = true)
+
+        recuperarSenhaDe("legado@exemplo.test")
+
+        assertTrue("esperava CODIGO, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CODIGO })
+        rule.onNodeWithText(textoNeutroDaRecuperacao).assertIsDisplayed()
+        assertEquals(1, corposOtp.size)
+        assertTrue(corposOtp.single().contains("\"create_user\":false"))
+    }
+
+    @Test
+    fun recuperacaoSemContaAvancaParaOMesmoCodigoComOMesmoTextoNeutro() {
+        montarApp(contaExiste = false, otpDesativado = true)
+
+        recuperarSenhaDe("legado@exemplo.test")
+
+        assertTrue("esperava CODIGO, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CODIGO })
+        rule.onNodeWithText(textoNeutroDaRecuperacao).assertIsDisplayed()
+        assertEquals(1, corposOtp.size)
+        assertTrue(corposOtp.single().contains("\"create_user\":false"))
     }
 }
