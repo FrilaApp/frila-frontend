@@ -31,8 +31,9 @@ private val ESPERA_PARA_REENVIAR: Duration = Duration.ofSeconds(60)
 /** O Auth responde `otp_expired` tanto para o código errado quanto para o vencido. */
 private const val ERRO_DO_AUTH_CODIGO_RECUSADO = "otp_expired"
 private const val MENSAGEM_REENVIO_PADRAO = "Novo código enviado para seu e-mail."
+/** Na recuperação o reenvio diz o mesmo com e sem conta: quem não tem a caixa postal não descobre se o e-mail existe. */
 private const val MENSAGEM_REENVIO_NEUTRA_RECUPERACAO =
-    "Se existir uma conta ativa com este e-mail, enviaremos um novo código."
+    "Se houver uma conta com este e-mail, enviamos um novo código."
 
 /**
  * Tela de código: verifica o OTP de 6 dígitos (ou entra em modo demo para as contas de
@@ -149,16 +150,9 @@ class CodigoViewModel(
                 } else {
                     servicoAutenticacao.solicitarOtp(email)
                 }
-                codigoPedidoEm = agora()
-                _estado.update {
-                    it.copy(
-                        carregando = false,
-                        reenviado = true,
-                        mensagemReenvio = MENSAGEM_REENVIO_PADRAO,
-                        codigo = "",
-                        reenviosFeitos = it.reenviosFeitos + 1,
-                    )
-                }
+                concluirReenvio(
+                    if (modo == ModoCodigo.RECUPERACAO) MENSAGEM_REENVIO_NEUTRA_RECUPERACAO else MENSAGEM_REENVIO_PADRAO,
+                )
             } catch (cancelado: CancellationException) {
                 _estado.update { it.copy(carregando = false) }
                 throw cancelado
@@ -168,20 +162,27 @@ class CodigoViewModel(
                     erro.codigo.name != "SEM_REDE" &&
                     (erro.codigo.name == "NAO_ENCONTRADO" || erro.codigoOriginal == "otp_disabled" || erro.codigoOriginal == "user_not_found")
                 ) {
-                    codigoPedidoEm = agora()
-                    _estado.update {
-                        it.copy(
-                            carregando = false,
-                            reenviado = true,
-                            mensagemReenvio = MENSAGEM_REENVIO_NEUTRA_RECUPERACAO,
-                            erro = null,
-                            reenviosFeitos = it.reenviosFeitos + 1,
-                        )
-                    }
+                    // Mesmo estado do 200: mensagem, campo limpo e contador de 60 s iguais (sem sinal de existência).
+                    concluirReenvio(MENSAGEM_REENVIO_NEUTRA_RECUPERACAO)
                 } else {
                     _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
                 }
             }
+        }
+    }
+
+    /** Reenvio aceito: recomeça a contagem de 60 s, limpa o campo e mostra [mensagem]. */
+    private fun concluirReenvio(mensagem: String) {
+        codigoPedidoEm = agora()
+        _estado.update {
+            it.copy(
+                carregando = false,
+                reenviado = true,
+                mensagemReenvio = mensagem,
+                erro = null,
+                codigo = "",
+                reenviosFeitos = it.reenviosFeitos + 1,
+            )
         }
     }
 
