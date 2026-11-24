@@ -2,7 +2,9 @@ package br.com.frila.feature.entrada.codigo
 
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -11,10 +13,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import io.ktor.client.engine.mock.MockEngine
@@ -44,6 +48,7 @@ class TelaCodigoTest {
         statusHttp: HttpStatusCode = HttpStatusCode.OK,
         /** `true`: o teste já começa depois dos 60 s de espera para reenviar. */
         esperaDeReenvioVencida: Boolean = true,
+        modo: ModoCodigo = ModoCodigo.ENTRADA,
     ): Pair<CodigoViewModel, ArmazenamentoDeSessaoEmMemoria> {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -60,23 +65,72 @@ class TelaCodigoTest {
             armazenamentoDeSessao = armazenamento,
             escopo = CoroutineScope(Dispatchers.Default),
             agora = { relogio },
+            modo = modo,
         )
         if (esperaDeReenvioVencida) relogio = relogio.plusSeconds(60)
         return viewModel to armazenamento
     }
 
+    private fun contemHintEmailOtp(): SemanticsMatcher = SemanticsMatcher("ContentType contém emailOTPCode") { node ->
+        val tipo = node.config.getOrElseNullable(SemanticsProperties.ContentType) { null } ?: return@SemanticsMatcher false
+        val campoHints = tipo.javaClass.declaredFields.firstOrNull { it.name == "androidAutofillHints" }?.apply { isAccessible = true }
+        val hints = campoHints?.get(tipo) as? Set<*>
+        tipo === CONTEUDO_CODIGO_OTP_EMAIL && hints == setOf("emailOTPCode")
+    }
+
     @Test
-    fun campoDoCodigoLevaADicaDePreenchimentoAutomaticoDeCodigo() {
-        val (viewModel, _) = criarViewModel()
+    fun campoDoCodigoLevaADicaDePreenchimentoAutomaticoDeOtpPorEmailNosModosDeEmail() {
+        val (viewModel, _) = criarViewModel(modo = ModoCodigo.CRIACAO)
         rule.setContent {
             FrilaTheme {
                 TelaCodigo(viewModel = viewModel, aoAutenticar = {})
             }
         }
 
-        // EWV25ROo: o aparelho pode sugerir o código recebido; a dica é a semântica de preenchimento do Compose 1.8.
+        // AndroidX HintConstants.AUTOFILL_HINT_EMAIL_OTP = "emailOTPCode"
         rule.onNodeWithContentDescription("Código de 6 dígitos")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentType, ContentType.SmsOtpCode))
+            .assert(contemHintEmailOtp())
+    }
+
+    @Test
+    fun campoDoCodigoLevaEmailOtpCodeNaRecuperacaoEConfirmaQuandoPreenchidoPeloAutofill() {
+        var autenticou = false
+        val (viewModel, armazenamento) = criarViewModel(modo = ModoCodigo.RECUPERACAO)
+        rule.setContent {
+            FrilaTheme {
+                TelaCodigo(viewModel = viewModel, aoAutenticar = { autenticou = true })
+            }
+        }
+
+        val campo = rule.onNodeWithContentDescription("Código de 6 dígitos")
+            .assert(contemHintEmailOtp())
+
+        // Simula o preenchimento nativo entregue pelo serviço de Autofill do Android ao BasicTextField
+        campo.performSemanticsAction(SemanticsActions.OnAutofillText) { acao ->
+            acao(AnnotatedString("654321"))
+        }
+
+        rule.waitUntil(5000) { viewModel.estado.value.autenticado }
+        rule.waitForIdle()
+
+        assertTrue(autenticou)
+        assertTrue(armazenamento.estaAutenticado())
+    }
+
+    @Test
+    fun campoDoCodigoNaoExibeHintDeEmailOtpNoModoDemonstracao() {
+        val (viewModel, _) = criarViewModel(
+            email = DemonstracaoContas.EMAIL_PROFISSIONAL,
+            modo = ModoCodigo.DEMO,
+        )
+        rule.setContent {
+            FrilaTheme {
+                TelaCodigo(viewModel = viewModel, aoAutenticar = {})
+            }
+        }
+
+        rule.onNodeWithContentDescription("Código de 6 dígitos")
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentType))
     }
 
     @Test
