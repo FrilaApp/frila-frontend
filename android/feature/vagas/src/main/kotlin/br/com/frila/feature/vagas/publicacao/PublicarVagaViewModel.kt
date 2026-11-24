@@ -319,9 +319,9 @@ class PublicarVagaViewModel(
         val toque = relogio()
         val conta = contaAtual()
         val geracao = filaDeAcoes?.geracao()
-        filaDeAcoes?.let { fila -> fila.recusadas().filter {
+        filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
             it.tipo == TipoAcaoPendente.PUBLICACAO_VAGA && it.contaId == conta && it.estabelecimentoId == estabelecimento.id
-        }.forEach { fila.reconhecerRecusa(it.id) } }
+        }.forEach { fila.reconhecerRecusa(it.id) } } }
         _estado.update { it.copy(enviando = true, errosDeCampo = emptyMap(), erro = null, pendente = corpo) }
         return escopoDeTrabalho.launch {
             try {

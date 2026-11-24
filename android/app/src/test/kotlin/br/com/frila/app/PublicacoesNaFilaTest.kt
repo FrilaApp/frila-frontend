@@ -30,6 +30,8 @@ class PublicacoesNaFilaTest {
         var codigo: CodigoErroAPI? = CodigoErroAPI.SEM_REDE
         var pedidos = 0
         var leituras = 0
+        /** Chaves sequenciais: uma chave regerada ou reaproveitada fora de hora aparece como número errado. */
+        var sequencia = 0
         val eventos = mutableListOf<EventoDeTelemetria>()
         val corpos = mutableListOf<Any>()
         var liberar: CompletableDeferred<Unit>? = null
@@ -57,7 +59,7 @@ class PublicacoesNaFilaTest {
             if (republicar) {
                 val vm = RepublicarVagaViewModel("vaga-origem", false, Duration.ofHours(3),
                     republicar = { vaga, inicio, fim, chave -> enviar(RepublicarVagaDto(vaga, inicio.toString(), fim.toString(), chave)) },
-                    relogio = { toque }, novaChave = { "chave-sintetica" }, escopo = escopo,
+                    relogio = { toque }, novaChave = { "chave-${++sequencia}" }, escopo = escopo,
                     filaDeAcoes = fila, contaAtual = ::conta, registrarEvento = { e, _, _ -> eventos += e })
                 executar = vm::republicar
                 estaNaFila = { vm.estado.value.naFila }
@@ -66,7 +68,7 @@ class PublicacoesNaFilaTest {
             } else {
                 val vm = PublicarVagaViewModel(EstabelecimentoDaVaga("casa", "Endereço sintético", "Região sintética", CoordenadaDto(0.0, 0.0)),
                     buscarFuncoes = { listOf(FuncaoDto("funcao", "Função sintética", "Categoria sintética")) }, enviarVaga = ::enviar,
-                    relogio = { toque }, novaChave = { "chave-sintetica" }, escopo = escopo,
+                    relogio = { toque }, novaChave = { "chave-${++sequencia}" }, escopo = escopo,
                     filaDeAcoes = fila, contaAtual = ::conta, registrarEvento = { e, _, _ -> eventos += e })
                 publicacao = vm
                 vm.carregarFuncoes()
@@ -77,6 +79,7 @@ class PublicacoesNaFilaTest {
                 recusada = { vm.estado.value.erro == ErroGlobalPublicacao.RECUSADA_NA_FILA }
             }
         }
+        fun chaveDe(corpo: Any): String = (corpo as? RepublicarVagaDto)?.chave ?: (corpo as NovaVagaDto).chave
         fun sincronizador(dona: String = "pessoa-a") = SincronizadorDeAcoes(fila, { dona }, mapOf(tipo to { a ->
             enviar(if (republicar) a.republicacao!!.copy(chave = a.chave) else a.publicacao!!); Unit
         }))
@@ -93,7 +96,8 @@ class PublicacoesNaFilaTest {
         assertEquals(c.tipo, acao.tipo)
         assertEquals("pessoa-a", acao.contaId)
         assertEquals(toque.toString(), acao.instanteDoToque)
-        assertEquals("chave-sintetica", acao.chave)
+        assertEquals("chave-1", acao.chave)
+        assertEquals("chave-1", c.chaveDe(c.corpos.single()))
         assertEquals(c.corpos.single(), acao.republicacao ?: acao.publicacao)
         assertEquals(listOf(acao), CacheVagasDaSessao(c.diretorio).filaDeAcoes.pendentes())
         c.executar()?.join(); c.abrir(); c.executar()?.join()
@@ -103,6 +107,7 @@ class PublicacoesNaFilaTest {
         c.sincronizador().sincronizar(); c.sincronizador().sincronizar()
         assertEquals(2, c.pedidos)
         assertEquals(c.corpos[0], c.corpos[1])
+        assertEquals("chave-1", c.chaveDe(c.corpos[1])); assertEquals(1, c.sequencia)
         assertTrue(c.fila.pendentes().isEmpty()); assertTrue(c.concluida())
     } }
     @Test fun `recusa definitiva vira aviso minimo e libera uma nova tentativa`() = runBlocking { casos { c ->
@@ -113,6 +118,19 @@ class PublicacoesNaFilaTest {
         c.abrir(false); assertTrue(c.recusada()); c.abrir()
         c.codigo = null; c.executar()?.join()
         assertTrue(c.concluida()); assertTrue(c.fila.recusadas().isEmpty())
+        assertEquals("chave-1", c.chaveDe(c.corpos[1])); assertEquals("chave-2", c.chaveDe(c.corpos[2]))
+    } }
+    @Test fun `falha ao gravar o reconhecimento da recusa nao derruba o envio`() = runBlocking { casos { c ->
+        c.executar()?.join(); c.codigo = CodigoErroAPI.CAMPO_INVALIDO
+        c.sincronizador().sincronizar()
+        assertEquals(1, c.fila.recusadas().size)
+        // A pasta da fila vira um arquivo: ler da memória segue valendo, gravar lança IOException.
+        val pasta = File(c.diretorio, "acoes")
+        pasta.deleteRecursively(); assertTrue(pasta.createNewFile())
+        c.abrir(); c.codigo = null
+        val antes = c.pedidos
+        c.executar()?.join()
+        assertEquals(antes + 1, c.pedidos); assertTrue(c.concluida())
     } }
     @Test fun `outra conta descarta sem enviar e logout limpa estado e arquivo sem ciclo R4`() = runBlocking { casos { c ->
         c.executar()?.join(); c.sincronizador("pessoa-b").sincronizar()

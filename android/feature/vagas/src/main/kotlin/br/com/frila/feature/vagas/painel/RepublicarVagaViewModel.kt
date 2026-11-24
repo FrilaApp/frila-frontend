@@ -174,9 +174,9 @@ class RepublicarVagaViewModel(
         val toque = relogio()
         val conta = contaAtual()
         val geracao = filaDeAcoes?.geracao()
-        filaDeAcoes?.let { fila -> fila.recusadas().filter {
+        filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
             it.tipo == TipoAcaoPendente.REPUBLICACAO_VAGA && it.contaId == conta && it.vagaId == vagaId
-        }.forEach { fila.reconhecerRecusa(it.id) } }
+        }.forEach { fila.reconhecerRecusa(it.id) } } }
         _estado.update { it.copy(enviando = true, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
