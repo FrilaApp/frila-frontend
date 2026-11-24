@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 const fontes = import.meta.glob<string>(["../app/**/*.{ts,tsx}", "../workers/**/*.ts"], { query: "?raw", import: "default", eager: true });
 
 const PONTO_UNICO = "../app/servidor/saida-rest.ts";
-/** Gerado a partir do contrato (`npm run contrato:tipos`): só tipos, cita os caminhos `/rest/v1`? Não; fica de fora por ser máquina. */
+/** Arquivo gerado a partir do contrato (só tipos): fica de fora da busca. */
 const gerado = (arquivo: string) => arquivo.includes("tipos.gerado");
 const candidatos = Object.entries(fontes).filter(([arquivo]) => arquivo !== PONTO_UNICO && !gerado(arquivo));
 
@@ -43,8 +43,8 @@ describe("ponto único de saída para o /rest/v1 com token", () => {
     expect(infratores).toEqual([]);
   });
 
-  it("fora dele, nenhum arquivo faz fetch/buscar com /rest/v1 no texto", () => {
-    const infratores = candidatos.filter(([, fonte]) => /\/rest\/v1/.test(fonte) && /\b(fetch|buscar)\s*\(/.test(fonte)).map(([arquivo]) => arquivo);
+  it("fora de api.ts e do ponto único, nenhum arquivo tem o texto rest/v1 (pega até createClient avulso com baseUrl)", () => {
+    const infratores = candidatos.filter(([arquivo, fonte]) => arquivo !== "../app/servidor/api.ts" && /rest\/v1/.test(fonte)).map(([arquivo]) => arquivo);
     expect(infratores).toEqual([]);
   });
 

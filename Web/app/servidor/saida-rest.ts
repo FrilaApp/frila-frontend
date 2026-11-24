@@ -88,7 +88,11 @@ async function assinar(request: Request, chaves: ChavesDoIp, visitante: string |
   try {
     for (const [nome, valor] of Object.entries(cabecalhos)) request.headers.set(nome, valor);
   } catch {
-    for (const nome of Object.keys(cabecalhos)) request.headers.delete(nome);
+    try {
+      for (const nome of Object.keys(cabecalhos)) request.headers.delete(nome);
+    } catch {
+      // Nunca lança: a chamada sai como estiver.
+    }
   }
 }
 
