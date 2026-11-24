@@ -39,6 +39,7 @@ import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoVagas
@@ -55,9 +56,18 @@ import br.com.frila.feature.conta.TelaExclusaoDeConta
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.cadastro.TelaCadastro
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
+import br.com.frila.feature.entrada.codigo.ModoCodigo
 import br.com.frila.feature.entrada.codigo.TelaCodigo
+import br.com.frila.feature.entrada.criar.CriarContaViewModel
+import br.com.frila.feature.entrada.criar.TelaCriarConta
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.TelaEntrada
+import br.com.frila.feature.entrada.recuperacao.RecuperacaoSenhaViewModel
+import br.com.frila.feature.entrada.recuperacao.TelaRecuperacaoSenha
+import br.com.frila.feature.entrada.senha.DefinirSenhaViewModel
+import br.com.frila.feature.entrada.senha.EntradaComSenhaViewModel
+import br.com.frila.feature.entrada.senha.TelaDefinirSenha
+import br.com.frila.feature.entrada.senha.TelaEntradaComSenha
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.candidatos.TelaCandidatosDaVaga
 import br.com.frila.feature.vagas.candidaturas.DestinoDaCandidatura
@@ -151,10 +161,14 @@ internal const val ENTRADA_EQUIPE_DA_CASA = "entrada-equipe-da-casa"
 internal const val ENTRADA_TENHO_UM_CONVITE = "entrada-tenho-um-convite"
 internal const val ENTRADA_TROCAR_DE_CASA = "entrada-trocar-de-casa"
 internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
+internal const val ENTRADA_SENHA_DA_CONTA = "entrada-senha-da-conta"
 
 object Rotas {
     const val ENTRADA = "entrada"
-    const val CODIGO = "codigo/{email}"
+    const val CRIAR_CONTA = "criar_conta?email={email}"
+    const val RECUPERAR_SENHA = "recuperar_senha?email={email}"
+    const val CODIGO = "codigo/{email}?modo={modo}"
+    const val DEFINIR_SENHA = "definir_senha?origem={origem}"
     const val CADASTRO = "cadastro"
     /** Pergunta ao servidor quem é a conta e segue para a tela do papel (#782, #783). */
     const val ABERTURA = "abertura"
@@ -214,7 +228,16 @@ object Rotas {
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
     fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
 
-    fun codigo(email: String) = "codigo/$email"
+    fun codigo(email: String, modo: ModoCodigo = ModoCodigo.ENTRADA) =
+        if (modo == ModoCodigo.ENTRADA) "codigo/$email" else "codigo/$email?modo=${modo.chave}"
+
+    fun criarConta(email: String = "") =
+        if (email.isBlank()) "criar_conta" else "criar_conta?email=${Uri.encode(email)}"
+
+    fun recuperarSenha(email: String = "") =
+        if (email.isBlank()) "recuperar_senha" else "recuperar_senha?email=${Uri.encode(email)}"
+
+    fun definirSenha(origem: String = "entrada") = "definir_senha?origem=${Uri.encode(origem)}"
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
     fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
@@ -461,37 +484,134 @@ fun AppNavegacao(
     ) {
         NavHost(navController = navController, startDestination = destinoInicial) {
             composable(Rotas.ENTRADA) {
-                val viewModel: EntradaViewModel = koinViewModel()
+                val koin = getKoin()
+                val viewModelSenha: EntradaComSenhaViewModel? = remember(koin) { koin.getOrNull() }
                 LaunchedEffect(Unit) {
                     aoPronto?.invoke()
                 }
-                TelaEntrada(
+                if (viewModelSenha != null) {
+                    TelaEntradaComSenha(
+                        viewModel = viewModelSenha,
+                        aoAutenticar = {
+                            val proximoDestino = if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO
+                            if (gerenciadorConsentimento.precisaPerguntar()) {
+                                navController.navigate(Rotas.CONSENTIMENTO_FALHAS) {
+                                    popUpTo(Rotas.ENTRADA) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(proximoDestino) {
+                                    popUpTo(Rotas.ENTRADA) { inclusive = true }
+                                }
+                            }
+                        },
+                        aoCriarConta = { email -> navController.navigate(Rotas.criarConta(email)) },
+                        aoRecuperarSenha = { email -> navController.navigate(Rotas.recuperarSenha(email)) },
+                        aoEntrarDemonstracao = {
+                            navController.navigate(Rotas.codigo(DemonstracaoContas.EMAIL_PROFISSIONAL, ModoCodigo.DEMO))
+                        },
+                    )
+                } else {
+                    val viewModel: EntradaViewModel = koinViewModel()
+                    TelaEntrada(
+                        viewModel = viewModel,
+                        aoReceberCodigo = {
+                            navController.navigate(Rotas.codigo(viewModel.estado.value.email))
+                        },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.CRIAR_CONTA,
+                arguments = listOf(navArgument("email") { type = NavType.StringType; defaultValue = "" }),
+            ) { entrada ->
+                val emailInicial = entrada.arguments?.getString("email").orEmpty()
+                val viewModel: CriarContaViewModel = koinViewModel(parameters = { parametersOf(emailInicial) })
+                TelaCriarConta(
                     viewModel = viewModel,
-                    aoReceberCodigo = {
-                        navController.navigate(Rotas.codigo(viewModel.estado.value.email))
+                    aoEnviarCodigo = { email -> navController.navigate(Rotas.codigo(email, ModoCodigo.CRIACAO)) },
+                    aoVoltarParaLogin = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
+                )
+            }
+
+            composable(
+                route = Rotas.RECUPERAR_SENHA,
+                arguments = listOf(navArgument("email") { type = NavType.StringType; defaultValue = "" }),
+            ) { entrada ->
+                val emailInicial = entrada.arguments?.getString("email").orEmpty()
+                val viewModel: RecuperacaoSenhaViewModel = koinViewModel(parameters = { parametersOf(emailInicial) })
+                TelaRecuperacaoSenha(
+                    viewModel = viewModel,
+                    aoAvancarParaCodigo = { email -> navController.navigate(Rotas.codigo(email, ModoCodigo.RECUPERACAO)) },
+                    aoVoltarParaLogin = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
+                )
+            }
+
+            composable(
+                route = Rotas.CODIGO,
+                arguments = listOf(
+                    navArgument("email") { type = NavType.StringType },
+                    navArgument("modo") { type = NavType.StringType; defaultValue = ModoCodigo.ENTRADA.chave },
+                ),
+            ) { entrada ->
+                val email = entrada.arguments?.getString("email").orEmpty()
+                val modo = ModoCodigo.deChave(entrada.arguments?.getString("modo"))
+                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email, modo) })
+                TelaCodigo(
+                    viewModel = viewModel,
+                    aoAutenticar = {
+                        if (modo == ModoCodigo.CRIACAO || modo == ModoCodigo.RECUPERACAO) {
+                            navController.navigate(Rotas.definirSenha(origem = modo.chave)) {
+                                popUpTo(Rotas.CODIGO) { inclusive = true }
+                            }
+                        } else {
+                            val proximoDestino = if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO
+                            if (gerenciadorConsentimento.precisaPerguntar()) {
+                                navController.navigate(Rotas.CONSENTIMENTO_FALHAS) {
+                                    popUpTo(Rotas.ENTRADA) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(proximoDestino) {
+                                    popUpTo(Rotas.ENTRADA) { inclusive = true }
+                                }
+                            }
+                        }
+                    },
+                    aoTrocarEmail = {
+                        val voltou = when (modo) {
+                            ModoCodigo.CRIACAO -> navController.popBackStack(Rotas.CRIAR_CONTA, inclusive = false)
+                            ModoCodigo.RECUPERACAO -> navController.popBackStack(Rotas.RECUPERAR_SENHA, inclusive = false)
+                            else -> navController.popBackStack(Rotas.ENTRADA, inclusive = false)
+                        }
+                        if (!voltou) irParaEntrada()
                     },
                 )
             }
 
-            composable(Rotas.CODIGO) { entrada ->
-                val email = entrada.arguments?.getString("email").orEmpty()
-                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email) })
-                TelaCodigo(
+            composable(
+                route = Rotas.DEFINIR_SENHA,
+                arguments = listOf(navArgument("origem") { type = NavType.StringType; defaultValue = "entrada" }),
+            ) { entrada ->
+                val origem = entrada.arguments?.getString("origem").orEmpty()
+                val viewModel: DefinirSenhaViewModel = koinViewModel()
+                TelaDefinirSenha(
                     viewModel = viewModel,
-                    aoAutenticar = {
-                        val proximoDestino = if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO
-                        if (gerenciadorConsentimento.precisaPerguntar()) {
-                            navController.navigate(Rotas.CONSENTIMENTO_FALHAS) {
-                                popUpTo(Rotas.ENTRADA) { inclusive = true }
-                            }
+                    aoConcluir = {
+                        if (origem == "perfil") {
+                            navController.popBackStack()
                         } else {
-                            navController.navigate(proximoDestino) {
-                                popUpTo(Rotas.ENTRADA) { inclusive = true }
+                            val proximoDestino = if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.CADASTRO
+                            if (gerenciadorConsentimento.precisaPerguntar()) {
+                                navController.navigate(Rotas.CONSENTIMENTO_FALHAS) {
+                                    popUpTo(Rotas.ENTRADA) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(proximoDestino) {
+                                    popUpTo(Rotas.ENTRADA) { inclusive = true }
+                                }
                             }
                         }
                     },
-                    // "Trocar e-mail" volta para a entrada, que está embaixo; se não estiver, a entrada vira a raiz.
-                    aoTrocarEmail = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }
 
@@ -992,6 +1112,7 @@ fun AppNavegacao(
                     // (mesma regra de `casas` das outras entradas dele). São linhas do grupo da conta, no Perfil.
                     val atalhosDaConta = listOfNotNull(
                         AtalhoDaConta(androidx.compose.ui.res.stringResource(br.com.frila.feature.perfil.R.string.aparencia_titulo), "perfil-aparencia") { navController.navigate(Rotas.APARENCIA) },
+                        AtalhoDaConta("Senha da conta", ENTRADA_SENHA_DA_CONTA) { navController.navigate(Rotas.definirSenha(origem = "perfil")) },
                         if (casas == CasasDaConta.Desconhecidas) {
                             AtalhoDaConta(TextosContestarDespacho.TITULO, ENTRADA_CONTESTAR_DESPACHO) { navController.navigate(Rotas.CONTESTAR_DESPACHO) }
                         } else {

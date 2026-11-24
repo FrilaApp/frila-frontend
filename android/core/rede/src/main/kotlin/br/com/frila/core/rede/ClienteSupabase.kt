@@ -361,6 +361,16 @@ class ClienteSupabase(
          * (`iOS/Sources/Dados/DecodificadorErroAPI.swift`).
          */
         fun mapearCodigo(codeCru: String, status: HttpStatusCode, errorCodeDoAuth: String? = null): CodigoErroAPI {
+            val codigoAuth = errorCodeDoAuth ?: codeCru
+            if (codigoAuth == "reauthentication_needed" || codigoAuth == "invalid_credentials") {
+                return CodigoErroAPI.NAO_AUTENTICADO
+            }
+            if (codigoAuth == "weak_password" || codigoAuth == "same_password") {
+                return CodigoErroAPI.CAMPO_INVALIDO
+            }
+            if (codigoAuth == "otp_disabled" || codigoAuth == "user_not_found") {
+                return CodigoErroAPI.NAO_ENCONTRADO
+            }
             if (codeCru == "PGRST301" || status == HttpStatusCode.Unauthorized) {
                 return CodigoErroAPI.NAO_AUTENTICADO
             }

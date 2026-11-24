@@ -30,6 +30,9 @@ private val ESPERA_PARA_REENVIAR: Duration = Duration.ofSeconds(60)
 
 /** O Auth responde `otp_expired` tanto para o código errado quanto para o vencido. */
 private const val ERRO_DO_AUTH_CODIGO_RECUSADO = "otp_expired"
+private const val MENSAGEM_REENVIO_PADRAO = "Novo código enviado para seu e-mail."
+private const val MENSAGEM_REENVIO_NEUTRA_RECUPERACAO =
+    "Se existir uma conta ativa com este e-mail, enviaremos um novo código."
 
 /**
  * Tela de código: verifica o OTP de 6 dígitos (ou entra em modo demo para as contas de
@@ -46,6 +49,7 @@ class CodigoViewModel(
     /** Depois da entrada (sessão já salva): no app, registra o aparelho para o push (C0-10). */
     private val aoEntrar: suspend () -> Unit = {},
     private val permitirDominioDeTeste: Boolean = false,
+    val modo: ModoCodigo = ModoCodigo.ENTRADA,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -91,7 +95,9 @@ class CodigoViewModel(
         return escopoDeTrabalho.launch {
             _estado.update { it.copy(carregando = true, erro = null) }
             try {
-                val sessaoDto = if (DemonstracaoContas.ehContaDeDemonstracao(estadoAtual.email, permitirDominioDeTeste)) {
+                val usarDemo = modo == ModoCodigo.DEMO ||
+                    (modo == ModoCodigo.ENTRADA && DemonstracaoContas.ehContaDeDemonstracao(estadoAtual.email, permitirDominioDeTeste))
+                val sessaoDto = if (usarDemo) {
                     servicoAutenticacao.entrarDemonstracao(estadoAtual.email, estadoAtual.codigo)
                 } else {
                     servicoAutenticacao.verificarOtp(estadoAtual.email, estadoAtual.codigo)
@@ -122,22 +128,59 @@ class CodigoViewModel(
         if (segundosParaReenviar() > 0 || _estado.value.carregando) return null
         val email = _estado.value.email
 
-        if (DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste)) {
+        if (modo == ModoCodigo.DEMO || (modo == ModoCodigo.ENTRADA && DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste))) {
             codigoPedidoEm = agora()
-            _estado.update { it.copy(reenviado = true, erro = null, reenviosFeitos = it.reenviosFeitos + 1) }
+            _estado.update {
+                it.copy(
+                    reenviado = true,
+                    mensagemReenvio = MENSAGEM_REENVIO_PADRAO,
+                    erro = null,
+                    reenviosFeitos = it.reenviosFeitos + 1,
+                )
+            }
             return null
         }
 
         return escopoDeTrabalho.launch {
-            _estado.update { it.copy(carregando = true, erro = null, reenviado = false) }
+            _estado.update { it.copy(carregando = true, erro = null, reenviado = false, mensagemReenvio = null) }
             try {
-                servicoAutenticacao.solicitarOtp(email)
+                if (modo == ModoCodigo.RECUPERACAO) {
+                    servicoAutenticacao.solicitarOtpRecuperacao(email)
+                } else {
+                    servicoAutenticacao.solicitarOtp(email)
+                }
                 codigoPedidoEm = agora()
                 _estado.update {
-                    it.copy(carregando = false, reenviado = true, codigo = "", reenviosFeitos = it.reenviosFeitos + 1)
+                    it.copy(
+                        carregando = false,
+                        reenviado = true,
+                        mensagemReenvio = MENSAGEM_REENVIO_PADRAO,
+                        codigo = "",
+                        reenviosFeitos = it.reenviosFeitos + 1,
+                    )
                 }
+            } catch (cancelado: CancellationException) {
+                _estado.update { it.copy(carregando = false) }
+                throw cancelado
             } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
+                if (modo == ModoCodigo.RECUPERACAO &&
+                    erro.codigo.name != "LIMITE_EXCEDIDO" &&
+                    erro.codigo.name != "SEM_REDE" &&
+                    (erro.codigo.name == "NAO_ENCONTRADO" || erro.codigoOriginal == "otp_disabled" || erro.codigoOriginal == "user_not_found")
+                ) {
+                    codigoPedidoEm = agora()
+                    _estado.update {
+                        it.copy(
+                            carregando = false,
+                            reenviado = true,
+                            mensagemReenvio = MENSAGEM_REENVIO_NEUTRA_RECUPERACAO,
+                            erro = null,
+                            reenviosFeitos = it.reenviosFeitos + 1,
+                        )
+                    }
+                } else {
+                    _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
+                }
             }
         }
     }

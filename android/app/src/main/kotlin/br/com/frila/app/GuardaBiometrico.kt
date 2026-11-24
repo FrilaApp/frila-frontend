@@ -73,7 +73,16 @@ class GuardaBiometrico(sessaoDesbloqueadaInicial: Boolean) {
 
     companion object {
         /** Rotas do fluxo de login/desbloqueio em si — nunca fazem sentido gatear a si mesmas. */
-        val ROTAS_SEM_GATE = setOf(Rotas.ENTRADA, Rotas.CODIGO, Rotas.CADASTRO, Rotas.DESBLOQUEIO, Rotas.CONSENTIMENTO_FALHAS)
+        val ROTAS_SEM_GATE = setOf(
+            Rotas.ENTRADA,
+            Rotas.CRIAR_CONTA,
+            Rotas.RECUPERAR_SENHA,
+            Rotas.CODIGO,
+            Rotas.DEFINIR_SENHA,
+            Rotas.CADASTRO,
+            Rotas.DESBLOQUEIO,
+            Rotas.CONSENTIMENTO_FALHAS,
+        )
     }
 }
 
