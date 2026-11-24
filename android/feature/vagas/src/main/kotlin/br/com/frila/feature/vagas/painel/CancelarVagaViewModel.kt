@@ -3,6 +3,11 @@ package br.com.frila.feature.vagas.painel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
+import br.com.frila.core.rede.EventoDeTelemetria
+import java.io.IOException
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.VagaCanceladaDto
 import java.time.Duration
@@ -33,6 +38,7 @@ data class EstadoCancelarVaga(
     val enviando: Boolean = false,
     val concluida: Boolean = false,
     val erro: String? = null,
+    val naFila: Boolean = false,
 ) {
     /** O texto que vai ao servidor: o motivo e, se houver, o detalhe depois de dois pontos. `null` enquanto não dá para enviar. */
     val motivoCompleto: String?
@@ -44,7 +50,7 @@ data class EstadoCancelarVaga(
         }
 
     /** Sem motivo não se cancela. Depois de uma falha dá para tentar de novo; depois de concluído, não. */
-    val podeConfirmar: Boolean get() = !enviando && !concluida && motivoCompleto != null
+    val podeConfirmar: Boolean get() = !enviando && !concluida && !naFila && motivoCompleto != null
 
     private companion object {
         const val MINIMO_DO_MOTIVO = 3
@@ -54,8 +60,7 @@ data class EstadoCancelarVaga(
 /**
  * Cancelar a vaga inteira (`cancelar_vaga`, RN12, UC08; paridade com o `CancelamentoViewModel` do iOS no alvo "vaga").
  * Pede o motivo, avisa o efeito antes do toque e mostra a recusa do servidor em texto do Frila. Quem decide é o
- * servidor: o aviso é só a leitura local da antecedência. O Android ainda não tem fila de ações sem rede, então sem
- * conexão o cancelamento não é enviado e a tela diz isso.
+ * servidor: o aviso é só a leitura local da antecedência. Sem rede, guarda o motivo para reenviar.
  *
  * [cancelar] é `ServicoVagas.cancelarVaga`. `escopo`: mesma razão do `MinhasVagasViewModel`.
  */
@@ -63,8 +68,11 @@ class CancelarVagaViewModel(
     val vagaId: String,
     inicioDaVaga: Instant?,
     private val cancelar: suspend (vagaId: String, motivo: String) -> VagaCanceladaDto,
-    relogio: () -> Instant = Instant::now,
+    private val relogio: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    private val contaAtual: () -> String? = { null },
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -72,17 +80,66 @@ class CancelarVagaViewModel(
     private val _estado = MutableStateFlow(EstadoCancelarVaga(aviso = avisoDoCancelamento(inicioDaVaga, relogio())))
     val estado: StateFlow<EstadoCancelarVaga> = _estado.asStateFlow()
 
+    private var contaObservada = contaAtual()
+    init {
+        reconciliarComAFila()
+        filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } }
+    }
+
+    private fun reconciliarComAFila() {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual()
+        if (conta != contaObservada) {
+            contaObservada = conta
+            _estado.update { EstadoCancelarVaga(aviso = it.aviso) }
+        }
+        if (conta == null) return
+        synchronized(fila) {
+            val pendente = fila.pendentes().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_VAGA && it.alvoId == vagaId && it.contaId == conta }
+            val recusada = fila.recusadas().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_VAGA && it.vagaId == vagaId && it.contaId == conta }
+            _estado.update { e -> when {
+                pendente -> e.copy(naFila = true, enviando = false, erro = TextosCancelarVaga.NA_FILA)
+                recusada && e.naFila -> EstadoCancelarVaga(aviso = e.aviso, erro = TextosCancelarVaga.RECUSADA)
+                recusada -> e.copy(erro = TextosCancelarVaga.RECUSADA)
+                e.naFila -> e.copy(naFila = false, concluida = true, erro = null)
+                else -> e
+            } }
+        }
+    }
+
+    private fun guardarNaFila(motivo: String, toque: Instant, conta: String?): Boolean {
+        val fila = filaDeAcoes ?: return false
+        if (conta == null || contaAtual() != conta) return false
+        return try {
+            synchronized(fila) {
+                val existe = fila.pendentes().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_VAGA && it.alvoId == vagaId && it.contaId == conta }
+                if (!existe) {
+                    fila.enfileirar(AcaoPendente(TipoAcaoPendente.CANCELAMENTO_VAGA, conta, toque.toString(), alvoId = vagaId, motivo = motivo))
+                    registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, vagaId, null)
+                }
+                _estado.update { it.copy(naFila = true, enviando = false, erro = TextosCancelarVaga.NA_FILA) }
+            }
+            true
+        } catch (_: IOException) { false }
+    }
+
     val motivos: List<MotivoDeCancelamentoDaVaga> = MotivoDeCancelamentoDaVaga.entries
 
-    fun escolherMotivo(motivo: MotivoDeCancelamentoDaVaga) = _estado.update { it.copy(motivo = motivo, erro = null) }
+    fun escolherMotivo(motivo: MotivoDeCancelamentoDaVaga) = _estado.update { if (it.naFila) it else it.copy(motivo = motivo, erro = null) }
 
-    fun mudarDetalhes(texto: String) = _estado.update { it.copy(detalhes = texto, erro = null) }
+    fun mudarDetalhes(texto: String) = _estado.update { if (it.naFila) it else it.copy(detalhes = texto, erro = null) }
 
     /** Envia o cancelamento. `null` se não há o que enviar (sem motivo, já enviando ou já concluído). */
     fun confirmar(): Job? {
+        reconciliarComAFila()
         val atual = _estado.value
         val motivo = atual.motivoCompleto
         if (!atual.podeConfirmar || motivo == null) return null
+        val toque = relogio()
+        val conta = contaAtual()
+        filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
+            it.tipo == TipoAcaoPendente.CANCELAMENTO_VAGA && it.vagaId == vagaId && it.contaId == conta
+        }.forEach { fila.reconhecerRecusa(it.id) } } }
         _estado.update { it.copy(enviando = true, erro = null) }
         return escopoDeTrabalho.launch {
             try {
@@ -91,6 +148,7 @@ class CancelarVagaViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
+                if (erro is ErroDaApi && erro.codigo == CodigoErroAPI.SEM_REDE && guardarNaFila(motivo, toque, conta)) return@launch
                 _estado.update { it.copy(enviando = false, erro = mensagemDaFalha(erro)) }
             }
         }

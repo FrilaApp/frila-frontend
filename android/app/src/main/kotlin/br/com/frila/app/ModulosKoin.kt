@@ -353,7 +353,12 @@ val moduloFeatures = module {
     viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
     viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
-    viewModel { MeusTurnosViewModel(get()) }
+    viewModel {
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        MeusTurnosViewModel(get(), filaDeAcoes = get(),
+            contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar)
+    }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
         val armazenamento = get<ArmazenamentoDeSessao>()
         val sincronizador = get<SincronizadorDeAcoes>()
@@ -640,7 +645,10 @@ val moduloFeatures = module {
      * L2-3: a casa cancela a vaga inteira e a republica (inteira ou só as posições que a seleção deixou vazias).
      */
     viewModel { (vagaId: String, inicioDaVaga: Instant?) ->
-        CancelarVagaViewModel(vagaId = vagaId, inicioDaVaga = inicioDaVaga, cancelar = get<ServicoVagas>()::cancelarVaga)
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        CancelarVagaViewModel(vagaId = vagaId, inicioDaVaga = inicioDaVaga, cancelar = get<ServicoVagas>()::cancelarVaga,
+            filaDeAcoes = get(), contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar)
     }
     viewModel { (vagaId: String, selecao: Boolean, duracaoOriginal: Duration) ->
         RepublicarVagaViewModel(vagaId = vagaId, selecao = selecao, duracaoOriginal = duracaoOriginal, republicar = get<ServicoVagas>()::republicarVaga)

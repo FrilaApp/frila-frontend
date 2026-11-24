@@ -7,6 +7,10 @@ import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.contaDaSessaoParaTelemetria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.ItemTurno
+import br.com.frila.feature.vagas.painel.CancelarVagaViewModel
+import java.time.Instant
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.StatusAvaliacao
@@ -132,6 +136,40 @@ class FilaDeAcoesDaSessaoTest {
             assertTrue(leituras <= leiturasAntes + 1, "leituras: $leiturasAntes -> $leituras")
             assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
             assertEquals(StatusAvaliacao.OCIOSO, modelo.estado.value.status)
+            escopo.cancel()
+        }
+    }
+
+    @Test fun `logout com cancelamentos observando a fila nao entra em ciclo`() = runTest {
+        for (casa in listOf(false, true)) for (comAcao in listOf(false, true)) {
+            val cache = CacheVagasDaSessao(File(raiz, "cancelamento-$casa-$comAcao"))
+            val armazenamento = SessaoComCacheVagas(ArmazenamentoDeSessaoEmMemoria(), cache)
+            armazenamento.salvarSessao(sessao("pessoa-a"))
+            if (comAcao) cache.filaDeAcoes.enfileirar(AcaoPendente(
+                if (casa) TipoAcaoPendente.CANCELAMENTO_VAGA else TipoAcaoPendente.CANCELAMENTO_POSICAO,
+                "pessoa-a", "2026-11-23T12:00:00Z", turnoId = if (casa) null else "turno", alvoId = "alvo", motivo = "Imprevisto"))
+            val escopo = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+            var leituras = 0
+            val conta = {
+                leituras++
+                if (leituras >= 20) escopo.cancel()
+                contaDaSessaoParaTelemetria(armazenamento.obterSessao())
+            }
+            if (casa) CancelarVagaViewModel("alvo", null, { _, _ -> error("não envia") }, escopo = escopo,
+                filaDeAcoes = cache.filaDeAcoes, contaAtual = conta)
+            else MeusTurnosViewModel(mockk<ServicoTurnos>(), escopo = escopo,
+                filaDeAcoes = cache.filaDeAcoes, contaAtual = conta).abrirCancelamento(
+                ItemTurno("turno", "alvo", Instant.EPOCH, funcaoNome = "", estabelecimentoNome = "",
+                    dataHorarioFormatado = "", valorFormatado = "", estado = "confirmada"))
+            runCurrent()
+            val antes = leituras
+            val versao = cache.filaDeAcoes.versao.value
+            armazenamento.limparSessao(); runCurrent()
+            val versoes = cache.filaDeAcoes.versao.value - versao
+            println("R4-cancelamento casa=$casa comAcao=$comAcao leiturasAntes=$antes leiturasDepois=$leituras versoesGeradas=$versoes")
+            assertEquals(if (comAcao) 1 else 0, versoes)
+            assertTrue(leituras <= antes + 1, "leituras: $antes -> $leituras")
+            assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
             escopo.cancel()
         }
     }
