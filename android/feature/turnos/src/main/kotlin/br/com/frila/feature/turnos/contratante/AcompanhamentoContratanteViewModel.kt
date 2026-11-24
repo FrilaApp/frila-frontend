@@ -193,6 +193,10 @@ class AcompanhamentoContratanteViewModel(
     private var contaObservada = contaAtual()
     /** A conta dona da tela quando o bloqueio do cancelamento foi posto: só a releitura dessa mesma conta o libera. */
     private var contaDoBloqueio: String? = contaObservada
+
+    /** Com o bloqueio já ativo a dona não muda (A→B→A e A→null→A continuam sendo da A); só um bloqueio novo escolhe a dona. */
+    private fun donaDoBloqueio(conta: String?) { if (!_estado.value.cancelamentoRecusado) contaDoBloqueio = conta }
+
     private val recusasMostradas = mutableSetOf<String>()
     init {
         reconciliarComAFila()
@@ -203,7 +207,7 @@ class AcompanhamentoContratanteViewModel(
         val fila = filaDeAcoes ?: return
         val conta = contaAtual()
         if (conta != contaObservada) {
-            contaDoBloqueio = contaObservada
+            donaDoBloqueio(contaObservada)
             contaObservada = conta
             synchronized(fila) { recusasMostradas.clear() }
             _estado.update { it.copy(cancelamentoNaFila = false, cancelando = false, pedindoCancelamento = false,
@@ -217,7 +221,7 @@ class AcompanhamentoContratanteViewModel(
             val recusas = fila.recusadas().filter { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
                 it.turnoId == _estado.value.contexto.turnoId && it.contaId == conta }
             val recusada = recusas.isNotEmpty()
-            if (recusada) contaDoBloqueio = conta
+            if (recusada) donaDoBloqueio(conta)
             if (!pendente) recusasMostradas.addAll(recusas.map { it.id })
             _estado.update {
                 enviado = it.cancelamentoNaFila && !pendente && !recusada
@@ -284,7 +288,7 @@ class AcompanhamentoContratanteViewModel(
                         return@launch
                     } catch (_: IOException) { /* Sem gravação durável, não anunciar que entrou na fila. */ }
                 }
-                contaDoBloqueio = conta
+                donaDoBloqueio(conta)
                 val definitiva = (erro as? ErroDaApi)?.codigo?.recusaDefinitivaDeCancelamento == true
                 _estado.update { it.copy(cancelando = false, cancelamentoRecusado = true,
                     avisoDoCancelamento = if (definitiva) "Não foi possível cancelar a posição. Atualize a tela e tente de novo."

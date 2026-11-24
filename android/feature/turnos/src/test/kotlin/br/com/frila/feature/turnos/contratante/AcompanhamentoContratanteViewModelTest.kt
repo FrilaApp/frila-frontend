@@ -178,6 +178,26 @@ class AcompanhamentoContratanteViewModelTest {
         } finally { escopo.coroutineContext[kotlinx.coroutines.Job]!!.cancel() }
     }
 
+    @Test fun `volta para a conta dona e releitura dela libera, passando por outra conta ou por sem sessao`() {
+        for (intermediaria in listOf<String?>("conta-b", null)) {
+            val fila = FilaDeAcoes(null)
+            val escopo = CoroutineScope(Dispatchers.Unconfined + kotlinx.coroutines.SupervisorJob())
+            val c = contexto().copy(posicaoId = "posicao", estadoDaPosicao = "confirmada")
+            var conta: String? = "conta-a"
+            try {
+                val vm = AcompanhamentoContratanteViewModel(c, { error("não confirma") }, escopo,
+                    cancelar = { _, _ -> error("não cancela") }, relogio = { Instant.EPOCH },
+                    filaDeAcoes = fila, contaAtual = { conta })
+                conta = intermediaria; vm.pedirCancelamento()
+                assertTrue(vm.estado.value.cancelamentoRecusado)
+                conta = "conta-a"; vm.pedirCancelamento()
+                assertTrue(vm.estado.value.cancelamentoRecusado); assertFalse(vm.estado.value.podeCancelar)
+                vm.atualizarContexto(c.copy(local = "Outro endereço"))
+                assertFalse(vm.estado.value.cancelamentoRecusado); assertTrue(vm.estado.value.podeCancelar)
+            } finally { escopo.coroutineContext[kotlinx.coroutines.Job]!!.cancel() }
+        }
+    }
+
     @Test fun `resposta incerta le o painel sozinha e a tela se resolve, mas recusa definitiva nao`() = runBlocking {
         for (definitiva in listOf(false, true)) {
             var leituras = 0
