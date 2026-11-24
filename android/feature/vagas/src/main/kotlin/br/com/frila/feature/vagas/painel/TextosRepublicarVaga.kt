@@ -2,6 +2,8 @@ package br.com.frila.feature.vagas.painel
 
 /** Textos de republicar a vaga com outro horário (paridade com `TextosRepublicarVaga` do iOS). */
 object TextosRepublicarVaga {
+    const val NA_FILA = "A vaga vai publicar quando a conexão voltar."
+    const val RECUSADA_NA_FILA = "Não foi possível publicar a vaga que ficou na fila. Confira os dados e tente novamente."
     const val TITULO = "Republicar vaga"
     const val REPUBLICAR_VAGA_DE = "Republicar a vaga de %s"
     const val SUBTITULO = "Os dados da vaga anterior foram copiados. Escolha a nova data e horário."

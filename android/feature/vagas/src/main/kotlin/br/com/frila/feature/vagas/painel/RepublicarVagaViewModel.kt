@@ -1,5 +1,12 @@
 package br.com.frila.feature.vagas.painel
 
+import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
+import br.com.frila.core.rede.EventoDeTelemetria
+import java.io.IOException
+import br.com.frila.core.rede.RepublicarVagaDto
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -23,6 +30,8 @@ data class EstadoRepublicarVaga(
     val fim: Instant,
     val erroInicio: String? = null,
     val erroFim: String? = null,
+    val naFila: Boolean = false,
+    val enviadaPelaFila: Boolean = false,
     val enviando: Boolean = false,
     /** Depois de uma falha passageira o horário trava: o reenvio sai com a mesma chave e o mesmo horário. */
     val camposBloqueados: Boolean = false,
@@ -30,8 +39,8 @@ data class EstadoRepublicarVaga(
     /** A vaga nova, quando a republicação deu certo. */
     val vagaPublicadaId: String? = null,
 ) {
-    val podeConfirmar: Boolean get() = !enviando && vagaPublicadaId == null
-    val podeMudarHorario: Boolean get() = !enviando && !camposBloqueados && vagaPublicadaId == null
+    val podeConfirmar: Boolean get() = !enviando && !naFila && !enviadaPelaFila && vagaPublicadaId == null
+    val podeMudarHorario: Boolean get() = podeConfirmar && !camposBloqueados
 }
 
 /**
@@ -39,7 +48,7 @@ data class EstadoRepublicarVaga(
  * `RepublicarVagaViewModel` do iOS). O servidor copia os dados da vaga de origem; aqui só se escolhe o período.
  * O início sugerido é daqui a 3 horas (25 no modo seleção, que exige 24 de antecedência), com a duração da vaga
  * de origem. A chave de idempotência nasce no primeiro envio e só troca depois de sucesso ou de recusa definitiva:
- * repetir depois de queda de rede não publica duas vagas. O Android ainda não tem fila de ações sem rede.
+ * repetir depois de queda de rede não publica duas vagas. Sem rede, a tentativa continua na fila da conta.
  *
  * [republicar] é `ServicoVagas.republicarVaga`. `escopo`: mesma razão do `MinhasVagasViewModel`.
  */
@@ -51,6 +60,10 @@ class RepublicarVagaViewModel(
     private val relogio: () -> Instant = Instant::now,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     escopo: CoroutineScope? = null,
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    private val contaAtual: () -> String? = { null },
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -59,6 +72,61 @@ class RepublicarVagaViewModel(
     val estado: StateFlow<EstadoRepublicarVaga> = _estado.asStateFlow()
 
     private var chave: String? = null
+    private val duracao = duracaoOriginal
+    private var contaObservada = contaAtual()
+    private var geracaoObservada = filaDeAcoes?.geracao()
+    init {
+        reconciliarComAFila()
+        filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } }
+    }
+
+    private fun reconciliarComAFila() {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual()
+        if (conta != contaObservada || geracaoObservada != fila.geracao()) {
+            contaObservada = conta
+            geracaoObservada = fila.geracao()
+            chave = null
+            _estado.value = estadoInicial(duracao)
+        }
+        if (conta == null) return
+        synchronized(fila) {
+            val acao = fila.pendentes().firstOrNull {
+                it.tipo == TipoAcaoPendente.REPUBLICACAO_VAGA && it.contaId == conta && it.republicacao?.vagaId == vagaId
+            }
+            val recusa = fila.recusadas().any {
+                it.tipo == TipoAcaoPendente.REPUBLICACAO_VAGA && it.contaId == conta && it.vagaId == vagaId
+            }
+            if (acao != null) chave = acao.chave
+            if (recusa && !_estado.value.enviando) chave = null
+            _estado.update { e -> when {
+                acao != null -> e.copy(naFila = true, enviando = false, camposBloqueados = true, mensagemErro = null,
+                    inicio = instanteDoServidor(acao.republicacao!!.inicioEm), fim = instanteDoServidor(acao.republicacao!!.fimEm))
+                recusa && !e.enviando -> e.copy(naFila = false, camposBloqueados = false, mensagemErro = TextosRepublicarVaga.RECUSADA_NA_FILA)
+                e.naFila -> e.copy(naFila = false, enviadaPelaFila = true)
+                else -> e
+            } }
+        }
+    }
+
+    private fun guardarNaFila(envio: EstadoRepublicarVaga, chave: String, toque: Instant, conta: String?): Boolean {
+        val fila = filaDeAcoes ?: return false
+        if (conta == null || contaAtual() != conta) return false
+        return try {
+            synchronized(fila) {
+                val existente = fila.pendentes().any {
+                    it.tipo == TipoAcaoPendente.REPUBLICACAO_VAGA && it.contaId == conta && it.republicacao?.vagaId == vagaId
+                }
+                if (!existente) {
+                    fila.enfileirar(AcaoPendente(TipoAcaoPendente.REPUBLICACAO_VAGA, conta, toque.toString(), chave = chave,
+                        republicacao = RepublicarVagaDto(vagaId, envio.inicio.toString(), envio.fim.toString(), chave)))
+                    registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, vagaId, null)
+                }
+                reconciliarComAFila()
+            }
+            true
+        } catch (_: IOException) { false }
+    }
 
     private fun estadoInicial(duracao: Duration): EstadoRepublicarVaga {
         val antecedencia = if (selecao) ANTECEDENCIA_SUGERIDA_SELECAO else ANTECEDENCIA_SUGERIDA_URGENCIA
@@ -97,20 +165,30 @@ class RepublicarVagaViewModel(
 
     /** Envia a republicação. `null` se não há o que enviar (horário inválido, já enviando ou já republicada). */
     fun republicar(): Job? {
+        reconciliarComAFila()
         if (!_estado.value.podeConfirmar) return null
         // Com chave guardada é reenvio da mesma tentativa: o horário está travado e quem o julga é o servidor.
         if (chave == null && !validar()) return null
         val chaveDoEnvio = chave ?: novaChave().also { chave = it }
         val envio = _estado.value
+        val toque = relogio()
+        val conta = contaAtual()
+        val geracao = filaDeAcoes?.geracao()
+        filaDeAcoes?.let { fila -> fila.recusadas().filter {
+            it.tipo == TipoAcaoPendente.REPUBLICACAO_VAGA && it.contaId == conta && it.vagaId == vagaId
+        }.forEach { fila.reconhecerRecusa(it.id) } }
         _estado.update { it.copy(enviando = true, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
                 val publicada = republicar(vagaId, envio.inicio, envio.fim, chaveDoEnvio)
+                if (filaDeAcoes != null && (contaAtual() != conta || filaDeAcoes.geracao() != geracao)) { reconciliarComAFila(); return@launch }
                 chave = null
                 _estado.update { it.copy(enviando = false, camposBloqueados = false, vagaPublicadaId = publicada.vagaId) }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
+                if (filaDeAcoes != null && (contaAtual() != conta || filaDeAcoes.geracao() != geracao)) { reconciliarComAFila(); return@launch }
+                if ((erro as? ErroDaApi)?.codigo == CodigoErroAPI.SEM_REDE && guardarNaFila(envio, chaveDoEnvio, toque, conta)) return@launch
                 falhar(erro)
             }
         }

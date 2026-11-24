@@ -421,10 +421,13 @@ val moduloFeatures = module {
      */
     viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
         val vagas = get<ServicoVagas>()
+        val armazenamento = get<ArmazenamentoDeSessao>()
         PublicarVagaViewModel(
             estabelecimento = estabelecimento,
             buscarFuncoes = vagas::listarFuncoes,
             enviarVaga = vagas::publicarVaga,
+            filaDeAcoes = get(), contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
         )
     }
     /**
@@ -643,7 +646,11 @@ val moduloFeatures = module {
         CancelarVagaViewModel(vagaId = vagaId, inicioDaVaga = inicioDaVaga, cancelar = get<ServicoVagas>()::cancelarVaga)
     }
     viewModel { (vagaId: String, selecao: Boolean, duracaoOriginal: Duration) ->
-        RepublicarVagaViewModel(vagaId = vagaId, selecao = selecao, duracaoOriginal = duracaoOriginal, republicar = get<ServicoVagas>()::republicarVaga)
+        val armazenamento = get<ArmazenamentoDeSessao>()
+        RepublicarVagaViewModel(vagaId = vagaId, selecao = selecao, duracaoOriginal = duracaoOriginal,
+            republicar = get<ServicoVagas>()::republicarVaga,
+            filaDeAcoes = get(), contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar)
     }
     viewModel { (vagaId: String, posicoesRestantes: Int, aoRepublicar: (String) -> Unit, aoMudarOPainel: () -> Unit) ->
         RepublicarPosicoesRestantesViewModel(
