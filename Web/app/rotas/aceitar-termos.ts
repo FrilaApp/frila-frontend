@@ -16,7 +16,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (formulario.get("termos_versao") !== VERSAO_DOS_TERMOS) {
     throw redirect("/?termos=mudou");
   }
-  const aceite = await aceitarTermos(apiDoUsuario(sessao.acesso), VERSAO_DOS_TERMOS);
+  const aceite = await aceitarTermos(apiDoUsuario(sessao), VERSAO_DOS_TERMOS);
   throw redirect(aceite.ok ? "/" : "/?termos=falhou");
 }
 

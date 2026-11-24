@@ -21,7 +21,7 @@ export function meta() {
 /** Não há leitura de um turno só: ele sai da lista da casa; o que não é da casa responde 404. */
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const casas = await listarMinhasCasas(api);
   if (casas.estado !== "ok") return { estado: casas.estado, casaId: null, turno: null };
   const casa = casaDaTela(casas.casas, new URL(request.url).searchParams.get("casa"));
@@ -60,7 +60,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const intencao = formulario.get("intencao");
   const turnoId = String(formulario.get("turno_id") ?? "");
@@ -72,7 +72,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         : ({ ok: false, motivo: "indisponivel" } as const);
     const avaliacao = resultado.ok ? ("registrada" as const) : resultado.motivo;
     if (avaliacao === "sem_sessao") throw redirect("/entrar");
-    if (resultado.ok) registrarEvento(sessao.acesso, "avaliacao_enviada", { turno_id: turnoId });
+    if (resultado.ok) registrarEvento(sessao, "avaliacao_enviada", { turno_id: turnoId });
     return { avaliacao };
   }
   if (intencao === "codigo") {

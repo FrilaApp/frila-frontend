@@ -60,7 +60,7 @@ const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn(), foto: vi.fn() }));
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api, fotoDoProfissional: api.foto }));
 const argumentos = (busca = "", logado = true) => {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com" } : null);
+  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com", visitante: null } : null);
   const url = `https://frilabr.com/app/casa/profissionais/${PRO}${busca}`;
   return { request: new Request(url), context, params: { profissionalId: PRO }, url: new URL(url), matches: [] } as never;
 };
@@ -113,7 +113,7 @@ describe("tela do perfil do profissional, do lado da casa", () => {
     api.GET.mockResolvedValue(ok(perfil()));
     api.foto.mockResolvedValue("data:image/jpeg;base64,AAAA");
     expect(((await carregarPerfil(argumentos())) as { perfil: { foto: string | null } }).perfil.foto).toBe("data:image/jpeg;base64,AAAA");
-    expect(api.foto).toHaveBeenCalledWith("token-sintetico", PRO);
+    expect(api.foto).toHaveBeenCalledWith(expect.objectContaining({ acesso: "token-sintetico" }), PRO);
     api.GET.mockResolvedValue({ error: { code: "nao_encontrado" }, response: new Response(null, { status: 404 }) });
     expect(JSON.stringify(await carregarPerfil(argumentos()))).not.toContain("data:image");
   });

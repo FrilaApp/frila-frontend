@@ -24,7 +24,7 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const conta = await lerMinhaConta(apiDoUsuario(sessao.acesso));
+  const conta = await lerMinhaConta(apiDoUsuario(sessao));
   if (conta.estado === "ok") {
     throw redirect("/");
   }
@@ -57,7 +57,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
     return { erros, valores };
   }
 
-  const resultado = await criarConta(apiDoUsuario(sessao.acesso), {
+  const resultado = await criarConta(apiDoUsuario(sessao), {
     perfil,
     nome: valores.nome,
     telefone,
@@ -65,7 +65,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
     termos_versao: VERSAO_DOS_TERMOS,
   });
   if (resultado.ok || resultado.motivo === "ja_existe") {
-    if (resultado.ok) registrarEvento(sessao.acesso, "cadastro_concluido");
+    if (resultado.ok) registrarEvento(sessao, "cadastro_concluido");
     throw redirect("/");
   }
   if (resultado.motivo === "sem_sessao") {

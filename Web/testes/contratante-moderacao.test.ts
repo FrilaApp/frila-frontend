@@ -15,7 +15,7 @@ const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api }));
 const argumentos = (caminho: string, dados: Record<string, string> | null = null, logado = true) => {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com" } : null);
+  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "c@example.com", visitante: null } : null);
   const url = `https://frilabr.com/app${caminho}`;
   const request = dados
     ? new Request(url, { method: "POST", headers: { Origin: "https://frilabr.com" }, body: new URLSearchParams(dados) })

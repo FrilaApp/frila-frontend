@@ -10,7 +10,8 @@
  */
 import type { components } from "../contrato/tipos.gerado";
 import { ambienteDoSupabase } from "./ambiente";
-import { criarApi } from "./api";
+import { chavesDoIp, criarApiDoUsuario } from "./saida-rest";
+import type { SessaoAtual } from "./sessao";
 
 export type Evento = components["schemas"]["EventoDeTelemetria"];
 type Ids = { vaga_id?: string; turno_id?: string };
@@ -27,13 +28,16 @@ export function corpoDoEvento(evento: Evento, ids: Ids = {}) {
   };
 }
 
-export function registrarEvento(acesso: string, evento: Evento, ids: Ids = {}): void {
+export function registrarEvento(sessao: SessaoAtual, evento: Evento, ids: Ids = {}): void {
   const corpo = corpoDoEvento(evento, ids);
+  // Token e IP do visitante são capturados AGORA, com o pedido vivo e de forma síncrona: o resto roda depois da resposta
+  // (import + waitUntil) e não pode depender do que mudar nesse meio tempo. A assinatura sai na hora do envio.
+  const origem = { acesso: sessao.acesso, visitante: sessao.visitante };
   import("cloudflare:workers")
     .then(({ env, waitUntil }) => {
       const ambiente = ambienteDoSupabase(env);
       if (!ambiente) return;
-      const api = criarApi(ambiente, { token: acesso });
+      const api = criarApiDoUsuario(ambiente, origem, { chaves: chavesDoIp(env as { IP_VISITANTE_HMAC?: string; IP_VISITANTE_HMAC_ID?: string }) });
       waitUntil(api.POST("/rpc/registrar_evento", { body: corpo, signal: AbortSignal.timeout(PRAZO_MS) }).then(() => undefined, () => undefined));
     })
     .catch(() => undefined);

@@ -17,12 +17,12 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await lerMinhasCasas(apiDoUsuario(sessao.acesso));
+  const leitura = await lerMinhasCasas(apiDoUsuario(sessao));
   if (leitura.estado === "sem_sessao") throw redirect("/entrar");
   // Sem casa, conta de profissional ou servidor fora: o painel explica cada caso.
   const casa = leitura.estado === "ok" ? escolherCasa(leitura.casas, new URL(request.url).searchParams.get("casa")) : null;
   if (!casa) throw redirect("/painel");
-  const lista = casa.papel === "administrador" ? await lerMembros(apiDoUsuario(sessao.acesso), casa.id) : { estado: "so_administrador" as const, membros: [] };
+  const lista = casa.papel === "administrador" ? await lerMembros(apiDoUsuario(sessao), casa.id) : { estado: "so_administrador" as const, membros: [] };
   const estado = lista.estado;
   if (estado === "sem_sessao") throw redirect("/entrar");
   const consulta = new URL(request.url).searchParams;
@@ -45,7 +45,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
     if (intencao !== "remover" && intencao !== "transferir") return { falha: "indisponivel" };
     if (formulario.get("confirmado") !== "sim") return { falha: "confirmacao" };
     const casaId = String(formulario.get("casa") ?? "");
-    const resultado = await mudarMembro(apiDoUsuario(sessao.acesso), casaId, String(formulario.get("membro_id") ?? ""), intencao);
+    const resultado = await mudarMembro(apiDoUsuario(sessao), casaId, String(formulario.get("membro_id") ?? ""), intencao);
     if (!resultado.ok) {
       if (resultado.motivo === "sem_sessao") throw redirect("/entrar");
       return { falha: resultado.motivo };
@@ -55,7 +55,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
   }
   const email = String(formulario.get("email") ?? "").trim();
   const papel = String(formulario.get("papel") ?? "");
-  const convite = await convidarMembro(apiDoUsuario(sessao.acesso), String(formulario.get("casa") ?? ""), email, papel);
+  const convite = await convidarMembro(apiDoUsuario(sessao), String(formulario.get("casa") ?? ""), email, papel);
   if (!convite.ok) {
     if (convite.motivo === "sem_sessao") throw redirect("/entrar");
     return { falha: convite.motivo, email, papel };

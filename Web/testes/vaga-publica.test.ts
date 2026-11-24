@@ -42,7 +42,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const argumentos = (vagaId = VAGA, logado = false) => {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, logado ? { acesso: "token-do-usuario", usuarioId: "u1", email: "p@example.com" } : null);
+  context.set(contextoDaSessao, logado ? { acesso: "token-do-usuario", usuarioId: "u1", email: "p@example.com", visitante: null } : null);
   return { request: new Request(`https://frilabr.com/app/v/${vagaId}`), context, params: { vagaId }, url: new URL(`https://frilabr.com/app/v/${vagaId}`), matches: [] } as never;
 };
 type Dados = { estado: string; vaga: { casa: string | null; regiao: string | null; encerrada: boolean; indexar: boolean; funcao: string } | null };

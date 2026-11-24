@@ -30,11 +30,11 @@ export async function action({ context, request }: Route.ActionArgs) {
   const seguro = ehPedidoSeguro(request);
   if (formulario.get("intencao") === "desligar") {
     const guardado = lerTokenDoAparelho(request);
-    if (guardado) await removerAparelho(apiDoUsuario(sessao.acesso), guardado);
+    if (guardado) await removerAparelho(apiDoUsuario(sessao), guardado);
     return data({ ok: true as const }, { headers: { "Set-Cookie": cookieDoAparelho(null, seguro) } });
   }
   if (!tokenValido(token)) return { ok: false as const };
-  const resultado = await registrarAparelho(apiDoUsuario(sessao.acesso), token);
+  const resultado = await registrarAparelho(apiDoUsuario(sessao), token);
   if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
   if (!resultado.ok) return { ok: false as const };
   return data({ ok: true as const }, { headers: { "Set-Cookie": cookieDoAparelho(token, seguro) } });

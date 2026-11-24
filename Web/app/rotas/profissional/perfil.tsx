@@ -16,7 +16,7 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const leitura = await lerMeuPerfil(api);
   if (leitura.estado === "sem_perfil") {
     // Quem ainda não tem perfil cria o perfil aqui (/perfil/cadastro) ou no app: o link da loja é o da linha "ios".
@@ -44,7 +44,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
-  const resultado = await salvarApresentacao(apiDoUsuario(sessao.acesso), {
+  const resultado = await salvarApresentacao(apiDoUsuario(sessao), {
     apresentacao: String(formulario.get("apresentacao") ?? ""),
     onde_trabalhei: String(formulario.get("onde_trabalhei") ?? ""),
   });

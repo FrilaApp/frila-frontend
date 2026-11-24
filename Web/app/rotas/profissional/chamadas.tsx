@@ -17,7 +17,7 @@ export function meta() {
 export async function loader({ context, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
   const cursor = new URL(request.url).searchParams.get("cursor");
-  const leitura = await listarChamadas(apiDoUsuario(sessao.acesso), cursor && cursor.length <= 512 ? cursor : null);
+  const leitura = await listarChamadas(apiDoUsuario(sessao), cursor && cursor.length <= 512 ? cursor : null);
   if (leitura.estado !== "ok") return { estado: leitura.estado, chamadas: [], proximoCursor: null };
   return {
     estado: "ok" as const,

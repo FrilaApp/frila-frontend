@@ -26,7 +26,7 @@ const resumo = (turno: TurnoDoSuporte) => ({
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
   const casa = casaDoEndereco(request);
-  const turno = await lerTurnoDoSuporte(apiDoUsuario(sessao.acesso), params.turnoId, casa);
+  const turno = await lerTurnoDoSuporte(apiDoUsuario(sessao), params.turnoId, casa);
   if (turno === "nao_encontrado") return data({ estado: "nao_encontrado" as const, turno: null, casa, chave: "" }, { status: 404 });
   if (turno === "indisponivel") return { estado: "indisponivel" as const, turno: null, casa, chave: "" };
   // A chave nasce aqui e volta no reenvio: o mesmo chamado não abre duas vezes.
@@ -35,7 +35,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 
 export async function action({ context, params, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const chave = String(formulario.get("chave") ?? "");
   const categoria = String(formulario.get("categoria") ?? "");

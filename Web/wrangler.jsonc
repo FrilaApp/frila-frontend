@@ -6,6 +6,10 @@
  * EMAILS_DE_DEMONSTRACAO (e-mails de demonstração, separados por vírgula) também NÃO fica aqui: o repositório é público.
  * É segredo OPCIONAL do Worker (`.dev.vars` no local, `wrangler secret put` no ambiente): sem ele a lista é vazia e
  * ninguém entra como demonstração. Por isso não entra em `secrets.required` (o Prod não o tem).
+ * IP_VISITANTE_HMAC (texto hex de 64 caracteres, `openssl rand -hex 32`; B-116) também é segredo OPCIONAL: com ele o Worker assina o
+ * IP do visitante nas chamadas ao Supabase (app/servidor/saida-rest.ts). Sem ele nenhum cabeçalho sai, por isso também fica fora de
+ * `secrets.required` (o deploy do Prod quebraria antes do roteiro). Ordem: migração → chave no Vault do Supabase → `secret put`
+ * → deploy. O id da chave é a var IP_VISITANTE_HMAC_ID (abaixo), que acompanha o secret na rotação.
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
@@ -20,7 +24,9 @@
 		"WEB_LIGADA": "1",
 		// "1" deixa a página pública da vaga entrar no índice dos buscadores. Fica "0" até a Política ganhar as
 		// frases da seção 4, item 1, e da seção 2 (buscadores).
-		"VAGA_PUBLICA_NO_INDICE": "0"
+		"VAGA_PUBLICA_NO_INDICE": "0",
+		// Id da chave do secret IP_VISITANTE_HMAC (^[a-z0-9]{1,16}$): vai no cabeçalho de assinatura do IP do visitante.
+		"IP_VISITANTE_HMAC_ID": "a1"
 	},
 	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
 	"secrets": {
@@ -61,7 +67,9 @@
 				"AMBIENTE": "producao",
 				// Ligada no Prod em 17/11/2026 (pedido 2026-11-17-02). Para desligar: "0" (mostra a página "em breve").
 				"WEB_LIGADA": "1",
-				"VAGA_PUBLICA_NO_INDICE": "0"
+				"VAGA_PUBLICA_NO_INDICE": "0",
+				// Id da chave do secret IP_VISITANTE_HMAC (^[a-z0-9]{1,16}$): vai no cabeçalho de assinatura do IP do visitante.
+				"IP_VISITANTE_HMAC_ID": "a1"
 			}
 		}
 	}

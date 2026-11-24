@@ -16,7 +16,7 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await listarMinhasCandidaturas(apiDoUsuario(sessao.acesso));
+  const leitura = await listarMinhasCandidaturas(apiDoUsuario(sessao));
   if (leitura.estado !== "ok") return { estado: leitura.estado, candidaturas: [] };
   return {
     estado: "ok" as const,

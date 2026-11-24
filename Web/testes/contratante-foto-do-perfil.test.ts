@@ -5,6 +5,8 @@ import { fotoDoPerfil, LIMITE_DA_FOTO } from "../app/servidor/contratante/foto-d
 const ambiente = { url: "https://exemplo.supabase.co", chavePublicavel: "sb_publishable_teste" };
 const PRO = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
 const LINK = "https://exemplo.supabase.co/functions/v1/ler-midia?midia_id=m1&token=" + "a".repeat(64);
+/** A sessão que a rota entrega: o token e o IP do visitante (aqui sem IP: nada é assinado). */
+const sessao = (acesso: string) => ({ acesso, visitante: null });
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 
 /** Servidor de mentira: o perfil por POST e a miniatura no link da ler-midia. */
@@ -24,7 +26,7 @@ function servidor(opcoes: { link?: string | null; foto?: () => Response } = {}) 
 describe("foto do perfil, embutida pelo Worker (sem token no navegador)", () => {
   it("pede o perfil por POST com o token da casa e devolve a miniatura como data:", async () => {
     const { fetch, pedidos } = servidor();
-    const foto = await fotoDoPerfil(ambiente, "token-da-casa", PRO, fetch);
+    const foto = await fotoDoPerfil(ambiente, sessao("token-da-casa"), PRO, { buscar: fetch });
     expect(foto).toBe(`data:image/jpeg;base64,${btoa(String.fromCharCode(...JPEG))}`);
     expect(pedidos[0]?.method).toBe("POST");
     expect(await pedidos[0]?.json()).toEqual({ id: PRO });
@@ -35,13 +37,13 @@ describe("foto do perfil, embutida pelo Worker (sem token no navegador)", () => 
   });
 
   it("sem foto aprovada, sem foto", async () => {
-    expect(await fotoDoPerfil(ambiente, "t", PRO, servidor({ link: null }).fetch)).toBeNull();
+    expect(await fotoDoPerfil(ambiente, sessao("t"), PRO, { buscar: servidor({ link: null }).fetch })).toBeNull();
   });
 
   it("só aceita o link da ler-midia do próprio Supabase (nada de outro endereço)", async () => {
     for (const link of ["https://outro.example/functions/v1/ler-midia?x=1", "https://exemplo.supabase.co/rest/v1/qualquer", "http://exemplo.supabase.co/functions/v1/ler-midia"]) {
       const s = servidor({ link });
-      expect(await fotoDoPerfil(ambiente, "t", PRO, s.fetch), link).toBeNull();
+      expect(await fotoDoPerfil(ambiente, sessao("t"), PRO, { buscar: s.fetch }), link).toBeNull();
       expect(s.pedidos, link).toHaveLength(1);
     }
   });
@@ -53,16 +55,16 @@ describe("foto do perfil, embutida pelo Worker (sem token no navegador)", () => 
       () => new Response(new Uint8Array(LIMITE_DA_FOTO + 1), { headers: { "Content-Type": "image/jpeg" } }),
       () => new Response(JPEG, { headers: { "Content-Type": "image/jpeg", "Content-Length": String(LIMITE_DA_FOTO + 1) } }),
     ];
-    for (const foto of casos) expect(await fotoDoPerfil(ambiente, "t", PRO, servidor({ foto }).fetch)).toBeNull();
+    for (const foto of casos) expect(await fotoDoPerfil(ambiente, sessao("t"), PRO, { buscar: servidor({ foto }).fetch })).toBeNull();
   });
 
   it("id torto nem sai; falha de rede vira sem foto", async () => {
     const s = servidor();
-    expect(await fotoDoPerfil(ambiente, "t", "../x", s.fetch)).toBeNull();
+    expect(await fotoDoPerfil(ambiente, sessao("t"), "../x", { buscar: s.fetch })).toBeNull();
     expect(s.pedidos).toHaveLength(0);
     const quebrado = (async () => {
       throw new Error("rede");
     }) as unknown as typeof globalThis.fetch;
-    expect(await fotoDoPerfil(ambiente, "t", PRO, quebrado)).toBeNull();
+    expect(await fotoDoPerfil(ambiente, sessao("t"), PRO, { buscar: quebrado })).toBeNull();
   });
 });

@@ -16,7 +16,7 @@ export function meta() {
 /** O resultado da análise não aparece aqui (RN07): só o protocolo e o prazo, e o recurso é por e-mail. */
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await lerSituacaoDaConta(apiDoUsuario(sessao.acesso));
+  const leitura = await lerSituacaoDaConta(apiDoUsuario(sessao));
   if (leitura.estado !== "ok") return { estado: "indisponivel" as const };
   const { suspensao } = leitura.situacao;
   if (leitura.situacao.estado !== "suspensa" || !suspensao) return { estado: "ativa" as const };
@@ -35,7 +35,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
-  const resultado = await contestarSuspensao(apiDoUsuario(sessao.acesso), String(formulario.get("relato") ?? ""));
+  const resultado = await contestarSuspensao(apiDoUsuario(sessao), String(formulario.get("relato") ?? ""));
   if (!resultado.ok && resultado.motivo === "sem_sessao") throw redirect("/entrar");
   return { resultado: resultado.ok ? ("enviada" as const) : resultado.motivo === "sem_sessao" ? ("indisponivel" as const) : resultado.motivo };
 }
