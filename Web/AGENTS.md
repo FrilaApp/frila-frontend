@@ -16,7 +16,7 @@ node scripts/prova-da-entrada.mjs <endereço> <arquivo do e-mail> <arquivo do c�
 - **React Router v8:** tudo vem de `react-router`. `react-router-dom` e `@remix-run/*` não existem mais (o lint barra).
   Não use `json()` nem `defer()`: o loader devolve o objeto direto. A documentação da versão instalada está em
   `node_modules/react-router/docs/`: leia antes de usar API de que não tem certeza.
-- **Contrato:** `contrato/openapi.yaml` é espelho de `frila-documentacao/api/openapi.yaml`. Não edite: mudança de
+- **Contrato:** `contrato/openapi.yaml` é espelho de `frila-docs/api/openapi.yaml`. Não edite: mudança de
   contrato nasce lá, depois backend, depois clientes. Para atualizar: `scripts/contrato-traz.sh <arquivo>`. Os tipos
   (`app/contrato/tipos.gerado.ts`) saem do espelho em `npm run tipos` e não entram no git.
 - **Supabase só pelo servidor**, com `criarApi` (`app/servidor/api.ts`), tipado pelo contrato. O navegador nunca chama
