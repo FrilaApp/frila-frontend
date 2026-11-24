@@ -9,8 +9,14 @@ public enum DestinoCodigo: Equatable, Sendable {
 
 @MainActor @Observable
 public final class CodigoViewModel {
+    public enum Modo: Equatable, Sendable {
+        case entrada
+        case recuperacao
+    }
+
     private let api: any ApiCliente
     public let email: String
+    public let modo: Modo
     public var codigo: String = "" {
         didSet {
             let apenasDigitos = codigo.filter(\.isNumber)
@@ -36,8 +42,9 @@ public final class CodigoViewModel {
     private var codigoPedidoEm: Date
     private var tarefaTemporizador: Task<Void, Never>?
 
-    public init(api: any ApiCliente, email: String, relogio: any Relogio = RelogioDoSistema()) {
+    public init(api: any ApiCliente, email: String, modo: Modo = .entrada, relogio: any Relogio = RelogioDoSistema()) {
         self.api = api
+        self.modo = modo
         self.relogio = relogio
         self.codigoPedidoEm = relogio.agora
         self.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -104,19 +111,49 @@ public final class CodigoViewModel {
         mensagemInformativa = nil
         defer { carregando = false }
 
-        if !DemonstracaoContas.ehEmailDeDemonstracao(email) {
+        switch modo {
+        case .entrada:
+            if !DemonstracaoContas.ehEmailDeDemonstracao(email) {
+                do {
+                    try await api.solicitarCodigo(email: email)
+                } catch let erroApi as ErroDaApi {
+                    erro = MensagemDoErroAPI.texto(erroApi)
+                    return
+                } catch {
+                    erro = String(localized: "Não foi possível reenviar o código. Tente novamente.", bundle: bundleApresentacao)
+                    return
+                }
+            }
+            iniciarTemporizador()
+            mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
+
+        case .recuperacao:
+            // Recuperação nunca cria usuário novo (`shouldCreateUser: false`) e não usa fallback de demo.
             do {
-                try await api.solicitarCodigo(email: email)
+                try await api.solicitarCodigoDeRecuperacao(email: email)
+                guard !Task.isCancelled else { return }
+                iniciarTemporizador()
+                mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
+            } catch is CancellationError {
+                return
             } catch let erroApi as ErroDaApi {
+                guard !Task.isCancelled else { return }
+                if erroApi.codigo == .naoEncontrado
+                    || erroApi.codigoOriginal == "otp_disabled"
+                    || erroApi.codigoOriginal == "user_not_found" {
+                    iniciarTemporizador()
+                    mensagemInformativa = String(
+                        localized: "Se existir uma conta ativa com este e-mail, enviaremos um novo código.",
+                        bundle: bundleApresentacao
+                    )
+                    return
+                }
                 erro = MensagemDoErroAPI.texto(erroApi)
-                return
             } catch {
+                guard !Task.isCancelled else { return }
                 erro = String(localized: "Não foi possível reenviar o código. Tente novamente.", bundle: bundleApresentacao)
-                return
             }
         }
-        iniciarTemporizador()
-        mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
     }
 
     public func confirmarCodigo() async -> DestinoCodigo? {
@@ -131,11 +168,13 @@ public final class CodigoViewModel {
         defer { carregando = false }
 
         do {
-            if DemonstracaoContas.ehEmailDeDemonstracao(email) {
+            if modo == .entrada, DemonstracaoContas.ehEmailDeDemonstracao(email) {
                 try await api.entrarDemonstracao(email: email, codigo: codigo)
             } else {
                 try await api.verificarCodigo(email: email, codigo: codigo)
             }
+        } catch is CancellationError {
+            return nil
         } catch let erroApi as ErroDaApi {
             tratarErroDeVerificacao(erroApi)
             return nil
@@ -143,6 +182,8 @@ public final class CodigoViewModel {
             erro = String(localized: "Não foi possível confirmar o código. Tente novamente.", bundle: bundleApresentacao)
             return nil
         }
+
+        guard !Task.isCancelled else { return nil }
 
         do {
             let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: email)

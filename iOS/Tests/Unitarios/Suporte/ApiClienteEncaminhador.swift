@@ -18,7 +18,10 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
 
     // Entrada
     func solicitarCodigo(email: String) async throws { try await base.solicitarCodigo(email: email) }
+    func solicitarCodigoDeRecuperacao(email: String) async throws { try await base.solicitarCodigoDeRecuperacao(email: email) }
     func verificarCodigo(email: String, codigo: String) async throws { try await base.verificarCodigo(email: email, codigo: codigo) }
+    func entrarComSenha(email: String, senha: String) async throws { try await base.entrarComSenha(email: email, senha: senha) }
+    func definirSenha(_ novaSenha: String) async throws { try await base.definirSenha(novaSenha) }
     func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
     func possuiSessao() async -> Bool { await base.possuiSessao() }
 

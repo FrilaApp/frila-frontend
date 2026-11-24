@@ -16572,6 +16572,326 @@
           }
         }
       }
+    },
+    "As senhas não conferem. Digite a mesma senha nos dois campos.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As senhas não conferem. Digite a mesma senha nos dois campos."
+          }
+        }
+      }
+    },
+    "Confirmar senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar senha"
+          }
+        }
+      }
+    },
+    "Crie ou atualize a senha desta conta para entrar sem depender do código por e-mail. Você continua podendo usar o código quando quiser.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crie ou atualize a senha desta conta para entrar sem depender do código por e-mail. Você continua podendo usar o código quando quiser."
+          }
+        }
+      }
+    },
+    "Definir senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definir senha"
+          }
+        }
+      }
+    },
+    "Digite sua senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite sua senha"
+          }
+        }
+      }
+    },
+    "Digite sua senha para entrar.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite sua senha para entrar."
+          }
+        }
+      }
+    },
+    "E-mail ou senha incorretos. Confira os dados ou entre com código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail ou senha incorretos. Confira os dados ou entre com código."
+          }
+        }
+      }
+    },
+    "Entrar com código": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar com código"
+          }
+        }
+      }
+    },
+    "Entrar com senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar com senha"
+          }
+        }
+      }
+    },
+    "Enviaremos um código de 6 dígitos para confirmar seu e-mail. Depois de validar o código, você poderá criar uma nova senha na mesma conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviaremos um código de 6 dígitos para confirmar seu e-mail. Depois de validar o código, você poderá criar uma nova senha na mesma conta."
+          }
+        }
+      }
+    },
+    "Escolha uma senha diferente da atual.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha uma senha diferente da atual."
+          }
+        }
+      }
+    },
+    "Escolha uma senha mais forte, combinando letras e números.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha uma senha mais forte, combinando letras e números."
+          }
+        }
+      }
+    },
+    "Esqueci minha senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esqueci minha senha"
+          }
+        }
+      }
+    },
+    "Esta conta entra apenas com código por e-mail.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta conta entra apenas com código por e-mail."
+          }
+        }
+      }
+    },
+    "Mínimo de 8 caracteres": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mínimo de 8 caracteres"
+          }
+        }
+      }
+    },
+    "Nova senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nova senha"
+          }
+        }
+      }
+    },
+    "Não foi possível entrar agora. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível entrar agora. Tente novamente."
+          }
+        }
+      }
+    },
+    "Não foi possível salvar a senha agora. Tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar a senha agora. Tente novamente."
+          }
+        }
+      }
+    },
+    "Por segurança, saia e entre novamente com um código enviado ao seu e-mail antes de trocar a senha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por segurança, saia e entre novamente com um código enviado ao seu e-mail antes de trocar a senha."
+          }
+        }
+      }
+    },
+    "Recuperar acesso": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperar acesso"
+          }
+        }
+      }
+    },
+    "Repita a nova senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repita a nova senha"
+          }
+        }
+      }
+    },
+    "Salvar senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar senha"
+          }
+        }
+      }
+    },
+    "Senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senha"
+          }
+        }
+      }
+    },
+    "Senha da conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senha da conta"
+          }
+        }
+      }
+    },
+    "Senha salva nesta conta.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senha salva nesta conta."
+          }
+        }
+      }
+    },
+    "Use o e-mail da sua conta e a senha cadastrada. Se preferir, continue entrando com código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use o e-mail da sua conta e a senha cadastrada. Se preferir, continue entrando com código."
+          }
+        }
+      }
+    },
+    "Use pelo menos 8 caracteres na senha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use pelo menos 8 caracteres na senha."
+          }
+        }
+      }
+    },
+    "Se existir uma conta ativa com este e-mail, enviaremos um código de 6 dígitos. Confira sua caixa de entrada ou volte para entrar com código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se existir uma conta ativa com este e-mail, enviaremos um código de 6 dígitos. Confira sua caixa de entrada ou volte para entrar com código."
+          }
+        }
+      }
+    },
+    "Se existir uma conta ativa com este e-mail, enviaremos um novo código.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se existir uma conta ativa com este e-mail, enviaremos um novo código."
+          }
+        }
+      }
+    },
+    "Use o e-mail da sua conta e a senha cadastrada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use o e-mail da sua conta e a senha cadastrada."
+          }
+        }
+      }
+    },
+    "Esqueci ou ainda não tenho senha": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esqueci ou ainda não tenho senha"
+          }
+        }
+      }
+    },
+    "Criar conta": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criar conta"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

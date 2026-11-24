@@ -394,7 +394,10 @@ public protocol ObservadorDeSessao: Sendable {
 public protocol ApiCliente: TurnoRepositorio, Sendable {
     // Entrada
     func solicitarCodigo(email: String) async throws
+    func solicitarCodigoDeRecuperacao(email: String) async throws
     func verificarCodigo(email: String, codigo: String) async throws
+    func entrarComSenha(email: String, senha: String) async throws
+    func definirSenha(_ novaSenha: String) async throws
     func entrarDemonstracao(email: String, codigo: String) async throws
     /// Se há sessão guardada neste aparelho (válida ou renovável), sem expor e-mail nem token.
     func possuiSessao() async -> Bool
@@ -757,6 +760,18 @@ public extension ApiCliente {
     }
 
     func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func solicitarCodigoDeRecuperacao(email: String) async throws {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func entrarComSenha(email: String, senha: String) async throws {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func definirSenha(_ novaSenha: String) async throws {
         throw ErroDaApi(codigo: .respostaInvalida)
     }
 }

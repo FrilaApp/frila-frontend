@@ -67,11 +67,57 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
     }
 
+    public func solicitarCodigoDeRecuperacao(email: String) async throws {
+        do {
+            try Task.checkCancellation()
+            // Recuperação de senha nunca deve criar usuário novo no Auth.
+            try await cliente.auth.signInWithOTP(email: email, shouldCreateUser: false)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
     public func verificarCodigo(email: String, codigo: String) async throws {
         do {
             try await filaDeSessao.executar { [cliente] in
                 _ = try await cliente.auth.verifyOTP(email: email, token: codigo, type: .email)
             }
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    public func entrarComSenha(email: String, senha: String) async throws {
+        do {
+            try await filaDeSessao.executar { [cliente] in
+                try Task.checkCancellation()
+                _ = try await cliente.auth.signIn(email: email, password: senha)
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    public func definirSenha(_ novaSenha: String) async throws {
+        do {
+            try await filaDeSessao.executar { [self] in
+                try Task.checkCancellation()
+                let sessaoUsada = cliente.auth.currentSession?.accessToken
+                do {
+                    _ = try await cliente.auth.update(user: UserAttributes(password: novaSenha))
+                } catch {
+                    if Self.comprovaSessaoInvalidaNoAuth(error) {
+                        _ = await encerrarDentroDaFila(sessaoUsada: sessaoUsada)
+                    }
+                    throw error
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw mapear(error)
         }
@@ -794,6 +840,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         return false
     }
 
+    /// Em chamadas autenticadas do Auth (como `PUT /auth/v1/user` ao definir senha), um 401 com
+    /// `reauthentication_needed` indica que a sessão continua válida e precisa apenas de nova
+    /// verificação (OTP), sem derrubar a sessão atual. Qualquer outro 401 comprova sessão inválida.
+    static func comprovaSessaoInvalidaNoAuth(_ error: Error) -> Bool {
+        if case let AuthError.api(_, codigoDoAuth, _, resposta) = error {
+            return resposta.statusCode == 401 && codigoDoAuth.rawValue != "reauthentication_needed"
+        }
+        return false
+    }
+
     func encerrarPorSessaoInvalida(sessaoUsada: String?) async -> ResultadoDoEncerramento {
         (try? await filaDeSessao.executar { [self] in await encerrarDentroDaFila(sessaoUsada: sessaoUsada) })
             ?? .sessaoContinuaGuardada
@@ -1002,6 +1058,18 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         switch auth {
         case let .api(_, codigoDoAuth, _, resposta):
             let original = codigoDoAuth.rawValue
+            if original == "reauthentication_needed" {
+                return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "reauthentication_needed")
+            }
+            if original == "invalid_credentials" {
+                return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+            }
+            if original == "weak_password" || original == "same_password" {
+                return ErroDaApi(codigo: .campoInvalido, codigoOriginal: original, detalhes: "senha")
+            }
+            if original == "otp_disabled" || original == "user_not_found" {
+                return ErroDaApi(codigo: .naoEncontrado, codigoOriginal: original)
+            }
             switch resposta.statusCode {
             case 429:
                 return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)

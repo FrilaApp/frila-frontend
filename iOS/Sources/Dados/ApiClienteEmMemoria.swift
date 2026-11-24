@@ -60,6 +60,10 @@ public actor ApiClienteEmMemoria: ApiCliente {
         case inelegivelSuspenso = "inelegivel-suspenso"
         case codigoErrado = "codigo-errado"
         case codigoExpirado = "codigo-expirado"
+        case senhaErrada = "senha-errada"
+        case senhaFraca = "senha-fraca"
+        case reautenticacaoNecessaria = "reautenticacao-necessaria"
+        case identidadeInexistenteNaRecuperacao = "identidade-inexistente-na-recuperacao"
         case menorDeIdade = "menor-de-idade"
         case contaExistente = "conta-existente"
         case semPerfilProfissional = "sem-perfil-profissional"
@@ -317,6 +321,9 @@ public actor ApiClienteEmMemoria: ApiCliente {
     public private(set) var chamadasAEscolherCandidato = 0
     public private(set) var chamadasARetirarCandidatura = 0
     public private(set) var chamadasAVerificarCodigo = 0
+    public private(set) var chamadasASolicitarRecuperacao = 0
+    public private(set) var chamadasAEntrarComSenha = 0
+    public private(set) var senhasDefinidas = 0
     public private(set) var chamadasACriarConta = 0
     public private(set) var chamadasAPublicarVaga = 0
     public private(set) var chamadasAExportarMeusDados = 0
@@ -1008,6 +1015,15 @@ public actor ApiClienteEmMemoria: ApiCliente {
 
     public func solicitarCodigo(email: String) async throws { try verificarRede() }
 
+    public func solicitarCodigoDeRecuperacao(email: String) async throws {
+        chamadasASolicitarRecuperacao += 1
+        await Task.yield()
+        try verificarRede()
+        if cenario == .identidadeInexistenteNaRecuperacao || cenario == .primeiroAcesso {
+            throw ErroDaApi(codigo: .naoEncontrado, codigoOriginal: "otp_disabled")
+        }
+    }
+
     public func verificarCodigo(email: String, codigo: String) async throws {
         chamadasAVerificarCodigo += 1
         await Task.yield()
@@ -1019,6 +1035,31 @@ public actor ApiClienteEmMemoria: ApiCliente {
             throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "otp_expired")
         }
         sessaoAtiva = true
+    }
+
+    public func entrarComSenha(email: String, senha: String) async throws {
+        chamadasAEntrarComSenha += 1
+        await Task.yield()
+        try verificarRede()
+        if cenario == .senhaErrada || senha == "senha-incorreta" {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "invalid_credentials")
+        }
+        sessaoAtiva = true
+    }
+
+    public func definirSenha(_ novaSenha: String) async throws {
+        await Task.yield()
+        try verificarRede()
+        guard sessaoAtiva else {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "session_missing")
+        }
+        if cenario == .reautenticacaoNecessaria {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "reauthentication_needed")
+        }
+        if cenario == .senhaFraca || novaSenha.count < 8 {
+            throw ErroDaApi(codigo: .campoInvalido, codigoOriginal: "weak_password", detalhes: "senha")
+        }
+        senhasDefinidas += 1
     }
 
     public func possuiSessao() async -> Bool { sessaoAtiva }

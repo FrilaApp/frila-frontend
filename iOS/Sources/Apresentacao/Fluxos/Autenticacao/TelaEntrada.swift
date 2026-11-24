@@ -7,6 +7,7 @@ import SwiftUI
 public struct TelaEntrada: View {
     @Bindable var viewModel: EntradaViewModel
     var aoAvancarParaCodigo: (String) -> Void
+    var aoEntrarComSenha: ((String) -> Void)?
 
     @Environment(\.dynamicTypeSize) private var tamanhoDoTexto
     @State private var erroLocal: String?
@@ -14,9 +15,14 @@ public struct TelaEntrada: View {
     /// Com o teclado aberto (aqui ou na tela do código, por cima), a arte para de flutuar.
     @State private var tecladoAberto = false
 
-    public init(viewModel: EntradaViewModel, aoAvancarParaCodigo: @escaping (String) -> Void) {
+    public init(
+        viewModel: EntradaViewModel,
+        aoAvancarParaCodigo: @escaping (String) -> Void,
+        aoEntrarComSenha: ((String) -> Void)? = nil
+    ) {
         self.viewModel = viewModel
         self.aoAvancarParaCodigo = aoAvancarParaCodigo
+        self.aoEntrarComSenha = aoEntrarComSenha
     }
 
     public var body: some View {
@@ -94,6 +100,17 @@ public struct TelaEntrada: View {
             }
             .disabled(viewModel.carregando)
             .accessibilityIdentifier("entrada-receber-codigo")
+
+            if let aoEntrarComSenha {
+                Button {
+                    aoEntrarComSenha(viewModel.email)
+                } label: {
+                    Text("Entrar com senha", bundle: bundleApresentacao)
+                }
+                .buttonStyle(.frilaLink)
+                .disabled(viewModel.carregando)
+                .accessibilityIdentifier("entrada-com-senha")
+            }
         }
         .frilaKeyboardDismissScope()
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in tecladoAberto = true }
