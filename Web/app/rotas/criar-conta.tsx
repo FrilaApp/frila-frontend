@@ -1,7 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { authDesteAmbiente } from "../servidor/deste-ambiente";
+import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
 import { cookiesDaSessao, ehPedidoSeguro } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/criar-conta";
@@ -36,6 +36,9 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const auth = authDesteAmbiente();
   if (!auth) {
     return { passo: "email", email, erro: "indisponivel" };
+  }
+  if (emailsDeDemonstracao().has(email)) {
+    return { passo: "email", email, erro: "conta_demo" };
   }
 
   if (intencao === "pedir") {

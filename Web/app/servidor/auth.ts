@@ -13,12 +13,35 @@ export const PRAZO_DO_AUTH_MS = 8000;
 export type FalhaDeEntrada = "codigo_invalido" | "credenciais_invalidas" | "limite" | "indisponivel";
 export type ResultadoDeEntrada = { ok: true; sessao: Sessao } | { ok: false; motivo: FalhaDeEntrada };
 
-export type FalhaAtualizarSenha = "senha_fraca" | "senha_igual" | "sessao_invalida" | "limite" | "indisponivel";
+export type FalhaAtualizarSenha =
+  | "senha_fraca"
+  | "senha_igual"
+  | "reautenticacao_necessaria"
+  | "sessao_invalida"
+  | "limite"
+  | "indisponivel";
 export type ResultadoAtualizarSenha = { ok: true } | { ok: false; motivo: FalhaAtualizarSenha };
 
 export type ResultadoRecuperacao =
   | { ok: true; enviado: boolean }
   | { ok: false; motivo: "limite" | "indisponivel" };
+
+/** Validação runtime fail-closed para qualquer resposta de sessão recebida do Supabase Auth. */
+function ehSessaoValida(valor: unknown): valor is Sessao {
+  if (typeof valor !== "object" || valor === null) return false;
+  const obj = valor as Record<string, unknown>;
+  return (
+    typeof obj.access_token === "string" &&
+    obj.access_token.trim().length > 0 &&
+    typeof obj.refresh_token === "string" &&
+    obj.refresh_token.trim().length > 0 &&
+    typeof obj.token_type === "string" &&
+    obj.token_type.trim().length > 0 &&
+    typeof obj.expires_in === "number" &&
+    Number.isFinite(obj.expires_in) &&
+    obj.expires_in > 0
+  );
+}
 
 export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof fetch; prazoMs?: number } = {}) {
   const cabecalhos = { apikey: ambiente.chavePublicavel, Authorization: `Bearer ${ambiente.chavePublicavel}` };
@@ -105,8 +128,11 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
           signal: prazo(),
         });
         if (resposta.ok) {
-          const sessao = (await resposta.json()) as Sessao;
-          return { ok: true, sessao };
+          const dados: unknown = await resposta.json();
+          if (!ehSessaoValida(dados)) {
+            return { ok: false, motivo: "indisponivel" };
+          }
+          return { ok: true, sessao: dados };
         }
         await resposta.body?.cancel();
         if (resposta.status === 429) {
@@ -152,8 +178,12 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
         }
         if (resposta.status === 422) {
           const dados = (await resposta.json().catch(() => ({}))) as Record<string, unknown>;
-          if (dados.error_code === "same_password" || dados.code === "same_password") {
+          const codigo = dados.error_code ?? dados.code;
+          if (codigo === "same_password") {
             return { ok: false, motivo: "senha_igual" };
+          }
+          if (codigo === "reauthentication_needed") {
+            return { ok: false, motivo: "reautenticacao_necessaria" };
           }
           return { ok: false, motivo: "senha_fraca" };
         }
@@ -170,7 +200,10 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
           body: { email, token: codigo, type: "email" },
           signal: prazo(),
         });
-        return data ? { ok: true, sessao: data } : { ok: false, motivo: motivoDe(response.status) };
+        if (response.ok) {
+          return ehSessaoValida(data) ? { ok: true, sessao: data } : { ok: false, motivo: "indisponivel" };
+        }
+        return { ok: false, motivo: motivoDe(response.status) };
       } catch {
         return { ok: false, motivo: "indisponivel" };
       }
@@ -180,7 +213,10 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
     async entrarDemonstracao(email: string, codigo: string): Promise<ResultadoDeEntrada> {
       try {
         const { data, response } = await funcoes.POST("/entrar-demonstracao", { body: { email, codigo }, signal: prazo() });
-        return data ? { ok: true, sessao: data } : { ok: false, motivo: motivoDe(response.status) };
+        if (response.ok) {
+          return ehSessaoValida(data) ? { ok: true, sessao: data } : { ok: false, motivo: "indisponivel" };
+        }
+        return { ok: false, motivo: motivoDe(response.status) };
       } catch {
         return { ok: false, motivo: "indisponivel" };
       }
@@ -193,7 +229,9 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
           body: { refresh_token: tokenDeRenovacao },
           signal: prazo(),
         });
-        if (data) return { ok: true, sessao: data };
+        if (response.ok) {
+          return ehSessaoValida(data) ? { ok: true, sessao: data } : { ok: false, motivo: "indisponivel" };
+        }
         // 400 e 401: o token de renovação não vale mais. 429 e 5xx: o Supabase é que falhou.
         const recusada = response.status === 400 || response.status === 401 || response.status === 403;
         return { ok: false, motivo: recusada ? "recusada" : "indisponivel" };
@@ -237,6 +275,24 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
         });
         await resposta.body?.cancel();
         return { ok: resposta.ok || resposta.status === 401 || resposta.status === 403 || resposta.status === 404 };
+      } catch {
+        return { ok: false };
+      }
+    },
+
+    /**
+     * Revoga outras sessões ativas no Auth pós-redefinição de senha (`scope=others`),
+     * mantendo apenas a sessão atual válida. Best-effort: nunca lança.
+     */
+    async encerrarOutrasSessoes(acesso: string): Promise<{ ok: boolean }> {
+      try {
+        const resposta = await buscar(`${ambiente.url}/auth/v1/logout?scope=others`, {
+          method: "POST",
+          headers: { apikey: ambiente.chavePublicavel, Authorization: `Bearer ${acesso}` },
+          signal: prazo(),
+        });
+        await resposta.body?.cancel();
+        return { ok: resposta.ok };
       } catch {
         return { ok: false };
       }

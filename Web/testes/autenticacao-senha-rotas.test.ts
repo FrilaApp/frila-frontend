@@ -6,12 +6,12 @@ import { action as entrarAction, loader as entrarLoader } from "../app/rotas/ent
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
 import { argumentos } from "./contratante-apoio";
 
-async function capturaRedirect(chamada: () => unknown | Promise<unknown>): Promise<string> {
+async function capturaRedirect(chamada: () => unknown | Promise<unknown>): Promise<Response> {
   try {
     const res = await chamada();
-    if (res instanceof Response) return res.headers.get("Location") ?? "";
+    if (res instanceof Response) return res;
   } catch (resposta) {
-    if (resposta instanceof Response) return resposta.headers.get("Location") ?? "";
+    if (resposta instanceof Response) return resposta;
     throw resposta;
   }
   throw new Error("esperava um redirect");
@@ -24,6 +24,7 @@ const authMock = vi.hoisted(() => ({
   confirmarCodigo: vi.fn(),
   entrarDemonstracao: vi.fn(),
   atualizarSenha: vi.fn(),
+  encerrarOutrasSessoes: vi.fn(),
 }));
 
 const contaMock = vi.hoisted(() => ({
@@ -55,12 +56,14 @@ beforeEach(() => {
   authMock.confirmarCodigo.mockResolvedValue({ ok: true, sessao: SESSAO_SINTETICA });
   authMock.entrarDemonstracao.mockResolvedValue({ ok: true, sessao: SESSAO_SINTETICA });
   authMock.atualizarSenha.mockResolvedValue({ ok: true });
+  authMock.encerrarOutrasSessoes.mockResolvedValue({ ok: true });
   contaMock.lerMinhaConta.mockResolvedValue({ estado: "ok", nome: "Teste", perfil: "profissional", termosVersao: "2026-11-20" });
 });
 
-describe("rotas: login habitual por senha (rotas/entrar)", () => {
+describe("rotas: login habitual por senha e isolamento demo (rotas/entrar)", () => {
   it("se já estiver logado, o loader redireciona para a raiz", async () => {
-    expect(await capturaRedirect(() => entrarLoader(argumentos("/entrar", undefined, true)))).toBe("/");
+    const resp = await capturaRedirect(() => entrarLoader(argumentos("/entrar", undefined, true)));
+    expect(resp.headers.get("Location")).toBe("/");
   });
 
   it("se não estiver logado, o loader retorna null", async () => {
@@ -78,18 +81,14 @@ describe("rotas: login habitual por senha (rotas/entrar)", () => {
   });
 
   it("login com senha correto grava cookies HttpOnly e redireciona para /", async () => {
-    try {
-      await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", senha: "senhaCorreta123" }, false));
-      expect.fail("esperava redirect");
-    } catch (resposta) {
-      expect(resposta instanceof Response).toBe(true);
-      const resp = resposta as Response;
-      expect(resp.headers.get("Location")).toBe("/");
-      const cookies = resp.headers.getSetCookie();
-      expect(cookies.length).toBe(2);
-      expect(cookies.every((c) => c.includes("HttpOnly"))).toBe(true);
-      expect(authMock.entrarComSenha).toHaveBeenCalledWith("usuario@frila.test", "senhaCorreta123");
-    }
+    const resp = await capturaRedirect(() =>
+      entrarAction(argumentos("/entrar", { email: "usuario@frila.test", senha: "senhaCorreta123" }, false)),
+    );
+    expect(resp.headers.get("Location")).toBe("/");
+    const cookies = resp.headers.getSetCookie();
+    expect(cookies.length).toBe(2);
+    expect(cookies.every((c) => c.includes("HttpOnly"))).toBe(true);
+    expect(authMock.entrarComSenha).toHaveBeenCalledWith("usuario@frila.test", "senhaCorreta123");
   });
 
   it("login com senha incorreta devolve erro neutro credenciais_invalidas", async () => {
@@ -98,10 +97,22 @@ describe("rotas: login habitual por senha (rotas/entrar)", () => {
     expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "credenciais_invalidas" });
   });
 
-  it("intencao=pedir pede código e avança para passo codigo", async () => {
+  it("regressão P1: intencao=pedir em /entrar para conta não-demo é bloqueado e NÃO chama pedirCodigo", async () => {
     const res = await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "codigo", email: "usuario@frila.test" });
-    expect(authMock.pedirCodigo).toHaveBeenCalledWith("usuario@frila.test");
+    expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "codigo_apenas_demo" });
+    expect(authMock.pedirCodigo).not.toHaveBeenCalled();
+  });
+
+  it("regressão P1: intencao=confirmar em /entrar para conta não-demo é bloqueado e NÃO chama confirmarCodigo", async () => {
+    const res = await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", codigo: "123456", intencao: "confirmar" }, false));
+    expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "codigo_apenas_demo" });
+    expect(authMock.confirmarCodigo).not.toHaveBeenCalled();
+  });
+
+  it("isolamento demo P2: conta demo tentando entrar por senha é rejeitada sem chamar entrarComSenha", async () => {
+    const res = await entrarAction(argumentos("/entrar", { email: "demo@frila.test", senha: "123" }, false));
+    expect(res).toEqual({ passo: "email", email: "demo@frila.test", erro: "conta_demo" });
+    expect(authMock.entrarComSenha).not.toHaveBeenCalled();
   });
 
   it("intencao=pedir com conta demo avança para código sem chamar auth.pedirCodigo", async () => {
@@ -111,21 +122,24 @@ describe("rotas: login habitual por senha (rotas/entrar)", () => {
   });
 
   it("intencao=confirmar com conta demo chama entrarDemonstracao", async () => {
-    try {
-      await entrarAction(argumentos("/entrar", { email: "demo@frila.test", codigo: "codigo-demo", intencao: "confirmar" }, false));
-      expect.fail("esperava redirect");
-    } catch (resposta) {
-      expect(resposta instanceof Response).toBe(true);
-      const resp = resposta as Response;
-      expect(resp.headers.get("Location")).toBe("/");
-      expect(authMock.entrarDemonstracao).toHaveBeenCalledWith("demo@frila.test", "codigo-demo");
-    }
+    const resp = await capturaRedirect(() =>
+      entrarAction(argumentos("/entrar", { email: "demo@frila.test", codigo: "codigo-demo", intencao: "confirmar" }, false)),
+    );
+    expect(resp.headers.get("Location")).toBe("/");
+    expect(authMock.entrarDemonstracao).toHaveBeenCalledWith("demo@frila.test", "codigo-demo");
   });
 });
 
 describe("rotas: criação de conta com OTP (rotas/criar-conta)", () => {
   it("se já estiver logado, redireciona para a raiz", async () => {
-    expect(await capturaRedirect(() => criarContaLoader(argumentos("/criar-conta", undefined, true)))).toBe("/");
+    const resp = await capturaRedirect(() => criarContaLoader(argumentos("/criar-conta", undefined, true)));
+    expect(resp.headers.get("Location")).toBe("/");
+  });
+
+  it("isolamento demo P2: recusa conta demo no cadastro", async () => {
+    const res = await criarContaAction(argumentos("/criar-conta", { email: "demo@frila.test", intencao: "pedir" }, false));
+    expect(res).toEqual({ passo: "email", email: "demo@frila.test", erro: "conta_demo" });
+    expect(authMock.pedirCodigo).not.toHaveBeenCalled();
   });
 
   it("intencao=pedir chama pedirCodigo com criarUsuario=true", async () => {
@@ -135,16 +149,12 @@ describe("rotas: criação de conta com OTP (rotas/criar-conta)", () => {
   });
 
   it("intencao=confirmar valida código de 6 dígitos, grava cookies e redireciona para /definir-senha?origem=cadastro", async () => {
-    try {
-      await criarContaAction(argumentos("/criar-conta", { email: "novo@frila.test", codigo: "123456", intencao: "confirmar" }, false));
-      expect.fail("esperava redirect");
-    } catch (resposta) {
-      expect(resposta instanceof Response).toBe(true);
-      const resp = resposta as Response;
-      expect(resp.headers.get("Location")).toBe("/definir-senha?origem=cadastro");
-      expect(authMock.confirmarCodigo).toHaveBeenCalledWith("novo@frila.test", "123456");
-      expect(resp.headers.getSetCookie().length).toBe(2);
-    }
+    const resp = await capturaRedirect(() =>
+      criarContaAction(argumentos("/criar-conta", { email: "novo@frila.test", codigo: "123456", intencao: "confirmar" }, false)),
+    );
+    expect(resp.headers.get("Location")).toBe("/definir-senha?origem=cadastro");
+    expect(authMock.confirmarCodigo).toHaveBeenCalledWith("novo@frila.test", "123456");
+    expect(resp.headers.getSetCookie().length).toBe(2);
   });
 
   it("intencao=confirmar com código inválido devolve erro codigo_invalido", async () => {
@@ -154,9 +164,10 @@ describe("rotas: criação de conta com OTP (rotas/criar-conta)", () => {
   });
 });
 
-describe("rotas: recuperação de senha e migração de conta legada (rotas/recuperar-senha)", () => {
+describe("rotas: recuperação de senha anti-enumeração (rotas/recuperar-senha)", () => {
   it("se já estiver logado, redireciona para a raiz", async () => {
-    expect(await capturaRedirect(() => recuperarSenhaLoader(argumentos("/recuperar-senha", undefined, true)))).toBe("/");
+    const resp = await capturaRedirect(() => recuperarSenhaLoader(argumentos("/recuperar-senha", undefined, true)));
+    expect(resp.headers.get("Location")).toBe("/");
   });
 
   it("recusa conta de demonstração com erro conta_demo", async () => {
@@ -164,78 +175,121 @@ describe("rotas: recuperação de senha e migração de conta legada (rotas/recu
     expect(res).toEqual({ passo: "email", email: "demo@frila.test", erro: "conta_demo" });
   });
 
-  it("conta existente (enviado=true) avança para o passo de código", async () => {
-    authMock.pedirCodigoRecuperacao.mockResolvedValue({ ok: true, enviado: true });
-    const res = await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "existente@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "codigo", email: "existente@frila.test" });
-    expect(authMock.pedirCodigoRecuperacao).toHaveBeenCalledWith("existente@frila.test");
+  it("regressão P1 anti-enumeração: conta existente e inexistente produzem estado e passo rigorosamente idênticos", async () => {
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: true });
+    const resExistente = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir" }, false),
+    );
+
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: false });
+    const resInexistente = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir" }, false),
+    );
+
+    expect(resExistente).toEqual({ passo: "codigo", email: "mesmo@frila.test" });
+    expect(resInexistente).toEqual(resExistente);
+    expect(authMock.pedirCodigoRecuperacao).toHaveBeenCalledTimes(2);
   });
 
-  it("conta inexistente ou social-only (enviado=false) retorna mensagem neutra anti-enumeração sem avançar", async () => {
-    authMock.pedirCodigoRecuperacao.mockResolvedValue({ ok: true, enviado: false });
-    const res = await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "inexistente@frila.test", intencao: "pedir" }, false));
-    expect(res).toHaveProperty("passo", "email");
-    expect(res).toHaveProperty("mensagemNeutra");
-    expect(res).not.toHaveProperty("erro");
+  it("regressão P1 anti-enumeração: reenvio para conta existente e inexistente produzem estado idêntico", async () => {
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: true });
+    const reenvioExistente = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: false });
+    const reenvioInexistente = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+
+    expect(reenvioExistente).toEqual({ passo: "codigo", email: "mesmo@frila.test", reenviado: true });
+    expect(reenvioInexistente).toEqual(reenvioExistente);
+  });
+
+  it("erros de limite (429) e indisponibilidade (5xx) não são mascarados", async () => {
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    expect(await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "a@b.co", intencao: "pedir" }, false))).toEqual({
+      passo: "email",
+      email: "a@b.co",
+      erro: "limite",
+    });
+
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: false, motivo: "indisponivel" });
+    expect(
+      await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "a@b.co", intencao: "pedir", reenvio: "1" }, false)),
+    ).toEqual({
+      passo: "codigo",
+      email: "a@b.co",
+      erro: "indisponivel",
+    });
   });
 
   it("confirmar código de recuperação redireciona para /definir-senha?origem=recuperacao com cookies", async () => {
-    try {
-      await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "existente@frila.test", codigo: "654321", intencao: "confirmar" }, false));
-      expect.fail("esperava redirect");
-    } catch (resposta) {
-      expect(resposta instanceof Response).toBe(true);
-      const resp = resposta as Response;
-      expect(resp.headers.get("Location")).toBe("/definir-senha?origem=recuperacao");
-      expect(authMock.confirmarCodigo).toHaveBeenCalledWith("existente@frila.test", "654321");
-      expect(resp.headers.getSetCookie().length).toBe(2);
-    }
+    const resp = await capturaRedirect(() =>
+      recuperarSenhaAction(argumentos("/recuperar-senha", { email: "existente@frila.test", codigo: "654321", intencao: "confirmar" }, false)),
+    );
+    expect(resp.headers.get("Location")).toBe("/definir-senha?origem=recuperacao");
+    expect(authMock.confirmarCodigo).toHaveBeenCalledWith("existente@frila.test", "654321");
+    expect(resp.headers.getSetCookie().length).toBe(2);
   });
 });
 
 describe("rotas: definir senha na sessão ativa (rotas/definir-senha)", () => {
   it("sem sessão, loader redireciona para /entrar", async () => {
-    expect(await capturaRedirect(() => definirSenhaLoader(argumentos("/definir-senha", undefined, false)))).toBe("/entrar");
+    const resp = await capturaRedirect(() => definirSenhaLoader(argumentos("/definir-senha", undefined, false)));
+    expect(resp.headers.get("Location")).toBe("/entrar");
   });
 
-  it("com sessão, loader permite acesso", async () => {
-    expect(await definirSenhaLoader(argumentos("/definir-senha", undefined, true))).toBeNull();
+  it("com sessão, loader lê origem corretamente", async () => {
+    expect(definirSenhaLoader(argumentos("/definir-senha?origem=cadastro", undefined, true))).toEqual({ origem: "cadastro" });
+    expect(definirSenhaLoader(argumentos("/definir-senha?origem=recuperacao", undefined, true))).toEqual({ origem: "recuperacao" });
+    expect(definirSenhaLoader(argumentos("/definir-senha", undefined, true))).toEqual({ origem: "alteracao" });
   });
 
   it("valida tamanho mínimo de 8 caracteres", async () => {
-    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "123", confirmacao: "123" }, true));
-    expect(res).toEqual({ erro: "senha_curta" });
+    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "123", confirmacao: "123", origem: "cadastro" }, true));
+    expect(res).toEqual({ erro: "senha_curta", origem: "cadastro" });
     expect(authMock.atualizarSenha).not.toHaveBeenCalled();
   });
 
   it("valida confirmação idêntica", async () => {
-    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "senha1234", confirmacao: "diferente12" }, true));
-    expect(res).toEqual({ erro: "senhas_diferentes" });
+    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "senha1234", confirmacao: "diferente12", origem: "recuperacao" }, true));
+    expect(res).toEqual({ erro: "senhas_diferentes", origem: "recuperacao" });
     expect(authMock.atualizarSenha).not.toHaveBeenCalled();
   });
 
-  it("trata erro de senha fraca devolvido pelo auth", async () => {
-    authMock.atualizarSenha.mockResolvedValue({ ok: false, motivo: "senha_fraca" });
-    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "senhafraca1", confirmacao: "senhafraca1" }, true));
-    expect(res).toEqual({ erro: "senha_fraca" });
+  it("trata erro de reautenticação necessária sem loop", async () => {
+    authMock.atualizarSenha.mockResolvedValue({ ok: false, motivo: "reautenticacao_necessaria" });
+    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!" }, true));
+    expect(res).toEqual({ erro: "reautenticacao_necessaria", origem: "alteracao" });
   });
 
-  it("salvar senha com sucesso preservando auth.uid redireciona para /cadastro se perfil não preenchido", async () => {
+  it("sessão inválida apaga cookies de sessão ao redirecionar para /entrar, impedindo loop", async () => {
+    authMock.atualizarSenha.mockResolvedValue({ ok: false, motivo: "sessao_invalida" });
+    const resp = await capturaRedirect(() =>
+      definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!" }, true)),
+    );
+    expect(resp.headers.get("Location")).toBe("/entrar");
+    const cookies = resp.headers.getSetCookie();
+    expect(cookies.length).toBe(2);
+    expect(cookies.every((c) => c.includes("Max-Age=0"))).toBe(true);
+  });
+
+  it("salvar senha com origem=recuperacao tenta revogar outras sessões", async () => {
+    const resp = await capturaRedirect(() =>
+      definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!", origem: "recuperacao" }, true)),
+    );
+    expect(resp.headers.get("Location")).toBe("/");
+    expect(authMock.encerrarOutrasSessoes).toHaveBeenCalledWith("sintetico");
+  });
+
+  it("salvar senha com origem=cadastro redireciona para /cadastro se perfil não preenchido e não revoga outras sessões", async () => {
     contaMock.lerMinhaConta.mockResolvedValue({ estado: "sem_conta" });
-    expect(
-      await capturaRedirect(() =>
-        definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!" }, true)),
-      ),
-    ).toBe("/cadastro");
+    const resp = await capturaRedirect(() =>
+      definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!", origem: "cadastro" }, true)),
+    );
+    expect(resp.headers.get("Location")).toBe("/cadastro");
     expect(authMock.atualizarSenha).toHaveBeenCalledWith("sintetico", "senhaForte123!");
-  });
-
-  it("salvar senha com sucesso redireciona para / se perfil já estiver pronto", async () => {
-    contaMock.lerMinhaConta.mockResolvedValue({ estado: "ok", nome: "Ana", perfil: "profissional", termosVersao: "2026-11-20" });
-    expect(
-      await capturaRedirect(() =>
-        definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!" }, true)),
-      ),
-    ).toBe("/");
+    expect(authMock.encerrarOutrasSessoes).not.toHaveBeenCalled();
   });
 });

@@ -41,19 +41,21 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const ehDemonstracao = emailsDeDemonstracao().has(email);
 
   if (intencao === "pedir") {
-    // A conta de demonstração não tem caixa de entrada: vai direto para o código, sem envio.
-    const pedido = ehDemonstracao ? ({ ok: true } as const) : await auth.pedirCodigo(email);
-    return pedido.ok ? { passo: "codigo", email } : { passo: "email", email, erro: pedido.motivo };
+    // Apenas contas de demonstração usam código em /entrar; contas reais entram com senha (ou criam conta em /criar-conta).
+    if (!ehDemonstracao) {
+      return { passo: "email", email, erro: "codigo_apenas_demo" };
+    }
+    return { passo: "codigo", email };
   }
 
   if (intencao === "confirmar") {
-    if (!ehDemonstracao && !/^\d{6}$/.test(codigo)) {
-      return { passo: "codigo", email, erro: "codigo_incompleto" };
+    if (!ehDemonstracao) {
+      return { passo: "email", email, erro: "codigo_apenas_demo" };
     }
     if (codigo.length === 0 || codigo.length > 64) {
       return { passo: "codigo", email, erro: "codigo_incompleto" };
     }
-    const entrada = ehDemonstracao ? await auth.entrarDemonstracao(email, codigo) : await auth.confirmarCodigo(email, codigo);
+    const entrada = await auth.entrarDemonstracao(email, codigo);
     if (!entrada.ok) {
       return { passo: "codigo", email, erro: entrada.motivo };
     }
@@ -64,6 +66,9 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   }
 
   // Intenção padrão: login habitual por e-mail e senha
+  if (ehDemonstracao) {
+    return { passo: "email", email, erro: "conta_demo" };
+  }
   if (senha.length === 0) {
     return { passo: "email", email, erro: "senha_invalida" };
   }

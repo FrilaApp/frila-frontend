@@ -8,8 +8,8 @@ import type { Route } from "./+types/recuperar-senha";
 
 type Erro = keyof typeof textos.recuperarSenha.erros;
 type Passo =
-  | { passo: "email"; email: string; erro?: Erro; mensagemNeutra?: string }
-  | { passo: "codigo"; email: string; erro?: Erro };
+  | { passo: "email"; email: string; erro?: Erro }
+  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -29,13 +29,14 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const email = String(formulario.get("email") ?? "").trim().toLowerCase();
   const codigo = String(formulario.get("codigo") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "pedir");
+  const ehReenvio = String(formulario.get("reenvio") ?? "") === "1";
 
   if (!FORMATO_DO_EMAIL.test(email) || email.length > 254) {
     return { passo: "email", email, erro: "email_invalido" };
   }
   const auth = authDesteAmbiente();
   if (!auth) {
-    return { passo: "email", email, erro: "indisponivel" };
+    return { passo: ehReenvio ? "codigo" : "email", email, erro: "indisponivel" };
   }
 
   if (emailsDeDemonstracao().has(email)) {
@@ -45,13 +46,10 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   if (intencao === "pedir") {
     const pedido = await auth.pedirCodigoRecuperacao(email);
     if (!pedido.ok) {
-      return { passo: "email", email, erro: pedido.motivo };
+      return { passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo };
     }
-    if (pedido.enviado) {
-      return { passo: "codigo", email };
-    }
-    // Identidade inexistente ou social-only: resposta neutra anti-enumeração
-    return { passo: "email", email, mensagemNeutra: textos.recuperarSenha.mensagemNeutra };
+    // Anti-enumeração: existente, inexistente e social-only produzem exatamente o mesmo passo/estado/UI.
+    return ehReenvio ? { passo: "codigo", email, reenviado: true } : { passo: "codigo", email };
   }
 
   if (!/^\d{6}$/.test(codigo)) {
@@ -109,11 +107,6 @@ export default function RecuperarSenha({ actionData }: Route.ComponentProps) {
               {erro}
             </p>
           ) : null}
-          {estado.mensagemNeutra ? (
-            <p role="status" className="font-semibold">
-              {estado.mensagemNeutra}
-            </p>
-          ) : null}
           <button type="submit" name="intencao" value="pedir" disabled={enviando} className={classeDoBotao}>
             {enviando ? textos.recuperarSenha.enviando : textos.recuperarSenha.pedirCodigo}
           </button>
@@ -151,12 +144,18 @@ export default function RecuperarSenha({ actionData }: Route.ComponentProps) {
                 {erro}
               </p>
             ) : null}
+            {estado.reenviado && !erro ? (
+              <p role="status" className="font-semibold">
+                {textos.recuperarSenha.mensagemReenvio}
+              </p>
+            ) : null}
             <button type="submit" name="intencao" value="confirmar" disabled={enviando} className={classeDoBotao}>
               {enviando ? textos.recuperarSenha.conferindo : textos.recuperarSenha.confirmar}
             </button>
           </Form>
           <Form method="post" className="flex flex-wrap gap-x-6 gap-y-2">
             <input type="hidden" name="email" value={estado.email} />
+            <input type="hidden" name="reenvio" value="1" />
             <button type="submit" name="intencao" value="pedir" disabled={enviando} className={classeDoLink}>
               {textos.recuperarSenha.reenviar}
             </button>

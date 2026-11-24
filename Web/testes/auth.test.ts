@@ -90,8 +90,31 @@ describe("conversa com o Supabase Auth", () => {
     const naoAutenticado = authQueResponde(() => Response.json({}, { status: 401 })).auth;
     expect(await naoAutenticado.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "sessao_invalida" });
 
+    const reauth = authQueResponde(() => Response.json({ error_code: "reauthentication_needed" }, { status: 422 })).auth;
+    expect(await reauth.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "reautenticacao_necessaria" });
+
     const limite = authQueResponde(() => Response.json({}, { status: 429 })).auth;
     expect(await limite.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "limite" });
+  });
+
+  it("validação runtime fail-closed recusa 200 com payload de sessão inválido ou incompleto", async () => {
+    for (const corpo of [{}, { access_token: "a" }, { access_token: "a", refresh_token: "r", token_type: "bearer", expires_in: 0 }, null]) {
+      const { auth } = authQueResponde(() => Response.json(corpo));
+      expect(await auth.entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "indisponivel" });
+      expect(await auth.confirmarCodigo("a@b.co", "123456")).toEqual({ ok: false, motivo: "indisponivel" });
+      expect(await auth.entrarDemonstracao("a@b.co", "123456")).toEqual({ ok: false, motivo: "indisponivel" });
+      expect(await auth.renovar("r")).toEqual({ ok: false, motivo: "indisponivel" });
+    }
+  });
+
+  it("encerrarOutrasSessoes chama POST /auth/v1/logout?scope=others e tolera falha", async () => {
+    const { auth, pedidos } = authQueResponde(() => new Response(null, { status: 204 }));
+    expect(await auth.encerrarOutrasSessoes("tok")).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/logout?scope=others");
+    expect(pedidos[0]?.headers.get("Authorization")).toBe("Bearer tok");
+
+    const falha = authQueResponde(() => new Response(null, { status: 400 })).auth;
+    expect(await falha.encerrarOutrasSessoes("tok")).toEqual({ ok: false });
   });
 
   it("limite de pedidos de código vira motivo próprio", async () => {
