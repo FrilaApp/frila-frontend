@@ -72,8 +72,8 @@ function levaDadoSensivel(argumentos: string): boolean {
   return palavrasSensiveis.test(argumentos) || temIp(argumentos);
 }
 
-/** Código que roda no Worker (o lint `no-console` do eslint.config.js usa o mesmo recorte). */
-const ehServidor = (arquivo: string) => /^\.\.\/(app\/servidor\/|app\/entry\.server\.tsx$|workers\/)/.test(arquivo) || /\.server\.tsx?$/.test(arquivo);
+/** Código que roda no Worker: com SSR, o app inteiro (loaders, actions e componentes) e o `workers/` (o lint `no-console` do eslint.config.js usa o mesmo recorte). */
+const ehServidor = (arquivo: string) => /^\.\.\/(app|workers)\//.test(arquivo);
 
 /** Tira os comentários do JSONC sem mexer no que está dentro de aspas. */
 function semComentarios(texto: string): string {
@@ -118,7 +118,7 @@ describe("logs do Worker sem cabeçalho do pedido", () => {
     expect(suspeitos).toEqual([]);
   });
 
-  it("o servidor só usa console.error (nada de log, info, warn, debug ou trace)", () => {
+  it("o código que roda no Worker (app inteiro, por SSR) só usa console.error", () => {
     const servidor = Object.entries(fontes).filter(([arquivo]) => ehServidor(arquivo));
     expect(servidor.length).toBeGreaterThan(10);
     const soltos = servidor.flatMap(([arquivo, fonte]) =>

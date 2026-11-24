@@ -32,8 +32,8 @@ export default tseslint.config(
     },
   },
   {
-    // Política de Privacidade: o log do Worker não leva dado pessoal; só console.error (achado da Bússola, 24/11).
-    files: ["app/servidor/**/*.{ts,tsx}", "app/entry.server.tsx", "app/**/*.server.{ts,tsx}", "workers/**/*.ts"],
+    // Política de Privacidade: o log do Worker não leva dado pessoal; com SSR o app inteiro roda no Worker, então só console.error (achado da Bússola, 24/11).
+    files: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
     rules: {
       "no-console": ["error", { allow: ["error"] }],
     },
