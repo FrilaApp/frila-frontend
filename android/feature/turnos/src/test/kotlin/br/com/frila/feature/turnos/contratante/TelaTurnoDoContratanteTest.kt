@@ -29,29 +29,34 @@ class TelaTurnoDoContratanteTest {
     @get:Rule
     val rule = createComposeRule()
 
-    @Test fun `cancelar posicao abre motivo confirma sem digitar e mostra aviso com alvo minimo`() {
-        var recebido: String? = null
+    @Test fun `cancelar posicao tem alvo minimo chama pedido e mostra aviso sem abrir dialogo`() {
+        var pedidos = 0
+        val aviso = "O cancelamento será enviado quando a conexão voltar."
         val inicial = estado().let { it.copy(
             contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            cancelamentoDisponivel = true, agora = { Instant.EPOCH }, avisoDoCancelamento = aviso,
+        ) }
+        rule.setContent { FrilaTheme {
+            ConteudoTurnoDoContratante(inicial, AcoesTurnoDoContratante(aoPedirCancelamento = { pedidos++ }))
+        } }
+        rule.onNodeWithText("Cancelar posição").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.runOnIdle { assertEquals(1, pedidos) }
+        assertEquals(0, contar("Motivo"))
+        rule.onNodeWithText(aviso).assertIsDisplayed()
+    }
+
+    @Test fun `posicao nao confirmada ou na fila esconde cancelamento`() {
+        val inicial = estado().let { it.copy(
+            contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "aberta"),
             cancelamentoDisponivel = true, agora = { Instant.EPOCH },
         ) }
         val tela = mutableStateOf(inicial)
-        val aviso = "O cancelamento não foi aceito. Atualize a tela e tente de novo."
-        rule.setContent { FrilaTheme {
-            ConteudoTurnoDoContratante(tela.value, AcoesTurnoDoContratante(
-                aoPedirCancelamento = { tela.value = tela.value.copy(pedindoCancelamento = true) },
-                aoDesistir = { tela.value = tela.value.copy(pedindoCancelamento = false) },
-                aoConfirmarCancelamento = { motivo ->
-                    recebido = motivo
-                    tela.value = tela.value.copy(avisoDoCancelamento = aviso)
-                },
-            ))
-        } }
-        rule.onNodeWithText("Cancelar posição").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
-        rule.onNodeWithText("Motivo").assertIsDisplayed()
-        rule.onNodeWithText("Confirmar cancelamento").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
-        rule.runOnIdle { assertEquals("", recebido) }
-        rule.onNodeWithText(aviso).assertIsDisplayed()
+        rule.setContent { FrilaTheme { ConteudoTurnoDoContratante(tela.value, AcoesTurnoDoContratante()) } }
+        assertEquals(0, contar("Cancelar posição"))
+        rule.runOnIdle { tela.value = inicial.copy(
+            contexto = inicial.contexto.copy(estadoDaPosicao = "confirmada"), cancelamentoNaFila = true,
+        ) }
+        assertEquals(0, contar("Cancelar posição"))
     }
 
     private val ana = PerfilPublicoDto("p1", "profissional", "Ana", listOf("garçom", "barman"), ReputacaoDto(1, 1, null, 1, 1))
