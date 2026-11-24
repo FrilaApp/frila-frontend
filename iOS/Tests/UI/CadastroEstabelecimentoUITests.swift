@@ -126,6 +126,7 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         esperarCamera(mapa, "Arrastar fora do marcador deve mover a câmera.") { valor in
             valor != cameraInicial && valor.split(separator: ",").count == 4
         }
+        esperarCameraParada(mapa, "A câmera deve parar depois do arrasto.")
 
         guard let valorFinal = marcador.value as? String,
               let (latFinal, lonFinal) = extrairCoordenadas(valorFinal) else {
@@ -137,20 +138,16 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         XCTAssertEqual(latFinal, latInicial, accuracy: 0.000001, "Latitude não deve mudar ao arrastar fora do marcador.")
         XCTAssertEqual(lonFinal, lonInicial, accuracy: 0.000001, "Longitude não deve mudar ao arrastar fora do marcador.")
 
+        // A referência do zoom só vale com a câmera parada: o arrasto ainda pode estar animando.
+        esperarCameraParada(mapa, "A câmera deve parar antes da pinça.")
         let cameraAntesDoZoom = try XCTUnwrap(mapa.value as? String)
-        let componentesIniciais = cameraAntesDoZoom.split(separator: ",").compactMap { Double($0) }
-        guard componentesIniciais.count == 4 else { XCTFail("Câmera sem região antes do zoom."); return }
         mapa.pinch(withScale: 1.5, velocity: 1)
-        // O span de longitude (4º componente) só encolhe depois que a câmera assenta: espere antes de ler.
-        // O de latitude não serve: num mapa largo (392 x 140 pt) a pinça sintética o faz crescer (0,010 -> 0,017).
-        esperarCamera(mapa, "A pinça deve aproximar o mapa.") { valor in
-            let componentes = valor.split(separator: ",").compactMap { Double($0) }
-            return componentes.count == 4 && componentes[3] < componentesIniciais[3]
+        // Não compare o tamanho da região: num mapa largo (392 x 140 pt) a pinça sintética faz o span de latitude
+        // crescer e o de longitude encolher, então nenhum dos dois prova aproximação. O que o teste cobre é o ponto.
+        esperarCamera(mapa, "A pinça deve mexer na câmera do mapa.") { valor in
+            valor != cameraAntesDoZoom && valor.split(separator: ",").count == 4
         }
-        let cameraDepoisDoZoom = try XCTUnwrap(mapa.value as? String)
-        let componentesFinais = cameraDepoisDoZoom.split(separator: ",").compactMap { Double($0) }
-        guard componentesFinais.count == 4 else { XCTFail("Câmera sem região depois do zoom."); return }
-        XCTAssertLessThan(componentesFinais[3], componentesIniciais[3], "A pinça deve aproximar o mapa.")
+        esperarCameraParada(mapa, "A câmera deve parar depois da pinça.")
         // O zoom pode tirar o ponto do quadro; reabra a região antes de ler o marcador.
         mapa.pinch(withScale: 0.7, velocity: -1)
         XCTAssertTrue(marcador.waitForExistence(timeout: Espera.aparecer))
@@ -198,6 +195,9 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         esperarCamera(mapa, "O gesto precisa mover o mapa até o ponto sair do quadro.") { valor in
             valor != cameraInicial && valor.split(separator: ",").count == 4
         }
+        // A câmera publica durante a animação (.continuous): o marcador pode ainda estar visível numa leitura intermediária.
+        let marcadorSumiu = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in !marcador.exists }, object: marcador)
+        XCTAssertEqual(XCTWaiter.wait(for: [marcadorSumiu], timeout: Espera.aparecer), .completed, "O marcador deve desaparecer quando o ponto sai do quadro do mapa.")
         XCTAssertNotEqual(mapa.value as? String, cameraInicial, "O gesto precisa mover o mapa até o ponto sair do quadro.")
         XCTAssertFalse(marcador.exists, "O marcador deve desaparecer quando o ponto sai do quadro do mapa.")
         XCTAssertFalse(marcador.exists && marcador.isHittable, "O marcador fora do mapa não pode interceptar os campos do formulário.")
@@ -336,6 +336,19 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
         }
         let expectativa = XCTNSPredicateExpectation(predicate: predicado, object: mapa)
         XCTAssertEqual(XCTWaiter.wait(for: [expectativa], timeout: Espera.aparecer), .completed, mensagem)
+    }
+
+    /// Espera a câmera parar: o valor fica igual em duas leituras seguidas, 0,5 s uma da outra.
+    private func esperarCameraParada(_ mapa: XCUIElement, _ mensagem: String) {
+        let limite = Date().addingTimeInterval(Espera.aparecer)
+        var anterior = mapa.value as? String
+        while Date() < limite {
+            Thread.sleep(forTimeInterval: 0.5)
+            let atual = mapa.value as? String
+            if let atual, atual == anterior, atual.split(separator: ",").count == 4 { return }
+            anterior = atual
+        }
+        XCTFail(mensagem)
     }
 
     private func extrairCoordenadas(_ valor: String) -> (Double, Double)? {
