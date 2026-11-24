@@ -419,14 +419,76 @@ final class CadastroEstabelecimentoUITests: XCTestCase {
             defer { app.terminate() }
             let campo = app.textFields["CNPJ ou CPF"]
             XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer))
-            // Em AX5 o campo pode ficar só parcialmente visível (isHittable já é verdadeiro) e o toque no
-            // centro cai fora da janela: rola até o campo caber inteiro.
-            let janela = app.windows.firstMatch.frame
-            for _ in 0..<4 where !campo.isHittable || campo.frame.maxY > janela.maxY { app.swipeUp() }
+            guard rolarAteOCampoCaberAcimaDoRodape(campo, em: app) else { return }
+
+            // Toca e só digita com o teclado aberto e o foco no campo (sem isso o typeText falha com
+            // "Neither element nor any descendant has keyboard focus").
             campo.tap()
+            let teclado = app.keyboards.firstMatch
+            let foco = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: campo)
+            let tecladoAberto = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true"), object: teclado)
+            guard XCTWaiter.wait(for: [tecladoAberto, foco], timeout: Espera.aparecer) == .completed else {
+                XCTFail("O toque no campo CNPJ ou CPF (\(nome), \(sufixo)) não abriu o teclado com foco: teclado=\(teclado.exists), frame=\(campo.frame), rodapé=\(app.descendants(matching: .any)["continuar-cadastro"].frame)")
+                return
+            }
             campo.typeText(digitos)
-            XCTAssertEqual(campo.value as? String, esperado)
+            XCTAssertEqual(campo.value as? String, esperado, "Máscara de \(nome) em \(sufixo): valor lido '\(campo.value as? String ?? "nil")' em vez de '\(esperado)'")
             salvarCaptura("mascara-\(nome)-\(sufixo)")
+        }
+    }
+
+    /// Rola o formulário até o campo caber inteiro na área visível, isto é, acima do rodapé fixo
+    /// ("Salvar e publicar"), que em AX5 cobre cerca de um terço da tela. `isHittable` e a borda da janela
+    /// não bastam: com o centro do campo sob o rodapé, o toque cai no botão, a validação roda e a tela volta ao topo.
+    /// Rola por arrastos curtos e espera o frame assentar a cada passo. Devolve `false` (com falha) se não couber.
+    @discardableResult
+    private func rolarAteOCampoCaberAcimaDoRodape(_ campo: XCUIElement, em app: XCUIApplication, tentativas: Int = 8) -> Bool {
+        let janela = app.windows.firstMatch
+        let altura = janela.frame.height
+        let rodape = app.descendants(matching: .any)["continuar-cadastro"]
+        let margem: CGFloat = 16
+        let topoMinimo: CGFloat = 100 // abaixo da barra de status e da barra de navegação
+
+        func limiteInferior() -> CGFloat {
+            rodape.exists ? rodape.frame.minY - margem : janela.frame.maxY - margem
+        }
+        func cabe() -> Bool {
+            campo.exists && campo.frame.minY >= topoMinimo && campo.frame.maxY <= limiteInferior()
+        }
+
+        for _ in 0..<tentativas {
+            esperarFrameAssentar(campo)
+            if cabe() { return true }
+            // Positivo = o conteúdo precisa subir. Alvo: o campo logo abaixo do topo mínimo.
+            let alvoMinY = topoMinimo + 40
+            let deslocamento = campo.frame.minY - alvoMinY
+            // O arrasto fica inteiro na área visível (entre o topo mínimo e o rodapé): começar sobre o rodapé não rola nada.
+            let baixo = limiteInferior() - 20
+            let alto = topoMinimo + 20
+            let passo = max(min(abs(deslocamento), baixo - alto), 40)
+            let sobe = deslocamento >= 0
+            let yInicio = sobe ? baixo : alto
+            let yFim = sobe ? baixo - passo : alto + passo
+            // Arrasto pela margem direita (longe de seletores em roda); a inércia é corrigida pelo passo seguinte.
+            let inicio = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: yInicio / altura))
+            let fim = janela.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: yFim / altura))
+            inicio.press(forDuration: 0.01, thenDragTo: fim)
+        }
+        esperarFrameAssentar(campo)
+        if cabe() { return true }
+        XCTFail("O campo CNPJ ou CPF não coube na tela em AX5: frame=\(campo.frame), rodapé=\(rodape.frame), janela=\(janela.frame), limite inferior=\(limiteInferior())")
+        return false
+    }
+
+    /// Espera o frame do elemento parar: igual em duas leituras seguidas, 0,3 s uma da outra.
+    private func esperarFrameAssentar(_ elemento: XCUIElement) {
+        let limite = Date().addingTimeInterval(Espera.aparecer)
+        var anterior = elemento.frame
+        while Date() < limite {
+            Thread.sleep(forTimeInterval: 0.3)
+            let atual = elemento.frame
+            if atual == anterior { return }
+            anterior = atual
         }
     }
 
