@@ -52,6 +52,10 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
         {textos.aparencia.titulo}
       </Link>
 
+      <Link to="/definir-senha" className={classeDoLink}>
+        {textos.definirSenha.alterarSenha}
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4" aria-labelledby="titulo-exportar">
         <h2 id="titulo-exportar" className="font-titulo text-xl font-bold">
           {t.exportar.titulo}

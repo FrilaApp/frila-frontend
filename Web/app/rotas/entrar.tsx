@@ -1,4 +1,4 @@
-import { Form, redirect, useNavigation } from "react-router";
+import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
 import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
@@ -27,6 +27,7 @@ export function loader({ context }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const formulario = await request.formData();
   const email = String(formulario.get("email") ?? "").trim().toLowerCase();
+  const senha = String(formulario.get("senha") ?? "");
   const codigo = String(formulario.get("codigo") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "");
 
@@ -45,15 +46,30 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
     return pedido.ok ? { passo: "codigo", email } : { passo: "email", email, erro: pedido.motivo };
   }
 
-  if (!ehDemonstracao && !/^\d{6}$/.test(codigo)) {
-    return { passo: "codigo", email, erro: "codigo_incompleto" };
+  if (intencao === "confirmar") {
+    if (!ehDemonstracao && !/^\d{6}$/.test(codigo)) {
+      return { passo: "codigo", email, erro: "codigo_incompleto" };
+    }
+    if (codigo.length === 0 || codigo.length > 64) {
+      return { passo: "codigo", email, erro: "codigo_incompleto" };
+    }
+    const entrada = ehDemonstracao ? await auth.entrarDemonstracao(email, codigo) : await auth.confirmarCodigo(email, codigo);
+    if (!entrada.ok) {
+      return { passo: "codigo", email, erro: entrada.motivo };
+    }
+
+    const cabecalhos = new Headers();
+    for (const linha of cookiesDaSessao(entrada.sessao, ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+    throw redirect("/", { headers: cabecalhos });
   }
-  if (codigo.length === 0 || codigo.length > 64) {
-    return { passo: "codigo", email, erro: "codigo_incompleto" };
+
+  // Intenção padrão: login habitual por e-mail e senha
+  if (senha.length === 0) {
+    return { passo: "email", email, erro: "senha_invalida" };
   }
-  const entrada = ehDemonstracao ? await auth.entrarDemonstracao(email, codigo) : await auth.confirmarCodigo(email, codigo);
+  const entrada = await auth.entrarComSenha(email, senha);
   if (!entrada.ok) {
-    return { passo: "codigo", email, erro: entrada.motivo };
+    return { passo: "email", email, erro: entrada.motivo };
   }
 
   const cabecalhos = new Headers();
@@ -97,14 +113,48 @@ export default function Entrar({ actionData }: Route.ComponentProps) {
               className={classeDoCampo}
             />
           </label>
+          <label className="flex flex-col gap-2 font-semibold" htmlFor="senha">
+            {textos.entrar.rotuloDaSenha}
+            <input
+              id="senha"
+              name="senha"
+              type="password"
+              autoComplete="current-password"
+              required
+              aria-invalid={erro ? true : undefined}
+              aria-describedby={erro ? "erro" : undefined}
+              className={classeDoCampo}
+            />
+          </label>
           {erro ? (
             <p id="erro" role="alert" className="font-semibold">
               {erro}
             </p>
           ) : null}
-          <button type="submit" name="intencao" value="pedir" disabled={enviando} className={classeDoBotao}>
-            {enviando ? textos.entrar.enviando : textos.entrar.pedirCodigo}
+          <button type="submit" name="intencao" value="entrar" disabled={enviando} className={classeDoBotao}>
+            {enviando ? textos.entrar.entrando : textos.entrar.entrarComSenha}
           </button>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
+            <Link to="/recuperar-senha" className={classeDoLink}>
+              {textos.entrar.esqueciSenha}
+            </Link>
+            <Link to="/criar-conta" className={classeDoLink}>
+              {textos.entrar.criarConta}
+            </Link>
+          </div>
+
+          <div className="border-t border-borda pt-3">
+            <button
+              type="submit"
+              name="intencao"
+              value="pedir"
+              disabled={enviando}
+              className={`${classeDoLink} text-sm text-tinta-suave`}
+            >
+              {textos.entrar.pedirCodigo}
+            </button>
+          </div>
         </Form>
       ) : (
         <div className="flex flex-col gap-4">
@@ -147,19 +197,25 @@ export default function Entrar({ actionData }: Route.ComponentProps) {
               {textos.entrar.trocarEmail}
             </a>
           </Form>
+          <div className="pt-2">
+            <Link to="/entrar" className={`${classeDoLink} text-sm`}>
+              {textos.entrar.voltarAoLogin}
+            </Link>
+          </div>
         </div>
       )}
 
-      <p className="text-sm text-tinta-suave">
+      <footer className="text-sm text-tinta-suave">
         {textos.entrar.termos}{" "}
-        <a href={TERMOS} className="underline underline-offset-4">
+        <a href={TERMOS} target="_blank" rel="noopener noreferrer" className={classeDoLink}>
           {textos.entrar.linkDosTermos}
         </a>{" "}
-        ·{" "}
-        <a href={PRIVACIDADE} className="underline underline-offset-4">
+        e a{" "}
+        <a href={PRIVACIDADE} target="_blank" rel="noopener noreferrer" className={classeDoLink}>
           {textos.entrar.linkDaPrivacidade}
         </a>
-      </p>
+        .
+      </footer>
     </main>
   );
 }

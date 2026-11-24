@@ -10,8 +10,15 @@ import type { Conferencia, Renovacao, Sessao } from "./sessao";
 
 export const PRAZO_DO_AUTH_MS = 8000;
 
-export type FalhaDeEntrada = "codigo_invalido" | "limite" | "indisponivel";
+export type FalhaDeEntrada = "codigo_invalido" | "credenciais_invalidas" | "limite" | "indisponivel";
 export type ResultadoDeEntrada = { ok: true; sessao: Sessao } | { ok: false; motivo: FalhaDeEntrada };
+
+export type FalhaAtualizarSenha = "senha_fraca" | "senha_igual" | "sessao_invalida" | "limite" | "indisponivel";
+export type ResultadoAtualizarSenha = { ok: true } | { ok: false; motivo: FalhaAtualizarSenha };
+
+export type ResultadoRecuperacao =
+  | { ok: true; enviado: boolean }
+  | { ok: false; motivo: "limite" | "indisponivel" };
 
 export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof fetch; prazoMs?: number } = {}) {
   const cabecalhos = { apikey: ambiente.chavePublicavel, Authorization: `Bearer ${ambiente.chavePublicavel}` };
@@ -23,13 +30,135 @@ export function criarAuth(ambiente: AmbienteDoSupabase, opcoes: { fetch?: typeof
   const motivoDe = (status: number): FalhaDeEntrada =>
     status === 429 ? "limite" : status >= 400 && status < 500 ? "codigo_invalido" : "indisponivel";
 
+  const pedirCodigoRecuperacao = async (email: string): Promise<ResultadoRecuperacao> => {
+    try {
+      const resposta = await buscar(`${ambiente.url}/auth/v1/otp`, {
+        method: "POST",
+        headers: {
+          ...cabecalhos,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, create_user: false }),
+        signal: prazo(),
+      });
+      if (resposta.ok) {
+        await resposta.body?.cancel();
+        return { ok: true, enviado: true };
+      }
+      if (resposta.status === 429) {
+        await resposta.body?.cancel();
+        return { ok: false, motivo: "limite" };
+      }
+      // 422 (Signups not allowed for otp) ou 400/403/404: o usuário não existe ou é social-only
+      if (resposta.status >= 400 && resposta.status < 500) {
+        await resposta.body?.cancel();
+        return { ok: true, enviado: false };
+      }
+      await resposta.body?.cancel();
+      return { ok: false, motivo: "indisponivel" };
+    } catch {
+      return { ok: false, motivo: "indisponivel" };
+    }
+  };
+
   return {
-    /** Pede o código por e-mail. A resposta é a mesma exista ou não a conta. */
-    async pedirCodigo(email: string): Promise<{ ok: true } | { ok: false; motivo: "limite" | "indisponivel" }> {
+    /** Pede o código por e-mail. Por padrão permite criar o usuário (cadastro com OTP). */
+    async pedirCodigo(
+      email: string,
+      opcoesCodigo: { criarUsuario?: boolean } = {},
+    ): Promise<{ ok: true } | { ok: false; motivo: "limite" | "indisponivel" }> {
       try {
-        const { response } = await auth.POST("/otp", { body: { email }, signal: prazo() });
+        if (opcoesCodigo.criarUsuario === false) {
+          const recuperacao = await pedirCodigoRecuperacao(email);
+          if (recuperacao.ok) return { ok: true };
+          return { ok: false, motivo: recuperacao.motivo };
+        }
+        const { response } = await auth.POST("/otp", {
+          body: { email, create_user: opcoesCodigo.criarUsuario ?? true } as { email: string },
+          signal: prazo(),
+        });
         if (response.ok) return { ok: true };
         return { ok: false, motivo: response.status === 429 ? "limite" : "indisponivel" };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
+      }
+    },
+
+    /**
+     * Solicitação de OTP exclusiva para recuperação/migração de conta existente (create_user: false).
+     * Nunca cria usuário novo no Supabase Auth.
+     * Retorna { ok: true, enviado: true } se a conta existe e o código foi enviado.
+     * Retorna { ok: true, enviado: false } se a identidade não existe ou é social-only (resposta neutra anti-enumeração).
+     */
+    pedirCodigoRecuperacao,
+
+    /** Login habitual por e-mail e senha (POST /auth/v1/token?grant_type=password). */
+    async entrarComSenha(email: string, senha: string): Promise<ResultadoDeEntrada> {
+      try {
+        const resposta = await buscar(`${ambiente.url}/auth/v1/token?grant_type=password`, {
+          method: "POST",
+          headers: {
+            ...cabecalhos,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password: senha }),
+          signal: prazo(),
+        });
+        if (resposta.ok) {
+          const sessao = (await resposta.json()) as Sessao;
+          return { ok: true, sessao };
+        }
+        await resposta.body?.cancel();
+        if (resposta.status === 429) {
+          return { ok: false, motivo: "limite" };
+        }
+        // Resposta neutra para qualquer erro 4xx (invalid_credentials, invalid_grant, user_not_found)
+        if (resposta.status >= 400 && resposta.status < 500) {
+          return { ok: false, motivo: "credenciais_invalidas" };
+        }
+        return { ok: false, motivo: "indisponivel" };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
+      }
+    },
+
+    /**
+     * Define ou atualiza a senha na sessão autenticada atual (PUT /auth/v1/user),
+     * preservando rigorosamente o mesmo auth.uid.
+     */
+    async atualizarSenha(acesso: string, novaSenha: string): Promise<ResultadoAtualizarSenha> {
+      try {
+        const resposta = await buscar(`${ambiente.url}/auth/v1/user`, {
+          method: "PUT",
+          headers: {
+            apikey: ambiente.chavePublicavel,
+            Authorization: `Bearer ${acesso}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ password: novaSenha }),
+          signal: prazo(),
+        });
+        if (resposta.ok) {
+          await resposta.body?.cancel();
+          return { ok: true };
+        }
+        if (resposta.status === 401 || resposta.status === 403) {
+          await resposta.body?.cancel();
+          return { ok: false, motivo: "sessao_invalida" };
+        }
+        if (resposta.status === 429) {
+          await resposta.body?.cancel();
+          return { ok: false, motivo: "limite" };
+        }
+        if (resposta.status === 422) {
+          const dados = (await resposta.json().catch(() => ({}))) as Record<string, unknown>;
+          if (dados.error_code === "same_password" || dados.code === "same_password") {
+            return { ok: false, motivo: "senha_igual" };
+          }
+          return { ok: false, motivo: "senha_fraca" };
+        }
+        await resposta.body?.cancel();
+        return { ok: false, motivo: "indisponivel" };
       } catch {
         return { ok: false, motivo: "indisponivel" };
       }

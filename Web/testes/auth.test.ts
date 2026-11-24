@@ -25,7 +25,73 @@ describe("conversa com o Supabase Auth", () => {
     expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/otp");
     expect(pedidos[0]?.method).toBe("POST");
     expect(pedidos[0]?.headers.get("apikey")).toBe("sb_publishable_teste");
-    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com" });
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", create_user: true });
+  });
+
+  it("pedirCodigo com criarUsuario=false chama recuperação e não cria usuário", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json({}));
+    expect(await auth.pedirCodigo("ana@example.com", { criarUsuario: false })).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/otp");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", create_user: false });
+  });
+
+  it("pedirCodigoRecuperacao devolve enviado=true se 200, enviado=false (neutro) se 422/400/404", async () => {
+    const okAuth = authQueResponde(() => Response.json({})).auth;
+    expect(await okAuth.pedirCodigoRecuperacao("existe@example.com")).toEqual({ ok: true, enviado: true });
+
+    for (const status of [400, 403, 404, 422]) {
+      const { auth } = authQueResponde(() => Response.json({ msg: "user not found" }, { status }));
+      expect(await auth.pedirCodigoRecuperacao("inexistente@example.com"), String(status)).toEqual({
+        ok: true,
+        enviado: false,
+      });
+    }
+
+    const limiteAuth = authQueResponde(() => Response.json({}, { status: 429 })).auth;
+    expect(await limiteAuth.pedirCodigoRecuperacao("a@b.co")).toEqual({ ok: false, motivo: "limite" });
+
+    const foraAuth = authQueResponde(() => Response.json({}, { status: 500 })).auth;
+    expect(await foraAuth.pedirCodigoRecuperacao("a@b.co")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+
+  it("entrarComSenha chama auth/v1/token?grant_type=password com email e senha", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json(sessao));
+    expect(await auth.entrarComSenha("ana@example.com", "senha12345")).toEqual({ ok: true, sessao });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/token?grant_type=password");
+    expect(pedidos[0]?.method).toBe("POST");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", password: "senha12345" });
+  });
+
+  it("entrarComSenha: 400 viram credenciais_invalidas (neutro), 429 vira limite e 5xx vira indisponivel", async () => {
+    const com = (status: number) => authQueResponde(() => Response.json({ error_description: "Invalid credentials" }, { status })).auth;
+    expect(await com(400).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+    expect(await com(401).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+    expect(await com(422).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+    expect(await com(429).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "limite" });
+    expect(await com(500).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+
+  it("atualizarSenha chama PUT auth/v1/user com Authorization Bearer e body password", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json({ id: "user-123" }));
+    expect(await auth.atualizarSenha("token-acesso", "novaSenha123")).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/user");
+    expect(pedidos[0]?.method).toBe("PUT");
+    expect(pedidos[0]?.headers.get("Authorization")).toBe("Bearer token-acesso");
+    expect(await corpoDe(pedidos[0])).toEqual({ password: "novaSenha123" });
+  });
+
+  it("atualizarSenha mapeia erro de senha fraca, mesma senha, sessao_invalida e limite", async () => {
+    const fraca = authQueResponde(() => Response.json({ code: "weak_password" }, { status: 422 })).auth;
+    expect(await fraca.atualizarSenha("t", "123")).toEqual({ ok: false, motivo: "senha_fraca" });
+
+    const mesma = authQueResponde(() => Response.json({ error_code: "same_password" }, { status: 422 })).auth;
+    expect(await mesma.atualizarSenha("t", "mesma")).toEqual({ ok: false, motivo: "senha_igual" });
+
+    const naoAutenticado = authQueResponde(() => Response.json({}, { status: 401 })).auth;
+    expect(await naoAutenticado.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "sessao_invalida" });
+
+    const limite = authQueResponde(() => Response.json({}, { status: 429 })).auth;
+    expect(await limite.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "limite" });
   });
 
   it("limite de pedidos de código vira motivo próprio", async () => {
