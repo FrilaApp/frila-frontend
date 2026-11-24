@@ -314,6 +314,18 @@ class TelaPublicarVagaTest {
     }
 
     @Test
+    fun `na fila mostra aviso e botao bloqueado sem exibir formulario parcial`() {
+        val chamadas = montar(estado { copy(naFila = true, valor = "140", responsavelLocal = "Pessoa sintética") })
+        rule.onNodeWithText(TextosPublicarVaga.NA_FILA).assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsNotEnabled()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.RESPONSAVEL).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.FUNCAO).assertDoesNotExist()
+        rule.onNodeWithContentDescription(TextosPublicarVaga.ROTULO_VOLTAR).assertIsEnabled()
+        assertEquals(0, chamadas.publicacoes)
+    }
+
+    @Test
     fun `vaga publicada mostra a confirmacao e desabilita o botao`() {
         montar(estado { copy(publicada = br.com.frila.core.rede.VagaPublicadaDto("v1", listOf("p1"))) })
 

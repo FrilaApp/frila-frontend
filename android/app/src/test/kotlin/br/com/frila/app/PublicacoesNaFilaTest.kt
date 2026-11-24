@@ -33,6 +33,7 @@ class PublicacoesNaFilaTest {
         val eventos = mutableListOf<EventoDeTelemetria>()
         val corpos = mutableListOf<Any>()
         var liberar: CompletableDeferred<Unit>? = null
+        lateinit var publicacao: PublicarVagaViewModel
         lateinit var executar: () -> Job?
         lateinit var estaNaFila: () -> Boolean
         lateinit var concluida: () -> Boolean
@@ -67,6 +68,7 @@ class PublicacoesNaFilaTest {
                     buscarFuncoes = { listOf(FuncaoDto("funcao", "Função sintética", "Categoria sintética")) }, enviarVaga = ::enviar,
                     relogio = { toque }, novaChave = { "chave-sintetica" }, escopo = escopo,
                     filaDeAcoes = fila, contaAtual = ::conta, registrarEvento = { e, _, _ -> eventos += e })
+                publicacao = vm
                 vm.carregarFuncoes()
                 if (preencher) { vm.escolherFuncao("funcao"); vm.editarValor("140"); vm.editarResponsavel("Pessoa sintética") }
                 executar = vm::publicar
@@ -125,6 +127,29 @@ class PublicacoesNaFilaTest {
         repeat(3) { assertNull(c.armazenamento.obterSessao()) }
         assertEquals(versao, c.fila.versao.value)
     } }
+    @Test fun `publicacao reaberta so mostra fila bloqueada ate enviar ou recusar e volta vazia`() = runBlocking {
+        val escopo = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
+        try {
+            for (recusar in listOf(false, true)) {
+                val c = Cenario(false, escopo)
+                c.executar()?.join(); c.abrir(false)
+                val estado = c.publicacao.estado.value
+                assertTrue(estado.naFila); assertFalse(estado.podeEditar)
+                c.publicacao.editarValor("999"); c.publicacao.escolherFuncao("outra")
+                c.executar()?.join()
+                assertEquals(estado, c.publicacao.estado.value); assertEquals(1, c.pedidos)
+                c.codigo = if (recusar) CodigoErroAPI.CAMPO_INVALIDO else null
+                c.sincronizador().sincronizar()
+                val final = c.publicacao.estado.value
+                assertFalse(final.naFila); assertNull(final.pendente)
+                assertEquals(!recusar, final.concluida); assertEquals(recusar, final.podeEditar)
+                if (recusar) {
+                    assertEquals(ErroGlobalPublicacao.RECUSADA_NA_FILA, final.erro)
+                    assertNull(final.funcaoId); assertEquals("", final.valor); assertEquals("", final.responsavelLocal)
+                }
+            }
+        } finally { escopo.cancel() }
+    }
     @Test fun `R4 logout com observador agendado estabiliza com fila vazia ou preenchida`() = runTest {
         for (republicar in listOf(false, true)) for (comAcao in listOf(false, true)) {
             val escopo = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))

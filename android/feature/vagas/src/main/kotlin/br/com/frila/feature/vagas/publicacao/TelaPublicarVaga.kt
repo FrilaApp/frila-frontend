@@ -186,6 +186,8 @@ fun ConteudoPublicarVaga(
         ) {
             TituloDaTela(TextosPublicarVaga.TITULO)
 
+            if (estado.naFila) return@Column
+
             // Função
             when {
                 estado.carregandoFuncoes -> Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
@@ -437,7 +439,7 @@ fun ConteudoPublicarVaga(
         }
     }
 
-    if (seletorDeFuncaoAberto) {
+    if (seletorDeFuncaoAberto && !estado.naFila) {
         FrilaBottomSheet(
             onDismissRequest = { seletorDeFuncaoAberto = false },
             titulo = TextosPublicarVaga.FUNCAO_ESCOLHA,

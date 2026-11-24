@@ -92,7 +92,7 @@ data class EstadoPublicarVaga(
     val agora: Instant,
 ) {
     val concluida: Boolean get() = publicada != null || enviadaPelaFila
-    val podeEditar: Boolean get() = !enviando && !concluida && pendente == null
+    val podeEditar: Boolean get() = !enviando && !concluida && !naFila && pendente == null
     val valorCentavos: Long? get() = lerCentavos(valor)
     val posicoesNumero: Int? get() = posicoes.toIntOrNull()?.takeIf { it in POSICOES_MIN..POSICOES_MAX }
     val duracao: Duration get() = Duration.between(inicio, fim)
@@ -179,7 +179,8 @@ class PublicarVagaViewModel(
             }
             _estado.update { e -> when {
                 acao != null -> e.copy(naFila = true, pendente = acao.publicacao, enviando = false, erro = null)
-                recusa && !e.enviando -> e.copy(naFila = false, pendente = null, erro = ErroGlobalPublicacao.RECUSADA_NA_FILA)
+                recusa && !e.enviando -> (if (e.naFila) estadoInicial().copy(funcoes = e.funcoes) else e)
+                    .copy(naFila = false, pendente = null, erro = ErroGlobalPublicacao.RECUSADA_NA_FILA)
                 e.naFila -> e.copy(naFila = false, pendente = null, enviadaPelaFila = true)
                 else -> e
             } }
