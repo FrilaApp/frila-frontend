@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
@@ -22,7 +23,8 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -53,7 +55,7 @@ class TelasSenhaComposeTest {
         )
         var clicouCriar = false
         var clicouRecuperar = false
-        var clicouDemo = false
+        var emailDaDemo: String? = null
 
         rule.setContent {
             FrilaTheme {
@@ -62,7 +64,7 @@ class TelasSenhaComposeTest {
                     aoAutenticar = {},
                     aoCriarConta = { clicouCriar = true },
                     aoRecuperarSenha = { clicouRecuperar = true },
-                    aoEntrarDemonstracao = { clicouDemo = true },
+                    aoEntrarDemonstracao = { email -> emailDaDemo = email },
                 )
             }
         }
@@ -76,11 +78,46 @@ class TelasSenhaComposeTest {
 
         assertTrue(clicouRecuperar)
         assertTrue(clicouCriar)
-        assertTrue(clicouDemo)
+        assertEquals(DemonstracaoContas.EMAIL_PROFISSIONAL, emailDaDemo)
     }
 
     @Test
-    fun telaRecuperacaoExibeEstadoNeutroSemAvancarParaIdentidadeInexistente() {
+    fun telaEntradaComSenhaAbreADemoDoContratanteQuandoEleFoiDigitadoETambemPeloBotaoEntrar() {
+        val servico = ServicoAutenticacao(
+            ClienteSupabase(
+                "https://frila.supabase.co",
+                "chave",
+                engine = MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+        )
+        val vm = EntradaComSenhaViewModel(
+            servico,
+            ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        )
+        val demos = mutableListOf<String>()
+
+        rule.setContent {
+            FrilaTheme {
+                TelaEntradaComSenha(
+                    viewModel = vm,
+                    aoAutenticar = {},
+                    aoCriarConta = {},
+                    aoRecuperarSenha = {},
+                    aoEntrarDemonstracao = { email -> demos += email },
+                )
+            }
+        }
+
+        rule.onNodeWithText("E-mail").performTextInput(DemonstracaoContas.EMAIL_CONTRATANTE)
+        rule.onNodeWithText("Entrar em modo demonstração").performScrollTo().performClick()
+        rule.onNodeWithText("Entrar").performClick()
+
+        assertEquals(listOf(DemonstracaoContas.EMAIL_CONTRATANTE, DemonstracaoContas.EMAIL_CONTRATANTE), demos)
+    }
+
+    @Test
+    fun telaRecuperacaoAvancaParaOCodigoTambemQuandoNaoHaContaSemMostrarErro() {
         val servico = ServicoAutenticacao(
             ClienteSupabase(
                 "https://frila.supabase.co",
@@ -95,13 +132,13 @@ class TelasSenhaComposeTest {
             ),
         )
         val vm = RecuperacaoSenhaViewModel(servico, escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
-        var avancou = false
+        var emailQueAvancou: String? = null
 
         rule.setContent {
             FrilaTheme {
                 TelaRecuperacaoSenha(
                     viewModel = vm,
-                    aoAvancarParaCodigo = { avancou = true },
+                    aoAvancarParaCodigo = { emailQueAvancou = it },
                     aoVoltarParaLogin = {},
                 )
             }
@@ -109,12 +146,10 @@ class TelasSenhaComposeTest {
 
         rule.onNodeWithText("E-mail").performTextInput("naoexiste@exemplo.test")
         rule.onNodeWithText("Enviar código").performClick()
-        rule.waitUntil(timeoutMillis = 3_000) {
-            vm.estado.value.mensagemNeutra != null
-        }
+        rule.waitUntil(timeoutMillis = 3_000) { emailQueAvancou != null }
 
-        rule.onNodeWithText(RecuperacaoSenhaViewModel.MENSAGEM_NEUTRA_RECUPERACAO).assertIsDisplayed()
-        assertFalse(avancou)
+        assertEquals("naoexiste@exemplo.test", emailQueAvancou)
+        assertNull(vm.estado.value.erro)
     }
 
     @Test

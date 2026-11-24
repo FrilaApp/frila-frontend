@@ -121,7 +121,7 @@ fun TelaCodigo(
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                 TituloDaTela("Confirme seu código")
                 Text(
-                    text = "Enviamos um código de 6 dígitos para ${estado.email}.",
+                    text = textoDeApoioDoCodigo(viewModel.modo, estado.email),
                     style = FrilaTipo.apoio,
                     color = cores.tintaSuave,
                 )
@@ -174,3 +174,14 @@ fun TelaCodigo(
         }
     }
 }
+
+/**
+ * Na recuperação a tela não confirma que a conta existe: o mesmo texto aparece com e sem conta
+ * (anti-enumeração). Nos outros modos o código sempre é enviado, então o texto afirma o envio.
+ */
+internal fun textoDeApoioDoCodigo(modo: ModoCodigo, email: String): String =
+    if (modo == ModoCodigo.RECUPERACAO) {
+        "Se houver uma conta com este e-mail, enviamos um código de 6 dígitos para $email."
+    } else {
+        "Enviamos um código de 6 dígitos para $email."
+    }
