@@ -191,6 +191,8 @@ class AcompanhamentoContratanteViewModel(
     val estado: StateFlow<EstadoTurnoDoContratante> = _estado.asStateFlow()
 
     private var contaObservada = contaAtual()
+    /** A conta dona da tela quando o bloqueio do cancelamento foi posto: só a releitura dessa mesma conta o libera. */
+    private var contaDoBloqueio: String? = contaObservada
     private val recusasMostradas = mutableSetOf<String>()
     init {
         reconciliarComAFila()
@@ -201,8 +203,9 @@ class AcompanhamentoContratanteViewModel(
         val fila = filaDeAcoes ?: return
         val conta = contaAtual()
         if (conta != contaObservada) {
+            contaDoBloqueio = contaObservada
             contaObservada = conta
-            recusasMostradas.clear()
+            synchronized(fila) { recusasMostradas.clear() }
             _estado.update { it.copy(cancelamentoNaFila = false, cancelando = false, pedindoCancelamento = false,
                 cancelamentoRecusado = true, avisoDoCancelamento = null) }
         }
@@ -214,6 +217,7 @@ class AcompanhamentoContratanteViewModel(
             val recusas = fila.recusadas().filter { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
                 it.turnoId == _estado.value.contexto.turnoId && it.contaId == conta }
             val recusada = recusas.isNotEmpty()
+            if (recusada) contaDoBloqueio = conta
             if (!pendente) recusasMostradas.addAll(recusas.map { it.id })
             _estado.update {
                 enviado = it.cancelamentoNaFila && !pendente && !recusada
@@ -280,10 +284,13 @@ class AcompanhamentoContratanteViewModel(
                         return@launch
                     } catch (_: IOException) { /* Sem gravação durável, não anunciar que entrou na fila. */ }
                 }
+                contaDoBloqueio = conta
+                val definitiva = (erro as? ErroDaApi)?.codigo?.recusaDefinitivaDeCancelamento == true
                 _estado.update { it.copy(cancelando = false, cancelamentoRecusado = true,
-                    avisoDoCancelamento = if ((erro as? ErroDaApi)?.codigo?.recusaDefinitivaDeCancelamento == true)
-                        "Não foi possível cancelar a posição. Atualize a tela e tente de novo."
+                    avisoDoCancelamento = if (definitiva) "Não foi possível cancelar a posição. Atualize a tela e tente de novo."
                     else "Não deu para confirmar o cancelamento. Atualize a tela para ver se a posição foi cancelada.") }
+                // Resultado incerto: o servidor pode ter gravado. Relê o painel já, para a tela se resolver sem sair e voltar.
+                if (!definitiva) relerAposCancelamento(conta)
             }
         }
     }
@@ -325,7 +332,9 @@ class AcompanhamentoContratanteViewModel(
                 }.onFailure { if (it !is IOException) throw it }
             }
         }
-        _estado.update { if (it.contexto == contexto) it.copy(cancelamentoRecusado = false) else it }
+        // A troca de conta continua bloqueando: só a conta que pôs o bloqueio o libera.
+        val mesmaConta = contaAtual() == contaDoBloqueio
+        _estado.update { if (it.contexto == contexto && mesmaConta) it.copy(cancelamentoRecusado = false) else it }
     }
 
     fun confirmarPresenca(): Job {

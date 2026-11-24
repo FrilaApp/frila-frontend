@@ -11,6 +11,7 @@ import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.PosicaoNoPainelDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.SincronizadorDeAcoes
 import br.com.frila.core.rede.VagaResumoDto
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
@@ -22,6 +23,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import java.io.File
 import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -35,10 +37,12 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
 class AcompanhamentoContratanteViewModelTest {
+    @TempDir lateinit var diretorio: File
 
     @Test fun `cancelamento aplica reaberta ou descoberta e releitura velha nao desfaz`() = runBlocking {
         for (reaberta in listOf(false, true)) {
@@ -155,6 +159,64 @@ class AcompanhamentoContratanteViewModelTest {
                 assertEquals("confirmada", vm.estado.value.contexto.estadoDaPosicao)
             } finally { escopo.coroutineContext[kotlinx.coroutines.Job]!!.cancel() }
         }
+    }
+
+    @Test fun `troca de conta continua bloqueando mesmo depois de uma releitura`() {
+        val fila = FilaDeAcoes(null)
+        val escopo = CoroutineScope(Dispatchers.Unconfined + kotlinx.coroutines.SupervisorJob())
+        val c = contexto().copy(posicaoId = "posicao", estadoDaPosicao = "confirmada")
+        var conta = "conta-a"
+        try {
+            val vm = AcompanhamentoContratanteViewModel(c, { error("não confirma") }, escopo,
+                cancelar = { _, _ -> error("não cancela") }, relogio = { Instant.EPOCH },
+                filaDeAcoes = fila, contaAtual = { conta })
+            assertTrue(vm.estado.value.podeCancelar)
+            conta = "conta-b"; vm.pedirCancelamento()
+            assertTrue(vm.estado.value.cancelamentoRecusado); assertFalse(vm.estado.value.podeCancelar)
+            vm.atualizarContexto(c.copy(local = "Outro endereço"))
+            assertTrue(vm.estado.value.cancelamentoRecusado); assertFalse(vm.estado.value.podeCancelar)
+        } finally { escopo.coroutineContext[kotlinx.coroutines.Job]!!.cancel() }
+    }
+
+    @Test fun `resposta incerta le o painel sozinha e a tela se resolve, mas recusa definitiva nao`() = runBlocking {
+        for (definitiva in listOf(false, true)) {
+            var leituras = 0
+            val c = contexto().copy(posicaoId = "posicao", estadoDaPosicao = "confirmada")
+            val vm = AcompanhamentoContratanteViewModel(c, { error("não confirma") }, CoroutineScope(Dispatchers.Unconfined),
+                cancelar = { _, _ -> throw if (definitiva) ErroDaApi(CodigoErroAPI.SEM_PERMISSAO, "403", null, "privado")
+                    else ErroDaApi(CodigoErroAPI.DESCONHECIDO, "500", null, "privado") },
+                relogio = { Instant.EPOCH }, reler = { leituras++; c.copy(estadoDaPosicao = "cancelada") })
+            vm.pedirCancelamento(); vm.confirmarCancelamento("Imprevisto")!!.join()
+            assertEquals(if (definitiva) 0 else 1, leituras)
+            assertEquals(if (definitiva) "confirmada" else "cancelada", vm.estado.value.contexto.estadoDaPosicao)
+            assertFalse(vm.estado.value.cancelando); assertFalse(vm.estado.value.podeCancelar)
+        }
+    }
+
+    @Test fun `sem rede com disco quebrado avisa a falha, nao diz que esta na fila e a acao nao sai depois`() = runBlocking {
+        val arquivo = File(diretorio, "acoes/fila.json")
+        val fila = FilaDeAcoes(arquivo)
+        val escopo = CoroutineScope(Dispatchers.Unconfined + kotlinx.coroutines.SupervisorJob())
+        val eventos = mutableListOf<br.com.frila.core.rede.EventoDeTelemetria>()
+        try {
+            val c = contexto().copy(posicaoId = "posicao", estadoDaPosicao = "confirmada")
+            val vm = AcompanhamentoContratanteViewModel(c, { error("não confirma") }, escopo,
+                cancelar = { _, _ -> throw ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "privado") },
+                relogio = { Instant.EPOCH }, filaDeAcoes = fila, contaAtual = { "conta" },
+                registrarEvento = { e, _, _ -> eventos += e })
+            // A pasta da fila vira um arquivo: gravar lança IOException.
+            assertTrue(File(diretorio, "acoes").createNewFile())
+            val versao = fila.versao.value
+            vm.pedirCancelamento(); vm.confirmarCancelamento("Imprevisto")!!.join()
+            val estado = vm.estado.value
+            assertFalse(estado.cancelamentoNaFila); assertFalse(estado.cancelando); assertTrue(estado.cancelamentoRecusado)
+            assertEquals("Não deu para confirmar o cancelamento. Atualize a tela para ver se a posição foi cancelada.", estado.avisoDoCancelamento)
+            assertTrue(fila.pendentes().isEmpty()); assertEquals(versao, fila.versao.value); assertTrue(eventos.isEmpty())
+            var envios = 0
+            SincronizadorDeAcoes(fila, { "conta" }, mapOf(TipoAcaoPendente.CANCELAMENTO_POSICAO to { _ -> envios++; Unit })).sincronizar()
+            assertEquals(0, envios)
+            assertTrue(File(diretorio, "acoes").delete()); assertTrue(FilaDeAcoes(arquivo).pendentes().isEmpty())
+        } finally { escopo.coroutineContext[kotlinx.coroutines.Job]!!.cancel() }
     }
 
     private val json = headersOf(HttpHeaders.ContentType, "application/json")
