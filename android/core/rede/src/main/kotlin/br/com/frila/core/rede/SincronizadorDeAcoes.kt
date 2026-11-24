@@ -49,7 +49,8 @@ class SincronizadorDeAcoes(
             val envio = envios[acao.tipo] ?: continue
             try {
                 envio(acao)
-                fila.resolverRecusas(acao)
+                // A ação aceita sai da fila mesmo se o disco falhar ao encerrar os avisos: reenviar duplicaria o envio.
+                guardando { fila.resolverRecusas(acao) }
                 fila.remover(acao.id)
             } catch (erro: ErroDaApi) {
                 when {
