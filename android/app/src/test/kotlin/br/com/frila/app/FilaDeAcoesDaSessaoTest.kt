@@ -7,6 +7,8 @@ import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.contaDaSessaoParaTelemetria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
+import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.ItemTurno
 import br.com.frila.feature.vagas.painel.CancelarVagaViewModel
@@ -170,6 +172,30 @@ class FilaDeAcoesDaSessaoTest {
             assertEquals(if (comAcao) 1 else 0, versoes)
             assertTrue(leituras <= antes + 1, "leituras: $antes -> $leituras")
             assertTrue(cache.filaDeAcoes.pendentes().isEmpty())
+            escopo.cancel()
+        }
+    }
+
+    @Test fun `logout com casa cancelando posicao nao entra em ciclo nem anuncia sucesso`() = runTest {
+        for (comAcao in listOf(false, true)) {
+            val (cache, armazenamento) = montar()
+            cache.filaDeAcoes.limpar()
+            if (comAcao) cache.filaDeAcoes.enfileirar(AcaoPendente(TipoAcaoPendente.CANCELAMENTO_POSICAO,
+                "pessoa-a", "2026-11-23T12:00:00Z", turnoId = "turno", alvoId = "posicao", motivo = "Imprevisto"))
+            val escopo = CoroutineScope(SupervisorJob() + StandardTestDispatcher(testScheduler))
+            var leituras = 0
+            val vm = AcompanhamentoContratanteViewModel(
+                ContextoDoTurnoContratante("turno", "", "", null, Instant.EPOCH.plusSeconds(3600),
+                    null, null, null, null, null, false, "posicao", "confirmada"),
+                { error("não confirma") }, escopo, filaDeAcoes = cache.filaDeAcoes, contaAtual = {
+                    leituras++; if (leituras >= 20) escopo.cancel()
+                    contaDaSessaoParaTelemetria(armazenamento.obterSessao())
+                })
+            runCurrent(); val antes = leituras; val versao = cache.filaDeAcoes.versao.value
+            armazenamento.limparSessao(); runCurrent()
+            assertEquals(if (comAcao) 1 else 0, cache.filaDeAcoes.versao.value - versao)
+            assertTrue(leituras <= antes + 1); assertFalse(vm.estado.value.cancelamentoNaFila)
+            assertNull(vm.estado.value.cancelamento); assertNull(vm.estado.value.avisoDoCancelamento)
             escopo.cancel()
         }
     }

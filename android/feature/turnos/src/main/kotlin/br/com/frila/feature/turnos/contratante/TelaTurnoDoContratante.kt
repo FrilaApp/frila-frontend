@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -46,6 +50,9 @@ import java.time.format.DateTimeFormatter
 /** Tudo o que a tela pode pedir ao [AcompanhamentoContratanteViewModel] e a quem a abriu. */
 data class AcoesTurnoDoContratante(
     val aoConfirmarPresenca: () -> Unit = {},
+    val aoPedirCancelamento: () -> Unit = {},
+    val aoDesistir: () -> Unit = {},
+    val aoConfirmarCancelamento: (String) -> Unit = {},
     val aoVoltar: () -> Unit = {},
     /** L2-2: abrir a pergunta "Reabrir a vaga?", confirmá-la e desistir dela. */
     val aoPedirReabertura: () -> Unit = {},
@@ -82,6 +89,9 @@ fun TelaTurnoDoContratante(
         acoes = AcoesTurnoDoContratante(
             aoConfirmarPresenca = { viewModel.confirmarPresenca() },
             aoVoltar = aoVoltar,
+            aoPedirCancelamento = viewModel::pedirCancelamento,
+            aoDesistir = viewModel::desistir,
+            aoConfirmarCancelamento = { viewModel.confirmarCancelamento(it) },
             aoPedirReabertura = viewModel::pedirReabertura,
             aoConfirmarReabertura = { viewModel.confirmarReabertura() },
             aoDesistirDaReabertura = viewModel::desistirDaReabertura,
@@ -111,7 +121,7 @@ fun ConteudoTurnoDoContratante(
     depoisDaChegada: (@Composable () -> Unit)? = null,
 ) {
     val contexto = estado.contexto
-    val pendente = estado.presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE
+    val pendente = estado.presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && contexto.estadoDaPosicao != "cancelada"
     // Erro da confirmação fica junto ao botão que o disparou; o resto (resultado, ou erro sem botão) vai no conteúdo.
     val avisoNoRodape = estado.aviso?.takeIf { it.erro && pendente }
     Scaffold(
@@ -193,6 +203,15 @@ fun ConteudoTurnoDoContratante(
                 }
             }
 
+            // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+            if (estado.podeCancelar || estado.cancelando) {
+                TextButton(onClick = acoes.aoPedirCancelamento, enabled = estado.podeCancelar,
+                    modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) {
+                    Text(if (estado.cancelando) "Cancelando…" else "Cancelar posição")
+                }
+            }
+            if (!estado.pedindoCancelamento) estado.avisoDoCancelamento?.let { Text(it) }
+
             // Ações de risco no fim da tela, uma por linha.
             val reabrirVisivel = estado.presenca == PresencaDoTurno.EM_ATRASO &&
                 (estado.podeReabrir || (estado.reaberturaDisponivel && estado.reabrindo))
@@ -225,6 +244,26 @@ fun ConteudoTurnoDoContratante(
                 }
             }
         }
+    }
+
+    // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
+    if (estado.pedindoCancelamento) {
+        var motivo by rememberSaveable(contexto.posicaoId) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = acoes.aoDesistir,
+            title = { Text("Cancelar posição") },
+            text = { Column {
+                OutlinedTextField(value = motivo, onValueChange = { motivo = it }, label = { Text("Motivo") })
+                estado.avisoDoCancelamento?.let { Text(it) }
+            } },
+            confirmButton = {
+                TextButton(onClick = { acoes.aoConfirmarCancelamento(motivo) },
+                    modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) { Text("Confirmar cancelamento") }
+            },
+            dismissButton = {
+                TextButton(onClick = acoes.aoDesistir, modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) { Text("Voltar") }
+            },
+        )
     }
 
     if (estado.pedindoReabertura) {

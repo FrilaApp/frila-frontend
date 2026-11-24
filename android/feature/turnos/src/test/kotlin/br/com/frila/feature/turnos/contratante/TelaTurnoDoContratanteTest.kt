@@ -9,6 +9,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.PerfilPublicoDto
@@ -27,6 +30,23 @@ class TelaTurnoDoContratanteTest {
 
     @get:Rule
     val rule = createComposeRule()
+
+    @Test fun `cancelar posicao abre motivo valida texto e confirma com alvo minimo`() {
+        var recebido: String? = null
+        val vm = AcompanhamentoContratanteViewModel(
+            ContextoDoTurnoContratante("turno", "Função", "Casa", null, Instant.EPOCH.plusSeconds(3600),
+                null, null, null, null, null, false, "posicao", "confirmada"),
+            { error("não confirma") }, CoroutineScope(Dispatchers.Unconfined), relogio = { Instant.EPOCH },
+            cancelar = { id, motivo -> recebido = motivo; br.com.frila.core.dominio.modelo.ResultadoCancelamento(id, false, true) })
+        rule.setContent { FrilaTheme { TelaTurnoDoContratante(vm, {}) } }
+        rule.onNodeWithText("Cancelar posição").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithText("Confirmar cancelamento").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithText("Informe um motivo com pelo menos 3 caracteres.").assertIsDisplayed()
+        rule.onNodeWithText("Motivo").performTextInput("Imprevisto")
+        rule.onNodeWithText("Confirmar cancelamento").performClick()
+        rule.runOnIdle { assertEquals("Imprevisto", recebido) }
+        rule.onNodeWithText("Posição cancelada. A vaga voltou a procurar profissional.").assertIsDisplayed()
+    }
 
     private val ana = PerfilPublicoDto("p1", "profissional", "Ana", listOf("garçom", "barman"), ReputacaoDto(1, 1, null, 1, 1))
 

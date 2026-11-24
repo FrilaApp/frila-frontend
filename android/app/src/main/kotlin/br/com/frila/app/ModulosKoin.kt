@@ -495,11 +495,27 @@ val moduloFeatures = module {
      */
     viewModel { (contexto: ContextoDoTurnoContratante) ->
         val turnos = get<ServicoTurnos>()
+        val vagas = get<ServicoVagas>()
+        val armazenamento = get<ArmazenamentoDeSessao>()
         // L2-2: `reabrir` liga o botão "Reabrir vaga" (a tela a pergunta antes: reabrir registra a falta e não tem volta).
         AcompanhamentoContratanteViewModel(
             contexto = contexto,
             confirmar = turnos::confirmarCheckinManual,
             reabrir = turnos::reabrirPorAtraso,
+            cancelar = turnos::cancelarPosicao,
+            filaDeAcoes = get(),
+            contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
+            reler = { atual ->
+                val casa = atual.estabelecimentoId
+                val inicio = atual.inicio
+                val fim = atual.fim
+                if (casa == null || inicio == null || fim == null) null else {
+                    vagas.painelEstabelecimento(casa, inicio, fim).getOrNull()?.vagas
+                        ?.firstNotNullOfOrNull { vaga -> vaga.posicoes.firstOrNull { it.id == atual.posicaoId }
+                            ?.let { ContextoDoTurnoContratante.dePainel(vaga.vaga, it, casa) } }
+                }
+            },
         )
     }
     /**

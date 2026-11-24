@@ -256,7 +256,7 @@ internal suspend fun carregarTurnoDoContratante(
         }
     }
     val vaga = painel.vagas.firstOrNull { it.vaga.id == vagaId }?.takeIf { painel.estabelecimentoId == estabelecimentoId }
-    val contexto = vaga?.posicoes?.firstOrNull { it.id == posicaoId }?.let { ContextoDoTurnoContratante.dePainel(vaga.vaga, it) }
+    val contexto = vaga?.posicoes?.firstOrNull { it.id == posicaoId }?.let { ContextoDoTurnoContratante.dePainel(vaga.vaga, it, estabelecimentoId) }
     return if (contexto == null) {
         EstadoDoTurnoDaRota.Falha(TextosTurnoDoContratanteDaRota.NAO_ENCONTRADO, podeTentarDeNovo = false)
     } else {
