@@ -3,7 +3,7 @@ package br.com.frila.feature.vagas.publicacao
 /** Textos da publicação de vaga (paridade com `TextosPublicarVaga` de `PublicarVaga.swift`). */
 object TextosPublicarVaga {
     const val NA_FILA = "A vaga vai publicar quando a conexão voltar."
-    const val RECUSADA_NA_FILA = "Não foi possível publicar a vaga que ficou na fila. Confira os dados e tente novamente."
+    const val RECUSADA_NA_FILA = "Não foi possível publicar a vaga que ficou na fila. Preencha de novo e tente novamente."
     const val TITULO = "Nova vaga"
     const val ROTULO_VOLTAR = "Voltar"
     const val FUNCAO = "Função"
