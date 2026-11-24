@@ -32,6 +32,13 @@ export default tseslint.config(
     },
   },
   {
+    // Política de Privacidade: o log do Worker não leva dado pessoal; só console.error (achado da Bússola, 24/11).
+    files: ["app/servidor/**/*.{ts,tsx}", "app/entry.server.tsx", "app/**/*.server.{ts,tsx}", "workers/**/*.ts"],
+    rules: {
+      "no-console": ["error", { allow: ["error"] }],
+    },
+  },
+  {
     files: ["scripts/**/*.mjs"],
     languageOptions: { globals: { console: "readonly", process: "readonly", fetch: "readonly", setTimeout: "readonly", URLSearchParams: "readonly", URL: "readonly" } },
   },
