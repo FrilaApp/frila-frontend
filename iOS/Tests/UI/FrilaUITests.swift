@@ -19,12 +19,12 @@ final class SaidaDaContaUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(email.waitForExistence(timeout: Espera.aparecer))
         XCTAssertEqual(email.label, emailAntes)
-        XCTAssertFalse(app.textFields["entrada-email"].exists)
+        XCTAssertFalse(app.textFields["entrada-senha-email"].exists)
 
         abrirSairOuExcluir(app)
         tocar(app.buttons["perfil-sair"])
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer))
         salvar(app, "saida-confirmada-login")
     }
 
@@ -82,7 +82,7 @@ final class SaidaDaContaUITests: XCTestCase {
         conferirCancelamento(app, botao: app.buttons["estabelecimento-sair"], nome: "fluxo-contratante-sem-rede")
         tocar(app.tabBars.buttons["Minhas vagas"])
         XCTAssertTrue(app.buttons["Tentar novamente"].exists)
-        XCTAssertFalse(app.textFields["entrada-email"].exists)
+        XCTAssertFalse(app.textFields["entrada-senha-email"].exists)
     }
 
     func testCancelarSaidaDoDetalheDaVaga() {
@@ -123,7 +123,7 @@ final class SaidaDaContaUITests: XCTestCase {
         rolarAte(app.buttons["estabelecimento-sair"], app: app)
         tocar(app.buttons["estabelecimento-sair"])
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer))
     }
 
     func testCancelarSaidaDaContaSuspensa() {
@@ -210,6 +210,7 @@ final class FrilaUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
         let classificacao = app.staticTexts["entrada-classificacao-indicativa"]
         XCTAssertTrue(classificacao.exists)
@@ -510,6 +511,7 @@ final class AutenticacaoUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -523,6 +525,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         app.buttons["cadastro-perfil-profissional"].tap()
@@ -565,7 +568,7 @@ final class AutenticacaoUITests: XCTestCase {
         guard sair.exists else { return }
         sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.descendants(matching: .any)["tela-perfil-profissional"].exists)
     }
 
@@ -599,7 +602,7 @@ final class AutenticacaoUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["aviso-erro-perfil"].waitForExistence(timeout: 10))
         tocar(app.buttons["criacao-perfil-sair"])
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: 10))
     }
 
     private func abrirCriacaoPerfil(_ cenario: String) -> XCUIApplication {
@@ -676,6 +679,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -697,6 +701,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
     }
 
@@ -706,6 +711,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_SEM_SESSAO"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -727,6 +733,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
 
@@ -735,19 +742,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "success"]
         app.launch()
 
-        let email = app.textFields["entrada-email"]
-        XCTAssertTrue(email.waitForExistence(timeout: 10))
-        email.tap()
-        email.digitarEEsperar("existente@frila.app")
-        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
-
-        let tfCodigo = app.textFields["Código de acesso"]
-        XCTAssertTrue(tfCodigo.waitForExistence(timeout: 10))
-        tfCodigo.tap()
-        tfCodigo.typeText("123456")
-        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
-            app.buttons["codigo-entrar"].tap()
-        }
+        entrarComSenha(app, email: "existente@frila.app")
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
     }
@@ -757,18 +752,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "success"]
         app.launch()
 
-        let email = app.textFields["entrada-email"]
-        XCTAssertTrue(email.waitForExistence(timeout: 10))
-        email.tap()
-        email.digitarEEsperar("existente@frila.app")
-        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
-        let codigo = app.textFields["Código de acesso"]
-        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
-        codigo.tap()
-        codigo.typeText("123456")
-        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
-            app.buttons["codigo-entrar"].tap()
-        }
+        entrarComSenha(app, email: "existente@frila.app")
 
         XCTAssertTrue(app.navigationBars["Vagas no DF"].waitForExistence(timeout: 10))
         let botaoPerfil = app.tabBars.buttons["Conta"]
@@ -781,7 +765,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.buttons["Sair"].tap()
 
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.navigationBars["Meu perfil"].exists)
     }
 
@@ -790,6 +774,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "codigo-errado"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -813,6 +798,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -826,6 +812,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nascimento = app.textFields["cadastro-nascimento"]
@@ -845,6 +832,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -858,6 +846,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -895,6 +884,7 @@ final class AutenticacaoUITests: XCTestCase {
         ]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -908,6 +898,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -944,6 +935,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -957,6 +949,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = app.textFields["cadastro-nome"]
@@ -995,6 +988,7 @@ final class AutenticacaoUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -1008,6 +1002,7 @@ final class AutenticacaoUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Cadastro"].exists)
@@ -1044,6 +1039,7 @@ final class AutenticacaoUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(appPadrao)
         appPadrao.launch()
 
+        abrirCriarContaPelaEntrada(appPadrao)
         let email = appPadrao.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -1057,6 +1053,7 @@ final class AutenticacaoUITests: XCTestCase {
         if appPadrao.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             appPadrao.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(appPadrao)
 
         XCTAssertTrue(appPadrao.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nome = appPadrao.textFields["cadastro-nome"]
@@ -1090,6 +1087,7 @@ final class AutenticacaoUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(appAX5)
         appAX5.launch()
 
+        abrirCriarContaPelaEntrada(appAX5)
         let emailAX5 = appAX5.textFields["entrada-email"]
         XCTAssertTrue(emailAX5.waitForExistence(timeout: 10))
         appAX5.swipeUp()
@@ -1104,6 +1102,7 @@ final class AutenticacaoUITests: XCTestCase {
         if appAX5.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             appAX5.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(appAX5)
 
         XCTAssertTrue(appAX5.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nomeAX5 = appAX5.textFields["cadastro-nome"]
@@ -1129,6 +1128,7 @@ final class AutenticacaoUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(appMenor)
         appMenor.launch()
 
+        abrirCriarContaPelaEntrada(appMenor)
         let emailMenor = appMenor.textFields["entrada-email"]
         XCTAssertTrue(emailMenor.waitForExistence(timeout: 10))
         emailMenor.tap()
@@ -1142,6 +1142,7 @@ final class AutenticacaoUITests: XCTestCase {
         if appMenor.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             appMenor.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(appMenor)
 
         XCTAssertTrue(appMenor.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: 10))
         let nomeMenor = appMenor.textFields["cadastro-nome"]

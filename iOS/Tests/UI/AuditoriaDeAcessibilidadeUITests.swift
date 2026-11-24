@@ -195,6 +195,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     private func entradaCodigoECadastro(ax5: Bool) {
         let app = abrir(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"], ax5: ax5)
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         guard esperar(email, "A entrada deve abrir") else { return }
         auditar(app, tela: "entrada")
@@ -212,6 +213,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             tocar(app.buttons["codigo-entrar"], em: app)
         }
+        definirSenhaObrigatoria(app)
 
         guard esperar(app.buttons["cadastro-termos"], "O cadastro deve abrir") else { return }
         auditar(app, tela: "cadastro")
@@ -224,6 +226,7 @@ final class AuditoriaDeAcessibilidadeUITests: XCTestCase {
     /// campo de e-mail cresce com o tamanho do texto. No tamanho padrão ele tem o mínimo de 44 pt.
     func testCampoDeTextoCresceEmAX5() {
         let app = abrir(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"], ax5: true)
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         guard esperar(email, "A entrada deve abrir") else { return }
         print("MEDIDA|entrada-email|ax5|altura=\(email.frame.height)")

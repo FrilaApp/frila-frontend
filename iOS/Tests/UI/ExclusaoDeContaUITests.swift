@@ -63,7 +63,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         confirmarExclusaoNoDialogo(no: app)
 
         // 8. A exclusão é concluída e o app volta para a tela de entrada
-        let campoEmail = app.textFields["entrada-email"]
+        let campoEmail = app.textFields["entrada-senha-email"]
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15))
 
         let capturaEntrada = XCTAttachment(screenshot: app.screenshot())
@@ -140,7 +140,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         confirmarExclusaoNoDialogo(no: app)
 
         // 8. Sessão limpa e app redirecionado para a tela de entrada
-        let campoEmail = app.textFields["entrada-email"]
+        let campoEmail = app.textFields["entrada-senha-email"]
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão do contratante")
     }
 
@@ -192,7 +192,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         confirmarExclusaoNoDialogo(no: app)
 
         // 8. Retorno à tela de entrada
-        let campoEmail = app.textFields["entrada-email"]
+        let campoEmail = app.textFields["entrada-senha-email"]
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão do contratante com turnos")
     }
 
@@ -272,7 +272,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         confirmarExclusaoNoDialogo(no: app)
 
         // 5. App volta para a tela de entrada
-        let campoEmail = app.textFields["entrada-email"]
+        let campoEmail = app.textFields["entrada-senha-email"]
         XCTAssertTrue(campoEmail.waitForExistence(timeout: 15), "Deve retornar à tela de entrada após exclusão")
     }
 
@@ -330,7 +330,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         let fechou = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cancelar)
         XCTAssertEqual(XCTWaiter.wait(for: [fechou], timeout: 5), .completed, "O Cancelar fecha a confirmação")
         XCTAssertTrue(app.descendants(matching: .any)["tela-exclusao-de-conta"].exists, "Cancelar não exclui: a tela continua")
-        XCTAssertFalse(app.textFields["entrada-email"].exists, "Cancelar não volta para a entrada")
+        XCTAssertFalse(app.textFields["entrada-senha-email"].exists, "Cancelar não volta para a entrada")
     }
 
     func testContratanteComTurnosCancelaExclusaoNoTamanhoPadrao() {
@@ -413,7 +413,7 @@ final class ExclusaoDeContaUITests: XCTestCase {
         let fechou = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cancelar)
         XCTAssertEqual(XCTWaiter.wait(for: [fechou], timeout: Espera.aparecer), .completed)
         XCTAssertTrue(tela.exists, "Cancelar mantém a tela da conta")
-        XCTAssertFalse(app.textFields["entrada-email"].exists, "Cancelar não encerra a sessão")
+        XCTAssertFalse(app.textFields["entrada-senha-email"].exists, "Cancelar não encerra a sessão")
         XCTAssertTrue(excluir.isEnabled, "Cancelar a confirmação permite reconsiderar a ação")
         anexar(app, "Contratante\(tamanho)Cancelada")
     }

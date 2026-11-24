@@ -20,7 +20,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(sair.isHittable)
         sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: 10))
     }
 
     /// Defeito do E2E de 21/10: depois de Sair com uma vaga aberta, a nova entrada caía direto no
@@ -44,18 +44,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         rolarAte(sair, app: app)
         sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        let email = app.textFields["entrada-email"]
-        XCTAssertTrue(email.waitForExistence(timeout: 10))
-        email.tap()
-        email.digitarEEsperar("contratante@frila.app")
-        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
-        let codigo = app.textFields["Código de acesso"]
-        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
-        codigo.tap()
-        codigo.typeText("123456")
-        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
-            tocar(app.buttons["codigo-entrar"])
-        }
+        entrarComSenha(app, email: "contratante@frila.app")
 
         XCTAssertTrue(app.descendants(matching: .any)["minhas-vagas"].waitForExistence(timeout: 10),
                       "a nova entrada deve abrir Minhas vagas, não a vaga que estava aberta antes de sair")
@@ -69,6 +58,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -81,6 +71,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         let perfil = app.buttons["cadastro-perfil-contratante"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
@@ -122,7 +113,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         XCTAssertTrue(sair.isHittable)
         sair.tap()
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: 10))
     }
 
     func testPrimeiroAcessoDoContratantePublicaPrimeiraVagaETerminaEmMinhasVagas() {
@@ -135,6 +126,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         email.tap()
@@ -147,6 +139,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         let perfil = app.buttons["cadastro-perfil-contratante"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))
@@ -209,6 +202,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         if categoria == "UICTContentSizeCategoryAccessibilityXXXL" {
@@ -225,6 +219,7 @@ final class FluxoDoContratanteUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         let perfil = app.buttons["cadastro-perfil-contratante"]
         XCTAssertTrue(perfil.waitForExistence(timeout: 10))

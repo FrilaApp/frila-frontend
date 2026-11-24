@@ -44,14 +44,14 @@ final class AberturaUITests: XCTestCase {
     func testOAjudanteDesligaAAberturaEmTodoTesteDeInterface() {
         let app = iniciar(["-FRILA_ENTRADA"])
         XCTAssertTrue(app.launchArguments.contains("-FRILA_SEM_ABERTURA"), "o ajudante de lançamento deve desligar a abertura")
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
         XCTAssertFalse(abertura(app).exists, "sem abertura por cima da entrada")
     }
 
     func testComOArgumentoAAberturaNaoAparece() {
         // Mesmo com a abertura lenta pedida, o argumento de desligar vence: se ela tocasse, ainda estaria na tela.
         let app = iniciar(["-FRILA_ENTRADA", "-FRILA_SEM_ABERTURA"] + Self.lenta)
-        let campo = app.textFields["entrada-email"]
+        let campo = app.textFields["entrada-senha-email"]
         XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
         XCTAssertFalse(abertura(app).exists, "sem abertura por cima da entrada")
         XCTAssertTrue(campo.isHittable, "o campo de e-mail deve estar tocável de imediato")
@@ -62,7 +62,7 @@ final class AberturaUITests: XCTestCase {
     func testAEntradaCarregaPorBaixoDaAbertura() {
         let app = iniciar(["-FRILA_ENTRADA"] + Self.lenta)
         XCTAssertTrue(abertura(app).waitForExistence(timeout: Espera.aparecer), "a abertura deve cobrir o app")
-        XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer),
+        XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer),
                       "a entrada deve montar por baixo da abertura")
         XCTAssertTrue(abertura(app).exists, "a abertura ainda cobre: a entrada montou durante ela, não depois")
     }
@@ -82,7 +82,7 @@ final class AberturaUITests: XCTestCase {
         let app = iniciar(["-FRILA_ENTRADA"] + Self.lenta)
         let cena = abertura(app)
         XCTAssertTrue(cena.waitForExistence(timeout: Espera.aparecer), "a abertura deve cobrir o app")
-        let campo = app.textFields["entrada-email"]
+        let campo = app.textFields["entrada-senha-email"]
         XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer), "a entrada deve montar por baixo da abertura")
 
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
@@ -105,7 +105,7 @@ final class AberturaUITests: XCTestCase {
         for (nome, instante) in [("inicio", "0.30"), ("meio", "1.25"), ("fim", "2.60")] {
             let app = iniciar(["-FRILA_ENTRADA", "-FRILA_ABERTURA_CONGELADA", instante])
             XCTAssertTrue(abertura(app).waitForExistence(timeout: Espera.aparecer), "a abertura deve cobrir o app")
-            XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+            XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer))
             capturar("abertura-\(nome)")
             app.terminate()
         }
@@ -119,7 +119,7 @@ final class AberturaUITests: XCTestCase {
         for (nome, instante) in [("parada", "0.30"), ("saindo", "0.75")] {
             let app = iniciar(["-FRILA_ENTRADA", "-FRILA_ABERTURA_CONGELADA", instante])
             XCTAssertTrue(abertura(app).waitForExistence(timeout: Espera.aparecer), "a abertura deve cobrir o app")
-            XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+            XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer))
             capturar("abertura-reduzir-movimento-\(nome)")
             app.terminate()
         }
@@ -128,7 +128,7 @@ final class AberturaUITests: XCTestCase {
     func testCapturasDaEntradaComAArte() {
         for (nome, argumentos) in [("padrao", [String]()), ("ax5", ["-UIPreferredContentSizeCategoryName", Self.ax5])] {
             let app = iniciar(["-FRILA_ENTRADA"] + argumentos)
-            XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
+            XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
             // A arte entra em 0,82 s: a captura espera ela assentar.
             RunLoop.current.run(until: Date().addingTimeInterval(1.5))
             capturar("entrada-com-a-arte-\(nome)")
@@ -147,7 +147,7 @@ final class AberturaUITests: XCTestCase {
             app.launchArguments = ["-FRILA_ENTRADA"] + extra
             let inicio = Date()
             app.launch()
-            XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
+            XCTAssertTrue(app.textFields["entrada-senha-email"].waitForExistence(timeout: Espera.aparecer))
             let decorrido = Date().timeIntervalSince(inicio)
             app.terminate()
             return decorrido

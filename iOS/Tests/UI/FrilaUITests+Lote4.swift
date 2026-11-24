@@ -41,14 +41,13 @@ final class FrilaUITestsLote4: XCTestCase {
         ]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
         email.digitarEEsperar("ju.ramos@email.com")
 
-        let receber = app.buttons["entrada-receber-codigo"]
-        if receber.waitForExistence(timeout: 5) {
-            receber.tap()
-        }
+        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
 
         let codigo = app.textFields["Código de acesso"]
         XCTAssertTrue(codigo.waitForExistence(timeout: 10))
@@ -68,6 +67,7 @@ final class FrilaUITestsLote4: XCTestCase {
         ]
         app.launch()
 
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         app.swipeUp()

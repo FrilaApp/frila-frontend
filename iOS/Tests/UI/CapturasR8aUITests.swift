@@ -45,6 +45,7 @@ final class CapturasR8aUITests: XCTestCase {
     }
 
     private func entrar(_ app: XCUIApplication) {
+        abrirCriarContaPelaEntrada(app)
         let campo = app.textFields["entrada-email"]
         XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
         if campo.frame.minY > app.windows.firstMatch.frame.height * 0.6 { app.swipeUp() }
@@ -71,6 +72,7 @@ final class CapturasR8aUITests: XCTestCase {
         entrar(app)
         app.textFields["Código de acesso"].tap()
         app.textFields["Código de acesso"].typeText("123456")
+        definirSenhaObrigatoria(app)
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: Espera.aparecer), "o cadastro deve abrir")
         rolar(app, vezes: 2)
         capturar("cadastro-rolado", ax5)

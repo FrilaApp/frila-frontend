@@ -15,7 +15,8 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         app.launchArguments = ["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"]
         app.launch()
 
-        // 1. TelaEntrada: rotulo do email deve ser "E-mail"
+        // 1. TelaEntradaComSenha -> Criar conta -> TelaEntrada: rotulo do email deve ser "E-mail"
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         XCTAssertEqual(email.label, "E-mail")
@@ -31,6 +32,9 @@ final class AcessibilidadeDoProfissionalUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+
+        // 2b. TelaDefinirSenha obrigatoria apos OTP de cadastro
+        definirSenhaObrigatoria(app)
 
         // 3. TelaCadastro: checkbox de termos com alvos >= 44x44 pt
         let termos = app.buttons["cadastro-termos"]
