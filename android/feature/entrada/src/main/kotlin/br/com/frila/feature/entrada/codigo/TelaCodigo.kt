@@ -76,7 +76,7 @@ fun TelaCodigo(
     val focoDoCodigo = remember { FocusRequester() }
 
     // Uma mensagem só junto do botão: o erro vence o aviso do reenvio.
-    val mensagem = estado.erro ?: "Novo código enviado para seu e-mail.".takeIf { estado.reenviado }
+    val mensagem = estado.erro ?: (estado.mensagemReenvio ?: "Novo código enviado para seu e-mail.").takeIf { estado.reenviado }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

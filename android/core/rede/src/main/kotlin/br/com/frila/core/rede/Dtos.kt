@@ -76,10 +76,11 @@ data class VagaAbertaDto(
     @SerialName("modo") val modo: String,
 )
 
-/** Corpo de `POST /auth/v1/otp`: solicitação de código por e-mail. */
+/** Corpo de `POST /auth/v1/otp`: solicitação de código por e-mail (`create_user: false` na recuperação). */
 @Serializable
 data class EntrarOtpDto(
     @SerialName("email") val email: String,
+    @SerialName("create_user") val createUser: Boolean = true,
 )
 
 /** Corpo de `POST /auth/v1/verify` (type: email): verificação do código de 6 dígitos. */

@@ -64,7 +64,12 @@ import br.com.frila.feature.conta.ContestarDespachoViewModel
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
+import br.com.frila.feature.entrada.codigo.ModoCodigo
+import br.com.frila.feature.entrada.criar.CriarContaViewModel
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
+import br.com.frila.feature.entrada.recuperacao.RecuperacaoSenhaViewModel
+import br.com.frila.feature.entrada.senha.DefinirSenhaViewModel
+import br.com.frila.feature.entrada.senha.EntradaComSenhaViewModel
 import br.com.frila.feature.vagas.candidaturas.MinhasCandidaturasViewModel
 import br.com.frila.feature.vagas.candidaturas.RetirarCandidaturaViewModel
 import br.com.frila.feature.vagas.detalhe.AberturaDeVagaViewModel
@@ -342,11 +347,37 @@ val moduloFeatures = module {
             ?: ArmazenamentoPreferenciasFiltroEmMemoria()
     }
     viewModel { EntradaViewModel(get(), permitirDominioDeTeste = BuildConfig.DEBUG) }
-    viewModel { (email: String) ->
-        CodigoViewModel(
-            email, get(), get(),
+    viewModel {
+        EntradaComSenhaViewModel(
+            servicoAutenticacao = get(),
+            armazenamentoDeSessao = get(),
             aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
             permitirDominioDeTeste = BuildConfig.DEBUG,
+        )
+    }
+    viewModel { params ->
+        CriarContaViewModel(
+            servicoAutenticacao = get(),
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+            emailInicial = params.getOrNull<String>().orEmpty(),
+        )
+    }
+    viewModel { params ->
+        RecuperacaoSenhaViewModel(
+            servicoAutenticacao = get(),
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+            emailInicial = params.getOrNull<String>().orEmpty(),
+        )
+    }
+    viewModel { DefinirSenhaViewModel(get(), get()) }
+    viewModel { params ->
+        CodigoViewModel(
+            email = params.get(),
+            servicoAutenticacao = get(),
+            armazenamentoDeSessao = get(),
+            aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
+            permitirDominioDeTeste = BuildConfig.DEBUG,
+            modo = params.getOrNull<ModoCodigo>() ?: ModoCodigo.ENTRADA,
         )
     }
     viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
