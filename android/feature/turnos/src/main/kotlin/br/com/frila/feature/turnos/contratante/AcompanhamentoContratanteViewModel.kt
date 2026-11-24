@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
 /** Em que pé está a chegada do profissional ao turno, pelo que o painel diz dela. */
@@ -190,6 +191,7 @@ class AcompanhamentoContratanteViewModel(
     val estado: StateFlow<EstadoTurnoDoContratante> = _estado.asStateFlow()
 
     private var contaObservada = contaAtual()
+    private val recusasMostradas = mutableSetOf<String>()
     init {
         reconciliarComAFila()
         filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } }
@@ -200,6 +202,7 @@ class AcompanhamentoContratanteViewModel(
         val conta = contaAtual()
         if (conta != contaObservada) {
             contaObservada = conta
+            recusasMostradas.clear()
             _estado.update { it.copy(cancelamentoNaFila = false, cancelando = false, pedindoCancelamento = false,
                 cancelamentoRecusado = true, avisoDoCancelamento = null) }
         }
@@ -208,8 +211,10 @@ class AcompanhamentoContratanteViewModel(
         synchronized(fila) {
             val pendente = fila.pendentes().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
                 it.alvoId == _estado.value.contexto.posicaoId && it.contaId == conta }
-            val recusada = fila.recusadas().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
+            val recusas = fila.recusadas().filter { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
                 it.turnoId == _estado.value.contexto.turnoId && it.contaId == conta }
+            val recusada = recusas.isNotEmpty()
+            if (!pendente) recusasMostradas.addAll(recusas.map { it.id })
             _estado.update {
                 enviado = it.cancelamentoNaFila && !pendente && !recusada
                 when {
@@ -230,7 +235,7 @@ class AcompanhamentoContratanteViewModel(
         _estado.update { if (it.podeCancelar) it.copy(pedindoCancelamento = true, pedindoReabertura = false) else it }
     }
 
-    fun desistir() { _estado.update { it.copy(pedindoCancelamento = false) } }
+    fun desistir() { _estado.update { it.copy(pedindoCancelamento = false, avisoDoCancelamento = null) } }
 
     fun confirmarCancelamento(motivo: String): Job? {
         reconciliarComAFila()
@@ -249,7 +254,7 @@ class AcompanhamentoContratanteViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val resultado = chamada(atual.contexto.posicaoId!!, texto)
-                if (contaAtual() != conta || filaDeAcoes?.geracao() != geracao) return@launch
+                if (cancelamentoDeSessaoAntiga(conta, geracao)) return@launch
                 _estado.update { it.copy(cancelando = false, cancelamento = resultado,
                     contexto = it.contexto.copy(estadoDaPosicao = "cancelada", emAtraso = false),
                     avisoDoCancelamento = if (resultado.reaberta) "Posição cancelada. A vaga voltou a procurar profissional."
@@ -257,12 +262,12 @@ class AcompanhamentoContratanteViewModel(
                 relerAposCancelamento(conta)
             } catch (erro: CancellationException) { throw erro
             } catch (erro: Exception) {
-                if (contaAtual() != conta || filaDeAcoes?.geracao() != geracao) return@launch
+                if (cancelamentoDeSessaoAntiga(conta, geracao)) return@launch
                 val fila = filaDeAcoes
                 if ((erro as? ErroDaApi)?.codigo == CodigoErroAPI.SEM_REDE && fila != null && conta != null) {
                     try {
                         synchronized(fila) {
-                            if (contaAtual() != conta || fila.geracao() != geracao) return@launch
+                            if (cancelamentoDeSessaoAntiga(conta, geracao)) return@launch
                             if (fila.pendentes().none { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
                                 it.alvoId == atual.contexto.posicaoId && it.contaId == conta }) {
                                 fila.enfileirar(AcaoPendente(TipoAcaoPendente.CANCELAMENTO_POSICAO, conta, toque.toString(),
@@ -276,9 +281,17 @@ class AcompanhamentoContratanteViewModel(
                     } catch (_: IOException) { /* Sem gravação durável, não anunciar que entrou na fila. */ }
                 }
                 _estado.update { it.copy(cancelando = false, cancelamentoRecusado = true,
-                    avisoDoCancelamento = "Não foi possível cancelar a posição. Atualize a tela e tente de novo.") }
+                    avisoDoCancelamento = if ((erro as? ErroDaApi)?.codigo?.recusaDefinitivaDeCancelamento == true)
+                        "Não foi possível cancelar a posição. Atualize a tela e tente de novo."
+                    else "Não deu para confirmar o cancelamento. Atualize a tela para ver se a posição foi cancelada.") }
             }
         }
+    }
+
+    private fun cancelamentoDeSessaoAntiga(conta: String?, geracao: Long?): Boolean {
+        if (contaAtual() == conta && filaDeAcoes?.geracao() == geracao) return false
+        _estado.update { it.copy(cancelando = false) }
+        return true
     }
 
     private suspend fun relerAposCancelamento(conta: String?) {
@@ -291,7 +304,7 @@ class AcompanhamentoContratanteViewModel(
 
     /** Incorpora o painel relido sem recriar o acompanhamento nem interromper a confirmação em voo. */
     fun atualizarContexto(contexto: ContextoDoTurnoContratante) {
-        _estado.update { atual ->
+        val atualizado = _estado.updateAndGet { atual ->
             // Uma releitura iniciada antes da confirmação pode chegar depois dela.
             if (atual.contexto.turnoId == contexto.turnoId &&
                 (atual.contexto.estadoDaPosicao == "cancelada" && contexto.estadoDaPosicao == "confirmada" ||
@@ -299,6 +312,20 @@ class AcompanhamentoContratanteViewModel(
                 presencaDe(contexto) != PresencaDoTurno.VERIFICADA)
             ) atual else atual.copy(contexto = contexto, reaberturaRecusada = false)
         }
+        if (atualizado.contexto != contexto) return
+        filaDeAcoes?.let { fila ->
+            synchronized(fila) {
+                runCatching {
+                    fila.recusadas().filter { it.id in recusasMostradas &&
+                        it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO && it.turnoId == contexto.turnoId &&
+                        it.contaId == contaAtual() }.forEach {
+                        fila.reconhecerRecusa(it.id)
+                        recusasMostradas.remove(it.id)
+                    }
+                }.onFailure { if (it !is IOException) throw it }
+            }
+        }
+        _estado.update { if (it.contexto == contexto) it.copy(cancelamentoRecusado = false) else it }
     }
 
     fun confirmarPresenca(): Job {
