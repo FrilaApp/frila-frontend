@@ -157,18 +157,20 @@ fun ConteudoPublicarVaga(
         bottomBar = {
             RodapeAncorado {
                 estado.erro?.let { MensagemJuntoAoBotao(it.mensagem) }
-                if (estado.pendente != null && !estado.enviando && !estado.concluida) {
+                if (estado.naFila) MensagemJuntoAoBotao(TextosPublicarVaga.NA_FILA)
+                if (estado.pendente != null && !estado.naFila && !estado.enviando && !estado.concluida) {
                     MensagemJuntoAoBotao(TextosPublicarVaga.PENDENTE)
                 }
                 if (estado.concluida) MensagemJuntoAoBotao(TextosPublicarVaga.CONCLUIDA)
                 BotaoPrimario(
                     texto = when {
+                        estado.naFila -> TextosPublicarVaga.PUBLICAR
                         estado.enviando -> TextosPublicarVaga.PUBLICANDO
                         estado.pendente != null -> TextosPublicarVaga.TENTAR_NOVAMENTE
                         else -> TextosPublicarVaga.PUBLICAR
                     },
                     aoClicar = acoes.aoPublicar,
-                    habilitado = !estado.enviando && !estado.concluida,
+                    habilitado = !estado.enviando && !estado.concluida && !estado.naFila,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -183,6 +185,8 @@ fun ConteudoPublicarVaga(
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
             TituloDaTela(TextosPublicarVaga.TITULO)
+
+            if (estado.naFila) return@Column
 
             // Função
             when {
@@ -435,7 +439,7 @@ fun ConteudoPublicarVaga(
         }
     }
 
-    if (seletorDeFuncaoAberto) {
+    if (seletorDeFuncaoAberto && !estado.naFila) {
         FrilaBottomSheet(
             onDismissRequest = { seletorDeFuncaoAberto = false },
             titulo = TextosPublicarVaga.FUNCAO_ESCOLHA,

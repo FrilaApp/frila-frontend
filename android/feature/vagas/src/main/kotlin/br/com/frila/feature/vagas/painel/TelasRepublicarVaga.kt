@@ -57,7 +57,7 @@ fun ConteudoRepublicarVaga(
     modifier: Modifier = Modifier,
 ) {
     val cores = FrilaTema.cores
-    val republicada = estado.vagaPublicadaId != null
+    val republicada = estado.vagaPublicadaId != null || estado.enviadaPelaFila
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = cores.fundo,
@@ -74,10 +74,11 @@ fun ConteudoRepublicarVaga(
                     MensagemJuntoAoBotao(TextosRepublicarVaga.SUCESSO)
                     BotaoSecundario(TextosRepublicarVaga.OK, aoFechar, Modifier.fillMaxWidth())
                 } else {
+                    if (estado.naFila) MensagemJuntoAoBotao(TextosRepublicarVaga.NA_FILA)
                     estado.mensagemErro?.let { MensagemJuntoAoBotao(it) }
                     if (estado.enviando) MensagemJuntoAoBotao(TextosRepublicarVaga.ENVIANDO)
                     BotaoPrimario(
-                        texto = if (estado.camposBloqueados) TextosRepublicarVaga.TENTAR_NOVAMENTE else TextosRepublicarVaga.CONFIRMAR,
+                        texto = if (estado.camposBloqueados && !estado.naFila) TextosRepublicarVaga.TENTAR_NOVAMENTE else TextosRepublicarVaga.CONFIRMAR,
                         aoClicar = aoConfirmar,
                         modifier = Modifier.fillMaxWidth(),
                         habilitado = estado.podeConfirmar,

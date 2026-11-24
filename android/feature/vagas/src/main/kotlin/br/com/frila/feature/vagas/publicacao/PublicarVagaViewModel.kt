@@ -1,5 +1,10 @@
 package br.com.frila.feature.vagas.publicacao
 
+import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
+import br.com.frila.core.rede.EventoDeTelemetria
+import java.io.IOException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -36,6 +41,7 @@ enum class ErroGlobalPublicacao(val mensagem: String) {
     CONTA_SUSPENSA(TextosPublicarVaga.ERRO_CONTA_SUSPENSA),
     SESSAO_EXPIRADA(TextosPublicarVaga.ERRO_SESSAO),
     SEM_REDE(TextosPublicarVaga.ERRO_SEM_REDE),
+    RECUSADA_NA_FILA(TextosPublicarVaga.RECUSADA_NA_FILA),
     GENERICO(TextosPublicarVaga.ERRO_GENERICO),
 }
 
@@ -70,6 +76,8 @@ data class EstadoPublicarVaga(
     val traje: String = "",
     val observacoes: String = "",
     val participaRateio: Boolean = false,
+    val naFila: Boolean = false,
+    val enviadaPelaFila: Boolean = false,
     val enviando: Boolean = false,
     /** Mensagem por campo, preenchida pela validação local ou pela recusa do servidor. */
     val errosDeCampo: Map<CampoPublicacao, String> = emptyMap(),
@@ -83,8 +91,8 @@ data class EstadoPublicarVaga(
     /** O relógio do aparelho no último cálculo; só a tela de seleção depende dele. */
     val agora: Instant,
 ) {
-    val concluida: Boolean get() = publicada != null
-    val podeEditar: Boolean get() = !enviando && !concluida && pendente == null
+    val concluida: Boolean get() = publicada != null || enviadaPelaFila
+    val podeEditar: Boolean get() = !enviando && !concluida && !naFila && pendente == null
     val valorCentavos: Long? get() = lerCentavos(valor)
     val posicoesNumero: Int? get() = posicoes.toIntOrNull()?.takeIf { it in POSICOES_MIN..POSICOES_MAX }
     val duracao: Duration get() = Duration.between(inicio, fim)
@@ -135,12 +143,67 @@ class PublicarVagaViewModel(
     private val relogio: () -> Instant = Instant::now,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     escopo: CoroutineScope? = null,
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    private val contaAtual: () -> String? = { null },
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     private val _estado = MutableStateFlow(estadoInicial())
     val estado: StateFlow<EstadoPublicarVaga> = _estado.asStateFlow()
+
+    private var contaObservada = contaAtual()
+    private var geracaoObservada = filaDeAcoes?.geracao()
+    init {
+        reconciliarComAFila()
+        filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } }
+    }
+
+    private fun reconciliarComAFila() {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual()
+        if (conta != contaObservada || geracaoObservada != fila.geracao()) {
+            contaObservada = conta
+            geracaoObservada = fila.geracao()
+            _estado.value = estadoInicial()
+        }
+        if (conta == null) return
+        synchronized(fila) {
+            val acao = fila.pendentes().firstOrNull {
+                it.tipo == TipoAcaoPendente.PUBLICACAO_VAGA && it.contaId == conta && it.publicacao?.estabelecimentoId == estabelecimento.id
+            }
+            val recusa = fila.recusadas().any {
+                it.tipo == TipoAcaoPendente.PUBLICACAO_VAGA && it.contaId == conta && it.estabelecimentoId == estabelecimento.id
+            }
+            _estado.update { e -> when {
+                acao != null -> e.copy(naFila = true, pendente = acao.publicacao, enviando = false, erro = null)
+                recusa && !e.enviando -> (if (e.naFila) estadoInicial().copy(funcoes = e.funcoes) else e)
+                    .copy(naFila = false, pendente = null, erro = ErroGlobalPublicacao.RECUSADA_NA_FILA)
+                e.naFila -> e.copy(naFila = false, pendente = null, enviadaPelaFila = true)
+                else -> e
+            } }
+        }
+    }
+
+    private fun guardarNaFila(corpo: NovaVagaDto, toque: Instant, conta: String?): Boolean {
+        val fila = filaDeAcoes ?: return false
+        if (conta == null || contaAtual() != conta) return false
+        return try {
+            synchronized(fila) {
+                val existente = fila.pendentes().any {
+                    it.tipo == TipoAcaoPendente.PUBLICACAO_VAGA && it.contaId == conta && it.publicacao?.estabelecimentoId == estabelecimento.id
+                }
+                if (!existente) {
+                    fila.enfileirar(AcaoPendente(TipoAcaoPendente.PUBLICACAO_VAGA, conta, toque.toString(), chave = corpo.chave, publicacao = corpo))
+                    registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, null)
+                }
+                reconciliarComAFila()
+            }
+            true
+        } catch (_: IOException) { false }
+    }
 
     private fun estadoInicial(): EstadoPublicarVaga {
         val instanteAtual = relogio()
@@ -239,8 +302,9 @@ class PublicarVagaViewModel(
      * vagas. Com uma publicação [EstadoPublicarVaga.pendente], reenvia o mesmo corpo sem validar de novo.
      */
     fun publicar(): Job {
+        reconciliarComAFila()
         val atual = _estado.value
-        if (atual.enviando || atual.concluida) return escopoDeTrabalho.launch { }
+        if (atual.enviando || atual.concluida || atual.naFila) return escopoDeTrabalho.launch { }
 
         val corpo = atual.pendente ?: run {
             val hora = relogio()
@@ -252,16 +316,26 @@ class PublicarVagaViewModel(
             }
             montarCorpo(validado)
         }
+        val toque = relogio()
+        val conta = contaAtual()
+        val geracao = filaDeAcoes?.geracao()
+        filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
+            it.tipo == TipoAcaoPendente.PUBLICACAO_VAGA && it.contaId == conta && it.estabelecimentoId == estabelecimento.id
+        }.forEach { fila.reconhecerRecusa(it.id) } } }
         _estado.update { it.copy(enviando = true, errosDeCampo = emptyMap(), erro = null, pendente = corpo) }
         return escopoDeTrabalho.launch {
             try {
                 val publicada = enviarVaga(corpo)
+                if (filaDeAcoes != null && (contaAtual() != conta || filaDeAcoes.geracao() != geracao)) { reconciliarComAFila(); return@launch }
                 _estado.update { it.copy(enviando = false, publicada = publicada, pendente = null) }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
+                if (filaDeAcoes != null && (contaAtual() != conta || filaDeAcoes.geracao() != geracao)) { reconciliarComAFila(); return@launch }
+                if (erro.codigo == CodigoErroAPI.SEM_REDE && guardarNaFila(corpo, toque, conta)) return@launch
                 _estado.update { aplicarRecusa(it.copy(enviando = false), erro) }
             } catch (_: Exception) {
+                if (filaDeAcoes != null && (contaAtual() != conta || filaDeAcoes.geracao() != geracao)) { reconciliarComAFila(); return@launch }
                 // Corpo não-JSON de gateway ou campo ausente escapam do ErroDaApi; sem isto o botão
                 // ficaria em "Publicando…" para sempre. O resultado é incerto: o corpo (e a chave) ficam
                 // pendentes para um reenvio idempotente. A mensagem nunca carrega o corpo cru.
