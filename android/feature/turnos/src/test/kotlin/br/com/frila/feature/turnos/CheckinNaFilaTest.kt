@@ -168,6 +168,7 @@ class CheckinNaFilaTest {
 
         assertEquals(listOf("/rest/v1/rpc/fazer_checkin", "/rest/v1/rpc/fazer_checkout"), pedidos.filter { !it.endsWith("meus_turnos") })
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.checkout == StatusCheckout.FEITO }
         assertEquals(StatusCheckout.FEITO, vm.estado.value.checkout)
         // Sem ler o que o servidor gravou (aqui indisponível), o check-in aparece como à espera da casa: o mais prudente.
         aguardar { vm.estado.value.status == StatusCheckin.MANUAL_PENDENTE }
@@ -182,6 +183,9 @@ class CheckinNaFilaTest {
         sincronizador { throw ErroDaApi(CodigoErroAPI.FORA_DA_JANELA, "fora_da_janela", null, "sintético") }.sincronizar()
 
         assertTrue(fila.pendentes().isEmpty())
+        // O coletor da fila pode ainda estar terminando numa thread do Dispatchers.Default (o toque foi enfileirado lá, depois
+        // do HTTP simulado): ler o estado aqui, na hora, às vezes vê o NA_FILA de antes. Espera o aviso e confere tudo igual.
+        aguardar { vm.estado.value.avisoCheckin == TextosDaFilaDePresenca.CHECKIN_RECUSADO }
         assertEquals(StatusCheckin.OCIOSO, vm.estado.value.status)
         assertEquals(TextosDaFilaDePresenca.CHECKIN_RECUSADO, vm.estado.value.avisoCheckin)
         assertEquals(TextosDaFilaDePresenca.CHECKIN_RECUSADO, viewModel().estado.value.avisoCheckin)
@@ -211,6 +215,7 @@ class CheckinNaFilaTest {
 
         assertEquals(listOf("/rest/v1/rpc/fazer_checkin", "/rest/v1/rpc/fazer_checkout"), pedidos.filter { !it.endsWith("meus_turnos") })
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.checkout == StatusCheckout.FEITO }
         assertEquals(StatusCheckout.FEITO, vm.estado.value.checkout)
     }
 
@@ -251,6 +256,7 @@ class CheckinNaFilaTest {
         sinc.sincronizar()
         assertEquals(listOf("/rest/v1/rpc/fazer_checkin", "/rest/v1/rpc/fazer_checkout"), pedidos.filter { !it.endsWith("meus_turnos") })
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.checkout == StatusCheckout.FEITO }
         assertEquals(StatusCheckout.FEITO, vm.estado.value.checkout)
     }
 
