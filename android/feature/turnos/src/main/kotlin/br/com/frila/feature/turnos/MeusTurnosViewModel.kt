@@ -6,6 +6,12 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.dominio.modelo.RegraCancelamentoTurno
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
+import br.com.frila.core.rede.EventoDeTelemetria
+import java.io.IOException
+import java.time.Instant
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
 import java.time.Clock
@@ -17,6 +23,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+internal const val CANCELAMENTO_NA_FILA = "O cancelamento será enviado quando a conexão voltar."
+internal const val CANCELAMENTO_RECUSADO = "O cancelamento não foi aceito. Atualize a tela e tente de novo."
 
 private val ESTADOS_AGENDADOS = setOf("confirmada")
 private val ESTADOS_HISTORICO = setOf("cumprida", "cancelada")
@@ -33,12 +42,59 @@ class MeusTurnosViewModel(
     private val servicoTurnos: ServicoTurnos,
     private val relogio: Clock = Clock.systemUTC(),
     escopo: CoroutineScope? = null,
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    private val contaAtual: () -> String? = { null },
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     private val _estado = MutableStateFlow(EstadoMeusTurnos())
     val estado: StateFlow<EstadoMeusTurnos> = _estado.asStateFlow()
+
+    private var contaObservada = contaAtual()
+    init { filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } } }
+
+    private fun reconciliarComAFila() {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual()
+        if (conta != contaObservada) {
+            contaObservada = conta
+            _estado.update { it.copy(cancelamento = null, mensagemFeedback = null) }
+        }
+        if (conta == null) return
+        synchronized(fila) {
+            _estado.update { e ->
+                val c = e.cancelamento ?: return@update e
+                val pendente = fila.pendentes().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO && it.alvoId == c.turno.posicaoId && it.contaId == conta }
+                val recusada = fila.recusadas().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO && it.turnoId == c.turno.turnoId && it.contaId == conta }
+                when {
+                    pendente -> e.copy(cancelamento = c.copy(naFila = true, enviando = false, mensagemErro = CANCELAMENTO_NA_FILA))
+                    recusada && c.naFila -> e.copy(cancelamento = EstadoCancelamentoTurno(c.turno, c.contaComoFalta, mensagemErro = CANCELAMENTO_RECUSADO))
+                    recusada -> e.copy(cancelamento = c.copy(mensagemErro = CANCELAMENTO_RECUSADO))
+                    c.naFila -> e.copy(cancelamento = null, mensagemFeedback = "Cancelamento enviado.")
+                    else -> e
+                }
+            }
+        }
+    }
+
+    private fun guardarNaFila(c: EstadoCancelamentoTurno, motivo: String, toque: Instant, conta: String?): Boolean {
+        val fila = filaDeAcoes ?: return false
+        if (conta == null || contaAtual() != conta) return false
+        return try {
+            synchronized(fila) {
+                val existe = fila.pendentes().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO && it.alvoId == c.turno.posicaoId && it.contaId == conta }
+                if (!existe) {
+                    fila.enfileirar(AcaoPendente(TipoAcaoPendente.CANCELAMENTO_POSICAO, conta, toque.toString(),
+                        turnoId = c.turno.turnoId, alvoId = c.turno.posicaoId, motivo = motivo))
+                    registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, c.turno.turnoId)
+                }
+                _estado.update { it.copy(cancelamento = it.cancelamento?.copy(naFila = true, enviando = false, mensagemErro = CANCELAMENTO_NA_FILA)) }
+            }
+            true
+        } catch (_: IOException) { false }
+    }
 
     fun carregar(): Job {
         _estado.update { it.copy(status = StatusMeusTurnos.CARREGANDO, mensagemErro = null) }
@@ -138,11 +194,12 @@ class MeusTurnosViewModel(
                 ),
             )
         }
+        reconciliarComAFila()
     }
 
     fun selecionarMotivo(motivo: MotivoCancelamento) {
         _estado.update { atual ->
-            val cancelamento = atual.cancelamento ?: return@update atual
+            val cancelamento = atual.cancelamento?.takeUnless { it.naFila } ?: return@update atual
             atual.copy(
                 cancelamento = cancelamento.copy(
                     motivoSelecionado = motivo,
@@ -155,7 +212,7 @@ class MeusTurnosViewModel(
 
     fun atualizarDetalhes(texto: String) {
         _estado.update { atual ->
-            val cancelamento = atual.cancelamento ?: return@update atual
+            val cancelamento = atual.cancelamento?.takeUnless { it.naFila } ?: return@update atual
             atual.copy(cancelamento = cancelamento.copy(detalhes = texto, mensagemErro = null))
         }
     }
@@ -167,9 +224,15 @@ class MeusTurnosViewModel(
     }
 
     fun confirmarCancelamento(): Job? {
+        reconciliarComAFila()
         val cancelamento = _estado.value.cancelamento ?: return null
         if (!cancelamento.podeConfirmar) return null
         val motivo = cancelamento.motivoCompleto ?: "Cancelamento pelo profissional"
+        val toque = relogio.instant()
+        val conta = contaAtual()
+        filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
+            it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO && it.turnoId == cancelamento.turno.turnoId && it.contaId == conta
+        }.forEach { fila.reconhecerRecusa(it.id) } } }
         _estado.update { it.copy(cancelamento = cancelamento.copy(enviando = true, mensagemErro = null)) }
 
         return escopoDeTrabalho.launch {
@@ -189,6 +252,7 @@ class MeusTurnosViewModel(
                     )
                 }
             } catch (erro: ErroDaApi) {
+                if (erro.codigo == CodigoErroAPI.SEM_REDE && guardarNaFila(cancelamento, motivo, toque, conta)) return@launch
                 _estado.update { atual ->
                     atual.copy(
                         cancelamento = atual.cancelamento?.copy(

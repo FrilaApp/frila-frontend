@@ -49,6 +49,7 @@ data class EstadoCancelamentoTurno(
     val detalhes: String = "",
     val enviando: Boolean = false,
     val mensagemErro: String? = null,
+    val naFila: Boolean = false,
 ) {
     val motivoCompleto: String?
         get() {
@@ -58,7 +59,7 @@ data class EstadoCancelamentoTurno(
         }
 
     val podeConfirmar: Boolean
-        get() = !enviando
+        get() = !enviando && !naFila && (motivoSelecionado?.exigeDetalhes != true || motivoCompleto != null)
 }
 
 /** RF16: tamanho de cada fatia da paginação progressiva do histórico. */
