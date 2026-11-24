@@ -3,6 +3,7 @@ package br.com.frila.app
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.rede.*
 import br.com.frila.feature.turnos.*
+import br.com.frila.feature.turnos.contratante.*
 import br.com.frila.feature.vagas.painel.*
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -66,6 +67,39 @@ class CancelamentosNaFilaTest {
             Unit
         })).sincronizar()
         override fun close() { escopo.cancel(); cliente.close() }
+    }
+
+    @Test fun `casa cancela posicao com fila persistente deduplicacao telemetria recusa e reenvio`() = runBlocking {
+        for (recusar in listOf(false, true)) Caso(false).use { c ->
+            var leituras = 0
+            fun tela() = AcompanhamentoContratanteViewModel(
+                ContextoDoTurnoContratante("turno", "Função", "Casa", toque, toque.plusSeconds(3600),
+                    null, null, null, null, null, false, "posicao", "confirmada"),
+                { error("não confirma") }, c.escopo, cancelar = c.turnos::cancelarPosicao, relogio = { toque },
+                filaDeAcoes = c.fila, contaAtual = { c.conta },
+                registrarEvento = { e, v, t -> c.eventos += Triple(e, v, t) }, reler = { leituras++; null })
+            val vm = tela(); vm.pedirCancelamento(); vm.confirmarCancelamento("  Imprevisto sintético  ")!!.join()
+            val acao = c.fila.pendentes().single()
+            assertEquals("posicao", acao.alvoId); assertEquals("Imprevisto sintético", acao.motivo)
+            assertEquals(toque.toString(), acao.instanteDoToque); assertEquals(c.conta, acao.contaId)
+            assertEquals(listOf(acao), FilaDeAcoes(File(raiz, "${c.tipo}.json")).pendentes())
+            val antes = c.pedidos
+            vm.pedirCancelamento(); assertNull(vm.confirmarCancelamento("Outro motivo"))
+            val reaberta = tela(); assertTrue(reaberta.estado.value.cancelamentoNaFila)
+            reaberta.pedirCancelamento(); assertNull(reaberta.confirmarCancelamento("Imprevisto"))
+            assertEquals(antes, c.pedidos)
+            assertEquals(listOf(Triple(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, "turno")), c.eventos)
+            c.offline = false; c.recusar = recusar; c.sincronizar(); c.sincronizar()
+            assertEquals(antes + 1, c.pedidos); assertTrue(c.fila.pendentes().isEmpty())
+            assertFalse(vm.estado.value.cancelamentoNaFila)
+            if (recusar) {
+                assertTrue(vm.estado.value.cancelamentoRecusado); assertTrue(tela().estado.value.cancelamentoRecusado)
+                assertTrue(vm.estado.value.avisoDoCancelamento!!.contains("não foi aceito")); assertEquals(0, leituras)
+            } else {
+                assertEquals("cancelada", vm.estado.value.contexto.estadoDaPosicao); assertEquals(2, leituras)
+            }
+            assertFalse(vm.estado.value.podeCancelar)
+        }
     }
 
     @Test fun `sem rede persiste motivo e toque sem duplicar por toque ou reabertura`() = runBlocking {

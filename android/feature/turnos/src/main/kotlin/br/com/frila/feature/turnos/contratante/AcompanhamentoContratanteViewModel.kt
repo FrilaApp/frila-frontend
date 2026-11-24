@@ -5,11 +5,16 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.ResultadoCancelamento
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.rede.AcaoPendente
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.TipoAcaoPendente
+import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.PosicaoNoPainelDto
 import br.com.frila.core.rede.ResultadoRegistroDto
 import br.com.frila.core.rede.VagaResumoDto
+import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
 /** Em que pé está a chegada do profissional ao turno, pelo que o painel diz dela. */
@@ -45,10 +51,11 @@ data class ContextoDoTurnoContratante(
     val posicaoId: String? = null,
     /** L2-2: `confirmada`, `cancelada`… (`posicao.estado`); só a confirmada pode ser reaberta. */
     val estadoDaPosicao: String? = null,
+    val estabelecimentoId: String? = null,
 ) {
     companion object {
         /** `null` se a posição ainda não tem turno (aberta, ou cancelada sem profissional). */
-        fun dePainel(vaga: VagaResumoDto, posicao: PosicaoNoPainelDto): ContextoDoTurnoContratante? {
+        fun dePainel(vaga: VagaResumoDto, posicao: PosicaoNoPainelDto, estabelecimentoId: String? = null): ContextoDoTurnoContratante? {
             val turnoId = posicao.turnoId ?: return null
             return ContextoDoTurnoContratante(
                 turnoId = turnoId,
@@ -64,6 +71,7 @@ data class ContextoDoTurnoContratante(
                 emAtraso = posicao.emAtraso,
                 posicaoId = posicao.id,
                 estadoDaPosicao = posicao.estado,
+                estabelecimentoId = estabelecimentoId,
             )
         }
     }
@@ -122,9 +130,23 @@ data class EstadoTurnoDoContratante(
     val avisoDaReabertura: AvisoDaReabertura? = null,
     /** O servidor recusou a reabertura, ou o resultado ficou incerto: o botão só volta quando o painel for relido. */
     val reaberturaRecusada: Boolean = false,
+    val cancelamentoDisponivel: Boolean = false,
+    val pedindoCancelamento: Boolean = false,
+    val cancelando: Boolean = false,
+    val cancelamentoNaFila: Boolean = false,
+    val cancelamentoRecusado: Boolean = false,
+    val cancelamento: ResultadoCancelamento? = null,
+    val avisoDoCancelamento: String? = null,
+    val agora: () -> Instant = Instant::now,
 ) {
+    val podeCancelar: Boolean
+        get() = cancelamentoDisponivel && contexto.posicaoId != null && contexto.estadoDaPosicao == "confirmada" &&
+            contexto.fim?.isAfter(agora()) == true && !cancelando && !reabrindo && !enviando &&
+            !cancelamentoNaFila && !cancelamentoRecusado && cancelamento == null
+
     val presenca: PresencaDoTurno get() = presencaDe(contexto)
-    val podeConfirmar: Boolean get() = presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && !enviando
+    val podeConfirmar: Boolean get() = presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && !enviando &&
+        !cancelando && !cancelamentoNaFila && contexto.estadoDaPosicao != "cancelada"
 
     /**
      * Só o atraso do painel (15 minutos do início, sem check-in) na posição confirmada libera a reabertura, uma vez, com
@@ -132,7 +154,7 @@ data class EstadoTurnoDoContratante(
      */
     val podeReabrir: Boolean
         get() = reaberturaDisponivel && contexto.posicaoId != null && contexto.estadoDaPosicao == "confirmada" &&
-            presenca == PresencaDoTurno.EM_ATRASO && !reabrindo && !reaberturaRecusada && reabertura == null
+            presenca == PresencaDoTurno.EM_ATRASO && !reabrindo && !reaberturaRecusada && reabertura == null && !cancelando && !cancelamentoNaFila && cancelamento == null
 }
 
 /**
@@ -155,22 +177,155 @@ class AcompanhamentoContratanteViewModel(
      * é idempotente e o contrato não tem chave de idempotência: a proteção é a pergunta, um envio por vez e nunca repetir.
      */
     private val reabrir: (suspend (posicaoId: String) -> ResultadoCancelamento)? = null,
+    private val cancelar: (suspend (String, String) -> ResultadoCancelamento)? = null,
+    private val relogio: () -> Instant = Instant::now,
+    private val filaDeAcoes: FilaDeAcoes? = null,
+    private val contaAtual: () -> String? = { null },
+    private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+    private val reler: suspend (ContextoDoTurnoContratante) -> ContextoDoTurnoContratante? = { null },
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
-    private val _estado = MutableStateFlow(EstadoTurnoDoContratante(contexto, reaberturaDisponivel = reabrir != null))
+    private val _estado = MutableStateFlow(EstadoTurnoDoContratante(contexto, reaberturaDisponivel = reabrir != null, cancelamentoDisponivel = cancelar != null, agora = relogio))
     val estado: StateFlow<EstadoTurnoDoContratante> = _estado.asStateFlow()
+
+    private var contaObservada = contaAtual()
+    private val recusasMostradas = mutableSetOf<String>()
+    init {
+        reconciliarComAFila()
+        filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } }
+    }
+
+    private fun reconciliarComAFila() {
+        val fila = filaDeAcoes ?: return
+        val conta = contaAtual()
+        if (conta != contaObservada) {
+            contaObservada = conta
+            recusasMostradas.clear()
+            _estado.update { it.copy(cancelamentoNaFila = false, cancelando = false, pedindoCancelamento = false,
+                cancelamentoRecusado = true, avisoDoCancelamento = null) }
+        }
+        if (conta == null) return
+        var enviado = false
+        synchronized(fila) {
+            val pendente = fila.pendentes().any { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
+                it.alvoId == _estado.value.contexto.posicaoId && it.contaId == conta }
+            val recusas = fila.recusadas().filter { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
+                it.turnoId == _estado.value.contexto.turnoId && it.contaId == conta }
+            val recusada = recusas.isNotEmpty()
+            if (!pendente) recusasMostradas.addAll(recusas.map { it.id })
+            _estado.update {
+                enviado = it.cancelamentoNaFila && !pendente && !recusada
+                when {
+                    pendente -> it.copy(cancelamentoNaFila = true, avisoDoCancelamento = "O cancelamento será enviado quando a conexão voltar.")
+                    recusada -> it.copy(cancelamentoNaFila = false, cancelamentoRecusado = true,
+                        avisoDoCancelamento = "O cancelamento não foi aceito. Atualize a tela e tente de novo.")
+                    enviado -> it.copy(cancelamentoNaFila = false, contexto = it.contexto.copy(estadoDaPosicao = "cancelada"),
+                        avisoDoCancelamento = "Cancelamento enviado.")
+                    else -> it
+                }
+            }
+        }
+        if (enviado) escopoDeTrabalho.launch { relerAposCancelamento(conta) }
+    }
+
+    fun pedirCancelamento() {
+        reconciliarComAFila()
+        _estado.update { if (it.podeCancelar) it.copy(pedindoCancelamento = true, pedindoReabertura = false) else it }
+    }
+
+    fun desistir() { _estado.update { it.copy(pedindoCancelamento = false, avisoDoCancelamento = null) } }
+
+    fun confirmarCancelamento(motivo: String): Job? {
+        reconciliarComAFila()
+        val atual = _estado.value
+        val chamada = cancelar ?: return null
+        if (!atual.pedindoCancelamento || !atual.podeCancelar) return null
+        val texto = motivo.trim()
+        if (texto.length < 3) {
+            _estado.update { it.copy(avisoDoCancelamento = "Informe um motivo com pelo menos 3 caracteres.") }
+            return null
+        }
+        val conta = contaAtual()
+        val geracao = filaDeAcoes?.geracao()
+        val toque = relogio()
+        _estado.update { it.copy(pedindoCancelamento = false, cancelando = true, avisoDoCancelamento = null) }
+        return escopoDeTrabalho.launch {
+            try {
+                val resultado = chamada(atual.contexto.posicaoId!!, texto)
+                if (cancelamentoDeSessaoAntiga(conta, geracao)) return@launch
+                _estado.update { it.copy(cancelando = false, cancelamento = resultado,
+                    contexto = it.contexto.copy(estadoDaPosicao = "cancelada", emAtraso = false),
+                    avisoDoCancelamento = if (resultado.reaberta) "Posição cancelada. A vaga voltou a procurar profissional."
+                        else "Posição cancelada. O turno ficou descoberto.") }
+                relerAposCancelamento(conta)
+            } catch (erro: CancellationException) { throw erro
+            } catch (erro: Exception) {
+                if (cancelamentoDeSessaoAntiga(conta, geracao)) return@launch
+                val fila = filaDeAcoes
+                if ((erro as? ErroDaApi)?.codigo == CodigoErroAPI.SEM_REDE && fila != null && conta != null) {
+                    try {
+                        synchronized(fila) {
+                            if (cancelamentoDeSessaoAntiga(conta, geracao)) return@launch
+                            if (fila.pendentes().none { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
+                                it.alvoId == atual.contexto.posicaoId && it.contaId == conta }) {
+                                fila.enfileirar(AcaoPendente(TipoAcaoPendente.CANCELAMENTO_POSICAO, conta, toque.toString(),
+                                    turnoId = atual.contexto.turnoId, alvoId = atual.contexto.posicaoId, motivo = texto))
+                                registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, atual.contexto.turnoId)
+                            }
+                            _estado.update { it.copy(cancelando = false, cancelamentoNaFila = true,
+                                avisoDoCancelamento = "O cancelamento será enviado quando a conexão voltar.") }
+                        }
+                        return@launch
+                    } catch (_: IOException) { /* Sem gravação durável, não anunciar que entrou na fila. */ }
+                }
+                _estado.update { it.copy(cancelando = false, cancelamentoRecusado = true,
+                    avisoDoCancelamento = if ((erro as? ErroDaApi)?.codigo?.recusaDefinitivaDeCancelamento == true)
+                        "Não foi possível cancelar a posição. Atualize a tela e tente de novo."
+                    else "Não deu para confirmar o cancelamento. Atualize a tela para ver se a posição foi cancelada.") }
+            }
+        }
+    }
+
+    private fun cancelamentoDeSessaoAntiga(conta: String?, geracao: Long?): Boolean {
+        if (contaAtual() == conta && filaDeAcoes?.geracao() == geracao) return false
+        _estado.update { it.copy(cancelando = false) }
+        return true
+    }
+
+    private suspend fun relerAposCancelamento(conta: String?) {
+        try {
+            val contexto = reler(_estado.value.contexto) ?: return
+            if (contaAtual() == conta) atualizarContexto(contexto)
+        } catch (erro: CancellationException) { throw erro
+        } catch (_: Exception) { /* O resultado já foi aplicado; uma falha de releitura não o desfaz. */ }
+    }
 
     /** Incorpora o painel relido sem recriar o acompanhamento nem interromper a confirmação em voo. */
     fun atualizarContexto(contexto: ContextoDoTurnoContratante) {
-        _estado.update { atual ->
+        val atualizado = _estado.updateAndGet { atual ->
             // Uma releitura iniciada antes da confirmação pode chegar depois dela.
             if (atual.contexto.turnoId == contexto.turnoId &&
+                (atual.contexto.estadoDaPosicao == "cancelada" && contexto.estadoDaPosicao == "confirmada" ||
                 atual.presenca == PresencaDoTurno.VERIFICADA &&
-                presencaDe(contexto) != PresencaDoTurno.VERIFICADA
+                presencaDe(contexto) != PresencaDoTurno.VERIFICADA)
             ) atual else atual.copy(contexto = contexto, reaberturaRecusada = false)
         }
+        if (atualizado.contexto != contexto) return
+        filaDeAcoes?.let { fila ->
+            synchronized(fila) {
+                runCatching {
+                    fila.recusadas().filter { it.id in recusasMostradas &&
+                        it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO && it.turnoId == contexto.turnoId &&
+                        it.contaId == contaAtual() }.forEach {
+                        fila.reconhecerRecusa(it.id)
+                        recusasMostradas.remove(it.id)
+                    }
+                }.onFailure { if (it !is IOException) throw it }
+            }
+        }
+        _estado.update { if (it.contexto == contexto) it.copy(cancelamentoRecusado = false) else it }
     }
 
     fun confirmarPresenca(): Job {

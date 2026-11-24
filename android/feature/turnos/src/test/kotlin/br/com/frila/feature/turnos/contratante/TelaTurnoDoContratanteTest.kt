@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.mutableStateOf
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.PerfilPublicoDto
@@ -27,6 +28,36 @@ class TelaTurnoDoContratanteTest {
 
     @get:Rule
     val rule = createComposeRule()
+
+    @Test fun `cancelar posicao tem alvo minimo chama pedido e mostra aviso sem abrir dialogo`() {
+        var pedidos = 0
+        val aviso = "O cancelamento será enviado quando a conexão voltar."
+        val inicial = estado().let { it.copy(
+            contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            cancelamentoDisponivel = true, agora = { Instant.EPOCH }, avisoDoCancelamento = aviso,
+        ) }
+        rule.setContent { FrilaTheme {
+            ConteudoTurnoDoContratante(inicial, AcoesTurnoDoContratante(aoPedirCancelamento = { pedidos++ }))
+        } }
+        rule.onNodeWithText("Cancelar posição").assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.runOnIdle { assertEquals(1, pedidos) }
+        assertEquals(0, contar("Motivo"))
+        rule.onNodeWithText(aviso).assertIsDisplayed()
+    }
+
+    @Test fun `posicao nao confirmada ou na fila esconde cancelamento`() {
+        val inicial = estado().let { it.copy(
+            contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "aberta"),
+            cancelamentoDisponivel = true, agora = { Instant.EPOCH },
+        ) }
+        val tela = mutableStateOf(inicial)
+        rule.setContent { FrilaTheme { ConteudoTurnoDoContratante(tela.value, AcoesTurnoDoContratante()) } }
+        assertEquals(0, contar("Cancelar posição"))
+        rule.runOnIdle { tela.value = inicial.copy(
+            contexto = inicial.contexto.copy(estadoDaPosicao = "confirmada"), cancelamentoNaFila = true,
+        ) }
+        assertEquals(0, contar("Cancelar posição"))
+    }
 
     private val ana = PerfilPublicoDto("p1", "profissional", "Ana", listOf("garçom", "barman"), ReputacaoDto(1, 1, null, 1, 1))
 
