@@ -2,6 +2,7 @@ package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import java.io.File
+import java.io.IOException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -86,5 +87,34 @@ class FilaDeAcoesTest {
         assertEquals(geracao + 2, fila.geracao())
         fila.limpar()
         assertEquals(comAcao + 1, fila.versao.value)
+    }
+
+    @Test fun `enfileirar com disco que falha deixa memoria e versao como estavam e a excecao sobe`() {
+        val fila = FilaDeAcoes(arquivo)
+        val primeira = acao()
+        fila.enfileirar(primeira)
+        val versao = fila.versao.value
+        val pasta = arquivo.parentFile
+        pasta.deleteRecursively(); pasta.writeText("agora é um arquivo: o disco não grava")
+        assertThrows(IOException::class.java) { fila.enfileirar(acao(TipoAcaoPendente.CHECKOUT)) }
+        assertEquals(listOf(primeira), fila.pendentes())
+        assertEquals(versao, fila.versao.value)
+        pasta.delete()
+        val volta = acao(TipoAcaoPendente.CHECKOUT)
+        fila.enfileirar(volta)
+        assertEquals(listOf(primeira, volta), fila.pendentes())
+        assertEquals(versao + 1, fila.versao.value)
+        assertEquals(listOf(primeira, volta), FilaDeAcoes(arquivo).pendentes())
+    }
+
+    @Test fun `recusar com disco que falha continua valendo na memoria para nao reenviar em laco`() {
+        val fila = FilaDeAcoes(arquivo)
+        val a = acao()
+        fila.enfileirar(a)
+        val pasta = arquivo.parentFile
+        pasta.deleteRecursively(); pasta.writeText("sem disco")
+        assertThrows(IOException::class.java) { fila.recusar(a, CodigoErroAPI.FORA_DA_JANELA) }
+        assertTrue(fila.pendentes().isEmpty())
+        assertEquals(a.id, fila.recusadas().single().id)
     }
 }

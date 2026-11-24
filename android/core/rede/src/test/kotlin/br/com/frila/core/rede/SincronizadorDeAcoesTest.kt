@@ -151,4 +151,18 @@ class SincronizadorDeAcoesTest {
         sincronizador().sincronizar()
         assertEquals(listOf(a), enviadas)
     }
+
+    @Test fun `disco que falha ao encerrar os avisos nao impede a acao aceita de sair da fila nem a faz ser reenviada`() = runTest {
+        val arquivo = File(diretorio, "acoes/fila.json")
+        val comDisco = FilaDeAcoes(arquivo)
+        val a = acao()
+        comDisco.enfileirar(a)
+        // A pasta da fila vira um arquivo: o envio é aceito e a gravação seguinte lança IOException.
+        val pasta = File(diretorio, "acoes")
+        pasta.deleteRecursively(); assertTrue(pasta.createNewFile())
+        val sinc = SincronizadorDeAcoes(comDisco, { "conta-a" }, TipoAcaoPendente.entries.associateWith { envio })
+        sinc.sincronizar(); sinc.sincronizar()
+        assertEquals(listOf(a), enviadas)
+        assertTrue(comDisco.pendentes().isEmpty())
+    }
 }

@@ -431,7 +431,8 @@ val moduloFeatures = module {
             estabelecimento = estabelecimento,
             buscarFuncoes = vagas::listarFuncoes,
             enviarVaga = vagas::publicarVaga,
-            filaDeAcoes = get(), contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            filaDeAcoes = get(),
+            contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,
         )
     }
@@ -673,7 +674,8 @@ val moduloFeatures = module {
         val armazenamento = get<ArmazenamentoDeSessao>()
         RepublicarVagaViewModel(vagaId = vagaId, selecao = selecao, duracaoOriginal = duracaoOriginal,
             republicar = get<ServicoVagas>()::republicarVaga,
-            filaDeAcoes = get(), contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
+            filaDeAcoes = get(),
+            contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar)
     }
     viewModel { (vagaId: String, posicoesRestantes: Int, aoRepublicar: (String) -> Unit, aoMudarOPainel: () -> Unit) ->

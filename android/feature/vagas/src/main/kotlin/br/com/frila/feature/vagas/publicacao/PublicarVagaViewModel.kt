@@ -1,18 +1,18 @@
 package br.com.frila.feature.vagas.publicacao
 
-import br.com.frila.core.rede.AcaoPendente
-import br.com.frila.core.rede.FilaDeAcoes
-import br.com.frila.core.rede.TipoAcaoPendente
-import br.com.frila.core.rede.EventoDeTelemetria
-import java.io.IOException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.CoordenadaDto
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.EventoDeTelemetria
+import br.com.frila.core.rede.FilaDeAcoes
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.NovaVagaDto
+import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.VagaPublicadaDto
+import java.io.IOException
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -146,7 +146,6 @@ class PublicarVagaViewModel(
     private val filaDeAcoes: FilaDeAcoes? = null,
     private val contaAtual: () -> String? = { null },
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
-
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -321,7 +320,7 @@ class PublicarVagaViewModel(
         val geracao = filaDeAcoes?.geracao()
         filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
             it.tipo == TipoAcaoPendente.PUBLICACAO_VAGA && it.contaId == conta && it.estabelecimentoId == estabelecimento.id
-        }.forEach { fila.reconhecerRecusa(it.id) } } }
+        }.forEach { fila.reconhecerRecusa(it.id) } }.onFailure { if (it !is IOException) throw it } }
         _estado.update { it.copy(enviando = true, errosDeCampo = emptyMap(), erro = null, pendente = corpo) }
         return escopoDeTrabalho.launch {
             try {

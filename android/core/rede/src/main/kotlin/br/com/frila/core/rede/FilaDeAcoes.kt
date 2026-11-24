@@ -42,9 +42,18 @@ class FilaDeAcoes(private val arquivo: File?) {
     @Synchronized fun recusadas(incluirReconhecidas: Boolean = false): List<AcaoRecusada> =
         ler().recusadas.filter { incluirReconhecidas || !it.avisoReconhecido }
 
+    /**
+     * Grava no disco ANTES de mudar a memória e a [versao]: se a gravação lançar [IOException], a fila fica como estava e
+     * a exceção sobe, então quem captura pode dizer que a ação não entrou na fila. As remoções e atualizações abaixo
+     * fazem o contrário de propósito (valem na memória mesmo se o disco falhar), para a ação não ser reenviada em laço.
+     */
     @Synchronized fun enfileirar(acao: AcaoPendente) {
         val atual = ler()
-        if (atual.pendentes.none { it.id == acao.id }) gravar(atual.copy(pendentes = atual.pendentes + acao))
+        if (atual.pendentes.none { it.id == acao.id }) {
+            val novo = atual.copy(pendentes = atual.pendentes + acao)
+            gravarNoDisco(novo)
+            aplicar(novo)
+        }
     }
 
     @Synchronized fun remover(id: String) {
@@ -93,9 +102,17 @@ class FilaDeAcoes(private val arquivo: File?) {
         arquivo?.takeIf { it.exists() }?.readText()?.let { json.decodeFromString<ConteudoDaFila>(it) } ?: ConteudoDaFila()
     } catch (_: IOException) { ConteudoDaFila() } catch (_: SerializationException) { ConteudoDaFila() }
 
-    private fun gravar(novo: ConteudoDaFila) {
+    private fun aplicar(novo: ConteudoDaFila) {
         conteudo = novo
         _versao.value++
+    }
+
+    private fun gravar(novo: ConteudoDaFila) {
+        aplicar(novo)
+        gravarNoDisco(novo)
+    }
+
+    private fun gravarNoDisco(novo: ConteudoDaFila) {
         val destino = arquivo?.absoluteFile ?: return
         destino.parentFile.mkdirs()
         val temporario = File.createTempFile("acoes-", ".tmp", destino.parentFile)

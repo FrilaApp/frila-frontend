@@ -28,6 +28,8 @@ class PublicacoesNaFilaTest {
         val fila get() = cache.filaDeAcoes
         val tipo = if (republicar) TipoAcaoPendente.REPUBLICACAO_VAGA else TipoAcaoPendente.PUBLICACAO_VAGA
         var codigo: CodigoErroAPI? = CodigoErroAPI.SEM_REDE
+        /** Quando preenchida, o envio lança esta exceção em vez do erro do contrato (corpo ilegível de gateway etc.). */
+        var excecao: Exception? = null
         var pedidos = 0
         var leituras = 0
         /** Chaves sequenciais: uma chave regerada ou reaproveitada fora de hora aparece como número errado. */
@@ -52,6 +54,7 @@ class PublicacoesNaFilaTest {
         suspend fun enviar(corpo: Any): VagaPublicadaDto {
             pedidos++; corpos += corpo
             liberar?.await()
+            excecao?.let { throw it }
             codigo?.let { throw erro(it) }
             return VagaPublicadaDto("vaga-nova", listOf("posicao-sintetica"))
         }
@@ -192,6 +195,13 @@ class PublicacoesNaFilaTest {
         assertTrue(c.fila.pendentes().isEmpty())
         c.codigo = CodigoErroAPI.SEM_REDE; c.armazenamento.limparSessao(); c.abrir(); c.executar()?.join()
         assertTrue(c.fila.pendentes().isEmpty()); assertTrue(c.eventos.isEmpty())
+    } }
+    @Test fun `erro de transporte que nao e sem rede e excecao generica nao enfileiram`() = runBlocking { casos { c ->
+        for (falha in listOf<Exception>(erro(CodigoErroAPI.RESPOSTA_INVALIDA), erro(CodigoErroAPI.DESCONHECIDO), IllegalStateException("corpo ilegível"))) {
+            c.excecao = falha; c.abrir(); c.executar()?.join()
+            assertTrue(c.fila.pendentes().isEmpty()); assertFalse(c.estaNaFila()); assertFalse(c.concluida())
+        }
+        assertEquals(3, c.pedidos); assertTrue(c.eventos.isEmpty())
     } }
     @Test fun `logout durante pedido invalida tentativa mesmo entrando de novo na mesma conta`() = runBlocking { casos { c ->
         c.liberar = CompletableDeferred()
