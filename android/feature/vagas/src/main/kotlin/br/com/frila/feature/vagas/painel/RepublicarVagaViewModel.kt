@@ -1,17 +1,17 @@
 package br.com.frila.feature.vagas.painel
 
-import br.com.frila.core.rede.AcaoPendente
-import br.com.frila.core.rede.FilaDeAcoes
-import br.com.frila.core.rede.TipoAcaoPendente
-import br.com.frila.core.rede.EventoDeTelemetria
-import java.io.IOException
-import br.com.frila.core.rede.RepublicarVagaDto
-import br.com.frila.core.dominio.regra.instanteDoServidor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.EventoDeTelemetria
+import br.com.frila.core.rede.FilaDeAcoes
+import br.com.frila.core.rede.RepublicarVagaDto
+import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.VagaPublicadaDto
+import java.io.IOException
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -63,7 +63,6 @@ class RepublicarVagaViewModel(
     private val filaDeAcoes: FilaDeAcoes? = null,
     private val contaAtual: () -> String? = { null },
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
-
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -176,7 +175,7 @@ class RepublicarVagaViewModel(
         val geracao = filaDeAcoes?.geracao()
         filaDeAcoes?.let { fila -> runCatching { fila.recusadas().filter {
             it.tipo == TipoAcaoPendente.REPUBLICACAO_VAGA && it.contaId == conta && it.vagaId == vagaId
-        }.forEach { fila.reconhecerRecusa(it.id) } } }
+        }.forEach { fila.reconhecerRecusa(it.id) } }.onFailure { if (it !is IOException) throw it } }
         _estado.update { it.copy(enviando = true, mensagemErro = null) }
         return escopoDeTrabalho.launch {
             try {
