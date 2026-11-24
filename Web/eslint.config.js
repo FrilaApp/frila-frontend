@@ -32,6 +32,13 @@ export default tseslint.config(
     },
   },
   {
+    // Política de Privacidade: o log do Worker não leva dado pessoal; com SSR o app inteiro roda no Worker, então só console.error (achado da Bússola, 24/11).
+    files: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
+    rules: {
+      "no-console": ["error", { allow: ["error"] }],
+    },
+  },
+  {
     files: ["scripts/**/*.mjs"],
     languageOptions: { globals: { console: "readonly", process: "readonly", fetch: "readonly", setTimeout: "readonly", URLSearchParams: "readonly", URL: "readonly" } },
   },
