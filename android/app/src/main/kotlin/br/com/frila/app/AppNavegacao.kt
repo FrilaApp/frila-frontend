@@ -25,12 +25,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
 import br.com.frila.app.falhas.TelaConsentimentoCrashlytics
@@ -39,6 +41,7 @@ import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.MonitorDeConectividade
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoVagas
@@ -725,16 +728,16 @@ fun AppNavegacao(
                                 viewModel = viewModel,
                                 aoVoltar = voltarDoDetalhe,
                                 aoNavegarParaConfirmada = { vagaConfirmada, _ ->
-                                    navController.navigate(Rotas.turnoConfirmado(vagaConfirmada.id))
+                                    navegarComVaga(navController, Rotas.turnoConfirmado(vagaConfirmada.id), vagaConfirmada)
                                 },
                                 aoNavegarParaConflito = { vagaConflito ->
-                                    navController.navigate(Rotas.conflitoHorario(vagaConflito.id))
+                                    navegarComVaga(navController, Rotas.conflitoHorario(vagaConflito.id), vagaConflito)
                                 },
                                 aoNavegarParaVagaPreenchida = { vagaPreenchida ->
-                                    navController.navigate(Rotas.vagaPreenchida(vagaPreenchida.id))
+                                    navegarComVaga(navController, Rotas.vagaPreenchida(vagaPreenchida.id), vagaPreenchida)
                                 },
                                 aoNavegarParaVagaEncerrada = { vagaEncerrada ->
-                                    navController.navigate(Rotas.vagaEncerrada(vagaEncerrada.id))
+                                    navegarComVaga(navController, Rotas.vagaEncerrada(vagaEncerrada.id), vagaEncerrada)
                                 },
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
@@ -757,16 +760,16 @@ fun AppNavegacao(
                                 viewModel = viewModel,
                                 aoVoltar = voltarDoDetalhe,
                                 aoNavegarParaConfirmada = { vagaConfirmada, _ ->
-                                    navController.navigate(Rotas.turnoConfirmado(vagaConfirmada.id))
+                                    navegarComVaga(navController, Rotas.turnoConfirmado(vagaConfirmada.id), vagaConfirmada)
                                 },
                                 aoNavegarParaConflito = { vagaConflito ->
-                                    navController.navigate(Rotas.conflitoHorario(vagaConflito.id))
+                                    navegarComVaga(navController, Rotas.conflitoHorario(vagaConflito.id), vagaConflito)
                                 },
                                 aoNavegarParaVagaPreenchida = { vagaPreenchida ->
-                                    navController.navigate(Rotas.vagaPreenchida(vagaPreenchida.id))
+                                    navegarComVaga(navController, Rotas.vagaPreenchida(vagaPreenchida.id), vagaPreenchida)
                                 },
                                 aoNavegarParaVagaEncerrada = { vagaEncerrada ->
-                                    navController.navigate(Rotas.vagaEncerrada(vagaEncerrada.id))
+                                    navegarComVaga(navController, Rotas.vagaEncerrada(vagaEncerrada.id), vagaEncerrada)
                                 },
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
@@ -811,13 +814,7 @@ fun AppNavegacao(
                         )
                     } else {
                         // Fallback se a vaga não estiver em memória: volta ao feed (só enquanto esta rota estiver no topo)
-                        LaunchedEffect(entrada.id) {
-                            if (navController.currentBackStackEntry?.id == entrada.id) {
-                                navController.navigate(Rotas.FEED) {
-                                    popUpTo(Rotas.FEED) { inclusive = true }
-                                }
-                            }
-                        }
+                        FallbackVoltarAoFeed(navController, entrada)
                     }
                 }
             }
@@ -836,13 +833,7 @@ fun AppNavegacao(
                             },
                         )
                     } else {
-                        LaunchedEffect(entrada.id) {
-                            if (navController.currentBackStackEntry?.id == entrada.id) {
-                                navController.navigate(Rotas.FEED) {
-                                    popUpTo(Rotas.FEED) { inclusive = true }
-                                }
-                            }
-                        }
+                        FallbackVoltarAoFeed(navController, entrada)
                     }
                 }
             }
@@ -1763,37 +1754,69 @@ private fun duracaoDaVagaEmMinutos(inicio: Instant?, fim: Instant?): Long {
     return minOf(maxOf(Duration.between(inicio, fim), minima), maxima).toMinutes()
 }
 
+private const val CHAVE_VAGA_SALVA = "vaga_aberta_json"
+
 /**
- * Busca a vaga no `DetalheVagaViewModel` do detalhe anterior na pilha (vale para vaga vinda do feed ou aberta
- * pelo id) e só cai para o `FeedVagasViewModel` na pilha se o detalhe não a tiver. Retém o resultado por
- * `entrada.id` para que a transição de saída (`popBackStack`) não perca a vaga e dispare o fallback.
+ * Navega para uma rota de desfecho do detalhe levando a [VagaAbertaDto] serializada no `SavedStateHandle`
+ * da entrada de destino, para sobreviver à morte do processo sem precisar reconstruir `DetalheVagaViewModel`.
+ */
+private fun navegarComVaga(navController: NavHostController, rota: String, vaga: VagaAbertaDto) {
+    navController.navigate(rota)
+    navController.currentBackStackEntry?.savedStateHandle?.set(
+        CHAVE_VAGA_SALVA,
+        ClienteSupabase.jsonFrila.encodeToString(VagaAbertaDto.serializer(), vaga),
+    )
+}
+
+/**
+ * Volta ao feed quando o destino ficou sem vaga: observa o topo atual como chave do efeito para reavaliar
+ * se voltar ao topo depois, e remove a rota sem vaga da pilha mesmo quando `FEED` não estava nela.
+ */
+@Composable
+internal fun FallbackVoltarAoFeed(
+    navController: NavHostController,
+    entrada: NavBackStackEntry,
+) {
+    val topoAtual by navController.currentBackStackEntryAsState()
+    LaunchedEffect(entrada.id, topoAtual?.id) {
+        if (topoAtual?.id == entrada.id) {
+            val feedNaPilha = runCatching { navController.getBackStackEntry(Rotas.FEED) }.isSuccess
+            navController.navigate(Rotas.FEED) {
+                if (feedNaPilha) {
+                    popUpTo(Rotas.FEED) { inclusive = true }
+                } else {
+                    popUpTo(entrada.destination.id) { inclusive = true }
+                }
+                launchSingleTop = true
+            }
+        }
+    }
+}
+
+/**
+ * Lê a vaga na ordem: `SavedStateHandle` da própria entrada (sobrevive à morte do processo) ->
+ * `FeedVagasViewModel` do `FEED` na pilha -> `null`. Nunca instancia `DetalheVagaViewModel` fora de `DETALHE`.
  */
 @Composable
 private fun vagaDaPilha(
     navController: NavHostController,
-    entrada: androidx.navigation.NavBackStackEntry,
+    entrada: NavBackStackEntry,
     vagaId: String,
 ): VagaAbertaDto? {
-    var retida by remember(entrada.id) { mutableStateOf<VagaAbertaDto?>(null) }
-    if (retida != null) return retida
-
-    val detalheAnterior = navController.previousBackStackEntry
-        ?.takeIf { it.destination.route == Rotas.DETALHE }
-        ?: runCatching { navController.getBackStackEntry(Rotas.DETALHE) }.getOrNull()
-    val detalheViewModel = detalheAnterior?.let { koinViewModel<DetalheVagaViewModel>(viewModelStoreOwner = it) }
-    val vagaDoDetalhe = detalheViewModel?.estado?.collectAsStateWithLifecycle()?.value?.vaga
-        ?.takeIf { it.id == vagaId }
-    if (vagaDoDetalhe != null) {
-        retida = vagaDoDetalhe
-        return vagaDoDetalhe
+    val jsonSalvo = entrada.savedStateHandle.get<String>(CHAVE_VAGA_SALVA)
+    val vagaSalva = remember(entrada.id, vagaId, jsonSalvo) {
+        jsonSalvo?.let { json ->
+            runCatching { ClienteSupabase.jsonFrila.decodeFromString(VagaAbertaDto.serializer(), json) }
+                .getOrNull()
+                ?.takeIf { it.id == vagaId }
+        }
     }
+    if (vagaSalva != null) return vagaSalva
 
     val feedNaPilha = runCatching { navController.getBackStackEntry(Rotas.FEED) }.getOrNull()
         ?.let { koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it) }
-    val vagaDoFeed = feedNaPilha?.estado?.collectAsStateWithLifecycle()?.value
+    return feedNaPilha?.estado?.collectAsStateWithLifecycle()?.value
         ?.let { feedNaPilha.encontrarVagaPorId(vagaId) }
-    if (vagaDoFeed != null) retida = vagaDoFeed
-    return vagaDoFeed
 }
 
 /** Extraído para ser testável sozinho, sem montar o grafo Koin/NavHost completo. */

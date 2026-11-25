@@ -7,9 +7,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.test.core.app.ActivityScenario
 import br.com.frila.core.rede.ClienteSupabase
@@ -27,6 +31,7 @@ import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.vagas.detalhe.AberturaDeVagaViewModel
 import br.com.frila.feature.vagas.detalhe.ControleSessaoNotificacao
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
+import br.com.frila.feature.vagas.detalhe.TextosVagaIndisponivel
 import br.com.frila.feature.vagas.feed.EstadoFeed
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
@@ -52,6 +57,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.compose.KoinApplication
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
@@ -391,6 +397,188 @@ class AppNavegacaoDetalheEventosUmaVezTest {
     @Test
     fun `rotacao em conta suspensa e volta ao detalhe nao reempilha o destino`() {
         exercitarRotacaoNoDestinoEVolta(HttpStatusCode.Forbidden, ERRO_CONTA_SUSPENSA, Rotas.CONTA_SUSPENSA, aPartirDoFeed = false)
+    }
+
+    // (e): restauração após morte do processo (saveInstanceState + nova Activity com ViewModels vazios)
+
+    private fun exercitarRestauracaoMorteDoProcesso(
+        status: HttpStatusCode,
+        corpo: String,
+        rotaDestino: String,
+        aPartirDoFeed: Boolean,
+        verificarTelaRestaurada: () -> Unit,
+    ) {
+        prepararCenario(status, corpo)
+        val estadoSalvo = Bundle()
+        val controller1 = Robolectric.buildActivity(ActivityDetalheEventosDeTeste::class.java).setup()
+        try {
+            abrirDetalhe(aPartirDoFeed)
+            candidatar()
+            esperarDestinoUnicoAcimaDoDetalhe(rotaDestino)
+            controller1.saveInstanceState(estadoSalvo)
+        } finally {
+            controller1.pause().stop().destroy()
+            ActivityDetalheEventosDeTeste.navAtual = null
+            runCatching { stopKoin() }
+        }
+
+        val controller2 = Robolectric.buildActivity(ActivityDetalheEventosDeTeste::class.java)
+            .create(estadoSalvo)
+            .start()
+            .resume()
+            .visible()
+        try {
+            rule.waitUntil(5_000) { nav().currentDestination?.route == rotaDestino }
+            rule.waitForIdle()
+            rule.runOnIdle { assertEquals(rotaDestino, nav().currentDestination?.route) }
+            verificarTelaRestaurada()
+        } finally {
+            controller2.pause().stop().destroy()
+        }
+    }
+
+    @Test
+    fun `restauracao apos morte do processo em turno confirmado pelo feed exibe a vaga sem quebrar`() {
+        exercitarRestauracaoMorteDoProcesso(
+            status = HttpStatusCode.OK,
+            corpo = CORPO_CONFIRMADA,
+            rotaDestino = Rotas.TURNO_CONFIRMADO,
+            aPartirDoFeed = true,
+        ) {
+            rule.onNodeWithTag("resultado-confirmada").assertExists()
+            rule.onNodeWithText("garçom, Bar do Zé").assertExists()
+        }
+    }
+
+    @Test
+    fun `restauracao apos morte do processo em turno confirmado pelo id exibe a vaga sem quebrar`() {
+        exercitarRestauracaoMorteDoProcesso(
+            status = HttpStatusCode.OK,
+            corpo = CORPO_CONFIRMADA,
+            rotaDestino = Rotas.TURNO_CONFIRMADO,
+            aPartirDoFeed = false,
+        ) {
+            rule.onNodeWithTag("resultado-confirmada").assertExists()
+            rule.onNodeWithText("Garçom, Bar do Zé").assertExists()
+        }
+    }
+
+    @Test
+    fun `restauracao apos morte do processo em conflito de horario pelo id exibe a vaga sem quebrar`() {
+        exercitarRestauracaoMorteDoProcesso(
+            status = HttpStatusCode.UnprocessableEntity,
+            corpo = ERRO_CONFLITO,
+            rotaDestino = Rotas.CONFLITO_HORARIO,
+            aPartirDoFeed = false,
+        ) {
+            rule.onNodeWithTag("resultado-turno-sobreposto").assertExists()
+            rule.onNodeWithText("Garçom, Bar do Zé").assertExists()
+        }
+    }
+
+    @Test
+    fun `restauracao apos morte do processo em vaga preenchida pelo feed e pelo id exibe a vaga sem quebrar`() {
+        exercitarRestauracaoMorteDoProcesso(
+            status = HttpStatusCode.Conflict,
+            corpo = ERRO_PREENCHIDA,
+            rotaDestino = Rotas.VAGA_PREENCHIDA,
+            aPartirDoFeed = true,
+        ) {
+            rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_TITULO).assertExists()
+            rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_MENSAGEM_SELECAO).assertExists()
+        }
+        pedidos.clear()
+        runCatching { stopKoin() }
+        exercitarRestauracaoMorteDoProcesso(
+            status = HttpStatusCode.Conflict,
+            corpo = ERRO_PREENCHIDA,
+            rotaDestino = Rotas.VAGA_PREENCHIDA,
+            aPartirDoFeed = false,
+        ) {
+            rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_TITULO).assertExists()
+            rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_MENSAGEM_SELECAO).assertExists()
+        }
+    }
+
+    // (f): fallback sem vaga na entrada e sem FEED na pilha; e volta ao topo depois
+
+    private fun exercitarFallbackSemVagaESemFeed(rotaComVagaAusente: String, padraoRota: String) {
+        prepararCenario(HttpStatusCode.OK, CORPO_CONFIRMADA)
+        ActivityScenario.launch(ActivityDetalheEventosDeTeste::class.java).use {
+            rule.waitForIdle()
+            rule.runOnIdle { nav().navigate(rotaComVagaAusente) }
+            rule.waitUntil(5_000) { nav().currentDestination?.route == Rotas.FEED }
+            rule.waitForIdle()
+            rule.runOnIdle {
+                val rotas = nav().currentBackStack.value.mapNotNull { it.destination.route }
+                assertEquals(Rotas.FEED, nav().currentDestination?.route)
+                assertTrue("a rota sem vaga ($padraoRota) tem de sair da pilha: $rotas", padraoRota !in rotas)
+            }
+        }
+    }
+
+    @Test
+    fun `fallback em turno confirmado sem vaga e sem feed na pilha vai ao feed e remove a rota da pilha`() {
+        exercitarFallbackSemVagaESemFeed(Rotas.turnoConfirmado(VAGA_ID), Rotas.TURNO_CONFIRMADO)
+    }
+
+    @Test
+    fun `fallback em conflito de horario sem vaga e sem feed na pilha vai ao feed e remove a rota da pilha`() {
+        exercitarFallbackSemVagaESemFeed(Rotas.conflitoHorario(VAGA_ID), Rotas.CONFLITO_HORARIO)
+    }
+
+    @Test
+    fun `fallback reavalia e roda quando a rota sem vaga nao estava no topo na primeira composicao e volta ao topo depois`() {
+        val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        var navLocal: NavHostController? = null
+        var composicoesSemVaga = 0
+        try {
+            val activity = controller.get()
+            activity.runOnUiThread {
+                activity.setContent {
+                    val nav = rememberNavController()
+                    navLocal = nav
+                    NavHost(navController = nav, startDestination = "inicio") {
+                        composable("inicio") {}
+                        composable(Rotas.FEED) {}
+                        composable(Rotas.TURNO_CONFIRMADO) { entrada ->
+                            composicoesSemVaga++
+                            FallbackVoltarAoFeed(nav, entrada)
+                        }
+                        dialog("sobreposta") {}
+                    }
+                }
+            }
+            rule.waitForIdle()
+
+            // Abre a rota sem vaga já coberta por um dialog no topo: na 1ª composição ela não é o topo.
+            rule.runOnIdle {
+                val nav = navLocal!!
+                nav.navigate(Rotas.turnoConfirmado(VAGA_ID))
+                nav.navigate("sobreposta")
+            }
+            rule.waitForIdle()
+            rule.runOnIdle {
+                val nav = navLocal!!
+                val rotas = nav.currentBackStack.value.mapNotNull { it.destination.route }
+                assertTrue("o fallback compôs embaixo do dialog", composicoesSemVaga >= 1)
+                assertEquals("sobreposta", nav.currentDestination?.route)
+                assertTrue("enquanto não está no topo, a rota fica na pilha: $rotas", Rotas.TURNO_CONFIRMADO in rotas)
+            }
+
+            // Fecha o dialog: a rota sem vaga volta ao topo mantendo a mesma composição e dispara o fallback.
+            rule.runOnIdle { navLocal!!.popBackStack() }
+            rule.waitUntil(5_000) { navLocal?.currentDestination?.route == Rotas.FEED }
+            rule.waitForIdle()
+            rule.runOnIdle {
+                val nav = navLocal!!
+                val rotas = nav.currentBackStack.value.mapNotNull { it.destination.route }
+                assertEquals(Rotas.FEED, nav.currentDestination?.route)
+                assertTrue("ao voltar ao topo, a rota sem vaga sai da pilha: $rotas", Rotas.TURNO_CONFIRMADO !in rotas)
+            }
+        } finally {
+            controller.pause().stop().destroy()
+        }
     }
 
     private companion object {
