@@ -1,8 +1,13 @@
 package br.com.frila.app
 
 import android.content.Context
+import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -78,12 +83,35 @@ internal fun ConfiguracaoDoAppDto.paraJson(): JsonObject = buildJsonObject {
     )
 }
 
+/** Estado da configuração aplicada pelo portão de versão e pelas chaves de recurso do app. */
+internal data class EstadoDaConfiguracaoDoApp(
+    val versaoMinima: String? = null,
+    val mensagemBloqueio: String = TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO,
+    val fotoDePerfil: Boolean = false,
+    val chamadaDireta: Boolean = false,
+    val perfilRico: Boolean = false,
+    val checkinPorCodigo: Boolean = false,
+    val buscaProfissionais: Boolean = false,
+)
+
+/** Converte o DTO no estado aplicado em tela, voltando para [TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO] quando `mensagem` vier nula ou em branco. */
+internal fun ConfiguracaoDoAppDto.paraEstado(): EstadoDaConfiguracaoDoApp = EstadoDaConfiguracaoDoApp(
+    versaoMinima = versaoMinima,
+    mensagemBloqueio = mensagem?.takeIf { it.isNotBlank() } ?: TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO,
+    fotoDePerfil = recursos.fotoDePerfil,
+    chamadaDireta = recursos.chamadaDireta,
+    perfilRico = recursos.perfilRico,
+    checkinPorCodigo = recursos.checkinPorCodigo,
+    buscaProfissionais = recursos.buscaProfissionais,
+)
+
 /** A última configuração guardada para esta plataforma e versão, ou `null` (sem guardado ou guardado ilegível). */
 suspend fun lerConfiguracaoGuardada(
     cache: CacheDeConfiguracaoDoApp,
     versaoApp: String?,
     plataforma: String = "android",
-): ConfiguracaoDoAppDto? = withContext(Dispatchers.IO) {
+    dispatcherIo: CoroutineDispatcher = Dispatchers.IO,
+): ConfiguracaoDoAppDto? = withContext(dispatcherIo) {
     try {
         cache.ler(plataforma, versaoApp)
     } catch (_: Exception) {
@@ -101,6 +129,7 @@ suspend fun obterConfiguracaoDoApp(
     versaoApp: String?,
     plataforma: String = "android",
     tempoMaximoMs: Long = TEMPO_MAXIMO_CONFIGURACAO_MS,
+    dispatcherIo: CoroutineDispatcher = Dispatchers.IO,
     consulta: suspend () -> ConfiguracaoDoAppDto,
 ): ConfiguracaoDoAppDto? {
     val recebida = try {
@@ -110,7 +139,7 @@ suspend fun obterConfiguracaoDoApp(
     } catch (_: Exception) {
         null
     }
-    return withContext(Dispatchers.IO) {
+    return withContext(dispatcherIo) {
         if (recebida != null) {
             try {
                 cache.gravar(versaoApp, recebida)
@@ -125,5 +154,41 @@ suspend fun obterConfiguracaoDoApp(
                 null
             }
         }
+    }
+}
+
+/**
+ * Coordena a abertura sem espera (#795): aplica a guardada na hora (ou libera após [TEMPO_MAXIMO_ABERTURA_MS]) e aplica a
+ * resposta do servidor quando chegar, sobrescrevendo versão mínima, mensagem e chaves de recurso.
+ */
+internal suspend fun carregarConfiguracaoNaAbertura(
+    cache: CacheDeConfiguracaoDoApp,
+    versaoApp: String?,
+    aoAplicar: (EstadoDaConfiguracaoDoApp) -> Unit,
+    aoLiberarAbertura: () -> Unit,
+    dispatcherIo: CoroutineDispatcher = Dispatchers.IO,
+    consulta: suspend () -> ConfiguracaoDoAppDto,
+) = coroutineScope {
+    val abertura = launch {
+        val guardada = lerConfiguracaoGuardada(cache, versaoApp, dispatcherIo = dispatcherIo)
+        if (guardada != null) aoAplicar(guardada.paraEstado()) else delay(TEMPO_MAXIMO_ABERTURA_MS)
+        aoLiberarAbertura()
+    }
+    try {
+        val configuracao = obterConfiguracaoDoApp(
+            cache = cache,
+            versaoApp = versaoApp,
+            dispatcherIo = dispatcherIo,
+            consulta = consulta,
+        )
+        abertura.cancel() // a resposta chegou: a guardada não pode mais sobrescrevê-la
+        if (configuracao != null) aoAplicar(configuracao.paraEstado())
+    } catch (cancelamento: CancellationException) {
+        throw cancelamento
+    } catch (_: Exception) {
+        // Falha transitória de rede ou offline nunca bloqueia o acesso
+    } finally {
+        abertura.cancel()
+        aoLiberarAbertura()
     }
 }
