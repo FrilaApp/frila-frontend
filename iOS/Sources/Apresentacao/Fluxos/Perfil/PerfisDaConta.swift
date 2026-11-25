@@ -24,6 +24,7 @@ enum TextosPerfilConta {
     static let editar = String(localized: "Editar", bundle: bundleApresentacao)
     static let copiado = String(localized: "Copiado", bundle: bundleApresentacao)
     static let contaEDados = String(localized: "Conta e dados", bundle: bundleApresentacao)
+    static let senha = String(localized: "Senha da conta", bundle: bundleApresentacao)
     static let sairOuExcluir = String(localized: "Sair ou excluir conta", bundle: bundleApresentacao)
     static let explicacaoSair = String(localized: "Encerra a sessão neste aparelho. Você pode entrar de novo quando quiser.", bundle: bundleApresentacao)
     static let explicacaoExcluir = String(localized: "Encerra a conta de forma permanente e não dá para desfazer. Antes de confirmar, você vê o que acontece com seus dados e turnos.", bundle: bundleApresentacao)
@@ -258,12 +259,12 @@ private struct LinhaDeValorDaConta: View {
 
 /// O destino de cada linha da Conta do profissional que abre outra tela (um por vez, no `navigationDestination(item:)`).
 private enum DestinoDoPerfil: Hashable {
-    case historico, apresentacao, preferenciasDeChamada, aparencia, bloqueios
+    case historico, apresentacao, preferenciasDeChamada, aparencia, bloqueios, senha
 }
 
 /// O mesmo, na Conta do estabelecimento.
 private enum DestinoDoEstabelecimento: Hashable {
-    case historico, equipeDeConfianca, bloqueios, aparencia
+    case historico, equipeDeConfianca, bloqueios, aparencia, senha
 }
 
 /// A confirmação de saída, a mesma nas duas Contas: título rolável e ações ancoradas, Cancelar primeiro.
@@ -393,6 +394,8 @@ public struct TelaMeuPerfilProfissional: View {
             TelaAparencia()
         case .bloqueios:
             TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
+        case .senha:
+            TelaDefinirSenha(api: api)
         }
     }
 
@@ -432,6 +435,8 @@ public struct TelaMeuPerfilProfissional: View {
                 .accessibilityIdentifier("perfil-ajuda")
             FrilaLinhaDeOpcao(titulo: TextosAparencia.titulo, remate: .navega) { destino = .aparencia }
                 .accessibilityIdentifier("perfil-aparencia")
+            FrilaLinhaDeOpcao(titulo: TextosPerfilConta.senha, remate: .navega) { destino = .senha }
+                .accessibilityIdentifier("perfil-definir-senha")
             if perfilCarregado {
                 FrilaLinhaDeOpcao(titulo: TextosBloqueios.titulo, remate: .navega) { destino = .bloqueios }
                     .accessibilityIdentifier("perfil-bloqueios")
@@ -551,6 +556,9 @@ public struct TelaMeuPerfilProfissional: View {
 /// a confirmação de saída e o fluxo de exclusão seguem como estavam.
 struct TelaSairOuExcluirConta: View {
     @State private var mostrarConfirmacaoDeSaida = false
+    @State private var mostrarConfirmacaoDeSairTodos = false
+    @State private var revogandoDispositivos = false
+    @State private var erroAoRevogar: String?
     private let api: any ApiCliente
     private let sair: () -> Void
 
@@ -572,6 +580,23 @@ struct TelaSairOuExcluirConta: View {
                         .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                    Button { mostrarConfirmacaoDeSairTodos = true } label: {
+                        Text("Sair de todos os dispositivos", bundle: bundleApresentacao)
+                    }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .disabled(revogandoDispositivos)
+                    .accessibilityIdentifier("perfil-sair-todos-dispositivos")
+                    Text("Encerra todas as sessões e exige código por e-mail na próxima entrada em qualquer aparelho.", bundle: bundleApresentacao)
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let erroAoRevogar {
+                        MensagemJuntoAoBotao(verbatim: erroAoRevogar)
+                            .accessibilityIdentifier("perfil-sair-todos-erro")
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
@@ -607,6 +632,37 @@ struct TelaSairOuExcluirConta: View {
                 }
             )
         }
+        .alert(Text("Sair de todos os dispositivos?", bundle: bundleApresentacao), isPresented: $mostrarConfirmacaoDeSairTodos) {
+            Button(role: .cancel) {} label: {
+                Text("Cancelar", bundle: bundleApresentacao)
+            }
+            Button(role: .destructive) {
+                revogarESair()
+            } label: {
+                Text("Sair de todos", bundle: bundleApresentacao)
+            }
+        } message: {
+            Text("Todas as sessões e dispositivos confiáveis serão desconectados.", bundle: bundleApresentacao)
+        }
+    }
+
+    private func revogarESair() {
+        guard !revogandoDispositivos else { return }
+        revogandoDispositivos = true
+        erroAoRevogar = nil
+        Task {
+            do {
+                _ = try await api.revogarDispositivos()
+                revogandoDispositivos = false
+                sair()
+            } catch let erroApi as ErroDaApi {
+                revogandoDispositivos = false
+                erroAoRevogar = MensagemDoErroAPI.texto(erroApi)
+            } catch {
+                revogandoDispositivos = false
+                erroAoRevogar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
+            }
+        }
     }
 }
 
@@ -615,6 +671,9 @@ struct TelaSairOuExcluirConta: View {
 public struct TelaPerfilEstabelecimento: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var mostrarConfirmacaoDeSaida = false
+    @State private var mostrarConfirmacaoDeSairTodos = false
+    @State private var revogandoDispositivos = false
+    @State private var erroAoRevogar: String?
     @State private var model: PerfilEstabelecimentoViewModel
     @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
@@ -699,6 +758,8 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                     FrilaLinhaDeOpcao(titulo: TextosAparencia.titulo, remate: .navega) { destino = .aparencia }
                         .accessibilityIdentifier("perfil-aparencia")
+                    FrilaLinhaDeOpcao(titulo: TextosPerfilConta.senha, remate: .navega) { destino = .senha }
+                        .accessibilityIdentifier("estabelecimento-definir-senha")
                 }
 
                 // Ações de risco: discretas, no fim, uma por linha.
@@ -708,6 +769,16 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                     .buttonStyle(.frilaAcaoDiscreta)
                     .accessibilityIdentifier("estabelecimento-sair")
+                    Button { mostrarConfirmacaoDeSairTodos = true } label: {
+                        Text("Sair de todos os dispositivos", bundle: bundleApresentacao)
+                    }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .disabled(revogandoDispositivos)
+                    .accessibilityIdentifier("estabelecimento-sair-todos-dispositivos")
+                    if let erroAoRevogar {
+                        MensagemJuntoAoBotao(verbatim: erroAoRevogar)
+                            .accessibilityIdentifier("estabelecimento-sair-todos-erro")
+                    }
                     NavigationLink {
                         TelaExclusaoDeConta(
                             viewModel: ExclusaoDeContaViewModel(
@@ -738,6 +809,33 @@ public struct TelaPerfilEstabelecimento: View {
         }
         .task(id: casaEscolhida) { await model.carregar(preferindo: casaEscolhida) }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
+        .alert(Text("Sair de todos os dispositivos?", bundle: bundleApresentacao), isPresented: $mostrarConfirmacaoDeSairTodos) {
+            Button(role: .cancel) {} label: {
+                Text("Cancelar", bundle: bundleApresentacao)
+            }
+            Button(role: .destructive) {
+                guard !revogandoDispositivos else { return }
+                revogandoDispositivos = true
+                erroAoRevogar = nil
+                Task {
+                    do {
+                        _ = try await api.revogarDispositivos()
+                        revogandoDispositivos = false
+                        sair()
+                    } catch let erroApi as ErroDaApi {
+                        revogandoDispositivos = false
+                        erroAoRevogar = MensagemDoErroAPI.texto(erroApi)
+                    } catch {
+                        revogandoDispositivos = false
+                        erroAoRevogar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
+                    }
+                }
+            } label: {
+                Text("Sair de todos", bundle: bundleApresentacao)
+            }
+        } message: {
+            Text("Todas as sessões e dispositivos confiáveis serão desconectados.", bundle: bundleApresentacao)
+        }
     }
 
     @ViewBuilder
@@ -755,6 +853,8 @@ public struct TelaPerfilEstabelecimento: View {
             TelaBloqueios(api: api, bloqueiosDaSessao: bloqueiosDaSessao)
         case .aparencia:
             TelaAparencia()
+        case .senha:
+            TelaDefinirSenha(api: api)
         }
     }
 }

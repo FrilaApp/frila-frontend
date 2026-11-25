@@ -11,6 +11,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
     private static let log = Logger(subsystem: "com.frila.org.app", category: "contrato")
     /// Entrada, demonstração, saída e encerramento por 401 passam por aqui, um de cada vez.
     private let filaDeSessao = FilaDeSessao()
+    private let armazenamentoDeDispositivo: any ArmazenamentoDeDeviceToken
 
     public convenience init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
         self.init(url: url, chavePublicavel: chavePublicavel, telemetria: telemetria, sessaoHTTP: Self.sessaoComPrazo())
@@ -23,7 +24,8 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         chavePublicavel: String,
         telemetria: any TelemetryReporter,
         sessaoHTTP: URLSession,
-        armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria? = nil
+        armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria? = nil,
+        armazenamentoDeDispositivo: (any ArmazenamentoDeDeviceToken)? = nil
     ) {
         // A sessão de autenticação fica no Keychain só deste aparelho (`SessaoNoKeychainDoAparelho`):
         // o armazenamento padrão do supabase-swift a deixava ir no backup para outro iPhone.
@@ -32,6 +34,8 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         } else {
             .init(storage: SessaoNoKeychainDoAparelho(), autoRefreshToken: true, emitLocalSessionAsInitialSession: true)
         }
+        self.armazenamentoDeDispositivo = armazenamentoDeDispositivo
+            ?? (armazenamentoDaSessao != nil ? ArmazenamentoDeDeviceTokenEmMemoria() : DispositivoNoKeychainDoAparelho())
         let options = SupabaseClientOptions(
             db: .init(decoder: ContratoAPI.decodificador()),
             auth: auth,
@@ -67,6 +71,18 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
     }
 
+    public func solicitarCodigoDeRecuperacao(email: String) async throws {
+        do {
+            try Task.checkCancellation()
+            // Recuperação de senha nunca deve criar usuário novo no Auth.
+            try await cliente.auth.signInWithOTP(email: email, shouldCreateUser: false)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
     public func verificarCodigo(email: String, codigo: String) async throws {
         do {
             try await filaDeSessao.executar { [cliente] in
@@ -75,6 +91,222 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         } catch {
             throw mapear(error)
         }
+    }
+
+    public func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
+        do {
+            return try await filaDeSessao.executar { [self] in
+                try Task.checkCancellation()
+                let deviceToken = armazenamentoDeDispositivo.obter(email: email)
+                let resposta: ContratoAPI.AutenticarSenhaRespostaDTO = try await cliente.functions.invoke(
+                    "autenticar-senha",
+                    options: FunctionInvokeOptions(
+                        body: ContratoAPI.AutenticarSenhaRequisicao(
+                            email: email,
+                            senha: senha,
+                            deviceToken: deviceToken
+                        )
+                    ),
+                    decoder: decodificador
+                )
+                switch resposta.status {
+                case "autenticado":
+                    guard let sessao = resposta.sessao else {
+                        throw ErroDaApi(codigo: .respostaInvalida)
+                    }
+                    _ = try await cliente.auth.setSession(accessToken: sessao.accessToken, refreshToken: sessao.refreshToken)
+                    return .autenticado(precisaDefinirSenha: resposta.precisaDefinirSenha ?? false)
+                case "desafio_otp":
+                    if resposta.descartarDeviceToken == true {
+                        armazenamentoDeDispositivo.remover(email: email)
+                    }
+                    guard let desafioID = resposta.desafioID, !desafioID.isEmpty else {
+                        throw ErroDaApi(codigo: .respostaInvalida)
+                    }
+                    let expiraEm = resposta.expiraEm.flatMap(ContratoAPI.instante)
+                    return .desafioOTP(desafioID: desafioID, expiraEm: expiraEm)
+                default:
+                    throw ErroDaApi(codigo: .respostaInvalida)
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    public func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        do {
+            return try await filaDeSessao.executar { [self] in
+                try Task.checkCancellation()
+                let requisicao: ContratoAPI.ConfirmarDispositivoOTPRequisicao
+                let emailExplicito: String?
+                switch origem {
+                case let .loginDispositivo(desafioID):
+                    requisicao = .init(
+                        tipo: "login_dispositivo",
+                        desafioID: desafioID,
+                        email: nil,
+                        codigo: codigo,
+                        lembrarDispositivo: lembrarDispositivo
+                    )
+                    emailExplicito = nil
+                case let .cadastro(email):
+                    requisicao = .init(
+                        tipo: "cadastro",
+                        desafioID: nil,
+                        email: email,
+                        codigo: codigo,
+                        lembrarDispositivo: lembrarDispositivo
+                    )
+                    emailExplicito = email
+                case let .recuperacao(email):
+                    requisicao = .init(
+                        tipo: "recuperacao",
+                        desafioID: nil,
+                        email: email,
+                        codigo: codigo,
+                        lembrarDispositivo: lembrarDispositivo
+                    )
+                    emailExplicito = email
+                }
+                let resposta: ContratoAPI.ConfirmarDispositivoOTPRespostaDTO = try await cliente.functions.invoke(
+                    "confirmar-dispositivo-otp",
+                    options: FunctionInvokeOptions(body: requisicao),
+                    decoder: decodificador
+                )
+                _ = try await cliente.auth.setSession(
+                    accessToken: resposta.sessao.accessToken,
+                    refreshToken: resposta.sessao.refreshToken
+                )
+                var dispositivoLembrado = false
+                if lembrarDispositivo, let deviceToken = resposta.deviceToken, !deviceToken.isEmpty {
+                    let emailDaConta = emailExplicito ?? cliente.auth.currentSession?.user.email
+                    if let emailDaConta, !emailDaConta.isEmpty {
+                        try? armazenamentoDeDispositivo.salvar(token: deviceToken, email: emailDaConta)
+                        dispositivoLembrado = true
+                    }
+                }
+                return ResultadoConfirmacaoDispositivoOTP(
+                    precisaDefinirSenha: resposta.precisaDefinirSenha ?? false,
+                    dispositivoLembrado: dispositivoLembrado
+                )
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    public func reenviarDispositivoOTP(desafioID: String) async throws -> ResultadoReenvioDispositivoOTP {
+        do {
+            try Task.checkCancellation()
+            let resposta: ContratoAPI.ReenviarDispositivoOTPRespostaDTO = try await cliente.functions.invoke(
+                "reenviar-dispositivo-otp",
+                options: FunctionInvokeOptions(body: ContratoAPI.ReenviarDispositivoOTPRequisicao(desafioID: desafioID)),
+                decoder: decodificador
+            )
+            return ResultadoReenvioDispositivoOTP(
+                desafioID: resposta.desafioID,
+                expiraEm: resposta.expiraEm.flatMap(ContratoAPI.instante),
+                reenviarEmSegundos: max(1, resposta.reenviarEmSegundos ?? 60)
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    public func definirSenha(_ novaSenha: String, manterDispositivoAtual: Bool) async throws {
+        do {
+            try await filaDeSessao.executar { [self] in
+                try Task.checkCancellation()
+                let sessaoAtual = cliente.auth.currentSession
+                let sessaoUsada = sessaoAtual?.accessToken
+                let emailAtual = sessaoAtual?.user.email
+                let deviceTokenAtual: String? = if manterDispositivoAtual, let emailAtual {
+                    armazenamentoDeDispositivo.obter(email: emailAtual)
+                } else {
+                    nil
+                }
+                do {
+                    let resposta: ContratoAPI.DefinirSenhaRespostaDTO = try await cliente.functions.invoke(
+                        "definir-senha",
+                        options: FunctionInvokeOptions(
+                            body: ContratoAPI.DefinirSenhaRequisicao(
+                                novaSenha: novaSenha,
+                                manterDispositivoAtual: manterDispositivoAtual,
+                                deviceTokenAtual: deviceTokenAtual,
+                                refreshToken: sessaoAtual?.refreshToken
+                            )
+                        ),
+                        decoder: decodificador
+                    )
+                    if let novaSessao = resposta.sessao {
+                        _ = try await cliente.auth.setSession(
+                            accessToken: novaSessao.accessToken,
+                            refreshToken: novaSessao.refreshToken
+                        )
+                    }
+                    if !manterDispositivoAtual {
+                        if let emailAtual {
+                            armazenamentoDeDispositivo.remover(email: emailAtual)
+                        } else {
+                            armazenamentoDeDispositivo.removerTodos()
+                        }
+                    }
+                } catch {
+                    let tipado = mapear(error)
+                    let preservaSessao = tipado.codigoOriginal == "reauthentication_needed"
+                        || tipado.codigoOriginal == "reautenticacao_necessaria"
+                        || tipado.codigoOriginal == "dispositivo_nao_verificado"
+                    if !preservaSessao, Self.comprovaSessaoInvalida(error) || Self.comprovaSessaoInvalidaNoAuth(error) {
+                        _ = await encerrarDentroDaFila(sessaoUsada: sessaoUsada)
+                    }
+                    throw error
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw mapear(error)
+        }
+    }
+
+    public func revogarDispositivos() async throws -> Int {
+        let sessaoUsada = cliente.auth.currentSession?.accessToken
+        let emailAtual = cliente.auth.currentSession?.user.email
+        do {
+            let resposta: ContratoAPI.RevogarDispositivosRespostaDTO = try await cliente.functions.invoke(
+                "revogar-dispositivos",
+                options: FunctionInvokeOptions(body: ContratoAPI.RevogarDispositivosRequisicao()),
+                decoder: decodificador
+            )
+            if let emailAtual {
+                armazenamentoDeDispositivo.remover(email: emailAtual)
+            } else {
+                armazenamentoDeDispositivo.removerTodos()
+            }
+            return resposta.dispositivosRevogados
+        } catch {
+            let tipado = mapear(error)
+            if tipado.codigoOriginal != "dispositivo_nao_verificado", Self.comprovaSessaoInvalida(error) {
+                _ = await encerrarPorSessaoInvalida(sessaoUsada: sessaoUsada)
+            }
+            throw tipado
+        }
+    }
+
+    public func estadoAutenticacao() async throws -> EstadoAutenticacao {
+        let dto: ContratoAPI.EstadoAutenticacaoDTO = try await rpc("estado_autenticacao")
+        return dto.dominio()
     }
 
     public func possuiSessao() async -> Bool {
@@ -757,8 +989,9 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
 
     public func sair(tokenFCM: String?) async {
         if let tokenFCM { try? await removerDispositivo(tokenFCM: tokenFCM) }
+        // Logout normal encerra apenas a sessão local e preserva o `device_token` de confiança (0.2.112).
         try? await filaDeSessao.executar { [cliente] in
-            try? await cliente.auth.signOut()
+            try? await cliente.auth.signOut(scope: .local)
         }
     }
 
@@ -790,6 +1023,16 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         }
         if case let FunctionsError.httpError(status, _) = error {
             return status == 401
+        }
+        return false
+    }
+
+    /// Em chamadas autenticadas do Auth (como `PUT /auth/v1/user` ao definir senha), um 401 com
+    /// `reauthentication_needed` indica que a sessão continua válida e precisa apenas de nova
+    /// verificação (OTP), sem derrubar a sessão atual. Qualquer outro 401 comprova sessão inválida.
+    static func comprovaSessaoInvalidaNoAuth(_ error: Error) -> Bool {
+        if case let AuthError.api(_, codigoDoAuth, _, resposta) = error {
+            return resposta.statusCode == 401 && codigoDoAuth.rawValue != "reauthentication_needed"
         }
         return false
     }
@@ -871,6 +1114,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         "meus_turnos",
         "contato_do_turno",
         "situacao_da_conta",
+        "estado_autenticacao",
         "historico_profissional",
         "avaliacoes_do_turno",
         "configuracao_do_app",
@@ -1002,6 +1246,18 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         switch auth {
         case let .api(_, codigoDoAuth, _, resposta):
             let original = codigoDoAuth.rawValue
+            if original == "reauthentication_needed" {
+                return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "reauthentication_needed")
+            }
+            if original == "invalid_credentials" {
+                return ErroDaApi(codigo: .naoAutenticado, codigoOriginal: original)
+            }
+            if original == "weak_password" || original == "same_password" {
+                return ErroDaApi(codigo: .campoInvalido, codigoOriginal: original, detalhes: "senha")
+            }
+            if original == "otp_disabled" || original == "user_not_found" {
+                return ErroDaApi(codigo: .naoEncontrado, codigoOriginal: original)
+            }
             switch resposta.statusCode {
             case 429:
                 return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original)

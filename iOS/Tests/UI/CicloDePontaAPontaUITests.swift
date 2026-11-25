@@ -25,7 +25,8 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         AjudanteDeLancamentoUITests.preparar(app)
         app.launch()
 
-        // 1. Entrada por e-mail e código de acesso
+        // 1. Entrada por e-mail, código de acesso e definição obrigatória de senha
+        abrirCriarContaPelaEntrada(app)
         let email = app.textFields["entrada-email"]
         XCTAssertTrue(email.waitForExistence(timeout: 10), "Campo de e-mail deve estar visível")
         email.tap()
@@ -39,6 +40,7 @@ final class CicloDePontaAPontaUITests: XCTestCase {
         if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
             app.buttons["codigo-entrar"].tap()
         }
+        definirSenhaObrigatoria(app)
 
         // 2. Seleção do perfil Contratante e dados pessoais
         let perfilContratante = app.buttons["cadastro-perfil-contratante"]

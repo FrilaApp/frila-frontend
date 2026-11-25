@@ -21,6 +21,11 @@ public enum DecodificadorErroAPI {
             let original = erro.codigo == .respostaInvalida ? "http_429" : erro.codigoOriginal
             return ErroDaApi(codigo: .limiteExcedido, codigoOriginal: original, detalhes: erro.detalhes)
         }
+        if statusCode == 422, erro.codigo == .desconhecido {
+            if erro.codigoOriginal == "senha_fraca" || erro.codigoOriginal == "senha_igual" {
+                return ErroDaApi(codigo: .campoInvalido, codigoOriginal: erro.codigoOriginal, detalhes: "senha")
+            }
+        }
         return erro
     }
 

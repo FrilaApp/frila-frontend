@@ -29,6 +29,19 @@ private final class ApiDeEntrada: ApiClienteEncaminhador, @unchecked Sendable {
         try await super.verificarCodigo(email: email, codigo: codigo)
     }
 
+    override func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        if let erroAoVerificar { throw erroAoVerificar }
+        return try await super.confirmarDispositivoOTP(
+            origem: origem,
+            codigo: codigo,
+            lembrarDispositivo: lembrarDispositivo
+        )
+    }
+
     override func criarConta(_ cadastro: CadastroConta) async throws -> Conta {
         cadastroEnviado = cadastro
         if let erroAoCriar { throw erroAoCriar }

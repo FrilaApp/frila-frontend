@@ -50,6 +50,7 @@ final class CapturasR1UITests: XCTestCase {
     // MARK: - Entrada e código
 
     private func entrar(email: String, _ app: XCUIApplication) {
+        abrirCriarContaPelaEntrada(app)
         let campo = app.textFields["entrada-email"]
         XCTAssertTrue(campo.waitForExistence(timeout: Espera.aparecer), "a entrada deve abrir")
         // Com texto grande o campo nasce abaixo da dobra: uma rolagem o traz, como no teste de cadastro existente.
@@ -62,6 +63,7 @@ final class CapturasR1UITests: XCTestCase {
 
     private func telaDeEntrada(ax5: Bool) {
         let app = iniciar(["-FRILA_ENTRADA", "-FRILA_SCENARIO", "primeiro-acesso"], ax5: ax5)
+        abrirCriarContaPelaEntrada(app)
         XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: Espera.aparecer))
         conferirAlvo(app.buttons["entrada-receber-codigo"], "Receber código")
         capturar("r1-entrada", ax5)
@@ -158,6 +160,7 @@ final class CapturasR1UITests: XCTestCase {
         entrar(email: "novo@frila.app", app)
         app.textFields["Código de acesso"].tap()
         app.textFields["Código de acesso"].typeText("123456")
+        definirSenhaObrigatoria(app)
         XCTAssertTrue(app.staticTexts["Como você quer usar o Frila?"].waitForExistence(timeout: Espera.aparecer), "o cadastro deve abrir")
         conferirAlvo(app.buttons["cadastro-continuar"], "Continuar")
         capturar("r1-cadastro", ax5)

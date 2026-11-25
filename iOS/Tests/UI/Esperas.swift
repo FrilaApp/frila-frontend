@@ -226,3 +226,86 @@ func esperarEstabilizacaoDeFrame(_ elemento: XCUIElement, timeout: TimeInterval 
     _ = XCTWaiter.wait(for: [espera], timeout: timeout)
 }
 
+/// Rola pelo meio da tela até o elemento ficar tocável e acima de um rodapé ancorado (AX5).
+func trazerAcimaDoRodape(_ elemento: XCUIElement, rodape: XCUIElement, em app: XCUIApplication, tentativas: Int = 6) {
+    for _ in 0..<tentativas {
+        let acima = !rodape.exists || elemento.frame.maxY <= rodape.frame.minY
+        if elemento.exists && elemento.isHittable && acima { return }
+        let inicio = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55))
+        let fim = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.22))
+        inicio.press(forDuration: 0.05, thenDragTo: fim)
+    }
+}
+
+/// A partir da tela inicial de login por senha (`TelaEntradaComSenha`), toca em "Criar conta"
+/// para alcançar a tela de cadastro por e-mail (`TelaEntrada`).
+func abrirCriarContaPelaEntrada(
+    _ app: XCUIApplication,
+    timeout: TimeInterval = Espera.aparecer,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let emailSenha = app.textFields["entrada-senha-email"]
+    XCTAssertTrue(emailSenha.waitForExistence(timeout: timeout), "a entrada com senha deve abrir", file: file, line: line)
+    let criarConta = app.buttons["entrada-senha-criar-conta"]
+    XCTAssertTrue(criarConta.waitForExistence(timeout: timeout), "o botão Criar conta deve existir na entrada", file: file, line: line)
+    trazerAcimaDoRodape(criarConta, rodape: app.buttons["entrada-senha-confirmar"], em: app)
+    tocarFechandoTeclado(criarConta, em: app, timeout: timeout, file: file, line: line)
+    XCTAssertTrue(app.textFields["entrada-email"].waitForExistence(timeout: timeout), "a tela de criar conta deve abrir", file: file, line: line)
+}
+
+/// Conclui a etapa obrigatória de definição de senha (`TelaDefinirSenha`) após confirmar o OTP.
+func definirSenhaObrigatoria(
+    _ app: XCUIApplication,
+    senha: String = "Frila1234!",
+    timeout: TimeInterval = Espera.aparecer,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let novaSenha = app.secureTextFields["definir-senha-campo"]
+    XCTAssertTrue(novaSenha.waitForExistence(timeout: timeout), "a tela de definir senha deve abrir após o código", file: file, line: line)
+    let salvar = app.buttons["definir-senha-salvar"]
+    trazerAcimaDoRodape(novaSenha, rodape: salvar, em: app)
+    novaSenha.garantirFocoDoTeclado(file: file, line: line)
+    novaSenha.typeText(senha)
+
+    let confirmacao = app.secureTextFields["definir-senha-confirmacao"]
+    XCTAssertTrue(confirmacao.waitForExistence(timeout: timeout), "o campo de confirmação de senha deve existir", file: file, line: line)
+    if !confirmacao.isHittable {
+        fecharTeclado(app)
+        trazerAcimaDoRodape(confirmacao, rodape: salvar, em: app)
+    }
+    confirmacao.garantirFocoDoTeclado(file: file, line: line)
+    confirmacao.typeText(senha)
+
+    tocarFechandoTeclado(salvar, em: app, timeout: timeout, file: file, line: line)
+}
+
+/// Executa o login habitual por e-mail e senha em `TelaEntradaComSenha`.
+func entrarComSenha(
+    _ app: XCUIApplication,
+    email: String,
+    senha: String = "Frila1234!",
+    timeout: TimeInterval = Espera.aparecer,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let campoEmail = app.textFields["entrada-senha-email"]
+    XCTAssertTrue(campoEmail.waitForExistence(timeout: timeout), "a entrada com senha deve abrir", file: file, line: line)
+    let confirmar = app.buttons["entrada-senha-confirmar"]
+    trazerAcimaDoRodape(campoEmail, rodape: confirmar, em: app)
+    campoEmail.garantirFocoDoTeclado(file: file, line: line)
+    campoEmail.digitarEEsperar(email, file: file, line: line)
+
+    let campoSenha = app.secureTextFields["entrada-senha-campo"]
+    XCTAssertTrue(campoSenha.waitForExistence(timeout: timeout), "o campo de senha deve existir", file: file, line: line)
+    if !campoSenha.isHittable {
+        fecharTeclado(app)
+        trazerAcimaDoRodape(campoSenha, rodape: confirmar, em: app)
+    }
+    campoSenha.garantirFocoDoTeclado(file: file, line: line)
+    campoSenha.typeText(senha)
+
+    tocarFechandoTeclado(confirmar, em: app, timeout: timeout, file: file, line: line)
+}
+

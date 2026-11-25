@@ -390,11 +390,69 @@ public protocol ObservadorDeSessao: Sendable {
     func encerramentos() -> AsyncStream<Void>
 }
 
+public enum ResultadoEntradaComSenha: Equatable, Sendable {
+    case autenticado(precisaDefinirSenha: Bool)
+    case desafioOTP(desafioID: String, expiraEm: Date?)
+}
+
+public enum OrigemConfirmacaoDispositivoOTP: Equatable, Sendable {
+    case loginDispositivo(desafioID: String)
+    case cadastro(email: String)
+    case recuperacao(email: String)
+}
+
+public struct ResultadoConfirmacaoDispositivoOTP: Equatable, Sendable {
+    public let precisaDefinirSenha: Bool
+    public let dispositivoLembrado: Bool
+
+    public init(precisaDefinirSenha: Bool, dispositivoLembrado: Bool) {
+        self.precisaDefinirSenha = precisaDefinirSenha
+        self.dispositivoLembrado = dispositivoLembrado
+    }
+}
+
+public struct ResultadoReenvioDispositivoOTP: Equatable, Sendable {
+    public let desafioID: String
+    public let expiraEm: Date?
+    public let reenviarEmSegundos: Int
+
+    public init(desafioID: String, expiraEm: Date?, reenviarEmSegundos: Int) {
+        self.desafioID = desafioID
+        self.expiraEm = expiraEm
+        self.reenviarEmSegundos = reenviarEmSegundos
+    }
+}
+
+public struct EstadoAutenticacao: Equatable, Sendable {
+    public let autenticado: Bool
+    public let dispositivoVerificado: Bool
+    public let precisaDefinirSenha: Bool
+    public let temConta: Bool
+
+    public init(autenticado: Bool, dispositivoVerificado: Bool, precisaDefinirSenha: Bool, temConta: Bool) {
+        self.autenticado = autenticado
+        self.dispositivoVerificado = dispositivoVerificado
+        self.precisaDefinirSenha = precisaDefinirSenha
+        self.temConta = temConta
+    }
+}
+
 /// As operações do contrato que o app usa até a Sprint 2.
 public protocol ApiCliente: TurnoRepositorio, Sendable {
     // Entrada
     func solicitarCodigo(email: String) async throws
+    func solicitarCodigoDeRecuperacao(email: String) async throws
     func verificarCodigo(email: String, codigo: String) async throws
+    func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha
+    func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP
+    func reenviarDispositivoOTP(desafioID: String) async throws -> ResultadoReenvioDispositivoOTP
+    func definirSenha(_ novaSenha: String, manterDispositivoAtual: Bool) async throws
+    func revogarDispositivos() async throws -> Int
+    func estadoAutenticacao() async throws -> EstadoAutenticacao
     func entrarDemonstracao(email: String, codigo: String) async throws
     /// Se há sessão guardada neste aparelho (válida ou renovável), sem expor e-mail nem token.
     func possuiSessao() async -> Bool
@@ -758,6 +816,42 @@ public extension ApiCliente {
 
     func aceitarTermos(versao: String) async throws -> AceiteDeTermos {
         throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func solicitarCodigoDeRecuperacao(email: String) async throws {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func reenviarDispositivoOTP(desafioID: String) async throws -> ResultadoReenvioDispositivoOTP {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func definirSenha(_ novaSenha: String) async throws {
+        try await definirSenha(novaSenha, manterDispositivoAtual: false)
+    }
+
+    func definirSenha(_ novaSenha: String, manterDispositivoAtual: Bool) async throws {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func revogarDispositivos() async throws -> Int {
+        throw ErroDaApi(codigo: .respostaInvalida)
+    }
+
+    func estadoAutenticacao() async throws -> EstadoAutenticacao {
+        EstadoAutenticacao(autenticado: true, dispositivoVerificado: true, precisaDefinirSenha: false, temConta: true)
     }
 }
 

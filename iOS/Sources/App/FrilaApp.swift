@@ -636,6 +636,18 @@ private struct EntradaDoApp: View {
                     ),
                     api: api
                 )
+            case .definirSenhaObrigatoria:
+                NavigationStack {
+                    TelaDefinirSenha(api: api, permitirPular: false, manterDispositivoAtual: true) {
+                        Task { await avaliarSessao() }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Sair") { acaoDeSair() }
+                                .accessibilityIdentifier("definir-senha-sair")
+                        }
+                    }
+                }
             }
         } else {
             FluxoDeEntrada(api: api, verificadorDeIdade: verificadorDeIdade) { destino in
@@ -655,7 +667,7 @@ private struct EntradaDoApp: View {
         case .profissional: .profissional
         case .contratante: .contratante
         // A conta suspensa não tem fluxo: só os avisos da conta (suspensão e reativação) a reavaliam.
-        case .funcoesEHorarios, .cadastro, .contaSuspensa: .nenhum
+        case .funcoesEHorarios, .cadastro, .contaSuspensa, .definirSenhaObrigatoria: .nenhum
         }
         roteadorDePush.contaAtiva(ContaNoAparelho(contaID: contaID, fluxo: fluxo, vinculo: vinculo))
     }
@@ -855,6 +867,23 @@ private struct EntradaDoApp: View {
             destinoAtual = nil
             carregandoDestino = false
             return
+        }
+
+        if let estado = try? await api.estadoAutenticacao() {
+            if estado.autenticado, !estado.dispositivoVerificado {
+                await api.sair(tokenFCM: nil)
+                roteadorDePush.semSessao()
+                contaID = nil
+                destinoAtual = nil
+                carregandoDestino = false
+                return
+            }
+            if estado.precisaDefinirSenha {
+                contaID = nil
+                destinoAtual = .definirSenhaObrigatoria
+                carregandoDestino = false
+                return
+            }
         }
 
         do {

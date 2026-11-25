@@ -80,6 +80,8 @@ enum ContratoAPI {
         let estado: EstadoConta
         /// 0.2.90. Opcional: ausente, o app trata como não aceita.
         let termosVersao: String?
+        /// 0.2.112. Opcional: indica se a conta ainda precisa definir senha.
+        let precisaDefinirSenha: Bool?
 
         func dominio() throws -> Conta {
             guard let data = try? DataCivil(nascimento) else { throw ErroDeConversao(campo: "nascimento") }
@@ -90,6 +92,7 @@ enum ContratoAPI {
         enum CodingKeys: String, CodingKey {
             case id, perfil, nome, telefone, email, nascimento, estado
             case termosVersao = "termos_versao"
+            case precisaDefinirSenha = "precisa_definir_senha"
         }
     }
 
@@ -154,6 +157,150 @@ enum ContratoAPI {
     struct EntrarDemonstracao: Encodable {
         let email: String
         let codigo: String
+    }
+
+    struct AutenticarSenhaRequisicao: Encodable {
+        let email: String
+        let senha: String
+        let plataforma: String = "ios"
+        let deviceToken: String?
+
+        enum CodingKeys: String, CodingKey {
+            case email, senha, plataforma
+            case deviceToken = "device_token"
+        }
+    }
+
+    struct AutenticarSenhaRespostaDTO: Decodable {
+        let status: String
+        let sessao: SessaoDTO?
+        let precisaDefinirSenha: Bool?
+        let dispositivoExpiraEm: String?
+        let desafioID: String?
+        let expiraEm: String?
+        let descartarDeviceToken: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case status, sessao
+            case precisaDefinirSenha = "precisa_definir_senha"
+            case dispositivoExpiraEm = "dispositivo_expira_em"
+            case desafioID = "desafio_id"
+            case expiraEm = "expira_em"
+            case descartarDeviceToken = "descartar_device_token"
+        }
+    }
+
+    struct ConfirmarDispositivoOTPRequisicao: Encodable {
+        let tipo: String
+        let desafioID: String?
+        let email: String?
+        let codigo: String
+        let plataforma: String = "ios"
+        let lembrarDispositivo: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case tipo, email, codigo, plataforma
+            case desafioID = "desafio_id"
+            case lembrarDispositivo = "lembrar_dispositivo"
+        }
+    }
+
+    struct ConfirmarDispositivoOTPRespostaDTO: Decodable {
+        let sessao: SessaoDTO
+        let precisaDefinirSenha: Bool?
+        let deviceToken: String?
+        let dispositivoExpiraEm: String?
+
+        enum CodingKeys: String, CodingKey {
+            case sessao
+            case precisaDefinirSenha = "precisa_definir_senha"
+            case deviceToken = "device_token"
+            case dispositivoExpiraEm = "dispositivo_expira_em"
+        }
+    }
+
+    struct ReenviarDispositivoOTPRequisicao: Encodable {
+        let desafioID: String
+
+        enum CodingKeys: String, CodingKey {
+            case desafioID = "desafio_id"
+        }
+    }
+
+    struct ReenviarDispositivoOTPRespostaDTO: Decodable {
+        let ok: Bool
+        let desafioID: String
+        let expiraEm: String?
+        let reenviarEmSegundos: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case ok
+            case desafioID = "desafio_id"
+            case expiraEm = "expira_em"
+            case reenviarEmSegundos = "reenviar_em_segundos"
+        }
+    }
+
+    struct DefinirSenhaRequisicao: Encodable {
+        let novaSenha: String
+        let manterDispositivoAtual: Bool
+        let deviceTokenAtual: String?
+        let refreshToken: String?
+
+        enum CodingKeys: String, CodingKey {
+            case novaSenha = "nova_senha"
+            case manterDispositivoAtual = "manter_dispositivo_atual"
+            case deviceTokenAtual = "device_token_atual"
+            case refreshToken = "refresh_token"
+        }
+    }
+
+    struct DefinirSenhaRespostaDTO: Decodable {
+        let ok: Bool
+        let precisaDefinirSenha: Bool?
+        let dispositivosRevogados: Int?
+        let sessao: SessaoDTO?
+
+        enum CodingKeys: String, CodingKey {
+            case ok, sessao
+            case precisaDefinirSenha = "precisa_definir_senha"
+            case dispositivosRevogados = "dispositivos_revogados"
+        }
+    }
+
+    struct RevogarDispositivosRequisicao: Encodable {}
+
+    struct RevogarDispositivosRespostaDTO: Decodable {
+        let ok: Bool
+        let dispositivosRevogados: Int
+
+        enum CodingKeys: String, CodingKey {
+            case ok
+            case dispositivosRevogados = "dispositivos_revogados"
+        }
+    }
+
+    struct EstadoAutenticacaoDTO: Decodable {
+        let autenticado: Bool
+        let dispositivoVerificado: Bool
+        let precisaDefinirSenha: Bool
+        let temConta: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case autenticado
+            case dispositivoVerificado = "dispositivo_verificado"
+            case precisaDefinirSenha = "precisa_definir_senha"
+            case temConta = "tem_conta"
+        }
+
+        func dominio() -> EstadoAutenticacao {
+            EstadoAutenticacao(
+                autenticado: autenticado,
+                dispositivoVerificado: dispositivoVerificado,
+                precisaDefinirSenha: precisaDefinirSenha,
+                temConta: temConta
+            )
+        }
     }
 
     // MARK: Perfil profissional
@@ -1526,6 +1673,7 @@ enum ContratoAPI {
         let checkinTipo: TipoRegistro?
         let checkinDistanciaM: Int?
         let checkinConfirmadoEm: Date?
+        let confirmadoEm: Date?
         let checkoutEm: Date?
         let checkoutDistanciaM: Int?
         let verificacao: Verificacao
@@ -1545,6 +1693,7 @@ enum ContratoAPI {
             case checkinTipo = "checkin_tipo"
             case checkinDistanciaM = "checkin_distancia_m"
             case checkinConfirmadoEm = "checkin_confirmado_em"
+            case confirmadoEm = "confirmado_em"
             case checkoutEm = "checkout_em"
             case checkoutDistanciaM = "checkout_distancia_m"
             case valorAcordadoCentavos = "valor_acordado_centavos"
@@ -1565,6 +1714,7 @@ enum ContratoAPI {
             checkinTipo = try container.decodeIfPresent(String.self, forKey: .checkinTipo).flatMap(TipoRegistro.init(rawValue:))
             checkinDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkinDistanciaM)
             checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
+            confirmadoEm = try container.decodeIfPresent(Date.self, forKey: .confirmadoEm)
             checkoutEm = try container.decodeIfPresent(Date.self, forKey: .checkoutEm)
             checkoutDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkoutDistanciaM)
             verificacao = try container.decode(Verificacao.self, forKey: .verificacao)

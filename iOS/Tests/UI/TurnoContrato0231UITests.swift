@@ -164,19 +164,7 @@ final class TurnoContrato0231UITests: XCTestCase {
         XCTAssertTrue(sair.waitForExistence(timeout: Espera.aparecer))
         tocar(sair)
         tocar(app.buttons["botao-confirmar-saida-dialogo"])
-        let email = app.textFields["entrada-email"]
-        XCTAssertTrue(email.waitForExistence(timeout: 10))
-        tocar(email)
-        email.digitarEEsperar("teste@frila.app")
-        tocarFechandoTeclado(app.buttons["entrada-receber-codigo"], em: app)
-        let codigo = app.textFields["Código de acesso"]
-        XCTAssertTrue(codigo.waitForExistence(timeout: 10))
-        tocar(codigo)
-        // A tela do código avança sozinha ao completar os seis dígitos; o botão só aparece se ela não avançar.
-        codigo.typeText("123456")
-        if app.buttons["codigo-entrar"].waitForExistence(timeout: 2) {
-            app.buttons["codigo-entrar"].tap()
-        }
+        entrarComSenha(app, email: "teste@frila.app")
         abrirTurno(app)
         conferirAvaliacaoNegativa(app)
     }

@@ -4,6 +4,11 @@ import SwiftUI
 public enum RotaEntrada: Hashable, Sendable {
     case entrada
     case codigo(email: String)
+    case senha(email: String)
+    case desafioDispositivo(email: String, desafioID: String)
+    case recuperacao(email: String)
+    case codigoDeRecuperacao(email: String)
+    case definirSenhaAposRecuperacao(manterDispositivoAtual: Bool = false)
     case cadastro(email: String)
 }
 
@@ -13,16 +18,19 @@ public struct FluxoDeEntrada: View {
     private let verificadorDeIdade: any VerificadorDeIdade
     private let aoConcluir: (DestinoAposEntrada) -> Void
 
-    @State private var rotaAtual: RotaEntrada = .entrada
+    @State private var rotaAtual: RotaEntrada = .senha(email: "")
     @State private var entradaVM: EntradaViewModel
     @State private var codigoVM: CodigoViewModel?
+    @State private var entradaComSenhaVM: EntradaComSenhaViewModel?
+    @State private var recuperacaoVM: RecuperacaoSenhaViewModel?
+    @State private var destinoAposDefinirSenha: DestinoCodigo?
     @State private var cadastroVM: CadastroViewModel?
 
     public init(
         api: any ApiCliente,
         relogio: any Relogio = RelogioDoSistema(),
         verificadorDeIdade: any VerificadorDeIdade = VerificadorDeIdadeIndisponivel(),
-        rotaInicial: RotaEntrada = .entrada,
+        rotaInicial: RotaEntrada = .senha(email: ""),
         aoConcluir: @escaping (DestinoAposEntrada) -> Void
     ) {
         self.api = api
@@ -51,22 +59,30 @@ public struct FluxoDeEntrada: View {
         Group {
             switch rotaAtual {
             case .entrada:
-                TelaEntrada(viewModel: entradaVM) { email in
-                    codigoVM = CodigoViewModel(api: api, email: email)
-                    rotaAtual = .codigo(email: email)
-                }
+                TelaEntrada(
+                    viewModel: entradaVM,
+                    aoAvancarParaCodigo: { email in
+                        codigoVM = CodigoViewModel(api: api, email: email)
+                        rotaAtual = .codigo(email: email)
+                    },
+                    aoEntrarComSenha: { email in
+                        entradaComSenhaVM = EntradaComSenhaViewModel(api: api, emailInicial: email)
+                        rotaAtual = .senha(email: email)
+                    }
+                )
             case let .codigo(email):
                 if let codigoVM {
                     TelaCodigo(
                         viewModel: codigoVM,
                         aoVoltar: { rotaAtual = .entrada },
                         aoConcluir: { destino in
-                            switch destino {
-                            case let .cadastro(email):
-                                cadastroVM = CadastroViewModel(api: api, email: email, relogio: relogio, verificadorDeIdade: verificadorDeIdade)
-                                rotaAtual = .cadastro(email: email)
-                            case let .destino(destinoFinal):
-                                aoConcluir(destinoFinal)
+                            if DemonstracaoContas.ehEmailDeDemonstracao(email) {
+                                encaminharDestino(destino)
+                            } else {
+                                destinoAposDefinirSenha = destino
+                                rotaAtual = .definirSenhaAposRecuperacao(
+                                    manterDispositivoAtual: codigoVM.dispositivoLembradoNaConfirmacao
+                                )
                             }
                         }
                     )
@@ -75,6 +91,108 @@ public struct FluxoDeEntrada: View {
                         .onAppear {
                             codigoVM = CodigoViewModel(api: api, email: email)
                         }
+                }
+            case let .senha(email):
+                if let entradaComSenhaVM {
+                    TelaEntradaComSenha(
+                        viewModel: entradaComSenhaVM,
+                        aoCriarConta: { emailAtual in
+                            entradaVM.email = emailAtual
+                            rotaAtual = .entrada
+                        },
+                        aoEsqueciSenha: { emailAtual in
+                            recuperacaoVM = RecuperacaoSenhaViewModel(api: api, emailInicial: emailAtual)
+                            rotaAtual = .recuperacao(email: emailAtual)
+                        },
+                        aoConcluir: encaminharDestino
+                    )
+                } else {
+                    EstadoCarregando()
+                        .onAppear {
+                            entradaComSenhaVM = EntradaComSenhaViewModel(api: api, emailInicial: email)
+                        }
+                }
+            case let .desafioDispositivo(email, desafioID):
+                if let codigoVM {
+                    TelaCodigo(
+                        viewModel: codigoVM,
+                        aoVoltar: {
+                            entradaComSenhaVM = EntradaComSenhaViewModel(api: api, emailInicial: email)
+                            rotaAtual = .senha(email: email)
+                        },
+                        aoConcluir: { destino in
+                            if codigoVM.precisaDefinirSenhaAposConfirmacao {
+                                destinoAposDefinirSenha = destino
+                                rotaAtual = .definirSenhaAposRecuperacao(
+                                    manterDispositivoAtual: codigoVM.dispositivoLembradoNaConfirmacao
+                                )
+                            } else {
+                                encaminharDestino(destino)
+                            }
+                        }
+                    )
+                } else {
+                    EstadoCarregando()
+                        .onAppear {
+                            codigoVM = CodigoViewModel(api: api, email: email, modo: .loginDispositivo(desafioID: desafioID))
+                        }
+                }
+            case let .recuperacao(email):
+                if let recuperacaoVM {
+                    TelaRecuperacaoSenha(
+                        viewModel: recuperacaoVM,
+                        aoVoltar: { emailAtual in
+                            entradaComSenhaVM = EntradaComSenhaViewModel(api: api, emailInicial: emailAtual)
+                            rotaAtual = .senha(email: emailAtual)
+                        },
+                        aoAvancarParaCodigo: { emailAtual in
+                            codigoVM = CodigoViewModel(api: api, email: emailAtual, modo: .recuperacao)
+                            rotaAtual = .codigoDeRecuperacao(email: emailAtual)
+                        }
+                    )
+                } else {
+                    EstadoCarregando()
+                        .onAppear {
+                            recuperacaoVM = RecuperacaoSenhaViewModel(api: api, emailInicial: email)
+                        }
+                }
+            case let .codigoDeRecuperacao(email):
+                if let codigoVM {
+                    TelaCodigo(
+                        viewModel: codigoVM,
+                        aoVoltar: {
+                            recuperacaoVM = RecuperacaoSenhaViewModel(api: api, emailInicial: email)
+                            rotaAtual = .recuperacao(email: email)
+                        },
+                        aoConcluir: { destino in
+                            // Recuperação de senha nunca encaminha para criação de cadastro novo.
+                            if case .cadastro = destino {
+                                destinoAposDefinirSenha = nil
+                                rotaAtual = .senha(email: email)
+                                return
+                            }
+                            destinoAposDefinirSenha = destino
+                            rotaAtual = .definirSenhaAposRecuperacao(
+                                manterDispositivoAtual: codigoVM.dispositivoLembradoNaConfirmacao
+                            )
+                        }
+                    )
+                } else {
+                    EstadoCarregando()
+                        .onAppear {
+                            codigoVM = CodigoViewModel(api: api, email: email, modo: .recuperacao)
+                        }
+                }
+            case let .definirSenhaAposRecuperacao(manterDispositivoAtual):
+                NavigationStack {
+                    TelaDefinirSenha(api: api, permitirPular: false, manterDispositivoAtual: manterDispositivoAtual) {
+                        if let destino = destinoAposDefinirSenha {
+                            destinoAposDefinirSenha = nil
+                            encaminharDestino(destino)
+                        } else {
+                            rotaAtual = .senha(email: "")
+                        }
+                    }
                 }
             case let .cadastro(email):
                 if let cadastroVM {
@@ -91,6 +209,22 @@ public struct FluxoDeEntrada: View {
                         }
                 }
             }
+        }
+    }
+
+    private func encaminharDestino(_ destino: DestinoCodigo) {
+        switch destino {
+        case let .cadastro(email):
+            cadastroVM = CadastroViewModel(api: api, email: email, relogio: relogio, verificadorDeIdade: verificadorDeIdade)
+            rotaAtual = .cadastro(email: email)
+        case let .destino(destinoFinal):
+            aoConcluir(destinoFinal)
+        case let .desafioOTP(email, desafioID):
+            codigoVM = CodigoViewModel(api: api, email: email, modo: .loginDispositivo(desafioID: desafioID))
+            rotaAtual = .desafioDispositivo(email: email, desafioID: desafioID)
+        case let .definirSenha(proximo):
+            destinoAposDefinirSenha = proximo
+            rotaAtual = .definirSenhaAposRecuperacao(manterDispositivoAtual: true)
         }
     }
 }
