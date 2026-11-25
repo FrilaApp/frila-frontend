@@ -159,6 +159,35 @@ class AberturaSemEsperaDaConfiguracaoTest {
         esperarInterfacePronta()
     }
 
+    @Test
+    fun `guardada com mensagem A e resposta atrasada com mensagem nula volta para a mensagem padrao`() {
+        CacheDeConfiguracaoDoAppPreferencias(contexto).gravar(
+            versaoApp = BuildConfig.VERSION_NAME,
+            configuracao = ConfiguracaoDoAppDto(
+                plataforma = "android",
+                versaoMinima = "99.0.0",
+                mensagem = "Mensagem antiga A",
+            ),
+        )
+        val liberar = CompletableDeferred<Unit>()
+        abrirApp(
+            MockEngine {
+                liberar.await()
+                respond("""{"plataforma":"android","versao_minima":"99.0.0","mensagem":null,"recursos":{}}""", HttpStatusCode.OK, cabecalhoJson)
+            },
+        )
+        esperarDesdeAAbertura(LIMITE_DO_TESTE_MS) {
+            runCatching { rule.onNodeWithText("Mensagem antiga A").assertExists() }.isSuccess
+        }
+
+        liberar.complete(Unit)
+
+        rule.waitUntil(5_000) {
+            runCatching { rule.onNodeWithText(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO).assertExists() }.isSuccess
+        }
+        rule.onNodeWithText("Mensagem antiga A").assertDoesNotExist()
+    }
+
     companion object {
         /** Tempo real, a partir da abertura da Activity. Sem a correção a primeira tela com a chamada travada sai em cerca de 10 s
          * (o prazo da chamada); com ela, em 2 s mais a partida da Activity. A folga cobre a partida fria do Robolectric. */

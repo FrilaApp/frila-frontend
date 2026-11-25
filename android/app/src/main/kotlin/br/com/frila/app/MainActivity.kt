@@ -16,14 +16,11 @@ import androidx.fragment.app.FragmentActivity
 import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.abertura.AberturaAnimada
 import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
-import br.com.frila.core.designsystem.componentes.TextosAtualizacaoObrigatoria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -51,46 +48,19 @@ class MainActivity : FragmentActivity() {
                     }
                 }
                 var verificando by remember { mutableStateOf(cliente != null) }
-                var versaoMinima by remember { mutableStateOf<String?>(null) }
-                var chamadaDireta by remember { mutableStateOf(false) }
-                var buscaProfissionais by remember { mutableStateOf(false) }
-                var checkinPorCodigo by remember { mutableStateOf(false) }
-                var mensagemBloqueio by remember { mutableStateOf(TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO) }
-                var perfilRico by remember { mutableStateOf(false) }
-                var fotoDePerfil by remember { mutableStateOf(false) }
+                var estadoConfig by remember { mutableStateOf(EstadoDaConfiguracaoDoApp()) }
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
                         val cache = CacheDeConfiguracaoDoAppPreferencias(applicationContext)
-                        fun aplicar(configuracao: ConfiguracaoDoAppDto) {
-                            versaoMinima = configuracao.versaoMinima
-                            chamadaDireta = configuracao.recursos.chamadaDireta
-                            buscaProfissionais = configuracao.recursos.buscaProfissionais
-                            checkinPorCodigo = configuracao.recursos.checkinPorCodigo
-                            configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
-                            perfilRico = configuracao.recursos.perfilRico
-                            fotoDePerfil = configuracao.recursos.fotoDePerfil
-                        }
-                        // #795: a primeira tela não fica presa à chamada. Abre na hora com a última configuração guardada para esta
-                        // versão do app ou, sem ela, depois de TEMPO_MAXIMO_ABERTURA_MS; a resposta, quando chega, vale do mesmo jeito.
-                        val abertura = launch {
-                            val guardada = lerConfiguracaoGuardada(cache, BuildConfig.VERSION_NAME)
-                            if (guardada != null) aplicar(guardada) else delay(TEMPO_MAXIMO_ABERTURA_MS)
-                            verificando = false
-                        }
                         try {
-                            // 10 s; se estourar ou falhar, vale a última configuração guardada para esta versão do app.
-                            val configuracao = obterConfiguracaoDoApp(
+                            carregarConfiguracaoNaAbertura(
                                 cache = cache,
                                 versaoApp = BuildConfig.VERSION_NAME,
+                                aoAplicar = { estadoConfig = it },
+                                aoLiberarAbertura = { verificando = false },
                             ) { consultarConfiguracaoDoApp(cliente) }
-                            abertura.cancel() // a resposta chegou: a guardada não pode mais sobrescrevê-la
-                            if (configuracao != null) aplicar(configuracao)
-                        } catch (_: Exception) {
-                            // Falha transitória de rede ou offline nunca bloqueia o acesso
                         } finally {
-                            abertura.cancel()
-                            verificando = false
                             registrarAbertura("configuração do app resolvida", inicioDaActivity, aberturaCobrindo.get())
                         }
                     } else {
@@ -119,9 +89,9 @@ class MainActivity : FragmentActivity() {
                 ) {
                     PortaoDeAtualizacao(
                         versaoAtual = BuildConfig.VERSION_NAME,
-                        versaoMinima = versaoMinima,
+                        versaoMinima = estadoConfig.versaoMinima,
                         verificando = verificando,
-                        mensagem = mensagemBloqueio,
+                        mensagem = estadoConfig.mensagemBloqueio,
                         aoAtualizar = {
                             val uriLoja = Uri.parse("market://details?id=$packageName")
                             val intent = Intent(Intent.ACTION_VIEW, uriLoja).apply {
@@ -142,11 +112,11 @@ class MainActivity : FragmentActivity() {
                         },
                     ) {
                         AppNavegacao(
-                            perfilRicoHabilitado = perfilRico,
-                            fotoDePerfilHabilitada = fotoDePerfil,
-                            chamadaDiretaHabilitada = chamadaDireta,
-                            buscaProfissionaisHabilitada = buscaProfissionais,
-                            checkinPorCodigoHabilitado = checkinPorCodigo,
+                            perfilRicoHabilitado = estadoConfig.perfilRico,
+                            fotoDePerfilHabilitada = estadoConfig.fotoDePerfil,
+                            chamadaDiretaHabilitada = estadoConfig.chamadaDireta,
+                            buscaProfissionaisHabilitada = estadoConfig.buscaProfissionais,
+                            checkinPorCodigoHabilitado = estadoConfig.checkinPorCodigo,
                             aoPronto = {
                                 MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                                 registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())
