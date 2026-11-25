@@ -14911,1664 +14911,1664 @@
         }
       }
     },
-    "Ao desbloquear %@, vocês voltam a se cruzar em notificações, listas e candidaturas." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ao desbloquear %@, vocês voltam a se cruzar em notificações, listas e candidaturas."
+    "Ao desbloquear %@, vocês voltam a se cruzar em notificações, listas e candidaturas.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao desbloquear %@, vocês voltam a se cruzar em notificações, listas e candidaturas."
           }
         }
       }
     },
-    "Desbloquear" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear"
+    "Desbloquear": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear"
           }
         }
       }
     },
-    "Desbloquear este perfil?" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear este perfil?"
+    "Desbloquear este perfil?": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear este perfil?"
           }
         }
       }
     },
-    "Não foi possível carregar os bloqueios. Tente novamente." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível carregar os bloqueios. Tente novamente."
+    "Não foi possível carregar os bloqueios. Tente novamente.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os bloqueios. Tente novamente."
           }
         }
       }
     },
-    "Não foi possível desfazer o bloqueio. Tente novamente." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível desfazer o bloqueio. Tente novamente."
+    "Não foi possível desfazer o bloqueio. Tente novamente.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível desfazer o bloqueio. Tente novamente."
           }
         }
       }
     },
-    "Nenhum bloqueio ativo" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nenhum bloqueio ativo"
+    "Nenhum bloqueio ativo": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum bloqueio ativo"
           }
         }
       }
     },
-    "Pessoas e estabelecimentos que você bloqueou. Ao desbloquear, vocês voltam a se cruzar em vagas, notificações e candidaturas." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pessoas e estabelecimentos que você bloqueou. Ao desbloquear, vocês voltam a se cruzar em vagas, notificações e candidaturas."
+    "Pessoas e estabelecimentos que você bloqueou. Ao desbloquear, vocês voltam a se cruzar em vagas, notificações e candidaturas.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pessoas e estabelecimentos que você bloqueou. Ao desbloquear, vocês voltam a se cruzar em vagas, notificações e candidaturas."
           }
         }
       }
     },
-    "Pessoas e locais bloqueados" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pessoas e locais bloqueados"
+    "Pessoas e locais bloqueados": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pessoas e locais bloqueados"
           }
         }
       }
     },
-    "Quando você bloquear uma pessoa ou um estabelecimento, eles aparecerão aqui." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quando você bloquear uma pessoa ou um estabelecimento, eles aparecerão aqui."
+    "Quando você bloquear uma pessoa ou um estabelecimento, eles aparecerão aqui.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você bloquear uma pessoa ou um estabelecimento, eles aparecerão aqui."
           }
         }
       }
     },
-    "Sem conexão. Mostrando os bloqueios salvos neste aparelho." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sem conexão. Mostrando os bloqueios salvos neste aparelho."
+    "Sem conexão. Mostrando os bloqueios salvos neste aparelho.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão. Mostrando os bloqueios salvos neste aparelho."
           }
         }
       }
     },
-    "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser no seu perfil." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser no seu perfil."
+    "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser no seu perfil.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocês não voltam a se cruzar em notificações, listas ou candidaturas. O bloqueio vale para todo o estabelecimento e você pode desfazer quando quiser no seu perfil."
           }
         }
       }
     },
-    "Vocês voltam a se cruzar em notificações, listas e candidaturas." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vocês voltam a se cruzar em notificações, listas e candidaturas."
+    "Vocês voltam a se cruzar em notificações, listas e candidaturas.": {
+      "extractionState": "stale",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vocês voltam a se cruzar em notificações, listas e candidaturas."
           }
         }
       }
     },
-    "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo."
+    "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo."
           }
         }
       }
     },
-    "A busca de profissionais está indisponível no momento." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A busca de profissionais está indisponível no momento."
+    "A busca de profissionais está indisponível no momento.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A busca de profissionais está indisponível no momento."
           }
         }
       }
     },
-    "Não foi possível buscar agora. Verifique sua conexão e tente novamente." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível buscar agora. Verifique sua conexão e tente novamente."
+    "Não foi possível buscar agora. Verifique sua conexão e tente novamente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível buscar agora. Verifique sua conexão e tente novamente."
           }
         }
       }
     },
-    "Não foi possível carregar mais profissionais. Tente novamente." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível carregar mais profissionais. Tente novamente."
+    "Não foi possível carregar mais profissionais. Tente novamente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar mais profissionais. Tente novamente."
           }
         }
       }
     },
-    "Você pode chamar até 3 profissionais de uma vez." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você pode chamar até 3 profissionais de uma vez."
+    "Você pode chamar até 3 profissionais de uma vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode chamar até 3 profissionais de uma vez."
           }
         }
       }
     },
-    "Sua conta não tem permissão para buscar profissionais." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua conta não tem permissão para buscar profissionais."
+    "Sua conta não tem permissão para buscar profissionais.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta não tem permissão para buscar profissionais."
           }
         }
       }
     },
-    "Sua conta está suspensa e não pode buscar profissionais agora." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua conta está suspensa e não pode buscar profissionais agora."
+    "Sua conta está suspensa e não pode buscar profissionais agora.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa e não pode buscar profissionais agora."
           }
         }
       }
     },
-    "Encontrar profissional" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Encontrar profissional"
+    "Encontrar profissional": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encontrar profissional"
           }
         }
       }
     },
-    "Filtros" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filtros"
+    "Filtros": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtros"
           }
         }
       }
     },
-    "Serviço" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serviço"
+    "Serviço": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serviço"
           }
         }
       }
     },
-    "Escolha um serviço" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escolha um serviço"
+    "Escolha um serviço": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um serviço"
           }
         }
       }
     },
-    "Região" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Região"
+    "Região": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Região"
           }
         }
       }
     },
-    "Região do meu estabelecimento" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Região do meu estabelecimento"
+    "Região do meu estabelecimento": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Região do meu estabelecimento"
           }
         }
       }
     },
-    "Buscar por horário" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar por horário"
+    "Buscar por horário": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar por horário"
           }
         }
       }
     },
-    "Buscando profissionais" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscando profissionais"
+    "Buscando profissionais": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando profissionais"
           }
         }
       }
     },
-    "Profissionais" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Profissionais"
+    "Profissionais": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profissionais"
           }
         }
       }
     },
-    "Disponível nesse horário" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disponível nesse horário"
+    "Disponível nesse horário": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disponível nesse horário"
           }
         }
       }
     },
-    "Sem avaliações ainda" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sem avaliações ainda"
+    "Sem avaliações ainda": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem avaliações ainda"
           }
         }
       }
     },
-    "Nenhum profissional encontrado com esses filtros. Você pode publicar a vaga para todos." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nenhum profissional encontrado com esses filtros. Você pode publicar a vaga para todos."
+    "Nenhum profissional encontrado com esses filtros. Você pode publicar a vaga para todos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum profissional encontrado com esses filtros. Você pode publicar a vaga para todos."
           }
         }
       }
     },
-    "Carregar mais" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carregar mais"
+    "Carregar mais": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregar mais"
           }
         }
       }
     },
-    "Chamar selecionados" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chamar selecionados"
+    "Chamar selecionados": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamar selecionados"
           }
         }
       }
     },
-    "%lld de 3 selecionados" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld de 3 selecionados"
+    "%lld de 3 selecionados": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de 3 selecionados"
           }
         }
       }
     },
-    "Selecionar %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selecionar %@"
+    "Selecionar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecionar %@"
           }
         }
       }
     },
-    "Desmarcar %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desmarcar %@"
+    "Desmarcar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desmarcar %@"
           }
         }
       }
     },
-    "Chamar profissionais" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chamar profissionais"
+    "Chamar profissionais": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamar profissionais"
           }
         }
       }
     },
-    "O mesmo valor total e o mesmo horário vão para cada profissional selecionado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O mesmo valor total e o mesmo horário vão para cada profissional selecionado."
+    "O mesmo valor total e o mesmo horário vão para cada profissional selecionado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O mesmo valor total e o mesmo horário vão para cada profissional selecionado."
           }
         }
       }
     },
-    "Enviar chamadas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviar chamadas"
+    "Enviar chamadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar chamadas"
           }
         }
       }
     },
-    "Chamada enviada" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chamada enviada"
+    "Chamada enviada": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamada enviada"
           }
         }
       }
     },
-    "Falta confirmar o aviso da chamada recorrente" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Falta confirmar o aviso da chamada recorrente"
+    "Falta confirmar o aviso da chamada recorrente": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta confirmar o aviso da chamada recorrente"
           }
         }
       }
     },
-    "Resultado das chamadas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resultado das chamadas"
+    "Resultado das chamadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultado das chamadas"
           }
         }
       }
     },
-    "Aceito chamadas diretas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aceito chamadas diretas"
+    "Aceito chamadas diretas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceito chamadas diretas"
           }
         }
       }
     },
-    "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga."
+    "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem contrata pode te achar na busca e te chamar direto, sem publicar uma vaga."
           }
         }
       }
     },
-    "Você aparece na busca de profissionais." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você aparece na busca de profissionais."
+    "Você aparece na busca de profissionais.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você aparece na busca de profissionais."
           }
         }
       }
     },
-    "Para aparecer na busca falta:" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Para aparecer na busca falta:"
+    "Para aparecer na busca falta:": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para aparecer na busca falta:"
           }
         }
       }
     },
-    "Cadastrar ao menos um serviço com preço." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cadastrar ao menos um serviço com preço."
+    "Cadastrar ao menos um serviço com preço.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadastrar ao menos um serviço com preço."
           }
         }
       }
     },
-    "Marcar uma região de atendimento ou \"Atendo todo o DF\"." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Marcar uma região de atendimento ou \"Atendo todo o DF\"."
+    "Marcar uma região de atendimento ou \"Atendo todo o DF\".": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcar uma região de atendimento ou \"Atendo todo o DF\"."
           }
         }
       }
     },
-    "Terminar a pausa de novas chamadas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminar a pausa de novas chamadas."
+    "Terminar a pausa de novas chamadas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminar a pausa de novas chamadas."
           }
         }
       }
     },
-    "Atualizar o app em um dos seus aparelhos." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atualizar o app em um dos seus aparelhos."
+    "Atualizar o app em um dos seus aparelhos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar o app em um dos seus aparelhos."
           }
         }
       }
     },
-    "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo."
+    "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não saiu: o envio ficou incerto. Toque em Chamar selecionados para tentar de novo."
           }
         }
       }
     },
-    "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo."
+    "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo."
           }
         }
       }
     },
-    "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas."
+    "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um envio ficou incerto e a vaga pode já ter sido criada. Toque em Tentar de novo para concluir antes de buscar ou trocar as pessoas escolhidas."
           }
         }
       }
     },
-    "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade."
+    "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para continuar, leia e aceite os Termos de Uso e a Política de Privacidade."
           }
         }
       }
     },
-    "Esta chamada vai com os termos da vaga já aberta: %@" : {
-      "comment" : "Tela provisória da busca (409 trabalho_ja_aberto). %@ é o valor e os inclusos da vaga já aberta, por exemplo: R$ 150,00, Refeição inclusa, sem transporte.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta chamada vai com os termos da vaga já aberta: %@"
+    "Esta chamada vai com os termos da vaga já aberta: %@": {
+      "comment": "Tela provisória da busca (409 trabalho_ja_aberto). %@ é o valor e os inclusos da vaga já aberta, por exemplo: R$ 150,00, Refeição inclusa, sem transporte.",
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta chamada vai com os termos da vaga já aberta: %@"
           }
         }
       }
     },
-    "Publicar escala do evento" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Publicar escala do evento"
+    "Publicar escala do evento": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar escala do evento"
           }
         }
       }
     },
-    "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma."
+    "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um evento com várias funções: cada uma vira uma vaga. Ou entram todas, ou nenhuma."
           }
         }
       }
     },
-    "O evento é no endereço da casa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O evento é no endereço da casa"
+    "O evento é no endereço da casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O evento é no endereço da casa"
           }
         }
       }
     },
-    "Nome do evento" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nome do evento"
+    "Nome do evento": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome do evento"
           }
         }
       }
     },
-    "Ex.: Formatura de Direito" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ex.: Formatura de Direito"
+    "Ex.: Formatura de Direito": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ex.: Formatura de Direito"
           }
         }
       }
     },
-    "Dia do evento" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dia do evento"
+    "Dia do evento": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dia do evento"
           }
         }
       }
     },
-    "Quem recebe os profissionais no local" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quem recebe os profissionais no local"
+    "Quem recebe os profissionais no local": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem recebe os profissionais no local"
           }
         }
       }
     },
-    "Vale para todas as vagas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vale para todas as vagas"
+    "Vale para todas as vagas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale para todas as vagas"
           }
         }
       }
     },
-    "Vagas da escala" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vagas da escala"
+    "Vagas da escala": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vagas da escala"
           }
         }
       }
     },
-    "Vaga %d de %d" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaga %d de %d"
+    "Vaga %d de %d": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga %d de %d"
           }
         }
       }
     },
-    "Escolher função" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escolher função"
+    "Escolher função": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher função"
           }
         }
       }
     },
-    "Pessoas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pessoas"
+    "Pessoas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pessoas"
           }
         }
       }
     },
-    "%d pessoas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d pessoas"
+    "%d pessoas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d pessoas"
           }
         }
       }
     },
-    "1 pessoa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 pessoa"
+    "1 pessoa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 pessoa"
           }
         }
       }
     },
-    "Uma pessoa a menos" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uma pessoa a menos"
+    "Uma pessoa a menos": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma pessoa a menos"
           }
         }
       }
     },
-    "Uma pessoa a mais" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uma pessoa a mais"
+    "Uma pessoa a mais": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma pessoa a mais"
           }
         }
       }
     },
-    "Remover esta vaga" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remover esta vaga"
+    "Remover esta vaga": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover esta vaga"
           }
         }
       }
     },
-    "Adicionar outra vaga" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adicionar outra vaga"
+    "Adicionar outra vaga": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar outra vaga"
           }
         }
       }
     },
-    "Uma escala tem até %d vagas. Para mais, publique outra escala." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uma escala tem até %d vagas. Para mais, publique outra escala."
+    "Uma escala tem até %d vagas. Para mais, publique outra escala.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma escala tem até %d vagas. Para mais, publique outra escala."
           }
         }
       }
     },
-    "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também."
+    "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na escala, cada vaga leva até 100 pessoas, e a soma de todas também."
           }
         }
       }
     },
-    "Total: %d de 100 pessoas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total: %d de 100 pessoas"
+    "Total: %d de 100 pessoas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total: %d de 100 pessoas"
           }
         }
       }
     },
-    "Função da vaga" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Função da vaga"
+    "Função da vaga": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Função da vaga"
           }
         }
       }
     },
-    "Publicar escala" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Publicar escala"
+    "Publicar escala": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar escala"
           }
         }
       }
     },
-    "Publicando…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Publicando…"
+    "Publicando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicando…"
           }
         }
       }
     },
-    "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos."
+    "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escala publicada: %d vagas. Os profissionais são avisados em até 30 segundos."
           }
         }
       }
     },
-    "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos."
+    "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escala publicada: 1 vaga. Os profissionais são avisados em até 30 segundos."
           }
         }
       }
     },
-    "Ver em Minhas vagas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ver em Minhas vagas"
+    "Ver em Minhas vagas": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver em Minhas vagas"
           }
         }
       }
     },
-    "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados."
+    "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dê um nome ao evento, de 3 a 100 letras, sem termos que não podem ser publicados."
           }
         }
       }
     },
-    "Informe o dia do evento." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Informe o dia do evento."
+    "Informe o dia do evento.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe o dia do evento."
           }
         }
       }
     },
-    "Informe quem recebe os profissionais no local." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Informe quem recebe os profissionais no local."
+    "Informe quem recebe os profissionais no local.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe quem recebe os profissionais no local."
           }
         }
       }
     },
-    "Escolha a função desta vaga." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escolha a função desta vaga."
+    "Escolha a função desta vaga.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha a função desta vaga."
           }
         }
       }
     },
-    "Informe de 1 a 100 pessoas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Informe de 1 a 100 pessoas."
+    "Informe de 1 a 100 pessoas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe de 1 a 100 pessoas."
           }
         }
       }
     },
-    "Confira os campos indicados." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confira os campos indicados."
+    "Confira os campos indicados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira os campos indicados."
           }
         }
       }
     },
-    "Confira os campos marcados antes de publicar. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confira os campos marcados antes de publicar. Nada foi publicado."
+    "Confira os campos marcados antes de publicar. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira os campos marcados antes de publicar. Nada foi publicado."
           }
         }
       }
     },
-    "Uma escala tem de 1 a 10 vagas. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uma escala tem de 1 a 10 vagas. Nada foi publicado."
+    "Uma escala tem de 1 a 10 vagas. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma escala tem de 1 a 10 vagas. Nada foi publicado."
           }
         }
       }
     },
-    "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado."
+    "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A escala passou de 100 pessoas somando todas as vagas. Diminua ou publique outra escala. Nada foi publicado."
           }
         }
       }
     },
-    "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado."
+    "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira o endereço no cadastro da casa e tente de novo. Nada foi publicado."
           }
         }
       }
     },
-    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas."
+    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas."
           }
         }
       }
     },
-    "Não foi possível publicar a escala. Nada foi publicado. Tente novamente." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível publicar a escala. Nada foi publicado. Tente novamente."
+    "Não foi possível publicar a escala. Nada foi publicado. Tente novamente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível publicar a escala. Nada foi publicado. Tente novamente."
           }
         }
       }
     },
-    "Sua conta não pode publicar escalas nesta casa. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua conta não pode publicar escalas nesta casa. Nada foi publicado."
+    "Sua conta não pode publicar escalas nesta casa. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta não pode publicar escalas nesta casa. Nada foi publicado."
           }
         }
       }
     },
-    "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado."
+    "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa e não pode publicar escalas. Nada foi publicado."
           }
         }
       }
     },
-    "Só quem contrata publica escalas. Nada foi publicado." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Só quem contrata publica escalas. Nada foi publicado."
+    "Só quem contrata publica escalas. Nada foi publicado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só quem contrata publica escalas. Nada foi publicado."
           }
         }
       }
     },
-    "Opcional" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opcional"
+    "Opcional": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional"
           }
         }
       }
     },
-    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo."
+    "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não sabemos se a escala foi publicada. Toque em Tentar de novo: a mesma escala é enviada, sem repetir vagas. Se fechar o app, confira em Minhas vagas antes de publicar de novo."
           }
         }
       }
     },
-    "Equipe da casa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Equipe da casa"
+    "Equipe da casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equipe da casa"
           }
         }
       }
     },
-    "Tenho um convite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tenho um convite"
+    "Tenho um convite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tenho um convite"
           }
         }
       }
     },
-    "Trocar de casa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trocar de casa"
+    "Trocar de casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trocar de casa"
           }
         }
       }
     },
-    "Quem você convidar entra com o próprio e-mail e passa a usar o Frila por esta casa, como administrador ou operador." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quem você convidar entra com o próprio e-mail e passa a usar o Frila por esta casa, como administrador ou operador."
+    "Quem você convidar entra com o próprio e-mail e passa a usar o Frila por esta casa, como administrador ou operador.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem você convidar entra com o próprio e-mail e passa a usar o Frila por esta casa, como administrador ou operador."
           }
         }
       }
     },
-    "Só o administrador da casa gerencia as pessoas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Só o administrador da casa gerencia as pessoas."
+    "Só o administrador da casa gerencia as pessoas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só o administrador da casa gerencia as pessoas."
           }
         }
       }
     },
-    "Quem faz parte da casa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quem faz parte da casa"
+    "Quem faz parte da casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quem faz parte da casa"
           }
         }
       }
     },
-    "Nenhuma pessoa na lista da casa." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nenhuma pessoa na lista da casa."
+    "Nenhuma pessoa na lista da casa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma pessoa na lista da casa."
           }
         }
       }
     },
-    "Você" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você"
+    "Você": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você"
           }
         }
       }
     },
-    "Desde %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desde %@"
+    "Desde %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde %@"
           }
         }
       }
     },
-    "Convidar alguém" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convidar alguém"
+    "Convidar alguém": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convidar alguém"
           }
         }
       }
     },
-    "E-mail de quem você vai convidar" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "E-mail de quem você vai convidar"
+    "E-mail de quem você vai convidar": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail de quem você vai convidar"
           }
         }
       }
     },
-    "Papel de quem entra" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Papel de quem entra"
+    "Papel de quem entra": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Papel de quem entra"
           }
         }
       }
     },
-    "Gerar convite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gerar convite"
+    "Gerar convite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerar convite"
           }
         }
       }
     },
-    "Gerando…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gerando…"
+    "Gerando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerando…"
           }
         }
       }
     },
-    "Convite pronto. Mande o link à pessoa. Ele vale uma vez, até %@." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convite pronto. Mande o link à pessoa. Ele vale uma vez, até %@."
+    "Convite pronto. Mande o link à pessoa. Ele vale uma vez, até %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convite pronto. Mande o link à pessoa. Ele vale uma vez, até %@."
           }
         }
       }
     },
-    "Convite pronto. Mande o link à pessoa. Ele vale uma vez." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convite pronto. Mande o link à pessoa. Ele vale uma vez."
+    "Convite pronto. Mande o link à pessoa. Ele vale uma vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convite pronto. Mande o link à pessoa. Ele vale uma vez."
           }
         }
       }
     },
-    "Convite para %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convite para %@"
+    "Convite para %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convite para %@"
           }
         }
       }
     },
-    "Link do convite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link do convite"
+    "Link do convite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link do convite"
           }
         }
       }
     },
-    "Compartilhar convite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compartilhar convite"
+    "Compartilhar convite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartilhar convite"
           }
         }
       }
     },
-    "Convite para a casa no Frila" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convite para a casa no Frila"
+    "Convite para a casa no Frila": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convite para a casa no Frila"
           }
         }
       }
     },
-    "Remover %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remover %@"
+    "Remover %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover %@"
           }
         }
       }
     },
-    "Tornar administrador" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tornar administrador"
+    "Tornar administrador": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tornar administrador"
           }
         }
       }
     },
-    "Tornar %@ administrador" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tornar %@ administrador"
+    "Tornar %@ administrador": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tornar %@ administrador"
           }
         }
       }
     },
-    "Remover esta pessoa?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remover esta pessoa?"
+    "Remover esta pessoa?": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover esta pessoa?"
           }
         }
       }
     },
-    "%@ deixará de ter acesso a esta casa." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ deixará de ter acesso a esta casa."
+    "%@ deixará de ter acesso a esta casa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ deixará de ter acesso a esta casa."
           }
         }
       }
     },
-    "Tornar administrador?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tornar administrador?"
+    "Tornar administrador?": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tornar administrador?"
           }
         }
       }
     },
-    "%@ poderá administrar a casa. Seu acesso não é removido por esta ação." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ poderá administrar a casa. Seu acesso não é removido por esta ação."
+    "%@ poderá administrar a casa. Seu acesso não é removido por esta ação.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ poderá administrar a casa. Seu acesso não é removido por esta ação."
           }
         }
       }
     },
-    "Pessoa removida da casa." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pessoa removida da casa."
+    "Pessoa removida da casa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pessoa removida da casa."
           }
         }
       }
     },
-    "A pessoa agora é administradora da casa." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A pessoa agora é administradora da casa."
+    "A pessoa agora é administradora da casa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pessoa agora é administradora da casa."
           }
         }
       }
     },
-    "Escolha o papel." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escolha o papel."
+    "Escolha o papel.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha o papel."
           }
         }
       }
     },
-    "Sua conta está suspensa. Não é possível gerenciar as pessoas da casa agora." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua conta está suspensa. Não é possível gerenciar as pessoas da casa agora."
+    "Sua conta está suspensa. Não é possível gerenciar as pessoas da casa agora.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua conta está suspensa. Não é possível gerenciar as pessoas da casa agora."
           }
         }
       }
     },
-    "Esta casa ou pessoa não está mais disponível. Reabra a lista." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta casa ou pessoa não está mais disponível. Reabra a lista."
+    "Esta casa ou pessoa não está mais disponível. Reabra a lista.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta casa ou pessoa não está mais disponível. Reabra a lista."
           }
         }
       }
     },
-    "Não é possível remover o último administrador. Torne outra pessoa administradora antes." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não é possível remover o último administrador. Torne outra pessoa administradora antes."
+    "Não é possível remover o último administrador. Torne outra pessoa administradora antes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível remover o último administrador. Torne outra pessoa administradora antes."
           }
         }
       }
     },
-    "Sua sessão expirou. Entre de novo." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sua sessão expirou. Entre de novo."
+    "Sua sessão expirou. Entre de novo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua sessão expirou. Entre de novo."
           }
         }
       }
     },
-    "Não foi possível concluir agora. Tente novamente." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível concluir agora. Tente novamente."
+    "Não foi possível concluir agora. Tente novamente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível concluir agora. Tente novamente."
           }
         }
       }
     },
-    "Não foi possível ler as pessoas da casa." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível ler as pessoas da casa."
+    "Não foi possível ler as pessoas da casa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler as pessoas da casa."
           }
         }
       }
     },
-    "Cole aqui o link do convite que você recebeu." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cole aqui o link do convite que você recebeu."
+    "Cole aqui o link do convite que você recebeu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole aqui o link do convite que você recebeu."
           }
         }
       }
     },
-    "Link ou código do convite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link ou código do convite"
+    "Link ou código do convite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link ou código do convite"
           }
         }
       }
     },
-    "Cole o link ou o código" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cole o link ou o código"
+    "Cole o link ou o código": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole o link ou o código"
           }
         }
       }
     },
-    "Aceitar convite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aceitar convite"
+    "Aceitar convite": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceitar convite"
           }
         }
       }
     },
-    "Aceitando…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aceitando…"
+    "Aceitando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceitando…"
           }
         }
       }
     },
-    "Convite aceito" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convite aceito"
+    "Convite aceito": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convite aceito"
           }
         }
       }
     },
-    "Você agora faz parte da casa como %@." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você agora faz parte da casa como %@."
+    "Você agora faz parte da casa como %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você agora faz parte da casa como %@."
           }
         }
       }
     },
-    "Você agora faz parte da casa." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Você agora faz parte da casa."
+    "Você agora faz parte da casa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você agora faz parte da casa."
           }
         }
       }
     },
-    "Abrir a casa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir a casa"
+    "Abrir a casa": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir a casa"
           }
         }
       }
     },
-    "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada."
+    "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada."
           }
         }
       }
     },
-    "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou."
+    "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou."
           }
         }
       }
     },
-    "Convites de casa são para contas de quem contrata. A sua conta é de profissional." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Convites de casa são para contas de quem contrata. A sua conta é de profissional."
+    "Convites de casa são para contas de quem contrata. A sua conta é de profissional.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convites de casa são para contas de quem contrata. A sua conta é de profissional."
           }
         }
       }
     },
-    "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta."
+    "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta."
           }
         }
       }
     },
-    "Escolha de qual casa você quer cuidar agora." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escolha de qual casa você quer cuidar agora."
+    "Escolha de qual casa você quer cuidar agora.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha de qual casa você quer cuidar agora."
           }
         }
       }
     },
-    "Não foi possível carregar suas casas." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Não foi possível carregar suas casas."
+    "Não foi possível carregar suas casas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar suas casas."
           }
         }
       }
     },
-    "Outro papel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Outro papel"
+    "Outro papel": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro papel"
           }
         }
       }
@@ -16892,7 +16892,211 @@
           }
         }
       }
+    },
+    "Sair de todos os dispositivos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log out of all devices"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair de todos os dispositivos"
+          }
+        }
+      }
+    },
+    "Sair de todos os dispositivos?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log out of all devices?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair de todos os dispositivos?"
+          }
+        }
+      }
+    },
+    "Sair de todos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log out of all"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sair de todos"
+          }
+        }
+      }
+    },
+    "Encerra todas as sessões e exige código por e-mail na próxima entrada em qualquer aparelho.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends all sessions and requires an email code on next sign-in on any device."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerra todas as sessões e exige código por e-mail na próxima entrada em qualquer aparelho."
+          }
+        }
+      }
+    },
+    "Todas as sessões e dispositivos confiáveis serão desconectados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All sessions and trusted devices will be signed out."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas as sessões e dispositivos confiáveis serão desconectados."
+          }
+        }
+      }
+    },
+    "Código expirado. Volte e entre novamente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code expired. Go back and sign in again."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código expirado. Volte e entre novamente."
+          }
+        }
+      }
+    },
+    "Este código já foi usado. Peça um novo código para continuar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This code has already been used. Request a new code to continue."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este código já foi usado. Peça um novo código para continuar."
+          }
+        }
+      }
+    },
+    "Confirme este dispositivo com um código por e-mail antes de continuar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm this device with an email code before continuing."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirme este dispositivo com um código por e-mail antes de continuar."
+          }
+        }
+      }
+    },
+    "Enviamos um código de 6 dígitos para %@ para confirmar este dispositivo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We sent a 6-digit code to %@ to confirm this device."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviamos um código de 6 dígitos para %@ para confirmar este dispositivo."
+          }
+        }
+      }
+    },
+    "Lembrar este dispositivo por 30 dias": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remember this device for 30 days"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembrar este dispositivo por 30 dias"
+          }
+        }
+      }
+    },
+    "Se marcado, não pediremos um código neste aparelho pelos próximos 30 dias.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If checked, we will not ask for a code on this device for the next 30 days."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se marcado, não pediremos um código neste aparelho pelos próximos 30 dias."
+          }
+        }
+      }
+    },
+    "Confirme este dispositivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm this device"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirme este dispositivo"
+          }
+        }
+      }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

@@ -2,9 +2,11 @@ import Foundation
 import FrilaDominio
 import Observation
 
-public enum DestinoCodigo: Equatable, Sendable {
+public indirect enum DestinoCodigo: Equatable, Sendable {
     case cadastro(email: String)
     case destino(DestinoAposEntrada)
+    case desafioOTP(email: String, desafioID: String)
+    case definirSenha(DestinoCodigo)
 }
 
 @MainActor @Observable
@@ -12,6 +14,7 @@ public final class CodigoViewModel {
     public enum Modo: Equatable, Sendable {
         case entrada
         case recuperacao
+        case loginDispositivo(desafioID: String)
     }
 
     private let api: any ApiCliente
@@ -32,6 +35,9 @@ public final class CodigoViewModel {
     public var erro: String?
     public var mensagemInformativa: String?
     public var avisoDeColagem: String?
+    public var lembrarDispositivo: Bool = false
+    public private(set) var precisaDefinirSenhaAposConfirmacao: Bool = false
+    public private(set) var dispositivoLembradoNaConfirmacao: Bool = false
 
     /// Quanto tempo o código vale depois de enviado: 600 s (10 min), o `mailer_otp_exp` do Auth no Prod
     /// (confirmado pela Forja em 13/11/2026; o e-mail diz o mesmo). Mudou no Auth? Mude aqui no mesmo dia.
@@ -40,6 +46,7 @@ public final class CodigoViewModel {
     private let relogio: any Relogio
     /// Quando o último código foi pedido (primeiro envio ou reenvio).
     private var codigoPedidoEm: Date
+    private var desafioIDAtual: String?
     private var tarefaTemporizador: Task<Void, Never>?
 
     public init(api: any ApiCliente, email: String, modo: Modo = .entrada, relogio: any Relogio = RelogioDoSistema()) {
@@ -48,12 +55,15 @@ public final class CodigoViewModel {
         self.relogio = relogio
         self.codigoPedidoEm = relogio.agora
         self.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if case let .loginDispositivo(desafioID) = modo {
+            self.desafioIDAtual = desafioID
+        }
         iniciarTemporizador()
     }
 
-    public func iniciarTemporizador() {
+    public func iniciarTemporizador(segundos: Int = 60) {
         codigoPedidoEm = relogio.agora
-        segundosRestantes = 60
+        segundosRestantes = max(1, segundos)
         tarefaTemporizador?.cancel()
         tarefaTemporizador = Task { [weak self] in
             while true {
@@ -153,6 +163,27 @@ public final class CodigoViewModel {
                 guard !Task.isCancelled else { return }
                 erro = String(localized: "Não foi possível reenviar o código. Tente novamente.", bundle: bundleApresentacao)
             }
+
+        case .loginDispositivo:
+            guard let desafioID = desafioIDAtual else {
+                erro = String(localized: "Não foi possível reenviar o código. Tente novamente.", bundle: bundleApresentacao)
+                return
+            }
+            do {
+                let resposta = try await api.reenviarDispositivoOTP(desafioID: desafioID)
+                guard !Task.isCancelled else { return }
+                desafioIDAtual = resposta.desafioID
+                iniciarTemporizador(segundos: resposta.reenviarEmSegundos)
+                mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
+            } catch is CancellationError {
+                return
+            } catch let erroApi as ErroDaApi {
+                guard !Task.isCancelled else { return }
+                tratarErroDeVerificacao(erroApi)
+            } catch {
+                guard !Task.isCancelled else { return }
+                erro = String(localized: "Não foi possível reenviar o código. Tente novamente.", bundle: bundleApresentacao)
+            }
         }
     }
 
@@ -165,13 +196,34 @@ public final class CodigoViewModel {
         carregando = true
         erro = nil
         mensagemInformativa = nil
+        precisaDefinirSenhaAposConfirmacao = false
+        dispositivoLembradoNaConfirmacao = false
         defer { carregando = false }
 
         do {
             if modo == .entrada, DemonstracaoContas.ehEmailDeDemonstracao(email) {
                 try await api.entrarDemonstracao(email: email, codigo: codigo)
             } else {
-                try await api.verificarCodigo(email: email, codigo: codigo)
+                let origem: OrigemConfirmacaoDispositivoOTP
+                switch modo {
+                case .entrada:
+                    origem = .cadastro(email: email)
+                case .recuperacao:
+                    origem = .recuperacao(email: email)
+                case .loginDispositivo:
+                    guard let desafioID = desafioIDAtual else {
+                        erro = String(localized: "Código expirado. Volte e entre novamente.", bundle: bundleApresentacao)
+                        return nil
+                    }
+                    origem = .loginDispositivo(desafioID: desafioID)
+                }
+                let resultado = try await api.confirmarDispositivoOTP(
+                    origem: origem,
+                    codigo: codigo,
+                    lembrarDispositivo: lembrarDispositivo
+                )
+                precisaDefinirSenhaAposConfirmacao = resultado.precisaDefinirSenha
+                dispositivoLembradoNaConfirmacao = resultado.dispositivoLembrado
             }
         } catch is CancellationError {
             return nil
@@ -201,6 +253,8 @@ public final class CodigoViewModel {
                 return .destino(.contratante)
             case let .contaSuspensa(situacao):
                 return .destino(.contaSuspensa(situacao))
+            case .definirSenhaObrigatoria:
+                return .definirSenha(.cadastro(email: email))
             }
         } catch let erroApi as ErroDaApi {
             erro = MensagemDoErroAPI.texto(erroApi)
@@ -212,6 +266,14 @@ public final class CodigoViewModel {
     }
 
     private func tratarErroDeVerificacao(_ erroApi: ErroDaApi) {
+        if erroApi.codigoOriginal == "desafio_expirado" {
+            erro = String(localized: "Código expirado. Peça um novo código para continuar.", bundle: bundleApresentacao)
+            return
+        }
+        if erroApi.codigoOriginal == "desafio_ja_usado" {
+            erro = String(localized: "Este código já foi usado. Peça um novo código para continuar.", bundle: bundleApresentacao)
+            return
+        }
         if erroApi.codigo == .naoAutenticado {
             // O GoTrue devolve `otp_expired` para o código errado e para o vencido. Só o tempo desde o pedido
             // distingue os dois: dentro da validade, o que se digitou está errado.

@@ -14,13 +14,14 @@ public enum DestinoDaConta: Equatable, Sendable {
     case funcoesEHorarios
     case contratante
     case contaSuspensa(SituacaoDaConta)
+    case definirSenhaObrigatoria
 
     public var tipoGuardavel: TipoDestinoConta? {
         switch self {
         case .profissional: return .profissional
         case .funcoesEHorarios: return .funcoesEHorarios
         case .contratante: return .contratante
-        case .cadastro, .contaSuspensa: return nil
+        case .cadastro, .contaSuspensa, .definirSenhaObrigatoria: return nil
         }
     }
 
@@ -68,7 +69,7 @@ public enum DestinoDaConta: Equatable, Sendable {
         do {
             let destino = try await PrazoDaAbertura.esperar(prazo) { try await avaliar(api: api) }
             switch destino {
-            case .cadastro:
+            case .cadastro, .definirSenhaObrigatoria:
                 DestinoGuardado.limpar(em: defaults)
             case .contaSuspensa:
                 // Não altera o destino guardado: sem rede na abertura futura,

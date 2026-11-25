@@ -1004,6 +1004,27 @@ private final class ApiDubleReentradaCodigo: ApiClienteEncaminhador, @unchecked 
             }
         }
     }
+
+    override func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        let res = try await super.confirmarDispositivoOTP(
+            origem: origem,
+            codigo: codigo,
+            lembrarDispositivo: lembrarDispositivo
+        )
+        await withCheckedContinuation { cont in
+            lock.withLock {
+                entrou = true
+                emVooContinuation?.resume()
+                emVooContinuation = nil
+                liberarContinuation = cont
+            }
+        }
+        return res
+    }
 }
 
 

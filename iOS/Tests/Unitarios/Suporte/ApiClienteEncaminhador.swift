@@ -20,8 +20,24 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func solicitarCodigo(email: String) async throws { try await base.solicitarCodigo(email: email) }
     func solicitarCodigoDeRecuperacao(email: String) async throws { try await base.solicitarCodigoDeRecuperacao(email: email) }
     func verificarCodigo(email: String, codigo: String) async throws { try await base.verificarCodigo(email: email, codigo: codigo) }
-    func entrarComSenha(email: String, senha: String) async throws { try await base.entrarComSenha(email: email, senha: senha) }
-    func definirSenha(_ novaSenha: String) async throws { try await base.definirSenha(novaSenha) }
+    func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
+        try await base.entrarComSenha(email: email, senha: senha)
+    }
+    func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        try await base.confirmarDispositivoOTP(origem: origem, codigo: codigo, lembrarDispositivo: lembrarDispositivo)
+    }
+    func reenviarDispositivoOTP(desafioID: String) async throws -> ResultadoReenvioDispositivoOTP {
+        try await base.reenviarDispositivoOTP(desafioID: desafioID)
+    }
+    func definirSenha(_ novaSenha: String, manterDispositivoAtual: Bool) async throws {
+        try await base.definirSenha(novaSenha, manterDispositivoAtual: manterDispositivoAtual)
+    }
+    func revogarDispositivos() async throws -> Int { try await base.revogarDispositivos() }
+    func estadoAutenticacao() async throws -> EstadoAutenticacao { try await base.estadoAutenticacao() }
     func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
     func possuiSessao() async -> Bool { await base.possuiSessao() }
 

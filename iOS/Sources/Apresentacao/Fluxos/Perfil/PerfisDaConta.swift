@@ -556,6 +556,9 @@ public struct TelaMeuPerfilProfissional: View {
 /// a confirmação de saída e o fluxo de exclusão seguem como estavam.
 struct TelaSairOuExcluirConta: View {
     @State private var mostrarConfirmacaoDeSaida = false
+    @State private var mostrarConfirmacaoDeSairTodos = false
+    @State private var revogandoDispositivos = false
+    @State private var erroAoRevogar: String?
     private let api: any ApiCliente
     private let sair: () -> Void
 
@@ -577,6 +580,23 @@ struct TelaSairOuExcluirConta: View {
                         .font(FrilaTipo.apoio)
                         .foregroundStyle(FrilaCor.textoSecundario)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
+                    Button { mostrarConfirmacaoDeSairTodos = true } label: {
+                        Text("Sair de todos os dispositivos", bundle: bundleApresentacao)
+                    }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .disabled(revogandoDispositivos)
+                    .accessibilityIdentifier("perfil-sair-todos-dispositivos")
+                    Text("Encerra todas as sessões e exige código por e-mail na próxima entrada em qualquer aparelho.", bundle: bundleApresentacao)
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let erroAoRevogar {
+                        MensagemJuntoAoBotao(verbatim: erroAoRevogar)
+                            .accessibilityIdentifier("perfil-sair-todos-erro")
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: FrilaEspaco.junto) {
@@ -612,6 +632,37 @@ struct TelaSairOuExcluirConta: View {
                 }
             )
         }
+        .alert(Text("Sair de todos os dispositivos?", bundle: bundleApresentacao), isPresented: $mostrarConfirmacaoDeSairTodos) {
+            Button(role: .cancel) {} label: {
+                Text("Cancelar", bundle: bundleApresentacao)
+            }
+            Button(role: .destructive) {
+                revogarESair()
+            } label: {
+                Text("Sair de todos", bundle: bundleApresentacao)
+            }
+        } message: {
+            Text("Todas as sessões e dispositivos confiáveis serão desconectados.", bundle: bundleApresentacao)
+        }
+    }
+
+    private func revogarESair() {
+        guard !revogandoDispositivos else { return }
+        revogandoDispositivos = true
+        erroAoRevogar = nil
+        Task {
+            do {
+                _ = try await api.revogarDispositivos()
+                revogandoDispositivos = false
+                sair()
+            } catch let erroApi as ErroDaApi {
+                revogandoDispositivos = false
+                erroAoRevogar = MensagemDoErroAPI.texto(erroApi)
+            } catch {
+                revogandoDispositivos = false
+                erroAoRevogar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
+            }
+        }
     }
 }
 
@@ -620,6 +671,9 @@ struct TelaSairOuExcluirConta: View {
 public struct TelaPerfilEstabelecimento: View {
     @Environment(BloqueiosDaSessao.self) private var bloqueiosDaSessao: BloqueiosDaSessao?
     @State private var mostrarConfirmacaoDeSaida = false
+    @State private var mostrarConfirmacaoDeSairTodos = false
+    @State private var revogandoDispositivos = false
+    @State private var erroAoRevogar: String?
     @State private var model: PerfilEstabelecimentoViewModel
     @State private var exportarModel: ExportarDadosViewModel
     private let api: any ApiCliente
@@ -715,6 +769,16 @@ public struct TelaPerfilEstabelecimento: View {
                     }
                     .buttonStyle(.frilaAcaoDiscreta)
                     .accessibilityIdentifier("estabelecimento-sair")
+                    Button { mostrarConfirmacaoDeSairTodos = true } label: {
+                        Text("Sair de todos os dispositivos", bundle: bundleApresentacao)
+                    }
+                    .buttonStyle(.frilaAcaoDiscreta)
+                    .disabled(revogandoDispositivos)
+                    .accessibilityIdentifier("estabelecimento-sair-todos-dispositivos")
+                    if let erroAoRevogar {
+                        MensagemJuntoAoBotao(verbatim: erroAoRevogar)
+                            .accessibilityIdentifier("estabelecimento-sair-todos-erro")
+                    }
                     NavigationLink {
                         TelaExclusaoDeConta(
                             viewModel: ExclusaoDeContaViewModel(
@@ -745,6 +809,33 @@ public struct TelaPerfilEstabelecimento: View {
         }
         .task(id: casaEscolhida) { await model.carregar(preferindo: casaEscolhida) }
         .sheet(isPresented: $mostrarAjuda) { TelaAjudaPerfil(enderecos: enderecos) }
+        .alert(Text("Sair de todos os dispositivos?", bundle: bundleApresentacao), isPresented: $mostrarConfirmacaoDeSairTodos) {
+            Button(role: .cancel) {} label: {
+                Text("Cancelar", bundle: bundleApresentacao)
+            }
+            Button(role: .destructive) {
+                guard !revogandoDispositivos else { return }
+                revogandoDispositivos = true
+                erroAoRevogar = nil
+                Task {
+                    do {
+                        _ = try await api.revogarDispositivos()
+                        revogandoDispositivos = false
+                        sair()
+                    } catch let erroApi as ErroDaApi {
+                        revogandoDispositivos = false
+                        erroAoRevogar = MensagemDoErroAPI.texto(erroApi)
+                    } catch {
+                        revogandoDispositivos = false
+                        erroAoRevogar = String(localized: "Não foi possível concluir esta ação. Tente novamente.", bundle: bundleApresentacao)
+                    }
+                }
+            } label: {
+                Text("Sair de todos", bundle: bundleApresentacao)
+            }
+        } message: {
+            Text("Todas as sessões e dispositivos confiáveis serão desconectados.", bundle: bundleApresentacao)
+        }
     }
 
     @ViewBuilder

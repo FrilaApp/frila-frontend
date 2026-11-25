@@ -53,6 +53,20 @@ public struct TelaCodigo: View {
                         blocoReenvio
                             .padding(.top, FrilaEspaco.grupo)
 
+                        if !DemonstracaoContas.ehEmailDeDemonstracao(viewModel.email) {
+                            Toggle(isOn: $viewModel.lembrarDispositivo) {
+                                Text("Lembrar este dispositivo por 30 dias", bundle: bundleApresentacao)
+                                    .font(FrilaTipo.corpo)
+                                    .foregroundStyle(FrilaCor.texto)
+                            }
+                            .tint(FrilaCor.texto)
+                            .frame(minHeight: FrilaMetrica.alvo)
+                            .disabled(viewModel.carregando)
+                            .accessibilityIdentifier("codigo-lembrar-dispositivo")
+                            .accessibilityHint(Text("Se marcado, não pediremos um código neste aparelho pelos próximos 30 dias.", bundle: bundleApresentacao))
+                            .padding(.top, FrilaEspaco.bloco)
+                        }
+
                         // Contexto da conta
                         Text("Quem já tem conta entra do mesmo jeito. Cada e-mail é uma conta.", bundle: bundleApresentacao)
                             .font(FrilaTipo.legenda)
@@ -150,16 +164,29 @@ public struct TelaCodigo: View {
     /// T6b: o título, para onde o código foi e o caminho de volta para trocar o e-mail.
     private var cabecalho: some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
-            Text("Confira seu e-mail", bundle: bundleApresentacao)
-                .font(FrilaTipo.tituloDaTela)
-                .foregroundStyle(FrilaCor.texto)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
+            if case .loginDispositivo = viewModel.modo {
+                Text("Confirme este dispositivo", bundle: bundleApresentacao)
+                    .font(FrilaTipo.tituloDaTela)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
 
-            Text(String(format: String(localized: "Digite o código de 6 dígitos enviado para %@.", bundle: bundleApresentacao), viewModel.email))
-                .font(FrilaTipo.apoio)
-                .foregroundStyle(FrilaCor.textoSecundario)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(String(format: String(localized: "Enviamos um código de 6 dígitos para %@ para confirmar este dispositivo.", bundle: bundleApresentacao), viewModel.email))
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Confira seu e-mail", bundle: bundleApresentacao)
+                    .font(FrilaTipo.tituloDaTela)
+                    .foregroundStyle(FrilaCor.texto)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(String(format: String(localized: "Digite o código de 6 dígitos enviado para %@.", bundle: bundleApresentacao), viewModel.email))
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Button(action: aoVoltar) {
                 Text("Trocar e-mail", bundle: bundleApresentacao)

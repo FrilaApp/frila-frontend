@@ -331,53 +331,61 @@ struct AutenticacaoComSenhaTests {
         #expect(vm429.mensagemNeutra == nil)
     }
 
-    @Test("SupabaseApiCliente.entrarComSenha usa grant_type=password, guarda sessão e mapeia invalid_credentials")
+    @Test("SupabaseApiCliente.entrarComSenha chama autenticar-senha, guarda sessão e mapeia credenciais_invalidas")
     func supabaseEntrarComSenhaEInvalidCredentials() async throws {
         let roteiro = RoteiroDeSenha()
-        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro)
+        let armazenamentoDispositivo = ArmazenamentoDeDeviceTokenEmMemoria()
+        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro, armazenamentoDeDispositivo: armazenamentoDispositivo)
 
-        // 1. Credenciais inválidas (HTTP 400 invalid_credentials) não abrem sessão
-        roteiro.respostaToken = .http(400, #"{"error_code":"invalid_credentials","msg":"Invalid login credentials"}"#)
+        // 1. Credenciais inválidas (HTTP 401 credenciais_invalidas) não abrem sessão
+        roteiro.respostaAutenticarSenha = .http(401, #"{"code":"credenciais_invalidas","message":"Credenciais inválidas"}"#)
         do {
-            try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "errada")
+            _ = try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "errada")
             Issue.record("Esperava erro de credenciais inválidas")
         } catch let erro as ErroDaApi {
             #expect(erro.codigo == .naoAutenticado)
-            #expect(erro.codigoOriginal == "invalid_credentials")
+            #expect(erro.codigoOriginal == "credenciais_invalidas")
         }
         #expect(cliente.haSessaoGuardada == false)
 
-        // 2. Credenciais válidas chamam /auth/v1/token?grant_type=password e gravam a sessão
-        roteiro.respostaToken = .http(200, RoteiroDeSenha.sessao("token-senha-1"))
-        try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "SenhaValida#2026")
+        // 2. Credenciais válidas chamam /functions/v1/autenticar-senha com plataforma=ios e gravam a sessão
+        roteiro.respostaAutenticarSenha = .http(
+            200,
+            #"{"status":"autenticado","sessao":\#(RoteiroDeSenha.sessao("token-senha-1")),"precisa_definir_senha":false}"#
+        )
+        let resultado = try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "SenhaValida#2026")
+        #expect(resultado == .autenticado(precisaDefinirSenha: false))
         #expect(cliente.haSessaoGuardada == true)
-        #expect(roteiro.queriesDeToken.contains("grant_type=password"))
+        #expect(roteiro.corposAutenticarSenha.last?["plataforma"] as? String == "ios")
     }
 
-    @Test("SupabaseApiCliente.definirSenha atualiza a sessão atual (mesmo auth.uid) e preserva sessão em reauthentication_needed")
+    @Test("SupabaseApiCliente.definirSenha atualiza via Edge Function e preserva sessão em reautenticacao_necessaria")
     func supabaseDefinirSenhaPreservaSessao() async throws {
         let roteiro = RoteiroDeSenha()
-        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro)
+        let armazenamentoDispositivo = ArmazenamentoDeDeviceTokenEmMemoria()
+        try armazenamentoDispositivo.salvar(token: "dev-token-1", email: "prof@exemplo.test")
+        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro, armazenamentoDeDispositivo: armazenamentoDispositivo)
 
         try await cliente.verificarCodigo(email: "prof@exemplo.test", codigo: "123456")
         #expect(cliente.haSessaoGuardada == true)
 
-        // 1. reauthentication_needed (401) NÃO encerra a sessão
-        roteiro.respostaUpdateUser = .http(401, #"{"error_code":"reauthentication_needed","msg":"Password update requires reauthentication"}"#)
+        // 1. reautenticacao_necessaria (401) NÃO encerra a sessão
+        roteiro.respostaDefinirSenha = .http(401, #"{"code":"reautenticacao_necessaria","message":"Reautenticação necessária"}"#)
         do {
-            try await cliente.definirSenha("NovaSenha#2026")
-            Issue.record("Esperava erro reauthentication_needed")
+            try await cliente.definirSenha("NovaSenha#2026", manterDispositivoAtual: false)
+            Issue.record("Esperava erro reautenticacao_necessaria")
         } catch let erro as ErroDaApi {
             #expect(erro.codigo == .naoAutenticado)
-            #expect(erro.codigoOriginal == "reauthentication_needed")
+            #expect(erro.codigoOriginal == "reautenticacao_necessaria")
         }
         #expect(cliente.haSessaoGuardada == true)
 
-        // 2. Sucesso em PUT /auth/v1/user usa o Bearer da sessão atual
-        roteiro.respostaUpdateUser = .http(200, RoteiroDeSenha.usuarioJSON)
-        try await cliente.definirSenha("NovaSenha#2026")
-        #expect(roteiro.autorizacoesDoUpdateUser.last == "Bearer token-otp-1")
+        // 2. Sucesso em POST /functions/v1/definir-senha usa o Bearer da sessão atual e revoga token local quando manterDispositivoAtual=false
+        roteiro.respostaDefinirSenha = .http(200, #"{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}"#)
+        try await cliente.definirSenha("NovaSenha#2026", manterDispositivoAtual: false)
+        #expect(roteiro.autorizacoesDoDefinirSenha.last == "Bearer token-otp-1")
         #expect(cliente.haSessaoGuardada == true)
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == nil)
     }
 
     @Test("401 atrasado de uma sessão antiga não derruba a sessão nova criada por entrarComSenha")
@@ -397,8 +405,11 @@ struct AutenticacaoComSenhaTests {
         await roteiro.esperarChegadaDeRPC()
 
         // Nova entrada via senha cria Sessão B
-        roteiro.respostaToken = .http(200, RoteiroDeSenha.sessao("token-senha-nova"))
-        try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "SenhaValida#2026")
+        roteiro.respostaAutenticarSenha = .http(
+            200,
+            #"{"status":"autenticado","sessao":\#(RoteiroDeSenha.sessao("token-senha-nova")),"precisa_definir_senha":false}"#
+        )
+        _ = try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "SenhaValida#2026")
 
         // Agora a RPC da sessão A volta com 401/nao_autenticado
         roteiro.liberarRPCs(com: .http(401, #"{"code":"nao_autenticado","message":"nao_autenticado","details":null,"hint":null}"#))
@@ -409,7 +420,183 @@ struct AutenticacaoComSenhaTests {
         #expect(roteiro.logouts == 0)
     }
 
-    private static func criarClienteSupabase(roteiro: RoteiroDeSenha) -> (SupabaseApiCliente, ArmazenamentoDeSessaoEmMemoria) {
+    @Test("DispositivoNoKeychainDoAparelho isola por conta e grava com AfterFirstUnlockThisDeviceOnly")
+    func dispositivoKeychainIsolamentoEProtecao() throws {
+        let fake = OperacoesKeychainEmMemoria()
+        let storage = DispositivoNoKeychainDoAparelho(operacoes: fake)
+
+        try storage.salvar(token: "tok-a", email: "  Alice@Exemplo.Test ")
+        try storage.salvar(token: "tok-b", email: "bob@exemplo.test")
+
+        #expect(storage.obter(email: "alice@exemplo.test") == "tok-a")
+        #expect(storage.obter(email: "bob@exemplo.test") == "tok-b")
+        #expect(storage.classeDeAcesso(email: "alice@exemplo.test") == (kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String))
+
+        storage.remover(email: "alice@exemplo.test")
+        #expect(storage.obter(email: "alice@exemplo.test") == nil)
+        #expect(storage.obter(email: "bob@exemplo.test") == "tok-b")
+
+        storage.removerTodos()
+        #expect(storage.obter(email: "bob@exemplo.test") == nil)
+    }
+
+    @Test("Confiança 30d: desafio OTP, opt-in Keychain, logout normal preserva e revogar-dispositivos limpa")
+    func fluxoCompletoDispositivo30Dias() async throws {
+        let roteiro = RoteiroDeSenha()
+        let armazenamentoDispositivo = ArmazenamentoDeDeviceTokenEmMemoria()
+        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro, armazenamentoDeDispositivo: armazenamentoDispositivo)
+
+        // 1. Dispositivo novo sem token -> desafio_otp
+        roteiro.respostaAutenticarSenha = .http(
+            200,
+            #"{"status":"desafio_otp","desafio_id":"des-1","expira_em":"2026-11-25T12:00:00Z","descartar_device_token":false}"#
+        )
+        let res1 = try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "SenhaValida#2026")
+        #expect(res1 == .desafioOTP(desafioID: "des-1", expiraEm: ContratoAPI.instante("2026-11-25T12:00:00Z")))
+        #expect(cliente.haSessaoGuardada == false)
+
+        // 2. Reenvio mantém desafio_id
+        roteiro.respostaReenviarOTP = .http(
+            200,
+            #"{"ok":true,"desafio_id":"des-1","expira_em":"2026-11-25T12:10:00Z","reenviar_em_segundos":45}"#
+        )
+        let reenvio = try await cliente.reenviarDispositivoOTP(desafioID: "des-1")
+        #expect(reenvio.desafioID == "des-1")
+        #expect(reenvio.reenviarEmSegundos == 45)
+
+        // 3. Confirmação com lembrar_dispositivo=true grava device_token
+        roteiro.respostaConfirmarOTP = .http(
+            200,
+            #"{"sessao":\#(RoteiroDeSenha.sessao("token-conf-1")),"precisa_definir_senha":false,"device_token":"tok-30d-xyz"}"#
+        )
+        let conf = try await cliente.confirmarDispositivoOTP(
+            origem: .loginDispositivo(desafioID: "des-1"),
+            codigo: "123456",
+            lembrarDispositivo: true
+        )
+        #expect(conf == ResultadoConfirmacaoDispositivoOTP(precisaDefinirSenha: false, dispositivoLembrado: true))
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == "tok-30d-xyz")
+        #expect(cliente.haSessaoGuardada == true)
+
+        // 4. Logout normal encerra sessão local e PRESERVA device_token
+        await cliente.sair(tokenFCM: nil)
+        #expect(cliente.haSessaoGuardada == false)
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == "tok-30d-xyz")
+
+        // 5. Próximo login envia device_token; se servidor mandar descartar_device_token=true, apaga do Keychain
+        roteiro.respostaAutenticarSenha = .http(
+            200,
+            #"{"status":"desafio_otp","desafio_id":"des-2","expira_em":"2026-11-25T12:30:00Z","descartar_device_token":true}"#
+        )
+        _ = try await cliente.entrarComSenha(email: "prof@exemplo.test", senha: "SenhaValida#2026")
+        #expect(roteiro.corposAutenticarSenha.last?["device_token"] as? String == "tok-30d-xyz")
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == nil)
+
+        // 6. Confirmação sem lembrar não grava token; com definir-senha(manterDispositivoAtual: true) mantém token
+        try armazenamentoDispositivo.salvar(token: "tok-30d-manter", email: "prof@exemplo.test")
+        roteiro.respostaConfirmarOTP = .http(
+            200,
+            #"{"sessao":\#(RoteiroDeSenha.sessao("token-conf-2")),"precisa_definir_senha":true,"device_token":null}"#
+        )
+        let confSemLembrar = try await cliente.confirmarDispositivoOTP(
+            origem: .recuperacao(email: "prof@exemplo.test"),
+            codigo: "654321",
+            lembrarDispositivo: false
+        )
+        #expect(confSemLembrar == ResultadoConfirmacaoDispositivoOTP(precisaDefinirSenha: true, dispositivoLembrado: false))
+
+        roteiro.respostaDefinirSenha = .http(200, #"{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":2,"sessao":null}"#)
+        try await cliente.definirSenha("NovaSenha#2026", manterDispositivoAtual: true)
+        #expect(roteiro.corposDefinirSenha.last?["manter_dispositivo_atual"] as? Bool == true)
+        #expect(roteiro.corposDefinirSenha.last?["device_token_atual"] as? String == "tok-30d-manter")
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == "tok-30d-manter")
+
+        // 7. revogar-dispositivos apaga token local
+        roteiro.respostaRevogarDispositivos = .http(200, #"{"ok":true,"dispositivos_revogados":2}"#)
+        let revogados = try await cliente.revogarDispositivos()
+        #expect(revogados == 2)
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == nil)
+
+        // 8. estado_autenticacao decodifica precisa_definir_senha e dispositivo_verificado
+        roteiro.respostaEstadoAutenticacao = .http(
+            200,
+            #"{"autenticado":true,"dispositivo_verificado":true,"precisa_definir_senha":true,"tem_conta":true}"#
+        )
+        let estado = try await cliente.estadoAutenticacao()
+        #expect(estado == EstadoAutenticacao(autenticado: true, dispositivoVerificado: true, precisaDefinirSenha: true, temConta: true))
+    }
+
+    @Test("EntradaComSenhaViewModel encaminha desafio_otp e definirSenhaObrigatoria")
+    @MainActor
+    func viewModelEntradaComSenhaDesafioEPendencia() async throws {
+        let roteiro = RoteiroDeSenha()
+        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro)
+
+        roteiro.respostaAutenticarSenha = .http(
+            200,
+            #"{"status":"desafio_otp","desafio_id":"des-vm-1","expira_em":"2026-11-25T12:00:00Z","descartar_device_token":false}"#
+        )
+        let vm = EntradaComSenhaViewModel(api: cliente, emailInicial: "prof@exemplo.test")
+        vm.senha = "SenhaValida#2026"
+        let resDesafio = await vm.entrar()
+        #expect(resDesafio == .desafioOTP(email: "prof@exemplo.test", desafioID: "des-vm-1"))
+        #expect(vm.senha.isEmpty)
+
+        // Agora com precisa_definir_senha=true e conta retornando profissional
+        let apiComPendencia = ApiPendenciaSenha()
+        let vmPendencia = EntradaComSenhaViewModel(api: apiComPendencia, emailInicial: "prof@exemplo.test")
+        vmPendencia.senha = "SenhaValida#2026"
+        let resPendencia = await vmPendencia.entrar()
+        #expect(resPendencia == .definirSenha(.destino(.profissional)))
+    }
+
+    @Test("CodigoViewModel em loginDispositivo confirma com lembrarDispositivo, reenvia e trata desafio_expirado/usado")
+    @MainActor
+    func codigoViewModelLoginDispositivo() async throws {
+        let roteiro = RoteiroDeSenha()
+        let armazenamentoDispositivo = ArmazenamentoDeDeviceTokenEmMemoria()
+        let (cliente, _) = Self.criarClienteSupabase(roteiro: roteiro, armazenamentoDeDispositivo: armazenamentoDispositivo)
+
+        let vm = CodigoViewModel(api: cliente, email: "prof@exemplo.test", modo: .loginDispositivo(desafioID: "des-1"))
+        vm.lembrarDispositivo = true
+        vm.segundosRestantes = 0
+
+        roteiro.respostaReenviarOTP = .http(
+            200,
+            #"{"ok":true,"desafio_id":"des-2","expira_em":"2026-11-25T12:15:00Z","reenviar_em_segundos":45}"#
+        )
+        await vm.reenviarCodigo()
+        #expect(vm.erro == nil)
+        #expect(vm.segundosRestantes == 45)
+        #expect(vm.mensagemInformativa != nil)
+
+        roteiro.respostaConfirmarOTP = .http(409, #"{"code":"desafio_ja_usado","message":"Já usado"}"#)
+        vm.codigo = "123456"
+        #expect(await vm.confirmarCodigo() == nil)
+        #expect(vm.erro != nil)
+
+        roteiro.respostaConfirmarOTP = .http(410, #"{"code":"desafio_expirado","message":"Expirado"}"#)
+        #expect(await vm.confirmarCodigo() == nil)
+        #expect(vm.erro != nil)
+
+        roteiro.respostaConfirmarOTP = .http(
+            200,
+            #"{"sessao":\#(RoteiroDeSenha.sessao("token-conf-vm")),"precisa_definir_senha":false,"device_token":"tok-vm-30d"}"#
+        )
+        let apiProf = ApiConfirmacaoComPerfil(base: cliente)
+        let vmOk = CodigoViewModel(api: apiProf, email: "prof@exemplo.test", modo: .loginDispositivo(desafioID: "des-2"))
+        vmOk.lembrarDispositivo = true
+        vmOk.codigo = "654321"
+        let destino = await vmOk.confirmarCodigo()
+        #expect(destino == .destino(.profissional))
+        #expect(vmOk.dispositivoLembradoNaConfirmacao == true)
+        #expect(armazenamentoDispositivo.obter(email: "prof@exemplo.test") == "tok-vm-30d")
+    }
+
+    private static func criarClienteSupabase(
+        roteiro: RoteiroDeSenha,
+        armazenamentoDeDispositivo: ArmazenamentoDeDeviceTokenEmMemoria = ArmazenamentoDeDeviceTokenEmMemoria()
+    ) -> (SupabaseApiCliente, ArmazenamentoDeSessaoEmMemoria) {
         let host = "senha-\(UUID().uuidString.lowercased()).frila.test"
         StubDeAuthSenha.registrar(roteiro, host: host)
         let config = URLSessionConfiguration.ephemeral
@@ -421,7 +608,8 @@ struct AutenticacaoComSenhaTests {
             chavePublicavel: "chave-sintetica-teste",
             telemetria: TelemetryNula(),
             sessaoHTTP: sessaoHTTP,
-            armazenamentoDaSessao: armazenamento
+            armazenamentoDaSessao: armazenamento,
+            armazenamentoDeDispositivo: armazenamentoDeDispositivo
         )
         return (cliente, armazenamento)
     }
@@ -436,11 +624,11 @@ private final class ApiComErroDeSenha: ApiClienteEncaminhador, @unchecked Sendab
         super.init(base: ApiClienteEmMemoria(cenario: .sucesso, sessaoAtivaInicial: true))
     }
 
-    override func entrarComSenha(email: String, senha: String) async throws {
+    override func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
         throw erro
     }
 
-    override func definirSenha(_ novaSenha: String) async throws {
+    override func definirSenha(_ novaSenha: String, manterDispositivoAtual: Bool) async throws {
         throw erro
     }
 
@@ -460,11 +648,12 @@ private final class ApiSenhaLentaControlada: ApiClienteEncaminhador, @unchecked 
         super.init(base: ApiClienteEmMemoria(cenario: .sucesso, sessaoAtivaInicial: false))
     }
 
-    override func entrarComSenha(email: String, senha: String) async throws {
+    override func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
         try await withCheckedThrowingContinuation { cont in
             trava.withLock { continuacao = cont }
             avisarInicio.yield()
         }
+        return .autenticado(precisaDefinirSenha: false)
     }
 
     override func solicitarCodigoDeRecuperacao(email: String) async throws {
@@ -504,9 +693,30 @@ private final class RoteiroDeSenha: @unchecked Sendable {
     private var _respostaOTP: Resposta = .http(200, "{}")
     private var _respostaToken: Resposta = .http(200, RoteiroDeSenha.sessao("token-senha-1"))
     private var _respostaUpdateUser: Resposta = .http(200, RoteiroDeSenha.usuarioJSON)
+    private var _respostaAutenticarSenha: Resposta = .http(
+        200,
+        #"{"status":"autenticado","sessao":\#(RoteiroDeSenha.sessao("token-senha-1")),"precisa_definir_senha":false}"#
+    )
+    private var _respostaConfirmarOTP: Resposta = .http(
+        200,
+        #"{"sessao":\#(RoteiroDeSenha.sessao("token-otp-1")),"precisa_definir_senha":false,"device_token":null}"#
+    )
+    private var _respostaReenviarOTP: Resposta = .http(
+        200,
+        #"{"ok":true,"desafio_id":"des-1","expira_em":"2026-11-25T12:10:00Z","reenviar_em_segundos":60}"#
+    )
+    private var _respostaDefinirSenha: Resposta = .http(200, #"{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}"#)
+    private var _respostaRevogarDispositivos: Resposta = .http(200, #"{"ok":true,"dispositivos_revogados":1}"#)
+    private var _respostaEstadoAutenticacao: Resposta = .http(
+        200,
+        #"{"autenticado":true,"dispositivo_verificado":true,"precisa_definir_senha":false,"tem_conta":true}"#
+    )
     private var _corposDoOTP: [[String: Any]] = []
+    private var _corposAutenticarSenha: [[String: Any]] = []
+    private var _corposDefinirSenha: [[String: Any]] = []
     private var _queriesDeToken: [String] = []
     private var _autorizacoesDoUpdateUser: [String] = []
+    private var _autorizacoesDoDefinirSenha: [String] = []
     private var _logouts = 0
     private var _segurarRPC = false
     private var retidas: [URLProtocol] = []
@@ -532,6 +742,36 @@ private final class RoteiroDeSenha: @unchecked Sendable {
         set { trava.withLock { _respostaUpdateUser = newValue } }
     }
 
+    var respostaAutenticarSenha: Resposta {
+        get { trava.withLock { _respostaAutenticarSenha } }
+        set { trava.withLock { _respostaAutenticarSenha = newValue } }
+    }
+
+    var respostaConfirmarOTP: Resposta {
+        get { trava.withLock { _respostaConfirmarOTP } }
+        set { trava.withLock { _respostaConfirmarOTP = newValue } }
+    }
+
+    var respostaReenviarOTP: Resposta {
+        get { trava.withLock { _respostaReenviarOTP } }
+        set { trava.withLock { _respostaReenviarOTP = newValue } }
+    }
+
+    var respostaDefinirSenha: Resposta {
+        get { trava.withLock { _respostaDefinirSenha } }
+        set { trava.withLock { _respostaDefinirSenha = newValue } }
+    }
+
+    var respostaRevogarDispositivos: Resposta {
+        get { trava.withLock { _respostaRevogarDispositivos } }
+        set { trava.withLock { _respostaRevogarDispositivos = newValue } }
+    }
+
+    var respostaEstadoAutenticacao: Resposta {
+        get { trava.withLock { _respostaEstadoAutenticacao } }
+        set { trava.withLock { _respostaEstadoAutenticacao = newValue } }
+    }
+
     var corposDoOTP: [[String: Any]] { trava.withLock { _corposDoOTP } }
     func registrarCorpoDoOTP(_ dados: Data?) {
         guard let dados,
@@ -539,11 +779,28 @@ private final class RoteiroDeSenha: @unchecked Sendable {
         trava.withLock { _corposDoOTP.append(json) }
     }
 
+    var corposAutenticarSenha: [[String: Any]] { trava.withLock { _corposAutenticarSenha } }
+    func registrarCorpoAutenticarSenha(_ dados: Data?) {
+        guard let dados,
+              let json = try? JSONSerialization.jsonObject(with: dados) as? [String: Any] else { return }
+        trava.withLock { _corposAutenticarSenha.append(json) }
+    }
+
+    var corposDefinirSenha: [[String: Any]] { trava.withLock { _corposDefinirSenha } }
+    func registrarCorpoDefinirSenha(_ dados: Data?) {
+        guard let dados,
+              let json = try? JSONSerialization.jsonObject(with: dados) as? [String: Any] else { return }
+        trava.withLock { _corposDefinirSenha.append(json) }
+    }
+
     var queriesDeToken: [String] { trava.withLock { _queriesDeToken } }
     func registrarQueryDeToken(_ q: String?) { trava.withLock { _queriesDeToken.append(q ?? "") } }
 
     var autorizacoesDoUpdateUser: [String] { trava.withLock { _autorizacoesDoUpdateUser } }
     func registrarAutorizacaoDoUpdateUser(_ valor: String?) { trava.withLock { _autorizacoesDoUpdateUser.append(valor ?? "") } }
+
+    var autorizacoesDoDefinirSenha: [String] { trava.withLock { _autorizacoesDoDefinirSenha } }
+    func registrarAutorizacaoDoDefinirSenha(_ valor: String?) { trava.withLock { _autorizacoesDoDefinirSenha.append(valor ?? "") } }
 
     var logouts: Int { trava.withLock { _logouts } }
     func contarLogout() { trava.withLock { _logouts += 1 } }
@@ -574,7 +831,7 @@ private final class RoteiroDeSenha: @unchecked Sendable {
         for protocolo in protocolos { StubDeAuthSenha.responder(protocolo, com: resposta) }
     }
 
-    static let usuarioJSON = #"{"id":"8f1d6c2e-0000-4000-8000-000000000001","aud":"authenticated","app_metadata":{},"user_metadata":{},"created_at":"2026-09-27T00:00:00Z","updated_at":"2026-09-27T00:00:00Z"}"#
+    static let usuarioJSON = #"{"id":"8f1d6c2e-0000-4000-8000-000000000001","email":"prof@exemplo.test","aud":"authenticated","app_metadata":{},"user_metadata":{},"created_at":"2026-09-27T00:00:00Z","updated_at":"2026-09-27T00:00:00Z"}"#
 
     static func sessao(_ token: String) -> String {
         let expiraEm = Int(Date().timeIntervalSince1970) + 3600
@@ -614,6 +871,21 @@ private final class StubDeAuthSenha: URLProtocol {
         case "/auth/v1/logout":
             roteiro.contarLogout()
             Self.responder(self, com: .http(204, ""))
+        case "/functions/v1/autenticar-senha":
+            roteiro.registrarCorpoAutenticarSenha(Self.lerCorpo(request))
+            Self.responder(self, com: roteiro.respostaAutenticarSenha)
+        case "/functions/v1/confirmar-dispositivo-otp":
+            Self.responder(self, com: roteiro.respostaConfirmarOTP)
+        case "/functions/v1/reenviar-dispositivo-otp":
+            Self.responder(self, com: roteiro.respostaReenviarOTP)
+        case "/functions/v1/definir-senha":
+            roteiro.registrarAutorizacaoDoDefinirSenha(request.value(forHTTPHeaderField: "Authorization"))
+            roteiro.registrarCorpoDefinirSenha(Self.lerCorpo(request))
+            Self.responder(self, com: roteiro.respostaDefinirSenha)
+        case "/functions/v1/revogar-dispositivos":
+            Self.responder(self, com: roteiro.respostaRevogarDispositivos)
+        case "/rest/v1/rpc/estado_autenticacao":
+            if !roteiro.reter(self) { Self.responder(self, com: roteiro.respostaEstadoAutenticacao) }
         case let caminho where caminho.hasPrefix("/rest/v1/rpc/"):
             if !roteiro.reter(self) { Self.responder(self, com: .http(200, "{}")) }
         default:
@@ -651,5 +923,83 @@ private final class StubDeAuthSenha: URLProtocol {
             protocolo.client?.urlProtocol(protocolo, didLoad: Data(corpo.utf8))
             protocolo.client?.urlProtocolDidFinishLoading(protocolo)
         }
+    }
+}
+
+private final class OperacoesKeychainEmMemoria: OperacoesDoKeychainDaSessao, @unchecked Sendable {
+    private let trava = NSLock()
+    private var itens: [[String: Any]] = []
+
+    func secItemAdd(_ attributes: CFDictionary, _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        guard let dict = attributes as? [String: Any] else { return errSecParam }
+        return trava.withLock {
+            itens.append(dict)
+            return errSecSuccess
+        }
+    }
+
+    func secItemCopyMatching(_ query: CFDictionary, _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        guard let q = query as? [String: Any] else { return errSecParam }
+        let servico = q[kSecAttrService as String] as? String
+        let conta = q[kSecAttrAccount as String] as? String
+        return trava.withLock {
+            guard let item = itens.first(where: {
+                ($0[kSecAttrService as String] as? String) == servico
+                    && (conta == nil || ($0[kSecAttrAccount as String] as? String) == conta)
+            }) else {
+                return errSecItemNotFound
+            }
+            if (q[kSecReturnAttributes as String] as? Bool) == true {
+                result?.pointee = item as CFDictionary
+            } else if (q[kSecReturnData as String] as? Bool) == true {
+                result?.pointee = item[kSecValueData as String] as CFTypeRef
+            }
+            return errSecSuccess
+        }
+    }
+
+    func secItemDelete(_ query: CFDictionary) -> OSStatus {
+        guard let q = query as? [String: Any] else { return errSecParam }
+        let servico = q[kSecAttrService as String] as? String
+        let conta = q[kSecAttrAccount as String] as? String
+        return trava.withLock {
+            let antes = itens.count
+            itens.removeAll {
+                ($0[kSecAttrService as String] as? String) == servico
+                    && (conta == nil || ($0[kSecAttrAccount as String] as? String) == conta)
+            }
+            return itens.count < antes ? errSecSuccess : errSecItemNotFound
+        }
+    }
+}
+
+private final class ApiPendenciaSenha: ApiClienteEncaminhador, @unchecked Sendable {
+    init() {
+        super.init(base: ApiClienteEmMemoria(cenario: .sucesso, sessaoAtivaInicial: false))
+    }
+
+    override func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
+        .autenticado(precisaDefinirSenha: true)
+    }
+}
+
+private final class ApiConfirmacaoComPerfil: ApiClienteEncaminhador, @unchecked Sendable {
+    private let supabase: SupabaseApiCliente
+
+    init(base supabase: SupabaseApiCliente) {
+        self.supabase = supabase
+        super.init(base: ApiClienteEmMemoria(cenario: .sucesso, sessaoAtivaInicial: true))
+    }
+
+    override func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        try await supabase.confirmarDispositivoOTP(
+            origem: origem,
+            codigo: codigo,
+            lembrarDispositivo: lembrarDispositivo
+        )
     }
 }

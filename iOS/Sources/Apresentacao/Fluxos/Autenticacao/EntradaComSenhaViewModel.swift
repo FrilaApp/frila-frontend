@@ -64,8 +64,9 @@ public final class EntradaComSenhaViewModel {
             }
         }
 
+        let resultado: ResultadoEntradaComSenha
         do {
-            try await api.entrarComSenha(email: limpo, senha: senhaEnviada)
+            resultado = try await api.entrarComSenha(email: limpo, senha: senhaEnviada)
         } catch is CancellationError {
             return nil
         } catch let erroApi as ErroDaApi {
@@ -80,35 +81,45 @@ public final class EntradaComSenhaViewModel {
 
         guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
 
-        do {
-            let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: limpo)
-            guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
+        switch resultado {
+        case let .desafioOTP(desafioID, _):
             senha = ""
-            switch destino {
-            case let .cadastro(emailCad):
-                return .cadastro(email: emailCad ?? limpo)
-            case .profissional:
-                DestinoGuardado.salvar(.profissional)
-                return .destino(.profissional)
-            case .funcoesEHorarios:
-                DestinoGuardado.salvar(.funcoesEHorarios)
-                return .destino(.funcoesEHorarios)
-            case .contratante:
-                DestinoGuardado.salvar(.contratante)
-                return .destino(.contratante)
-            case let .contaSuspensa(situacao):
-                return .destino(.contaSuspensa(situacao))
+            return .desafioOTP(email: limpo, desafioID: desafioID)
+        case let .autenticado(precisaDefinirSenha):
+            do {
+                let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: limpo)
+                guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
+                senha = ""
+                let proximo: DestinoCodigo
+                switch destino {
+                case let .cadastro(emailCad):
+                    proximo = .cadastro(email: emailCad ?? limpo)
+                case .profissional:
+                    DestinoGuardado.salvar(.profissional)
+                    proximo = .destino(.profissional)
+                case .funcoesEHorarios:
+                    DestinoGuardado.salvar(.funcoesEHorarios)
+                    proximo = .destino(.funcoesEHorarios)
+                case .contratante:
+                    DestinoGuardado.salvar(.contratante)
+                    proximo = .destino(.contratante)
+                case let .contaSuspensa(situacao):
+                    proximo = .destino(.contaSuspensa(situacao))
+                case .definirSenhaObrigatoria:
+                    proximo = .cadastro(email: limpo)
+                }
+                return precisaDefinirSenha ? .definirSenha(proximo) : proximo
+            } catch is CancellationError {
+                return nil
+            } catch let erroApi as ErroDaApi {
+                guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
+                erro = MensagemDoErroAPI.texto(erroApi)
+                return nil
+            } catch {
+                guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
+                erro = String(localized: "Não foi possível entrar agora. Tente novamente.", bundle: bundleApresentacao)
+                return nil
             }
-        } catch is CancellationError {
-            return nil
-        } catch let erroApi as ErroDaApi {
-            guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
-            erro = MensagemDoErroAPI.texto(erroApi)
-            return nil
-        } catch {
-            guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
-            erro = String(localized: "Não foi possível entrar agora. Tente novamente.", bundle: bundleApresentacao)
-            return nil
         }
     }
 

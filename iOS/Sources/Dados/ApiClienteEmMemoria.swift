@@ -1037,29 +1037,85 @@ public actor ApiClienteEmMemoria: ApiCliente {
         sessaoAtiva = true
     }
 
-    public func entrarComSenha(email: String, senha: String) async throws {
+    public func entrarComSenha(email: String, senha: String) async throws -> ResultadoEntradaComSenha {
         chamadasAEntrarComSenha += 1
         await Task.yield()
         try verificarRede()
         if cenario == .senhaErrada || senha == "senha-incorreta" {
-            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "invalid_credentials")
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "credenciais_invalidas")
         }
         sessaoAtiva = true
+        return .autenticado(precisaDefinirSenha: false)
     }
 
-    public func definirSenha(_ novaSenha: String) async throws {
+    public func confirmarDispositivoOTP(
+        origem: OrigemConfirmacaoDispositivoOTP,
+        codigo: String,
+        lembrarDispositivo: Bool
+    ) async throws -> ResultadoConfirmacaoDispositivoOTP {
+        chamadasAVerificarCodigo += 1
+        await Task.yield()
+        try verificarRede()
+        if cenario == .codigoErrado || codigo == "000000" {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "codigo_invalido")
+        }
+        if cenario == .codigoExpirado || codigo == "999999" {
+            let codigoOriginal = switch origem {
+            case .loginDispositivo: "desafio_expirado"
+            case .cadastro, .recuperacao: "otp_expired"
+            }
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: codigoOriginal)
+        }
+        sessaoAtiva = true
+        let precisaSenha: Bool = switch origem {
+        case .cadastro, .recuperacao: true
+        case .loginDispositivo: false
+        }
+        return ResultadoConfirmacaoDispositivoOTP(
+            precisaDefinirSenha: precisaSenha,
+            dispositivoLembrado: lembrarDispositivo
+        )
+    }
+
+    public func reenviarDispositivoOTP(desafioID: String) async throws -> ResultadoReenvioDispositivoOTP {
+        await Task.yield()
+        try verificarRede()
+        return ResultadoReenvioDispositivoOTP(desafioID: desafioID, expiraEm: nil, reenviarEmSegundos: 60)
+    }
+
+    public func definirSenha(_ novaSenha: String, manterDispositivoAtual: Bool) async throws {
         await Task.yield()
         try verificarRede()
         guard sessaoAtiva else {
             throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "session_missing")
         }
         if cenario == .reautenticacaoNecessaria {
-            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "reauthentication_needed")
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "reautenticacao_necessaria")
         }
         if cenario == .senhaFraca || novaSenha.count < 8 {
-            throw ErroDaApi(codigo: .campoInvalido, codigoOriginal: "weak_password", detalhes: "senha")
+            throw ErroDaApi(codigo: .campoInvalido, codigoOriginal: "senha_fraca", detalhes: "senha")
         }
         senhasDefinidas += 1
+    }
+
+    public func revogarDispositivos() async throws -> Int {
+        await Task.yield()
+        try verificarRede()
+        guard sessaoAtiva else {
+            throw ErroDaApi(codigo: .naoAutenticado, codigoOriginal: "nao_autenticado")
+        }
+        return 1
+    }
+
+    public func estadoAutenticacao() async throws -> EstadoAutenticacao {
+        await Task.yield()
+        try verificarRede()
+        return EstadoAutenticacao(
+            autenticado: sessaoAtiva,
+            dispositivoVerificado: sessaoAtiva,
+            precisaDefinirSenha: false,
+            temConta: sessaoAtiva && cenario != .primeiroAcesso
+        )
     }
 
     public func possuiSessao() async -> Bool { sessaoAtiva }

@@ -18,9 +18,10 @@ public struct TelaDefinirSenha: View {
     public init(
         api: any ApiCliente,
         permitirPular: Bool = false,
+        manterDispositivoAtual: Bool = false,
         aoConcluir: (() -> Void)? = nil
     ) {
-        _viewModel = State(initialValue: DefinirSenhaViewModel(api: api))
+        _viewModel = State(initialValue: DefinirSenhaViewModel(api: api, manterDispositivoAtual: manterDispositivoAtual))
         self.permitirPular = permitirPular
         self.aoConcluir = aoConcluir
     }

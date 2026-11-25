@@ -5,9 +5,10 @@ public enum RotaEntrada: Hashable, Sendable {
     case entrada
     case codigo(email: String)
     case senha(email: String)
+    case desafioDispositivo(email: String, desafioID: String)
     case recuperacao(email: String)
     case codigoDeRecuperacao(email: String)
-    case definirSenhaAposRecuperacao
+    case definirSenhaAposRecuperacao(manterDispositivoAtual: Bool = false)
     case cadastro(email: String)
 }
 
@@ -79,7 +80,9 @@ public struct FluxoDeEntrada: View {
                                 encaminharDestino(destino)
                             } else {
                                 destinoAposDefinirSenha = destino
-                                rotaAtual = .definirSenhaAposRecuperacao
+                                rotaAtual = .definirSenhaAposRecuperacao(
+                                    manterDispositivoAtual: codigoVM.dispositivoLembradoNaConfirmacao
+                                )
                             }
                         }
                     )
@@ -107,6 +110,31 @@ public struct FluxoDeEntrada: View {
                     EstadoCarregando()
                         .onAppear {
                             entradaComSenhaVM = EntradaComSenhaViewModel(api: api, emailInicial: email)
+                        }
+                }
+            case let .desafioDispositivo(email, desafioID):
+                if let codigoVM {
+                    TelaCodigo(
+                        viewModel: codigoVM,
+                        aoVoltar: {
+                            entradaComSenhaVM = EntradaComSenhaViewModel(api: api, emailInicial: email)
+                            rotaAtual = .senha(email: email)
+                        },
+                        aoConcluir: { destino in
+                            if codigoVM.precisaDefinirSenhaAposConfirmacao {
+                                destinoAposDefinirSenha = destino
+                                rotaAtual = .definirSenhaAposRecuperacao(
+                                    manterDispositivoAtual: codigoVM.dispositivoLembradoNaConfirmacao
+                                )
+                            } else {
+                                encaminharDestino(destino)
+                            }
+                        }
+                    )
+                } else {
+                    EstadoCarregando()
+                        .onAppear {
+                            codigoVM = CodigoViewModel(api: api, email: email, modo: .loginDispositivo(desafioID: desafioID))
                         }
                 }
             case let .recuperacao(email):
@@ -144,7 +172,9 @@ public struct FluxoDeEntrada: View {
                                 return
                             }
                             destinoAposDefinirSenha = destino
-                            rotaAtual = .definirSenhaAposRecuperacao
+                            rotaAtual = .definirSenhaAposRecuperacao(
+                                manterDispositivoAtual: codigoVM.dispositivoLembradoNaConfirmacao
+                            )
                         }
                     )
                 } else {
@@ -153,9 +183,9 @@ public struct FluxoDeEntrada: View {
                             codigoVM = CodigoViewModel(api: api, email: email, modo: .recuperacao)
                         }
                 }
-            case .definirSenhaAposRecuperacao:
+            case let .definirSenhaAposRecuperacao(manterDispositivoAtual):
                 NavigationStack {
-                    TelaDefinirSenha(api: api, permitirPular: false) {
+                    TelaDefinirSenha(api: api, permitirPular: false, manterDispositivoAtual: manterDispositivoAtual) {
                         if let destino = destinoAposDefinirSenha {
                             destinoAposDefinirSenha = nil
                             encaminharDestino(destino)
@@ -189,6 +219,12 @@ public struct FluxoDeEntrada: View {
             rotaAtual = .cadastro(email: email)
         case let .destino(destinoFinal):
             aoConcluir(destinoFinal)
+        case let .desafioOTP(email, desafioID):
+            codigoVM = CodigoViewModel(api: api, email: email, modo: .loginDispositivo(desafioID: desafioID))
+            rotaAtual = .desafioDispositivo(email: email, desafioID: desafioID)
+        case let .definirSenha(proximo):
+            destinoAposDefinirSenha = proximo
+            rotaAtual = .definirSenhaAposRecuperacao(manterDispositivoAtual: true)
         }
     }
 }
