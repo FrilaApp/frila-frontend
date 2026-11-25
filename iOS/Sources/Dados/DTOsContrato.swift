@@ -80,6 +80,8 @@ enum ContratoAPI {
         let estado: EstadoConta
         /// 0.2.90. Opcional: ausente, o app trata como não aceita.
         let termosVersao: String?
+        /// 0.2.112. Opcional: indica se a conta ainda precisa definir senha.
+        let precisaDefinirSenha: Bool?
 
         func dominio() throws -> Conta {
             guard let data = try? DataCivil(nascimento) else { throw ErroDeConversao(campo: "nascimento") }
@@ -90,6 +92,7 @@ enum ContratoAPI {
         enum CodingKeys: String, CodingKey {
             case id, perfil, nome, telefone, email, nascimento, estado
             case termosVersao = "termos_versao"
+            case precisaDefinirSenha = "precisa_definir_senha"
         }
     }
 
@@ -1670,6 +1673,7 @@ enum ContratoAPI {
         let checkinTipo: TipoRegistro?
         let checkinDistanciaM: Int?
         let checkinConfirmadoEm: Date?
+        let confirmadoEm: Date?
         let checkoutEm: Date?
         let checkoutDistanciaM: Int?
         let verificacao: Verificacao
@@ -1689,6 +1693,7 @@ enum ContratoAPI {
             case checkinTipo = "checkin_tipo"
             case checkinDistanciaM = "checkin_distancia_m"
             case checkinConfirmadoEm = "checkin_confirmado_em"
+            case confirmadoEm = "confirmado_em"
             case checkoutEm = "checkout_em"
             case checkoutDistanciaM = "checkout_distancia_m"
             case valorAcordadoCentavos = "valor_acordado_centavos"
@@ -1709,6 +1714,7 @@ enum ContratoAPI {
             checkinTipo = try container.decodeIfPresent(String.self, forKey: .checkinTipo).flatMap(TipoRegistro.init(rawValue:))
             checkinDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkinDistanciaM)
             checkinConfirmadoEm = try container.decodeIfPresent(Date.self, forKey: .checkinConfirmadoEm)
+            confirmadoEm = try container.decodeIfPresent(Date.self, forKey: .confirmadoEm)
             checkoutEm = try container.decodeIfPresent(Date.self, forKey: .checkoutEm)
             checkoutDistanciaM = try container.decodeIfPresent(Int.self, forKey: .checkoutDistanciaM)
             verificacao = try container.decode(Verificacao.self, forKey: .verificacao)

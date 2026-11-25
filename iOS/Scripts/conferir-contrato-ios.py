@@ -504,6 +504,11 @@ def conferir_dtos(
         "ConviteMembroDTO",          # Resposta de /rpc/convidar_membro (objeto inline, 0.2.73)
         "MembroAdicionadoDTO",       # Resposta de /rpc/aceitar_convite_membro (objeto inline, 0.2.73)
         "ConfirmacaoDeMembroDTO",    # Respostas de /rpc/remover_membro e /rpc/transferir_administracao (objeto inline, 0.2.73)
+        "AutenticarSenhaRespostaDTO",          # Resposta inline de /autenticar-senha (0.2.112)
+        "ConfirmarDispositivoOTPRespostaDTO",  # Resposta inline de /confirmar-dispositivo-otp (0.2.112)
+        "ReenviarDispositivoOTPRespostaDTO",   # Resposta inline de /reenviar-dispositivo-otp (0.2.112)
+        "DefinirSenhaRespostaDTO",             # Resposta inline de /definir-senha (0.2.112)
+        "RevogarDispositivosRespostaDTO",      # Resposta inline de /revogar-dispositivos (0.2.112)
     }
 
     # 5.2 Schemas de objeto do contrato ainda não consumidos pelo app iOS (RN14 / v1.1)

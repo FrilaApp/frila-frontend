@@ -1114,6 +1114,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
         "meus_turnos",
         "contato_do_turno",
         "situacao_da_conta",
+        "estado_autenticacao",
         "historico_profissional",
         "avaliacoes_do_turno",
         "configuracao_do_app",
