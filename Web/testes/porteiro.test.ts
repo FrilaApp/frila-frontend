@@ -9,10 +9,12 @@ const envio = (caminho: string, origem?: string) =>
 
 describe("porteiro do Worker", () => {
   it("só aceita pedido que muda dado vindo do próprio endereço", () => {
-    expect(respostaAntesDoApp(envio("/app/entrar", "https://frilabr.com"), { webLigada: true })).toBeNull();
-    expect(respostaAntesDoApp(envio("/app/entrar", "https://outro.example"), { webLigada: true })?.status).toBe(403);
-    expect(respostaAntesDoApp(envio("/app/entrar"), { webLigada: true })?.status).toBe(403);
-    expect(respostaAntesDoApp(envio("/app/entrar", "null"), { webLigada: true })?.status).toBe(403);
+    for (const rota of ["/app/entrar", "/app/criar-conta", "/app/recuperar-senha", "/app/definir-senha", "/app/sair"]) {
+      expect(respostaAntesDoApp(envio(rota, "https://frilabr.com"), { webLigada: true }), rota).toBeNull();
+      expect(respostaAntesDoApp(envio(rota, "https://outro.example"), { webLigada: true })?.status, rota).toBe(403);
+      expect(respostaAntesDoApp(envio(rota), { webLigada: true })?.status, rota).toBe(403);
+      expect(respostaAntesDoApp(envio(rota, "null"), { webLigada: true })?.status, rota).toBe(403);
+    }
     expect(respostaAntesDoApp(envio("/app/sair", "https://frilabr.com.outro.example"), { webLigada: true })?.status).toBe(403);
   });
 
