@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.OrigemConfirmacaoDispositivoOtp
 import br.com.frila.core.rede.SessaoDto
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -51,6 +52,7 @@ class CodigoViewModel(
     private val aoEntrar: suspend () -> Unit = {},
     private val permitirDominioDeTeste: Boolean = false,
     val modo: ModoCodigo = ModoCodigo.ENTRADA,
+    desafioIdInicial: String? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -61,16 +63,22 @@ class CodigoViewModel(
 
     /** Quando o último código foi pedido (primeiro envio ou reenvio): separa "incorreto" de "expirado". */
     private var codigoPedidoEm: Instant = agora()
+    private var esperaParaReenviarAtual: Duration = ESPERA_PARA_REENVIAR
+    private var desafioIdAtual: String? = desafioIdInicial?.takeIf { it.isNotBlank() }
 
     /**
      * Segundos que faltam para poder pedir outro código: 60 s depois do último pedido (primeiro envio ou
      * reenvio), como no iOS. A tela usa este valor para a contagem do botão.
      */
     fun segundosParaReenviar(): Long {
-        val liberadoEm = codigoPedidoEm.plus(ESPERA_PARA_REENVIAR)
+        val liberadoEm = codigoPedidoEm.plus(esperaParaReenviarAtual)
         val falta = Duration.between(agora(), liberadoEm)
         // Arredonda para cima: com 0,4 s faltando a tela ainda mostra 1.
         return if (falta.isNegative || falta.isZero) 0 else (falta.toMillis() + 999) / 1000
+    }
+
+    fun aoAlternarLembrarDispositivo(lembrar: Boolean) {
+        _estado.update { it.copy(lembrarDispositivo = lembrar) }
     }
 
     /** A verificação em voo: um segundo toque não manda de novo. */
@@ -98,13 +106,43 @@ class CodigoViewModel(
             try {
                 val usarDemo = modo == ModoCodigo.DEMO ||
                     (modo == ModoCodigo.ENTRADA && DemonstracaoContas.ehContaDeDemonstracao(estadoAtual.email, permitirDominioDeTeste))
-                val sessaoDto = if (usarDemo) {
-                    servicoAutenticacao.entrarDemonstracao(estadoAtual.email, estadoAtual.codigo)
+                if (usarDemo) {
+                    val sessaoDto = servicoAutenticacao.entrarDemonstracao(estadoAtual.email, estadoAtual.codigo)
+                    armazenamentoDeSessao.salvarSessao(sessaoDto.paraSessao())
+                    _estado.update {
+                        it.copy(carregando = false, autenticado = true, precisaDefinirSenha = false, dispositivoLembrado = false)
+                    }
                 } else {
-                    servicoAutenticacao.verificarOtp(estadoAtual.email, estadoAtual.codigo)
+                    val origem = when (modo) {
+                        ModoCodigo.ENTRADA, ModoCodigo.CRIACAO -> OrigemConfirmacaoDispositivoOtp.Cadastro(estadoAtual.email)
+                        ModoCodigo.RECUPERACAO -> OrigemConfirmacaoDispositivoOtp.Recuperacao(estadoAtual.email)
+                        ModoCodigo.LOGIN_DISPOSITIVO -> {
+                            val desafioId = desafioIdAtual
+                            if (desafioId.isNullOrBlank()) {
+                                _estado.update {
+                                    it.copy(carregando = false, erro = "Código expirado. Volte e entre novamente.")
+                                }
+                                return@launch
+                            }
+                            OrigemConfirmacaoDispositivoOtp.LoginDispositivo(desafioId = desafioId, email = estadoAtual.email)
+                        }
+                        ModoCodigo.DEMO -> OrigemConfirmacaoDispositivoOtp.Cadastro(estadoAtual.email)
+                    }
+                    val resultado = servicoAutenticacao.confirmarDispositivoOtp(
+                        origem = origem,
+                        codigo = estadoAtual.codigo,
+                        lembrarDispositivo = estadoAtual.lembrarDispositivo,
+                    )
+                    armazenamentoDeSessao.salvarSessao(resultado.sessao.paraSessao())
+                    _estado.update {
+                        it.copy(
+                            carregando = false,
+                            autenticado = true,
+                            precisaDefinirSenha = resultado.precisaDefinirSenha,
+                            dispositivoLembrado = resultado.dispositivoLembrado,
+                        )
+                    }
                 }
-                armazenamentoDeSessao.salvarSessao(sessaoDto.paraSessao())
-                _estado.update { it.copy(carregando = false, autenticado = true) }
                 // O registro do aparelho não segura nem desfaz a entrada: falhou, tenta de novo na próxima abertura.
                 try {
                     aoEntrar()
@@ -145,14 +183,29 @@ class CodigoViewModel(
         return escopoDeTrabalho.launch {
             _estado.update { it.copy(carregando = true, erro = null, reenviado = false, mensagemReenvio = null) }
             try {
-                if (modo == ModoCodigo.RECUPERACAO) {
-                    servicoAutenticacao.solicitarOtpRecuperacao(email)
-                } else {
-                    servicoAutenticacao.solicitarOtp(email)
+                when (modo) {
+                    ModoCodigo.RECUPERACAO -> {
+                        servicoAutenticacao.solicitarOtpRecuperacao(email)
+                        esperaParaReenviarAtual = ESPERA_PARA_REENVIAR
+                        concluirReenvio(MENSAGEM_REENVIO_NEUTRA_RECUPERACAO)
+                    }
+                    ModoCodigo.LOGIN_DISPOSITIVO -> {
+                        val desafioId = desafioIdAtual
+                        if (desafioId.isNullOrBlank()) {
+                            _estado.update { it.copy(carregando = false, erro = "Código expirado. Volte e entre novamente.") }
+                            return@launch
+                        }
+                        val resposta = servicoAutenticacao.reenviarDispositivoOtp(desafioId)
+                        desafioIdAtual = resposta.desafioId
+                        esperaParaReenviarAtual = Duration.ofSeconds(resposta.reenviarEmSegundos.toLong().coerceAtLeast(1L))
+                        concluirReenvio(MENSAGEM_REENVIO_PADRAO)
+                    }
+                    else -> {
+                        servicoAutenticacao.solicitarOtp(email)
+                        esperaParaReenviarAtual = ESPERA_PARA_REENVIAR
+                        concluirReenvio(MENSAGEM_REENVIO_PADRAO)
+                    }
                 }
-                concluirReenvio(
-                    if (modo == ModoCodigo.RECUPERACAO) MENSAGEM_REENVIO_NEUTRA_RECUPERACAO else MENSAGEM_REENVIO_PADRAO,
-                )
             } catch (cancelado: CancellationException) {
                 _estado.update { it.copy(carregando = false) }
                 throw cancelado
@@ -191,8 +244,15 @@ class CodigoViewModel(
      * vencido, e só o tempo desde o pedido separa os dois. Dentro da validade, o que se digitou está errado.
      */
     private fun mensagemDaVerificacao(erro: ErroDaApi): String {
+        if (erro.codigoOriginal == "desafio_expirado") {
+            return "Código expirado. Peça um novo código para continuar."
+        }
+        if (erro.codigoOriginal == "desafio_ja_usado") {
+            return "Este código já foi usado. Peça um novo código para continuar."
+        }
         val recusadoPeloAuth = erro.codigoOriginal == ERRO_DO_AUTH_CODIGO_RECUSADO
         val codigoRecusado = recusadoPeloAuth ||
+            erro.codigoOriginal == "codigo_invalido" ||
             erro.codigo.name in setOf("NAO_AUTENTICADO", "NAO_ENCONTRADO", "CAMPO_INVALIDO")
         if (!codigoRecusado) return mensagemDeErro(erro)
         val vencido = Duration.between(codigoPedidoEm, agora()) >= VALIDADE_DO_CODIGO

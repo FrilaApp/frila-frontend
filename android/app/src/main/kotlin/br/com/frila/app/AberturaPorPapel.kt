@@ -83,8 +83,10 @@ internal val moduloDestinoDaConta: Module = module {
         val conta = get<br.com.frila.core.rede.ServicoConta>()
         val perfil = get<br.com.frila.core.rede.ServicoPerfil>()
         val membros = get<br.com.frila.core.rede.ServicoMembros>()
+        val autenticacao = get<br.com.frila.core.rede.ServicoAutenticacao>()
+        val sessao = get<br.com.frila.core.seguranca.ArmazenamentoDeSessao>()
         avaliadorDeDestinoDaSessao(
-            sessao = get(),
+            sessao = sessao,
             descobrir = {
                 avaliarDestinoDaConta(
                     buscarConta = conta::minhaConta,
@@ -92,6 +94,13 @@ internal val moduloDestinoDaConta: Module = module {
                     listarCasas = membros::listarMeusEstabelecimentos,
                     // L2-5: conta suspensa abre a tela da suspensão, como o iOS.
                     buscarSituacao = conta::situacaoDaConta,
+                    buscarEstadoAutenticacao = {
+                        val estado = autenticacao.estadoAutenticacao()
+                        if (estado.autenticado && !estado.dispositivoVerificado) {
+                            sessao.limparSessao()
+                        }
+                        estado
+                    },
                 )
             },
             guardado = get(),

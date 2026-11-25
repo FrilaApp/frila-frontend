@@ -1,6 +1,7 @@
 package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
 import io.ktor.client.engine.mock.MockEngine
@@ -36,44 +37,131 @@ class ServicoAutenticacaoSenhaTest {
     }
 
     @Test
-    fun `entrarComSenha usa grant_type password e decodifica a sessao`() = runTest {
+    fun `entrarComSenha usa autenticar-senha com plataforma android e decodifica autenticado`() = runTest {
         var caminho: String? = null
-        var query: String? = null
         var corpo: String? = null
+        val dispositivo = ArmazenamentoDeDispositivoEmMemoria().apply {
+            salvarToken("conta@exemplo.test", "tok-disp-30d")
+        }
         val engine = MockEngine { request ->
             caminho = request.url.encodedPath
-            query = request.url.encodedQuery
             corpo = (request.body as TextContent).text
             respond(
-                content = """{"access_token":"tok-senha","refresh_token":"ref-senha","token_type":"bearer","expires_in":3600}""",
+                content = """{"status":"autenticado","sessao":{"access_token":"tok-senha","refresh_token":"ref-senha","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
-        val servico = ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine),
+            dispositivo,
+        )
 
-        val sessao = servico.entrarComSenha("conta@exemplo.test", "SenhaSintetica#2026")
+        val resultado = servico.entrarComSenha("conta@exemplo.test", "SenhaSintetica#2026")
 
-        assertEquals("/auth/v1/token", caminho)
-        assertEquals("grant_type=password", query)
-        assertTrue(corpo!!.contains("conta@exemplo.test"))
-        assertEquals("tok-senha", sessao.accessToken)
-        assertEquals("ref-senha", sessao.refreshToken)
+        assertEquals("/functions/v1/autenticar-senha", caminho)
+        assertTrue(corpo!!.contains("\"plataforma\":\"android\""))
+        assertTrue(corpo!!.contains("\"device_token\":\"tok-disp-30d\""))
+        assertTrue(resultado is ResultadoEntradaComSenha.Autenticado)
+        val autenticado = resultado as ResultadoEntradaComSenha.Autenticado
+        assertEquals("tok-senha", autenticado.sessao.accessToken)
+        assertEquals("ref-senha", autenticado.sessao.refreshToken)
     }
 
     @Test
-    fun `atualizarSenha envia PUT auth v1 user com o Bearer da sessao ativa`() = runTest {
-        var metodo: HttpMethod? = null
-        var caminho: String? = null
+    fun `entrarComSenha com desafio_otp e descartar_device_token remove token local`() = runTest {
+        val dispositivo = ArmazenamentoDeDispositivoEmMemoria().apply {
+            salvarToken("conta@exemplo.test", "tok-vencido")
+        }
+        val engine = MockEngine {
+            respond(
+                content = """{"status":"desafio_otp","desafio_id":"des-1","expira_em":"2026-11-25T15:00:00Z","descartar_device_token":true}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine),
+            dispositivo,
+        )
+
+        val resultado = servico.entrarComSenha("conta@exemplo.test", "SenhaSintetica#2026")
+
+        assertEquals(ResultadoEntradaComSenha.DesafioOtp("des-1", "2026-11-25T15:00:00Z"), resultado)
+        assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
+    }
+
+    @Test
+    fun `confirmarDispositivoOtp com lembrar true salva device_token e reenviar mantem desafio`() = runTest {
+        val dispositivo = ArmazenamentoDeDispositivoEmMemoria()
+        val caminhos = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            caminhos += request.url.encodedPath
+            when (request.url.encodedPath) {
+                "/functions/v1/reenviar-dispositivo-otp" -> respond(
+                    content = """{"ok":true,"desafio_id":"des-1","expira_em":"2026-11-25T15:10:00Z","reenviar_em_segundos":45}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                "/functions/v1/confirmar-dispositivo-otp" -> respond(
+                    content = """{"sessao":{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false,"device_token":"tok-30d-novo"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                else -> error("Rota inesperada: ${request.url.encodedPath}")
+            }
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine),
+            dispositivo,
+        )
+
+        val reenvio = servico.reenviarDispositivoOtp("des-1")
+        assertEquals("des-1", reenvio.desafioId)
+        assertEquals(45, reenvio.reenviarEmSegundos)
+
+        val conf = servico.confirmarDispositivoOtp(
+            origem = OrigemConfirmacaoDispositivoOtp.LoginDispositivo("des-1", "conta@exemplo.test"),
+            codigo = "123456",
+            lembrarDispositivo = true,
+        )
+        assertTrue(conf.dispositivoLembrado)
+        assertEquals("tok-30d-novo", dispositivo.obterToken("conta@exemplo.test"))
+    }
+
+    @Test
+    fun `definirSenha usa Edge Function, revoga token quando manter false e revogarDispositivos limpa todos`() = runTest {
+        val caminhos = mutableListOf<String>()
+        val corpos = mutableListOf<String>()
         var authHeader: String? = null
         val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
             salvarSessao(Sessao("tok-sessao-ativa", "ref-1", "bearer", 3600))
         }
+        val dispositivo = ArmazenamentoDeDispositivoEmMemoria().apply {
+            salvarToken("conta@exemplo.test", "tok-30d-atual")
+        }
         val engine = MockEngine { request ->
-            metodo = request.method
-            caminho = request.url.encodedPath
+            caminhos += request.url.encodedPath
+            corpos += (request.body as TextContent).text
             authHeader = request.headers[HttpHeaders.Authorization]
-            respond("""{"id":"uid-mesmo"}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            when (request.url.encodedPath) {
+                "/functions/v1/definir-senha" -> respond(
+                    """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}""",
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                "/functions/v1/revogar-dispositivos" -> respond(
+                    """{"ok":true,"dispositivos_revogados":2}""",
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                "/rest/v1/rpc/estado_autenticacao" -> respond(
+                    """{"autenticado":true,"dispositivo_verificado":true,"precisa_definir_senha":true,"tem_conta":true}""",
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                else -> error("Rota inesperada: ${request.url.encodedPath}")
+            }
         }
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -81,13 +169,25 @@ class ServicoAutenticacaoSenhaTest {
             armazenamentoDeSessao = armazenamento,
             engine = engine,
         )
-        val servico = ServicoAutenticacao(cliente)
+        val servico = ServicoAutenticacao(cliente, dispositivo)
 
-        servico.atualizarSenha("NovaSenha#2026")
-
-        assertEquals(HttpMethod.Put, metodo)
-        assertEquals("/auth/v1/user", caminho)
+        servico.definirSenha("NovaSenha#2026", manterDispositivoAtual = true, emailAtual = "conta@exemplo.test", refreshToken = "ref-1")
+        assertEquals("/functions/v1/definir-senha", caminhos.last())
         assertEquals("Bearer tok-sessao-ativa", authHeader)
+        assertTrue(corpos.last().contains("\"manter_dispositivo_atual\":true"))
+        assertTrue(corpos.last().contains("\"device_token_atual\":\"tok-30d-atual\""))
+        assertEquals("tok-30d-atual", dispositivo.obterToken("conta@exemplo.test"))
+
+        servico.definirSenha("OutraSenha#2026", manterDispositivoAtual = false, emailAtual = "conta@exemplo.test")
+        assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
+
+        dispositivo.salvarToken("conta@exemplo.test", "tok-para-revogar")
+        assertEquals(2, servico.revogarDispositivos())
+        assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
+
+        val estado = servico.estadoAutenticacao()
+        assertTrue(estado.precisaDefinirSenha)
+        assertTrue(estado.dispositivoVerificado)
     }
 
     @Test

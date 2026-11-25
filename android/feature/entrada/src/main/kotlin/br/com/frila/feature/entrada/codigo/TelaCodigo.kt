@@ -3,12 +3,15 @@ package br.com.frila.feature.entrada.codigo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,12 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CaixasDeCodigo
 import br.com.frila.core.designsystem.componentes.LinkFrila
@@ -171,6 +177,34 @@ fun TelaCodigo(
                     )
                 }
             }
+
+            if (viewModel.modo != ModoCodigo.DEMO && !DemonstracaoContas.ehContaDeDemonstracao(estado.email)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = FrilaMetricas.alvoMinimo)
+                        .testTag("codigo-lembrar-dispositivo")
+                        .toggleable(
+                            value = estado.lembrarDispositivo,
+                            enabled = !estado.carregando,
+                            role = Role.Checkbox,
+                            onValueChange = viewModel::aoAlternarLembrarDispositivo,
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+                ) {
+                    Checkbox(
+                        checked = estado.lembrarDispositivo,
+                        onCheckedChange = null,
+                        enabled = !estado.carregando,
+                    )
+                    Text(
+                        text = "Lembrar este dispositivo por 30 dias",
+                        style = FrilaTipo.corpo,
+                        color = cores.tinta,
+                    )
+                }
+            }
         }
     }
 }
@@ -179,9 +213,11 @@ fun TelaCodigo(
  * Na recuperação a tela não confirma que a conta existe: o mesmo texto aparece com e sem conta
  * (anti-enumeração). Nos outros modos o código sempre é enviado, então o texto afirma o envio.
  */
-internal fun textoDeApoioDoCodigo(modo: ModoCodigo, email: String): String =
-    if (modo == ModoCodigo.RECUPERACAO) {
+internal fun textoDeApoioDoCodigo(modo: ModoCodigo, email: String): String = when (modo) {
+    ModoCodigo.RECUPERACAO ->
         "Se houver uma conta com este e-mail, enviamos um código de 6 dígitos para $email."
-    } else {
+    ModoCodigo.LOGIN_DISPOSITIVO ->
+        "Enviamos um código de 6 dígitos para $email para confirmar este dispositivo."
+    else ->
         "Enviamos um código de 6 dígitos para $email."
-    }
+}

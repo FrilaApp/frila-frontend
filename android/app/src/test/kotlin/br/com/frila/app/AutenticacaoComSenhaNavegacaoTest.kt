@@ -92,9 +92,15 @@ class AutenticacaoComSenhaNavegacaoTest {
                 }
                 path == "/auth/v1/verify" ->
                     """{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
+                path == "/functions/v1/confirmar-dispositivo-otp" ->
+                    """{"sessao":{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600},"precisa_definir_senha":true}""" to HttpStatusCode.OK
                 path == "/auth/v1/token" ->
                     """{"access_token":"tok-senha","refresh_token":"ref-senha","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
+                path == "/functions/v1/autenticar-senha" ->
+                    """{"status":"autenticado","sessao":{"access_token":"tok-senha","refresh_token":"ref-senha","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""" to HttpStatusCode.OK
                 path == "/auth/v1/user" -> """{"id":"11111111-1111-4111-8111-111111111111"}""" to HttpStatusCode.OK
+                path == "/functions/v1/definir-senha" ->
+                    """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}""" to HttpStatusCode.OK
                 path.endsWith("/rpc/minha_conta") ->
                     if (contaExiste) usuarioProfissional to HttpStatusCode.OK
                     else """{"code":"nao_encontrado","message":"nao_encontrado","details":null}""" to HttpStatusCode.NotFound
@@ -189,7 +195,7 @@ class AutenticacaoComSenhaNavegacaoTest {
 
         assertTrue("esperava FEED, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
         assertFalse("login por senha não deve chamar /auth/v1/otp", chamadas.contains("/auth/v1/otp"))
-        assertTrue(chamadas.contains("/auth/v1/token"))
+        assertTrue(chamadas.contains("/functions/v1/autenticar-senha"))
     }
 
     @Test
@@ -212,7 +218,7 @@ class AutenticacaoComSenhaNavegacaoTest {
         rule.onNodeWithText("Salvar senha").performClick()
 
         assertTrue("esperava CADASTRO via DestinoDaConta, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CADASTRO })
-        assertTrue(chamadas.contains("/auth/v1/user"))
+        assertTrue(chamadas.contains("/functions/v1/definir-senha"))
     }
 
     @Test
@@ -236,7 +242,7 @@ class AutenticacaoComSenhaNavegacaoTest {
 
         assertTrue("esperava FEED preservando a conta, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
         assertEquals(1, corposOtp.size)
-        assertTrue(chamadas.contains("/auth/v1/user"))
+        assertTrue(chamadas.contains("/functions/v1/definir-senha"))
     }
 
     private fun recuperarSenhaDe(email: String) {
