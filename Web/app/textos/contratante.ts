@@ -46,6 +46,10 @@ export const contratante = {
     ajudaDoHorario: "Horário de Brasília. Se terminar depois da meia-noite, vale o dia seguinte.",
     valor: "Valor por pessoa (R$)",
     ajudaDoValor: "Por exemplo: 150 ou 150,50.",
+    avisos: {
+      valorBaixo: "Valor muito baixo.",
+      valorAlto: "Valor muito alto, confira.",
+    },
     posicoes: "Quantas pessoas",
     modo: "Como preencher",
     modos: {
