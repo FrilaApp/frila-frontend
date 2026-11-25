@@ -55,6 +55,9 @@ export type ResultadoRevogarDispositivos =
   | { ok: true }
   | { ok: false; motivo: "sessao_invalida" | "limite" | "indisponivel" };
 
+export type FalhaTrocaPkce = "conflito_identidade" | "apple_recusado" | "limite" | "indisponivel";
+export type ResultadoTrocaPkce = { ok: true; sessao: Sessao } | { ok: false; motivo: FalhaTrocaPkce };
+
 /** Validação runtime fail-closed para qualquer resposta de sessão recebida do Supabase Auth. */
 function ehSessaoValida(valor: unknown): valor is Sessao {
   if (typeof valor !== "object" || valor === null) return false;
@@ -562,6 +565,48 @@ export function criarAuth(
         return { ok: resposta.ok || resposta.status === 401 || resposta.status === 403 || resposta.status === 404 };
       } catch {
         return { ok: false };
+      }
+    },
+
+    /**
+     * Troca um código OAuth + code_verifier (PKCE S256) por sessão no Supabase Auth (`/auth/v1/token?grant_type=pkce`).
+     * Trata conflito de identidade sem auto-vínculo silencioso e nunca registra código, verifier ou tokens.
+     */
+    async trocarCodigoPkce(codigo: string, verifier: string): Promise<ResultadoTrocaPkce> {
+      try {
+        const resposta = await buscar(`${ambiente.url}/auth/v1/token?grant_type=pkce`, {
+          method: "POST",
+          headers: {
+            ...cabecalhos,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ auth_code: codigo, code_verifier: verifier }),
+          signal: prazo(),
+        });
+        const corpo = (await resposta.json().catch(() => null)) as Record<string, unknown> | null;
+        if (resposta.ok) {
+          if (!ehSessaoValida(corpo)) return { ok: false, motivo: "indisponivel" };
+          return { ok: true, sessao: corpo };
+        }
+        if (resposta.status === 429) return { ok: false, motivo: "limite" };
+        const codigoErro = String(corpo?.error_code ?? corpo?.code ?? corpo?.error ?? "").toLowerCase();
+        const desc = String(corpo?.msg ?? corpo?.error_description ?? "").toLowerCase();
+        if (
+          resposta.status === 409 ||
+          codigoErro.includes("identity_already_exists") ||
+          codigoErro.includes("manual_linking") ||
+          codigoErro.includes("email_conflict") ||
+          desc.includes("already registered") ||
+          desc.includes("identity_already_exists")
+        ) {
+          return { ok: false, motivo: "conflito_identidade" };
+        }
+        if (resposta.status >= 400 && resposta.status < 500) {
+          return { ok: false, motivo: "apple_recusado" };
+        }
+        return { ok: false, motivo: "indisponivel" };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
       }
     },
 

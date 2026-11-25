@@ -1,7 +1,8 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
+import { appleEntrarLigado, authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
+import { BASE } from "../servidor/porteiro";
 import {
   cookieDoDispositivo,
   cookiesDaSessao,
@@ -26,11 +27,16 @@ export function meta() {
   return [{ title: textos.entrar.tituloDaAba }, { name: "robots", content: "noindex" }];
 }
 
-export function loader({ context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   if (context.get(contextoDaSessao)) {
     throw redirect("/");
   }
-  return null;
+  const erroParam = new URL(request.url).searchParams.get("erro");
+  const erroUrl: Erro | undefined =
+    erroParam && Object.prototype.hasOwnProperty.call(textos.entrar.erros, erroParam)
+      ? (erroParam as Erro)
+      : undefined;
+  return { appleLigado: appleEntrarLigado(), erroUrl };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -149,11 +155,12 @@ const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-4 text-xl fon
 const classeDoLink = "min-h-11 font-semibold underline underline-offset-4";
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-export default function Entrar({ actionData }: Route.ComponentProps) {
+export default function Entrar({ actionData, loaderData }: Route.ComponentProps) {
   const navegacao = useNavigation();
   const enviando = navegacao.state !== "idle";
-  const estado: Passo = actionData ?? { passo: "email", email: "" };
+  const estado: Passo = actionData ?? { passo: "email", email: "", erro: loaderData?.erroUrl };
   const erro = estado.erro ? textos.entrar.erros[estado.erro] : null;
+  const appleLigado = loaderData?.appleLigado === true;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
@@ -201,6 +208,15 @@ export default function Entrar({ actionData }: Route.ComponentProps) {
           <button type="submit" name="intencao" value="entrar" disabled={enviando} className={classeDoBotao}>
             {enviando ? textos.entrar.entrando : textos.entrar.entrarComSenha}
           </button>
+
+          {appleLigado ? (
+            <a
+              href={`${BASE}/entrar/apple`}
+              className="flex min-h-12 w-full items-center justify-center rounded-controle border border-borda bg-superficie px-4 text-lg font-semibold text-tinta"
+            >
+              {textos.entrar.entrarComApple}
+            </a>
+          ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
             <Link to="/recuperar-senha" className={classeDoLink}>

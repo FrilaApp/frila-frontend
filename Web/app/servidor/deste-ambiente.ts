@@ -43,3 +43,13 @@ export async function fotoDoProfissional(sessao: SessaoAtual, profissionalId: st
 export function emailsDeDemonstracao(): Set<string> {
   return listaDeEmailsDeDemonstracao((env as { EMAILS_DE_DEMONSTRACAO?: string }).EMAILS_DE_DEMONSTRACAO);
 }
+
+/** "Continuar com a Apple" só fica visível/ativo quando APPLE_ENTRAR === "ligado" (DEV; ausente em produção). */
+export function appleEntrarLigado(): boolean {
+  return (env as { APPLE_ENTRAR?: string }).APPLE_ENTRAR === "ligado";
+}
+
+/** URL base do Supabase configurada no Worker (`null` quando ausente). */
+export function urlDoSupabaseDesteAmbiente(): string | null {
+  return ambienteDoSupabase(env)?.url ?? null;
+}

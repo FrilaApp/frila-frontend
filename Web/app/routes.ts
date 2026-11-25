@@ -3,6 +3,8 @@ import { type RouteConfig, index, prefix, route } from "@react-router/dev/routes
 export default [
   index("rotas/inicio.tsx"),
   route("entrar", "rotas/entrar.tsx"),
+  route("entrar/apple", "rotas/entrar-apple.ts"),
+  route("entrar/apple/retorno", "rotas/entrar-apple-retorno.ts"),
   route("criar-conta", "rotas/criar-conta.tsx"),
   route("recuperar-senha", "rotas/recuperar-senha.tsx"),
   route("definir-senha", "rotas/definir-senha.tsx"),
