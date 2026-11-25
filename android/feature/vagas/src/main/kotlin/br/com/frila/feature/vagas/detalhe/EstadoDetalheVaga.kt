@@ -15,6 +15,7 @@ data class EstadoDetalheVaga(
     val contato: ContatoDto? = null,
     /** O detalhe lido do servidor (`detalhe_vaga`), quando a vaga foi aberta pelo id; nulo quando veio da lista. */
     val detalhe: VagaDto? = null,
+    val navegarParaConfirmada: Boolean = false,
     val ehConflitoHorario: Boolean = false,
     val ehVagaPreenchida: Boolean = false,
     val ehVagaEncerrada: Boolean = false,

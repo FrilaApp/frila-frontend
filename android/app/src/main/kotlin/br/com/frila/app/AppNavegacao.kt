@@ -793,11 +793,7 @@ fun AppNavegacao(
             composable(Rotas.TURNO_CONFIRMADO) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
-                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
-                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
-                    }
-                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
-                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
+                    val vaga = vagaDaPilha(navController, entrada, vagaId)
                     if (vaga != null) {
                         TelaTurnoConfirmado(
                             vaga = vaga,
@@ -814,10 +810,12 @@ fun AppNavegacao(
                             },
                         )
                     } else {
-                        // Fallback se a vaga não estiver em memória: volta ao feed
-                        LaunchedEffect(Unit) {
-                            navController.navigate(Rotas.FEED) {
-                                popUpTo(Rotas.FEED) { inclusive = true }
+                        // Fallback se a vaga não estiver em memória: volta ao feed (só enquanto esta rota estiver no topo)
+                        LaunchedEffect(entrada.id) {
+                            if (navController.currentBackStackEntry?.id == entrada.id) {
+                                navController.navigate(Rotas.FEED) {
+                                    popUpTo(Rotas.FEED) { inclusive = true }
+                                }
                             }
                         }
                     }
@@ -827,11 +825,7 @@ fun AppNavegacao(
             composable(Rotas.CONFLITO_HORARIO) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
-                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
-                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
-                    }
-                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
-                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
+                    val vaga = vagaDaPilha(navController, entrada, vagaId)
                     if (vaga != null) {
                         TelaConflitoHorario(
                             vaga = vaga,
@@ -842,9 +836,11 @@ fun AppNavegacao(
                             },
                         )
                     } else {
-                        LaunchedEffect(Unit) {
-                            navController.navigate(Rotas.FEED) {
-                                popUpTo(Rotas.FEED) { inclusive = true }
+                        LaunchedEffect(entrada.id) {
+                            if (navController.currentBackStackEntry?.id == entrada.id) {
+                                navController.navigate(Rotas.FEED) {
+                                    popUpTo(Rotas.FEED) { inclusive = true }
+                                }
                             }
                         }
                     }
@@ -854,11 +850,7 @@ fun AppNavegacao(
             composable(Rotas.VAGA_PREENCHIDA) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
-                    val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
-                        koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
-                    }
-                    val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
-                    val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
+                    val vaga = vagaDaPilha(navController, entrada, vagaId)
                     val modo = if (vaga?.modo == "selecao") ModoPreenchimentoVaga.SELECAO else ModoPreenchimentoVaga.URGENCIA
                     TelaVagaIndisponivel(
                         motivo = MotivoIndisponibilidadeVaga.PREENCHIDA,
@@ -1769,6 +1761,39 @@ private fun duracaoDaVagaEmMinutos(inicio: Instant?, fim: Instant?): Long {
     val maxima = RepublicarVagaViewModel.DURACAO_MAXIMA
     if (inicio == null || fim == null) return minima.toMinutes()
     return minOf(maxOf(Duration.between(inicio, fim), minima), maxima).toMinutes()
+}
+
+/**
+ * Busca a vaga no `DetalheVagaViewModel` do detalhe anterior na pilha (vale para vaga vinda do feed ou aberta
+ * pelo id) e só cai para o `FeedVagasViewModel` na pilha se o detalhe não a tiver. Retém o resultado por
+ * `entrada.id` para que a transição de saída (`popBackStack`) não perca a vaga e dispare o fallback.
+ */
+@Composable
+private fun vagaDaPilha(
+    navController: NavHostController,
+    entrada: androidx.navigation.NavBackStackEntry,
+    vagaId: String,
+): VagaAbertaDto? {
+    var retida by remember(entrada.id) { mutableStateOf<VagaAbertaDto?>(null) }
+    if (retida != null) return retida
+
+    val detalheAnterior = navController.previousBackStackEntry
+        ?.takeIf { it.destination.route == Rotas.DETALHE }
+        ?: runCatching { navController.getBackStackEntry(Rotas.DETALHE) }.getOrNull()
+    val detalheViewModel = detalheAnterior?.let { koinViewModel<DetalheVagaViewModel>(viewModelStoreOwner = it) }
+    val vagaDoDetalhe = detalheViewModel?.estado?.collectAsStateWithLifecycle()?.value?.vaga
+        ?.takeIf { it.id == vagaId }
+    if (vagaDoDetalhe != null) {
+        retida = vagaDoDetalhe
+        return vagaDoDetalhe
+    }
+
+    val feedNaPilha = runCatching { navController.getBackStackEntry(Rotas.FEED) }.getOrNull()
+        ?.let { koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it) }
+    val vagaDoFeed = feedNaPilha?.estado?.collectAsStateWithLifecycle()?.value
+        ?.let { feedNaPilha.encontrarVagaPorId(vagaId) }
+    if (vagaDoFeed != null) retida = vagaDoFeed
+    return vagaDoFeed
 }
 
 /** Extraído para ser testável sozinho, sem montar o grafo Koin/NavHost completo. */
