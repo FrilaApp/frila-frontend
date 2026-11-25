@@ -381,6 +381,7 @@ val moduloFeatures = module {
             servicoAutenticacao = get(),
             armazenamentoDeSessao = get(),
             manterDispositivoAtual = params.getOrNull<Boolean>() ?: false,
+            emailAtual = params.getOrNull<String>(),
         )
     }
     viewModel { params ->

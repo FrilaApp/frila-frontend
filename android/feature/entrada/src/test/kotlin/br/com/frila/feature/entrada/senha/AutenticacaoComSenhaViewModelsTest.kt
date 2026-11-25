@@ -432,4 +432,53 @@ class AutenticacaoComSenhaViewModelsTest {
         assertTrue(vm.estado.value.dispositivoLembrado)
         assertEquals("tok-30d-android", dispositivo.obterToken("prof@exemplo.test"))
     }
+
+    @Test
+    fun `DefinirSenhaViewModel resolve email da sessao ou JWT para manter dispositivo atual e preservar outras contas`() = runBlocking {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val dispositivo = br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria().apply {
+            salvarToken("conta@exemplo.test", "tok-30d-conta")
+            salvarToken("outra@exemplo.test", "tok-30d-outra")
+        }
+        val corpos = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            corpos += (request.body as TextContent).text
+            respond(
+                content = """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave", armazenamentoDeSessao = armazenamento, engine = engine),
+            dispositivo,
+        )
+
+        // 1. Sem emailAtual explícito e sem Sessao.email: decodifica do payload JWT e envia device_token_atual não nulo.
+        val payloadBase64 = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("""{"sub":"uid-1","email":"conta@exemplo.test"}""".toByteArray())
+        armazenamento.salvarSessao(Sessao("hdr.$payloadBase64.sig", "ref-jwt", "bearer", 3600))
+
+        val vmManter = DefinirSenhaViewModel(servico, armazenamento, escopo = escopo(), manterDispositivoAtual = true)
+        vmManter.aoMudarSenha("SenhaForte#2026")
+        vmManter.aoMudarConfirmacao("SenhaForte#2026")
+        vmManter.salvar()?.join()
+
+        assertTrue(vmManter.estado.value.concluido)
+        assertTrue(corpos.last().contains("\"manter_dispositivo_atual\":true"))
+        assertTrue(corpos.last().contains("\"device_token_atual\":\"tok-30d-conta\""))
+        assertEquals("tok-30d-conta", dispositivo.obterToken("conta@exemplo.test"))
+        assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
+
+        // 2. Troca comum (manterDispositivoAtual = false) usando Sessao.email remove só a conta atual e preserva outra@exemplo.test.
+        armazenamento.salvarSessao(Sessao("tok-sem-jwt", "ref-2", "bearer", 3600, email = "conta@exemplo.test"))
+        val vmTroca = DefinirSenhaViewModel(servico, armazenamento, escopo = escopo(), manterDispositivoAtual = false)
+        vmTroca.aoMudarSenha("SenhaNova#2026")
+        vmTroca.aoMudarConfirmacao("SenhaNova#2026")
+        vmTroca.salvar()?.join()
+
+        assertTrue(vmTroca.estado.value.concluido)
+        assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
+        assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
+    }
 }

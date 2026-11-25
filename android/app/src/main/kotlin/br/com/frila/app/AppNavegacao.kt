@@ -167,7 +167,7 @@ object Rotas {
     const val CRIAR_CONTA = "criar_conta?email={email}"
     const val RECUPERAR_SENHA = "recuperar_senha?email={email}"
     const val CODIGO = "codigo/{email}?modo={modo}&desafioId={desafioId}"
-    const val DEFINIR_SENHA = "definir_senha?origem={origem}&manterDispositivo={manterDispositivo}"
+    const val DEFINIR_SENHA = "definir_senha?origem={origem}&manterDispositivo={manterDispositivo}&email={email}"
     const val CADASTRO = "cadastro"
     /** Pergunta ao servidor quem é a conta e segue para a tela do papel (#782, #783). */
     const val ABERTURA = "abertura"
@@ -246,8 +246,10 @@ object Rotas {
     fun recuperarSenha(email: String = "") =
         if (email.isBlank()) "recuperar_senha" else "recuperar_senha?email=${Uri.encode(email)}"
 
-    fun definirSenha(origem: String = "entrada", manterDispositivoAtual: Boolean = false) =
-        "definir_senha?origem=${Uri.encode(origem)}&manterDispositivo=$manterDispositivoAtual"
+    fun definirSenha(origem: String = "entrada", manterDispositivoAtual: Boolean = false, email: String? = null): String {
+        val base = "definir_senha?origem=${Uri.encode(origem)}&manterDispositivo=$manterDispositivoAtual"
+        return if (email.isNullOrBlank()) base else "$base&email=${Uri.encode(email)}"
+    }
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
     fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
@@ -586,6 +588,7 @@ fun AppNavegacao(
                                 Rotas.definirSenha(
                                     origem = modo.chave,
                                     manterDispositivoAtual = estadoCodigo.dispositivoLembrado,
+                                    email = email,
                                 ),
                             ) {
                                 popUpTo(Rotas.CODIGO) { inclusive = true }
@@ -619,11 +622,13 @@ fun AppNavegacao(
                 arguments = listOf(
                     navArgument("origem") { type = NavType.StringType; defaultValue = "entrada" },
                     navArgument("manterDispositivo") { type = NavType.BoolType; defaultValue = false },
+                    navArgument("email") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { entrada ->
                 val origem = entrada.arguments?.getString("origem").orEmpty()
                 val manterDispositivo = entrada.arguments?.getBoolean("manterDispositivo") ?: false
-                val viewModel: DefinirSenhaViewModel = koinViewModel(parameters = { parametersOf(manterDispositivo) })
+                val emailDefinir = entrada.arguments?.getString("email")?.takeIf { it.isNotBlank() }
+                val viewModel: DefinirSenhaViewModel = koinViewModel(parameters = { parametersOf(manterDispositivo, emailDefinir) })
                 TelaDefinirSenha(
                     viewModel = viewModel,
                     aoConcluir = {

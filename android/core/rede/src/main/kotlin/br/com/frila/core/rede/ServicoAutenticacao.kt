@@ -8,8 +8,12 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import java.util.Base64
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /** Corpo legado de `PUT /auth/v1/user`: mantido apenas por compatibilidade interna. */
 @Serializable
@@ -214,8 +218,18 @@ class ServicoAutenticacao(
         emailAtual: String? = null,
         refreshToken: String? = null,
     ): DefinirSenhaRespostaDto {
-        val deviceTokenAtual = if (manterDispositivoAtual && !emailAtual.isNullOrBlank()) {
-            armazenamentoDeDispositivo.obterToken(emailAtual)
+        val emailNormalizado = emailAtual?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        if (manterDispositivoAtual && emailNormalizado == null) {
+            // Falha fechado: não preserva dispositivo atual sem identificar a conta da sessão.
+            throw ErroDaApi(
+                CodigoErroAPI.NAO_AUTENTICADO,
+                "nao_autenticado",
+                null,
+                "E-mail da sessão ausente para preservar o dispositivo atual",
+            )
+        }
+        val deviceTokenAtual = if (manterDispositivoAtual && emailNormalizado != null) {
+            armazenamentoDeDispositivo.obterToken(emailNormalizado)
         } else {
             null
         }
@@ -231,12 +245,9 @@ class ServicoAutenticacao(
             )
         }
         val dto = cliente.corpoOuErro<DefinirSenhaRespostaDto>(resposta)
-        if (!manterDispositivoAtual) {
-            if (!emailAtual.isNullOrBlank()) {
-                armazenamentoDeDispositivo.removerToken(emailAtual)
-            } else {
-                armazenamentoDeDispositivo.removerTodos()
-            }
+        if (!manterDispositivoAtual && emailNormalizado != null) {
+            // Remove apenas o token da conta atual; nunca apaga tokens de outras contas neste aparelho.
+            armazenamentoDeDispositivo.removerToken(emailNormalizado)
         }
         return dto
     }
@@ -277,5 +288,15 @@ class ServicoAutenticacao(
             setBody(EntrarDemonstracaoDto(email = email, codigo = codigo))
         }
         return cliente.corpoOuErro(resposta)
+    }
+
+    companion object {
+        fun extrairEmailDoJwt(jwt: String): String? = runCatching {
+            val partes = jwt.split('.')
+            if (partes.size < 2) return null
+            val payloadJson = String(Base64.getUrlDecoder().decode(partes[1]), Charsets.UTF_8)
+            Json.parseToJsonElement(payloadJson).jsonObject["email"]?.jsonPrimitive?.content
+                ?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        }.getOrNull()
     }
 }

@@ -14,4 +14,5 @@ data class Sessao(
     val tokenType: String,
     val expiresIn: Long,
     val vinculoId: String? = null,
+    val email: String? = null,
 )

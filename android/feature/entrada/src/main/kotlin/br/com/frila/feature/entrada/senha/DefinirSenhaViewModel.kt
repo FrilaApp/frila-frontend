@@ -87,15 +87,23 @@ class DefinirSenhaViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val sessaoAtual = armazenamentoDeSessao.obterSessao()
+                val emailResolvido = emailAtual?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+                    ?: sessaoAtual?.email?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+                    ?: sessaoAtual?.accessToken?.let(ServicoAutenticacao::extrairEmailDoJwt)
                 val resposta = servicoAutenticacao.definirSenha(
                     novaSenha = novaSenha,
                     manterDispositivoAtual = manterDispositivoAtual,
-                    emailAtual = emailAtual,
+                    emailAtual = emailResolvido,
                     refreshToken = sessaoAtual?.refreshToken,
                 )
                 if (tentativaAtual != idTentativa) return@launch
                 resposta.sessao?.let { novaSessao ->
-                    armazenamentoDeSessao.salvarSessao(novaSessao.paraSessaoDefinir(vinculoId = sessaoAtual?.vinculoId))
+                    armazenamentoDeSessao.salvarSessao(
+                        novaSessao.paraSessaoDefinir(
+                            vinculoId = sessaoAtual?.vinculoId,
+                            email = emailResolvido,
+                        ),
+                    )
                 }
                 _estado.update {
                     it.copy(
@@ -143,10 +151,11 @@ class DefinirSenhaViewModel(
     }
 }
 
-private fun SessaoDto.paraSessaoDefinir(vinculoId: String?): Sessao = Sessao(
+private fun SessaoDto.paraSessaoDefinir(vinculoId: String?, email: String? = null): Sessao = Sessao(
     accessToken = accessToken,
     refreshToken = refreshToken,
     tokenType = tokenType,
     expiresIn = expiresIn,
     vinculoId = vinculoId,
+    email = email,
 )

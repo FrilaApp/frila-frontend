@@ -181,6 +181,17 @@ class ServicoAutenticacaoSenhaTest {
         servico.definirSenha("OutraSenha#2026", manterDispositivoAtual = false, emailAtual = "conta@exemplo.test")
         assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
 
+        // Sem emailAtual: manterDispositivoAtual=true falha fechado sem bater na rede; manterDispositivoAtual=false nao apaga outras contas.
+        dispositivo.salvarToken("outra@exemplo.test", "tok-outra-conta")
+        val erroSemEmail = runCatching {
+            servico.definirSenha("NovaSenha#2026", manterDispositivoAtual = true, emailAtual = null)
+        }.exceptionOrNull()
+        assertTrue(erroSemEmail is ErroDaApi)
+        assertEquals(CodigoErroAPI.NAO_AUTENTICADO, (erroSemEmail as ErroDaApi).codigo)
+
+        servico.definirSenha("NovaSenha#2026", manterDispositivoAtual = false, emailAtual = null)
+        assertEquals("tok-outra-conta", dispositivo.obterToken("outra@exemplo.test"))
+
         dispositivo.salvarToken("conta@exemplo.test", "tok-para-revogar")
         assertEquals(2, servico.revogarDispositivos())
         assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))

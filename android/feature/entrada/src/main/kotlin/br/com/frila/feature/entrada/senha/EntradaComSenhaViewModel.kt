@@ -124,7 +124,7 @@ class EntradaComSenhaViewModel(
                 when (val resultado = servicoAutenticacao.entrarComSenha(email, senha)) {
                     is ResultadoEntradaComSenha.Autenticado -> {
                         if (tentativaAtual != idTentativa) return@launch
-                        armazenamentoDeSessao.salvarSessao(resultado.sessao.paraSessao())
+                        armazenamentoDeSessao.salvarSessao(resultado.sessao.paraSessao(email = email))
                         _estado.update {
                             it.copy(
                                 carregando = false,
@@ -185,9 +185,10 @@ class EntradaComSenhaViewModel(
     }
 }
 
-private fun SessaoDto.paraSessao(): Sessao = Sessao(
+private fun SessaoDto.paraSessao(email: String? = null): Sessao = Sessao(
     accessToken = accessToken,
     refreshToken = refreshToken,
     tokenType = tokenType,
     expiresIn = expiresIn,
+    email = email?.trim()?.lowercase()?.takeIf { it.isNotBlank() },
 )

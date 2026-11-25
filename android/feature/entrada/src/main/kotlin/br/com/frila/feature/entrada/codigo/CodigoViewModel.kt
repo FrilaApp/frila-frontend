@@ -133,7 +133,7 @@ class CodigoViewModel(
                         codigo = estadoAtual.codigo,
                         lembrarDispositivo = estadoAtual.lembrarDispositivo,
                     )
-                    armazenamentoDeSessao.salvarSessao(resultado.sessao.paraSessao())
+                    armazenamentoDeSessao.salvarSessao(resultado.sessao.paraSessao(email = estadoAtual.email))
                     _estado.update {
                         it.copy(
                             carregando = false,
@@ -270,9 +270,10 @@ class CodigoViewModel(
     }
 }
 
-private fun SessaoDto.paraSessao(): Sessao = Sessao(
+private fun SessaoDto.paraSessao(email: String? = null): Sessao = Sessao(
     accessToken = accessToken,
     refreshToken = refreshToken,
     tokenType = tokenType,
     expiresIn = expiresIn,
+    email = email?.trim()?.lowercase()?.takeIf { it.isNotBlank() },
 )

@@ -63,9 +63,11 @@ class AutenticacaoComSenhaNavegacaoTest {
 
     private lateinit var nav: NavHostController
     private val sessao = ArmazenamentoDeSessaoEmMemoria()
+    private val dispositivo = br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria()
     private val chamadas = CopyOnWriteArrayList<String>()
     private val corposOtp = CopyOnWriteArrayList<String>()
     private val corposDemo = CopyOnWriteArrayList<String>()
+    private val corposDefinirSenha = CopyOnWriteArrayList<String>()
 
     private val usuarioProfissional =
         """{"id":"11111111-1111-4111-8111-111111111111","perfil":"profissional","nome":"Conta Teste","telefone":"61999990000","email":"conta@exemplo.test","nascimento":"1990-01-01","estado":"ativa"}"""
@@ -82,6 +84,9 @@ class AutenticacaoComSenhaNavegacaoTest {
             if (path == "/functions/v1/entrar-demonstracao") {
                 corposDemo += (req.body as TextContent).text
             }
+            if (path == "/functions/v1/definir-senha") {
+                corposDefinirSenha += (req.body as TextContent).text
+            }
             val (corpo, status) = when {
                 path == "/auth/v1/otp" && otpDesativado ->
                     """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}""" to HttpStatusCode.UnprocessableEntity
@@ -93,7 +98,7 @@ class AutenticacaoComSenhaNavegacaoTest {
                 path == "/auth/v1/verify" ->
                     """{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
                 path == "/functions/v1/confirmar-dispositivo-otp" ->
-                    """{"sessao":{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600},"precisa_definir_senha":true}""" to HttpStatusCode.OK
+                    """{"sessao":{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600},"precisa_definir_senha":true,"device_token":"tok-disp-lembrado"}""" to HttpStatusCode.OK
                 path == "/auth/v1/token" ->
                     """{"access_token":"tok-senha","refresh_token":"ref-senha","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
                 path == "/functions/v1/autenticar-senha" ->
@@ -112,7 +117,7 @@ class AutenticacaoComSenhaNavegacaoTest {
             respond(corpo, status, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         val cliente = ClienteSupabase("https://frila.supabase.co", "chave", armazenamentoDeSessao = sessao, engine = engine)
-        val servicoAuth = ServicoAutenticacao(cliente)
+        val servicoAuth = ServicoAutenticacao(cliente, dispositivo)
         val servicoConta = ServicoConta(cliente)
         val servicoPerfil = ServicoPerfil(cliente)
         val servicoMembros = ServicoMembros(cliente)
@@ -148,7 +153,15 @@ class AutenticacaoComSenhaNavegacaoTest {
                             viewModel { EntradaComSenhaViewModel(servicoAuth, sessao, escopo = escopo) }
                             viewModel { params -> CriarContaViewModel(servicoAuth, escopo = escopo, emailInicial = params.getOrNull<String>().orEmpty()) }
                             viewModel { params -> RecuperacaoSenhaViewModel(servicoAuth, escopo = escopo, emailInicial = params.getOrNull<String>().orEmpty()) }
-                            viewModel { DefinirSenhaViewModel(servicoAuth, sessao, escopo = escopo) }
+                            viewModel { params ->
+                                DefinirSenhaViewModel(
+                                    servicoAutenticacao = servicoAuth,
+                                    armazenamentoDeSessao = sessao,
+                                    escopo = escopo,
+                                    manterDispositivoAtual = params.getOrNull<Boolean>() ?: false,
+                                    emailAtual = params.getOrNull<String>(),
+                                )
+                            }
                             viewModel { params ->
                                 CodigoViewModel(
                                     email = params.get(),
@@ -325,5 +338,33 @@ class AutenticacaoComSenhaNavegacaoTest {
 
         assertTrue(corposDemo.single().contains("\"email\":\"${DemonstracaoContas.EMAIL_CONTRATANTE}\""))
         assertFalse(chamadas.contains("/auth/v1/token"))
+    }
+
+    @Test
+    fun koinERotaDefinirSenhaEnviaDeviceTokenAtualQuandoLembradoEPreservaOutrasContas() {
+        dispositivo.salvarToken("outra@exemplo.test", "tok-outra-conta")
+        montarApp(contaExiste = true)
+
+        rule.onNodeWithText("Esqueci ou ainda não tenho senha").performScrollTo().performClick()
+        assertTrue(aguardar { rotaAtual() == Rotas.RECUPERAR_SENHA })
+
+        rule.onNodeWithText("E-mail").performTextInput("legado@exemplo.test")
+        rule.onNodeWithText("Enviar código").performClick()
+        assertTrue(aguardar { rotaAtual() == Rotas.CODIGO })
+
+        rule.onNodeWithText("Lembrar este dispositivo por 30 dias").performScrollTo().performClick()
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
+        assertTrue("esperava DEFINIR_SENHA, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.DEFINIR_SENHA })
+
+        rule.onNodeWithText("Nova senha").performTextInput("SenhaLembrada#2026")
+        rule.onNodeWithText("Confirmar senha").performTextInput("SenhaLembrada#2026")
+        rule.onNodeWithText("Salvar senha").performClick()
+
+        assertTrue("esperava FEED, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
+        val corpo = corposDefinirSenha.single()
+        assertTrue("esperava manter_dispositivo_atual:true em $corpo", corpo.contains("\"manter_dispositivo_atual\":true"))
+        assertTrue("esperava device_token_atual não nulo em $corpo", corpo.contains("\"device_token_atual\":\"tok-disp-lembrado\""))
+        assertEquals("tok-disp-lembrado", dispositivo.obterToken("legado@exemplo.test"))
+        assertEquals("tok-outra-conta", dispositivo.obterToken("outra@exemplo.test"))
     }
 }
