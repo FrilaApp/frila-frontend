@@ -604,4 +604,36 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithText(TextosChamadaCasa.BUSCA_SEM_CASA).assertIsDisplayed()
         rule.onNodeWithTag("folha-inicio").assert(hasText("20/11/2026 19:00"))
     }
+
+    @Test
+    fun folhaDaBuscaMostraAvisoNaoBloqueanteParaValorBaixoEValorAlto() {
+        abrirFolha(comResultados(selecionados = listOf("p1")))
+
+        rule.onNodeWithTag("folha-valor").performTextInput("49,99")
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithTag("folha-confirmar-total").performScrollTo().performClick()
+        rule.onNodeWithTag("folha-enviar").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(4999L, chamadas.chamou!!.first.valorCentavos)
+
+        chamadas.chamou = null
+        rule.onNodeWithTag("folha-valor").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("folha-valor").performTextInput("2000,01")
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithTag("folha-confirmar-total").performScrollTo().performClick()
+        rule.onNodeWithTag("folha-enviar").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(200001L, chamadas.chamou!!.first.valorCentavos)
+    }
+
+    @Test
+    fun folhaDaBuscaComValorNaFaixaOuZeroNaoMostraAvisoDeFaixa() {
+        abrirFolha(comResultados(selecionados = listOf("p1")))
+        for (valor in listOf("0", "50", "2000")) {
+            rule.onNodeWithTag("folha-valor").performScrollTo().performTextClearance()
+            rule.onNodeWithTag("folha-valor").performTextInput(valor)
+            rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
+    }
 }

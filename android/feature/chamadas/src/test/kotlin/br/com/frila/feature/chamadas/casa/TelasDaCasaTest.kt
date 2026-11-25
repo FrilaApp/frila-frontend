@@ -1,5 +1,8 @@
 package br.com.frila.feature.chamadas.casa
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -149,6 +152,50 @@ class TelasDaCasaTest {
         rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
 
         assertEquals(1, enviou)
+    }
+
+    @Test
+    fun folhaComValorAbaixoDe50ReaisMostraAvisoEMantemEnviarHabilitado() {
+        var enviou = 0
+        montarFolha(folha { copy(valorTexto = "49,99", totalConfirmado = true) }, AcoesChamadaDireta(aoEnviar = { enviou++ }))
+
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
+        assertEquals(1, enviou)
+    }
+
+    @Test
+    fun folhaComValorAcimaDe2000ReaisMostraAvisoEMantemEnviarHabilitado() {
+        var enviou = 0
+        montarFolha(folha { copy(valorTexto = "2000,01", totalConfirmado = true) }, AcoesChamadaDireta(aoEnviar = { enviou++ }))
+
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
+        assertEquals(1, enviou)
+    }
+
+    @Test
+    fun folhaComValorNaFaixaOuZeroNaoMostraAvisoDeFaixa() {
+        var valorEstado by mutableStateOf("")
+        rule.setContent {
+            FrilaTheme {
+                val tela = folha { copy(valorTexto = valorEstado) }
+                ConteudoChamadaDireta(
+                    tela = tela,
+                    acoes = AcoesChamadaDireta(),
+                    inicioMinimo = { agora.plus(Duration.ofHours(2)) },
+                    faixaDoTermino = { tela.inicio.plus(Duration.ofHours(2))..tela.inicio.plus(Duration.ofHours(16)) },
+                )
+            }
+        }
+        for (valor in listOf("", "0", "50", "2000")) {
+            valorEstado = valor
+            rule.waitForIdle()
+            rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
     }
 
     @Test

@@ -194,4 +194,47 @@ class TelaEscalaDeEventoTest {
         rule.onNodeWithContentDescription(TextosEscala.ROTULO_VOLTAR).performClick()
         assertEquals(1, voltou)
     }
+
+    @Test
+    fun `valor abaixo de 50 reais mostra aviso e permite publicar a escala`() {
+        montar()
+        rule.onNodeWithText(TextosEscala.NOME).performTextInput("Formatura")
+        rule.onAllNodesWithText(TextosEscala.FUNCAO_SELECIONAR)[0].performScrollTo().performClick()
+        rule.onNodeWithText("Garçom").performClick()
+        rule.onAllNodesWithText(TextosPublicarVaga.VALOR)[0].performScrollTo().performTextInput("49,99")
+        rule.onAllNodesWithText(TextosPublicarVaga.RESPONSAVEL)[0].performScrollTo().performTextInput("Lia")
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled().performClick()
+
+        assertEquals(4999L, enviados.single().vagas.single().valorCentavos)
+    }
+
+    @Test
+    fun `valor acima de 2000 reais mostra aviso e permite publicar a escala`() {
+        montar()
+        rule.onNodeWithText(TextosEscala.NOME).performTextInput("Formatura")
+        rule.onAllNodesWithText(TextosEscala.FUNCAO_SELECIONAR)[0].performScrollTo().performClick()
+        rule.onNodeWithText("Garçom").performClick()
+        rule.onAllNodesWithText(TextosPublicarVaga.VALOR)[0].performScrollTo().performTextInput("2000,01")
+        rule.onAllNodesWithText(TextosPublicarVaga.RESPONSAVEL)[0].performScrollTo().performTextInput("Lia")
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled().performClick()
+
+        assertEquals(200001L, enviados.single().vagas.single().valorCentavos)
+    }
+
+    @Test
+    fun `valor dentro da faixa ou zero nao mostra aviso na escala`() {
+        val vm = montar()
+        for (valor in listOf("", "0", "50", "2000")) {
+            vm.editarValor(0, valor)
+            rule.waitForIdle()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
+    }
 }

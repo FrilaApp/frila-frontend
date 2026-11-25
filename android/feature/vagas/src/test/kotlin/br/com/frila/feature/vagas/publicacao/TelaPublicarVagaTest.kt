@@ -340,4 +340,43 @@ class TelaPublicarVagaTest {
         rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         rule.onNodeWithText(TextosPublicarVaga.REFEICAO).performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
     }
+
+    @Test
+    fun `valor abaixo de 50 reais mostra aviso nao bloqueante e mantem publicar habilitado`() {
+        val chamadas = montar(estado { copy(valor = "49,99") })
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
+        assertEquals(1, chamadas.publicacoes)
+    }
+
+    @Test
+    fun `valor acima de 2000 reais mostra aviso nao bloqueante e mantem publicar habilitado`() {
+        val chamadas = montar(estado { copy(valor = "2000,01") })
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
+        assertEquals(1, chamadas.publicacoes)
+    }
+
+    @Test
+    fun `valor dentro da faixa, vazio ou zero nao mostra aviso de faixa`() {
+        var valorEstado by mutableStateOf("")
+        rule.setContent {
+            FrilaTheme {
+                ConteudoPublicarVaga(
+                    estado = estado { copy(valor = valorEstado) },
+                    acoes = AcoesPublicarVaga(),
+                )
+            }
+        }
+        for (valor in listOf("", "0", "50", "2000")) {
+            valorEstado = valor
+            rule.waitForIdle()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
+    }
 }
