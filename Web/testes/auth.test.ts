@@ -25,7 +25,186 @@ describe("conversa com o Supabase Auth", () => {
     expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/otp");
     expect(pedidos[0]?.method).toBe("POST");
     expect(pedidos[0]?.headers.get("apikey")).toBe("sb_publishable_teste");
-    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com" });
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", create_user: true });
+  });
+
+  it("pedirCodigo com criarUsuario=false chama recuperação e não cria usuário", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json({}));
+    expect(await auth.pedirCodigo("ana@example.com", { criarUsuario: false })).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/otp");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", create_user: false });
+  });
+
+  it("pedirCodigoRecuperacao devolve enviado=true se 200, enviado=false (neutro) se 422/400/404", async () => {
+    const okAuth = authQueResponde(() => Response.json({})).auth;
+    expect(await okAuth.pedirCodigoRecuperacao("existe@example.com")).toEqual({ ok: true, enviado: true });
+
+    for (const status of [400, 403, 404, 422]) {
+      const { auth } = authQueResponde(() => Response.json({ msg: "user not found" }, { status }));
+      expect(await auth.pedirCodigoRecuperacao("inexistente@example.com"), String(status)).toEqual({
+        ok: true,
+        enviado: false,
+      });
+    }
+
+    const limiteAuth = authQueResponde(() => Response.json({}, { status: 429 })).auth;
+    expect(await limiteAuth.pedirCodigoRecuperacao("a@b.co")).toEqual({ ok: false, motivo: "limite" });
+
+    const foraAuth = authQueResponde(() => Response.json({}, { status: 500 })).auth;
+    expect(await foraAuth.pedirCodigoRecuperacao("a@b.co")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+
+  it("entrarComSenha chama auth/v1/token?grant_type=password com email e senha", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json(sessao));
+    expect(await auth.entrarComSenha("ana@example.com", "senha12345")).toEqual({ ok: true, sessao });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/token?grant_type=password");
+    expect(pedidos[0]?.method).toBe("POST");
+    expect(await corpoDe(pedidos[0])).toEqual({ email: "ana@example.com", password: "senha12345" });
+  });
+
+  it("entrarComSenha: 400 viram credenciais_invalidas (neutro), 429 vira limite e 5xx vira indisponivel", async () => {
+    const com = (status: number) => authQueResponde(() => Response.json({ error_description: "Invalid credentials" }, { status })).auth;
+    expect(await com(400).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+    expect(await com(401).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+    expect(await com(422).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+    expect(await com(429).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "limite" });
+    expect(await com(500).entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "indisponivel" });
+  });
+
+  it("atualizarSenha chama PUT auth/v1/user com Authorization Bearer e body password", async () => {
+    const { auth, pedidos } = authQueResponde(() => Response.json({ id: "user-123" }));
+    expect(await auth.atualizarSenha("token-acesso", "novaSenha123")).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/user");
+    expect(pedidos[0]?.method).toBe("PUT");
+    expect(pedidos[0]?.headers.get("Authorization")).toBe("Bearer token-acesso");
+    expect(await corpoDe(pedidos[0])).toEqual({ password: "novaSenha123" });
+  });
+
+  it("atualizarSenha mapeia erro de senha fraca, mesma senha, sessao_invalida e limite", async () => {
+    const fraca = authQueResponde(() => Response.json({ code: "weak_password" }, { status: 422 })).auth;
+    expect(await fraca.atualizarSenha("t", "123")).toEqual({ ok: false, motivo: "senha_fraca" });
+
+    const mesma = authQueResponde(() => Response.json({ error_code: "same_password" }, { status: 422 })).auth;
+    expect(await mesma.atualizarSenha("t", "mesma")).toEqual({ ok: false, motivo: "senha_igual" });
+
+    const naoAutenticado = authQueResponde(() => Response.json({}, { status: 401 })).auth;
+    expect(await naoAutenticado.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "sessao_invalida" });
+
+    const reauth = authQueResponde(() => Response.json({ error_code: "reauthentication_needed" }, { status: 422 })).auth;
+    expect(await reauth.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "reautenticacao_necessaria" });
+
+    const limite = authQueResponde(() => Response.json({}, { status: 429 })).auth;
+    expect(await limite.atualizarSenha("t", "s")).toEqual({ ok: false, motivo: "limite" });
+  });
+
+  it("validação runtime fail-closed recusa 200 com payload de sessão inválido ou incompleto", async () => {
+    for (const corpo of [{}, { access_token: "a" }, { access_token: "a", refresh_token: "r", token_type: "bearer", expires_in: 0 }, null]) {
+      const { auth } = authQueResponde(() => Response.json(corpo));
+      expect(await auth.entrarComSenha("a@b.co", "s")).toEqual({ ok: false, motivo: "indisponivel" });
+      expect(await auth.confirmarCodigo("a@b.co", "123456")).toEqual({ ok: false, motivo: "indisponivel" });
+      expect(await auth.entrarDemonstracao("a@b.co", "123456")).toEqual({ ok: false, motivo: "indisponivel" });
+      expect(await auth.renovar("r")).toEqual({ ok: false, motivo: "indisponivel" });
+    }
+  });
+
+  it("encerrarOutrasSessoes chama POST /auth/v1/logout?scope=others e tolera falha", async () => {
+    const { auth, pedidos } = authQueResponde(() => new Response(null, { status: 204 }));
+    expect(await auth.encerrarOutrasSessoes("tok")).toEqual({ ok: true });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/auth/v1/logout?scope=others");
+    expect(pedidos[0]?.headers.get("Authorization")).toBe("Bearer tok");
+
+    const falha = authQueResponde(() => new Response(null, { status: 400 })).auth;
+    expect(await falha.encerrarOutrasSessoes("tok")).toEqual({ ok: false });
+  });
+
+  it("autenticarSenha envia plataforma web, device_token e cabeçalhos B-116 anon quando há segredo e IP", async () => {
+    const pedidos: Request[] = [];
+    const auth = criarAuth(ambiente, {
+      chavesIp: { id: "a1", segredo: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
+      fetch: async (entrada, inicio) => {
+        const req = new Request(entrada, inicio);
+        pedidos.push(req);
+        return Response.json({ status: "autenticado", sessao, precisa_definir_senha: false });
+      },
+    });
+    const res = await auth.autenticarSenha({
+      email: "ana@example.com",
+      senha: "segredo",
+      deviceToken: "tok-disp",
+      visitante: "198.51.100.10",
+    });
+    expect(res).toEqual({ ok: true, status: "autenticado", sessao, precisaDefinirSenha: false });
+    expect(pedidos[0]?.url).toBe("https://exemplo.supabase.co/functions/v1/autenticar-senha");
+    expect(pedidos[0]?.headers.get("x-frila-ip-visitante")).toBe("198.51.100.10");
+    expect(pedidos[0]?.headers.get("x-frila-ip-carimbo")).toMatch(/^\d+$/);
+    expect(pedidos[0]?.headers.get("x-frila-ip-assinatura")).toMatch(/^v1;k=a1;[0-9a-f]{64}$/);
+    expect(pedidos[0]?.headers.get("x-forwarded-for")).toBeNull();
+    expect(await corpoDe(pedidos[0])).toEqual({
+      email: "ana@example.com",
+      senha: "segredo",
+      plataforma: "web",
+      device_token: "tok-disp",
+    });
+  });
+
+  it("autenticarSenha omite todos os cabeçalhos B-116 sem segredo (fail-closed) e trata desafio_otp / 401 / 429", async () => {
+    const desafio = authQueResponde(() =>
+      Response.json({ status: "desafio_otp", desafio_id: "des-1", descartar_device_token: true }),
+    );
+    expect(await desafio.auth.autenticarSenha({ email: "a@b.co", senha: "s", visitante: "198.51.100.10" })).toEqual({
+      ok: true,
+      status: "desafio_otp",
+      desafioId: "des-1",
+      descartarDeviceToken: true,
+    });
+    expect(desafio.pedidos[0]?.headers.get("x-frila-ip-visitante")).toBeNull();
+    expect(desafio.pedidos[0]?.headers.get("x-frila-ip-assinatura")).toBeNull();
+
+    const invalido = authQueResponde(() => Response.json({ code: "credenciais_invalidas" }, { status: 401 })).auth;
+    expect(await invalido.autenticarSenha({ email: "a@b.co", senha: "s" })).toEqual({ ok: false, motivo: "credenciais_invalidas" });
+
+    const limite = authQueResponde(() => Response.json({ code: "limite_excedido" }, { status: 429 })).auth;
+    expect(await limite.autenticarSenha({ email: "a@b.co", senha: "s" })).toEqual({ ok: false, motivo: "limite" });
+  });
+
+  it("confirmarDispositivoOtp, reenviarDispositivoOtp, definirSenha e revogarDispositivos seguem o contrato", async () => {
+    const conf = authQueResponde(() =>
+      Response.json({ sessao, precisa_definir_senha: true, device_token: "novo-dev", dispositivo_expira_em: "2026-12-25T00:00:00Z" }),
+    );
+    expect(
+      await conf.auth.confirmarDispositivoOtp({
+        tipo: "login_dispositivo",
+        desafioId: "des-1",
+        codigo: "123456",
+        lembrarDispositivo: true,
+      }),
+    ).toEqual({ ok: true, sessao, precisaDefinirSenha: true, deviceToken: "novo-dev" });
+    expect(conf.pedidos[0]?.url).toBe("https://exemplo.supabase.co/functions/v1/confirmar-dispositivo-otp");
+
+    const exp = authQueResponde(() => Response.json({ code: "desafio_expirado" }, { status: 410 })).auth;
+    expect(
+      await exp.confirmarDispositivoOtp({ tipo: "login_dispositivo", desafioId: "des-1", codigo: "123456", lembrarDispositivo: false }),
+    ).toEqual({ ok: false, motivo: "desafio_expirado" });
+
+    const reenv = authQueResponde(() => Response.json({ ok: true, desafio_id: "des-1", reenviar_em_segundos: 60 }));
+    expect(await reenv.auth.reenviarDispositivoOtp({ desafioId: "des-1" })).toEqual({ ok: true, reenviarEmSegundos: 60 });
+    expect(reenv.pedidos[0]?.url).toBe("https://exemplo.supabase.co/functions/v1/reenviar-dispositivo-otp");
+
+    const def = authQueResponde(() => Response.json({ ok: true, precisa_definir_senha: false, dispositivos_revogados: 1, sessao }));
+    expect(
+      await def.auth.definirSenha({
+        acesso: "tok",
+        novaSenha: "novaSenha123",
+        manterDispositivoAtual: true,
+        deviceTokenAtual: "d1",
+        refreshToken: "r1",
+      }),
+    ).toEqual({ ok: true, sessao });
+    expect(def.pedidos[0]?.url).toBe("https://exemplo.supabase.co/functions/v1/definir-senha");
+
+    const rev = authQueResponde(() => Response.json({ ok: true, dispositivos_revogados: 2 }));
+    expect(await rev.auth.revogarDispositivos({ acesso: "tok" })).toEqual({ ok: true });
+    expect(rev.pedidos[0]?.url).toBe("https://exemplo.supabase.co/functions/v1/revogar-dispositivos");
   });
 
   it("limite de pedidos de código vira motivo próprio", async () => {

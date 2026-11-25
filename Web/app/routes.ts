@@ -3,6 +3,9 @@ import { type RouteConfig, index, prefix, route } from "@react-router/dev/routes
 export default [
   index("rotas/inicio.tsx"),
   route("entrar", "rotas/entrar.tsx"),
+  route("criar-conta", "rotas/criar-conta.tsx"),
+  route("recuperar-senha", "rotas/recuperar-senha.tsx"),
+  route("definir-senha", "rotas/definir-senha.tsx"),
   route("sair", "rotas/sair.ts"),
   route("cadastro", "rotas/cadastro.tsx"),
   route("aceitar-termos", "rotas/aceitar-termos.ts"),

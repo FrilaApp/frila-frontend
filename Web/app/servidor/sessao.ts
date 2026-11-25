@@ -20,8 +20,11 @@ export type SessaoAtual = {
 
 const NOME_ACESSO = "frila-acesso";
 const NOME_RENOVACAO = "frila-renovacao";
+const NOME_DISPOSITIVO = "frila-dispositivo";
 /** Sem uso por 30 dias, a pessoa entra de novo. */
 const VIDA_DA_RENOVACAO_S = 60 * 60 * 24 * 30;
+/** Confiança de dispositivo por 30 dias (validade real controlada no Postgres). */
+const VIDA_DO_DISPOSITIVO_S = 60 * 60 * 24 * 30;
 /** Renova um pouco antes de vencer, para o token não morrer no meio de um pedido. */
 export const FOLGA_DA_RENOVACAO_S = 60;
 
@@ -32,7 +35,11 @@ export const FOLGA_DA_RENOVACAO_S = 60;
  */
 function nomes(seguro: boolean) {
   const prefixo = seguro ? "__Host-" : "";
-  return { acesso: `${prefixo}${NOME_ACESSO}`, renovacao: `${prefixo}${NOME_RENOVACAO}` };
+  return {
+    acesso: `${prefixo}${NOME_ACESSO}`,
+    renovacao: `${prefixo}${NOME_RENOVACAO}`,
+    dispositivo: `${prefixo}${NOME_DISPOSITIVO}`,
+  };
 }
 
 function cookie(nome: string, valor: string, vidaEmSegundos: number, seguro: boolean): string {
@@ -56,6 +63,17 @@ export function cookiesDaSessao(sessao: Sessao, seguro: boolean): string[] {
 export function cookiesDeSaida(seguro: boolean): string[] {
   const nome = nomes(seguro);
   return [cookie(nome.acesso, "", 0, seguro), cookie(nome.renovacao, "", 0, seguro)];
+}
+
+/** Grava ou apaga o cookie opaco `__Host-frila-dispositivo` (30 dias, HttpOnly; nunca confiado sem validação no Postgres). */
+export function cookieDoDispositivo(valor: string | null, seguro: boolean): string {
+  const nome = nomes(seguro).dispositivo;
+  return valor ? cookie(nome, valor, VIDA_DO_DISPOSITIVO_S, seguro) : cookie(nome, "", 0, seguro);
+}
+
+export function lerCookieDoDispositivo(request: Request): string | null {
+  const nome = nomes(ehPedidoSeguro(request)).dispositivo;
+  return cookiesDoPedido(request).get(nome) || null;
 }
 
 function cookiesDoPedido(request: Request): Map<string, string> {
@@ -96,6 +114,34 @@ export function lerToken(acesso: string): { venceEm: number | null; usuarioId: s
     };
   } catch {
     return { venceEm: null, usuarioId: null, email: null };
+  }
+}
+
+/** Lê os claims `app_metadata.precisa_definir_senha` e `dispositivo_verificado` de um JWT já validado pelo Auth. */
+export function lerClaimsDoToken(acesso: string): {
+  precisaDefinirSenha: boolean;
+  temClaimSenhaPendente: boolean;
+  dispositivoVerificado: boolean;
+} {
+  try {
+    const corpo = acesso.split(".")[1] ?? "";
+    const bytes = Uint8Array.from(atob(corpo.replace(/-/g, "+").replace(/_/g, "/")), (letra) => letra.charCodeAt(0));
+    const dados: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (typeof dados !== "object" || dados === null) {
+      return { precisaDefinirSenha: false, temClaimSenhaPendente: false, dispositivoVerificado: false };
+    }
+    const appMetadata = (dados as Record<string, unknown>).app_metadata;
+    if (typeof appMetadata !== "object" || appMetadata === null) {
+      return { precisaDefinirSenha: false, temClaimSenhaPendente: false, dispositivoVerificado: false };
+    }
+    const meta = appMetadata as Record<string, unknown>;
+    return {
+      precisaDefinirSenha: meta.precisa_definir_senha === true,
+      temClaimSenhaPendente: typeof meta.precisa_definir_senha === "boolean",
+      dispositivoVerificado: meta.dispositivo_verificado === true,
+    };
+  } catch {
+    return { precisaDefinirSenha: false, temClaimSenhaPendente: false, dispositivoVerificado: false };
   }
 }
 

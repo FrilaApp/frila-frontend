@@ -1,10 +1,10 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { excluirConta } from "../../servidor/conta/dados";
-import { funcoesDoUsuario } from "../../servidor/deste-ambiente";
+import { authDesteAmbiente, funcoesDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { cookieDoAparelho } from "../../servidor/push";
-import { cookiesDeSaida, ehPedidoSeguro } from "../../servidor/sessao";
+import { cookieDoDispositivo, cookiesDeSaida, ehPedidoSeguro, lerCookieDoDispositivo } from "../../servidor/sessao";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/dados";
 
@@ -27,13 +27,31 @@ export function loader({ context, request }: Route.LoaderArgs) {
 export async function action({ context, request }: Route.ActionArgs) {
   const sessao = exigirSessao(context);
   const formulario = await request.formData();
+  const intencao = String(formulario.get("intencao") ?? "");
+  const seguro = ehPedidoSeguro(request);
+
+  if (intencao === "revogar_dispositivos") {
+    const auth = authDesteAmbiente();
+    if (!auth) return { falhaDispositivos: "indisponivel" as const };
+    const revogacao = await auth.revogarDispositivos({ acesso: sessao.acesso, visitante: sessao.visitante });
+    if (!revogacao.ok && revogacao.motivo !== "sessao_invalida") {
+      return { falhaDispositivos: revogacao.motivo };
+    }
+    const cabecalhos = new Headers();
+    for (const linha of cookiesDeSaida(seguro)) cabecalhos.append("Set-Cookie", linha);
+    cabecalhos.append("Set-Cookie", cookieDoDispositivo(null, seguro));
+    cabecalhos.append("Set-Cookie", cookieDoAparelho(null, seguro));
+    throw redirect("/entrar", { headers: cabecalhos });
+  }
+
   if (formulario.get("ciente") !== "sim") return { falha: "sem_confirmacao" as const };
   const exclusao = await excluirConta(funcoesDoUsuario(sessao.acesso));
   if (!exclusao.ok && exclusao.motivo !== "sem_sessao") return { falha: exclusao.motivo };
   const cabecalhos = new Headers();
-  for (const linha of cookiesDeSaida(ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+  for (const linha of cookiesDeSaida(seguro)) cabecalhos.append("Set-Cookie", linha);
+  if (lerCookieDoDispositivo(request)) cabecalhos.append("Set-Cookie", cookieDoDispositivo(null, seguro));
   // O cookie do aparelho do push também sai (achado A7 do Juiz): a conta não existe mais.
-  cabecalhos.append("Set-Cookie", cookieDoAparelho(null, ehPedidoSeguro(request)));
+  cabecalhos.append("Set-Cookie", cookieDoAparelho(null, seguro));
   throw redirect("/entrar", { headers: cabecalhos });
 }
 
@@ -50,6 +68,10 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
 
       <Link to="/conta/aparencia" className={classeDoLink}>
         {textos.aparencia.titulo}
+      </Link>
+
+      <Link to="/definir-senha" className={classeDoLink}>
+        {textos.definirSenha.alterarSenha}
       </Link>
 
       <section className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4" aria-labelledby="titulo-exportar">
@@ -81,7 +103,7 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
           <li>{t.excluir.turnos}</li>
           <li>{t.excluir.prazo}</li>
         </ul>
-        {actionData ? (
+        {actionData && "falha" in actionData && actionData.falha ? (
           <p role="alert" className="font-semibold">
             {t.excluir.erros[actionData.falha]}
           </p>
@@ -93,6 +115,24 @@ export default function MinhaConta({ loaderData, actionData }: Route.ComponentPr
           </label>
           <button type="submit" disabled={excluindo} className={classeDoSecundario}>
             {excluindo ? t.excluir.excluindo : t.excluir.botao}
+          </button>
+        </Form>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-cartao border border-borda bg-superficie p-4" aria-labelledby="titulo-dispositivos">
+        <h2 id="titulo-dispositivos" className="font-titulo text-xl font-bold">
+          {t.dispositivos.titulo}
+        </h2>
+        <p>{t.dispositivos.corpo}</p>
+        {actionData && "falhaDispositivos" in actionData && actionData.falhaDispositivos ? (
+          <p role="alert" className="font-semibold">
+            {t.dispositivos.erros[actionData.falhaDispositivos]}
+          </p>
+        ) : null}
+        <Form method="post">
+          <input type="hidden" name="intencao" value="revogar_dispositivos" />
+          <button type="submit" disabled={excluindo} className={classeDoSecundario}>
+            {excluindo ? t.dispositivos.encerrando : t.dispositivos.botao}
           </button>
         </Form>
       </section>
