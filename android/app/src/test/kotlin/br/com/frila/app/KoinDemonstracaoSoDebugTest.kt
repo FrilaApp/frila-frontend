@@ -37,7 +37,7 @@ import org.koin.test.get
 /**
  * Fixa o que o `ModulosKoin.kt` decide com `permitirDominioDeTeste = BuildConfig.DEBUG`: a entrada por conta de
  * demonstração (`@frila.test`, `/functions/v1/entrar-demonstracao`) existe só no build debug. No release, um e-mail
- * `@frila.test` segue o caminho normal (`/auth/v1/otp` e `/auth/v1/verify`).
+ * `@frila.test` segue o caminho normal (`/auth/v1/otp` e `/functions/v1/confirmar-dispositivo-otp`).
  *
  * Cada teste vale numa variante: o debug roda em `testDebugUnitTest` (o que a CI roda) e o release só em
  * `testReleaseUnitTest`. Trocar `BuildConfig.DEBUG` por `true` no `ModulosKoin.kt` só quebra a variante release.
@@ -101,7 +101,7 @@ class KoinDemonstracaoSoDebugTest : KoinTest {
 
         val codigo = get<CodigoViewModel> { parametersOf(email) }
         codigo.aoMudarCodigo("123456")?.join()
-        assertEquals(listOf("/auth/v1/otp", "/auth/v1/verify"), pedidos)
+        assertEquals(listOf("/auth/v1/otp", "/functions/v1/confirmar-dispositivo-otp"), pedidos)
         assertFalse(pedidos.any { it.contains("entrar-demonstracao") }, "release não chama a demonstração: $pedidos")
     }
 }
