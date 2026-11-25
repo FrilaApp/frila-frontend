@@ -25,6 +25,9 @@
 		// "1" deixa a página pública da vaga entrar no índice dos buscadores. Fica "0" até a Política ganhar as
 		// frases da seção 4, item 1, e da seção 2 (buscadores).
 		"VAGA_PUBLICA_NO_INDICE": "0",
+		// "ligado" mostra o "Entrar com Google" e liga as rotas /entrar/google. SÓ no dev: no env "producao" a variável
+		// não existe (vars não herdam), e sem ela o botão some e as rotas recusam (testes/entrar-google.test.ts confere).
+		"GOOGLE_ENTRAR": "ligado",
 		// Id da chave do secret IP_VISITANTE_HMAC (^[a-z0-9]{1,16}$): vai no cabeçalho de assinatura do IP do visitante.
 		"IP_VISITANTE_HMAC_ID": "a1"
 	},

@@ -21,10 +21,13 @@ export type SessaoAtual = {
 const NOME_ACESSO = "frila-acesso";
 const NOME_RENOVACAO = "frila-renovacao";
 const NOME_DISPOSITIVO = "frila-dispositivo";
+const NOME_GOOGLE = "frila-google";
 /** Sem uso por 30 dias, a pessoa entra de novo. */
 const VIDA_DA_RENOVACAO_S = 60 * 60 * 24 * 30;
 /** Confiança de dispositivo por 30 dias (validade real controlada no Postgres). */
 const VIDA_DO_DISPOSITIVO_S = 60 * 60 * 24 * 30;
+/** O verifier do PKCE do Entrar com Google vive 10 minutos (o tempo de escolher a conta). */
+const VIDA_DO_GOOGLE_S = 60 * 10;
 /** Renova um pouco antes de vencer, para o token não morrer no meio de um pedido. */
 export const FOLGA_DA_RENOVACAO_S = 60;
 
@@ -39,6 +42,7 @@ function nomes(seguro: boolean) {
     acesso: `${prefixo}${NOME_ACESSO}`,
     renovacao: `${prefixo}${NOME_RENOVACAO}`,
     dispositivo: `${prefixo}${NOME_DISPOSITIVO}`,
+    google: `${prefixo}${NOME_GOOGLE}`,
   };
 }
 
@@ -73,6 +77,17 @@ export function cookieDoDispositivo(valor: string | null, seguro: boolean): stri
 
 export function lerCookieDoDispositivo(request: Request): string | null {
   const nome = nomes(ehPedidoSeguro(request)).dispositivo;
+  return cookiesDoPedido(request).get(nome) || null;
+}
+
+/** Grava ou apaga o cookie `__Host-frila-google` com o verifier do PKCE (HttpOnly, SameSite=Lax, 10 minutos). */
+export function cookieDoGoogle(valor: string | null, seguro: boolean): string {
+  const nome = nomes(seguro).google;
+  return valor ? cookie(nome, valor, VIDA_DO_GOOGLE_S, seguro) : cookie(nome, "", 0, seguro);
+}
+
+export function lerCookieDoGoogle(request: Request): string | null {
+  const nome = nomes(ehPedidoSeguro(request)).google;
   return cookiesDoPedido(request).get(nome) || null;
 }
 

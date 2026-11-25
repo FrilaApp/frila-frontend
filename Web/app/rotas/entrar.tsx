@@ -1,7 +1,7 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
+import { authDesteAmbiente, emailsDeDemonstracao, googleLigadoNesteAmbiente } from "../servidor/deste-ambiente";
 import {
   cookieDoDispositivo,
   cookiesDaSessao,
@@ -9,6 +9,7 @@ import {
   lerCookieDoDispositivo,
   visitanteDoPedido,
 } from "../servidor/sessao";
+import { BASE } from "../servidor/porteiro";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/entrar";
 
@@ -26,11 +27,16 @@ export function meta() {
   return [{ title: textos.entrar.tituloDaAba }, { name: "robots", content: "noindex" }];
 }
 
-export function loader({ context }: Route.LoaderArgs) {
+const ERROS_DO_GOOGLE: readonly Erro[] = ["google_falhou", "google_cancelado"];
+
+export function loader({ context, request }: Route.LoaderArgs) {
   if (context.get(contextoDaSessao)) {
     throw redirect("/");
   }
-  return null;
+  // Só as duas chaves fixas viram mensagem: nada do que vem na URL é repetido na tela.
+  const pedido = new URL(request.url).searchParams.get("erro");
+  const erroDoGoogle = ERROS_DO_GOOGLE.find((chave) => chave === pedido) ?? null;
+  return { google: googleLigadoNesteAmbiente(), erroDoGoogle };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -146,14 +152,17 @@ export async function action({ request }: Route.ActionArgs) {
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
 const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60";
+const classeDoBotaoSecundario =
+  "inline-flex min-h-12 w-full items-center justify-center rounded-controle border border-borda bg-superficie px-4 text-lg font-semibold";
 const classeDoLink = "min-h-11 font-semibold underline underline-offset-4";
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-export default function Entrar({ actionData }: Route.ComponentProps) {
+export default function Entrar({ actionData, loaderData }: Route.ComponentProps) {
   const navegacao = useNavigation();
   const enviando = navegacao.state !== "idle";
   const estado: Passo = actionData ?? { passo: "email", email: "" };
-  const erro = estado.erro ? textos.entrar.erros[estado.erro] : null;
+  const chaveDoErro = estado.erro ?? (estado.passo === "email" ? loaderData.erroDoGoogle : null);
+  const erro = chaveDoErro ? textos.entrar.erros[chaveDoErro] : null;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
@@ -324,6 +333,13 @@ export default function Entrar({ actionData }: Route.ComponentProps) {
           </div>
         </div>
       )}
+
+      {estado.passo === "email" && loaderData.google ? (
+        // Link (GET) e não formulário: a política de conteúdo (`form-action 'self'`) barraria o redirecionamento ao Google.
+        <a href={`${BASE}/entrar/google`} className={classeDoBotaoSecundario}>
+          {textos.entrar.entrarComGoogle}
+        </a>
+      ) : null}
 
       <footer className="text-sm text-tinta-suave">
         {textos.entrar.termos}{" "}

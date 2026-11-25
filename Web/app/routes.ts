@@ -3,6 +3,9 @@ import { type RouteConfig, index, prefix, route } from "@react-router/dev/routes
 export default [
   index("rotas/inicio.tsx"),
   route("entrar", "rotas/entrar.tsx"),
+  // Entrar com Google (OAuth com PKCE pelo Supabase). Só funciona onde GOOGLE_ENTRAR = "ligado" (dev).
+  route("entrar/google", "rotas/entrar-google.ts"),
+  route("entrar/google/retorno", "rotas/entrar-google-retorno.ts"),
   route("criar-conta", "rotas/criar-conta.tsx"),
   route("recuperar-senha", "rotas/recuperar-senha.tsx"),
   route("definir-senha", "rotas/definir-senha.tsx"),
