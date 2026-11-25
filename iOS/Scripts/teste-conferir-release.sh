@@ -227,6 +227,61 @@ app="$(novo_app_bom esquema-de-url)"
 plutil -insert CFBundleURLTypes -json '[{"CFBundleURLSchemes": ["frila"]}]' "$app/Info.plist"
 esperar_reprovacao "esquema de URL" "CFBundleURLTypes" "$app"
 
+# Exceção de CFBundleURLTypes: apenas o esquema exato do Google iOS (login com Google).
+esquema_google='com.googleusercontent.apps.949809644766-vhebboq8at80j8p2eti0kgslvk2d1ikh'
+
+# (a) Sem CFBundleURLTypes: passa.
+app="$(novo_app_bom urltypes-ausente)"
+esperar_aprovacao "$app"
+
+# (b) Só o esquema do Google: passa (com ou sem metadados padrão do Xcode).
+app="$(novo_app_bom urltypes-google)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"$esquema_google\"]}]" "$app/Info.plist"
+esperar_aprovacao "$app"
+
+app="$(novo_app_bom urltypes-google-xcode)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleTypeRole\": \"Editor\", \"CFBundleURLName\": \"GoogleSignIn\", \"CFBundleURLSchemes\": [\"$esquema_google\"]}]" "$app/Info.plist"
+esperar_aprovacao "$app"
+
+# (d) O do Google + outro esquema (no mesmo item e em itens separados): reprova.
+app="$(novo_app_bom urltypes-google-mais-outro-mesmo-item)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"$esquema_google\", \"frila\"]}]" "$app/Info.plist"
+esperar_reprovacao "Google + outro esquema no mesmo item" "CFBundleURLTypes" "$app"
+
+app="$(novo_app_bom urltypes-google-mais-outro-itens-separados)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"$esquema_google\"]}, {\"CFBundleURLSchemes\": [\"frila\"]}]" "$app/Info.plist"
+esperar_reprovacao "Google + outro esquema em itens separados" "CFBundleURLTypes" "$app"
+
+# (e) Parecido (sufixo, prefixo e maiúscula trocada): reprova.
+app="$(novo_app_bom urltypes-parecido-sufixo)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"${esquema_google}x\"]}]" "$app/Info.plist"
+esperar_reprovacao "esquema parecido com caractere a mais no fim" "CFBundleURLTypes" "$app"
+
+app="$(novo_app_bom urltypes-parecido-prefixo)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"x.${esquema_google}\"]}]" "$app/Info.plist"
+esperar_reprovacao "esquema parecido com prefixo" "CFBundleURLTypes" "$app"
+
+app="$(novo_app_bom urltypes-parecido-maiuscula)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"${esquema_google%ikh}IKH\"]}]" "$app/Info.plist"
+esperar_reprovacao "esquema parecido com maiúscula trocada" "CFBundleURLTypes" "$app"
+
+# (f) Item sem CFBundleURLSchemes, lista vazia de esquemas, lista vazia de URLTypes ou chave estranha: reprova.
+app="$(novo_app_bom urltypes-sem-schemes)"
+plutil -insert CFBundleURLTypes -json '[{"CFBundleTypeRole": "Editor"}]' "$app/Info.plist"
+esperar_reprovacao "item de CFBundleURLTypes sem CFBundleURLSchemes" "CFBundleURLTypes" "$app"
+
+app="$(novo_app_bom urltypes-schemes-vazio)"
+plutil -insert CFBundleURLTypes -json '[{"CFBundleURLSchemes": []}]' "$app/Info.plist"
+esperar_reprovacao "item de CFBundleURLTypes com CFBundleURLSchemes vazio" "CFBundleURLTypes" "$app"
+
+app="$(novo_app_bom urltypes-vazio)"
+plutil -insert CFBundleURLTypes -json '[]' "$app/Info.plist"
+esperar_reprovacao "CFBundleURLTypes vazio" "CFBundleURLTypes" "$app"
+
+app="$(novo_app_bom urltypes-chave-estranha)"
+plutil -insert CFBundleURLTypes -json "[{\"CFBundleURLSchemes\": [\"$esquema_google\"], \"CFBundleURLIconFile\": \"icone\"}]" "$app/Info.plist"
+esperar_reprovacao "item de CFBundleURLTypes com chave estranha" "CFBundleURLTypes" "$app"
+
 app="$(novo_app_bom sem-localizacao-em-uso)"
 plutil -remove NSLocationWhenInUseUsageDescription "$app/Info.plist"
 esperar_reprovacao "texto de localização em uso ausente" "NSLocationWhenInUseUsageDescription" "$app"
