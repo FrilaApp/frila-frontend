@@ -148,7 +148,8 @@ val moduloSeguranca = module {
     single { FilaDeTelemetria(getOrNull<Context>()?.noBackupFilesDir?.resolve("telemetria/eventos.json")) }
     single {
         val fila = get<FilaDeTelemetria>()
-        CacheVagasDaSessao(getOrNull<Context>()?.noBackupFilesDir, limparTelemetria = fila::limpar)
+        val contexto = getOrNull<Context>()
+        CacheVagasDaSessao(contexto?.noBackupFilesDir, limparTelemetria = fila::limpar, diretorioDosAvatares = contexto?.filesDir)
     }
     single<ArmazenamentoDeSessao> {
         val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)

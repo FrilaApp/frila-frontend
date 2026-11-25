@@ -5,6 +5,7 @@ import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.feature.perfil.CompressorDeFotoPerfil
 import java.io.File
 import java.io.IOException
 import java.util.Collections
@@ -15,7 +16,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /** Inclui instâncias ainda em uso e arquivos de execuções anteriores. Sem Context, só memória. */
-internal class CacheVagasDaSessao(private val raiz: File?, private val limparTelemetria: () -> Unit = {}) {
+internal class CacheVagasDaSessao(
+    private val raiz: File?,
+    private val limparTelemetria: () -> Unit = {},
+    /** `filesDir`, onde ficam os arquivos `avatar_perfil_*`: a foto é da conta que saiu e não pode sobrar para a próxima (#793). */
+    private val diretorioDosAvatares: File? = null,
+) {
     private val repositorios = Collections.newSetFromMap(WeakHashMap<RepositorioVagas, Boolean>())
 
     /** A fila de ações sem rede (A6) é da conta que saiu: sai junto com o cache, em logout, troca e expiração. */
@@ -44,6 +50,9 @@ internal class CacheVagasDaSessao(private val raiz: File?, private val limparTel
         raiz?.resolve(DestinoGuardadoEmArquivo.PASTA)?.let {
             if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar o destino guardado")
         }
+        diretorioDosAvatares?.listFiles { arquivo ->
+            arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO
+        }?.forEach { if (!it.delete()) falha = IOException("Não foi possível apagar o avatar") }
         falha?.let { throw it }
     }
 }

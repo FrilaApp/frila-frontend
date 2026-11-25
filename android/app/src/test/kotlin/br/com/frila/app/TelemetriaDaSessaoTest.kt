@@ -63,7 +63,7 @@ class TelemetriaDaSessaoTest {
     @Test
     fun `falha de limpeza da telemetria nao impede logout`() {
         val armazenamento = SessaoComCacheVagas(ArmazenamentoDeSessaoEmMemoria(),
-            CacheVagasDaSessao(null) { throw IOException("sintetico") })
+            CacheVagasDaSessao(null, limparTelemetria = { throw IOException("sintetico") }))
         armazenamento.salvarSessao(sessao("a"))
         armazenamento.limparSessao()
         assertNull(armazenamento.obterSessao())
