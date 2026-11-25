@@ -92,6 +92,7 @@ class TenhoUmConviteViewModel(
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.CONVITE_INVALIDO -> TextosEquipeDaCasa.CONVITE_INVALIDO
+        CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL -> TextosEquipeDaCasa.CONVITE_DE_OUTRO_EMAIL
         CodigoErroAPI.PERFIL_INCOMPATIVEL -> TextosEquipeDaCasa.CONVITE_PERFIL_INCOMPATIVEL
         CodigoErroAPI.NAO_AUTENTICADO -> TextosEquipeDaCasa.SESSAO
         CodigoErroAPI.SEM_REDE -> TextosEquipeDaCasa.SEM_REDE

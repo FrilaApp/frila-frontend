@@ -153,6 +153,7 @@ class TenhoUmConviteViewModelTest {
     fun `cada recusa do servidor vira a mensagem certa e libera o botao`() = runBlocking {
         val casos = listOf(
             erro(CodigoErroAPI.CONVITE_INVALIDO) to TextosEquipeDaCasa.CONVITE_INVALIDO,
+            erro(CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL) to TextosEquipeDaCasa.CONVITE_DE_OUTRO_EMAIL,
             erro(CodigoErroAPI.PERFIL_INCOMPATIVEL) to TextosEquipeDaCasa.CONVITE_PERFIL_INCOMPATIVEL,
             erro(CodigoErroAPI.NAO_AUTENTICADO) to TextosEquipeDaCasa.SESSAO,
             erro(CodigoErroAPI.SEM_REDE) to TextosEquipeDaCasa.SEM_REDE,
@@ -170,6 +171,20 @@ class TenhoUmConviteViewModelTest {
             // O que a pessoa colou fica no campo, para ela ver e tentar de novo.
             assertEquals(token, vm.estado.value.texto)
         }
+    }
+
+    @Test
+    fun `403 convite_de_outro_email mostra exatamente a mensagem do contrato 0_2_115`() = runBlocking {
+        val vm = viewModel(resposta = { throw erro(CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL) })
+        vm.editar(token)
+
+        vm.aceitarConvite().join()
+
+        assertEquals(
+            "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.",
+            vm.estado.value.erro,
+        )
+        assertNull(vm.estado.value.aceito)
     }
 
     @Test
