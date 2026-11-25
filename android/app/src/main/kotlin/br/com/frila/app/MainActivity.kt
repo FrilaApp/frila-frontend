@@ -21,7 +21,9 @@ import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
@@ -59,24 +61,35 @@ class MainActivity : FragmentActivity() {
 
                 LaunchedEffect(cliente) {
                     if (cliente != null) {
+                        val cache = CacheDeConfiguracaoDoAppPreferencias(applicationContext)
+                        fun aplicar(configuracao: ConfiguracaoDoAppDto) {
+                            versaoMinima = configuracao.versaoMinima
+                            chamadaDireta = configuracao.recursos.chamadaDireta
+                            buscaProfissionais = configuracao.recursos.buscaProfissionais
+                            checkinPorCodigo = configuracao.recursos.checkinPorCodigo
+                            configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
+                            perfilRico = configuracao.recursos.perfilRico
+                            fotoDePerfil = configuracao.recursos.fotoDePerfil
+                        }
+                        // #795: a primeira tela não fica presa à chamada. Abre na hora com a última configuração guardada para esta
+                        // versão do app ou, sem ela, depois de TEMPO_MAXIMO_ABERTURA_MS; a resposta, quando chega, vale do mesmo jeito.
+                        val abertura = launch {
+                            val guardada = lerConfiguracaoGuardada(cache, BuildConfig.VERSION_NAME)
+                            if (guardada != null) aplicar(guardada) else delay(TEMPO_MAXIMO_ABERTURA_MS)
+                            verificando = false
+                        }
                         try {
                             // 10 s; se estourar ou falhar, vale a última configuração guardada para esta versão do app.
                             val configuracao = obterConfiguracaoDoApp(
-                                cache = CacheDeConfiguracaoDoAppPreferencias(applicationContext),
+                                cache = cache,
                                 versaoApp = BuildConfig.VERSION_NAME,
                             ) { consultarConfiguracaoDoApp(cliente) }
-                            if (configuracao != null) {
-                                versaoMinima = configuracao.versaoMinima
-                                chamadaDireta = configuracao.recursos.chamadaDireta
-                                buscaProfissionais = configuracao.recursos.buscaProfissionais
-                                checkinPorCodigo = configuracao.recursos.checkinPorCodigo
-                                configuracao.mensagem?.takeIf { it.isNotBlank() }?.let { mensagemBloqueio = it }
-                                perfilRico = configuracao.recursos.perfilRico
-                                fotoDePerfil = configuracao.recursos.fotoDePerfil
-                            }
+                            abertura.cancel() // a resposta chegou: a guardada não pode mais sobrescrevê-la
+                            if (configuracao != null) aplicar(configuracao)
                         } catch (_: Exception) {
                             // Falha transitória de rede ou offline nunca bloqueia o acesso
                         } finally {
+                            abertura.cancel()
                             verificando = false
                             registrarAbertura("configuração do app resolvida", inicioDaActivity, aberturaCobrindo.get())
                         }
