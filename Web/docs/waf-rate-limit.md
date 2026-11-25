@@ -53,35 +53,35 @@ No plano gratuito da Cloudflare, o recurso **Rate Limiting Rules** (`http_rateli
 
 > **Atenção:** Não executar contra a zona `frilabr.com` sem autorização explícita do líder/infra. Requer `CF_ZONE_ID` e `CF_API_TOKEN` (escopo *Zone.Zone WAF Write*) fora do repositório.
 
-### 3.1. Inspecionar ruleset `http_ratelimit` existente na zona
+### 3.1. Ler o ruleset `http_ratelimit` existente na zona (obter `id` e regras atuais)
 ```bash
 curl -fsS "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/rulesets/phases/http_ratelimit/entrypoint" \
   -H "Authorization: Bearer ${CF_API_TOKEN}" \
   -H "Content-Type: application/json"
 ```
 
-### 3.2. Aplicar ou atualizar a regra no entrypoint `http_ratelimit`
+### 3.2. Adicionar a nova regra sem substituir as regras existentes (`POST .../rules`)
+Defina `RULESET_ID` com o campo `result.id` obtido no passo 3.1 e use `POST .../rules` para **anexar** a regra preservando integralmente as regras já existentes na zona (nunca usar `PUT` no entrypoint com lista parcial, pois `PUT` substitui o array inteiro de regras):
+
 ```bash
-curl -fsS -X PUT "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/rulesets/phases/http_ratelimit/entrypoint" \
+curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/rulesets/${RULESET_ID}/rules" \
   -H "Authorization: Bearer ${CF_API_TOKEN}" \
   -H "Content-Type: application/json" \
   --data '{
-    "rules": [
-      {
-        "action": "block",
-        "description": "Frila Web Auth POST Rate Limit (10 req/10s por IP)",
-        "enabled": true,
-        "expression": "(http.request.method eq \"POST\" and (http.request.uri.path eq \"/app/entrar\" or http.request.uri.path eq \"/app/entrar.data\" or http.request.uri.path eq \"/app/criar-conta\" or http.request.uri.path eq \"/app/criar-conta.data\" or http.request.uri.path eq \"/app/recuperar-senha\" or http.request.uri.path eq \"/app/recuperar-senha.data\" or http.request.uri.path eq \"/app/definir-senha\" or http.request.uri.path eq \"/app/definir-senha.data\" or http.request.uri.path eq \"/app/desafio-dispositivo\" or http.request.uri.path eq \"/app/desafio-dispositivo.data\" or http.request.uri.path eq \"/app/conta/revogar-dispositivos\"))",
-        "ratelimit": {
-          "characteristics": ["ip.src"],
-          "mitigation_timeout": 10,
-          "period": 10,
-          "requests_per_period": 10
-        }
-      }
-    ]
+    "action": "block",
+    "description": "Frila Web Auth POST Rate Limit (10 req/10s por IP)",
+    "enabled": true,
+    "expression": "(http.request.method eq \"POST\" and (http.request.uri.path eq \"/app/entrar\" or http.request.uri.path eq \"/app/entrar.data\" or http.request.uri.path eq \"/app/criar-conta\" or http.request.uri.path eq \"/app/criar-conta.data\" or http.request.uri.path eq \"/app/recuperar-senha\" or http.request.uri.path eq \"/app/recuperar-senha.data\" or http.request.uri.path eq \"/app/definir-senha\" or http.request.uri.path eq \"/app/definir-senha.data\" or http.request.uri.path eq \"/app/desafio-dispositivo\" or http.request.uri.path eq \"/app/desafio-dispositivo.data\" or http.request.uri.path eq \"/app/conta/revogar-dispositivos\"))",
+    "ratelimit": {
+      "characteristics": ["ip.src"],
+      "mitigation_timeout": 10,
+      "period": 10,
+      "requests_per_period": 10
+    }
   }'
 ```
+
+*(Caso o passo 3.1 retorne `404` por não haver nenhum ruleset na fase `http_ratelimit`, crie o ruleset inicial em `POST /zones/${CF_ZONE_ID}/rulesets` com `"phase": "http_ratelimit"` e `"kind": "zone"`, ou utilize o painel Cloudflare → Security → WAF → Rate limiting rules).*
 
 ---
 

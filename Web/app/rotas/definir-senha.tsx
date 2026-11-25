@@ -83,7 +83,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Es
     await auth.encerrarOutrasSessoes(sessao.acesso);
   }
 
-  const conta = await lerMinhaConta(apiDoUsuario(sessao.acesso));
+  const conta = await lerMinhaConta(apiDoUsuario(sessao));
   if (conta.estado === "sem_conta") {
     throw redirect("/cadastro");
   }
