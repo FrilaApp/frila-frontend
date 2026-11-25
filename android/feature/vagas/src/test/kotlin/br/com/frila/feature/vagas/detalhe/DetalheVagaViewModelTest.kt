@@ -284,6 +284,105 @@ class DetalheVagaViewModelTest {
     }
 
     @Test
+    fun `consumirNavegacaoParaConfirmada desliga o evento e mantem status CONFIRMADA contato e mensagem`() = runBlocking {
+        val corpoConfirmada = """
+            {
+              "estado": "confirmada",
+              "candidatura_id": "c1",
+              "posicao_id": "p1",
+              "turno_id": "t1",
+              "contato": {"nome": "Bar do Zé", "telefone": "+5561999990000"}
+            }
+        """.trimIndent()
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = corpoConfirmada,
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        val contatoEsperado = ContatoDto(nome = "Bar do Zé", telefone = "+5561999990000")
+        val mensagemEsperada = "Candidatura confirmada! Confira o contato abaixo."
+
+        assertTrue(viewModel.estado.value.navegarParaConfirmada)
+        assertTrue(viewModel.consumirNavegacaoParaConfirmada(), "o primeiro consumo recebe o evento")
+        assertFalse(viewModel.consumirNavegacaoParaConfirmada(), "o segundo não recebe de novo")
+
+        assertFalse(viewModel.estado.value.navegarParaConfirmada)
+        assertEquals(StatusCandidatura.CONFIRMADA, viewModel.estado.value.statusCandidatura)
+        assertEquals(contatoEsperado, viewModel.estado.value.contato)
+        assertEquals(mensagemEsperada, viewModel.estado.value.mensagem)
+
+        viewModel.candidatar().join()
+        assertTrue(viewModel.estado.value.navegarParaConfirmada, "uma nova candidatura confirmada volta a sinalizar")
+    }
+
+    private fun validarConsumoDeErro(
+        status: HttpStatusCode,
+        corpo: String,
+        lidoNoEstado: (EstadoDetalheVaga) -> Boolean,
+        consumir: (DetalheVagaViewModel) -> Boolean,
+    ) = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = corpo,
+                    status = status,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        val mensagem = viewModel.estado.value.mensagem
+
+        assertTrue(lidoNoEstado(viewModel.estado.value))
+        assertTrue(consumir(viewModel), "o primeiro consumo recebe o evento")
+        assertFalse(consumir(viewModel), "o segundo não recebe de novo")
+
+        assertFalse(lidoNoEstado(viewModel.estado.value))
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertEquals(mensagem, viewModel.estado.value.mensagem)
+
+        viewModel.candidatar().join()
+        assertTrue(lidoNoEstado(viewModel.estado.value), "uma nova candidatura recusada volta a sinalizar")
+    }
+
+    @Test
+    fun `consumirNavegacaoParaConflitoHorario desliga o evento e mantem o erro e a mensagem`() {
+        validarConsumoDeErro(
+            status = HttpStatusCode.UnprocessableEntity,
+            corpo = """{"code":"inelegivel","message":"inelegivel","details":"turno_sobreposto"}""",
+            lidoNoEstado = { it.ehConflitoHorario },
+            consumir = { it.consumirNavegacaoParaConflitoHorario() },
+        )
+    }
+
+    @Test
+    fun `consumirNavegacaoParaVagaPreenchida desliga o evento e mantem o erro e a mensagem`() {
+        validarConsumoDeErro(
+            status = HttpStatusCode.Conflict,
+            corpo = """{"code":"posicao_ja_preenchida","message":"alguém chegou antes"}""",
+            lidoNoEstado = { it.ehVagaPreenchida },
+            consumir = { it.consumirNavegacaoParaVagaPreenchida() },
+        )
+    }
+
+    @Test
+    fun `consumirNavegacaoParaVagaEncerrada desliga o evento e mantem o erro e a mensagem`() {
+        validarConsumoDeErro(
+            status = HttpStatusCode.Conflict,
+            corpo = """{"code":"vaga_encerrada","message":"fechou 24h antes do inicio"}""",
+            lidoNoEstado = { it.ehVagaEncerrada },
+            consumir = { it.consumirNavegacaoParaVagaEncerrada() },
+        )
+    }
+
+    @Test
     fun `consumirNavegacaoParaContaSuspensa desliga o evento e mantem o erro e a mensagem`() = runBlocking {
         val viewModel = viewModelComEngine(
             vaga = vagaDe("urgencia"),

@@ -582,4 +582,51 @@ class TelaDetalheVagaTest {
             org.junit.Assert.assertTrue("Deveria acionar navegação para conta suspensa", contaSuspensaNavegada)
         }
     }
+
+    @Test
+    fun `confirmada aciona navegacao e dialogo apenas uma vez mesmo apos recomposicao`() {
+        runBlocking {
+            val respostaJson = """
+                {
+                  "estado": "confirmada",
+                  "candidatura_id": "c1",
+                  "posicao_id": "p1",
+                  "turno_id": "t1",
+                  "contato": { "nome": "Zé da Silva", "telefone": "61988887777" }
+                }
+            """.trimIndent()
+            val vaga = criarVaga(modo = "urgencia")
+            val viewModel = criarViewModel(vaga, respostaJson = respostaJson)
+            var navegacoesConfirmadas = 0
+            val gatilhoRecomposicao = androidx.compose.runtime.mutableIntStateOf(0)
+
+            compose.setContent {
+                val passo = gatilhoRecomposicao.intValue
+                FrilaTheme {
+                    TelaDetalheVaga(
+                        viewModel = viewModel,
+                        verificarPermissaoNotificacao = { false },
+                        aoNavegarParaConfirmada = { _, _ -> navegacoesConfirmadas++ },
+                    )
+                }
+                if (passo < 0) Unit
+            }
+
+            viewModel.candidatar().join()
+            compose.waitForIdle()
+
+            assertEquals(1, navegacoesConfirmadas)
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertIsDisplayed()
+            compose.onNodeWithTag("botao-agora-nao-notificacoes").performClick()
+            compose.waitForIdle()
+
+            // Força recomposição e reinicialização do efeito simulando reentrada da tela
+            compose.runOnIdle { gatilhoRecomposicao.intValue = 1 }
+            compose.waitForIdle()
+
+            assertEquals(1, navegacoesConfirmadas)
+            compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
+            compose.onNodeWithText("Candidatura confirmada").assertExists().assertIsNotEnabled()
+        }
+    }
 }

@@ -105,13 +105,13 @@ fun TelaDetalheVaga(
     }
 
     LaunchedEffect(
-        estado.statusCandidatura,
+        estado.navegarParaConfirmada,
         estado.ehConflitoHorario,
         estado.ehVagaPreenchida,
         estado.ehVagaEncerrada,
         estado.ehContaSuspensa,
     ) {
-        if (estado.statusCandidatura == StatusCandidatura.CONFIRMADA) {
+        if (estado.navegarParaConfirmada && viewModel.consumirNavegacaoParaConfirmada()) {
             aoNavegarParaConfirmada?.invoke(estado.vaga, estado.contato)
             if (!jaPediuNaSessao()) {
                 if (!verificarPermissaoNotificacao(contexto)) {
@@ -120,13 +120,13 @@ fun TelaDetalheVaga(
                 }
             }
         }
-        if (estado.ehConflitoHorario) {
+        if (estado.ehConflitoHorario && viewModel.consumirNavegacaoParaConflitoHorario()) {
             aoNavegarParaConflito?.invoke(estado.vaga)
         }
-        if (estado.ehVagaPreenchida) {
+        if (estado.ehVagaPreenchida && viewModel.consumirNavegacaoParaVagaPreenchida()) {
             aoNavegarParaVagaPreenchida?.invoke(estado.vaga)
         }
-        if (estado.ehVagaEncerrada) {
+        if (estado.ehVagaEncerrada && viewModel.consumirNavegacaoParaVagaEncerrada()) {
             aoNavegarParaVagaEncerrada?.invoke(estado.vaga)
         }
         if (estado.ehContaSuspensa && viewModel.consumirNavegacaoParaContaSuspensa()) {

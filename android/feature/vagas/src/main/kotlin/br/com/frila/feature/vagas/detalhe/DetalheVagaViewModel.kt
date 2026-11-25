@@ -45,6 +45,7 @@ class DetalheVagaViewModel(
             it.copy(
                 statusCandidatura = StatusCandidatura.ENVIANDO,
                 mensagem = null,
+                navegarParaConfirmada = false,
                 ehConflitoHorario = false,
                 ehVagaPreenchida = false,
                 ehVagaEncerrada = false,
@@ -66,6 +67,7 @@ class DetalheVagaViewModel(
                         } else {
                             "Candidatura enviada. Aguarde a escolha do contratante."
                         },
+                        navegarParaConfirmada = confirmada,
                     )
                 }
             } catch (erro: ErroDaApi) {
@@ -97,16 +99,35 @@ class DetalheVagaViewModel(
     }
 
     /**
-     * `ehContaSuspensa` é um evento de uma vez só: a tela navega para a conta suspensa uma única vez por candidatura recusada.
-     * Devolve `true` para quem o consumiu primeiro e `false` para os demais. A tela precisa disto porque o efeito dela pode rodar
-     * de novo (recomposição, volta da conta suspensa) com o `estado` que a composição já tinha lido, ainda verdadeiro, depois de o
-     * evento ter sido consumido: ler o `estado` capturado não basta, e navegar duas vezes empilha a conta suspensa duas vezes.
+     * Os 5 eventos de navegação do detalhe disparam uma única vez por resultado de candidatura.
+     * Cada consumo lê e limpa o evento de forma atômica no `_estado`, preservando status, contato e mensagem
+     * (em especial `statusCandidatura == StatusCandidatura.CONFIRMADA`, que mantém o cartão e o botão desabilitado).
+     * Sem isto, o `LaunchedEffect` da tela reentra na recomposição, na volta do destino (`popBackStack`) ou
+     * na rotação com o `estado` ainda verdadeiro e empilha o destino de novo.
      */
-    fun consumirNavegacaoParaContaSuspensa(): Boolean {
+    fun consumirNavegacaoParaConfirmada(): Boolean =
+        consumirEvento({ it.navegarParaConfirmada }) { it.copy(navegarParaConfirmada = false) }
+
+    fun consumirNavegacaoParaConflitoHorario(): Boolean =
+        consumirEvento({ it.ehConflitoHorario }) { it.copy(ehConflitoHorario = false) }
+
+    fun consumirNavegacaoParaVagaPreenchida(): Boolean =
+        consumirEvento({ it.ehVagaPreenchida }) { it.copy(ehVagaPreenchida = false) }
+
+    fun consumirNavegacaoParaVagaEncerrada(): Boolean =
+        consumirEvento({ it.ehVagaEncerrada }) { it.copy(ehVagaEncerrada = false) }
+
+    fun consumirNavegacaoParaContaSuspensa(): Boolean =
+        consumirEvento({ it.ehContaSuspensa }) { it.copy(ehContaSuspensa = false) }
+
+    private inline fun consumirEvento(
+        presente: (EstadoDetalheVaga) -> Boolean,
+        limpar: (EstadoDetalheVaga) -> EstadoDetalheVaga,
+    ): Boolean {
         var consumiu = false
         _estado.update { atual ->
-            consumiu = atual.ehContaSuspensa
-            if (consumiu) atual.copy(ehContaSuspensa = false) else atual
+            consumiu = presente(atual)
+            if (consumiu) limpar(atual) else atual
         }
         return consumiu
     }
