@@ -129,7 +129,7 @@ fun TelaDetalheVaga(
         if (estado.ehVagaEncerrada) {
             aoNavegarParaVagaEncerrada?.invoke(estado.vaga)
         }
-        if (estado.ehContaSuspensa) {
+        if (estado.ehContaSuspensa && viewModel.consumirNavegacaoParaContaSuspensa()) {
             aoNavegarParaContaSuspensa?.invoke()
         }
     }

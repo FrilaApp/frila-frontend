@@ -284,6 +284,32 @@ class DetalheVagaViewModelTest {
     }
 
     @Test
+    fun `consumirNavegacaoParaContaSuspensa desliga o evento e mantem o erro e a mensagem`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"conta_suspensa","message":"conta suspensa"}""",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+        val mensagem = viewModel.estado.value.mensagem
+
+        assertTrue(viewModel.consumirNavegacaoParaContaSuspensa(), "o primeiro consumo recebe o evento")
+        assertFalse(viewModel.consumirNavegacaoParaContaSuspensa(), "o segundo não recebe de novo")
+
+        assertFalse(viewModel.estado.value.ehContaSuspensa)
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertEquals(mensagem, viewModel.estado.value.mensagem)
+
+        viewModel.candidatar().join()
+        assertTrue(viewModel.estado.value.ehContaSuspensa, "uma nova candidatura recusada volta a sinalizar")
+    }
+
+    @Test
     fun `candidatar com sem_permissao conta_suspensa marca ehContaSuspensa como verdadeiro`() = runBlocking {
         val viewModel = viewModelComEngine(
             vaga = vagaDe("urgencia"),

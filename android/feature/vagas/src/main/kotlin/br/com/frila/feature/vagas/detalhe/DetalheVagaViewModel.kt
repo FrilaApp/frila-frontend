@@ -97,6 +97,21 @@ class DetalheVagaViewModel(
     }
 
     /**
+     * `ehContaSuspensa` é um evento de uma vez só: a tela navega para a conta suspensa uma única vez por candidatura recusada.
+     * Devolve `true` para quem o consumiu primeiro e `false` para os demais. A tela precisa disto porque o efeito dela pode rodar
+     * de novo (recomposição, volta da conta suspensa) com o `estado` que a composição já tinha lido, ainda verdadeiro, depois de o
+     * evento ter sido consumido: ler o `estado` capturado não basta, e navegar duas vezes empilha a conta suspensa duas vezes.
+     */
+    fun consumirNavegacaoParaContaSuspensa(): Boolean {
+        var consumiu = false
+        _estado.update { atual ->
+            consumiu = atual.ehContaSuspensa
+            if (consumiu) atual.copy(ehContaSuspensa = false) else atual
+        }
+        return consumiu
+    }
+
+    /**
      * Mensagens de erro de candidatura medidas em `iOS/Contrato/openapi.yaml:2199`
      * (`/rpc/candidatar`): `409 posicao_ja_preenchida`, `422 inelegivel`, `409 vaga_encerrada`.
      */
