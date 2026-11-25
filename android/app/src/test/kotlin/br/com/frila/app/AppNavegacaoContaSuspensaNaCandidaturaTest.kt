@@ -147,17 +147,19 @@ class AppNavegacaoContaSuspensaNaCandidaturaTest {
     }
 
     /**
-     * Chegou na conta suspensa e só nela: entre o detalhe e o topo da pilha não há outra rota. Conferir a pilha importa porque uma
-     * navegação errada (para o feed, por exemplo) recompõe o detalhe, que dispara a outra ligação da `AppNavegacao` e chega na conta
-     * suspensa pelo caminho errado, com a rota final igual à esperada.
+     * Chegou na conta suspensa uma vez só: entre o detalhe e o topo da pilha há exatamente uma rota, a conta suspensa. Conferir a
+     * pilha, e não só a rota final, importa por dois motivos. Uma navegação errada (para o feed, por exemplo) recompõe o detalhe,
+     * que dispara a outra ligação da `AppNavegacao` e chega na conta suspensa pelo caminho errado, com a rota final igual. E a
+     * mesma candidatura recusada não pode empilhar a conta suspensa duas vezes (o voltar a mostraria de novo).
      */
     private fun esperarContaSuspensa() {
         rule.waitUntil(5_000) { nav.currentDestination?.route == Rotas.CONTA_SUSPENSA }
+        rule.waitForIdle()
         rule.runOnIdle {
             val rotas = nav.currentBackStack.value.mapNotNull { it.destination.route }
             val acima = rotas.dropWhile { it != Rotas.DETALHE }.drop(1)
             assertTrue("o detalhe tem de estar na pilha: $rotas", Rotas.DETALHE in rotas)
-            assertTrue("só a conta suspensa pode estar acima do detalhe: $rotas", acima.isNotEmpty() && acima.all { it == Rotas.CONTA_SUSPENSA })
+            assertEquals("só uma conta suspensa acima do detalhe: $rotas", listOf(Rotas.CONTA_SUSPENSA), acima)
         }
     }
 
