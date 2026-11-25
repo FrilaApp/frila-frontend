@@ -202,6 +202,22 @@ class AppNavegacaoContaSuspensaNaCandidaturaTest {
         rule.runOnIdle { assertEquals(Rotas.CONTA_SUSPENSA, nav.currentDestination?.route) }
     }
 
+    @Test
+    fun `voltar da conta suspensa leva ao detalhe e nao a empilha de novo`() {
+        montar(Rotas.detalhe(VAGA_ID), ERRO_SEM_PERMISSAO_CONTA_SUSPENSA)
+        candidatar()
+        esperarContaSuspensa()
+
+        rule.runOnIdle { nav.popBackStack() }
+        rule.waitForIdle()
+
+        rule.runOnIdle {
+            val rotas = nav.currentBackStack.value.mapNotNull { it.destination.route }
+            assertEquals("o voltar para no detalhe: $rotas", Rotas.DETALHE, nav.currentDestination?.route)
+            assertTrue("a conta suspensa não volta à pilha: $rotas", Rotas.CONTA_SUSPENSA !in rotas)
+        }
+    }
+
     private companion object {
         const val VAGA_ID = "vaga-9"
         const val BOTAO_CANDIDATAR = "Candidatar-se"
