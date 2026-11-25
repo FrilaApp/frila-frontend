@@ -3,7 +3,15 @@ import { Form, redirect, useNavigation } from "react-router";
 import { lerMinhaConta } from "../servidor/conta";
 import { apiDoUsuario, authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
 import { exigirSessao } from "../servidor/guarda";
-import { cookiesDeSaida, ehPedidoSeguro } from "../servidor/sessao";
+import {
+  cookieDoDispositivo,
+  cookiesDaSessao,
+  cookiesDeSaida,
+  ehPedidoSeguro,
+  lerCookieDoDispositivo,
+  lerCookiesDaSessao,
+  sessaoAtualDe,
+} from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/definir-senha";
 
@@ -67,27 +75,44 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Es
     return { erro: "indisponivel", origem };
   }
 
-  const resultado = await auth.atualizarSenha(sessao.acesso, senha);
+  const manterDispositivoAtual = origem === "cadastro" || origem === "recuperacao";
+  const seguro = ehPedidoSeguro(request);
+  const { renovacao } = lerCookiesDaSessao(request);
+  const deviceTokenAtual = lerCookieDoDispositivo(request);
+
+  const resultado = await auth.definirSenha({
+    acesso: sessao.acesso,
+    novaSenha: senha,
+    manterDispositivoAtual,
+    deviceTokenAtual,
+    refreshToken: renovacao,
+    visitante: sessao.visitante,
+  });
   if (!resultado.ok) {
     if (resultado.motivo === "sessao_invalida") {
       // Apaga cookies locais ao invalidar sessão para impedir loop de redirecionamento com /entrar.
       const cabecalhos = new Headers();
-      for (const linha of cookiesDeSaida(ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+      for (const linha of cookiesDeSaida(seguro)) cabecalhos.append("Set-Cookie", linha);
       throw redirect("/entrar", { headers: cabecalhos });
     }
     return { erro: resultado.motivo, origem };
   }
 
-  if (origem === "recuperacao") {
-    // Best-effort: revoga outras sessões no Auth pós-redefinição, se suportado pelo backend.
-    await auth.encerrarOutrasSessoes(sessao.acesso);
-  }
+  const sessaoAtualizada = resultado.sessao
+    ? sessaoAtualDe(resultado.sessao.access_token, sessao.visitante)
+    : sessao;
+  const conta = await lerMinhaConta(apiDoUsuario(sessaoAtualizada));
+  const destino = conta.estado === "sem_conta" ? "/cadastro" : "/";
 
-  const conta = await lerMinhaConta(apiDoUsuario(sessao));
-  if (conta.estado === "sem_conta") {
-    throw redirect("/cadastro");
+  const cabecalhos = new Headers();
+  if (resultado.sessao) {
+    for (const linha of cookiesDaSessao(resultado.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
   }
-  throw redirect("/");
+  if (!manterDispositivoAtual && deviceTokenAtual) {
+    cabecalhos.append("Set-Cookie", cookieDoDispositivo(null, seguro));
+  }
+  const init = [...cabecalhos.entries()].length > 0 ? { headers: cabecalhos } : undefined;
+  throw redirect(destino, init);
 }
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";

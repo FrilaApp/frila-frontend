@@ -39,30 +39,25 @@ function emHex(bytes: ArrayBuffer): string {
   return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** HMAC-SHA256 em hex minúsculo da mensagem `v1|<ip>|<carimbo>|<uid>`; a chave é o texto do secret em UTF-8. */
-export async function hmacDoIp(segredo: string, ip: string, carimbo: number, uid: string): Promise<string> {
+/** HMAC-SHA256 em hex minúsculo da mensagem `v1|<ip>|<carimbo>|<escopo>`; a chave é o texto do secret em UTF-8. */
+export async function hmacDoIp(segredo: string, ip: string, carimbo: number, escopo: string): Promise<string> {
   const codificar = new TextEncoder();
   const chave = await crypto.subtle.importKey("raw", codificar.encode(segredo), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return emHex(await crypto.subtle.sign("HMAC", chave, codificar.encode(`v1|${ip}|${carimbo}|${uid}`)));
+  return emHex(await crypto.subtle.sign("HMAC", chave, codificar.encode(`v1|${ip}|${carimbo}|${escopo}`)));
 }
 
-/**
- * Os 3 cabeçalhos para esta chamada, ou `null` se qualquer requisito faltar (ou a assinatura falhar). `carimbo` só existe
- * para o teste fixar a hora; em produção é o relógio no instante de assinar.
- */
-export async function cabecalhosDoIp(
+async function montarCabecalhosIp(
   chaves: ChavesDoIp,
   visitante: string | null,
-  acesso: string,
-  carimbo: number = Math.floor(Date.now() / 1000),
+  escopo: string,
+  carimbo: number,
 ): Promise<Record<string, string> | null> {
   const segredo = chaves.segredo?.trim();
   const id = chaves.id;
   if (!segredo || !id || !ID_DA_CHAVE.test(id) || !visitante) return null;
-  const uid = lerToken(acesso).usuarioId;
-  if (!uid || !UUID.test(uid)) return null;
+  if (visitante.includes("/") || visitante.trim() !== visitante || visitante.length > 64) return null;
   try {
-    const hex = await hmacDoIp(segredo, visitante, carimbo, uid);
+    const hex = await hmacDoIp(segredo, visitante, carimbo, escopo);
     return {
       [CABECALHO_IP]: visitante,
       [CABECALHO_CARIMBO]: String(carimbo),
@@ -71,6 +66,32 @@ export async function cabecalhosDoIp(
   } catch {
     return null;
   }
+}
+
+/**
+ * Os 3 cabeçalhos para esta chamada autenticada (`v1|<ip>|<carimbo>|<uid>`), ou `null` se qualquer requisito faltar.
+ */
+export async function cabecalhosDoIp(
+  chaves: ChavesDoIp,
+  visitante: string | null,
+  acesso: string,
+  carimbo: number = Math.floor(Date.now() / 1000),
+): Promise<Record<string, string> | null> {
+  const uid = lerToken(acesso).usuarioId;
+  if (!uid || !UUID.test(uid)) return null;
+  return montarCabecalhosIp(chaves, visitante, uid, carimbo);
+}
+
+/**
+ * Os 3 cabeçalhos B-116 para chamadas anônimas às Edge Functions (`v1|<ip>|<carimbo>|anon`),
+ * ou `null` se faltar segredo, id válido ou IP (nunca envia cabeçalho parcial).
+ */
+export async function cabecalhosDoIpAnonimo(
+  chaves: ChavesDoIp,
+  visitante: string | null,
+  carimbo: number = Math.floor(Date.now() / 1000),
+): Promise<Record<string, string> | null> {
+  return montarCabecalhosIp(chaves, visitante, "anon", carimbo);
 }
 
 /** O token que o Authorization da chamada leva, ou `null` (sem `Bearer`). */

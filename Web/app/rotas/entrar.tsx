@@ -1,13 +1,22 @@
-import { Form, Link, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
 import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
-import { cookiesDaSessao, ehPedidoSeguro } from "../servidor/sessao";
+import {
+  cookieDoDispositivo,
+  cookiesDaSessao,
+  ehPedidoSeguro,
+  lerCookieDoDispositivo,
+  visitanteDoPedido,
+} from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/entrar";
 
 type Erro = keyof typeof textos.entrar.erros;
-type Passo = { passo: "email"; email: string; erro?: Erro } | { passo: "codigo"; email: string; erro?: Erro };
+type Passo =
+  | { passo: "email"; email: string; erro?: Erro }
+  | { passo: "codigo"; email: string; erro?: Erro }
+  | { passo: "desafio"; email: string; desafioId: string; reenviado?: boolean; erro?: Erro };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TERMOS = "https://frilabr.com/termos";
@@ -24,62 +33,115 @@ export function loader({ context }: Route.LoaderArgs) {
   return null;
 }
 
-export async function action({ request }: Route.ActionArgs): Promise<Passo> {
+export async function action({ request }: Route.ActionArgs) {
   const formulario = await request.formData();
   const email = String(formulario.get("email") ?? "").trim().toLowerCase();
   const senha = String(formulario.get("senha") ?? "");
   const codigo = String(formulario.get("codigo") ?? "").trim();
+  const desafioId = String(formulario.get("desafio_id") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "");
+  const seguro = ehPedidoSeguro(request);
+  const visitante = visitanteDoPedido(request);
 
   if (!FORMATO_DO_EMAIL.test(email) || email.length > 254) {
-    return { passo: "email", email, erro: "email_invalido" };
+    return { passo: "email", email, erro: "email_invalido" } satisfies Passo;
   }
   const auth = authDesteAmbiente();
   if (!auth) {
-    return { passo: "email", email, erro: "indisponivel" };
+    return { passo: "email", email, erro: "indisponivel" } satisfies Passo;
   }
   const ehDemonstracao = emailsDeDemonstracao().has(email);
 
   if (intencao === "pedir") {
     // Apenas contas de demonstração usam código em /entrar; contas reais entram com senha (ou criam conta em /criar-conta).
     if (!ehDemonstracao) {
-      return { passo: "email", email, erro: "codigo_apenas_demo" };
+      return { passo: "email", email, erro: "codigo_apenas_demo" } satisfies Passo;
     }
-    return { passo: "codigo", email };
+    return { passo: "codigo", email } satisfies Passo;
   }
 
   if (intencao === "confirmar") {
     if (!ehDemonstracao) {
-      return { passo: "email", email, erro: "codigo_apenas_demo" };
+      return { passo: "email", email, erro: "codigo_apenas_demo" } satisfies Passo;
     }
     if (codigo.length === 0 || codigo.length > 64) {
-      return { passo: "codigo", email, erro: "codigo_incompleto" };
+      return { passo: "codigo", email, erro: "codigo_incompleto" } satisfies Passo;
     }
     const entrada = await auth.entrarDemonstracao(email, codigo);
     if (!entrada.ok) {
-      return { passo: "codigo", email, erro: entrada.motivo };
+      return { passo: "codigo", email, erro: entrada.motivo } satisfies Passo;
     }
 
     const cabecalhos = new Headers();
-    for (const linha of cookiesDaSessao(entrada.sessao, ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+    for (const linha of cookiesDaSessao(entrada.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
     throw redirect("/", { headers: cabecalhos });
   }
 
-  // Intenção padrão: login habitual por e-mail e senha
+  if (intencao === "confirmar_desafio") {
+    if (ehDemonstracao) {
+      return { passo: "email", email, erro: "conta_demo" } satisfies Passo;
+    }
+    if (!/^\d{6}$/.test(codigo)) {
+      return { passo: "desafio", email, desafioId, erro: "codigo_incompleto" } satisfies Passo;
+    }
+    const lembrarDispositivo = formulario.get("lembrar_dispositivo") === "sim";
+    const res = await auth.confirmarDispositivoOtp({
+      tipo: "login_dispositivo",
+      desafioId,
+      codigo,
+      lembrarDispositivo,
+      visitante,
+    });
+    if (!res.ok) {
+      if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
+        return { passo: "email", email, erro: res.motivo } satisfies Passo;
+      }
+      return { passo: "desafio", email, desafioId, erro: res.motivo } satisfies Passo;
+    }
+    const cabecalhos = new Headers();
+    for (const linha of cookiesDaSessao(res.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
+    if (res.deviceToken) cabecalhos.append("Set-Cookie", cookieDoDispositivo(res.deviceToken, seguro));
+    throw redirect(res.precisaDefinirSenha ? "/definir-senha" : "/", { headers: cabecalhos });
+  }
+
+  if (intencao === "reenviar_desafio") {
+    if (ehDemonstracao) {
+      return { passo: "email", email, erro: "conta_demo" } satisfies Passo;
+    }
+    const res = await auth.reenviarDispositivoOtp({ desafioId, visitante });
+    if (!res.ok) {
+      if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
+        return { passo: "email", email, erro: res.motivo } satisfies Passo;
+      }
+      return { passo: "desafio", email, desafioId, erro: res.motivo } satisfies Passo;
+    }
+    return { passo: "desafio", email, desafioId, reenviado: true } satisfies Passo;
+  }
+
+  // Intenção padrão: login habitual por e-mail e senha com validação server-side de dispositivo confiável
   if (ehDemonstracao) {
-    return { passo: "email", email, erro: "conta_demo" };
+    return { passo: "email", email, erro: "conta_demo" } satisfies Passo;
   }
   if (senha.length === 0) {
-    return { passo: "email", email, erro: "senha_invalida" };
+    return { passo: "email", email, erro: "senha_invalida" } satisfies Passo;
   }
-  const entrada = await auth.entrarComSenha(email, senha);
+  const deviceToken = lerCookieDoDispositivo(request);
+  const entrada = await auth.autenticarSenha({ email, senha, deviceToken, visitante });
   if (!entrada.ok) {
-    return { passo: "email", email, erro: entrada.motivo };
+    return { passo: "email", email, erro: entrada.motivo } satisfies Passo;
+  }
+
+  if (entrada.status === "desafio_otp") {
+    const passoDesafio: Passo = { passo: "desafio", email, desafioId: entrada.desafioId };
+    if (entrada.descartarDeviceToken) {
+      return data(passoDesafio, { headers: { "Set-Cookie": cookieDoDispositivo(null, seguro) } });
+    }
+    return passoDesafio;
   }
 
   const cabecalhos = new Headers();
-  for (const linha of cookiesDaSessao(entrada.sessao, ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
-  throw redirect("/", { headers: cabecalhos });
+  for (const linha of cookiesDaSessao(entrada.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
+  throw redirect(entrada.precisaDefinirSenha ? "/definir-senha" : "/", { headers: cabecalhos });
 }
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
@@ -161,6 +223,59 @@ export default function Entrar({ actionData }: Route.ComponentProps) {
             </button>
           </div>
         </Form>
+      ) : estado.passo === "desafio" ? (
+        <div className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" noValidate>
+            <h1 className="font-titulo text-3xl font-bold">{textos.entrar.tituloDoDesafio}</h1>
+            <p className="text-tinta-suave">
+              {textos.entrar.corpoDoDesafio} <strong className="break-all text-tinta">{estado.email}</strong>
+            </p>
+            <input type="hidden" name="email" value={estado.email} />
+            <input type="hidden" name="desafio_id" value={estado.desafioId} />
+            <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
+              {textos.entrar.rotuloDoCodigo}
+              <input
+                id="codigo"
+                name="codigo"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                autoFocus
+                aria-invalid={erro ? true : undefined}
+                aria-describedby={erro ? "erro" : undefined}
+                className={`${classeDoCampo} tracking-widest`}
+              />
+            </label>
+            <label className="flex min-h-11 items-center gap-3 text-sm">
+              <input type="checkbox" name="lembrar_dispositivo" value="sim" className="size-5 shrink-0" />
+              <span>{textos.entrar.lembrarDispositivo}</span>
+            </label>
+            {erro ? (
+              <p id="erro" role="alert" className="font-semibold">
+                {erro}
+              </p>
+            ) : null}
+            {estado.reenviado && !erro ? (
+              <p role="status" className="font-semibold">
+                {textos.entrar.mensagemReenvioDesafio}
+              </p>
+            ) : null}
+            <button type="submit" name="intencao" value="confirmar_desafio" disabled={enviando} className={classeDoBotao}>
+              {enviando ? textos.entrar.conferindo : textos.entrar.confirmar}
+            </button>
+          </Form>
+          <Form method="post" className="flex flex-wrap gap-x-6 gap-y-2">
+            <input type="hidden" name="email" value={estado.email} />
+            <input type="hidden" name="desafio_id" value={estado.desafioId} />
+            <button type="submit" name="intencao" value="reenviar_desafio" disabled={enviando} className={classeDoLink}>
+              {textos.entrar.reenviar}
+            </button>
+            <Link to="/entrar" className={`${classeDoLink} inline-flex items-center`}>
+              {textos.entrar.voltarAoLogin}
+            </Link>
+          </Form>
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
           <Form method="post" className="flex flex-col gap-4" noValidate>

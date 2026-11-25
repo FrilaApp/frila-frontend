@@ -10,7 +10,7 @@ import type { SessaoAtual } from "./sessao";
 /** Cliente do Auth com as variáveis deste Worker. `null` quando o ambiente está sem o endereço do Supabase. */
 export function authDesteAmbiente() {
   const ambiente = ambienteDoSupabase(env);
-  return ambiente ? criarAuth(ambiente) : null;
+  return ambiente ? criarAuth(ambiente, { chavesIp: chavesDoIpDesteAmbiente() }) : null;
 }
 
 /**

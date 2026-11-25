@@ -4,6 +4,16 @@ export const contaDados = {
   titulo: "Minha conta",
   abrir: "Minha conta: meus dados e exclusão",
   voltar: "Voltar ao início",
+  dispositivos: {
+    titulo: "Dispositivos conectados",
+    corpo: "Encerre todas as sessões ativas e revogue os dispositivos lembrados por 30 dias em todos os aparelhos.",
+    botao: "Sair de todos os dispositivos",
+    encerrando: "Encerrando sessões…",
+    erros: {
+      limite: "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.",
+      indisponivel: "Não foi possível encerrar os dispositivos agora. Tente de novo em instantes.",
+    },
+  },
   exportar: {
     titulo: "Exportar meus dados",
     corpo: "Baixe um arquivo com os dados que você deu ao Frila e o que o Frila registrou sobre você. As avaliações recebidas vêm sem o autor.",

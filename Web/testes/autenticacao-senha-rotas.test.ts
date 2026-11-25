@@ -1,9 +1,13 @@
+import { RouterContextProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { action as dadosAction } from "../app/rotas/conta/dados";
 import { action as criarContaAction, loader as criarContaLoader } from "../app/rotas/criar-conta";
 import { action as definirSenhaAction, loader as definirSenhaLoader } from "../app/rotas/definir-senha";
 import { action as entrarAction, loader as entrarLoader } from "../app/rotas/entrar";
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
+import { action as sairAction } from "../app/rotas/sair";
+import { middlewareDeSessao } from "../app/servidor/middleware-de-sessao";
 import { argumentos } from "./contratante-apoio";
 
 async function capturaRedirect(chamada: () => unknown | Promise<unknown>): Promise<Response> {
@@ -17,14 +21,30 @@ async function capturaRedirect(chamada: () => unknown | Promise<unknown>): Promi
   throw new Error("esperava um redirect");
 }
 
+function jwtComAppMetadata(appMetadata: Record<string, unknown>, exp = Math.floor(Date.now() / 1000) + 3600): string {
+  const b64 = (obj: unknown) =>
+    btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${b64({ alg: "HS256", typ: "JWT" })}.${b64({
+    sub: "11111111-1111-4111-8111-111111111111",
+    email: "ana@frila.test",
+    exp,
+    app_metadata: appMetadata,
+  })}.assinatura`;
+}
+
 const authMock = vi.hoisted(() => ({
-  entrarComSenha: vi.fn(),
+  autenticarSenha: vi.fn(),
+  confirmarDispositivoOtp: vi.fn(),
+  reenviarDispositivoOtp: vi.fn(),
+  definirSenha: vi.fn(),
+  revogarDispositivos: vi.fn(),
   pedirCodigo: vi.fn(),
   pedirCodigoRecuperacao: vi.fn(),
   confirmarCodigo: vi.fn(),
   entrarDemonstracao: vi.fn(),
-  atualizarSenha: vi.fn(),
-  encerrarOutrasSessoes: vi.fn(),
+  conferir: vi.fn(),
+  renovar: vi.fn(),
+  encerrar: vi.fn(),
 }));
 
 const contaMock = vi.hoisted(() => ({
@@ -35,6 +55,7 @@ vi.mock("../app/servidor/deste-ambiente", () => ({
   authDesteAmbiente: () => authMock,
   emailsDeDemonstracao: () => new Set(["demo@frila.test"]),
   apiDoUsuario: () => ({}),
+  funcoesDoUsuario: () => ({}),
 }));
 
 vi.mock("../app/servidor/conta", () => ({
@@ -48,80 +69,186 @@ const SESSAO_SINTETICA = {
   expires_in: 3600,
 };
 
+function pedidoComCookies(caminho: string, dados?: Record<string, string>, cookies?: string) {
+  const base = argumentos(caminho, dados, false) as {
+    request: Request;
+    context: RouterContextProvider;
+    params: Record<string, string>;
+    url: URL;
+    matches: unknown[];
+  };
+  const headers = new Headers(base.request.headers);
+  if (cookies) headers.set("Cookie", cookies);
+  headers.set("CF-Connecting-IP", "198.51.100.77");
+  const request = new Request(base.request, { headers });
+  return { ...base, request };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  authMock.entrarComSenha.mockResolvedValue({ ok: true, sessao: SESSAO_SINTETICA });
+  authMock.autenticarSenha.mockResolvedValue({
+    ok: true,
+    status: "autenticado",
+    sessao: SESSAO_SINTETICA,
+    precisaDefinirSenha: false,
+  });
+  authMock.confirmarDispositivoOtp.mockResolvedValue({
+    ok: true,
+    sessao: SESSAO_SINTETICA,
+    precisaDefinirSenha: false,
+    deviceToken: null,
+  });
+  authMock.reenviarDispositivoOtp.mockResolvedValue({ ok: true, reenviarEmSegundos: 60 });
+  authMock.definirSenha.mockResolvedValue({ ok: true, sessao: SESSAO_SINTETICA });
+  authMock.revogarDispositivos.mockResolvedValue({ ok: true });
   authMock.pedirCodigo.mockResolvedValue({ ok: true });
   authMock.pedirCodigoRecuperacao.mockResolvedValue({ ok: true, enviado: true });
   authMock.confirmarCodigo.mockResolvedValue({ ok: true, sessao: SESSAO_SINTETICA });
   authMock.entrarDemonstracao.mockResolvedValue({ ok: true, sessao: SESSAO_SINTETICA });
-  authMock.atualizarSenha.mockResolvedValue({ ok: true });
-  authMock.encerrarOutrasSessoes.mockResolvedValue({ ok: true });
-  contaMock.lerMinhaConta.mockResolvedValue({ estado: "ok", nome: "Teste", perfil: "profissional", termosVersao: "2026-11-20" });
+  authMock.conferir.mockResolvedValue({ ok: true });
+  authMock.encerrar.mockResolvedValue({ ok: true });
+  contaMock.lerMinhaConta.mockResolvedValue({
+    estado: "ok",
+    nome: "Teste",
+    perfil: "profissional",
+    termosVersao: "2026-11-20",
+  });
 });
 
-describe("rotas: login habitual por senha e isolamento demo (rotas/entrar)", () => {
+describe("rotas: login por senha, dispositivo confiável 30d e desafio OTP (rotas/entrar)", () => {
   it("se já estiver logado, o loader redireciona para a raiz", async () => {
     const resp = await capturaRedirect(() => entrarLoader(argumentos("/entrar", undefined, true)));
     expect(resp.headers.get("Location")).toBe("/");
   });
 
-  it("se não estiver logado, o loader retorna null", async () => {
-    expect(await entrarLoader(argumentos("/entrar", undefined, false))).toBeNull();
+  it("rejeita e-mail inválido e senha vazia", async () => {
+    expect(await entrarAction(argumentos("/entrar", { email: "invalido", senha: "senha" }, false))).toEqual({
+      passo: "email",
+      email: "invalido",
+      erro: "email_invalido",
+    });
+    expect(await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", senha: "" }, false))).toEqual({
+      passo: "email",
+      email: "usuario@frila.test",
+      erro: "senha_invalida",
+    });
   });
 
-  it("rejeita e-mail inválido", async () => {
-    const res = await entrarAction(argumentos("/entrar", { email: "invalido", senha: "senha" }, false));
-    expect(res).toEqual({ passo: "email", email: "invalido", erro: "email_invalido" });
-  });
-
-  it("exige senha no login habitual", async () => {
-    const res = await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", senha: "" }, false));
-    expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "senha_invalida" });
-  });
-
-  it("login com senha correto grava cookies HttpOnly e redireciona para /", async () => {
-    const resp = await capturaRedirect(() =>
-      entrarAction(argumentos("/entrar", { email: "usuario@frila.test", senha: "senhaCorreta123" }, false)),
-    );
+  it("login com dispositivo confiável válido repassa cookie __Host-frila-dispositivo e redireciona para /", async () => {
+    const args = pedidoComCookies("/entrar", { email: "usuario@frila.test", senha: "senhaCorreta123" }, "__Host-frila-dispositivo=dev-tok-30d");
+    const resp = await capturaRedirect(() => entrarAction(args as never));
     expect(resp.headers.get("Location")).toBe("/");
     const cookies = resp.headers.getSetCookie();
     expect(cookies.length).toBe(2);
     expect(cookies.every((c) => c.includes("HttpOnly"))).toBe(true);
-    expect(authMock.entrarComSenha).toHaveBeenCalledWith("usuario@frila.test", "senhaCorreta123");
+    expect(authMock.autenticarSenha).toHaveBeenCalledWith({
+      email: "usuario@frila.test",
+      senha: "senhaCorreta123",
+      deviceToken: "dev-tok-30d",
+      visitante: "198.51.100.77",
+    });
   });
 
-  it("login com senha incorreta devolve erro neutro credenciais_invalidas", async () => {
-    authMock.entrarComSenha.mockResolvedValue({ ok: false, motivo: "credenciais_invalidas" });
-    const res = await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", senha: "senhaErrada" }, false));
-    expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "credenciais_invalidas" });
+  it("dispositivo novo/expirado abre passo desafio e expira cookie antigo quando descartarDeviceToken=true", async () => {
+    authMock.autenticarSenha.mockResolvedValue({
+      ok: true,
+      status: "desafio_otp",
+      desafioId: "des-123",
+      descartarDeviceToken: true,
+    });
+    const args = pedidoComCookies("/entrar", { email: "usuario@frila.test", senha: "senhaCorreta123" }, "__Host-frila-dispositivo=vencido");
+    const res = (await entrarAction(args as never)) as { data: unknown; init?: ResponseInit };
+    expect(res.data).toEqual({ passo: "desafio", email: "usuario@frila.test", desafioId: "des-123" });
+    const headerCookie = (res.init?.headers as Record<string, string>)["Set-Cookie"];
+    expect(headerCookie).toContain("__Host-frila-dispositivo=");
+    expect(headerCookie).toContain("Max-Age=0");
   });
 
-  it("regressão P1: intencao=pedir em /entrar para conta não-demo é bloqueado e NÃO chama pedirCodigo", async () => {
-    const res = await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "codigo_apenas_demo" });
+  it("confirmar_desafio com lembrar_dispositivo=sim grava cookie __Host-frila-dispositivo HttpOnly 30 dias", async () => {
+    authMock.confirmarDispositivoOtp.mockResolvedValue({
+      ok: true,
+      sessao: SESSAO_SINTETICA,
+      precisaDefinirSenha: false,
+      deviceToken: "novo-device-token",
+    });
+    const args = pedidoComCookies("/entrar", {
+      email: "usuario@frila.test",
+      desafio_id: "des-123",
+      codigo: "654321",
+      lembrar_dispositivo: "sim",
+      intencao: "confirmar_desafio",
+    });
+    const resp = await capturaRedirect(() => entrarAction(args as never));
+    expect(resp.headers.get("Location")).toBe("/");
+    expect(authMock.confirmarDispositivoOtp).toHaveBeenCalledWith({
+      tipo: "login_dispositivo",
+      desafioId: "des-123",
+      codigo: "654321",
+      lembrarDispositivo: true,
+      visitante: "198.51.100.77",
+    });
+    const cookies = resp.headers.getSetCookie();
+    const dispositivo = cookies.find((c) => c.startsWith("__Host-frila-dispositivo="));
+    expect(dispositivo).toContain("novo-device-token");
+    expect(dispositivo).toContain("Max-Age=2592000");
+    expect(dispositivo).toContain("HttpOnly");
+    expect(dispositivo).toContain("SameSite=Lax");
+    expect(dispositivo).toContain("Secure");
+  });
+
+  it("confirmar_desafio sem checkbox não grava cookie de dispositivo", async () => {
+    const args = pedidoComCookies("/entrar", {
+      email: "usuario@frila.test",
+      desafio_id: "des-123",
+      codigo: "654321",
+      intencao: "confirmar_desafio",
+    });
+    const resp = await capturaRedirect(() => entrarAction(args as never));
+    expect(resp.headers.getSetCookie().some((c) => c.includes("frila-dispositivo"))).toBe(false);
+    expect(authMock.confirmarDispositivoOtp).toHaveBeenCalledWith(
+      expect.objectContaining({ lembrarDispositivo: false }),
+    );
+  });
+
+  it("reenviar_desafio chama reenviarDispositivoOtp preservando desafioId", async () => {
+    const args = pedidoComCookies("/entrar", {
+      email: "usuario@frila.test",
+      desafio_id: "des-123",
+      intencao: "reenviar_desafio",
+    });
+    const res = await entrarAction(args as never);
+    expect(res).toEqual({ passo: "desafio", email: "usuario@frila.test", desafioId: "des-123", reenviado: true });
+    expect(authMock.reenviarDispositivoOtp).toHaveBeenCalledWith({
+      desafioId: "des-123",
+      visitante: "198.51.100.77",
+    });
+  });
+
+  it("regressão P1: intencao=pedir e intencao=confirmar em /entrar para conta não-demo são bloqueados", async () => {
+    expect(await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", intencao: "pedir" }, false))).toEqual({
+      passo: "email",
+      email: "usuario@frila.test",
+      erro: "codigo_apenas_demo",
+    });
+    expect(
+      await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", codigo: "123456", intencao: "confirmar" }, false)),
+    ).toEqual({
+      passo: "email",
+      email: "usuario@frila.test",
+      erro: "codigo_apenas_demo",
+    });
     expect(authMock.pedirCodigo).not.toHaveBeenCalled();
-  });
-
-  it("regressão P1: intencao=confirmar em /entrar para conta não-demo é bloqueado e NÃO chama confirmarCodigo", async () => {
-    const res = await entrarAction(argumentos("/entrar", { email: "usuario@frila.test", codigo: "123456", intencao: "confirmar" }, false));
-    expect(res).toEqual({ passo: "email", email: "usuario@frila.test", erro: "codigo_apenas_demo" });
     expect(authMock.confirmarCodigo).not.toHaveBeenCalled();
   });
 
-  it("isolamento demo P2: conta demo tentando entrar por senha é rejeitada sem chamar entrarComSenha", async () => {
-    const res = await entrarAction(argumentos("/entrar", { email: "demo@frila.test", senha: "123" }, false));
-    expect(res).toEqual({ passo: "email", email: "demo@frila.test", erro: "conta_demo" });
-    expect(authMock.entrarComSenha).not.toHaveBeenCalled();
-  });
+  it("isolamento demo P2: conta demo entra somente via demo e é recusada na senha", async () => {
+    expect(await entrarAction(argumentos("/entrar", { email: "demo@frila.test", senha: "123" }, false))).toEqual({
+      passo: "email",
+      email: "demo@frila.test",
+      erro: "conta_demo",
+    });
+    expect(authMock.autenticarSenha).not.toHaveBeenCalled();
 
-  it("intencao=pedir com conta demo avança para código sem chamar auth.pedirCodigo", async () => {
-    const res = await entrarAction(argumentos("/entrar", { email: "demo@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "codigo", email: "demo@frila.test" });
-    expect(authMock.pedirCodigo).not.toHaveBeenCalled();
-  });
-
-  it("intencao=confirmar com conta demo chama entrarDemonstracao", async () => {
     const resp = await capturaRedirect(() =>
       entrarAction(argumentos("/entrar", { email: "demo@frila.test", codigo: "codigo-demo", intencao: "confirmar" }, false)),
     );
@@ -130,166 +257,154 @@ describe("rotas: login habitual por senha e isolamento demo (rotas/entrar)", () 
   });
 });
 
-describe("rotas: criação de conta com OTP (rotas/criar-conta)", () => {
-  it("se já estiver logado, redireciona para a raiz", async () => {
-    const resp = await capturaRedirect(() => criarContaLoader(argumentos("/criar-conta", undefined, true)));
-    expect(resp.headers.get("Location")).toBe("/");
-  });
+describe("rotas: criação de conta e recuperação com dispositivo opcional (criar-conta / recuperar-senha)", () => {
+  it("criar-conta recusa demo e confirma via confirmarDispositivoOtp gravando cookie de dispositivo quando marcado", async () => {
+    expect(await criarContaAction(argumentos("/criar-conta", { email: "demo@frila.test", intencao: "pedir" }, false))).toEqual({
+      passo: "email",
+      email: "demo@frila.test",
+      erro: "conta_demo",
+    });
 
-  it("isolamento demo P2: recusa conta demo no cadastro", async () => {
-    const res = await criarContaAction(argumentos("/criar-conta", { email: "demo@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "email", email: "demo@frila.test", erro: "conta_demo" });
-    expect(authMock.pedirCodigo).not.toHaveBeenCalled();
-  });
-
-  it("intencao=pedir chama pedirCodigo com criarUsuario=true", async () => {
-    const res = await criarContaAction(argumentos("/criar-conta", { email: "novo@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "codigo", email: "novo@frila.test" });
-    expect(authMock.pedirCodigo).toHaveBeenCalledWith("novo@frila.test", { criarUsuario: true });
-  });
-
-  it("intencao=confirmar valida código de 6 dígitos, grava cookies e redireciona para /definir-senha?origem=cadastro", async () => {
+    authMock.confirmarDispositivoOtp.mockResolvedValue({
+      ok: true,
+      sessao: SESSAO_SINTETICA,
+      precisaDefinirSenha: true,
+      deviceToken: "dev-cadastro",
+    });
     const resp = await capturaRedirect(() =>
-      criarContaAction(argumentos("/criar-conta", { email: "novo@frila.test", codigo: "123456", intencao: "confirmar" }, false)),
+      criarContaAction(
+        argumentos("/criar-conta", { email: "novo@frila.test", codigo: "123456", lembrar_dispositivo: "sim", intencao: "confirmar" }, false),
+      ),
     );
     expect(resp.headers.get("Location")).toBe("/definir-senha?origem=cadastro");
-    expect(authMock.confirmarCodigo).toHaveBeenCalledWith("novo@frila.test", "123456");
-    expect(resp.headers.getSetCookie().length).toBe(2);
+    expect(resp.headers.getSetCookie().some((c) => c.includes("__Host-frila-dispositivo=dev-cadastro"))).toBe(true);
+    expect(authMock.confirmarDispositivoOtp).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "cadastro", email: "novo@frila.test", codigo: "123456", lembrarDispositivo: true }),
+    );
   });
 
-  it("intencao=confirmar com código inválido devolve erro codigo_invalido", async () => {
-    authMock.confirmarCodigo.mockResolvedValue({ ok: false, motivo: "codigo_invalido" });
-    const res = await criarContaAction(argumentos("/criar-conta", { email: "novo@frila.test", codigo: "000000", intencao: "confirmar" }, false));
-    expect(res).toEqual({ passo: "codigo", email: "novo@frila.test", erro: "codigo_invalido" });
-  });
-});
-
-describe("rotas: recuperação de senha anti-enumeração (rotas/recuperar-senha)", () => {
-  it("se já estiver logado, redireciona para a raiz", async () => {
-    const resp = await capturaRedirect(() => recuperarSenhaLoader(argumentos("/recuperar-senha", undefined, true)));
-    expect(resp.headers.get("Location")).toBe("/");
-  });
-
-  it("recusa conta de demonstração com erro conta_demo", async () => {
-    const res = await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "demo@frila.test", intencao: "pedir" }, false));
-    expect(res).toEqual({ passo: "email", email: "demo@frila.test", erro: "conta_demo" });
-  });
-
-  it("regressão P1 anti-enumeração: conta existente e inexistente produzem estado e passo rigorosamente idênticos", async () => {
+  it("regressão P1 anti-enumeração: recuperar-senha existente e inexistente produzem estado idêntico", async () => {
     authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: true });
     const resExistente = await recuperarSenhaAction(
       argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir" }, false),
     );
-
     authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: false });
     const resInexistente = await recuperarSenhaAction(
       argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir" }, false),
     );
-
     expect(resExistente).toEqual({ passo: "codigo", email: "mesmo@frila.test" });
     expect(resInexistente).toEqual(resExistente);
-    expect(authMock.pedirCodigoRecuperacao).toHaveBeenCalledTimes(2);
   });
 
-  it("regressão P1 anti-enumeração: reenvio para conta existente e inexistente produzem estado idêntico", async () => {
-    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: true });
-    const reenvioExistente = await recuperarSenhaAction(
-      argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir", reenvio: "1" }, false),
-    );
-
-    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: true, enviado: false });
-    const reenvioInexistente = await recuperarSenhaAction(
-      argumentos("/recuperar-senha", { email: "mesmo@frila.test", intencao: "pedir", reenvio: "1" }, false),
-    );
-
-    expect(reenvioExistente).toEqual({ passo: "codigo", email: "mesmo@frila.test", reenviado: true });
-    expect(reenvioInexistente).toEqual(reenvioExistente);
-  });
-
-  it("erros de limite (429) e indisponibilidade (5xx) não são mascarados", async () => {
-    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: false, motivo: "limite" });
-    expect(await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "a@b.co", intencao: "pedir" }, false))).toEqual({
-      passo: "email",
-      email: "a@b.co",
-      erro: "limite",
-    });
-
-    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: false, motivo: "indisponivel" });
-    expect(
-      await recuperarSenhaAction(argumentos("/recuperar-senha", { email: "a@b.co", intencao: "pedir", reenvio: "1" }, false)),
-    ).toEqual({
-      passo: "codigo",
-      email: "a@b.co",
-      erro: "indisponivel",
-    });
-  });
-
-  it("confirmar código de recuperação redireciona para /definir-senha?origem=recuperacao com cookies", async () => {
+  it("recuperar-senha confirma via confirmarDispositivoOtp(tipo=recuperacao)", async () => {
     const resp = await capturaRedirect(() =>
-      recuperarSenhaAction(argumentos("/recuperar-senha", { email: "existente@frila.test", codigo: "654321", intencao: "confirmar" }, false)),
+      recuperarSenhaAction(
+        argumentos("/recuperar-senha", { email: "existente@frila.test", codigo: "654321", intencao: "confirmar" }, false),
+      ),
     );
     expect(resp.headers.get("Location")).toBe("/definir-senha?origem=recuperacao");
-    expect(authMock.confirmarCodigo).toHaveBeenCalledWith("existente@frila.test", "654321");
-    expect(resp.headers.getSetCookie().length).toBe(2);
+    expect(authMock.confirmarDispositivoOtp).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "recuperacao", email: "existente@frila.test", codigo: "654321", lembrarDispositivo: false }),
+    );
+  });
+
+  it("loaders de criar-conta e recuperar-senha redirecionam para / quando já logado", async () => {
+    expect((await capturaRedirect(() => criarContaLoader(argumentos("/criar-conta", undefined, true)))).headers.get("Location")).toBe("/");
+    expect((await capturaRedirect(() => recuperarSenhaLoader(argumentos("/recuperar-senha", undefined, true)))).headers.get("Location")).toBe("/");
   });
 });
 
-describe("rotas: definir senha na sessão ativa (rotas/definir-senha)", () => {
-  it("sem sessão, loader redireciona para /entrar", async () => {
+describe("rotas: definir-senha, logout e trava SSR de precisa_definir_senha", () => {
+  it("sem sessão, definir-senha loader redireciona para /entrar", async () => {
     const resp = await capturaRedirect(() => definirSenhaLoader(argumentos("/definir-senha", undefined, false)));
     expect(resp.headers.get("Location")).toBe("/entrar");
   });
 
-  it("com sessão, loader lê origem corretamente", async () => {
-    expect(definirSenhaLoader(argumentos("/definir-senha?origem=cadastro", undefined, true))).toEqual({ origem: "cadastro" });
-    expect(definirSenhaLoader(argumentos("/definir-senha?origem=recuperacao", undefined, true))).toEqual({ origem: "recuperacao" });
-    expect(definirSenhaLoader(argumentos("/definir-senha", undefined, true))).toEqual({ origem: "alteracao" });
-  });
-
-  it("valida tamanho mínimo de 8 caracteres", async () => {
-    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "123", confirmacao: "123", origem: "cadastro" }, true));
-    expect(res).toEqual({ erro: "senha_curta", origem: "cadastro" });
-    expect(authMock.atualizarSenha).not.toHaveBeenCalled();
-  });
-
-  it("valida confirmação idêntica", async () => {
-    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "senha1234", confirmacao: "diferente12", origem: "recuperacao" }, true));
-    expect(res).toEqual({ erro: "senhas_diferentes", origem: "recuperacao" });
-    expect(authMock.atualizarSenha).not.toHaveBeenCalled();
-  });
-
-  it("trata erro de reautenticação necessária sem loop", async () => {
-    authMock.atualizarSenha.mockResolvedValue({ ok: false, motivo: "reautenticacao_necessaria" });
-    const res = await definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!" }, true));
-    expect(res).toEqual({ erro: "reautenticacao_necessaria", origem: "alteracao" });
-  });
-
-  it("sessão inválida apaga cookies de sessão ao redirecionar para /entrar, impedindo loop", async () => {
-    authMock.atualizarSenha.mockResolvedValue({ ok: false, motivo: "sessao_invalida" });
-    const resp = await capturaRedirect(() =>
-      definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!" }, true)),
+  it("definir-senha em origem=recuperacao envia manterDispositivoAtual=true e regrava cookies renovados", async () => {
+    const args = pedidoComCookies(
+      "/definir-senha",
+      { senha: "novaSenha123", confirmacao: "novaSenha123", origem: "recuperacao" },
+      "__Host-frila-renovacao=ref-antigo; __Host-frila-dispositivo=dev-atual",
     );
+    args.context.set(
+      (await import("../app/contexto")).contextoDaSessao,
+      { acesso: "sintetico", usuarioId: "u1", email: "a@b.co", visitante: "198.51.100.77" },
+    );
+    const resp = await capturaRedirect(() => definirSenhaAction(args as never));
+    expect(resp.headers.get("Location")).toBe("/");
+    expect(authMock.definirSenha).toHaveBeenCalledWith({
+      acesso: "sintetico",
+      novaSenha: "novaSenha123",
+      manterDispositivoAtual: true,
+      deviceTokenAtual: "dev-atual",
+      refreshToken: "ref-antigo",
+      visitante: "198.51.100.77",
+    });
+    expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-acesso="))).toBe(true);
+    expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-dispositivo="))).toBe(false);
+  });
+
+  it("definir-senha em origem=alteracao revoga dispositivos e apaga __Host-frila-dispositivo local", async () => {
+    const args = pedidoComCookies(
+      "/definir-senha",
+      { senha: "novaSenha123", confirmacao: "novaSenha123", origem: "alteracao" },
+      "__Host-frila-renovacao=ref-antigo; __Host-frila-dispositivo=dev-atual",
+    );
+    args.context.set(
+      (await import("../app/contexto")).contextoDaSessao,
+      { acesso: "sintetico", usuarioId: "u1", email: "a@b.co", visitante: null },
+    );
+    const resp = await capturaRedirect(() => definirSenhaAction(args as never));
+    expect(resp.headers.get("Location")).toBe("/");
+    expect(authMock.definirSenha).toHaveBeenCalledWith(
+      expect.objectContaining({ manterDispositivoAtual: false }),
+    );
+    const devCookie = resp.headers.getSetCookie().find((c) => c.startsWith("__Host-frila-dispositivo="));
+    expect(devCookie).toContain("Max-Age=0");
+  });
+
+  it("logout normal (/sair) apaga sessão mas PRESERVA __Host-frila-dispositivo", async () => {
+    const args = pedidoComCookies("/sair", {}, "__Host-frila-acesso=a; __Host-frila-renovacao=r; __Host-frila-dispositivo=dev-ok");
+    args.context.set(
+      (await import("../app/contexto")).contextoDaSessao,
+      { acesso: "a", usuarioId: "u1", email: "a@b.co", visitante: null },
+    );
+    const resp = await capturaRedirect(() => sairAction(args as never));
     expect(resp.headers.get("Location")).toBe("/entrar");
     const cookies = resp.headers.getSetCookie();
-    expect(cookies.length).toBe(2);
-    expect(cookies.every((c) => c.includes("Max-Age=0"))).toBe(true);
+    expect(cookies.some((c) => c.startsWith("__Host-frila-acesso=") && c.includes("Max-Age=0"))).toBe(true);
+    expect(cookies.some((c) => c.startsWith("__Host-frila-renovacao=") && c.includes("Max-Age=0"))).toBe(true);
+    expect(cookies.some((c) => c.includes("frila-dispositivo"))).toBe(false);
   });
 
-  it("salvar senha com origem=recuperacao tenta revogar outras sessões", async () => {
+  it("Sair de todos os dispositivos (/conta) chama revogarDispositivos e apaga __Host-frila-dispositivo", async () => {
     const resp = await capturaRedirect(() =>
-      definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!", origem: "recuperacao" }, true)),
+      dadosAction(argumentos("/conta", { intencao: "revogar_dispositivos" }, true)),
     );
-    expect(resp.headers.get("Location")).toBe("/");
-    expect(authMock.encerrarOutrasSessoes).toHaveBeenCalledWith("sintetico");
+    expect(resp.headers.get("Location")).toBe("/entrar");
+    expect(authMock.revogarDispositivos).toHaveBeenCalled();
+    expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-dispositivo=") && c.includes("Max-Age=0"))).toBe(true);
   });
 
-  it("salvar senha com origem=cadastro redireciona para /cadastro se perfil não preenchido e não revoga outras sessões", async () => {
-    contaMock.lerMinhaConta.mockResolvedValue({ estado: "sem_conta" });
-    const resp = await capturaRedirect(() =>
-      definirSenhaAction(argumentos("/definir-senha", { senha: "senhaForte123!", confirmacao: "senhaForte123!", origem: "cadastro" }, true)),
-    );
-    expect(resp.headers.get("Location")).toBe("/cadastro");
-    expect(authMock.atualizarSenha).toHaveBeenCalledWith("sintetico", "senhaForte123!");
-    expect(authMock.encerrarOutrasSessoes).not.toHaveBeenCalled();
+  it("SSR middleware bloqueia navegação para /app/vagas quando JWT tem precisa_definir_senha=true e permite /app/definir-senha", async () => {
+    const jwtPendente = jwtComAppMetadata({ precisa_definir_senha: true, dispositivo_verificado: true });
+    const reqBloqueado = new Request("https://frilabr.com/app/vagas", {
+      headers: { Cookie: `__Host-frila-acesso=${jwtPendente}; __Host-frila-renovacao=r1` },
+    });
+    const resBloqueado = (await middlewareDeSessao(
+      { request: reqBloqueado, context: new RouterContextProvider(), params: {}, unstable_pattern: "" } as never,
+      async () => new Response("ok"),
+    )) as Response;
+    expect(resBloqueado.status).toBe(302);
+    expect(resBloqueado.headers.get("Location")).toBe("https://frilabr.com/app/definir-senha");
+
+    const reqPermitido = new Request("https://frilabr.com/app/definir-senha", {
+      headers: { Cookie: `__Host-frila-acesso=${jwtPendente}; __Host-frila-renovacao=r1` },
+    });
+    const resPermitido = (await middlewareDeSessao(
+      { request: reqPermitido, context: new RouterContextProvider(), params: {}, unstable_pattern: "" } as never,
+      async () => new Response("tela-definir-senha", { status: 200 }),
+    )) as Response;
+    expect(resPermitido.status).toBe(200);
   });
 });

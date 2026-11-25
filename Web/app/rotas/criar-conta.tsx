@@ -2,7 +2,7 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
 import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
-import { cookiesDaSessao, ehPedidoSeguro } from "../servidor/sessao";
+import { cookieDoDispositivo, cookiesDaSessao, ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/criar-conta";
 
@@ -49,14 +49,22 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   if (!/^\d{6}$/.test(codigo)) {
     return { passo: "codigo", email, erro: "codigo_incompleto" };
   }
-  const entrada = await auth.confirmarCodigo(email, codigo);
+  const lembrarDispositivo = formulario.get("lembrar_dispositivo") === "sim";
+  const entrada = await auth.confirmarDispositivoOtp({
+    tipo: "cadastro",
+    email,
+    codigo,
+    lembrarDispositivo,
+    visitante: visitanteDoPedido(request),
+  });
   if (!entrada.ok) {
-    const erro: Erro = entrada.motivo === "limite" || entrada.motivo === "indisponivel" ? entrada.motivo : "codigo_invalido";
-    return { passo: "codigo", email, erro };
+    return { passo: "codigo", email, erro: entrada.motivo };
   }
 
+  const seguro = ehPedidoSeguro(request);
   const cabecalhos = new Headers();
-  for (const linha of cookiesDaSessao(entrada.sessao, ehPedidoSeguro(request))) cabecalhos.append("Set-Cookie", linha);
+  for (const linha of cookiesDaSessao(entrada.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
+  if (entrada.deviceToken) cabecalhos.append("Set-Cookie", cookieDoDispositivo(entrada.deviceToken, seguro));
   throw redirect("/definir-senha?origem=cadastro", { headers: cabecalhos });
 }
 
@@ -132,6 +140,10 @@ export default function CriarConta({ actionData }: Route.ComponentProps) {
                 aria-describedby={erro ? "erro" : undefined}
                 className={`${classeDoCampo} tracking-widest`}
               />
+            </label>
+            <label className="flex min-h-11 items-center gap-3 text-sm">
+              <input type="checkbox" name="lembrar_dispositivo" value="sim" className="size-5 shrink-0" />
+              <span>{textos.criarConta.lembrarDispositivo}</span>
             </label>
             {erro ? (
               <p id="erro" role="alert" className="font-semibold">
