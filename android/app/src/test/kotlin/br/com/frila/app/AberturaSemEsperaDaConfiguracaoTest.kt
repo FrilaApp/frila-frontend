@@ -167,10 +167,11 @@ class AberturaSemEsperaDaConfiguracaoTest {
         @Volatile private var motorDoMomento: MockEngine = MockEngine { awaitCancellation() }
 
         /**
-         * Um Koin só para a classe: o `koinInject` padrão da `AppNavegacao` (sem `KoinApplication` em volta, como na `MainActivity`)
-         * guarda o escopo do primeiro Koin do processo, então um Koin novo por teste deixava os testes seguintes com um escopo fechado.
+         * Um Koin só para a classe: o escopo padrão do `koinInject` da `AppNavegacao` fica preso ao primeiro Koin do processo (ver
+         * [EscopoPadraoDoKoinCompose]), então um Koin novo por teste deixava os testes seguintes com um escopo fechado.
          */
         @JvmStatic @BeforeClass fun iniciarKoin() {
+            EscopoPadraoDoKoinCompose.reiniciar()
             val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
                 every { estaAutenticado() } returns false
                 every { isBiometriaAtivada() } returns false
@@ -196,6 +197,9 @@ class AberturaSemEsperaDaConfiguracaoTest {
             }
         }
 
-        @JvmStatic @AfterClass fun pararKoin() = stopKoin()
+        @JvmStatic @AfterClass fun pararKoin() {
+            stopKoin()
+            EscopoPadraoDoKoinCompose.reiniciar()
+        }
     }
 }
