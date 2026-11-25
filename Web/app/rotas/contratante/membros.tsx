@@ -175,7 +175,7 @@ export default function MembrosDaCasa({ loaderData, actionData }: Route.Componen
       )}
       {pronto ? (
         <section role="status" className="flex flex-col gap-2 rounded-cartao border border-borda bg-superficie p-4">
-          <p className="font-semibold">{preencher(t.pronto, { quando: pronto.ate })}</p>
+          <p className="font-semibold">{pronto.ate ? preencher(t.pronto, { quando: pronto.ate }) : t.prontoSemPrazo}</p>
           <label className={classeDoRotulo}>
             {t.rotuloDaMensagem}
             <textarea

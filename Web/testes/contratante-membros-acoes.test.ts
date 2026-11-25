@@ -164,7 +164,7 @@ describe("convite pronto: mensagem com aviso do ROPA", () => {
       papel: "operador",
     });
     const esperada =
-      `Casa Sintética convidou você para a equipe da casa no Frila, como operador. Para aceitar, abra o link abaixo e entre no Frila com o e-mail pessoa@example.com. O convite vale uma vez, até ${actionData.ate}. O Frila guarda seu e-mail só para conferir este convite e o apaga 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade\n${LINK}`;
+      `Casa Sintética convidou você para a equipe da casa no Frila, como operador. Para aceitar, abra o link abaixo e entre no Frila com o e-mail pessoa@example.com. O convite vale uma vez, até ${actionData.ate}. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade\n${LINK}`;
     expect(html).toContain(t.rotuloDaMensagem);
     expect(html).toContain(t.pronto.replace("{quando}", actionData.ate));
     expect(html).toMatch(/<textarea\b[^>]*readOnly=""[^>]*>/i);
@@ -174,13 +174,15 @@ describe("convite pronto: mensagem com aviso do ROPA", () => {
   });
 
   it("sem prazo: o campo só-leitura traz a frase curta sem validade", async () => {
-    const { mensagem } = await renderizarConvitePronto({
+    const { html, mensagem } = await renderizarConvitePronto({
       expiraEm: "",
       email: "pessoa@example.com",
       papel: "operador",
     });
     const esperada =
-      `Casa Sintética convidou você para a equipe da casa no Frila, como operador. Para aceitar, abra o link abaixo e entre no Frila com o e-mail pessoa@example.com. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade\n${LINK}`;
+      `Casa Sintética convidou você para a equipe da casa no Frila, como operador. Para aceitar, abra o link abaixo e entre no Frila com o e-mail pessoa@example.com. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade\n${LINK}`;
+    expect(html).toContain(t.prontoSemPrazo);
+    expect(html).not.toContain("até :");
     expect(mensagem).toBe(esperada);
     expect(mensagem).not.toBe(LINK);
     expect(mensagem.endsWith(`\n${LINK}`)).toBe(true);

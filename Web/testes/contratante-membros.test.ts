@@ -1,7 +1,11 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { action as convidar, loader } from "../app/rotas/contratante/membros";
-import { action as aceitar, loader as abrirConvite } from "../app/rotas/convite";
+import Convite, { action as aceitar, loader as abrirConvite } from "../app/rotas/convite";
+import { textos } from "../app/textos/pt-BR";
 import { argumentos, CASA, ok, recusa, redirecionamento } from "./contratante-apoio";
 
 const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
@@ -74,5 +78,27 @@ describe("convite: aceitar", () => {
     api.POST.mockResolvedValue(recusa(422, "perfil_incompativel"));
     expect(await aceitar(argumentos("/convite", { token: TOKEN }))).toEqual({ falha: "perfil_incompativel" });
     expect(await redirecionamento(aceitar(argumentos("/convite", { token: TOKEN }, false)))).toBe("/entrar");
+  });
+
+  it("403 convite_de_outro_email mostra a mensagem exata na tela do convite", async () => {
+    api.POST.mockResolvedValue(recusa(403, "convite_de_outro_email"));
+    const retorno = await aceitar(argumentos("/convite", { token: TOKEN }));
+    expect(retorno).toEqual({ falha: "convite_de_outro_email" });
+
+    const loaderData = abrirConvite(argumentos("/convite"));
+    const router = createMemoryRouter([{
+      path: "/convite",
+      Component: () => createElement(Convite, { loaderData, actionData: retorno } as never),
+    }], { initialEntries: ["/convite"] });
+    try {
+      const html = renderToStaticMarkup(createElement(RouterProvider, { router }));
+      expect(html).toContain("Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.");
+      expect(html).not.toContain(textos.contratanteMembros.convite.erros.indisponivel);
+    } finally {
+      router.dispose();
+    }
+
+    api.POST.mockResolvedValue(recusa(403, "outro_motivo"));
+    expect(await aceitar(argumentos("/convite", { token: TOKEN }))).toEqual({ falha: "indisponivel" });
   });
 });
