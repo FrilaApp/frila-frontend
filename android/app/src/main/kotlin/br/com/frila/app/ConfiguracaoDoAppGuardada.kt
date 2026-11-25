@@ -17,6 +17,13 @@ import kotlinx.serialization.json.jsonObject
  */
 const val TEMPO_MAXIMO_CONFIGURACAO_MS = 10_000L
 
+/**
+ * Quanto a primeira tela espera pela configuração quando não há nenhuma guardada para esta versão do app. Com configuração guardada
+ * a tela abre na hora. Passado o prazo a tela abre com as chaves desligadas e a resposta, quando chega (até
+ * [TEMPO_MAXIMO_CONFIGURACAO_MS]), vale do mesmo jeito, inclusive para bloquear uma versão abaixo da mínima (#795).
+ */
+const val TEMPO_MAXIMO_ABERTURA_MS = 2_000L
+
 /** Guarda a última configuração pública recebida, por plataforma e versão do app. */
 interface CacheDeConfiguracaoDoApp {
     fun ler(plataforma: String, versaoApp: String?): ConfiguracaoDoAppDto?
@@ -69,6 +76,19 @@ internal fun ConfiguracaoDoAppDto.paraJson(): JsonObject = buildJsonObject {
             put("busca_profissionais", JsonPrimitive(recursos.buscaProfissionais))
         },
     )
+}
+
+/** A última configuração guardada para esta plataforma e versão, ou `null` (sem guardado ou guardado ilegível). */
+suspend fun lerConfiguracaoGuardada(
+    cache: CacheDeConfiguracaoDoApp,
+    versaoApp: String?,
+    plataforma: String = "android",
+): ConfiguracaoDoAppDto? = withContext(Dispatchers.IO) {
+    try {
+        cache.ler(plataforma, versaoApp)
+    } catch (_: Exception) {
+        null
+    }
 }
 
 /**
