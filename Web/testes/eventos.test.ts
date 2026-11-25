@@ -13,7 +13,7 @@ describe("eventos de uso (registrar_evento)", () => {
 
   it("fora do Worker não sai nada e nunca lança: a resposta da tela não depende dele", async () => {
     const buscar = vi.spyOn(globalThis, "fetch");
-    expect(() => registrarEvento("token-sintetico", "vaga_detalhe_aberto", { vaga_id: VAGA })).not.toThrow();
+    expect(() => registrarEvento({ acesso: "token-sintetico", usuarioId: null, email: null, visitante: null }, "vaga_detalhe_aberto", { vaga_id: VAGA })).not.toThrow();
     await new Promise((r) => setTimeout(r, 20));
     expect(buscar).not.toHaveBeenCalled();
     buscar.mockRestore();

@@ -16,7 +16,7 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const endereco = new URL(request.url);
 
   const leitura = await lerMinhasCasas(api);

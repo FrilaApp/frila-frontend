@@ -16,7 +16,7 @@ export function meta() {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const leitura = await lerMinhasCasas(api);
   if (leitura.estado === "sem_sessao") throw redirect("/entrar");
   const busca = new URL(request.url).searchParams;
@@ -46,7 +46,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<{ 
   const casaId = String(formulario.get("casa") ?? "");
   const profissionalId = String(formulario.get("profissional_id") ?? "");
   if (intencao !== "incluir" && intencao !== "remover") return { falha: "indisponivel" };
-  const feito = await mudarEquipe(apiDoUsuario(sessao.acesso), intencao, casaId, profissionalId);
+  const feito = await mudarEquipe(apiDoUsuario(sessao), intencao, casaId, profissionalId);
   if (feito.ok) throw redirect(`/casa/equipe?casa=${casaId}&${intencao === "incluir" ? "incluido" : "removido"}=1`);
   if (feito.motivo === "sem_sessao") throw redirect("/entrar");
   return { falha: feito.motivo };

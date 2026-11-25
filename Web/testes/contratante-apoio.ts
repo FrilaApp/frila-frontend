@@ -16,7 +16,7 @@ export const recusa = (status: number, code = "x", details: string | null = null
 
 export function argumentos(caminho: string, dados?: Record<string, string>, comSessao = true) {
   const context = new RouterContextProvider();
-  if (comSessao) context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "casa@example.com" });
+  if (comSessao) context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "casa@example.com", visitante: null });
   const request = new Request(`https://frilabr.com/app${caminho}`, {
     method: dados ? "POST" : "GET",
     headers: { Origin: "https://frilabr.com" },

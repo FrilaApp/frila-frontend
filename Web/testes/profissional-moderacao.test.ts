@@ -60,7 +60,7 @@ const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api }));
 const argumentos = (url: string, dados: Record<string, string> | null, logado = true) => {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "p@example.com" } : null);
+  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "p@example.com", visitante: null } : null);
   const request = dados
     ? new Request(url, { method: "POST", headers: { Origin: "https://frilabr.com" }, body: new URLSearchParams(dados) })
     : new Request(url);

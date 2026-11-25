@@ -16,7 +16,7 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const leitura = await lerMeuPerfil(apiDoUsuario(sessao.acesso));
+  const leitura = await lerMeuPerfil(apiDoUsuario(sessao));
   if (leitura.estado !== "ok") return { estado: leitura.estado, preferencias: null };
   const p = leitura.perfil.preferencia_chamadas;
   // Sem preferência gravada, valem os padrões do contrato.
@@ -37,7 +37,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const antecedencia = Number(formulario.get("antecedencia"));
   const aceitaAgora = formulario.get("aceita_chamadas") === "sim";
   const aceitavaAntes = formulario.get("aceita_chamadas_antes") === "sim";
-  const resultado = await salvarPreferencias(apiDoUsuario(sessao.acesso), {
+  const resultado = await salvarPreferencias(apiDoUsuario(sessao), {
     aceitaDeQuemJaTrabalhou: formulario.get("de_quem_ja_trabalhou") === "sim",
     antecedenciaMinimaH: (ANTECEDENCIAS as readonly number[]).includes(antecedencia) ? (antecedencia as Antecedencia) : 6,
     pausadoAte: formulario.get("pausar") === "sim" ? String(formulario.get("pausado_ate") ?? "") : null,

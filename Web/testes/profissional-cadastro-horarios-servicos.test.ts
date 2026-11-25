@@ -27,7 +27,7 @@ function servidor({ criar = ok({ id: "p1" }), regioes = ok({ id: "p1" }), servic
 
 function envio(pares: Array<[string, string]>) {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "pro@example.com" });
+  context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "pro@example.com", visitante: null });
   const request = new Request("https://frilabr.com/app/perfil/cadastro", { method: "POST", headers: { Origin: "https://frilabr.com" }, body: new URLSearchParams(pares) });
   return { request, context, params: {}, url: new URL(request.url), matches: [] } as never;
 }

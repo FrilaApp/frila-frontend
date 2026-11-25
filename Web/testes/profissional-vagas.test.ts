@@ -134,7 +134,7 @@ const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api }));
 const contexto = (logado = true) => {
   const c = new RouterContextProvider();
-  c.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "p@example.com" } : null);
+  c.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "p@example.com", visitante: null } : null);
   return c;
 };
 const argumentos = (url: string, logado = true, params: Record<string, string> = {}) =>

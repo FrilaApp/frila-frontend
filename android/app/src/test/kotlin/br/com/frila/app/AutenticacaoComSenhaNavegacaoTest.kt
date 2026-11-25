@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.ServicoConta
@@ -63,21 +65,31 @@ class AutenticacaoComSenhaNavegacaoTest {
     private val sessao = ArmazenamentoDeSessaoEmMemoria()
     private val chamadas = CopyOnWriteArrayList<String>()
     private val corposOtp = CopyOnWriteArrayList<String>()
+    private val corposDemo = CopyOnWriteArrayList<String>()
 
     private val usuarioProfissional =
         """{"id":"11111111-1111-4111-8111-111111111111","perfil":"profissional","nome":"Conta Teste","telefone":"61999990000","email":"conta@exemplo.test","nascimento":"1990-01-01","estado":"ativa"}"""
     private val perfilProfissional =
         """{"id":"22222222-2222-4222-8222-222222222222","usuario_id":"11111111-1111-4111-8111-111111111111","funcoes":[],"disponibilidades":[],"reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
 
-    private fun montarApp(contaExiste: Boolean) {
+    private fun montarApp(contaExiste: Boolean, otpDesativado: Boolean = false) {
         val engine = MockEngine { req ->
             val path = req.url.encodedPath
             chamadas += path
             if (path == "/auth/v1/otp") {
                 corposOtp += (req.body as TextContent).text
             }
+            if (path == "/functions/v1/entrar-demonstracao") {
+                corposDemo += (req.body as TextContent).text
+            }
             val (corpo, status) = when {
+                path == "/auth/v1/otp" && otpDesativado ->
+                    """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}""" to HttpStatusCode.UnprocessableEntity
                 path == "/auth/v1/otp" -> "{}" to HttpStatusCode.OK
+                path == "/functions/v1/entrar-demonstracao" -> {
+                    val email = Regex("\"email\":\"([^\"]+)\"").find(corposDemo.last())?.groupValues?.get(1).orEmpty()
+                    """{"access_token":"tok-demo-$email","refresh_token":"ref-demo","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
+                }
                 path == "/auth/v1/verify" ->
                     """{"access_token":"tok-otp","refresh_token":"ref-otp","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
                 path == "/auth/v1/token" ->
@@ -225,5 +237,87 @@ class AutenticacaoComSenhaNavegacaoTest {
         assertTrue("esperava FEED preservando a conta, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
         assertEquals(1, corposOtp.size)
         assertTrue(chamadas.contains("/auth/v1/user"))
+    }
+
+    private fun recuperarSenhaDe(email: String) {
+        rule.onNodeWithText("Esqueci ou ainda não tenho senha").performScrollTo().performClick()
+        assertTrue(aguardar { rotaAtual() == Rotas.RECUPERAR_SENHA })
+        rule.onNodeWithText("E-mail").performTextInput(email)
+        rule.onNodeWithText("Enviar código").performClick()
+    }
+
+    private val textoNeutroDaRecuperacao =
+        "Se houver uma conta com este e-mail, enviamos um código de 6 dígitos para legado@exemplo.test."
+
+    @Test
+    fun recuperacaoComContaAvancaParaOCodigoComOTextoNeutro() {
+        montarApp(contaExiste = true)
+
+        recuperarSenhaDe("legado@exemplo.test")
+
+        assertTrue("esperava CODIGO, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CODIGO })
+        rule.onNodeWithText(textoNeutroDaRecuperacao).assertIsDisplayed()
+        assertEquals(1, corposOtp.size)
+        assertTrue(corposOtp.single().contains("\"create_user\":false"))
+    }
+
+    @Test
+    fun recuperacaoSemContaAvancaParaOMesmoCodigoComOMesmoTextoNeutro() {
+        montarApp(contaExiste = false, otpDesativado = true)
+
+        recuperarSenhaDe("legado@exemplo.test")
+
+        assertTrue("esperava CODIGO, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CODIGO })
+        rule.onNodeWithText(textoNeutroDaRecuperacao).assertIsDisplayed()
+        assertEquals(1, corposOtp.size)
+        assertTrue(corposOtp.single().contains("\"create_user\":false"))
+    }
+
+    private fun entrarNaDemonstracaoComEmailDigitado(emailDigitado: String?) {
+        if (emailDigitado != null) rule.onNodeWithText("E-mail").performTextInput(emailDigitado)
+        rule.onNodeWithText("Entrar em modo demonstração").performScrollTo().performClick()
+        assertTrue("esperava CODIGO, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CODIGO })
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
+        assertTrue("esperava FEED, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
+    }
+
+    @Test
+    fun demonstracaoDoProfissionalEntraNaContaDoProfissional() {
+        montarApp(contaExiste = true)
+
+        entrarNaDemonstracaoComEmailDigitado(null)
+
+        assertEquals(1, corposDemo.size)
+        assertTrue(corposDemo.single().contains("\"email\":\"${DemonstracaoContas.EMAIL_PROFISSIONAL}\""))
+        assertEquals("tok-demo-${DemonstracaoContas.EMAIL_PROFISSIONAL}", sessao.obterSessao()?.accessToken)
+        assertFalse("demo não usa senha", chamadas.contains("/auth/v1/token"))
+        assertFalse("demo não pede OTP", chamadas.contains("/auth/v1/otp"))
+    }
+
+    @Test
+    fun demonstracaoDoContratanteEntraNaContaDoContratanteSemSenha() {
+        montarApp(contaExiste = true)
+
+        entrarNaDemonstracaoComEmailDigitado(DemonstracaoContas.EMAIL_CONTRATANTE)
+
+        assertEquals(1, corposDemo.size)
+        assertTrue(corposDemo.single().contains("\"email\":\"${DemonstracaoContas.EMAIL_CONTRATANTE}\""))
+        assertEquals("tok-demo-${DemonstracaoContas.EMAIL_CONTRATANTE}", sessao.obterSessao()?.accessToken)
+        assertFalse("demo não usa senha", chamadas.contains("/auth/v1/token"))
+        assertFalse("demo não pede OTP", chamadas.contains("/auth/v1/otp"))
+    }
+
+    @Test
+    fun demonstracaoDoContratanteTambemEntraPeloBotaoEntrarComOEmailDigitado() {
+        montarApp(contaExiste = true)
+
+        rule.onNodeWithText("E-mail").performTextInput(DemonstracaoContas.EMAIL_CONTRATANTE)
+        rule.onNodeWithText("Entrar").performClick()
+        assertTrue("esperava CODIGO, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.CODIGO })
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
+        assertTrue("esperava FEED, ficou em ${rotaAtual()}", aguardar { rotaAtual() == Rotas.FEED })
+
+        assertTrue(corposDemo.single().contains("\"email\":\"${DemonstracaoContas.EMAIL_CONTRATANTE}\""))
+        assertFalse(chamadas.contains("/auth/v1/token"))
     }
 }

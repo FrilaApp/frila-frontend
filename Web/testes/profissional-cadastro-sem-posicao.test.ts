@@ -39,7 +39,7 @@ describe("cadastro do profissional: nenhuma posição do navegador", () => {
     );
     api.POST.mockResolvedValue(ok({ id: "p1" }));
     const context = new RouterContextProvider();
-    context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "pro@example.com" });
+    context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "pro@example.com", visitante: null });
     const request = new Request("https://frilabr.com/app/perfil/cadastro", {
       method: "POST",
       headers: { Origin: "https://frilabr.com" },

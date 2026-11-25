@@ -24,8 +24,6 @@ data class EstadoRecuperacaoSenha(
     val email: String = "",
     val carregando: Boolean = false,
     val erro: String? = null,
-    /** Mensagem neutra exibida quando a identidade não existe ou é social-only (sem avançar nem criar conta). */
-    val mensagemNeutra: String? = null,
     val avancarParaCodigo: Boolean = false,
 )
 
@@ -36,9 +34,10 @@ data class EstadoRecuperacaoSenha(
  *
  * Regras de segurança:
  * - Nunca cria usuário novo (`solicitarOtpRecuperacao` envia `create_user: false`).
- * - Para e-mail inexistente ou social-only (`otp_disabled` / `user_not_found`), apresenta estado
- *   neutro anti-enumeração e NÃO avança para tela de código nem para cadastro.
- * - Nunca mascara 429 (`LIMITE_EXCEDIDO`) nem falta de rede (`SEM_REDE`).
+ * - Anti-enumeração: e-mail com conta (200) e e-mail sem conta ou social-only (`otp_disabled` /
+ *   `user_not_found`) produzem o MESMO resultado visível: avançam para a tela do código, que traz o texto
+ *   neutro "Se houver uma conta com este e-mail, enviamos um código". Nunca cria conta nem avança para cadastro.
+ * - Nunca mascara 429 (`LIMITE_EXCEDIDO`) nem falta de rede (`SEM_REDE`): esses erros não dizem nada sobre a conta.
  * - Sem fallback de demonstração.
  * - Protegido contra retorno tardio/cancelamento via [tentativaAtual].
  */
@@ -58,7 +57,7 @@ class RecuperacaoSenhaViewModel(
     private var pedido: Job? = null
 
     fun aoMudarEmail(novoEmail: String) {
-        _estado.update { it.copy(email = novoEmail, erro = null, mensagemNeutra = null) }
+        _estado.update { it.copy(email = novoEmail, erro = null) }
     }
 
     fun aoNavegarParaCodigo() {
@@ -77,20 +76,18 @@ class RecuperacaoSenhaViewModel(
         val email = _estado.value.email.trim().lowercase()
 
         if (!PADRAO_EMAIL_RECUPERACAO.matches(email)) {
-            _estado.update { it.copy(erro = "Informe um e-mail válido.", mensagemNeutra = null) }
+            _estado.update { it.copy(erro = "Informe um e-mail válido.") }
             return null
         }
         // Sem fallback de demonstração na recuperação.
         if (DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste)) {
-            _estado.update {
-                it.copy(erro = "Esta conta usa apenas o modo demonstração.", mensagemNeutra = null)
-            }
+            _estado.update { it.copy(erro = "Esta conta usa apenas o modo demonstração.") }
             return null
         }
 
         val idTentativa = sequenciaDeTentativa.incrementAndGet()
         tentativaAtual = idTentativa
-        _estado.update { it.copy(email = email, carregando = true, erro = null, mensagemNeutra = null) }
+        _estado.update { it.copy(email = email, carregando = true, erro = null) }
 
         return escopoDeTrabalho.launch {
             try {
@@ -105,16 +102,10 @@ class RecuperacaoSenhaViewModel(
             } catch (erro: ErroDaApi) {
                 if (tentativaAtual != idTentativa) return@launch
                 if (indicaIdentidadeInexistenteOuSocialOnly(erro)) {
-                    _estado.update {
-                        it.copy(
-                            carregando = false,
-                            erro = null,
-                            mensagemNeutra = MENSAGEM_NEUTRA_RECUPERACAO,
-                            avancarParaCodigo = false,
-                        )
-                    }
+                    // Mesmo resultado do envio com sucesso: quem não tem conta não se distingue de quem tem.
+                    _estado.update { it.copy(carregando = false, erro = null, avancarParaCodigo = true) }
                 } else {
-                    _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro), mensagemNeutra = null) }
+                    _estado.update { it.copy(carregando = false, erro = mensagemDeErro(erro)) }
                 }
             } catch (_: Exception) {
                 if (tentativaAtual != idTentativa) return@launch
@@ -122,7 +113,6 @@ class RecuperacaoSenhaViewModel(
                     it.copy(
                         carregando = false,
                         erro = "Não foi possível enviar o código. Tente de novo em instantes.",
-                        mensagemNeutra = null,
                     )
                 }
             }
@@ -142,10 +132,5 @@ class RecuperacaoSenhaViewModel(
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
         CodigoErroAPI.LIMITE_EXCEDIDO -> MENSAGEM_LIMITE_DE_CODIGOS
         else -> "Não foi possível enviar o código. Tente de novo em instantes."
-    }
-
-    companion object {
-        const val MENSAGEM_NEUTRA_RECUPERACAO =
-            "Se existir uma conta ativa com este e-mail, enviaremos um código de 6 dígitos. Confira sua caixa de entrada."
     }
 }

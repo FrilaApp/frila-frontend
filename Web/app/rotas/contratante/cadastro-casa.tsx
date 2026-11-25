@@ -18,7 +18,7 @@ export function meta() {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const [casas, regioes] = await Promise.all([lerMinhasCasas(api), lerRegioes(api)]);
   if (casas.estado === "sem_sessao") throw redirect("/entrar");
   return {
@@ -32,7 +32,7 @@ const VAZIO: ValoresDaCasa = { nome: "", documento: "", tipo: "", endereco: "", 
 
 export async function action({ context, request }: Route.ActionArgs): Promise<{ erros: Erros; valores: ValoresDaCasa }> {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const valores = valoresDoFormulario(await request.formData());
   const volta = (erros: Erros) => ({ erros, valores });
 

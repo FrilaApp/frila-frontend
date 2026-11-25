@@ -94,7 +94,7 @@ const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }));
 vi.mock("../app/servidor/deste-ambiente", () => ({ apiDoUsuario: () => api }));
 const argumentos = (dados: Record<string, string>, logado = true) => {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "p@example.com" } : null);
+  context.set(contextoDaSessao, logado ? { acesso: "token-sintetico", usuarioId: "u1", email: "p@example.com", visitante: null } : null);
   const url = `https://frilabr.com/app/turnos/${TURNO_ID}`;
   const request = new Request(url, { method: "POST", headers: { Origin: "https://frilabr.com" }, body: new URLSearchParams(dados) });
   return { request, context, params: { turnoId: TURNO_ID }, url: new URL(url), matches: [] } as never;

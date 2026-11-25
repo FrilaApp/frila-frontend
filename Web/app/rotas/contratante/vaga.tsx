@@ -21,7 +21,7 @@ export function meta() {
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const endereco = new URL(request.url);
 
   const leitura = await lerMinhasCasas(api);
@@ -62,7 +62,7 @@ type Retorno = { erro: string; onde: Onde; chave?: string; campos?: string; moti
 
 export async function action({ request, params, context }: Route.ActionArgs): Promise<Retorno> {
   const sessao = exigirSessao(context);
-  const api = apiDoUsuario(sessao.acesso);
+  const api = apiDoUsuario(sessao);
   const formulario = await request.formData();
   const campo = (nome: string) => String(formulario.get(nome) ?? "").trim();
   const casaId = campo("casa");

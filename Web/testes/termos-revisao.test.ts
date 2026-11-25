@@ -25,7 +25,7 @@ const campos = {
 
 function argumentos(dados: Record<string, string>, caminho = "/app/cadastro") {
   const context = new RouterContextProvider();
-  context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "pessoa@example.com" });
+  context.set(contextoDaSessao, { acesso: "sintetico", usuarioId: "u1", email: "pessoa@example.com", visitante: null });
   const request = new Request(`https://frilabr.com${caminho}`, {
     method: "POST",
     headers: { Origin: "https://frilabr.com" },

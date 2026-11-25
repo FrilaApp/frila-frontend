@@ -103,7 +103,7 @@ describe("sessão de um pedido", () => {
     const acesso = acessoQueVenceEm(600);
     const auth = authQue();
     const resultado = await resolverSessao(pedido(`__Host-frila-acesso=${acesso}; __Host-frila-renovacao=r1`), auth, AGORA);
-    expect(resultado).toEqual({ sessao: { acesso, usuarioId: "usuario-1", email: "ana@example.com" }, cookies: [], auth: "ok" });
+    expect(resultado).toEqual({ sessao: { acesso, usuarioId: "usuario-1", email: "ana@example.com", visitante: null }, cookies: [], auth: "ok" });
     expect(auth.conferir).toHaveBeenCalledExactlyOnceWith(acesso);
     expect(auth.renovar).not.toHaveBeenCalled();
   });

@@ -7,7 +7,16 @@ import type { components } from "../contrato/tipos.gerado";
 export type Sessao = components["schemas"]["Sessao"];
 
 /** O que loaders e actions enxergam da sessão. O token de renovação nunca sai deste módulo. */
-export type SessaoAtual = { acesso: string; usuarioId: string | null; email: string | null };
+export type SessaoAtual = {
+  acesso: string;
+  usuarioId: string | null;
+  email: string | null;
+  /**
+   * O texto cru do `CF-Connecting-IP` que o Worker recebeu neste pedido (`null` se faltou). Só serve para assinar a
+   * chamada ao Supabase (`saida-rest.ts`): NUNCA vai para o que o loader devolve, nem para log.
+   */
+  visitante: string | null;
+};
 
 const NOME_ACESSO = "frila-acesso";
 const NOME_RENOVACAO = "frila-renovacao";
@@ -90,9 +99,14 @@ export function lerToken(acesso: string): { venceEm: number | null; usuarioId: s
   }
 }
 
-export function sessaoAtualDe(acesso: string): SessaoAtual {
+export function sessaoAtualDe(acesso: string, visitante: string | null): SessaoAtual {
   const { usuarioId, email } = lerToken(acesso);
-  return { acesso, usuarioId, email };
+  return { acesso, usuarioId, email, visitante };
+}
+
+/** O IP do visitante como a Cloudflare o entregou ao Worker (texto cru; vazio vira `null`). */
+export function visitanteDoPedido(request: Request): string | null {
+  return request.headers.get("CF-Connecting-IP") || null;
 }
 
 export type Renovacao = { ok: true; sessao: Sessao } | { ok: false; motivo: "recusada" | "indisponivel" };
@@ -124,6 +138,7 @@ export async function resolverSessao(
   agoraEmSegundos: number = Math.floor(Date.now() / 1000),
 ): Promise<Decisao> {
   const seguro = ehPedidoSeguro(request);
+  const visitante = visitanteDoPedido(request);
   const { acesso, renovacao } = lerCookiesDaSessao(request);
   if (!acesso && !renovacao) {
     return { sessao: null, cookies: [], auth: "sem_cookie" };
@@ -138,7 +153,7 @@ export async function resolverSessao(
 
   if (acesso && (acessoFolgado || (acessoVale && !renovacao))) {
     const conferencia = await auth.conferir(acesso);
-    if (conferencia.ok) return { sessao: sessaoAtualDe(acesso), cookies: [], auth: "ok" };
+    if (conferencia.ok) return { sessao: sessaoAtualDe(acesso, visitante), cookies: [], auth: "ok" };
     return conferencia.motivo === "recusada"
       ? { sessao: null, cookies: cookiesDeSaida(seguro), auth: "recusou" }
       : { sessao: null, cookies: [], auth: "indisponivel" };
@@ -150,7 +165,7 @@ export async function resolverSessao(
 
   const resultado = await auth.renovar(renovacao);
   if (resultado.ok) {
-    return { sessao: sessaoAtualDe(resultado.sessao.access_token), cookies: cookiesDaSessao(resultado.sessao, seguro), auth: "ok" };
+    return { sessao: sessaoAtualDe(resultado.sessao.access_token, visitante), cookies: cookiesDaSessao(resultado.sessao, seguro), auth: "ok" };
   }
   return resultado.motivo === "recusada"
     ? { sessao: null, cookies: cookiesDeSaida(seguro), auth: "recusou" }

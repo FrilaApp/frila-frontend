@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -32,6 +33,7 @@ class CodigoViewModelTest {
         agora: () -> Instant = Instant::now,
         aoEntrar: suspend () -> Unit = {},
         permitirDominioDeTeste: Boolean = false,
+        modo: ModoCodigo = ModoCodigo.ENTRADA,
     ): Pair<CodigoViewModel, ArmazenamentoDeSessaoEmMemoria> {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val viewModel = CodigoViewModel(
@@ -42,6 +44,7 @@ class CodigoViewModelTest {
             agora = agora,
             aoEntrar = aoEntrar,
             permitirDominioDeTeste = permitirDominioDeTeste,
+            modo = modo,
         )
         return viewModel to armazenamento
     }
@@ -199,6 +202,82 @@ class CodigoViewModelTest {
         assertEquals(1, chamadas)
         assertTrue(viewModel.estado.value.reenviado)
         assertEquals("", viewModel.estado.value.codigo)
+    }
+
+    /** O que a tela mostra depois do reenvio: tudo o que um olho (ou o leitor de tela) consegue comparar. */
+    private data class VisivelAposReenvio(val estado: EstadoCodigo, val segundosParaReenviar: Long)
+
+    private fun reenviarNaRecuperacao(status: HttpStatusCode, corpo: String): VisivelAposReenvio =
+        reenviarNaRecuperacao(MockEngine { respond(corpo, status, headersOf(HttpHeaders.ContentType, "application/json")) })
+
+    private fun reenviarNaRecuperacao(engine: MockEngine): VisivelAposReenvio = runBlocking {
+        var relogio = Instant.parse("2026-11-24T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            engine,
+            email = "legado@exemplo.test",
+            agora = { relogio },
+            modo = ModoCodigo.RECUPERACAO,
+        )
+        relogio = relogio.plusSeconds(61) // a espera para reenviar já passou
+        viewModel.aoMudarCodigo("123") // código parcial digitado antes do reenvio
+        viewModel.reenviarCodigo()?.join()
+        VisivelAposReenvio(viewModel.estado.value, viewModel.segundosParaReenviar())
+    }
+
+    @Test
+    fun `na recuperacao o reenvio com conta, sem conta e sem OTP mostra exatamente o mesmo estado`() {
+        val comConta = reenviarNaRecuperacao(HttpStatusCode.OK, "{}")
+        val otpDesligado = reenviarNaRecuperacao(
+            HttpStatusCode.UnprocessableEntity,
+            """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}""",
+        )
+        val semConta = reenviarNaRecuperacao(
+            HttpStatusCode.NotFound,
+            """{"code":404,"error_code":"user_not_found","msg":"User not found"}""",
+        )
+
+        assertEquals("Se houver uma conta com este e-mail, enviamos um novo código.", comConta.estado.mensagemReenvio)
+        assertTrue(comConta.estado.reenviado)
+        assertNull(comConta.estado.erro)
+        assertEquals("", comConta.estado.codigo)
+        assertEquals(1, comConta.estado.reenviosFeitos)
+        assertEquals(60L, comConta.segundosParaReenviar)
+        assertEquals(comConta, otpDesligado)
+        assertEquals(comConta, semConta)
+    }
+
+    @Test
+    fun `na recuperacao 429, 5xx e sem rede continuam como erro e nao viram o aviso neutro`() {
+        listOf(
+            HttpStatusCode.TooManyRequests to """{"code":429,"error_code":"over_email_send_rate_limit"}""",
+            HttpStatusCode.InternalServerError to """{"code":500,"error_code":"unexpected_failure"}""",
+        ).map { (status, corpo) -> status.toString() to reenviarNaRecuperacao(status, corpo) }
+            .plus("sem rede" to reenviarNaRecuperacao(MockEngine { throw java.io.IOException("sem rede") }))
+            .forEach { (cenario, visivel) ->
+            assertNotNull(visivel.estado.erro, "$cenario deve ser erro")
+            assertFalse(visivel.estado.reenviado)
+            assertNull(visivel.estado.mensagemReenvio)
+            assertEquals("123", visivel.estado.codigo)
+            assertEquals(0L, visivel.segundosParaReenviar)
+        }
+    }
+
+    @Test
+    fun `no modo de criacao o reenvio com 200 continua dizendo Novo codigo enviado`() {
+        val (viewModel, _) = run {
+            var relogio = Instant.parse("2026-11-24T12:00:00Z")
+            val par = viewModelComEngine(
+                MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+                agora = { relogio },
+                modo = ModoCodigo.ENTRADA,
+            )
+            relogio = relogio.plusSeconds(61)
+            par
+        }
+        runBlocking { viewModel.reenviarCodigo()?.join() }
+
+        assertTrue(viewModel.estado.value.reenviado)
+        assertEquals("Novo código enviado para seu e-mail.", viewModel.estado.value.mensagemReenvio)
     }
 
     @Test
