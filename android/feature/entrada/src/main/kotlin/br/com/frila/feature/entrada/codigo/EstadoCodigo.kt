@@ -8,6 +8,8 @@ enum class ModoCodigo(val chave: String) {
     CRIACAO("criacao"),
     /** Recuperação de senha ou migração de conta legada OTP-only (`create_user: false`). */
     RECUPERACAO("recuperacao"),
+    /** Desafio de verificação de dispositivo novo/expirado após entrada com senha (contrato 0.2.112). */
+    LOGIN_DISPOSITIVO("login_dispositivo"),
     /** Contas de demonstração da Play Store (endpoint dedicado, sem password/recovery). */
     DEMO("demo"),
     ;
@@ -28,4 +30,7 @@ data class EstadoCodigo(
     val mensagemReenvio: String? = null,
     /** Quantos reenvios deram certo: a tela recomeça a contagem de 60 s a cada um. */
     val reenviosFeitos: Int = 0,
+    val lembrarDispositivo: Boolean = false,
+    val precisaDefinirSenha: Boolean = false,
+    val dispositivoLembrado: Boolean = false,
 )

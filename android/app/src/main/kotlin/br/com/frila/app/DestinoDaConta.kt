@@ -3,6 +3,7 @@ package br.com.frila.app
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.EstabelecimentoDaContaDto
+import br.com.frila.core.rede.EstadoAutenticacaoDto
 import br.com.frila.core.rede.PerfilProfissionalDto
 import br.com.frila.core.rede.SituacaoDaContaDto
 import br.com.frila.core.rede.UsuarioDto
@@ -33,6 +34,9 @@ sealed interface DestinoDaConta {
 
     /** L2-5: a conta existe e está suspensa. Nunca vai para o destino guardado: a abertura sem rede de depois volta ao último destino bom. */
     data object ContaSuspensa : DestinoDaConta
+
+    /** 0.2.112: conta autenticada por OTP que ainda precisa definir senha antes de entrar no produto. */
+    data object DefinirSenhaObrigatoria : DestinoDaConta
 }
 
 /** Rota de cada destino. */
@@ -42,6 +46,7 @@ fun DestinoDaConta.rota(): String = when (this) {
     is DestinoDaConta.Contratante ->
         casa?.let { Rotas.minhasVagas(it.id, it.nome) } ?: Rotas.CADASTRO_ESTABELECIMENTO
     DestinoDaConta.ContaSuspensa -> Rotas.contaSuspensa()
+    DestinoDaConta.DefinirSenhaObrigatoria -> Rotas.definirSenha(origem = "pendente", manterDispositivoAtual = true)
 }
 
 /**
@@ -56,7 +61,17 @@ suspend fun avaliarDestinoDaConta(
     listarCasas: suspend () -> List<EstabelecimentoDaContaDto>,
     /** Nulo (grafo sem o serviço) pula a conferência: a abertura fica como era antes do L2-5. */
     buscarSituacao: (suspend () -> SituacaoDaContaDto)? = null,
+    buscarEstadoAutenticacao: (suspend () -> EstadoAutenticacaoDto)? = null,
 ): DestinoDaConta {
+    if (buscarEstadoAutenticacao != null) {
+        val estadoAuth = buscarEstadoAutenticacao()
+        if (estadoAuth.autenticado && !estadoAuth.dispositivoVerificado) {
+            throw ErroDaApi(CodigoErroAPI.NAO_AUTENTICADO, "dispositivo_nao_verificado", null, "Dispositivo não verificado")
+        }
+        if (estadoAuth.precisaDefinirSenha) {
+            return DestinoDaConta.DefinirSenhaObrigatoria
+        }
+    }
     val conta = try {
         buscarConta()
     } catch (erro: ErroDaApi) {
@@ -123,7 +138,7 @@ class AvaliadorDeDestino(
     suspend fun avaliar(): ResultadoDaAbertura = try {
         val destino = withTimeout(prazo) { descobrir() }
         when (destino) {
-            DestinoDaConta.Cadastro -> guardado.limpar()
+            DestinoDaConta.Cadastro, DestinoDaConta.DefinirSenhaObrigatoria -> guardado.limpar()
             DestinoDaConta.ContaSuspensa -> Unit
             else -> guardado.salvar(destino)
         }
@@ -201,6 +216,7 @@ internal class DestinoGuardadoEmArquivo(
             DestinoDaConta.Cadastro -> "cadastro"
             DestinoDaConta.Profissional -> "profissional"
             DestinoDaConta.ContaSuspensa -> "conta_suspensa" // nunca é gravado (o avaliador não o guarda); `decodificar` o ignora
+            DestinoDaConta.DefinirSenhaObrigatoria -> "definir_senha" // nunca é gravado; `decodificar` o ignora
             is DestinoDaConta.Contratante -> destino.casa
                 ?.let { "contratante\n${it.id}\n${it.nome}" }
                 ?: "contratante"

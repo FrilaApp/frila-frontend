@@ -49,6 +49,7 @@ class PerfilViewModel(
      */
     private val servicoConta: ServicoConta? = null,
     val exportarMeusDados: suspend () -> ByteArray = { requireNotNull(servicoConta).exportarMeusDados() },
+    private val revogarDispositivos: (suspend () -> Int)? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -214,6 +215,21 @@ class PerfilViewModel(
     /** RN15: encerra a sessão local. Não chama a rede — logout é só limpar o que ficou no aparelho. */
     fun aoDeslogar() {
         armazenamentoDeSessao.limparSessao()
+    }
+
+    /** Contrato 0.2.112: revoga todos os dispositivos confiáveis no servidor e encerra a sessão local. */
+    fun aoDeslogarTodos(aoConcluir: () -> Unit): Job = escopoDeTrabalho.launch {
+        try {
+            revogarDispositivos?.invoke()
+            armazenamentoDeSessao.limparSessao()
+            aoConcluir()
+        } catch (cancelado: CancellationException) {
+            throw cancelado
+        } catch (_: ErroDaApi) {
+            _estado.update { it.copy(mensagemErro = "Não foi possível desconectar todos os dispositivos. Tente de novo.") }
+        } catch (_: Exception) {
+            _estado.update { it.copy(mensagemErro = "Não foi possível desconectar todos os dispositivos. Tente de novo.") }
+        }
     }
 
     /** RF02: Inicia a edição da biografia profissional copiando o texto atual para o rascunho. */

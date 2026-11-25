@@ -61,6 +61,8 @@ fun TelaEntradaComSenha(
     aoRecuperarSenha: (String) -> Unit,
     aoEntrarDemonstracao: (String) -> Unit,
     modifier: Modifier = Modifier,
+    aoExigirDesafioOtp: (String, String) -> Unit = { _, _ -> },
+    aoExigirDefinirSenha: () -> Unit = aoAutenticar,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val cores = FrilaTema.cores
@@ -68,10 +70,21 @@ fun TelaEntradaComSenha(
     val erroSenha = estado.erro?.takeIf { it == ERRO_SENHA_VAZIA }
     val erroDaAcao = estado.erro?.takeUnless { it == ERRO_EMAIL_INVALIDO || it == ERRO_SENHA_VAZIA }
 
-    LaunchedEffect(estado.autenticado) {
+    LaunchedEffect(estado.autenticado, estado.precisaDefinirSenha) {
         if (estado.autenticado) {
-            aoAutenticar()
+            if (estado.precisaDefinirSenha) {
+                aoExigirDefinirSenha()
+            } else {
+                aoAutenticar()
+            }
             viewModel.aoConsumirAutenticacao()
+        }
+    }
+
+    LaunchedEffect(estado.desafioOtp) {
+        estado.desafioOtp?.let { desafio ->
+            aoExigirDesafioOtp(desafio.email, desafio.desafioId)
+            viewModel.aoConsumirDesafioOtp()
         }
     }
 

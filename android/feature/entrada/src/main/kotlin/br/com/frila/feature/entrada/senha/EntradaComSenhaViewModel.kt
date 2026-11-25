@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.ResultadoEntradaComSenha
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.SessaoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
@@ -21,6 +22,12 @@ import kotlinx.coroutines.launch
 
 private val PADRAO_EMAIL_SENHA = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 
+/** Desafio de OTP pendente quando o dispositivo é novo ou teve a confiança vencida/revogada. */
+data class DesafioOtpPendente(
+    val email: String,
+    val desafioId: String,
+)
+
 /** Estado da tela de login rotineiro por e-mail e senha. A senha existe só em memória enquanto o usuário digita. */
 data class EstadoEntradaComSenha(
     val email: String = "",
@@ -28,6 +35,8 @@ data class EstadoEntradaComSenha(
     val carregando: Boolean = false,
     val erro: String? = null,
     val autenticado: Boolean = false,
+    val precisaDefinirSenha: Boolean = false,
+    val desafioOtp: DesafioOtpPendente? = null,
 )
 
 /**
@@ -63,7 +72,11 @@ class EntradaComSenhaViewModel(
     }
 
     fun aoConsumirAutenticacao() {
-        _estado.update { it.copy(autenticado = false) }
+        _estado.update { it.copy(autenticado = false, precisaDefinirSenha = false) }
+    }
+
+    fun aoConsumirDesafioOtp() {
+        _estado.update { it.copy(desafioOtp = null) }
     }
 
     fun cancelarTentativaAtual() {
@@ -108,15 +121,39 @@ class EntradaComSenhaViewModel(
 
         return escopoDeTrabalho.launch {
             try {
-                val sessaoDto = servicoAutenticacao.entrarComSenha(email, senha)
-                if (tentativaAtual != idTentativa) return@launch
-                armazenamentoDeSessao.salvarSessao(sessaoDto.paraSessao())
-                _estado.update { it.copy(carregando = false, senha = "", erro = null, autenticado = true) }
-                try {
-                    aoEntrar()
-                } catch (cancelado: CancellationException) {
-                    throw cancelado
-                } catch (_: Exception) {
+                when (val resultado = servicoAutenticacao.entrarComSenha(email, senha)) {
+                    is ResultadoEntradaComSenha.Autenticado -> {
+                        if (tentativaAtual != idTentativa) return@launch
+                        armazenamentoDeSessao.salvarSessao(resultado.sessao.paraSessao(email = email))
+                        _estado.update {
+                            it.copy(
+                                carregando = false,
+                                senha = "",
+                                erro = null,
+                                autenticado = true,
+                                precisaDefinirSenha = resultado.precisaDefinirSenha,
+                                desafioOtp = null,
+                            )
+                        }
+                        try {
+                            aoEntrar()
+                        } catch (cancelado: CancellationException) {
+                            throw cancelado
+                        } catch (_: Exception) {
+                        }
+                    }
+                    is ResultadoEntradaComSenha.DesafioOtp -> {
+                        if (tentativaAtual != idTentativa) return@launch
+                        _estado.update {
+                            it.copy(
+                                carregando = false,
+                                senha = "",
+                                erro = null,
+                                autenticado = false,
+                                desafioOtp = DesafioOtpPendente(email = email, desafioId = resultado.desafioId),
+                            )
+                        }
+                    }
                 }
             } catch (cancelado: CancellationException) {
                 if (tentativaAtual == idTentativa) {
@@ -148,9 +185,10 @@ class EntradaComSenhaViewModel(
     }
 }
 
-private fun SessaoDto.paraSessao(): Sessao = Sessao(
+private fun SessaoDto.paraSessao(email: String? = null): Sessao = Sessao(
     accessToken = accessToken,
     refreshToken = refreshToken,
     tokenType = tokenType,
     expiresIn = expiresIn,
+    email = email?.trim()?.lowercase()?.takeIf { it.isNotBlank() },
 )

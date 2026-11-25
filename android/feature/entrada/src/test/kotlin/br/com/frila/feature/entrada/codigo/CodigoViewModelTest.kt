@@ -71,13 +71,13 @@ class CodigoViewModelTest {
     }
 
     @Test
-    fun `confirmarCodigo com sucesso chama auth v1 verify e salva a sessao`() = runBlocking {
+    fun `confirmarCodigo com sucesso chama confirmar-dispositivo-otp e salva a sessao`() = runBlocking {
         var caminhoChamado: String? = null
         val (viewModel, armazenamento) = viewModelComEngine(
             MockEngine { request ->
                 caminhoChamado = request.url.encodedPath
                 respond(
-                    content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+                    content = """{"sessao":{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -87,7 +87,7 @@ class CodigoViewModelTest {
         viewModel.aoMudarCodigo("123456")
         viewModel.confirmarCodigo()?.join()
 
-        assertEquals("/auth/v1/verify", caminhoChamado)
+        assertEquals("/functions/v1/confirmar-dispositivo-otp", caminhoChamado)
         assertTrue(viewModel.estado.value.autenticado)
         assertTrue(armazenamento.estaAutenticado())
         assertEquals("tok123", armazenamento.obterSessao()?.accessToken)
@@ -118,7 +118,7 @@ class CodigoViewModelTest {
 
     private fun motorQueEntra() = MockEngine {
         respond(
-            content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+            content = """{"sessao":{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
             status = HttpStatusCode.OK,
             headers = headersOf(HttpHeaders.ContentType, "application/json"),
         )
@@ -395,7 +395,7 @@ class CodigoViewModelTest {
                 chamadas.incrementAndGet()
                 kotlinx.coroutines.delay(200)
                 respond(
-                    content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+                    content = """{"sessao":{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -420,7 +420,7 @@ class CodigoViewModelTest {
             MockEngine { request ->
                 corpo = (request.body as io.ktor.http.content.TextContent).text
                 respond(
-                    content = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+                    content = """{"sessao":{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -461,8 +461,13 @@ class CodigoViewModelTest {
         val (vm, armazenamento) = viewModelComEngine(
             engine = MockEngine { request ->
                 caminhos += request.url.encodedPath
+                val corpo = if (request.url.encodedPath == "/functions/v1/confirmar-dispositivo-otp") {
+                    """{"sessao":{"access_token":"token-teste","refresh_token":"refresh-teste","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}"""
+                } else {
+                    """{"access_token":"token-teste","refresh_token":"refresh-teste","token_type":"bearer","expires_in":3600}"""
+                }
                 respond(
-                    """{"access_token":"token-teste","refresh_token":"refresh-teste","token_type":"bearer","expires_in":3600}""",
+                    corpo,
                     HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
@@ -477,7 +482,7 @@ class CodigoViewModelTest {
         vm.reenviarCodigo()?.join()
         assertTrue(vm.estado.value.reenviado)
         assertEquals(
-            if (permitirDominioDeTeste) listOf("/functions/v1/entrar-demonstracao") else listOf("/auth/v1/verify", "/auth/v1/otp"),
+            if (permitirDominioDeTeste) listOf("/functions/v1/entrar-demonstracao") else listOf("/functions/v1/confirmar-dispositivo-otp", "/auth/v1/otp"),
             caminhos,
         )
     }

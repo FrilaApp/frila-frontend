@@ -251,7 +251,7 @@ def main() -> None:
         "ConfirmarExclusaoDto": {"confirmar"},
     }
 
-    # DTOs internos ou de autenticação Supabase Auth
+    # DTOs internos ou de autenticação Supabase Auth / Edge Functions 0.2.112
     DTOS_INTERNOS = {
         "ErroPostgrestDto",
         "EntrarOtpDto",
@@ -260,6 +260,16 @@ def main() -> None:
         "SessaoDto",
         "RenovarTokenDto",
         "RegistrarDispositivoDto",
+        "AutenticarSenhaRequisicaoDto",
+        "AutenticarSenhaRespostaDto",
+        "ConfirmarDispositivoOtpRequisicaoDto",
+        "ConfirmarDispositivoOtpRespostaDto",
+        "ReenviarDispositivoOtpRequisicaoDto",
+        "ReenviarDispositivoOtpRespostaDto",
+        "DefinirSenhaRequisicaoDto",
+        "DefinirSenhaRespostaDto",
+        "RevogarDispositivosRequisicaoDto",
+        "RevogarDispositivosRespostaDto",
     }
 
     erros: list[str] = list(erros_de_leitura)

@@ -100,6 +100,8 @@ class EntradaPorPapelTest {
         val (corpo, status) = when {
             caminho == "/auth/v1/verify" ->
                 """{"access_token":"tok","refresh_token":"ref","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
+            caminho == "/functions/v1/confirmar-dispositivo-otp" ->
+                """{"sessao":{"access_token":"tok","refresh_token":"ref","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""" to HttpStatusCode.OK
             caminho.endsWith("/rpc/minha_conta") -> when (papel) {
                 Papel.SEM_CONTA -> erro("nao_encontrado", HttpStatusCode.NotFound)
                 Papel.SESSAO_VENCIDA -> erro("nao_autenticado", HttpStatusCode.Unauthorized)

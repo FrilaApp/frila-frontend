@@ -39,6 +39,9 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
                     .apply {
                         if (sessao.vinculoId == null) remove(CHAVE_VINCULO_ID)
                         else putString(CHAVE_VINCULO_ID, sessao.vinculoId)
+                        val emailNormalizado = sessao.email?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+                        if (emailNormalizado == null) remove(CHAVE_EMAIL)
+                        else putString(CHAVE_EMAIL, emailNormalizado)
                     }
                     .commit()
                 check(persistiu) { "Não foi possível persistir a sessão criptografada" }
@@ -61,6 +64,7 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
                 tokenType = tokenType,
                 expiresIn = prefs.getLong(CHAVE_EXPIRES_IN, 0L),
                 vinculoId = prefs.getString(CHAVE_VINCULO_ID, null),
+                email = prefs.getString(CHAVE_EMAIL, null),
             )
         }
     }
@@ -129,6 +133,7 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
         const val CHAVE_TOKEN_TYPE = "token_type"
         const val CHAVE_EXPIRES_IN = "expires_in"
         const val CHAVE_VINCULO_ID = "vinculo_id"
+        const val CHAVE_EMAIL = "email"
         const val CHAVE_BIOMETRIA_ATIVADA = "biometria_ativada"
 
         fun criarPreferenciasCriptografadas(contexto: Context): SharedPreferences {

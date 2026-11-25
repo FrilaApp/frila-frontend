@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoAutenticacao
+import br.com.frila.core.rede.SessaoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.core.seguranca.Sessao
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +35,8 @@ class DefinirSenhaViewModel(
     private val servicoAutenticacao: ServicoAutenticacao,
     private val armazenamentoDeSessao: ArmazenamentoDeSessao,
     escopo: CoroutineScope? = null,
+    private val manterDispositivoAtual: Boolean = false,
+    private val emailAtual: String? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -82,8 +86,25 @@ class DefinirSenhaViewModel(
 
         return escopoDeTrabalho.launch {
             try {
-                servicoAutenticacao.atualizarSenha(novaSenha)
+                val sessaoAtual = armazenamentoDeSessao.obterSessao()
+                val emailResolvido = emailAtual?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+                    ?: sessaoAtual?.email?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+                    ?: sessaoAtual?.accessToken?.let(ServicoAutenticacao::extrairEmailDoJwt)
+                val resposta = servicoAutenticacao.definirSenha(
+                    novaSenha = novaSenha,
+                    manterDispositivoAtual = manterDispositivoAtual,
+                    emailAtual = emailResolvido,
+                    refreshToken = sessaoAtual?.refreshToken,
+                )
                 if (tentativaAtual != idTentativa) return@launch
+                resposta.sessao?.let { novaSessao ->
+                    armazenamentoDeSessao.salvarSessao(
+                        novaSessao.paraSessaoDefinir(
+                            vinculoId = sessaoAtual?.vinculoId,
+                            email = emailResolvido,
+                        ),
+                    )
+                }
                 _estado.update {
                     it.copy(
                         senha = "",
@@ -109,12 +130,14 @@ class DefinirSenhaViewModel(
     }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when {
-        erro.codigoOriginal == "weak_password" ->
+        erro.codigoOriginal == "weak_password" || erro.codigoOriginal == "senha_fraca" ->
             "Escolha uma senha mais forte, combinando letras e números."
-        erro.codigoOriginal == "same_password" ->
+        erro.codigoOriginal == "same_password" || erro.codigoOriginal == "senha_igual" ->
             "Escolha uma senha diferente da atual."
-        erro.codigoOriginal == "reauthentication_needed" ->
+        erro.codigoOriginal == "reauthentication_needed" || erro.codigoOriginal == "reautenticacao_necessaria" ->
             "Por segurança, confirme um novo código no seu e-mail antes de trocar a senha."
+        erro.codigoOriginal == "dispositivo_nao_verificado" ->
+            "Confirme este dispositivo com um código por e-mail antes de continuar."
         erro.codigo == CodigoErroAPI.SEM_REDE ->
             "Sem conexão. Verifique sua internet e tente de novo."
         erro.codigo == CodigoErroAPI.LIMITE_EXCEDIDO ->
@@ -127,3 +150,12 @@ class DefinirSenhaViewModel(
         const val TAMANHO_MINIMO_SENHA = 8
     }
 }
+
+private fun SessaoDto.paraSessaoDefinir(vinculoId: String?, email: String? = null): Sessao = Sessao(
+    accessToken = accessToken,
+    refreshToken = refreshToken,
+    tokenType = tokenType,
+    expiresIn = expiresIn,
+    vinculoId = vinculoId,
+    email = email,
+)

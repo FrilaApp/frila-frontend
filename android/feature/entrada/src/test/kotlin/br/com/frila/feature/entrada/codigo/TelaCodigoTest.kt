@@ -40,7 +40,7 @@ class TelaCodigoTest {
 
     private fun criarViewModel(
         email: String = "profissional@exemplo.com",
-        respostaJson: String = """{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600}""",
+        respostaJson: String = """{"sessao":{"access_token":"tok123","refresh_token":"ref456","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
         statusHttp: HttpStatusCode = HttpStatusCode.OK,
         /** `true`: o teste já começa depois dos 60 s de espera para reenviar. */
         esperaDeReenvioVencida: Boolean = true,

@@ -169,8 +169,8 @@ object Rotas {
     const val ENTRADA = "entrada"
     const val CRIAR_CONTA = "criar_conta?email={email}"
     const val RECUPERAR_SENHA = "recuperar_senha?email={email}"
-    const val CODIGO = "codigo/{email}?modo={modo}"
-    const val DEFINIR_SENHA = "definir_senha?origem={origem}"
+    const val CODIGO = "codigo/{email}?modo={modo}&desafioId={desafioId}"
+    const val DEFINIR_SENHA = "definir_senha?origem={origem}&manterDispositivo={manterDispositivo}&email={email}"
     const val CADASTRO = "cadastro"
     /** Pergunta ao servidor quem é a conta e segue para a tela do papel (#782, #783). */
     const val ABERTURA = "abertura"
@@ -230,8 +230,18 @@ object Rotas {
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
     fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
 
-    fun codigo(email: String, modo: ModoCodigo = ModoCodigo.ENTRADA) =
-        if (modo == ModoCodigo.ENTRADA) "codigo/$email" else "codigo/$email?modo=${modo.chave}"
+    fun codigo(email: String, modo: ModoCodigo = ModoCodigo.ENTRADA, desafioId: String? = null): String {
+        val base = if (modo == ModoCodigo.ENTRADA && desafioId.isNullOrBlank()) {
+            "codigo/$email"
+        } else {
+            val params = buildList {
+                if (modo != ModoCodigo.ENTRADA) add("modo=${modo.chave}")
+                if (!desafioId.isNullOrBlank()) add("desafioId=${Uri.encode(desafioId)}")
+            }
+            "codigo/$email?${params.joinToString("&")}"
+        }
+        return base
+    }
 
     fun criarConta(email: String = "") =
         if (email.isBlank()) "criar_conta" else "criar_conta?email=${Uri.encode(email)}"
@@ -239,7 +249,10 @@ object Rotas {
     fun recuperarSenha(email: String = "") =
         if (email.isBlank()) "recuperar_senha" else "recuperar_senha?email=${Uri.encode(email)}"
 
-    fun definirSenha(origem: String = "entrada") = "definir_senha?origem=${Uri.encode(origem)}"
+    fun definirSenha(origem: String = "entrada", manterDispositivoAtual: Boolean = false, email: String? = null): String {
+        val base = "definir_senha?origem=${Uri.encode(origem)}&manterDispositivo=$manterDispositivoAtual"
+        return if (email.isNullOrBlank()) base else "$base&email=${Uri.encode(email)}"
+    }
     fun detalhe(vagaId: String) = "detalhe/$vagaId"
     fun avaliacao(turnoId: String) = "avaliacao/$turnoId"
     fun ocorrencia(turnoId: String) = "ocorrencia/$turnoId"
@@ -511,6 +524,14 @@ fun AppNavegacao(
                         aoEntrarDemonstracao = { email ->
                             navController.navigate(Rotas.codigo(email, ModoCodigo.DEMO))
                         },
+                        aoExigirDesafioOtp = { email, desafioId ->
+                            navController.navigate(Rotas.codigo(email, ModoCodigo.LOGIN_DISPOSITIVO, desafioId))
+                        },
+                        aoExigirDefinirSenha = {
+                            navController.navigate(Rotas.definirSenha(origem = "pendente", manterDispositivoAtual = true)) {
+                                popUpTo(Rotas.ENTRADA) { inclusive = true }
+                            }
+                        },
                     )
                 } else {
                     val viewModel: EntradaViewModel = koinViewModel()
@@ -554,16 +575,25 @@ fun AppNavegacao(
                 arguments = listOf(
                     navArgument("email") { type = NavType.StringType },
                     navArgument("modo") { type = NavType.StringType; defaultValue = ModoCodigo.ENTRADA.chave },
+                    navArgument("desafioId") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { entrada ->
                 val email = entrada.arguments?.getString("email").orEmpty()
                 val modo = ModoCodigo.deChave(entrada.arguments?.getString("modo"))
-                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email, modo) })
+                val desafioId = entrada.arguments?.getString("desafioId")?.takeIf { it.isNotBlank() }
+                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email, modo, desafioId) })
                 TelaCodigo(
                     viewModel = viewModel,
                     aoAutenticar = {
-                        if (modo == ModoCodigo.CRIACAO || modo == ModoCodigo.RECUPERACAO) {
-                            navController.navigate(Rotas.definirSenha(origem = modo.chave)) {
+                        val estadoCodigo = viewModel.estado.value
+                        if (modo == ModoCodigo.CRIACAO || modo == ModoCodigo.RECUPERACAO || estadoCodigo.precisaDefinirSenha) {
+                            navController.navigate(
+                                Rotas.definirSenha(
+                                    origem = modo.chave,
+                                    manterDispositivoAtual = estadoCodigo.dispositivoLembrado,
+                                    email = email,
+                                ),
+                            ) {
                                 popUpTo(Rotas.CODIGO) { inclusive = true }
                             }
                         } else {
@@ -592,10 +622,16 @@ fun AppNavegacao(
 
             composable(
                 route = Rotas.DEFINIR_SENHA,
-                arguments = listOf(navArgument("origem") { type = NavType.StringType; defaultValue = "entrada" }),
+                arguments = listOf(
+                    navArgument("origem") { type = NavType.StringType; defaultValue = "entrada" },
+                    navArgument("manterDispositivo") { type = NavType.BoolType; defaultValue = false },
+                    navArgument("email") { type = NavType.StringType; defaultValue = "" },
+                ),
             ) { entrada ->
                 val origem = entrada.arguments?.getString("origem").orEmpty()
-                val viewModel: DefinirSenhaViewModel = koinViewModel()
+                val manterDispositivo = entrada.arguments?.getBoolean("manterDispositivo") ?: false
+                val emailDefinir = entrada.arguments?.getString("email")?.takeIf { it.isNotBlank() }
+                val viewModel: DefinirSenhaViewModel = koinViewModel(parameters = { parametersOf(manterDispositivo, emailDefinir) })
                 TelaDefinirSenha(
                     viewModel = viewModel,
                     aoConcluir = {

@@ -39,10 +39,9 @@ class AutenticacaoComSenhaViewModelsTest {
     fun `login por senha valido salva sessao no armazenamento e limpa senha da memoria`() = runBlocking {
         val armazenamento = ArmazenamentoDeSessaoEmMemoria()
         val engine = MockEngine { request ->
-            assertEquals("/auth/v1/token", request.url.encodedPath)
-            assertEquals("grant_type=password", request.url.encodedQuery)
+            assertEquals("/functions/v1/autenticar-senha", request.url.encodedPath)
             respond(
-                content = """{"access_token":"tok-1","refresh_token":"ref-1","token_type":"bearer","expires_in":3600}""",
+                content = """{"status":"autenticado","sessao":{"access_token":"tok-1","refresh_token":"ref-1","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
@@ -263,7 +262,7 @@ class AutenticacaoComSenhaViewModelsTest {
     fun `definir senha valida localmente, exige sessao ativa, limpa campos ao salvar e trata erros do GoTrue`() = runBlocking {
         val armazenamento = ArmazenamentoDeSessaoEmMemoria()
         var status = HttpStatusCode.OK
-        var corpo = """{"id":"uid-1"}"""
+        var corpo = """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}"""
         val engine = MockEngine { request ->
             if (request.url.encodedPath == "/auth/v1/token") {
                 respond(
@@ -306,7 +305,7 @@ class AutenticacaoComSenhaViewModelsTest {
         assertTrue(vm.estado.value.erro!!.contains("novo código"))
 
         status = HttpStatusCode.OK
-        corpo = """{"id":"uid-1"}"""
+        corpo = """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}"""
         vm.salvar()?.join()
         assertTrue(vm.estado.value.concluido)
         assertEquals("", vm.estado.value.senha)
@@ -368,5 +367,118 @@ class AutenticacaoComSenhaViewModelsTest {
         assertEquals(listOf("/functions/v1/entrar-demonstracao"), caminhos)
         assertTrue(vm.estado.value.autenticado)
         assertEquals("tok-demo", armazenamento.obterSessao()?.accessToken)
+    }
+
+    @Test
+    fun `entrada com desafio_otp limpa senha, nao abre sessao e expoe desafioOtp`() = runBlocking {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val engine = MockEngine {
+            respond(
+                content = """{"status":"desafio_otp","desafio_id":"des-android-1","expira_em":"2026-11-25T15:00:00Z","descartar_device_token":false}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave", engine = engine))
+        val vm = EntradaComSenhaViewModel(servico, armazenamento, escopo = escopo())
+
+        vm.aoMudarEmail("prof@exemplo.test")
+        vm.aoMudarSenha("SenhaSintetica#2026")
+        vm.entrar()?.join()
+
+        assertFalse(vm.estado.value.autenticado)
+        assertEquals("", vm.estado.value.senha)
+        assertEquals(DesafioOtpPendente("prof@exemplo.test", "des-android-1"), vm.estado.value.desafioOtp)
+        assertFalse(armazenamento.estaAutenticado())
+    }
+
+    @Test
+    fun `CodigoViewModel em loginDispositivo confirma com lembrarDispositivo e reenvia mantendo desafioId`() = runBlocking {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val dispositivo = br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria()
+        var agora = Instant.parse("2026-11-25T12:00:00Z")
+        val engine = MockEngine { request ->
+            when (request.url.encodedPath) {
+                "/functions/v1/reenviar-dispositivo-otp" -> respond(
+                    content = """{"ok":true,"desafio_id":"des-android-2","expira_em":"2026-11-25T12:15:00Z","reenviar_em_segundos":45}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                "/functions/v1/confirmar-dispositivo-otp" -> respond(
+                    content = """{"sessao":{"access_token":"tok-disp","refresh_token":"ref-disp","token_type":"bearer","expires_in":3600},"precisa_definir_senha":false,"device_token":"tok-30d-android"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                else -> error("Rota inesperada: ${request.url.encodedPath}")
+            }
+        }
+        val servico = ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave", engine = engine), dispositivo)
+        val vm = CodigoViewModel(
+            email = "prof@exemplo.test",
+            servicoAutenticacao = servico,
+            armazenamentoDeSessao = armazenamento,
+            escopo = escopo(),
+            agora = { agora },
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-android-1",
+        )
+        vm.aoAlternarLembrarDispositivo(true)
+        agora = agora.plusSeconds(60)
+        vm.reenviarCodigo()?.join()
+        assertEquals(45L, vm.segundosParaReenviar())
+
+        vm.aoMudarCodigo("123456")?.join()
+        assertTrue(vm.estado.value.autenticado)
+        assertTrue(vm.estado.value.dispositivoLembrado)
+        assertEquals("tok-30d-android", dispositivo.obterToken("prof@exemplo.test"))
+    }
+
+    @Test
+    fun `DefinirSenhaViewModel resolve email da sessao ou JWT para manter dispositivo atual e preservar outras contas`() = runBlocking {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val dispositivo = br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria().apply {
+            salvarToken("conta@exemplo.test", "tok-30d-conta")
+            salvarToken("outra@exemplo.test", "tok-30d-outra")
+        }
+        val corpos = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            corpos += (request.body as TextContent).text
+            respond(
+                content = """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":1,"sessao":null}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave", armazenamentoDeSessao = armazenamento, engine = engine),
+            dispositivo,
+        )
+
+        // 1. Sem emailAtual explícito e sem Sessao.email: decodifica do payload JWT e envia device_token_atual não nulo.
+        val payloadBase64 = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("""{"sub":"uid-1","email":"conta@exemplo.test"}""".toByteArray())
+        armazenamento.salvarSessao(Sessao("hdr.$payloadBase64.sig", "ref-jwt", "bearer", 3600))
+
+        val vmManter = DefinirSenhaViewModel(servico, armazenamento, escopo = escopo(), manterDispositivoAtual = true)
+        vmManter.aoMudarSenha("SenhaForte#2026")
+        vmManter.aoMudarConfirmacao("SenhaForte#2026")
+        vmManter.salvar()?.join()
+
+        assertTrue(vmManter.estado.value.concluido)
+        assertTrue(corpos.last().contains("\"manter_dispositivo_atual\":true"))
+        assertTrue(corpos.last().contains("\"device_token_atual\":\"tok-30d-conta\""))
+        assertEquals("tok-30d-conta", dispositivo.obterToken("conta@exemplo.test"))
+        assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
+
+        // 2. Troca comum (manterDispositivoAtual = false) usando Sessao.email remove só a conta atual e preserva outra@exemplo.test.
+        armazenamento.salvarSessao(Sessao("tok-sem-jwt", "ref-2", "bearer", 3600, email = "conta@exemplo.test"))
+        val vmTroca = DefinirSenhaViewModel(servico, armazenamento, escopo = escopo(), manterDispositivoAtual = false)
+        vmTroca.aoMudarSenha("SenhaNova#2026")
+        vmTroca.aoMudarConfirmacao("SenhaNova#2026")
+        vmTroca.salvar()?.join()
+
+        assertTrue(vmTroca.estado.value.concluido)
+        assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
+        assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
     }
 }

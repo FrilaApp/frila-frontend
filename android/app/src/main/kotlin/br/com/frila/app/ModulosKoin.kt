@@ -11,6 +11,7 @@ import br.com.frila.app.falhas.FalhasDoFirebaseReal
 import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
 import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlyticsReal
 import br.com.frila.app.falhas.TelemetriaDeFalhas
+import br.com.frila.app.seguranca.ArmazenamentoDeDispositivoKeystore
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
@@ -55,6 +56,8 @@ import br.com.frila.core.rede.SincronizadorDeAcoes
 import br.com.frila.core.rede.TipoAcaoPendente
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.rede.VagaDto
+import br.com.frila.core.seguranca.ArmazenamentoDeDispositivo
+import br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.LeitorDeAmbiente
@@ -155,6 +158,10 @@ val moduloSeguranca = module {
             ?: ArmazenamentoDeSessaoEmMemoria()
         SessaoComCacheVagas(origem, get())
     }
+    single<ArmazenamentoDeDispositivo> {
+        getOrNull<Context>()?.let(::ArmazenamentoDeDispositivoKeystore)
+            ?: ArmazenamentoDeDispositivoEmMemoria()
+    }
     /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
     single<LeitorDeAmbiente> {
         getOrNull<Context>()
@@ -232,7 +239,7 @@ val moduloRede = module {
     /** Sem cache: o cliente muda a cada `GestorClienteKtor.recriar()` (logout). */
     factory { get<GestorClienteKtor>().clienteAtual }
     /** Serviços singleton, mas leem o cliente vigente do gestor a cada chamada. */
-    single { ServicoAutenticacao { get<GestorClienteKtor>().clienteAtual } }
+    single { ServicoAutenticacao({ get<GestorClienteKtor>().clienteAtual }, get()) }
     single { ServicoConta { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTelemetria { get<GestorClienteKtor>().clienteAtual } }
     single(named("escopoDaTelemetria")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) } onClose { it?.cancel() }
@@ -369,7 +376,14 @@ val moduloFeatures = module {
             emailInicial = params.getOrNull<String>().orEmpty(),
         )
     }
-    viewModel { DefinirSenhaViewModel(get(), get()) }
+    viewModel { params ->
+        DefinirSenhaViewModel(
+            servicoAutenticacao = get(),
+            armazenamentoDeSessao = get(),
+            manterDispositivoAtual = params.getOrNull<Boolean>() ?: false,
+            emailAtual = params.getOrNull<String>(),
+        )
+    }
     viewModel { params ->
         CodigoViewModel(
             email = params.get(),
@@ -378,6 +392,7 @@ val moduloFeatures = module {
             aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
             permitirDominioDeTeste = BuildConfig.DEBUG,
             modo = params.getOrNull<ModoCodigo>() ?: ModoCodigo.ENTRADA,
+            desafioIdInicial = params.getOrNull<String>(),
         )
     }
     viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
@@ -411,7 +426,17 @@ val moduloFeatures = module {
         )
     }
     /** #789: o "Sair" e a exclusão do perfil passam pelo coordenador, que fecha o cliente Ktor da conta que saiu. */
-    viewModel { PerfilViewModel(get(), get(), get<CoordenadorDeLogout>(), preferenciasNotificacao = get(), servicoConta = get(), exportarMeusDados = get<ServicoConta>()::exportarMeusDados) }
+    viewModel {
+        PerfilViewModel(
+            get(),
+            get(),
+            get<CoordenadorDeLogout>(),
+            preferenciasNotificacao = get(),
+            servicoConta = get(),
+            exportarMeusDados = get<ServicoConta>()::exportarMeusDados,
+            revogarDispositivos = get<ServicoAutenticacao>()::revogarDispositivos,
+        )
+    }
     viewModel { VerificacaoIdentidadeViewModel(get()) }
     viewModel { (turnoId: String) -> OcorrenciaTurnoViewModel(turnoId, get()) }
     /**

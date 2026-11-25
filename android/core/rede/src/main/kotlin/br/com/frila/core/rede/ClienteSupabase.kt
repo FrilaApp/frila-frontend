@@ -239,6 +239,7 @@ class ClienteSupabase(
 
             val renovada = resposta.body<SessaoDto>()
             val sessaoPersistida = renovada.paraSessao(vinculoId = sessaoAtual.vinculoId)
+                .copy(email = sessaoAtual.email)
             armazenamento.salvarSessao(sessaoPersistida)
             sessaoPersistida.paraBearerTokens()
         } catch (erro: CancellationException) {

@@ -190,6 +190,7 @@ fun TelaPerfil(
     },
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
+    aoDeslogarTodos: (() -> Unit)? = null,
 ) {
     val exportacao: ExportarDadosViewModel = androidx.lifecycle.viewmodel.compose.viewModel {
         ExportarDadosViewModel(viewModel.exportarMeusDados)
@@ -260,6 +261,7 @@ fun TelaPerfil(
                         viewModel.aoDeslogar()
                         aoDeslogar()
                     },
+                    aoDeslogarTodos = { viewModel.aoDeslogarTodos(aoDeslogar) },
                     aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                     biometriaAtivada = estado.biometriaAtivada,
                     disponibilidadeBiometrica = disponibilidadeBiometrica,
@@ -293,6 +295,7 @@ fun TelaPerfil(
                         viewModel.aoDeslogar()
                         aoDeslogar()
                     },
+                    aoDeslogarTodos = { viewModel.aoDeslogarTodos(aoDeslogar) },
                     aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                     modifier = Modifier.weight(1f),
                     atalhosExtras = atalhosExtras,
@@ -339,6 +342,7 @@ fun TelaPerfil(
                         viewModel.aoDeslogar()
                         aoDeslogar()
                     },
+                    aoDeslogarTodos = { viewModel.aoDeslogarTodos(aoDeslogar) },
                     aoAbrirExclusao = aoAbrirExclusaoDeConta ?: viewModel::abrirDialogoExclusao,
                     biometriaAtivada = estado.biometriaAtivada,
                     disponibilidadeBiometrica = disponibilidadeBiometrica,
@@ -486,6 +490,7 @@ private fun ConteudoDoPerfil(
     itemExportarDados: @Composable () -> Unit = {},
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
+    aoDeslogarTodos: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -531,6 +536,7 @@ private fun ConteudoDoPerfil(
         BlocoDeConta(
             aoDeslogar = aoDeslogar,
             aoAbrirExclusao = aoAbrirExclusao,
+            aoDeslogarTodos = aoDeslogarTodos,
             biometriaAtivada = biometriaAtivada,
             disponibilidadeBiometrica = disponibilidadeBiometrica,
             mensagemErroBiometria = mensagemErroBiometria,
@@ -583,6 +589,7 @@ private fun ConteudoDaCasa(
     itemExportarDados: @Composable () -> Unit = {},
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
+    aoDeslogarTodos: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -602,6 +609,7 @@ private fun ConteudoDaCasa(
         BlocoDeConta(
             aoDeslogar = aoDeslogar,
             aoAbrirExclusao = aoAbrirExclusao,
+            aoDeslogarTodos = aoDeslogarTodos,
             biometriaAtivada = biometriaAtivada,
             disponibilidadeBiometrica = disponibilidadeBiometrica,
             mensagemErroBiometria = mensagemErroBiometria,
@@ -1058,10 +1066,46 @@ private fun EscopoDoGrupoDeLinhas.atalhosDaCasa(
 
 /** Sair e excluir a conta: ações discretas no fim da tela, uma por linha. Excluir tem a sua confirmação própria. */
 @Composable
-private fun AcoesDeEncerrarConta(aoDeslogar: () -> Unit, aoAbrirExclusao: () -> Unit) {
+private fun AcoesDeEncerrarConta(
+    aoDeslogar: () -> Unit,
+    aoAbrirExclusao: () -> Unit,
+    aoDeslogarTodos: (() -> Unit)? = null,
+) {
+    var confirmarSairTodos by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         AcaoDiscreta(texto = "Sair da conta", aoClicar = aoDeslogar)
+        if (aoDeslogarTodos != null) {
+            AcaoDiscreta(
+                texto = "Sair de todos os dispositivos",
+                aoClicar = { confirmarSairTodos = true },
+                modifier = Modifier.testTag("perfil-sair-todos-dispositivos"),
+            )
+        }
         AcaoDiscreta(texto = "Excluir conta", aoClicar = aoAbrirExclusao)
+    }
+
+    if (confirmarSairTodos && aoDeslogarTodos != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmarSairTodos = false },
+            title = { Text("Sair de todos os dispositivos?") },
+            text = { Text("Todas as sessões e dispositivos confiáveis serão desconectados.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        confirmarSairTodos = false
+                        aoDeslogarTodos()
+                    },
+                ) {
+                    Text("Sair de todos")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmarSairTodos = false }) {
+                    Text("Cancelar")
+                }
+            },
+        )
     }
 }
 
@@ -1097,6 +1141,7 @@ private fun BlocoDeConta(
     itemExportarDados: @Composable () -> Unit = {},
     relatoriosDeFalhasAtivados: Boolean = false,
     aoAlternarRelatoriosDeFalhas: ((Boolean) -> Unit)? = null,
+    aoDeslogarTodos: (() -> Unit)? = null,
 ) {
     val cores = FrilaTema.cores
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.secao)) {
@@ -1175,7 +1220,7 @@ private fun BlocoDeConta(
                 )
             }
         }
-        AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
+        AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao, aoDeslogarTodos = aoDeslogarTodos)
     }
 }
 
@@ -1303,6 +1348,7 @@ private fun Erro(
     /** Bloqueados e contestar não dependem do perfil ter carregado: continuam ao alcance com o perfil em erro. */
     atalhosExtras: List<AtalhoDaConta> = emptyList(),
     itemExportarDados: @Composable () -> Unit = {},
+    aoDeslogarTodos: (() -> Unit)? = null,
 ) {
     val temAtalhos = aoAbrirEquipe != null || aoMinhasVagas != null || aoPublicarVaga != null || aoEncontrarProfissional != null ||
         atalhosExtras.isNotEmpty()
@@ -1335,7 +1381,7 @@ private fun Erro(
             }
             itemExportarDados()
             // Sair e excluir não dependem do perfil: sem estes dois, uma conta em erro (casa sem rede, por exemplo) ficava presa.
-            AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao)
+            AcoesDeEncerrarConta(aoDeslogar = aoDeslogar, aoAbrirExclusao = aoAbrirExclusao, aoDeslogarTodos = aoDeslogarTodos)
         }
     }
 }
