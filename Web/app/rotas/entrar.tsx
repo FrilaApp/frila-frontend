@@ -101,7 +101,7 @@ export async function action({ request }: Route.ActionArgs) {
     const cabecalhos = new Headers();
     for (const linha of cookiesDaSessao(res.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
     if (res.deviceToken) cabecalhos.append("Set-Cookie", cookieDoDispositivo(res.deviceToken, seguro));
-    throw redirect(res.precisaDefinirSenha ? "/definir-senha" : "/", { headers: cabecalhos });
+    throw redirect(res.precisaDefinirSenha ? "/definir-senha?origem=pendente" : "/", { headers: cabecalhos });
   }
 
   if (intencao === "reenviar_desafio") {
@@ -141,7 +141,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const cabecalhos = new Headers();
   for (const linha of cookiesDaSessao(entrada.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
-  throw redirect(entrada.precisaDefinirSenha ? "/definir-senha" : "/", { headers: cabecalhos });
+  throw redirect(entrada.precisaDefinirSenha ? "/definir-senha?origem=pendente" : "/", { headers: cabecalhos });
 }
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";

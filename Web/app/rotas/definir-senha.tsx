@@ -8,6 +8,7 @@ import {
   cookiesDaSessao,
   cookiesDeSaida,
   ehPedidoSeguro,
+  lerClaimsDoToken,
   lerCookieDoDispositivo,
   lerCookiesDaSessao,
   sessaoAtualDe,
@@ -16,12 +17,12 @@ import { textos } from "../textos/pt-BR";
 import type { Route } from "./+types/definir-senha";
 
 type Erro = keyof typeof textos.definirSenha.erros;
-type Origem = "cadastro" | "recuperacao" | "alteracao";
+type Origem = "cadastro" | "recuperacao" | "pendente" | "alteracao";
 type Estado = { erro?: Erro; origem?: Origem };
 
 function lerOrigem(url: URL): Origem {
   const valor = url.searchParams.get("origem");
-  if (valor === "cadastro" || valor === "recuperacao") return valor;
+  if (valor === "cadastro" || valor === "recuperacao" || valor === "pendente") return valor;
   return "alteracao";
 }
 
@@ -52,7 +53,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Es
   const formulario = await request.formData();
   const origemCampo = String(formulario.get("origem") ?? "");
   const origem: Origem =
-    origemCampo === "cadastro" || origemCampo === "recuperacao" || origemCampo === "alteracao"
+    origemCampo === "cadastro" || origemCampo === "recuperacao" || origemCampo === "pendente" || origemCampo === "alteracao"
       ? origemCampo
       : lerOrigem(new URL(request.url));
 
@@ -75,10 +76,15 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Es
     return { erro: "indisponivel", origem };
   }
 
-  const manterDispositivoAtual = origem === "cadastro" || origem === "recuperacao";
   const seguro = ehPedidoSeguro(request);
   const { renovacao } = lerCookiesDaSessao(request);
   const deviceTokenAtual = lerCookieDoDispositivo(request);
+  const claims = lerClaimsDoToken(sessao.acesso);
+  // Segurança: em troca real de senha (claim precisa_definir_senha === false ou origem === alteracao), nunca preservar device_token.
+  const ehFluxoPendente = claims.temClaimSenhaPendente
+    ? claims.precisaDefinirSenha
+    : origem === "cadastro" || origem === "recuperacao" || origem === "pendente";
+  const manterDispositivoAtual = ehFluxoPendente && Boolean(deviceTokenAtual);
 
   const resultado = await auth.definirSenha({
     acesso: sessao.acesso,

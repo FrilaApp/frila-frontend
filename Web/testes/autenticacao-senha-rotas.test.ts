@@ -196,6 +196,37 @@ describe("rotas: login por senha, dispositivo confiável 30d e desafio OTP (rota
     expect(dispositivo).toContain("Secure");
   });
 
+  it("confirmar_desafio com precisaDefinirSenha=true redireciona para /definir-senha?origem=pendente mantendo dispositivo", async () => {
+    authMock.confirmarDispositivoOtp.mockResolvedValue({
+      ok: true,
+      sessao: SESSAO_SINTETICA,
+      precisaDefinirSenha: true,
+      deviceToken: "novo-device-token",
+    });
+    const args = pedidoComCookies("/entrar", {
+      email: "usuario@frila.test",
+      desafio_id: "des-123",
+      codigo: "654321",
+      lembrar_dispositivo: "sim",
+      intencao: "confirmar_desafio",
+    });
+    const resp = await capturaRedirect(() => entrarAction(args as never));
+    expect(resp.headers.get("Location")).toBe("/definir-senha?origem=pendente");
+    expect(resp.headers.getSetCookie().some((c) => c.includes("__Host-frila-dispositivo=novo-device-token"))).toBe(true);
+  });
+
+  it("autenticarSenha com precisaDefinirSenha=true redireciona para /definir-senha?origem=pendente", async () => {
+    authMock.autenticarSenha.mockResolvedValue({
+      ok: true,
+      status: "autenticado",
+      sessao: SESSAO_SINTETICA,
+      precisaDefinirSenha: true,
+    });
+    const args = pedidoComCookies("/entrar", { email: "usuario@frila.test", senha: "senhaCorreta123" }, "__Host-frila-dispositivo=dev-tok-30d");
+    const resp = await capturaRedirect(() => entrarAction(args as never));
+    expect(resp.headers.get("Location")).toBe("/definir-senha?origem=pendente");
+  });
+
   it("confirmar_desafio sem checkbox não grava cookie de dispositivo", async () => {
     const args = pedidoComCookies("/entrar", {
       email: "usuario@frila.test",
@@ -320,28 +351,70 @@ describe("rotas: definir-senha, logout e trava SSR de precisa_definir_senha", ()
     expect(resp.headers.get("Location")).toBe("/entrar");
   });
 
-  it("definir-senha em origem=recuperacao envia manterDispositivoAtual=true e regrava cookies renovados", async () => {
+  it("definir-senha em origem=cadastro, recuperacao e pendente preserva dispositivo apenas quando há cookie lembrado e pendência", async () => {
+    const jwtPendente = jwtComAppMetadata({ precisa_definir_senha: true, dispositivo_verificado: true });
+    for (const origem of ["cadastro", "recuperacao", "pendente"] as const) {
+      authMock.definirSenha.mockClear();
+      const args = pedidoComCookies(
+        `/definir-senha?origem=${origem}`,
+        { senha: "novaSenha123", confirmacao: "novaSenha123", origem },
+        "__Host-frila-renovacao=ref-antigo; __Host-frila-dispositivo=dev-atual",
+      );
+      args.context.set(
+        (await import("../app/contexto")).contextoDaSessao,
+        { acesso: jwtPendente, usuarioId: "u1", email: "a@b.co", visitante: "198.51.100.77" },
+      );
+      const resp = await capturaRedirect(() => definirSenhaAction(args as never));
+      expect(resp.headers.get("Location")).toBe("/");
+      expect(authMock.definirSenha).toHaveBeenCalledWith({
+        acesso: jwtPendente,
+        novaSenha: "novaSenha123",
+        manterDispositivoAtual: true,
+        deviceTokenAtual: "dev-atual",
+        refreshToken: "ref-antigo",
+        visitante: "198.51.100.77",
+      });
+      expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-acesso="))).toBe(true);
+      expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-dispositivo="))).toBe(false);
+    }
+  });
+
+  it("definir-senha em origem=pendente sem cookie lembrado envia manterDispositivoAtual=false", async () => {
+    const jwtPendente = jwtComAppMetadata({ precisa_definir_senha: true, dispositivo_verificado: true });
     const args = pedidoComCookies(
-      "/definir-senha",
-      { senha: "novaSenha123", confirmacao: "novaSenha123", origem: "recuperacao" },
+      "/definir-senha?origem=pendente",
+      { senha: "novaSenha123", confirmacao: "novaSenha123", origem: "pendente" },
+      "__Host-frila-renovacao=ref-antigo",
+    );
+    args.context.set(
+      (await import("../app/contexto")).contextoDaSessao,
+      { acesso: jwtPendente, usuarioId: "u1", email: "a@b.co", visitante: null },
+    );
+    const resp = await capturaRedirect(() => definirSenhaAction(args as never));
+    expect(resp.headers.get("Location")).toBe("/");
+    expect(authMock.definirSenha).toHaveBeenCalledWith(
+      expect.objectContaining({ manterDispositivoAtual: false, deviceTokenAtual: null }),
+    );
+  });
+
+  it("troca real de senha (alteracao ou JWT com precisa_definir_senha=false) revoga trust mesmo se origem=cadastro for forjado", async () => {
+    const jwtSemPendencia = jwtComAppMetadata({ precisa_definir_senha: false, dispositivo_verificado: true });
+    const args = pedidoComCookies(
+      "/definir-senha?origem=cadastro",
+      { senha: "novaSenha123", confirmacao: "novaSenha123", origem: "cadastro" },
       "__Host-frila-renovacao=ref-antigo; __Host-frila-dispositivo=dev-atual",
     );
     args.context.set(
       (await import("../app/contexto")).contextoDaSessao,
-      { acesso: "sintetico", usuarioId: "u1", email: "a@b.co", visitante: "198.51.100.77" },
+      { acesso: jwtSemPendencia, usuarioId: "u1", email: "a@b.co", visitante: null },
     );
     const resp = await capturaRedirect(() => definirSenhaAction(args as never));
     expect(resp.headers.get("Location")).toBe("/");
-    expect(authMock.definirSenha).toHaveBeenCalledWith({
-      acesso: "sintetico",
-      novaSenha: "novaSenha123",
-      manterDispositivoAtual: true,
-      deviceTokenAtual: "dev-atual",
-      refreshToken: "ref-antigo",
-      visitante: "198.51.100.77",
-    });
-    expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-acesso="))).toBe(true);
-    expect(resp.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-dispositivo="))).toBe(false);
+    expect(authMock.definirSenha).toHaveBeenCalledWith(
+      expect.objectContaining({ manterDispositivoAtual: false }),
+    );
+    const devCookie = resp.headers.getSetCookie().find((c) => c.startsWith("__Host-frila-dispositivo="));
+    expect(devCookie).toContain("Max-Age=0");
   });
 
   it("definir-senha em origem=alteracao revoga dispositivos e apaga __Host-frila-dispositivo local", async () => {
@@ -396,7 +469,7 @@ describe("rotas: definir-senha, logout e trava SSR de precisa_definir_senha", ()
       async () => new Response("ok"),
     )) as Response;
     expect(resBloqueado.status).toBe(302);
-    expect(resBloqueado.headers.get("Location")).toBe("https://frilabr.com/app/definir-senha");
+    expect(resBloqueado.headers.get("Location")).toBe("https://frilabr.com/app/definir-senha?origem=pendente");
 
     const reqPermitido = new Request("https://frilabr.com/app/definir-senha", {
       headers: { Cookie: `__Host-frila-acesso=${jwtPendente}; __Host-frila-renovacao=r1` },

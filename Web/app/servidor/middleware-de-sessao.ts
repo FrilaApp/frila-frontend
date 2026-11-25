@@ -29,7 +29,7 @@ export const middlewareDeSessao: MiddlewareFunction<Response> = async ({ request
   if (sessao && lerClaimsDoToken(sessao.acesso).precisaDefinirSenha) {
     const url = new URL(request.url);
     if (!PERMITIDOS_COM_SENHA_PENDENTE.has(url.pathname)) {
-      const destino = new URL(`${BASE}/definir-senha`, url.origin);
+      const destino = new URL(`${BASE}/definir-senha?origem=pendente`, url.origin);
       const cabecalhos = new Headers({ Location: destino.toString(), "Cache-Control": "no-store" });
       for (const linha of cookies) cabecalhos.append("Set-Cookie", linha);
       return new Response(null, { status: 302, headers: cabecalhos });

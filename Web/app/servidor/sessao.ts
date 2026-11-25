@@ -118,23 +118,30 @@ export function lerToken(acesso: string): { venceEm: number | null; usuarioId: s
 }
 
 /** Lê os claims `app_metadata.precisa_definir_senha` e `dispositivo_verificado` de um JWT já validado pelo Auth. */
-export function lerClaimsDoToken(acesso: string): { precisaDefinirSenha: boolean; dispositivoVerificado: boolean } {
+export function lerClaimsDoToken(acesso: string): {
+  precisaDefinirSenha: boolean;
+  temClaimSenhaPendente: boolean;
+  dispositivoVerificado: boolean;
+} {
   try {
     const corpo = acesso.split(".")[1] ?? "";
     const bytes = Uint8Array.from(atob(corpo.replace(/-/g, "+").replace(/_/g, "/")), (letra) => letra.charCodeAt(0));
     const dados: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    if (typeof dados !== "object" || dados === null) return { precisaDefinirSenha: false, dispositivoVerificado: false };
+    if (typeof dados !== "object" || dados === null) {
+      return { precisaDefinirSenha: false, temClaimSenhaPendente: false, dispositivoVerificado: false };
+    }
     const appMetadata = (dados as Record<string, unknown>).app_metadata;
     if (typeof appMetadata !== "object" || appMetadata === null) {
-      return { precisaDefinirSenha: false, dispositivoVerificado: false };
+      return { precisaDefinirSenha: false, temClaimSenhaPendente: false, dispositivoVerificado: false };
     }
     const meta = appMetadata as Record<string, unknown>;
     return {
       precisaDefinirSenha: meta.precisa_definir_senha === true,
+      temClaimSenhaPendente: typeof meta.precisa_definir_senha === "boolean",
       dispositivoVerificado: meta.dispositivo_verificado === true,
     };
   } catch {
-    return { precisaDefinirSenha: false, dispositivoVerificado: false };
+    return { precisaDefinirSenha: false, temClaimSenhaPendente: false, dispositivoVerificado: false };
   }
 }
 
