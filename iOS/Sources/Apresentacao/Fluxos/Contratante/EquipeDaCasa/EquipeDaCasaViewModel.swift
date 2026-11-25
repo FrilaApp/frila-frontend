@@ -24,12 +24,35 @@ public struct ConfirmacaoDeAcaoNaEquipe: Equatable, Sendable {
     public let nome: String
 }
 
-/// O convite gerado: o link para a folha de compartilhar do sistema e até quando vale (`nil` se o servidor mandou um
-/// instante ilegível).
+/// O convite gerado: o link, o e-mail e o papel de quem foi convidado, a casa e até quando vale (`nil` se o servidor mandou um
+/// instante ilegível). O que a pessoa compartilha ou copia é a `mensagem`, não só o link (B-123, ROPA linha 31, regra 2).
 public struct ConviteGerado: Equatable, Sendable {
     public let link: String
     public let email: String
+    public let papel: PapelMembro
+    public let nomeDaCasa: String
     public let expiraEm: Date?
+
+    public init(link: String, email: String, papel: PapelMembro, nomeDaCasa: String, expiraEm: Date?) {
+        self.link = link
+        self.email = email
+        self.papel = papel
+        self.nomeDaCasa = nomeDaCasa
+        self.expiraEm = expiraEm
+    }
+
+    /// A mensagem do convite, com o link na última linha (veja `TextosDaEquipeDaCasa.mensagemDoConvite`).
+    public var mensagem: String {
+        let papelEmTexto = papel.rotuloDaEquipe.lowercased(with: FormatadorFrila.locale)
+        let enderecoDoConvite = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let texto = if let expiraEm {
+            String(format: TextosDaEquipeDaCasa.mensagemDoConvite, nomeDaCasa, papelEmTexto, enderecoDoConvite,
+                   FormatadorFrila().dataEHora(expiraEm))
+        } else {
+            String(format: TextosDaEquipeDaCasa.mensagemDoConviteSemPrazo, nomeDaCasa, papelEmTexto, enderecoDoConvite)
+        }
+        return "\(texto)\n\(link)"
+    }
 }
 
 /// Equipe da casa (RF21, US24; contratos 0.2.73 e 0.2.103; paridade com a web, PRs #891 e #916, e com o Android, PR #998):
@@ -50,6 +73,8 @@ public struct ConviteGerado: Equatable, Sendable {
 @MainActor @Observable
 public final class EquipeDaCasaViewModel {
     public let estabelecimentoID: UUID
+    /// O nome da casa, como a Conta o mostra: entra na mensagem do convite.
+    public let nomeDaCasa: String
     /// O papel de quem abriu a tela nesta casa. Só `administrador` lê a lista, convida, remove e transfere.
     public private(set) var papel: PapelMembro?
     public private(set) var lista: ListaDaEquipe
@@ -103,11 +128,11 @@ public final class EquipeDaCasaViewModel {
     }
 
     public convenience init(
-        api: any ApiCliente, estabelecimentoID: UUID, papel: PapelMembro?, origemDaWeb: String = OrigemDaWeb.atual,
+        api: any ApiCliente, estabelecimentoID: UUID, nomeDaCasa: String, papel: PapelMembro?, origemDaWeb: String = OrigemDaWeb.atual,
         prazo: Duration = .seconds(20)
     ) {
         self.init(
-            estabelecimentoID: estabelecimentoID, papel: papel, prazo: prazo,
+            estabelecimentoID: estabelecimentoID, nomeDaCasa: nomeDaCasa, papel: papel, prazo: prazo,
             listar: { try await api.membrosDaCasa(estabelecimentoID: $0) },
             convidar: { try await api.convidarMembro(estabelecimentoID: $0, email: $1, papel: $2) },
             remover: { try await api.removerMembro(estabelecimentoID: $0, membroID: $1) },
@@ -118,6 +143,7 @@ public final class EquipeDaCasaViewModel {
 
     public init(
         estabelecimentoID: UUID,
+        nomeDaCasa: String,
         papel: PapelMembro?,
         prazo: Duration = .seconds(20),
         listar: @escaping @Sendable (UUID) async throws -> [MembroDaCasa],
@@ -127,6 +153,7 @@ public final class EquipeDaCasaViewModel {
         montarLink: @escaping (String) -> String?
     ) {
         self.estabelecimentoID = estabelecimentoID
+        self.nomeDaCasa = nomeDaCasa
         self.papel = papel
         self.prazo = prazo
         self.listar = listar
@@ -208,7 +235,7 @@ public final class EquipeDaCasaViewModel {
             }
             gerandoConvite = false
             email = ""
-            convite = ConviteGerado(link: link, email: limpo, expiraEm: gerado.expiraEm)
+            convite = ConviteGerado(link: link, email: limpo, papel: convidado, nomeDaCasa: nomeDaCasa, expiraEm: gerado.expiraEm)
         } catch {
             guard !Task.isCancelled else { gerandoConvite = false; return }
             if let erro = error as? ErroDaApi, erro.recusaDeAdministrador {

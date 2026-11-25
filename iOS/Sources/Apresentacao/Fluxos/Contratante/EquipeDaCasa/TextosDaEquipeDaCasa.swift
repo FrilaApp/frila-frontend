@@ -33,6 +33,12 @@ enum TextosDaEquipeDaCasa {
     static let linkDoConvite = String(localized: "Link do convite", bundle: bundleApresentacao)
     static let compartilhar = String(localized: "Compartilhar convite", bundle: bundleApresentacao)
     static let compartilharTitulo = String(localized: "Convite para a casa no Frila", bundle: bundleApresentacao)
+    /// A mensagem que o administrador compartilha ou copia (B-123; texto aprovado pela Bússola em 25/11/2026, idêntico nos três
+    /// apps): casa, papel (minúsculo), e-mail, validade, o que o Frila faz com o e-mail e a Política. O link vai depois, numa
+    /// linha só dele. Posições: 1 casa, 2 papel, 3 e-mail, 4 prazo.
+    static let mensagemDoConvite = String(localized: "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez, até %4$@. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade", bundle: bundleApresentacao)
+    /// A mesma mensagem quando a resposta não traz a validade. Posições: 1 casa, 2 papel, 3 e-mail.
+    static let mensagemDoConviteSemPrazo = String(localized: "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade", bundle: bundleApresentacao)
 
     // Ações sobre a pessoa
     static let remover = String(localized: "Remover", bundle: bundleApresentacao)
@@ -72,6 +78,7 @@ enum TextosDaEquipeDaCasa {
     static let conviteFormatoInvalido = String(localized: "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada.", bundle: bundleApresentacao)
     static let conviteInvalido = String(localized: "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou.", bundle: bundleApresentacao)
     static let convitePerfilIncompativel = String(localized: "Convites de casa são para contas de quem contrata. A sua conta é de profissional.", bundle: bundleApresentacao)
+    static let conviteDeOutroEmail = String(localized: "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.", bundle: bundleApresentacao)
     static let conviteIncerto = String(localized: "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta.", bundle: bundleApresentacao)
 
     // Trocar de casa

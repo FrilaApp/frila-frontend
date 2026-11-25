@@ -37,8 +37,6 @@ private let textosQueNaoSaoConvite: [String] = {
         "\(c)e",
         String(repeating: "g", count: 64),
         "https://frilabr.com/app/convite#\(c)zz",
-        "https://frilabr.com/app/convite#\(c) e mais texto",
-        "Oi! Entre pela casa: https://frilabr.com/app/convite#\(c)",
         "https://frilabr.com/app/convite#\(c)#\(o)",
         "https://frilabr.com/app/convite#\(String(c.dropLast(2)))",
         "https://frilabr.com/app/convite#\(c)ef",
@@ -53,6 +51,25 @@ private let textosQueNaoSaoConvite: [String] = {
         "frilabr.com/app/convite#\(c)",
         "https:///app/convite#\(c)",
         "https://frilabr.com/app/convite#\(metade) \(metade)",
+        // Rodada 3 (B-123): num texto, só vale o link de convite do nosso domínio e do nosso caminho, e um só.
+        "Entre: https://frilabr.com/app/convite#\(c) e também https://frilabr.com/app/convite#\(o)",
+        "Entre: https://frilabr.com/app/convite#\(c) ou https://frilabr.com/app/convite#\(c)",
+        "Entre: https://frilabr.com/app/convite#\(c) ou https://frila-web-dev.frilabr.workers.dev/app/convite#\(o)",
+        "Entre: https://exemplo.test/app/convite#\(c)",
+        "Entre: https://frilabr.com.exemplo.org/app/convite#\(c)",
+        "Entre: https://exemplofrilabr.com/app/convite#\(c)",
+        "Entre: https://www.frilabr.com/app/convite#\(c)",
+        "Entre: https://frilabr.com/app/convite-antigo#\(c)",
+        "Entre: https://frilabr.com/app/outra#\(c)",
+        "Entre: https://frilabr.com/convite#\(c)",
+        "Entre: https://frilabr.com/app/convite#\(c)zz",
+        "Entre: https://frilabr.com/app/convite#\(c).",
+        "Entre: https://frilabr.com/app/convite#\(String(c.dropLast(2))) agora",
+        "Entre: http://frilabr.com/app/convite#\(c)",
+        "Entre: xhttps://frilabr.com/app/convite#\(c)",
+        "Entre em https://exemplo.test/?u=https://frilabr.com/app/convite#\(c)",
+        "Seu código: \(c). Abra o app e cole.",
+        "Código \(c) e link https://exemplo.test/app/convite#\(o)",
     ]
 }()
 
@@ -66,26 +83,58 @@ struct ConviteDaCasaTests {
 
     @Test("Vale o código puro de 64 hexadecimais, com os espaços das pontas aparados, e sai em minúsculas")
     func codigoPuro() {
-        #expect(ConviteDaCasa.extrairToken(de: Self.codigo) == Self.codigo)
-        #expect(ConviteDaCasa.extrairToken(de: "  \(Self.codigo)\n") == Self.codigo)
-        #expect(ConviteDaCasa.extrairToken(de: Self.codigo.uppercased()) == Self.codigo)
-        #expect(ConviteDaCasa.extrairToken(de: "\t\(Self.codigo.uppercased()) ") == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: Self.codigo, origens: Self.origens) == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: "  \(Self.codigo)\n", origens: Self.origens) == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: Self.codigo.uppercased(), origens: Self.origens) == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: "\t\(Self.codigo.uppercased()) ", origens: Self.origens) == Self.codigo)
     }
 
-    @Test("Vale o link inteiro do convite, de qualquer ambiente, com o código no fragmento", arguments: [
+    /// As origens que o "Tenho um convite" reconhece: a web de produção e a de dev, as mesmas de `OrigemDaWeb`.
+    private static let origens = [OrigemDaWeb.producao, OrigemDaWeb.dev]
+
+    @Test("Vale o link inteiro do convite, da web de produção ou da de dev, com o código no fragmento", arguments: [
         "https://frilabr.com/app/convite#",
         "https://frila-web-dev.frilabr.workers.dev/app/convite#",
-        "https://exemplo.test/convite#",
-        "https://exemplo.test/a/b/c/convite#",
     ])
     func linkInteiro(prefixo: String) {
-        #expect(ConviteDaCasa.extrairToken(de: prefixo + Self.codigo) == Self.codigo)
-        #expect(ConviteDaCasa.extrairToken(de: "  \(prefixo)\(Self.codigo.uppercased())  ") == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: prefixo + Self.codigo, origens: Self.origens) == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: "  \(prefixo)\(Self.codigo.uppercased())  ", origens: Self.origens) == Self.codigo)
+    }
+
+    @Test("Um texto com exatamente um link de convite do nosso domínio vale, em qualquer lugar do texto: sai o mesmo token que o link sozinho", arguments: [
+        "https://frilabr.com/app/convite#",
+        "https://frila-web-dev.frilabr.workers.dev/app/convite#",
+    ])
+    func linkNoMeioDeUmTexto(prefixo: String) {
+        let link = prefixo + Self.codigo
+        let textos = [
+            "Oi! Entre pela casa: \(link)",
+            "\(link) e mais texto",
+            "Antes\n\(link)\nDepois",
+            "Antes \(link) depois, com mais frases. Até logo!",
+            "  \(prefixo)\(Self.codigo.uppercased()) \n",
+            "Link:\r\n\(link)",
+        ]
+        for texto in textos {
+            #expect(ConviteDaCasa.extrairToken(de: texto, origens: Self.origens) == Self.codigo, "\(texto.prefix(14))")
+        }
+    }
+
+    @Test("A mensagem do convite inteira, com e sem prazo, entrega o mesmo token que o link sozinho (rodada 3 do B-123)")
+    func mensagemInteiraDoConvite() {
+        let validade = Date(timeIntervalSince1970: 1_800_000_000)
+        for origem in Self.origens {
+            let link = ConviteDaCasa.link(origem: origem, token: Self.codigo) ?? ""
+            for prazo in [validade, nil] {
+                let convite = ConviteGerado(link: link, email: "paulo.lima@exemplo.com", papel: .operador, nomeDaCasa: "Padaria do Bairro", expiraEm: prazo)
+                #expect(ConviteDaCasa.extrairToken(de: convite.mensagem, origens: Self.origens) == Self.codigo)
+            }
+        }
     }
 
     @Test("Qualquer outra coisa é recusada: letra em volta, dois códigos, tamanho errado, link com texto depois ou de outro formato", arguments: textosQueNaoSaoConvite)
     func recusado(texto: String) {
-        #expect(ConviteDaCasa.extrairToken(de: texto) == nil)
+        #expect(ConviteDaCasa.extrairToken(de: texto, origens: Self.origens) == nil)
     }
 
     @Test("O link do convite é <origem>/convite#<token>, só com um código de 64 hexadecimais")
@@ -96,7 +145,7 @@ struct ConviteDaCasaTests {
         #expect(ConviteDaCasa.link(origem: "https://frilabr.com/app", token: Self.codigo + "ab") == nil)
         // O link montado é aceito de volta pelo "Tenho um convite".
         let link = ConviteDaCasa.link(origem: OrigemDaWeb.dev, token: Self.outro)
-        #expect(link.flatMap(ConviteDaCasa.extrairToken(de:)) == Self.outro)
+        #expect(link.flatMap { ConviteDaCasa.extrairToken(de: $0, origens: Self.origens) } == Self.outro)
     }
 
     @Test("A origem da web vem do ambiente do app: só frila-prod abre a web de produção")
@@ -159,7 +208,8 @@ struct TenhoUmConviteViewModelTests {
     @Test("Link ou código inválido não chega ao servidor: a mensagem é local, e editar o texto a tira")
     func formatoInvalidoNaoChamaOServidor() async {
         let invalidos = ["", "   ", "oi", "zz" + codigo + "zz", codigo + codigo, String(codigo.dropLast(2)),
-                         "https://frilabr.com/app/convite#\(codigo) e mais texto", "http://frilabr.com/app/convite#\(codigo)"]
+                         "https://frilabr.com/app/convite#\(codigo)zz", "http://frilabr.com/app/convite#\(codigo)",
+                         "https://exemplo.test/app/convite#\(codigo)"]
         for texto in invalidos {
             let servidor = ServidorDeConvites(entrou())
             let vm = modelo(servidor)
@@ -180,6 +230,7 @@ struct TenhoUmConviteViewModelTests {
     func recusasDoServidor() async {
         let casos: [(ErroDaApi, String)] = [
             (ErroDaApi(codigo: .desconhecido, codigoOriginal: "convite_invalido"), TextosDaEquipeDaCasa.conviteInvalido),
+            (ErroDaApi(codigo: .desconhecido, codigoOriginal: "convite_de_outro_email"), TextosDaEquipeDaCasa.conviteDeOutroEmail),
             (ErroDaApi(codigo: .perfilIncompativel), TextosDaEquipeDaCasa.convitePerfilIncompativel),
             (ErroDaApi(codigo: .semPermissao, detalhes: "conta_suspensa"), TextosDaEquipeDaCasa.contaSuspensa),
             (ErroDaApi(codigo: .naoAutenticado), TextosDaEquipeDaCasa.sessao),

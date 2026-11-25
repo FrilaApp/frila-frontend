@@ -95,7 +95,7 @@ struct EquipeDaCasaViewModelTests {
         _ servidor: ServidorDaEquipe, papel: PapelMembro? = .administrador, prazo: Duration = .seconds(5), origem: String = OrigemDaWeb.dev
     ) -> EquipeDaCasaViewModel {
         EquipeDaCasaViewModel(
-            estabelecimentoID: casa, papel: papel, prazo: prazo,
+            estabelecimentoID: casa, nomeDaCasa: "Padaria do Bairro", papel: papel, prazo: prazo,
             listar: { _ in try await servidor.listar() },
             convidar: { try await servidor.convidar($0, $1, $2) },
             remover: { _, membro in try await servidor.remover(membro) },
@@ -362,7 +362,11 @@ struct EquipeDaCasaViewModelTests {
         #expect(recebido[0].casa == casa)
         #expect(recebido[0].email == "paulo.lima@exemplo.com")
         #expect(recebido[0].papel == .administrador)
-        #expect(vm.convite == ConviteGerado(link: "https://exemplo.test/app/convite#\(token)", email: "paulo.lima@exemplo.com", expiraEm: vencimento))
+        #expect(vm.convite == ConviteGerado(link: "https://exemplo.test/app/convite#\(token)", email: "paulo.lima@exemplo.com", papel: .administrador,
+                                            nomeDaCasa: "Padaria do Bairro", expiraEm: vencimento))
+        // O que a pessoa compartilha é a mensagem do convite, com o link na última linha.
+        #expect(vm.convite?.mensagem.hasSuffix("\nhttps://exemplo.test/app/convite#\(token)") == true)
+        #expect(vm.convite?.mensagem.contains("como administrador") == true)
         #expect(vm.email == "")
         #expect(!vm.gerandoConvite)
         #expect(vm.erroDoConvite == nil)
