@@ -97,16 +97,25 @@ class DetalheVagaViewModel(
     }
 
     /**
-     * `ehContaSuspensa` é um evento de uma vez só: a tela navega para a conta suspensa uma única vez por candidatura recusada.
-     * Devolve `true` para quem o consumiu primeiro e `false` para os demais. A tela precisa disto porque o efeito dela pode rodar
-     * de novo (recomposição, volta da conta suspensa) com o `estado` que a composição já tinha lido, ainda verdadeiro, depois de o
-     * evento ter sido consumido: ler o `estado` capturado não basta, e navegar duas vezes empilha a conta suspensa duas vezes.
+     * `ehConflitoHorario`, `ehVagaPreenchida`, `ehVagaEncerrada` e `ehContaSuspensa` são eventos de uma vez só: a tela navega uma
+     * única vez por candidatura recusada. Cada `consumirNavegacaoPara...` devolve `true` para quem consumiu o evento primeiro e
+     * `false` para os demais. A tela precisa disto porque o efeito dela pode rodar de novo (recomposição, troca do ramo do feed
+     * para o detalhe aberto pelo id, volta da tela de destino) com o `estado` que a composição já tinha lido, ainda verdadeiro,
+     * depois de o evento ter sido consumido: ler o `estado` capturado não basta, e navegar duas vezes empilha a tela duas vezes.
      */
-    fun consumirNavegacaoParaContaSuspensa(): Boolean {
+    fun consumirNavegacaoParaConflito(): Boolean = consumirEvento({ it.ehConflitoHorario }) { it.copy(ehConflitoHorario = false) }
+
+    fun consumirNavegacaoParaVagaPreenchida(): Boolean = consumirEvento({ it.ehVagaPreenchida }) { it.copy(ehVagaPreenchida = false) }
+
+    fun consumirNavegacaoParaVagaEncerrada(): Boolean = consumirEvento({ it.ehVagaEncerrada }) { it.copy(ehVagaEncerrada = false) }
+
+    fun consumirNavegacaoParaContaSuspensa(): Boolean = consumirEvento({ it.ehContaSuspensa }) { it.copy(ehContaSuspensa = false) }
+
+    private fun consumirEvento(ligado: (EstadoDetalheVaga) -> Boolean, desligar: (EstadoDetalheVaga) -> EstadoDetalheVaga): Boolean {
         var consumiu = false
         _estado.update { atual ->
-            consumiu = atual.ehContaSuspensa
-            if (consumiu) atual.copy(ehContaSuspensa = false) else atual
+            consumiu = ligado(atual)
+            if (consumiu) desligar(atual) else atual
         }
         return consumiu
     }

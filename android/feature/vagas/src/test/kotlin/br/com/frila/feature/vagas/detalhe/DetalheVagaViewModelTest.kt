@@ -309,6 +309,70 @@ class DetalheVagaViewModelTest {
         assertTrue(viewModel.estado.value.ehContaSuspensa, "uma nova candidatura recusada volta a sinalizar")
     }
 
+    private fun viewModelRecusadoCom(status: HttpStatusCode, corpo: String) = viewModelComEngine(
+        vaga = vagaDe("urgencia"),
+        engine = MockEngine {
+            respond(content = corpo, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        },
+    )
+
+    @Test
+    fun `consumirNavegacaoParaConflito entrega o evento uma so vez e uma nova candidatura volta a sinalizar`() = runBlocking {
+        val viewModel = viewModelRecusadoCom(
+            HttpStatusCode.UnprocessableEntity,
+            """{"code":"inelegivel","message":"inelegivel","details":"turno_sobreposto"}""",
+        )
+        viewModel.candidatar().join()
+        val mensagem = viewModel.estado.value.mensagem
+
+        assertTrue(viewModel.consumirNavegacaoParaConflito(), "o primeiro consumo recebe o evento")
+        assertFalse(viewModel.consumirNavegacaoParaConflito(), "o segundo não recebe de novo")
+        assertFalse(viewModel.estado.value.ehConflitoHorario)
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertEquals(mensagem, viewModel.estado.value.mensagem)
+
+        viewModel.candidatar().join()
+        assertTrue(viewModel.estado.value.ehConflitoHorario, "uma nova candidatura recusada volta a sinalizar")
+    }
+
+    @Test
+    fun `consumirNavegacaoParaVagaPreenchida entrega o evento uma so vez e uma nova candidatura volta a sinalizar`() = runBlocking {
+        val viewModel = viewModelRecusadoCom(
+            HttpStatusCode.Conflict,
+            """{"code":"posicao_ja_preenchida","message":"alguém chegou antes"}""",
+        )
+        viewModel.candidatar().join()
+        val mensagem = viewModel.estado.value.mensagem
+
+        assertTrue(viewModel.consumirNavegacaoParaVagaPreenchida(), "o primeiro consumo recebe o evento")
+        assertFalse(viewModel.consumirNavegacaoParaVagaPreenchida(), "o segundo não recebe de novo")
+        assertFalse(viewModel.estado.value.ehVagaPreenchida)
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertEquals(mensagem, viewModel.estado.value.mensagem)
+
+        viewModel.candidatar().join()
+        assertTrue(viewModel.estado.value.ehVagaPreenchida, "uma nova candidatura recusada volta a sinalizar")
+    }
+
+    @Test
+    fun `consumirNavegacaoParaVagaEncerrada entrega o evento uma so vez e uma nova candidatura volta a sinalizar`() = runBlocking {
+        val viewModel = viewModelRecusadoCom(
+            HttpStatusCode.Conflict,
+            """{"code":"vaga_encerrada","message":"fechou 24h antes do inicio"}""",
+        )
+        viewModel.candidatar().join()
+        val mensagem = viewModel.estado.value.mensagem
+
+        assertTrue(viewModel.consumirNavegacaoParaVagaEncerrada(), "o primeiro consumo recebe o evento")
+        assertFalse(viewModel.consumirNavegacaoParaVagaEncerrada(), "o segundo não recebe de novo")
+        assertFalse(viewModel.estado.value.ehVagaEncerrada)
+        assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
+        assertEquals(mensagem, viewModel.estado.value.mensagem)
+
+        viewModel.candidatar().join()
+        assertTrue(viewModel.estado.value.ehVagaEncerrada, "uma nova candidatura recusada volta a sinalizar")
+    }
+
     @Test
     fun `candidatar com sem_permissao conta_suspensa marca ehContaSuspensa como verdadeiro`() = runBlocking {
         val viewModel = viewModelComEngine(

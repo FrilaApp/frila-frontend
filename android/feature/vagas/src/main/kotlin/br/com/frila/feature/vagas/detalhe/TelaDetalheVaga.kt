@@ -120,13 +120,13 @@ fun TelaDetalheVaga(
                 }
             }
         }
-        if (estado.ehConflitoHorario) {
+        if (estado.ehConflitoHorario && viewModel.consumirNavegacaoParaConflito()) {
             aoNavegarParaConflito?.invoke(estado.vaga)
         }
-        if (estado.ehVagaPreenchida) {
+        if (estado.ehVagaPreenchida && viewModel.consumirNavegacaoParaVagaPreenchida()) {
             aoNavegarParaVagaPreenchida?.invoke(estado.vaga)
         }
-        if (estado.ehVagaEncerrada) {
+        if (estado.ehVagaEncerrada && viewModel.consumirNavegacaoParaVagaEncerrada()) {
             aoNavegarParaVagaEncerrada?.invoke(estado.vaga)
         }
         if (estado.ehContaSuspensa && viewModel.consumirNavegacaoParaContaSuspensa()) {
