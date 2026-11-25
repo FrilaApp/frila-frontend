@@ -23,11 +23,22 @@ describe("pessoas da casa: convidar", () => {
 
   it("gera o convite e devolve o link com o token no fragmento (#), nunca na query", async () => {
     api.POST.mockResolvedValue(ok({ convite_id: "c1", token: TOKEN, expira_em: "2026-11-24T08:00:00Z" }));
-    const retorno = await convidar(argumentos("/casa/membros", { casa: CASA, email: "pessoa@example.com", papel: "operador" }));
+    const retorno = await convidar(argumentos("/casa/membros", { casa: CASA, email: "  pessoa@example.com  ", papel: "operador" }));
     expect(api.POST).toHaveBeenCalledWith("/rpc/convidar_membro", expect.objectContaining({ body: { estabelecimento_id: CASA, email: "pessoa@example.com", papel: "operador" } }));
     if (!("link" in retorno)) throw new Error("esperava o link");
     expect(retorno.link).toBe(`https://frilabr.com/app/convite#${TOKEN}`);
     expect(retorno.ate).toMatch(/\d{2}\/\d{2}/);
+    expect(retorno.email).toBe("pessoa@example.com");
+    expect(retorno.papel).toBe("operador");
+  });
+
+  it("sem validade na resposta, o convite ainda retorna sem quebrar e sem prazo", async () => {
+    api.POST.mockResolvedValue(ok({ convite_id: "c1", token: TOKEN, expira_em: "" }));
+    const retorno = await convidar(argumentos("/casa/membros", { casa: CASA, email: "admin@example.com", papel: "administrador" }));
+    if (!("link" in retorno)) throw new Error("esperava o link");
+    expect(retorno.ate).toBe("");
+    expect(retorno.email).toBe("admin@example.com");
+    expect(retorno.papel).toBe("administrador");
   });
 
   it("e-mail ou papel ruim não chegam ao servidor; as recusas viram texto", async () => {
