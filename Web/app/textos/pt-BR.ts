@@ -105,6 +105,7 @@ export const textos = {
     trocarEmail: "Usar outro e-mail",
     reenviar: "Mandar outro código",
     voltarAoLogin: "Voltar para o login com senha",
+    entrarComGoogle: "Entrar com o Google",
     termos: "Ao entrar, você concorda com os Termos de Uso e a Política de Privacidade do Frila.",
     linkDosTermos: "Termos de Uso",
     linkDaPrivacidade: "Política de Privacidade",
@@ -120,6 +121,8 @@ export const textos = {
       desafio_ja_usado: "Este código já foi utilizado. Entre novamente para continuar.",
       limite: "Muitas tentativas. Espere um minuto e tente de novo.",
       indisponivel: "Não deu para falar com o servidor. Tente de novo em instantes.",
+      google_falhou: "Não deu para entrar com o Google. Tente de novo ou use seu e-mail e senha.",
+      google_cancelado: "A entrada com o Google foi cancelada.",
     },
   },
   criarConta: {
