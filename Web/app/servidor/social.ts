@@ -218,7 +218,7 @@ export async function concluirEntradaSocial(
     });
   }
   if (context?.get(contextoDaSessao)) {
-    return redirecionarSocial(provedor, `${BASE}/`, { limparCookie: true, seguro });
+    return redirecionarSocial(provedor, "/", { limparCookie: true, seguro });
   }
 
   const url = new URL(request.url);
@@ -236,19 +236,19 @@ export async function concluirEntradaSocial(
     const motivo = classificarErroCallbackSocial(provedor, erroCallback, erroCodigo, erroDescricao);
     // Callback com erro sem correspondência de `tx` (ex.: link forjado) NÃO apaga transação ativa.
     const limparCookie = (presente && transacao === null) || txCorresponde;
-    return redirecionarSocial(provedor, `${BASE}/entrar?erro=${motivo}`, { limparCookie, seguro });
+    return redirecionarSocial(provedor, `/entrar?erro=${motivo}`, { limparCookie, seguro });
   }
 
   const codigo = url.searchParams.get("code");
   if (!ehCodigoOauthValido(codigo)) {
-    return redirecionarSocial(provedor, `${BASE}/entrar?erro=${provedor}_recusado`, {
+    return redirecionarSocial(provedor, `/entrar?erro=${provedor}_recusado`, {
       limparCookie: presente && transacao === null,
       seguro,
     });
   }
 
   if (!transacao) {
-    return redirecionarSocial(provedor, `${BASE}/entrar?erro=${provedor}_recusado`, {
+    return redirecionarSocial(provedor, `/entrar?erro=${provedor}_recusado`, {
       limparCookie: presente,
       seguro,
     });
@@ -256,7 +256,7 @@ export async function concluirEntradaSocial(
 
   // Correlação obrigatória no retorno com `code`: rejeita tx ausente ou divergente sem apagar cookie legítimo.
   if (!txCorresponde) {
-    return redirecionarSocial(provedor, `${BASE}/entrar?erro=${provedor}_recusado`, {
+    return redirecionarSocial(provedor, `/entrar?erro=${provedor}_recusado`, {
       limparCookie: false,
       seguro,
     });
@@ -264,7 +264,7 @@ export async function concluirEntradaSocial(
 
   const auth = authDesteAmbiente();
   if (!auth) {
-    return redirecionarSocial(provedor, `${BASE}/entrar?erro=indisponivel`, { limparCookie: false, seguro });
+    return redirecionarSocial(provedor, "/entrar?erro=indisponivel", { limparCookie: false, seguro });
   }
 
   const troca = await auth.concluirLoginSocialPkce({
@@ -277,12 +277,12 @@ export async function concluirEntradaSocial(
   if (!troca.ok) {
     // Em indisponibilidade transitória mantém cookie; em recusa definitiva consome/limpa.
     const limparCookie = troca.motivo !== "indisponivel";
-    return redirecionarSocial(provedor, `${BASE}/entrar?erro=${troca.motivo}`, { limparCookie, seguro });
+    return redirecionarSocial(provedor, `/entrar?erro=${troca.motivo}`, { limparCookie, seguro });
   }
 
   const precisaDefinirSenha =
     troca.precisaDefinirSenha || lerClaimsDoToken(troca.sessao.access_token).precisaDefinirSenha;
-  const destino = precisaDefinirSenha ? `${BASE}/definir-senha?origem=pendente` : `${BASE}/`;
+  const destino = precisaDefinirSenha ? "/definir-senha?origem=pendente" : "/";
   return redirecionarSocial(provedor, destino, {
     limparCookie: true,
     seguro,

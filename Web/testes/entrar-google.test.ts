@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { contextoDaSessao } from "../app/contexto";
 import Entrar, { loader as entrarLoader } from "../app/rotas/entrar";
+import { loader as appleInicioLoader } from "../app/rotas/entrar-apple";
 import { loader as appleRetornoLoader } from "../app/rotas/entrar-apple-retorno";
 import { loader as inicioLoader } from "../app/rotas/entrar-google";
 import { loader as retornoLoader } from "../app/rotas/entrar-google-retorno";
@@ -183,19 +184,19 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
         },
       },
     ]);
-    expect(res.headers.get("Location")).toBe("/app/");
+    expect(res.headers.get("Location")).toBe("/");
     const cookies = res.headers.getSetCookie();
     expect(cookies.find((c) => c.startsWith(`__Host-frila-acesso=${SESSAO.access_token};`))).toBeTruthy();
     expect(cookies.find((c) => c.startsWith("__Host-frila-renovacao=renovacao-sintetica;"))).toBeTruthy();
     expect(cookies.find((c) => c.startsWith("__Host-frila-google=;"))).toContain("Max-Age=0");
   });
 
-  it("B-116: redireciona para /app/definir-senha?origem=pendente quando precisa_definir_senha=true", async () => {
+  it("B-116: redireciona para /definir-senha?origem=pendente quando precisa_definir_senha=true", async () => {
     const { cookiePar, correlacao } = await comecar();
     mundo.resposta = () => Response.json({ sessao: SESSAO, provedor: "google", precisa_definir_senha: true });
 
     const res = await voltar(`?code=${CODIGO}&tx=${correlacao}`, { cookie: cookiePar });
-    expect(res.headers.get("Location")).toBe("/app/definir-senha?origem=pendente");
+    expect(res.headers.get("Location")).toBe("/definir-senha?origem=pendente");
   });
 
   it("negativo cross-provider: cookie da Apple não completa Google e cookie do Google não completa Apple", async () => {
@@ -205,7 +206,7 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
     // Cookie Apple enviado no callback Google
     const cookieApple = `__Host-frila-apple=${TX_ID}.${"a".repeat(43)}.${correlacao}`;
     const resNoGoogle = await voltar(`?code=${CODIGO}&tx=${correlacao}`, { cookie: cookieApple });
-    expect(resNoGoogle.headers.get("Location")).toBe("/app/entrar?erro=google_recusado");
+    expect(resNoGoogle.headers.get("Location")).toBe("/entrar?erro=google_recusado");
     expect(resNoGoogle.headers.get("Set-Cookie")).toBeNull();
     expect(mundo.pedidos).toEqual([]);
 
@@ -217,7 +218,7 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
         }),
       ),
     );
-    expect(resNoApple.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
+    expect(resNoApple.headers.get("Location")).toBe("/entrar?erro=apple_recusado");
     expect(resNoApple.headers.get("Set-Cookie")).toBeNull();
     expect(mundo.pedidos).toEqual([]);
   });
@@ -227,12 +228,12 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
     mundo.pedidos = [];
 
     const semTx = await voltar(`?code=${CODIGO}`, { cookie: cookiePar });
-    expect(semTx.headers.get("Location")).toBe("/app/entrar?erro=google_recusado");
+    expect(semTx.headers.get("Location")).toBe("/entrar?erro=google_recusado");
     expect(semTx.headers.get("Set-Cookie")).toBeNull();
     expect(mundo.pedidos).toEqual([]);
 
     const txDivergente = await voltar(`?code=${CODIGO}&tx=tx-forjado-1234567890`, { cookie: cookiePar });
-    expect(txDivergente.headers.get("Location")).toBe("/app/entrar?erro=google_recusado");
+    expect(txDivergente.headers.get("Location")).toBe("/entrar?erro=google_recusado");
     expect(txDivergente.headers.get("Set-Cookie")).toBeNull();
     expect(mundo.pedidos).toEqual([]);
   });
@@ -242,11 +243,11 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
     mundo.pedidos = [];
 
     const forjado = await voltar(`?error=access_denied`, { cookie: cookiePar });
-    expect(forjado.headers.get("Location")).toBe("/app/entrar?erro=google_cancelado");
+    expect(forjado.headers.get("Location")).toBe("/entrar?erro=google_cancelado");
     expect(forjado.headers.get("Set-Cookie")).toBeNull();
 
     const legitimo = await voltar(`?error=access_denied&tx=${correlacao}`, { cookie: cookiePar });
-    expect(legitimo.headers.get("Location")).toBe("/app/entrar?erro=google_cancelado");
+    expect(legitimo.headers.get("Location")).toBe("/entrar?erro=google_cancelado");
     expect(legitimo.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-google=;"))).toBe(true);
   });
 
@@ -254,13 +255,13 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
     const { cookiePar, correlacao } = await comecar();
     mundo.resposta = () => Response.json({ code: "conflito_identidade" }, { status: 409 });
     const res409 = await voltar(`?code=${CODIGO}&tx=${correlacao}`, { cookie: cookiePar });
-    expect(res409.headers.get("Location")).toBe("/app/entrar?erro=conflito_identidade");
+    expect(res409.headers.get("Location")).toBe("/entrar?erro=conflito_identidade");
     expect(res409.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-google=;"))).toBe(true);
     expect(res409.headers.getSetCookie().filter((c) => c.includes("frila-acesso"))).toEqual([]);
 
     mundo.resposta = () => Response.json({ code: "transacao_expirada" }, { status: 410 });
     const res410 = await voltar(`?code=${CODIGO}&tx=${correlacao}`, { cookie: cookiePar });
-    expect(res410.headers.get("Location")).toBe("/app/entrar?erro=google_recusado");
+    expect(res410.headers.get("Location")).toBe("/entrar?erro=google_recusado");
     expect(res410.headers.getSetCookie().some((c) => c.startsWith("__Host-frila-google=;"))).toBe(true);
   });
 
@@ -268,15 +269,15 @@ describe("retorno do Entrar com Google (autenticar-social + correlação)", () =
     const { cookiePar, correlacao } = await comecar();
     mundo.resposta = () => Response.json({ msg: `detalhe técnico ${EMAIL}` }, { status: 503 });
     const res503 = await voltar(`?code=${CODIGO}&tx=${correlacao}`, { cookie: cookiePar });
-    expect(res503.headers.get("Location")).toBe("/app/entrar?erro=indisponivel");
+    expect(res503.headers.get("Location")).toBe("/entrar?erro=indisponivel");
     expect(res503.headers.get("Set-Cookie")).toBeNull();
   });
 
-  it("quem já tem sessão vai para /app/ sem trocar o code", async () => {
+  it("quem já tem sessão vai para / sem trocar o code", async () => {
     const { cookiePar, correlacao } = await comecar();
     mundo.pedidos = [];
     const res = await voltar(`?code=${CODIGO}&tx=${correlacao}`, { cookie: cookiePar, comSessao: true });
-    expect(res.headers.get("Location")).toBe("/app/");
+    expect(res.headers.get("Location")).toBe("/");
     expect(mundo.pedidos).toEqual([]);
   });
 
@@ -361,5 +362,101 @@ describe("botão na tela de entrada e auth/wrangler", () => {
     expect(config.env?.producao?.vars).toBeDefined();
     expect(Object.keys(config.env?.producao?.vars ?? {})).not.toContain("GOOGLE_ENTRAR");
     expect(Object.keys(config.env?.producao?.vars ?? {})).not.toContain("APPLE_ENTRAR");
+  });
+});
+
+describe("regressão basename='/app': pedido real pelo roteador não duplica /app/app/", () => {
+  function criarRoteadorComBasename() {
+    return createStaticHandler(
+      [
+        { id: "entrar-google", path: "entrar/google", loader: inicioLoader },
+        { id: "entrar-google-retorno", path: "entrar/google/retorno", loader: retornoLoader },
+        { id: "entrar-apple", path: "entrar/apple", loader: appleInicioLoader },
+        { id: "entrar-apple-retorno", path: "entrar/apple/retorno", loader: appleRetornoLoader },
+      ],
+      { basename: "/app" },
+    );
+  }
+
+  async function requisitar(caminhoComApp: string, opcoes: { cookie?: string } = {}): Promise<Response> {
+    const handler = criarRoteadorComBasename();
+    const res = await handler.query(
+      new Request(`https://frilabr.com${caminhoComApp}`, {
+        headers: opcoes.cookie ? { Cookie: opcoes.cookie } : {},
+      }),
+    );
+    expect(res).toBeInstanceOf(Response);
+    return res as Response;
+  }
+
+  it("reproduz e previne 302 /app/app/entrar em Google e Apple sem cookie / erro / correlação", async () => {
+    const gSemCookie = await requisitar("/app/entrar/google/retorno?tx=teste");
+    expect(gSemCookie.status).toBe(302);
+    expect(gSemCookie.headers.get("Location")).toBe("/app/entrar?erro=google_recusado");
+    expect(gSemCookie.headers.get("Location")).not.toContain("/app/app/");
+
+    const aSemCookie = await requisitar("/app/entrar/apple/retorno?tx=teste");
+    expect(aSemCookie.status).toBe(302);
+    expect(aSemCookie.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
+    expect(aSemCookie.headers.get("Location")).not.toContain("/app/app/");
+
+    const gCancelado = await requisitar("/app/entrar/google/retorno?error=access_denied&tx=teste");
+    expect(gCancelado.status).toBe(302);
+    expect(gCancelado.headers.get("Location")).toBe("/app/entrar?erro=google_cancelado");
+  });
+
+  it("Google e Apple iniciar + concluir (sucesso, definir-senha, 409, 503 e tx divergente) mantêm Location único /app/ e redirectTo externo intacto", async () => {
+    for (const provedor of ["google", "apple"] as const) {
+      mundo.resposta = () =>
+        Response.json({
+          transacao_id: TX_ID,
+          url_autorizacao: `${SUPABASE}/auth/v1/authorize?provider=${provedor}&code_challenge_method=s256`,
+          expira_em: "2026-11-26T21:10:00Z",
+        });
+      const inicio = await requisitar(`/app/entrar/${provedor}`);
+      expect(inicio.status).toBe(302);
+      expect(inicio.headers.get("Location")).toContain(`provider=${provedor}`);
+      const pedidoInicio = mundo.pedidos.at(-1)?.corpo as { redirect_to?: string } | undefined;
+      expect(pedidoInicio?.redirect_to).toMatch(new RegExp(`^https://frilabr\\.com/app/entrar/${provedor}/retorno\\?tx=`));
+
+      const cookieBruto = inicio.headers.getSetCookie()[0] ?? "";
+      const cookiePar = cookieBruto.split(";")[0] ?? "";
+      const transacao = lerCookieTransacaoSocial(
+        provedor,
+        new Request(RETORNO, { headers: { Cookie: cookiePar } }),
+        true,
+      ).transacao;
+      expect(transacao).not.toBeNull();
+      const tx = transacao?.correlacao ?? "";
+
+      // Sucesso padrão -> /app/
+      mundo.resposta = () => Response.json({ sessao: SESSAO, provedor, precisa_definir_senha: false });
+      const resOk = await requisitar(`/app/entrar/${provedor}/retorno?code=${CODIGO}&tx=${tx}`, { cookie: cookiePar });
+      expect(resOk.status).toBe(302);
+      expect(resOk.headers.get("Location")).toBe("/app");
+
+      // Sucesso com precisa_definir_senha=true -> /app/definir-senha?origem=pendente
+      mundo.resposta = () => Response.json({ sessao: SESSAO, provedor, precisa_definir_senha: true });
+      const resSenha = await requisitar(`/app/entrar/${provedor}/retorno?code=${CODIGO}&tx=${tx}`, { cookie: cookiePar });
+      expect(resSenha.status).toBe(302);
+      expect(resSenha.headers.get("Location")).toBe("/app/definir-senha?origem=pendente");
+
+      // Correlação divergente -> /app/entrar?erro=<provedor>_recusado
+      const resTxErrado = await requisitar(`/app/entrar/${provedor}/retorno?code=${CODIGO}&tx=divergente`, { cookie: cookiePar });
+      expect(resTxErrado.status).toBe(302);
+      expect(resTxErrado.headers.get("Location")).toBe(`/app/entrar?erro=${provedor}_recusado`);
+
+      // Conflito 409 -> /app/entrar?erro=conflito_identidade
+      mundo.resposta = () => Response.json({ code: "conflito_identidade" }, { status: 409 });
+      const res409 = await requisitar(`/app/entrar/${provedor}/retorno?code=${CODIGO}&tx=${tx}`, { cookie: cookiePar });
+      expect(res409.status).toBe(302);
+      expect(res409.headers.get("Location")).toBe("/app/entrar?erro=conflito_identidade");
+
+      // Rede / indisponível 503 -> /app/entrar?erro=indisponivel
+      mundo.resposta = () => Response.json({ msg: "indisponivel" }, { status: 503 });
+      const res503 = await requisitar(`/app/entrar/${provedor}/retorno?code=${CODIGO}&tx=${tx}`, { cookie: cookiePar });
+      expect(res503.status).toBe(302);
+      expect(res503.headers.get("Location")).toBe("/app/entrar?erro=indisponivel");
+    }
   });
 });
