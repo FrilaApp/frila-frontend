@@ -18,19 +18,44 @@ import kotlinx.coroutines.launch
 /** Só o código: 64 caracteres hexadecimais, nada mais. */
 private val SO_O_CODIGO = Regex("^[0-9a-fA-F]{64}$")
 
-/** O link do convite inteiro: `https://<web>/.../convite#<64 hex>`, e nada depois do código. */
-private val LINK_DO_CONVITE = Regex("^https://[^\\s/#?]+(?:/[^\\s#?]*)?/convite#([0-9a-fA-F]{64})$")
+/**
+ * Hosts oficiais da web do Frila (mesma fonte de `android/app/.../OrigemDaWeb.kt`, que este módulo não enxerga).
+ */
+private val HOSTS_DO_CONVITE = setOf(
+    "frilabr.com",
+    "frila-web-dev.frilabr.workers.dev",
+)
+
+/** Ocorrências de URL no texto (delimitadas por início/espaço para não recortar token no meio de palavra). */
+private val URL_NO_TEXTO = Regex("""(?:^|\s)(https?://\S+)""", RegexOption.IGNORE_CASE)
+
+/** O link oficial do convite: `https://<host oficial>/app/convite#<64 hex>`, nada depois do código. */
+private val LINK_DO_CONVITE = Regex("""^https://([^/\s?#]+)/app/convite#([0-9a-fA-F]{64})$""")
 
 /**
- * Tira o token do que a pessoa colou. Vale **só** (a) o link do convite inteiro, `.../convite#<token>`, ou (b) só o
- * código de 64 hex, depois de aparar os espaços das pontas. Qualquer outra coisa devolve `null` e não chega ao servidor:
- * texto com mais caracteres em volta, código no miolo de um identificador maior, hex de outro tamanho e mais de um código
- * (o app nunca escolhe um em silêncio). O token sai em minúsculas, como a web.
+ * Tira o token do que a pessoa colou. Vale:
+ * (a) só o código de 64 hex, após aparar espaços das pontas; ou
+ * (b) o link do convite sozinho ou dentro de um texto (ex.: mensagem inteira do convite), desde que haja
+ *     EXATAMENTE UM link de convite no texto, com esquema `https`, host oficial ([HOSTS_DO_CONVITE]),
+ *     caminho exato `/app/convite` e fragmento de 64 hex.
+ * Se houver 0 ou 2+ links de convite (mesmo repetido ou inválido), devolve `null` sem escolher em silêncio.
+ * O token sai em minúsculas, como na web.
  */
 fun extrairTokenDoConvite(texto: String): String? {
     val colado = texto.trim()
     if (SO_O_CODIGO.matches(colado)) return colado.lowercase()
-    return LINK_DO_CONVITE.matchEntire(colado)?.groupValues?.get(1)?.lowercase()
+
+    var tokenUnico: String? = null
+    for (ocorrencia in URL_NO_TEXTO.findAll(colado)) {
+        val url = ocorrencia.groupValues[1]
+        if (!url.contains("convite#", ignoreCase = true)) continue
+        val partes = LINK_DO_CONVITE.matchEntire(url) ?: return null
+        val host = partes.groupValues[1].lowercase()
+        if (host !in HOSTS_DO_CONVITE) return null
+        if (tokenUnico != null) return null
+        tokenUnico = partes.groupValues[2].lowercase()
+    }
+    return tokenUnico
 }
 
 data class EstadoTenhoUmConvite(

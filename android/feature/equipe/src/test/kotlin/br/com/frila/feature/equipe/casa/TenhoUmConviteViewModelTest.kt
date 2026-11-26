@@ -66,16 +66,44 @@ class TenhoUmConviteViewModelTest {
     }
 
     @Test
-    fun `dois codigos diferentes nao escolhem um em silencio`() {
+    fun `dois links ou dois codigos nao escolhem um em silencio`() {
         val outro = "ab".repeat(32)
+        val link1 = "https://frilabr.com/app/convite#$token"
+        val link2 = "https://frilabr.com/app/convite#$outro"
         assertNull(extrairTokenDoConvite("$token $outro"))
         assertNull(extrairTokenDoConvite("$token\n$outro"))
-        assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token https://frilabr.com/app/convite#$outro"))
+        assertNull(extrairTokenDoConvite("$link1 $link2"))
+        assertNull(extrairTokenDoConvite("$link1\n$link1"))
+        assertNull(extrairTokenDoConvite("$link1 https://outro.com/app/convite#$outro"))
+        assertNull(extrairTokenDoConvite("$link1 http://frilabr.com/app/convite#$outro"))
     }
 
     @Test
-    fun `texto com mais caracteres em volta do link ou do codigo nao e convite`() {
-        assertNull(extrairTokenDoConvite("Convite: https://frilabr.com/app/convite#$token\nValido por 7 dias."))
+    fun `extrai o token da mensagem inteira do convite, com e sem prazo, e de link no meio do texto`() {
+        val linkProd = "https://frilabr.com/app/convite#$token"
+        val linkDev = "https://frila-web-dev.frilabr.workers.dev/app/convite#${token.uppercase()}"
+        val msgComPrazo = TextosEquipeDaCasa.mensagemDoConvite(
+            casa = "Bistrô Ipê",
+            papel = PapelMembro.OPERADOR,
+            email = "ana@frilabr.com",
+            prazo = "18/11/2026 12:00",
+            link = linkProd,
+        )
+        val msgSemPrazo = TextosEquipeDaCasa.mensagemDoConvite(
+            casa = "Bistrô Ipê",
+            papel = PapelMembro.ADMINISTRADOR,
+            email = "ana@frilabr.com",
+            prazo = null,
+            link = linkDev,
+        )
+        assertEquals(token, extrairTokenDoConvite(msgComPrazo))
+        assertEquals(token, extrairTokenDoConvite(msgSemPrazo))
+        assertEquals(token, extrairTokenDoConvite("Convite: $linkProd\nValido por 7 dias."))
+        assertEquals(token, extrairTokenDoConvite("Olha o convite $linkDev para entrar hoje"))
+    }
+
+    @Test
+    fun `texto invalido com caracteres colados no token ou no codigo nao e convite`() {
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#${token}zz"))
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token&x=1"))
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token#outro"))
@@ -84,7 +112,14 @@ class TenhoUmConviteViewModelTest {
     }
 
     @Test
-    fun `link que nao e de convite nao vale mesmo com 64 hex no fim`() {
+    fun `link de outro dominio, host parecido, caminho diferente ou http sem s nao vale`() {
+        assertNull(extrairTokenDoConvite("https://outro.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com.exemplo.org/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://exemplofrilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/outra#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/convite#$token"))
+        assertNull(extrairTokenDoConvite("http://frilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("http://frila-web-dev.frilabr.workers.dev/app/convite#$token"))
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/entrar#$token"))
         assertNull(extrairTokenDoConvite("frilabr.com/app/convite#$token"))
         assertNull(extrairTokenDoConvite("javascript:alert(1)//convite#$token"))
@@ -112,7 +147,13 @@ class TenhoUmConviteViewModelTest {
     @Test
     fun `texto ambiguo ou recortado nunca chega a rede`() = runBlocking {
         val outro = "ab".repeat(32)
-        listOf("zz${token}zz", "$token $outro", "Convite: https://frilabr.com/app/convite#$token ate sexta").forEach { colado ->
+        listOf(
+            "zz${token}zz",
+            "$token $outro",
+            "https://frilabr.com/app/convite#${token}zz",
+            "https://frilabr.com/app/convite#$token https://frilabr.com/app/convite#$token",
+            "https://outro.com/app/convite#$token",
+        ).forEach { colado ->
             val tokens = mutableListOf<String>()
             val vm = viewModel(tokens)
             vm.editar(colado)
@@ -121,6 +162,25 @@ class TenhoUmConviteViewModelTest {
             assertEquals(TextosEquipeDaCasa.CONVITE_INVALIDO, vm.estado.value.erro, colado)
             assertNull(vm.estado.value.aceito)
         }
+    }
+
+    @Test
+    fun `mensagem inteira do convite colada aceita pelo ViewModel com o token certo`() = runBlocking {
+        val tokens = mutableListOf<String>()
+        val vm = viewModel(tokens)
+        val mensagem = TextosEquipeDaCasa.mensagemDoConvite(
+            casa = "Bistrô Ipê",
+            papel = PapelMembro.OPERADOR,
+            email = "ana@frilabr.com",
+            prazo = "18/11/2026 12:00",
+            link = "https://frilabr.com/app/convite#$token",
+        )
+        vm.editar(mensagem)
+
+        vm.aceitarConvite().join()
+
+        assertEquals(listOf(token), tokens)
+        assertTrue(vm.estado.value.aceito != null)
     }
 
     @Test
