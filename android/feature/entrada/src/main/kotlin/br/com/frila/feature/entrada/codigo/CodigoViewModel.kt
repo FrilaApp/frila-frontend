@@ -61,6 +61,15 @@ class CodigoViewModel(
     private val _estado = MutableStateFlow(EstadoCodigo(email = email.trim().lowercase()))
     val estado: StateFlow<EstadoCodigo> = _estado.asStateFlow()
 
+    /**
+     * `true` quando o código desta tela é enviado por e-mail (criação, recuperação ou entrada normal).
+     * Contas de demonstração (`ModoCodigo.DEMO` ou e-mail demo em `ENTRADA`) usam código fixo sem
+     * envio por e-mail e não devem expor `emailOTPCode` ao serviço de preenchimento automático.
+     */
+    val usaCodigoPorEmail: Boolean
+        get() = modo != ModoCodigo.DEMO &&
+            !(modo == ModoCodigo.ENTRADA && DemonstracaoContas.ehContaDeDemonstracao(_estado.value.email, permitirDominioDeTeste))
+
     /** Quando o último código foi pedido (primeiro envio ou reenvio): separa "incorreto" de "expirado". */
     private var codigoPedidoEm: Instant = agora()
     private var esperaParaReenviarAtual: Duration = ESPERA_PARA_REENVIAR

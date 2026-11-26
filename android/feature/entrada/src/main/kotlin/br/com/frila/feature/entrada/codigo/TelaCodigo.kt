@@ -48,6 +48,13 @@ import br.com.frila.core.designsystem.tema.FrilaTipo
 import kotlinx.coroutines.delay
 
 /**
+ * Hint oficial do AndroidX Autofill (`HintConstants.AUTOFILL_HINT_EMAIL_OTP = "emailOTPCode"`,
+ * autofill 1.2.0+) para código de uso único recebido por e-mail. Usa o construtor [ContentType]
+ * do Compose UI sem adicionar dependência extra.
+ */
+internal val CONTEUDO_CODIGO_OTP_EMAIL: ContentType = ContentType("emailOTPCode")
+
+/**
  * T6b (os seis números enviados por e-mail), no desenho do Fabrício e sem ilustração: título, o e-mail de
  * destino e o link "Trocar e-mail", o código nas caixas e, ancorado embaixo, a mensagem da vez (erro, ou o
  * aviso do reenvio) junto do único botão laranja. "Reenviar código" é um link; nos primeiros 60 s ele vira a
@@ -142,11 +149,17 @@ fun TelaCodigo(
                     comErro = estado.erro != null,
                     // Como na main: o campo continua editável enquanto confirma (o ViewModel já impede o envio em dobro).
                     rotulo = "Código de 6 dígitos",
-                    // Dica de preenchimento automático (Compose 1.8): o teclado e o serviço de preenchimento do aparelho
-                    // podem sugerir o código recebido, sem a pessoa copiar.
+                    // Dica de preenchimento automático (Compose 1.8 / AndroidX HintConstants):
+                    // expõe `emailOTPCode` apenas quando o código vem por e-mail (nunca no modo demo).
                     modifier = Modifier
                         .focusRequester(focoDoCodigo)
-                        .semantics { contentType = ContentType.SmsOtpCode },
+                        .then(
+                            if (viewModel.usaCodigoPorEmail) {
+                                Modifier.semantics { contentType = CONTEUDO_CODIGO_OTP_EMAIL }
+                            } else {
+                                Modifier
+                            },
+                        ),
                 )
             }
 
