@@ -47,4 +47,17 @@ class ValorEmReaisTest {
         assertEquals("180,50", ValorEmReais.texto(18050))
         assertEquals("1,05", ValorEmReais.texto(105))
     }
+
+    @Test
+    fun `aviso devolve mensagem certa fora da faixa e null dentro, zero ou negativo`() {
+        assertEquals(TextosChamadaCasa.VALOR_MUITO_BAIXO, ValorEmReais.aviso(1))
+        assertEquals(TextosChamadaCasa.VALOR_MUITO_BAIXO, ValorEmReais.aviso(4999))
+        assertNull(ValorEmReais.aviso(5000))
+        assertNull(ValorEmReais.aviso(200000))
+        assertEquals(TextosChamadaCasa.VALOR_MUITO_ALTO, ValorEmReais.aviso(200001))
+        assertEquals(TextosChamadaCasa.VALOR_MUITO_ALTO, ValorEmReais.aviso(100000000))
+        assertNull(ValorEmReais.aviso(0))
+        assertNull(ValorEmReais.aviso(-100))
+        assertNull(ValorEmReais.aviso(null))
+    }
 }

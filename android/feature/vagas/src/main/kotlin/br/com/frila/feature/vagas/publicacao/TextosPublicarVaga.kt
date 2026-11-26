@@ -32,6 +32,8 @@ object TextosPublicarVaga {
     const val LOCAL_AJUDA = "Vem preenchido com o endereço do estabelecimento. O check-in dos profissionais usa o ponto do cadastro."
     const val VALOR = "Valor por pessoa (R$)"
     const val VALOR_AJUDA = "O profissional recebe o valor integral. Ex.: 140 ou 140,50."
+    const val VALOR_MUITO_BAIXO = "Valor muito baixo."
+    const val VALOR_MUITO_ALTO = "Valor muito alto, confira."
     const val POSICOES = "Posições"
     const val POSICOES_AJUDA = "De 1 a 200."
     const val MAIS_UMA_POSICAO = "Mais uma posição"

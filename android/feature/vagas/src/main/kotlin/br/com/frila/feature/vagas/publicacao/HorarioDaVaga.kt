@@ -1,5 +1,7 @@
 package br.com.frila.feature.vagas.publicacao
 
+import br.com.frila.core.dominio.regra.AvisoValorDiaria
+import br.com.frila.core.dominio.regra.ReferenciaValorDiaria
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -74,4 +76,11 @@ fun lerCentavos(texto: String): Long? {
     if (fracao.length > 2 || !fracao.all(Char::isDigit)) return null
     val centavos = inteiro.toLong() * 100 + fracao.padEnd(2, '0').toLong()
     return centavos.takeIf { it > 0 }
+}
+
+/** Aviso não bloqueante para valor fora da faixa de referência (B-124); `null` dentro da faixa, vazio ou <= 0. */
+fun avisoValorDiaria(centavos: Long?): String? = when (ReferenciaValorDiaria.avaliar(centavos)) {
+    AvisoValorDiaria.MUITO_BAIXO -> TextosPublicarVaga.VALOR_MUITO_BAIXO
+    AvisoValorDiaria.MUITO_ALTO -> TextosPublicarVaga.VALOR_MUITO_ALTO
+    null -> null
 }
