@@ -1,6 +1,10 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createRoutesStub } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { action, loader } from "../app/rotas/contratante/publicar-escala";
+import PublicarEscala, { action, loader } from "../app/rotas/contratante/publicar-escala";
+import { ITEM_VAZIO } from "../app/servidor/contratante/escala";
 import { textos } from "../app/textos/pt-BR";
 import { argumentos, CASA, CHAVE, GARCOM, ok, recusa, redirecionamento } from "./contratante-apoio";
 
@@ -160,5 +164,55 @@ describe("escala em lote: action", () => {
     const retorno = await action(argumentos("/painel/escala", formulario));
     expect(retorno.publicada === undefined && retorno.erros.geral).toBe(tv.semPermissao);
     expect(api.POST).not.toHaveBeenCalled();
+  });
+});
+
+describe("escala em lote: aviso não bloqueante da faixa (B-124)", () => {
+  const renderizar = (valoresDosItens: string[]) => {
+    const loaderData = {
+      casa: { id: CASA, nome: "Bar Sintético", endereco: "Rua Sintética, 1", regiao: "Plano Piloto" },
+      grupos: [],
+      funcoesIndisponiveis: false,
+      chave: CHAVE,
+    };
+    const actionData = {
+      erros: { evento: {}, itens: valoresDosItens.map(() => ({})) },
+      valores: { nome: "Formatura Sintética", data: "2026-12-12", itens: valoresDosItens.map((valor) => ({ ...ITEM_VAZIO, valor })) },
+      chave: CHAVE,
+      versao: "v1",
+    };
+    const Stub = createRoutesStub([{ path: "/painel/escala", Component: () => createElement(PublicarEscala, { loaderData, actionData } as never) }]);
+    return renderToStaticMarkup(createElement(Stub, { initialEntries: ["/painel/escala"] }));
+  };
+
+  it("publica escala com valor positivo fora da faixa e mantém recusa para 0 e negativo", async () => {
+    for (const valor of ["0,01", "2000,01", "1000000"]) {
+      api.POST.mockReset();
+      servidor(casaOk);
+      const retorno = await action(argumentos("/painel/escala", { ...formulario, ...item(0, { ...garcom, valor }) }));
+      expect(retorno).toEqual({ publicada: 2, casaId: CASA });
+      expect(api.POST).toHaveBeenCalledTimes(1);
+    }
+    for (const valor of ["0", "-10"]) {
+      api.POST.mockReset();
+      servidor(casaOk);
+      const retorno = await action(argumentos("/painel/escala", { ...formulario, ...item(0, { ...garcom, valor }) }));
+      expect(retorno.publicada === undefined && retorno.erros.itens[0]).toEqual({ valor: tv.valor });
+      expect(api.POST).not.toHaveBeenCalled();
+    }
+  });
+
+  it("mostra o aviso exato nos itens fora da faixa sem desabilitar o botão de publicar escala", () => {
+    const htmlComAviso = renderizar(["49,99", "2000,01"]);
+    expect(htmlComAviso).toContain("Valor muito baixo.");
+    expect(htmlComAviso).toContain("Valor muito alto, confira.");
+    const botoes = [...htmlComAviso.matchAll(new RegExp(`<button[^>]*value="publicar"[^>]*>${textos.contratanteEscala.publicar}</button>`, "g"))].map((m) => m[0]);
+    const botaoVisivel = botoes.find((b) => !b.includes("sr-only"));
+    expect(botaoVisivel).toBeTruthy();
+    expect(botaoVisivel).not.toMatch(/\sdisabled(?=[\s=>])/);
+
+    const htmlSemAviso = renderizar(["50", "2000", "", "0"]);
+    expect(htmlSemAviso).not.toContain("Valor muito baixo.");
+    expect(htmlSemAviso).not.toContain("Valor muito alto, confira.");
   });
 });
