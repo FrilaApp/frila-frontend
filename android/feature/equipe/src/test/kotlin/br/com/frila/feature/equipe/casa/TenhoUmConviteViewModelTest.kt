@@ -125,6 +125,38 @@ class TenhoUmConviteViewModelTest {
         assertNull(extrairTokenDoConvite("javascript:alert(1)//convite#$token"))
     }
 
+    @Test
+    fun `aceita host e hex em maiusculas, tab ou quebra de linha antes do link e link da Politica antes`() {
+        val link = "https://frilabr.com/app/convite#$token"
+        assertEquals(token, extrairTokenDoConvite("https://FRILABR.COM/app/convite#${token.uppercase()}"))
+        assertEquals(token, extrairTokenDoConvite("oi\t$link"))
+        assertEquals(token, extrairTokenDoConvite("oi\n$link"))
+        assertEquals(token, extrairTokenDoConvite("https://frilabr.com/privacidade\n$link"))
+        assertEquals(token, extrairTokenDoConvite("\u00A0$link\u00A0"))
+    }
+
+    @Test
+    fun `recusa porta, userinfo, ponto no host, IDN cirilico, barras extras, barra codificada e outro caminho com convite`() {
+        assertNull(extrairTokenDoConvite("https://frilabr.com:443/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com@evil.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com./app/convite#$token"))
+        // 'а' cirílico (U+0430) no lugar de 'a' latino: ataque homógrafo.
+        assertNull(extrairTokenDoConvite("https://fril\u0430br.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app%2Fconvite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com//app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app//convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/outro/convite#$token"))
+    }
+
+    @Test
+    fun `recusa a mais aceitavel para esquema maiusculo, pontuacao colada e NBSP no meio do texto`() {
+        val link = "https://frilabr.com/app/convite#$token"
+        assertNull(extrairTokenDoConvite("HTTPS://frilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("($link)"))
+        assertNull(extrairTokenDoConvite("$link."))
+        assertNull(extrairTokenDoConvite("oi\u00A0$link"))
+    }
+
     // ---- Aceitar ----
 
     @Test
