@@ -1,5 +1,6 @@
 package br.com.frila.app
 
+import android.util.Log
 import br.com.frila.core.rede.FilaDeAcoes
 import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
@@ -52,10 +53,16 @@ internal class CacheVagasDaSessao(
         }
         diretorioDosAvatares?.listFiles { arquivo ->
             arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO
-        }?.forEach { if (!it.delete()) falha = IOException("Não foi possível apagar o avatar") }
+        }?.forEach {
+            // Como a telemetria: um avatar que não saiu é registrado, não lançado. A exceção abortava o Sair (CoordenadorDeLogout) e,
+            // na troca de conta, vinha antes de gravar a sessão nova e impedia o login.
+            if (!it.delete()) Log.w(TAG, "Não foi possível apagar o avatar da conta anterior")
+        }
         falha?.let { throw it }
     }
 }
+
+private const val TAG = "FrilaSessao"
 
 /** Um único ponto cobre logout, outra conta, exclusão e sessão que se tornou inválida. */
 internal class SessaoComCacheVagas(
