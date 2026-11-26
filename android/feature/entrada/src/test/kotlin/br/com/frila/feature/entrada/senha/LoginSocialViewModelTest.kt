@@ -221,4 +221,48 @@ class LoginSocialViewModelTest {
         assertNull(armazenamento.obterSessao())
         assertEquals(EntradaComSenhaViewModel.MENSAGEM_CONFLITO_IDENTIDADE, vm.estado.value.erro)
     }
+
+    @Test
+    fun `transacao OAuth sobrevive a recreation do ViewModel e morte simulada de processo`() = runBlocking {
+        val armazenamentoSessao = ArmazenamentoDeSessaoEmMemoria()
+        val armazenamentoOAuth = br.com.frila.core.seguranca.ArmazenamentoOAuthPendenteEmMemoria()
+        val servicoAuth = ServicoAutenticacao(clienteAutenticarSocialMock())
+
+        // 1ª Instância do ViewModel inicia a transação antes da morte do processo / recreation
+        val vmInstancia1 = EntradaComSenhaViewModel(
+            servicoAutenticacao = servicoAuth,
+            armazenamentoDeSessao = armazenamentoSessao,
+            escopo = escopo(),
+            mostrarLoginSocial = true,
+            armazenamentoOAuthPendente = armazenamentoOAuth,
+        )
+
+        var urlAuth: String? = null
+        vmInstancia1.iniciarEntradaSocial(ProvedorSocial.GOOGLE) { urlAuth = it }?.join()
+        assertNotNull(urlAuth)
+        val redirectTo = extrairParam(urlAuth!!, "redirect_to")!!
+        val txLocal = extrairParam(redirectTo, "tx")!!
+
+        // Simula recreation da tela (onDispose chamado com limparOAuth = false na rotação/recreation)
+        vmInstancia1.cancelarTentativaAtual(limparOAuth = false)
+
+        // 2ª Instância do ViewModel criada após recreation / process death (nova instância de VM recebendo o mesmo armazenamento)
+        val vmInstancia2 = EntradaComSenhaViewModel(
+            servicoAutenticacao = servicoAuth,
+            armazenamentoDeSessao = armazenamentoSessao,
+            escopo = escopo(),
+            mostrarLoginSocial = true,
+            armazenamentoOAuthPendente = armazenamentoOAuth,
+        )
+
+        // Callback legítimo chega na nova instância do ViewModel e conclui com sucesso
+        vmInstancia2.aoReceberCallbackOAuth("frila-auth://auth/callback?code=cod-google-recreated&tx=$txLocal")?.join()
+
+        assertTrue(vmInstancia2.estado.value.autenticado)
+        assertNull(vmInstancia2.estado.value.erro)
+        assertEquals("ana@frila.test", armazenamentoSessao.obterSessao()?.email)
+
+        // Garante que a transação foi consumida e limpa no armazenamento persistido
+        assertNull(armazenamentoOAuth.obter())
+    }
 }

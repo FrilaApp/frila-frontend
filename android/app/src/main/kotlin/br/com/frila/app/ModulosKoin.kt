@@ -13,6 +13,7 @@ import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlyticsReal
 import br.com.frila.app.falhas.TelemetriaDeFalhas
 import br.com.frila.app.seguranca.ArmazenamentoDeDispositivoKeystore
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
+import br.com.frila.app.seguranca.ArmazenamentoOAuthPendenteKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
@@ -60,6 +61,8 @@ import br.com.frila.core.seguranca.ArmazenamentoDeDispositivo
 import br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendente
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendenteEmMemoria
 import br.com.frila.core.seguranca.LeitorDeAmbiente
 import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
 import br.com.frila.feature.conta.ContaSuspensaViewModel
@@ -162,6 +165,10 @@ val moduloSeguranca = module {
     single<ArmazenamentoDeDispositivo> {
         getOrNull<Context>()?.let(::ArmazenamentoDeDispositivoKeystore)
             ?: ArmazenamentoDeDispositivoEmMemoria()
+    }
+    single<ArmazenamentoOAuthPendente> {
+        getOrNull<Context>()?.let(::ArmazenamentoOAuthPendenteKeystore)
+            ?: ArmazenamentoOAuthPendenteEmMemoria()
     }
     /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
     single<LeitorDeAmbiente> {
@@ -362,6 +369,7 @@ val moduloFeatures = module {
             aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
             permitirDominioDeTeste = BuildConfig.DEBUG,
             mostrarLoginSocial = BuildConfig.DEBUG,
+            armazenamentoOAuthPendente = get(),
         )
     }
     viewModel { params ->

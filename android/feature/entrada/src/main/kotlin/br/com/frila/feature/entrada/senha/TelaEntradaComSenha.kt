@@ -91,7 +91,7 @@ fun TelaEntradaComSenha(
     }
 
     DisposableEffect(Unit) {
-        onDispose { viewModel.cancelarTentativaAtual() }
+        onDispose { viewModel.cancelarTentativaAtual(limparOAuth = false) }
     }
 
     // Conta de demonstração digitada (profissional ou contratante) segue para o modo demonstração, sem senha.

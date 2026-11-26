@@ -492,6 +492,15 @@ fun AppNavegacao(
     // dumpsys connectivity continuava mostrando os registros depois de +15s/+24s em background).
     val statusConectividade by monitorDeConectividade.status.collectAsStateWithLifecycle()
 
+    // P3: se um callback OAuth for recebido enquanto o app não está em Rotas.ENTRADA, descarta para não reter.
+    val callbackGlobal = callbackOAuthSocial?.collectAsStateWithLifecycle()?.value
+    val rotaNoTopo = padraoAtual
+    LaunchedEffect(callbackGlobal, rotaNoTopo) {
+        if (callbackGlobal != null && rotaNoTopo != null && rotaNoTopo != Rotas.ENTRADA) {
+            aoConsumirCallbackOAuthSocial()
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
     Box(
         modifier = Modifier
@@ -503,7 +512,11 @@ fun AppNavegacao(
         NavHost(navController = navController, startDestination = destinoInicial) {
             composable(Rotas.ENTRADA) {
                 val koin = getKoin()
-                val viewModelSenha: EntradaComSenhaViewModel? = remember(koin) { koin.getOrNull() }
+                val viewModelSenha: EntradaComSenhaViewModel? = if (koin.getOrNull<EntradaComSenhaViewModel>() != null) {
+                    koinViewModel<EntradaComSenhaViewModel>()
+                } else {
+                    null
+                }
                 LaunchedEffect(Unit) {
                     aoPronto?.invoke()
                 }

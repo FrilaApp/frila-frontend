@@ -63,23 +63,6 @@ object SegurancaOAuthSocial {
     fun ehCodigoValido(codigo: String?): Boolean =
         codigo != null && padraoCodigo.matches(codigo)
 
-    fun montarUrlAutorizacao(
-        baseSupabaseUrl: String,
-        provedor: ProvedorSocial,
-        redirectTo: String = URL_CALLBACK,
-        codeChallenge: String,
-        state: String,
-    ): String {
-        val base = baseSupabaseUrl.trimEnd('/')
-        val enc = { v: String -> URLEncoder.encode(v, Charsets.UTF_8.name()) }
-        return "$base/auth/v1/authorize" +
-            "?provider=${enc(provedor.valor)}" +
-            "&redirect_to=${enc(redirectTo)}" +
-            "&code_challenge=${enc(codeChallenge)}" +
-            "&code_challenge_method=s256" +
-            "&state=${enc(state)}"
-    }
-
     fun ehCallbackOAuthSocial(url: String?): Boolean {
         if (url.isNullOrBlank()) return false
         val uri = runCatching { URI(url) }.getOrNull() ?: return false
@@ -146,15 +129,35 @@ object SegurancaOAuthSocial {
             combinado.contains("already registered")
     }
 
+    private fun decodificarPercent(s: String): String {
+        val bytes = java.io.ByteArrayOutputStream()
+        var i = 0
+        while (i < s.length) {
+            val c = s[i]
+            if (c == '%' && i + 2 < s.length) {
+                val hex = s.substring(i + 1, i + 3)
+                val byteVal = hex.toIntOrNull(16)
+                if (byteVal != null) {
+                    bytes.write(byteVal)
+                    i += 3
+                    continue
+                }
+            }
+            bytes.write(c.code)
+            i++
+        }
+        return bytes.toByteArray().toString(Charsets.UTF_8)
+    }
+
     private fun parseQuery(rawQuery: String?): Map<String, String> {
         if (rawQuery.isNullOrBlank()) return emptyMap()
         val mapa = linkedMapOf<String, String>()
         for (par in rawQuery.split('&')) {
             if (par.isBlank()) continue
             val idx = par.indexOf('=')
-            val chave = URLDecoder.decode(if (idx >= 0) par.substring(0, idx) else par, Charsets.UTF_8.name())
-            val valor = if (idx >= 0) URLDecoder.decode(par.substring(idx + 1), Charsets.UTF_8.name()) else ""
-            mapa[chave] = valor
+            val chaveRaw = if (idx >= 0) par.substring(0, idx) else par
+            val valorRaw = if (idx >= 0) par.substring(idx + 1) else ""
+            mapa[decodificarPercent(chaveRaw)] = decodificarPercent(valorRaw)
         }
         return mapa
     }

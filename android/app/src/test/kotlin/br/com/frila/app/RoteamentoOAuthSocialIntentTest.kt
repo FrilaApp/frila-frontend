@@ -27,6 +27,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -34,12 +35,18 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.context.stopKoin
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RoteamentoOAuthSocialIntentTest {
+
+    @After
+    fun depois() {
+        runCatching { stopKoin() }
+    }
 
     private fun fakeJwt(email: String): String {
         val h = Base64.getUrlEncoder().withoutPadding().encodeToString("""{"alg":"HS256"}""".toByteArray())
@@ -124,5 +131,65 @@ class RoteamentoOAuthSocialIntentTest {
 
         assertTrue(vm.estado.value.autenticado)
         assertEquals("ana@frila.test", armazenamento.obterSessao()?.email)
+    }
+
+    @Test
+    fun `cold start com transacao valida persistida no armazenamento conclui sessao com sucesso`() = runBlocking {
+        val engine = MockEngine { request ->
+            val texto = (request.body as? OutgoingContent.ByteArrayContent)?.bytes()?.decodeToString().orEmpty()
+            val json = Json.parseToJsonElement(texto).jsonObject
+            if (json["fluxo"]?.jsonPrimitive?.content == "iniciar_pkce") {
+                val redirectTo = json["redirect_to"]?.jsonPrimitive?.content ?: SegurancaOAuthSocial.URL_CALLBACK
+                val url = "https://dev.supabase.co/auth/v1/authorize?provider=google&redirect_to=${java.net.URLEncoder.encode(redirectTo, "UTF-8")}&code_challenge_method=s256"
+                respond(
+                    content = """{"transacao_id":"33333333-3333-4333-8333-333333333333","url_autorizacao":"$url"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            } else {
+                respond(
+                    content = """{"sessao":{"access_token":"${fakeJwt("cold@frila.test")}","refresh_token":"ref-cold","token_type":"bearer","expires_in":3600},"provedor":"google","precisa_definir_senha":false}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val armazenamentoSessao = ArmazenamentoDeSessaoEmMemoria()
+        val armazenamentoOAuth = br.com.frila.core.seguranca.ArmazenamentoOAuthPendenteEmMemoria()
+        val servicoAuth = ServicoAutenticacao(ClienteSupabase("https://dev.supabase.co", "anon", engine = engine))
+
+        // Processo anterior: inicia transação e salva em armazenamento privado seguro
+        val vmAntes = EntradaComSenhaViewModel(
+            servicoAutenticacao = servicoAuth,
+            armazenamentoDeSessao = armazenamentoSessao,
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+            mostrarLoginSocial = true,
+            armazenamentoOAuthPendente = armazenamentoOAuth,
+        )
+        var urlAberta: String? = null
+        vmAntes.iniciarEntradaSocial(ProvedorSocial.GOOGLE) { urlAberta = it }?.join()
+        assertNotNull(urlAberta)
+        val tx = extrairParam(extrairParam(urlAberta!!, "redirect_to")!!, "tx")!!
+
+        // Simula morte de processo: vmAntes é destruído da memória
+        // Novo processo / Cold Start da Activity recebe o Intent
+        val coldIntent = Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/callback?code=cod-cold-123&tx=$tx"))
+        val callbackUrl = extrairCallbackOAuthSocialDoIntent(coldIntent)
+        assertNotNull(callbackUrl)
+
+        // Nova instância do ViewModel no novo processo recupera transação persistida e conclui
+        val vmNovoProcesso = EntradaComSenhaViewModel(
+            servicoAutenticacao = servicoAuth,
+            armazenamentoDeSessao = armazenamentoSessao,
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+            mostrarLoginSocial = true,
+            armazenamentoOAuthPendente = armazenamentoOAuth,
+        )
+
+        vmNovoProcesso.aoReceberCallbackOAuth(callbackUrl!!)?.join()
+
+        assertTrue(vmNovoProcesso.estado.value.autenticado)
+        assertEquals("cold@frila.test", armazenamentoSessao.obterSessao()?.email)
+        assertNull(armazenamentoOAuth.obter())
     }
 }

@@ -12,7 +12,11 @@ import br.com.frila.core.rede.SegurancaOAuthSocial
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.SessaoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendente
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendenteEmMemoria
+import br.com.frila.core.seguranca.ProvedorOAuthSocial
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.core.seguranca.TransacaoOAuthPendente
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -65,6 +69,7 @@ class EntradaComSenhaViewModel(
     private val permitirDominioDeTeste: Boolean = false,
     emailInicial: String = "",
     mostrarLoginSocial: Boolean = false,
+    private val armazenamentoOAuthPendente: ArmazenamentoOAuthPendente = ArmazenamentoOAuthPendenteEmMemoria(),
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -76,7 +81,6 @@ class EntradaComSenhaViewModel(
     private val sequenciaDeTentativa = AtomicLong(0L)
     private var tentativaAtual: Long = 0L
     private var pedido: Job? = null
-    private var oauthPendente: PedidoOAuthEmAndamento? = null
 
     fun aoMudarEmail(novoEmail: String) {
         _estado.update { it.copy(email = novoEmail, erro = null) }
@@ -94,18 +98,21 @@ class EntradaComSenhaViewModel(
         _estado.update { it.copy(desafioOtp = null) }
     }
 
-    fun cancelarTentativaAtual() {
+    fun cancelarTentativaAtual(limparOAuth: Boolean = true) {
         tentativaAtual = sequenciaDeTentativa.incrementAndGet()
         pedido?.cancel()
         pedido = null
-        oauthPendente = null
+        if (limparOAuth) {
+            armazenamentoOAuthPendente.limpar()
+        }
         _estado.update { it.copy(carregando = false) }
     }
 
     /**
      * Inicia o fluxo OAuth PKCE S256 (Google ou Apple) via `POST /functions/v1/autenticar-social`
      * (`fluxo = "iniciar_pkce"`, contrato 0.2.117), guardando `transacaoId`, `verifier` e `txLocal`
-     * em memória e entregando `url_autorizacao` para abertura via Custom Tabs / navegador do sistema.
+     * em armazenamento seguro isolado com TTL <= 10 min e entregando `url_autorizacao` para abertura
+     * via Custom Tabs / navegador do sistema.
      */
     fun iniciarEntradaSocial(
         provedor: ProvedorSocial,
@@ -128,11 +135,18 @@ class EntradaComSenhaViewModel(
                     redirectTo = redirectTo,
                 )
                 if (tentativaAtual != idTentativa) return@launch
-                oauthPendente = PedidoOAuthEmAndamento(
-                    provedor = provedor,
-                    transacaoId = inicio.transacaoId,
-                    verifier = verifier,
-                    txLocal = txLocal,
+                val provedorSocial = when (provedor) {
+                    ProvedorSocial.GOOGLE -> ProvedorOAuthSocial.GOOGLE
+                    ProvedorSocial.APPLE -> ProvedorOAuthSocial.APPLE
+                }
+                armazenamentoOAuthPendente.salvar(
+                    TransacaoOAuthPendente(
+                        provedor = provedorSocial,
+                        transacaoId = inicio.transacaoId,
+                        verifier = verifier,
+                        txLocal = txLocal,
+                        expiraEmMillis = System.currentTimeMillis() + TTL_OAUTH_MILLIS,
+                    ),
                 )
                 _estado.update { it.copy(carregando = false, erro = null) }
                 aoUrlPronta(inicio.urlAutorizacao)
@@ -158,16 +172,16 @@ class EntradaComSenhaViewModel(
 
     /**
      * Processa a URL de retorno (`frila-auth://auth/callback?...`) validando esquema, `tx` (P2) e PKCE.
-     * Callbacks forjados sem correspondência de `tx` (Ignorado) NÃO apagam `oauthPendente`.
+     * Callbacks forjados sem correspondência de `tx` (Ignorado) NÃO apagam `armazenamentoOAuthPendente`.
      * Caso contrário consome o pedido de uso único e conclui via `POST /functions/v1/autenticar-social`.
      */
     fun aoReceberCallbackOAuth(callbackUrl: String): Job? {
-        val pendente = oauthPendente ?: return null
+        val pendente = armazenamentoOAuthPendente.obter() ?: return null
         val analisado = SegurancaOAuthSocial.analisarCallback(callbackUrl, stateEsperado = pendente.txLocal)
         if (analisado is ResultadoCallbackOAuth.Ignorado) {
             return null
         }
-        oauthPendente = null
+        armazenamentoOAuthPendente.limpar()
 
         return when (analisado) {
             ResultadoCallbackOAuth.Ignorado -> null
@@ -189,8 +203,12 @@ class EntradaComSenhaViewModel(
                 _estado.update { it.copy(carregando = true, erro = null) }
                 escopoDeTrabalho.launch {
                     try {
+                        val provedorSocial = when (pendente.provedor) {
+                            ProvedorOAuthSocial.GOOGLE -> ProvedorSocial.GOOGLE
+                            ProvedorOAuthSocial.APPLE -> ProvedorSocial.APPLE
+                        }
                         val resposta = servicoAutenticacao.concluirLoginSocialPkce(
-                            provedor = pendente.provedor,
+                            provedor = provedorSocial,
                             transacaoId = pendente.transacaoId,
                             codigo = analisado.valor,
                             verifier = pendente.verifier,
@@ -331,6 +349,7 @@ class EntradaComSenhaViewModel(
     }
 
     companion object {
+        const val TTL_OAUTH_MILLIS = 600_000L // 10 minutos
         const val MENSAGEM_CREDENCIAIS_NEUTRA =
             "E-mail ou senha incorretos. Confira os dados ou defina uma senha para sua conta."
         const val MENSAGEM_CONFLITO_IDENTIDADE =
