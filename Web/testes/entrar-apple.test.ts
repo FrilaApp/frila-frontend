@@ -154,7 +154,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
       argsRota("/app/entrar/apple/retorno?error=access_denied", cookieAtivo) as never,
     );
     expect(resForjado.status).toBe(302);
-    expect(resForjado.headers.get("Location")).toBe("/app/entrar?erro=apple_cancelado");
+    expect(resForjado.headers.get("Location")).toBe("/entrar?erro=apple_cancelado");
     expect(resForjado.headers.get("Set-Cookie")).toBeNull();
     expect(authMock.concluirLoginSocialPkce).not.toHaveBeenCalled();
 
@@ -163,7 +163,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
       argsRota("/app/entrar/apple/retorno?code=codigo-valido-123", cookieAtivo) as never,
     );
     expect(resSemTx.status).toBe(302);
-    expect(resSemTx.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
+    expect(resSemTx.headers.get("Location")).toBe("/entrar?erro=apple_recusado");
     expect(resSemTx.headers.get("Set-Cookie")).toBeNull();
     expect(authMock.concluirLoginSocialPkce).not.toHaveBeenCalled();
 
@@ -171,7 +171,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
       argsRota("/app/entrar/apple/retorno?code=codigo-valido-123&tx=tx-errado-1234567890", cookieAtivo) as never,
     );
     expect(resTxDivergente.status).toBe(302);
-    expect(resTxDivergente.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
+    expect(resTxDivergente.headers.get("Location")).toBe("/entrar?erro=apple_recusado");
     expect(resTxDivergente.headers.get("Set-Cookie")).toBeNull();
 
     // Hit vazio sem código também preserva transação legítima em andamento
@@ -194,7 +194,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
       argsRota(`/app/entrar/apple/retorno?code=abc12345&tx=${CORRELACAO}`, "__Host-frila-apple=corrompido") as never,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
+    expect(res.headers.get("Location")).toBe("/entrar?erro=apple_recusado");
     expect(res.headers.get("Set-Cookie")).toContain("__Host-frila-apple=; Path=/; Max-Age=0");
     expect(authMock.concluirLoginSocialPkce).not.toHaveBeenCalled();
   });
@@ -210,7 +210,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
       ) as never,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("/app/entrar?erro=conflito_identidade");
+    expect(res.headers.get("Location")).toBe("/entrar?erro=conflito_identidade");
     const cookies = res.headers.getSetCookie();
     expect(cookies.some((c) => c.includes("__Host-frila-apple=; Path=/; Max-Age=0"))).toBe(true);
     expect(cookies.some((c) => c.includes("frila-acesso="))).toBe(false);
@@ -227,7 +227,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
       ) as never,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("/app/entrar?erro=indisponivel");
+    expect(res.headers.get("Location")).toBe("/entrar?erro=indisponivel");
     expect(res.headers.get("Set-Cookie")).toBeNull();
   });
 
@@ -249,7 +249,7 @@ describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlaç
         ) as never,
       );
       expect(res.status).toBe(302);
-      expect(res.headers.get("Location")).toBe("/app/");
+      expect(res.headers.get("Location")).toBe("/");
       expect(authMock.concluirLoginSocialPkce).toHaveBeenCalledWith(
         expect.objectContaining({
           provedor: "apple",
