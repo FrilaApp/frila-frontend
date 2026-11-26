@@ -153,8 +153,10 @@ public enum SegurancaOAuthSocial {
             return .failure(.provedorIndisponivel)
         }
 
-        guard let codigo = mapa["code"], codigo.count >= 4, codigo.count <= 512,
-              !codigo.contains(where: \.isWhitespace)
+        guard let codigo = mapa["code"],
+              codigo.count >= 4,
+              codigo.count <= 512,
+              codigo.unicodeScalars.allSatisfy({ $0.value >= 0x21 && $0.value <= 0x7e })
         else {
             return .failure(.callbackInvalido)
         }

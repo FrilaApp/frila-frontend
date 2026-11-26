@@ -1,8 +1,10 @@
+import AuthenticationServices
 import Foundation
 import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
 import Testing
+import UIKit
 
 @MainActor
 private final class ProvedorSocialDublê: ProvedorUIAutenticacaoSocial {
@@ -154,6 +156,30 @@ struct LoginSocialTests {
             url: URL(string: "frila-auth://auth/callback?error_code=identity_already_exists")!
         )
         #expect(conflito == .failure(.conflitoDeIdentidade))
+
+        let asciiVisivel = SegurancaOAuthSocial.extrairCodigoDoCallback(
+            url: URL(string: "frila-auth://auth/callback?code=cod!_~-123&tx=est-1")!,
+            stateEsperado: "est-1"
+        )
+        #expect(asciiVisivel == .success("cod!_~-123"))
+
+        let comControle = SegurancaOAuthSocial.extrairCodigoDoCallback(
+            url: URL(string: "frila-auth://auth/callback?code=cod%0A123&tx=est-1")!,
+            stateEsperado: "est-1"
+        )
+        #expect(comControle == .failure(.callbackInvalido))
+
+        let comDel = SegurancaOAuthSocial.extrairCodigoDoCallback(
+            url: URL(string: "frila-auth://auth/callback?code=cod%7F123&tx=est-1")!,
+            stateEsperado: "est-1"
+        )
+        #expect(comDel == .failure(.callbackInvalido))
+
+        let naoAscii = SegurancaOAuthSocial.extrairCodigoDoCallback(
+            url: URL(string: "frila-auth://auth/callback?code=cod%C3%A9123&tx=est-1")!,
+            stateEsperado: "est-1"
+        )
+        #expect(naoAscii == .failure(.callbackInvalido))
     }
 
     @Test("Apple envia SHA-256 do nonce ao provedor, troca nonce bruto na API e resolve conta existente")
@@ -427,6 +453,112 @@ struct LoginSocialTests {
         }
     }
 
+    @Test("AutenticadorSocialNativo falha seguro sem UIWindowScene ativa")
+    @MainActor
+    func falhaSeguroSemCenaAtiva() async {
+        let coordenador = AutenticadorSocialNativo(provedorJanela: { nil })
+        await #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try await coordenador.solicitarApple(nonceSha256: String(repeating: "a", count: 64))
+        }
+        await #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try await coordenador.abrirSessaoWebOAuth(
+                url: URL(string: "https://dev.frila.test/auth/v1/authorize")!,
+                esquemaCallback: SegurancaOAuthSocial.esquemaCallbackPadrao
+            )
+        }
+    }
+
+    @Test("AutenticadorSocialNativo: timeout e cancelamento sem delegate liberam estado para nova tentativa (Apple e Web)")
+    @MainActor
+    func timeoutECancelamentoSemDelegateLiberamNovaTentativa() async throws {
+        let janela = UIWindow()
+
+        // 1. Apple: API nunca retorna -> timeout em 40ms e nova tentativa funciona
+        var execucoesApple = 0
+        let coordenadorApple = AutenticadorSocialNativo(
+            prazoSistema: .milliseconds(40),
+            provedorJanela: { janela },
+            executorApple: { _, _ in
+                execucoesApple += 1
+                // Não dispara delegate na 1ª tentativa (simula sistema pendurado).
+            }
+        )
+        await #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try await coordenadorApple.solicitarApple(nonceSha256: String(repeating: "b", count: 64))
+        }
+        #expect(execucoesApple == 1)
+
+        // 2. Apple: cancelamento em voo sem delegate libera estado para nova tentativa
+        let tarefaAppleCancelada = Task { @MainActor in
+            try await coordenadorApple.solicitarApple(nonceSha256: String(repeating: "c", count: 64))
+        }
+        try await Task.sleep(for: .milliseconds(10))
+        tarefaAppleCancelada.cancel()
+        await #expect(throws: CancellationError.self) {
+            _ = try await tarefaAppleCancelada.value
+        }
+        #expect(execucoesApple == 2)
+
+        // Nova tentativa Apple após timeout + cancelamento consegue iniciar normalmente (não fica presa em guard).
+        await #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try await coordenadorApple.solicitarApple(nonceSha256: String(repeating: "d", count: 64))
+        }
+        #expect(execucoesApple == 3)
+
+        // 3. Web OAuth: callback nunca retorna -> timeout cancela sessão, libera estado e ignora callback tardio
+        var sessoesWeb: [SessaoWebDublê] = []
+        var callbacksWeb: [@Sendable (URL?, Error?) -> Void] = []
+        let coordenadorWeb = AutenticadorSocialNativo(
+            prazoSistema: .milliseconds(40),
+            provedorJanela: { janela },
+            executorWeb: { _, _, _, conclusao in
+                let sessao = SessaoWebDublê()
+                sessoesWeb.append(sessao)
+                callbacksWeb.append(conclusao)
+                return sessao
+            }
+        )
+        await #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try await coordenadorWeb.abrirSessaoWebOAuth(
+                url: URL(string: "https://dev.frila.test/auth/v1/authorize")!,
+                esquemaCallback: SegurancaOAuthSocial.esquemaCallbackPadrao
+            )
+        }
+        #expect(sessoesWeb.count == 1)
+        #expect(sessoesWeb[0].cancelada == true)
+
+        // Callback tardio da 1ª tentativa não deve quebrar nem interferir na 2ª tentativa.
+        callbacksWeb[0](URL(string: "frila-auth://auth/callback?code=tardio-1234")!, nil)
+
+        // 4. Web OAuth: cancelamento em voo sem callback cancela sessão e libera nova tentativa
+        let tarefaWebCancelada = Task { @MainActor in
+            try await coordenadorWeb.abrirSessaoWebOAuth(
+                url: URL(string: "https://dev.frila.test/auth/v1/authorize")!,
+                esquemaCallback: SegurancaOAuthSocial.esquemaCallbackPadrao
+            )
+        }
+        try await Task.sleep(for: .milliseconds(10))
+        tarefaWebCancelada.cancel()
+        await #expect(throws: CancellationError.self) {
+            _ = try await tarefaWebCancelada.value
+        }
+        #expect(sessoesWeb.count == 2)
+        #expect(sessoesWeb[1].cancelada == true)
+
+        // 5. 3ª tentativa Web OAuth conclui com sucesso após timeout e cancelamento anteriores
+        let tarefaWebOk = Task { @MainActor in
+            try await coordenadorWeb.abrirSessaoWebOAuth(
+                url: URL(string: "https://dev.frila.test/auth/v1/authorize")!,
+                esquemaCallback: SegurancaOAuthSocial.esquemaCallbackPadrao
+            )
+        }
+        try await Task.sleep(for: .milliseconds(10))
+        #expect(callbacksWeb.count == 3)
+        callbacksWeb[2](URL(string: "frila-auth://auth/callback?code=novo-ok-1234&tx=abc")!, nil)
+        let urlRetornada = try await tarefaWebOk.value
+        #expect(urlRetornada.absoluteString == "frila-auth://auth/callback?code=novo-ok-1234&tx=abc")
+    }
+
     private static func fakeJwt(email: String) -> String {
         let header = Data(#"{"alg":"HS256","typ":"JWT"}"#.utf8).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
@@ -488,4 +620,19 @@ private final class UrlProtocolSocialStub: URLProtocol, @unchecked Sendable {
     }
 
     override func stopLoading() {}
+}
+
+@MainActor
+private final class SessaoWebDublê: SessaoWebOAuthControlavel {
+    var iniciada = false
+    var cancelada = false
+
+    func start() -> Bool {
+        iniciada = true
+        return true
+    }
+
+    func cancel() {
+        cancelada = true
+    }
 }

@@ -85,7 +85,8 @@ extension SupabaseApiCliente {
     ) async throws -> ResultadoEntradaSocial {
         guard !transacaoID.isEmpty,
               SegurancaOAuthSocial.ehVerifierPKCEValido(verifier),
-              codigo.count >= 4, codigo.count <= 512
+              codigo.count >= 4, codigo.count <= 512,
+              codigo.unicodeScalars.allSatisfy({ $0.value >= 0x21 && $0.value <= 0x7e })
         else {
             throw ErroEntradaSocial.callbackInvalido
         }
