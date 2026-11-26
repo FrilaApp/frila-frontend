@@ -334,7 +334,106 @@ struct LoginSocialTests {
                 codeChallenge: String(repeating: "d", count: 43)
             )
         }
+
+        // 4. URLError de transporte -> .rede e NÃO grava sessão indevida
+        let armazenamentoTransporte = ArmazenamentoDeSessaoEmMemoria()
+        let clienteTransporte = SupabaseApiCliente(
+            url: URL(string: "https://dev.frila.test")!,
+            chavePublicavel: "anon-test-key",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: sessao,
+            armazenamentoDaSessao: armazenamentoTransporte
+        )
+        UrlProtocolSocialStub.manipulador = { _ in
+            throw URLError(.notConnectedToInternet)
+        }
+        await #expect(throws: ErroEntradaSocial.rede) {
+            _ = try await clienteTransporte.concluirLoginSocialPKCE(
+                provedor: .google,
+                transacaoID: "33333333-3333-4333-8333-333333333333",
+                codigo: "cod-1234",
+                verifier: String(repeating: "v", count: 43)
+            )
+        }
+        #expect(await clienteTransporte.possuiSessao() == false)
+
+        // 5. concluirLoginSocialPKCE 200: serializa pkce, aplica sessão no armazenamento e devolve identidade
+        let jwtFake = Self.fakeJwt(email: "ana.social@frila.test")
+        let armazenamentoOk = ArmazenamentoDeSessaoEmMemoria()
+        let clienteOk = SupabaseApiCliente(
+            url: URL(string: "https://dev.frila.test")!,
+            chavePublicavel: "anon-test-key",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: sessao,
+            armazenamentoDaSessao: armazenamentoOk
+        )
+        UrlProtocolSocialStub.manipulador = { req in
+            if req.url?.path == "/functions/v1/autenticar-social" {
+                if let data = Self.lerBody(req) {
+                    corpoRecebido = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+                }
+                let json = """
+                {"sessao":{"access_token":"\(jwtFake)","refresh_token":"ref-pkce-ok","token_type":"bearer","expires_in":3600,"user":{"id":"11111111-1111-4111-8111-111111111111","email":"ana.social@frila.test"}},"provedor":"google","precisa_definir_senha":false}
+                """
+                let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+                return (resp, Data(json.utf8))
+            }
+            // Chamada GET /auth/v1/user disparada internamente por cliente.auth.setSession
+            let userJson = """
+            {"id":"11111111-1111-4111-8111-111111111111","aud":"authenticated","role":"authenticated","email":"ana.social@frila.test","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","app_metadata":{},"user_metadata":{}}
+            """
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, Data(userJson.utf8))
+        }
+        let resultadoPkce = try await clienteOk.concluirLoginSocialPKCE(
+            provedor: .google,
+            transacaoID: "33333333-3333-4333-8333-333333333333",
+            codigo: "cod-ok-123",
+            verifier: String(repeating: "v", count: 43)
+        )
+        #expect(corpoRecebido?["fluxo"] as? String == "pkce")
+        #expect(corpoRecebido?["provedor"] as? String == "google")
+        #expect(corpoRecebido?["plataforma"] as? String == "ios")
+        #expect(corpoRecebido?["transacao_id"] as? String == "33333333-3333-4333-8333-333333333333")
+        #expect(resultadoPkce.provedor == .google)
+        #expect(resultadoPkce.email == "ana.social@frila.test")
+        #expect(resultadoPkce.precisaDefinirSenha == false)
+        #expect(await clienteOk.possuiSessao() == true)
+
         UrlProtocolSocialStub.manipulador = nil
+    }
+
+    @Test("AutenticadorSocialNativo com Task previamente cancelada lança CancellationError sem apresentar sheet")
+    @MainActor
+    func cancelamentoPrevioNoCoordenador() async {
+        let coordenador = AutenticadorSocialNativo()
+        let tarefaApple = Task { @MainActor in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await coordenador.solicitarApple(nonceSha256: String(repeating: "a", count: 64))
+        }
+        await #expect(throws: CancellationError.self) {
+            _ = try await tarefaApple.value
+        }
+
+        let tarefaWeb = Task { @MainActor in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await coordenador.abrirSessaoWebOAuth(
+                url: URL(string: "https://dev.frila.test/auth/v1/authorize")!,
+                esquemaCallback: SegurancaOAuthSocial.esquemaCallbackPadrao
+            )
+        }
+        await #expect(throws: CancellationError.self) {
+            _ = try await tarefaWeb.value
+        }
+    }
+
+    private static func fakeJwt(email: String) -> String {
+        let header = Data(#"{"alg":"HS256","typ":"JWT"}"#.utf8).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        let exp = Int(Date().timeIntervalSince1970) + 3600
+        let payload = Data(#"{"sub":"11111111-1111-4111-8111-111111111111","email":"\#(email)","exp":\#(exp)}"#.utf8).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        return "\(header).\(payload).sig"
     }
 
     private static func lerBody(_ req: URLRequest) -> Data? {

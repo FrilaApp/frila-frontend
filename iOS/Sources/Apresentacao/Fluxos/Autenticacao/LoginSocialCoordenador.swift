@@ -34,6 +34,7 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
     }
 
     public func solicitarApple(nonceSha256: String) async throws -> CredencialAppleNativa {
+        try Task.checkCancellation()
         // Guarda contra chamadas simultâneas: nunca sobrescreve uma continuation ativa.
         guard continuacaoApple == nil else {
             throw ErroEntradaSocial.provedorIndisponivel
@@ -43,9 +44,20 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
         request.requestedScopes = [.fullName, .email]
         request.nonce = nonceSha256
 
+        let flagCancelada = CancelamentoMainActor()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuacao in
+                // Revalida cancelamento no MainActor antes de apresentar: nunca abre sheet de tarefa cancelada.
+                if Task.isCancelled || flagCancelada.cancelada {
+                    continuacao.resume(throwing: CancellationError())
+                    return
+                }
                 self.continuacaoApple = continuacao
+                if Task.isCancelled || flagCancelada.cancelada {
+                    self.continuacaoApple = nil
+                    continuacao.resume(throwing: CancellationError())
+                    return
+                }
                 let controller = ASAuthorizationController(authorizationRequests: [request])
                 controller.delegate = self
                 controller.presentationContextProvider = self
@@ -53,6 +65,7 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
             }
         } onCancel: {
             Task { @MainActor [weak self] in
+                flagCancelada.cancelada = true
                 guard let self, let pendente = self.continuacaoApple else { return }
                 self.continuacaoApple = nil
                 pendente.resume(throwing: CancellationError())
@@ -61,10 +74,12 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
     }
 
     public func abrirSessaoWebOAuth(url: URL, esquemaCallback: String) async throws -> URL {
+        try Task.checkCancellation()
         // Guarda contra chamadas simultâneas: impede sobreposição de sessões OAuth.
         guard sessaoWebAtual == nil else {
             throw ErroEntradaSocial.provedorIndisponivel
         }
+        let flagCancelada = CancelamentoMainActor()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuacao in
                 var encerrada = false
@@ -73,6 +88,12 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
                     encerrada = true
                     self.sessaoWebAtual = nil
                     continuacao.resume(with: resultado)
+                }
+
+                // Revalida cancelamento no MainActor antes de criar/apresentar ASWebAuthenticationSession.
+                if Task.isCancelled || flagCancelada.cancelada {
+                    finalizar(.failure(CancellationError()))
+                    return
                 }
 
                 let sessao = ASWebAuthenticationSession(
@@ -101,12 +122,20 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
                 sessao.presentationContextProvider = self
                 sessao.prefersEphemeralWebBrowserSession = false
                 self.sessaoWebAtual = sessao
+
+                // Segunda checagem após registrar sessaoWebAtual: se cancelada no intervalo, aborta sem abrir sheet.
+                if Task.isCancelled || flagCancelada.cancelada {
+                    sessao.cancel()
+                    finalizar(.failure(CancellationError()))
+                    return
+                }
                 if !sessao.start() {
                     finalizar(.failure(ErroEntradaSocial.provedorIndisponivel))
                 }
             }
         } onCancel: {
             Task { @MainActor [weak self] in
+                flagCancelada.cancelada = true
                 self?.sessaoWebAtual?.cancel()
             }
         }
@@ -121,6 +150,11 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
         }
         return cenas.first?.windows.first ?? UIWindow()
     }
+}
+
+@MainActor
+private final class CancelamentoMainActor {
+    var cancelada = false
 }
 
 extension AutenticadorSocialNativo: ASAuthorizationControllerPresentationContextProviding {
