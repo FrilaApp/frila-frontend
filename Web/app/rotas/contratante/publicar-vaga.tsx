@@ -126,6 +126,11 @@ export default function PublicarVaga({ loaderData, actionData }: Route.Component
   const valores = actionData?.valores ?? VAZIO;
   const { casa, grupos } = loaderData;
   const [valorDigitado, setValorDigitado] = useState(valores.valor);
+  const [valorAnterior, setValorAnterior] = useState(valores.valor);
+  if (valores.valor !== valorAnterior) {
+    setValorAnterior(valores.valor);
+    setValorDigitado(valores.valor);
+  }
   const avisoValor = avisoDoValor(valorDigitado);
 
   return (
