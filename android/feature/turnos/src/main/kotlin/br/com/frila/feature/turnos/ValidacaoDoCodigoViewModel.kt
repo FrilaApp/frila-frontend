@@ -131,25 +131,19 @@ class ValidacaoDoCodigoViewModel(
     }
 
     internal companion object {
-        // Estes códigos ainda não estão em `CodigoErroAPI` (13 faltam; L3-4): vale o `codigoOriginal` cru do servidor.
-        private const val CODIGO_INVALIDO = "codigo_invalido"
-        private const val CODIGO_BLOQUEADO = "codigo_bloqueado"
-        private const val FORA_DO_RAIO = "fora_do_raio"
-        private const val SEM_LOCALIZACAO = "sem_localizacao"
-        private const val RECURSO_DESLIGADO = "recurso_desligado"
         private const val TEMPORARIO = "temporario"
 
         fun resultadoPara(erro: Throwable): ResultadoDaValidacao {
             val api = erro as? ErroDaApi ?: return ResultadoDaValidacao.RespostaPerdida
-            val recursoDesligado = api.codigoOriginal == RECURSO_DESLIGADO ||
-                (api.codigo == CodigoErroAPI.SEM_PERMISSAO && api.detalhes == RECURSO_DESLIGADO)
+            val recursoDesligado = api.codigo == CodigoErroAPI.RECURSO_DESLIGADO ||
+                (api.codigo == CodigoErroAPI.SEM_PERMISSAO && api.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO)
             return when {
                 recursoDesligado -> ResultadoDaValidacao.RecursoDesligado
-                api.codigoOriginal == FORA_DO_RAIO -> ResultadoDaValidacao.ForaDoRaio
-                api.codigoOriginal == SEM_LOCALIZACAO -> ResultadoDaValidacao.SemLocalizacao
-                api.codigoOriginal == CODIGO_INVALIDO -> ResultadoDaValidacao.Invalido
+                api.codigo == CodigoErroAPI.FORA_DO_RAIO -> ResultadoDaValidacao.ForaDoRaio
+                api.codigo == CodigoErroAPI.SEM_LOCALIZACAO -> ResultadoDaValidacao.SemLocalizacao
+                api.codigo == CodigoErroAPI.CODIGO_INVALIDO -> ResultadoDaValidacao.Invalido
                 // Sem `details` conhecido vale o mais restritivo, para o app não prometer tentativa que o servidor não dá.
-                api.codigoOriginal == CODIGO_BLOQUEADO -> ResultadoDaValidacao.Bloqueado(
+                api.codigo == CodigoErroAPI.CODIGO_BLOQUEADO -> ResultadoDaValidacao.Bloqueado(
                     if (api.detalhes == TEMPORARIO) BloqueioDoCodigo.TEMPORARIO else BloqueioDoCodigo.ENCERRADO,
                 )
                 api.codigo == CodigoErroAPI.CHECKIN_JA_CONFIRMADO -> ResultadoDaValidacao.JaVerificado

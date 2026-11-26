@@ -178,12 +178,16 @@ class CodigoDaCasaViewModelTest {
         val casos = listOf(
             Triple(erro(CodigoErroAPI.CHECKIN_PENDENTE, "checkin_pendente"), EstadoDoCodigoDaCasa.SemCodigoParaEsteCheckin, "checkin_pendente"),
             Triple(erro(CodigoErroAPI.FORA_DA_JANELA, "fora_da_janela"), EstadoDoCodigoDaCasa.ForaDaJanela, "fora_da_janela"),
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_bloqueado", "encerrado"), EstadoDoCodigoDaCasa.Encerrado, "bloqueado encerrado"),
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "codigo_bloqueado", "encerrado"), EstadoDoCodigoDaCasa.Encerrado, "bloqueado encerrado"),
             // Sem `details` conhecido vale o mais restritivo, como o iOS.
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_bloqueado"), EstadoDoCodigoDaCasa.Encerrado, "bloqueado sem details"),
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "codigo_bloqueado"), EstadoDoCodigoDaCasa.Encerrado, "bloqueado sem details"),
             Triple(erro(CodigoErroAPI.CHECKIN_JA_CONFIRMADO, "checkin_ja_confirmado"), EstadoDoCodigoDaCasa.JaVerificado, "ja confirmado"),
             Triple(erro(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "recurso_desligado"), EstadoDoCodigoDaCasa.Indisponivel, "recurso desligado"),
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "recurso_desligado"), EstadoDoCodigoDaCasa.Indisponivel, "recurso desligado solto"),
+            Triple(erro(CodigoErroAPI.RECURSO_DESLIGADO, "recurso_desligado"), EstadoDoCodigoDaCasa.Indisponivel, "recurso desligado solto"),
+            // O que vale é o `codigo` do domínio, não o texto cru do servidor: sem comparar string solta.
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "qualquer"), EstadoDoCodigoDaCasa.Encerrado, "so o codigo: bloqueado"),
+            Triple(erro(CodigoErroAPI.RECURSO_DESLIGADO, "qualquer"), EstadoDoCodigoDaCasa.Indisponivel, "so o codigo: recurso desligado"),
+            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_bloqueado"), EstadoDoCodigoDaCasa.Falhou, "texto cru sem o codigo nao vale"),
             Triple(erro(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao"), EstadoDoCodigoDaCasa.Falhou, "sem permissao"),
             Triple(erro(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "conta_suspensa"), EstadoDoCodigoDaCasa.Falhou, "conta suspensa"),
             Triple(erro(CodigoErroAPI.NAO_ENCONTRADO, "nao_encontrado"), EstadoDoCodigoDaCasa.Falhou, "nao encontrado"),

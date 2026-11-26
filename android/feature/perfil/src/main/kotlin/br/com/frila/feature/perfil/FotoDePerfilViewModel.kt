@@ -108,9 +108,9 @@ class FotoDePerfilViewModel(
             val chave = "${erro.codigoOriginal} ${erro.detalhes.orEmpty()}".lowercase()
             return when {
                 erro.codigo == CodigoErroAPI.SEM_REDE -> TextosDaFotoDePerfil.ERRO_SEM_REDE
-                "recurso_desligado" in chave -> TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO
+                erro.codigo == CodigoErroAPI.RECURSO_DESLIGADO || erro.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO -> TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO
                 erro.codigo == CodigoErroAPI.CONTA_SUSPENSA || "conta_suspensa" in chave -> TextosDaFotoDePerfil.ERRO_CONTA_SUSPENSA
-                "midia_invalida" in chave -> TextosDaFotoDePerfil.ERRO_RECUSADA_PELO_SERVIDOR
+                erro.codigo == CodigoErroAPI.MIDIA_INVALIDA -> TextosDaFotoDePerfil.ERRO_RECUSADA_PELO_SERVIDOR
                 else -> TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA
             }
         }

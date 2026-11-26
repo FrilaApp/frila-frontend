@@ -141,20 +141,15 @@ class CodigoDaCasaViewModel(
             return "%d:%02d".format(total / 60, total % 60)
         }
 
-        // Os códigos `codigo_bloqueado` e `recurso_desligado` ainda não estão em `CodigoErroAPI` (13 faltam; L3-4):
-        // vale o `codigoOriginal`, que o cliente guarda como veio do servidor.
-        private const val CODIGO_BLOQUEADO = "codigo_bloqueado"
-        private const val RECURSO_DESLIGADO = "recurso_desligado"
-
         internal fun estadoPara(erro: Throwable): EstadoDoCodigoDaCasa {
             val api = erro as? ErroDaApi ?: return EstadoDoCodigoDaCasa.Falhou
-            val recursoDesligado = api.codigoOriginal == RECURSO_DESLIGADO ||
-                (api.codigo == CodigoErroAPI.SEM_PERMISSAO && api.detalhes == RECURSO_DESLIGADO)
+            val recursoDesligado = api.codigo == CodigoErroAPI.RECURSO_DESLIGADO ||
+                (api.codigo == CodigoErroAPI.SEM_PERMISSAO && api.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO)
             return when {
                 recursoDesligado -> EstadoDoCodigoDaCasa.Indisponivel
                 api.codigo == CodigoErroAPI.CHECKIN_PENDENTE -> EstadoDoCodigoDaCasa.SemCodigoParaEsteCheckin
                 // Qualquer bloqueio: sem `details` conhecido vale o mais restritivo (`encerrado`), como o iOS.
-                api.codigoOriginal == CODIGO_BLOQUEADO -> EstadoDoCodigoDaCasa.Encerrado
+                api.codigo == CodigoErroAPI.CODIGO_BLOQUEADO -> EstadoDoCodigoDaCasa.Encerrado
                 api.codigo == CodigoErroAPI.CHECKIN_JA_CONFIRMADO -> EstadoDoCodigoDaCasa.JaVerificado
                 api.codigo == CodigoErroAPI.FORA_DA_JANELA -> EstadoDoCodigoDaCasa.ForaDaJanela
                 else -> EstadoDoCodigoDaCasa.Falhou
