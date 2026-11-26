@@ -1,17 +1,25 @@
 /**
  * Fluxo OAuth PKCE de "Continuar com a Apple" no servidor (Worker), sem SDK no navegador.
+ * Integrado à Edge Function `POST /functions/v1/autenticar-social` (contrato 0.2.117).
  *
  * Segurança:
- * - PKCE S256 com verifier CSPRNG de 32 bytes (43 chars base64url) guardado em cookie HttpOnly/SameSite=Lax/10 min.
- * - O cookie é apagado em TODOS os desfechos do retorno (sucesso, cancelamento, erro ou conflito).
+ * - PKCE S256 com verifier CSPRNG de 32 bytes (43 chars base64url) + `transacao_id` server-side
+ *   guardados em cookie HttpOnly/SameSite=Lax/10 min (`__Host-frila-apple`).
+ * - Correlação contra callback forjado (P2): callbacks `?error=...` ou sem `code` que não
+ *   comprovam correspondência de `tx === transacaoId` NÃO apagam o cookie da transação ativa.
  * - Nenhum token, código OAuth ou verifier é registrado em log.
- * - Identidade existente é preservada: conflitos de identidade são recusados explicitamente sem auto-vínculo por e-mail.
  */
 
 const NOME_COOKIE_APPLE = "frila-apple";
 const VIDA_COOKIE_APPLE_S = 60 * 10;
+const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REGEX_VERIFIER_PKCE = /^[A-Za-z0-9_-]{43,128}$/;
 const REGEX_CODIGO_OAUTH = /^[\x21-\x7e]{4,512}$/;
+
+export type TransacaoAppleCookie = {
+  transacaoId: string;
+  verifier: string;
+};
 
 function bytesParaBase64Url(bytes: Uint8Array): string {
   let binario = "";
@@ -42,37 +50,37 @@ function nomeCookieApple(seguro: boolean): string {
   return `${seguro ? "__Host-" : ""}${NOME_COOKIE_APPLE}`;
 }
 
-export function cookieVerifierApple(verifier: string | null, seguro: boolean): string {
+export function cookieTransacaoApple(transacao: TransacaoAppleCookie | null, seguro: boolean): string {
   const nome = nomeCookieApple(seguro);
-  const maxAge = verifier ? VIDA_COOKIE_APPLE_S : 0;
-  const partes = [`${nome}=${verifier ?? ""}`, "Path=/", `Max-Age=${maxAge}`, "HttpOnly", "SameSite=Lax"];
+  const valor = transacao ? `${transacao.transacaoId}.${transacao.verifier}` : "";
+  const maxAge = transacao ? VIDA_COOKIE_APPLE_S : 0;
+  const partes = [`${nome}=${valor}`, "Path=/", `Max-Age=${maxAge}`, "HttpOnly", "SameSite=Lax"];
   if (seguro) partes.push("Secure");
   return partes.join("; ");
 }
 
-export function lerCookieVerifierApple(request: Request, seguro: boolean): string | null {
+export function lerCookieTransacaoApple(request: Request, seguro: boolean): {
+  presente: boolean;
+  transacao: TransacaoAppleCookie | null;
+} {
   const nome = nomeCookieApple(seguro);
+  let bruto: string | null = null;
   for (const par of (request.headers.get("Cookie") ?? "").split(";")) {
     const corte = par.indexOf("=");
     if (corte > 0 && par.slice(0, corte).trim() === nome) {
-      return par.slice(corte + 1).trim() || null;
+      bruto = par.slice(corte + 1).trim();
+      break;
     }
   }
-  return null;
-}
-
-export function montarUrlAutorizacaoApple(params: {
-  supabaseUrl: string;
-  urlRetorno: string;
-  codeChallenge: string;
-}): string {
-  const base = params.supabaseUrl.replace(/\/$/, "");
-  const url = new URL(`${base}/auth/v1/authorize`);
-  url.searchParams.set("provider", "apple");
-  url.searchParams.set("redirect_to", params.urlRetorno);
-  url.searchParams.set("code_challenge", params.codeChallenge);
-  url.searchParams.set("code_challenge_method", "s256");
-  return url.toString();
+  if (!bruto) return { presente: false, transacao: null };
+  const sep = bruto.indexOf(".");
+  if (sep <= 0) return { presente: true, transacao: null };
+  const transacaoId = bruto.slice(0, sep);
+  const verifier = bruto.slice(sep + 1);
+  if (!REGEX_UUID.test(transacaoId) || !ehVerifierPkceValido(verifier)) {
+    return { presente: true, transacao: null };
+  }
+  return { presente: true, transacao: { transacaoId, verifier } };
 }
 
 export function classificarErroCallbackApple(

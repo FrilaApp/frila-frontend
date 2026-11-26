@@ -56,7 +56,12 @@ export type ResultadoRevogarDispositivos =
   | { ok: false; motivo: "sessao_invalida" | "limite" | "indisponivel" };
 
 export type FalhaTrocaPkce = "conflito_identidade" | "apple_recusado" | "limite" | "indisponivel";
-export type ResultadoTrocaPkce = { ok: true; sessao: Sessao } | { ok: false; motivo: FalhaTrocaPkce };
+export type ResultadoIniciarSocialPkce =
+  | { ok: true; transacaoId: string; urlAutorizacao: string }
+  | { ok: false; motivo: "limite" | "indisponivel" | "apple_recusado" };
+export type ResultadoTrocaPkce =
+  | { ok: true; sessao: Sessao; precisaDefinirSenha: boolean }
+  | { ok: false; motivo: FalhaTrocaPkce };
 
 /** Validação runtime fail-closed para qualquer resposta de sessão recebida do Supabase Auth. */
 function ehSessaoValida(valor: unknown): valor is Sessao {
@@ -569,36 +574,89 @@ export function criarAuth(
     },
 
     /**
-     * Troca um código OAuth + code_verifier (PKCE S256) por sessão no Supabase Auth (`/auth/v1/token?grant_type=pkce`).
-     * Trata conflito de identidade sem auto-vínculo silencioso e nunca registra código, verifier ou tokens.
+     * Inicia transação OAuth PKCE server-side via Edge Function `POST /functions/v1/autenticar-social`
+     * (`fluxo: "iniciar_pkce"`, contrato 0.2.117), vinculando provedor + code_challenge + callback.
      */
-    async trocarCodigoPkce(codigo: string, verifier: string): Promise<ResultadoTrocaPkce> {
+    async iniciarLoginSocialPkce(params: {
+      provedor: "apple" | "google";
+      codeChallenge: string;
+      redirectTo: string;
+      visitante?: string | null;
+    }): Promise<ResultadoIniciarSocialPkce> {
       try {
-        const resposta = await buscar(`${ambiente.url}/auth/v1/token?grant_type=pkce`, {
+        const headers = await cabecalhosComIp(
+          { ...cabecalhos, "Content-Type": "application/json" },
+          { visitante: params.visitante },
+        );
+        const resposta = await buscar(`${ambiente.url}/functions/v1/autenticar-social`, {
           method: "POST",
-          headers: {
-            ...cabecalhos,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ auth_code: codigo, code_verifier: verifier }),
+          headers,
+          body: JSON.stringify({
+            provedor: params.provedor,
+            fluxo: "iniciar_pkce",
+            plataforma: "web",
+            code_challenge: params.codeChallenge,
+            redirect_to: params.redirectTo,
+          }),
           signal: prazo(),
         });
         const corpo = (await resposta.json().catch(() => null)) as Record<string, unknown> | null;
         if (resposta.ok) {
-          if (!ehSessaoValida(corpo)) return { ok: false, motivo: "indisponivel" };
-          return { ok: true, sessao: corpo };
+          const transacaoId = typeof corpo?.transacao_id === "string" ? corpo.transacao_id : "";
+          const urlAutorizacao = typeof corpo?.url_autorizacao === "string" ? corpo.url_autorizacao : "";
+          if (!transacaoId || !urlAutorizacao) return { ok: false, motivo: "indisponivel" };
+          return { ok: true, transacaoId, urlAutorizacao };
         }
         if (resposta.status === 429) return { ok: false, motivo: "limite" };
-        const codigoErro = String(corpo?.error_code ?? corpo?.code ?? corpo?.error ?? "").toLowerCase();
-        const desc = String(corpo?.msg ?? corpo?.error_description ?? "").toLowerCase();
-        if (
-          resposta.status === 409 ||
-          codigoErro.includes("identity_already_exists") ||
-          codigoErro.includes("manual_linking") ||
-          codigoErro.includes("email_conflict") ||
-          desc.includes("already registered") ||
-          desc.includes("identity_already_exists")
-        ) {
+        if (resposta.status >= 500) return { ok: false, motivo: "indisponivel" };
+        return { ok: false, motivo: "apple_recusado" };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
+      }
+    },
+
+    /**
+     * Conclui login social PKCE via Edge Function `POST /functions/v1/autenticar-social` (`fluxo: "pkce"`),
+     * garantindo verificação da transação server-side, gravação em `privado.sessoes_verificadas` e JWT renovado.
+     * Nunca registra código, verifier ou tokens.
+     */
+    async concluirLoginSocialPkce(params: {
+      provedor: "apple" | "google";
+      transacaoId: string;
+      codigo: string;
+      codeVerifier: string;
+      visitante?: string | null;
+    }): Promise<ResultadoTrocaPkce> {
+      try {
+        const headers = await cabecalhosComIp(
+          { ...cabecalhos, "Content-Type": "application/json" },
+          { visitante: params.visitante },
+        );
+        const resposta = await buscar(`${ambiente.url}/functions/v1/autenticar-social`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            provedor: params.provedor,
+            fluxo: "pkce",
+            plataforma: "web",
+            transacao_id: params.transacaoId,
+            codigo: params.codigo,
+            code_verifier: params.codeVerifier,
+          }),
+          signal: prazo(),
+        });
+        const corpo = (await resposta.json().catch(() => null)) as Record<string, unknown> | null;
+        if (resposta.ok) {
+          if (!ehSessaoValida(corpo?.sessao)) return { ok: false, motivo: "indisponivel" };
+          return {
+            ok: true,
+            sessao: corpo.sessao,
+            precisaDefinirSenha: corpo?.precisa_definir_senha === true,
+          };
+        }
+        if (resposta.status === 429) return { ok: false, motivo: "limite" };
+        const codigoErro = String(corpo?.code ?? corpo?.error_code ?? "").toLowerCase();
+        if (resposta.status === 409 && codigoErro === "conflito_identidade") {
           return { ok: false, motivo: "conflito_identidade" };
         }
         if (resposta.status >= 400 && resposta.status < 500) {

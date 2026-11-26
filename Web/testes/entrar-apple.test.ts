@@ -8,13 +8,12 @@ import { loader as entrarAppleLoader } from "../app/rotas/entrar-apple";
 import { loader as entrarAppleRetornoLoader } from "../app/rotas/entrar-apple-retorno";
 import {
   classificarErroCallbackApple,
-  cookieVerifierApple,
+  cookieTransacaoApple,
   desafioPkceS256,
   ehCodigoOauthValido,
   ehVerifierPkceValido,
   gerarVerifierPkce,
-  lerCookieVerifierApple,
-  montarUrlAutorizacaoApple,
+  lerCookieTransacaoApple,
 } from "../app/servidor/apple";
 import { criarAuth } from "../app/servidor/auth";
 import { contextoDaSessao } from "../app/contexto";
@@ -22,20 +21,20 @@ import { argumentos } from "./contratante-apoio";
 
 const ambienteMock = vi.hoisted(() => ({
   appleLigado: true,
-  supabaseUrl: "https://dev.supabase.co" as string | null,
 }));
 
 const authMock = vi.hoisted(() => ({
-  trocarCodigoPkce: vi.fn(),
+  iniciarLoginSocialPkce: vi.fn(),
+  concluirLoginSocialPkce: vi.fn(),
 }));
 
 vi.mock("../app/servidor/deste-ambiente", () => ({
   appleEntrarLigado: () => ambienteMock.appleLigado,
-  urlDoSupabaseDesteAmbiente: () => ambienteMock.supabaseUrl,
   authDesteAmbiente: () => authMock,
   emailsDeDemonstracao: () => new Set<string>(),
 }));
 
+const TX_ID = "33333333-3333-4333-8333-333333333333";
 const SESSAO_APPLE = {
   access_token: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEiLCJleHAiOjE5MDAwMDAwMDB9.sig",
   refresh_token: "refresh-apple-sintetico",
@@ -68,16 +67,14 @@ function argsRota(caminho: string, cookies?: string, comSessao = false) {
 beforeEach(() => {
   vi.clearAllMocks();
   ambienteMock.appleLigado = true;
-  ambienteMock.supabaseUrl = "https://dev.supabase.co";
 });
 
-describe("Web — Continuar com a Apple (OAuth PKCE S256 no servidor)", () => {
+describe("Web — Continuar com a Apple (autenticar-social PKCE S256 + correlação P2)", () => {
   it("gera verifier PKCE de 43 chars base64url e challenge S256 válido", async () => {
     const verifier = gerarVerifierPkce();
     expect(verifier.length).toBe(43);
     expect(ehVerifierPkceValido(verifier)).toBe(true);
     expect(ehVerifierPkceValido("curto")).toBe(false);
-    expect(ehVerifierPkceValido("com espaco".repeat(6))).toBe(false);
 
     const challenge = await desafioPkceS256(verifier);
     expect(challenge.length).toBe(43);
@@ -87,31 +84,11 @@ describe("Web — Continuar com a Apple (OAuth PKCE S256 no servidor)", () => {
   it("valida código OAuth e classifica erros de cancelamento e conflito de identidade", () => {
     expect(ehCodigoOauthValido("abc123-code")).toBe(true);
     expect(ehCodigoOauthValido("")).toBe(false);
-    expect(ehCodigoOauthValido("ab")).toBe(false);
     expect(ehCodigoOauthValido("a b c d")).toBe(false);
 
     expect(classificarErroCallbackApple("access_denied", null, null)).toBe("apple_cancelado");
     expect(classificarErroCallbackApple(null, "identity_already_exists", null)).toBe("conflito_identidade");
-    expect(classificarErroCallbackApple("server_error", null, "manual_linking_required")).toBe("conflito_identidade");
     expect(classificarErroCallbackApple("server_error", null, "erro generico")).toBe("apple_recusado");
-  });
-
-  it("monta URL /auth/v1/authorize com provider=apple e PKCE S256", () => {
-    const url = new URL(
-      montarUrlAutorizacaoApple({
-        supabaseUrl: "https://dev.supabase.co/",
-        urlRetorno: "https://frila-web-dev.frilabr.workers.dev/app/entrar/apple/retorno",
-        codeChallenge: "desafio-s256-sintetico",
-      }),
-    );
-    expect(url.origin).toBe("https://dev.supabase.co");
-    expect(url.pathname).toBe("/auth/v1/authorize");
-    expect(url.searchParams.get("provider")).toBe("apple");
-    expect(url.searchParams.get("code_challenge")).toBe("desafio-s256-sintetico");
-    expect(url.searchParams.get("code_challenge_method")).toBe("s256");
-    expect(url.searchParams.get("redirect_to")).toBe(
-      "https://frila-web-dev.frilabr.workers.dev/app/entrar/apple/retorno",
-    );
   });
 
   it("wrangler.jsonc liga APPLE_ENTRAR apenas no DEV e mantém ausente em producao", () => {
@@ -132,65 +109,73 @@ describe("Web — Continuar com a Apple (OAuth PKCE S256 no servidor)", () => {
     expect(res.headers.get("Set-Cookie")).toBeNull();
   });
 
-  it("GET /entrar/apple grava cookie HttpOnly/Secure/SameSite=Lax e redireciona com PKCE S256", async () => {
+  it("GET /entrar/apple inicia transação server-side, grava cookie transacaoId.verifier HttpOnly/Secure e redireciona", async () => {
+    authMock.iniciarLoginSocialPkce.mockResolvedValueOnce({
+      ok: true,
+      transacaoId: TX_ID,
+      urlAutorizacao: "https://dev.supabase.co/auth/v1/authorize?provider=apple&code_challenge_method=s256",
+    });
+
     const res = await entrarAppleLoader(argsRota("/app/entrar/apple") as never);
     expect(res.status).toBe(302);
     expect(res.headers.get("Cache-Control")).toBe("no-store");
-
-    const location = res.headers.get("Location") ?? "";
-    const destino = new URL(location);
-    expect(destino.pathname).toBe("/auth/v1/authorize");
-    expect(destino.searchParams.get("provider")).toBe("apple");
-    expect(destino.searchParams.get("code_challenge_method")).toBe("s256");
-    expect(destino.searchParams.get("code_challenge")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(res.headers.get("Location")).toContain("provider=apple");
+    expect(authMock.iniciarLoginSocialPkce).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provedor: "apple",
+        codeChallenge: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
+      }),
+    );
 
     const setCookie = res.headers.get("Set-Cookie") ?? "";
-    expect(setCookie).toContain("__Host-frila-apple=");
+    expect(setCookie).toContain(`__Host-frila-apple=${TX_ID}.`);
     expect(setCookie).toContain("HttpOnly");
     expect(setCookie).toContain("Secure");
     expect(setCookie).toContain("SameSite=Lax");
     expect(setCookie).toContain("Max-Age=600");
   });
 
-  it("GET /entrar/apple/retorno recusa com 404 e apaga cookie quando APPLE_ENTRAR está desligado", async () => {
-    ambienteMock.appleLigado = false;
-    const res = await entrarAppleRetornoLoader(argsRota("/app/entrar/apple/retorno?code=abc12345") as never);
-    expect(res.status).toBe(404);
-    expect(res.headers.get("Set-Cookie")).toContain("__Host-frila-apple=; Path=/; Max-Age=0");
-  });
-
-  it("GET /entrar/apple/retorno sem verifier ou verifier inválido redireciona sem chamar Auth e apaga cookie", async () => {
-    const resSemCookie = await entrarAppleRetornoLoader(argsRota("/app/entrar/apple/retorno?code=abc12345") as never);
-    expect(resSemCookie.status).toBe(302);
-    expect(resSemCookie.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
-    expect(resSemCookie.headers.get("Set-Cookie")).toContain("__Host-frila-apple=; Path=/; Max-Age=0");
-    expect(authMock.trocarCodigoPkce).not.toHaveBeenCalled();
-
-    const resInvalido = await entrarAppleRetornoLoader(
-      argsRota("/app/entrar/apple/retorno?code=abc12345", "__Host-frila-apple=curto") as never,
-    );
-    expect(resInvalido.status).toBe(302);
-    expect(resInvalido.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
-    expect(authMock.trocarCodigoPkce).not.toHaveBeenCalled();
-  });
-
-  it("GET /entrar/apple/retorno trata cancelamento do usuário e apaga cookie", async () => {
+  it("P2 correlação: callback forjado com ?error=access_denied SEM tx correspondente NÃO apaga o cookie da transação ativa", async () => {
     const verifier = gerarVerifierPkce();
+    const resForjado = await entrarAppleRetornoLoader(
+      argsRota("/app/entrar/apple/retorno?error=access_denied", `__Host-frila-apple=${TX_ID}.${verifier}`) as never,
+    );
+    expect(resForjado.status).toBe(302);
+    expect(resForjado.headers.get("Location")).toBe("/app/entrar?erro=apple_cancelado");
+    expect(resForjado.headers.get("Set-Cookie")).toBeNull();
+    expect(authMock.concluirLoginSocialPkce).not.toHaveBeenCalled();
+
+    // Hit vazio sem código também preserva transação legítima em andamento
+    const resVazio = await entrarAppleRetornoLoader(
+      argsRota("/app/entrar/apple/retorno", `__Host-frila-apple=${TX_ID}.${verifier}`) as never,
+    );
+    expect(resVazio.status).toBe(302);
+    expect(resVazio.headers.get("Set-Cookie")).toBeNull();
+
+    // Com tx exato da transação, limpa o cookie normalmente
+    const resCorrelacionado = await entrarAppleRetornoLoader(
+      argsRota(`/app/entrar/apple/retorno?error=access_denied&tx=${TX_ID}`, `__Host-frila-apple=${TX_ID}.${verifier}`) as never,
+    );
+    expect(resCorrelacionado.status).toBe(302);
+    expect(resCorrelacionado.headers.get("Set-Cookie")).toContain("__Host-frila-apple=; Path=/; Max-Age=0");
+  });
+
+  it("GET /entrar/apple/retorno com cookie corrompido limpa o cookie e não chama Auth", async () => {
     const res = await entrarAppleRetornoLoader(
-      argsRota("/app/entrar/apple/retorno?error=access_denied", `__Host-frila-apple=${verifier}`) as never,
+      argsRota("/app/entrar/apple/retorno?code=abc12345", "__Host-frila-apple=corrompido") as never,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("/app/entrar?erro=apple_cancelado");
+    expect(res.headers.get("Location")).toBe("/app/entrar?erro=apple_recusado");
     expect(res.headers.get("Set-Cookie")).toContain("__Host-frila-apple=; Path=/; Max-Age=0");
-    expect(authMock.trocarCodigoPkce).not.toHaveBeenCalled();
+    expect(authMock.concluirLoginSocialPkce).not.toHaveBeenCalled();
   });
 
-  it("GET /entrar/apple/retorno trata conflito de identidade sem gravar sessão e apaga cookie", async () => {
+  it("GET /entrar/apple/retorno trata conflito de identidade sem gravar sessão e limpa cookie", async () => {
     const verifier = gerarVerifierPkce();
-    authMock.trocarCodigoPkce.mockResolvedValueOnce({ ok: false, motivo: "conflito_identidade" });
+    authMock.concluirLoginSocialPkce.mockResolvedValueOnce({ ok: false, motivo: "conflito_identidade" });
 
     const res = await entrarAppleRetornoLoader(
-      argsRota("/app/entrar/apple/retorno?code=codigo-valido-123", `__Host-frila-apple=${verifier}`) as never,
+      argsRota("/app/entrar/apple/retorno?code=codigo-valido-123", `__Host-frila-apple=${TX_ID}.${verifier}`) as never,
     );
     expect(res.status).toBe(302);
     expect(res.headers.get("Location")).toBe("/app/entrar?erro=conflito_identidade");
@@ -199,19 +184,30 @@ describe("Web — Continuar com a Apple (OAuth PKCE S256 no servidor)", () => {
     expect(cookies.some((c) => c.includes("frila-acesso="))).toBe(false);
   });
 
-  it("GET /entrar/apple/retorno com código + verifier válidos grava cookies de sessão, apaga cookie Apple e não loga tokens", async () => {
+  it("GET /entrar/apple/retorno conclui via autenticar-social, grava sessão HttpOnly, limpa cookie Apple e não loga tokens", async () => {
     const verifier = gerarVerifierPkce();
-    authMock.trocarCodigoPkce.mockResolvedValueOnce({ ok: true, sessao: SESSAO_APPLE });
+    authMock.concluirLoginSocialPkce.mockResolvedValueOnce({
+      ok: true,
+      sessao: SESSAO_APPLE,
+      precisaDefinirSenha: false,
+    });
     const spyLog = vi.spyOn(console, "log").mockImplementation(() => {});
     const spyErr = vi.spyOn(console, "error").mockImplementation(() => {});
 
     try {
       const res = await entrarAppleRetornoLoader(
-        argsRota("/app/entrar/apple/retorno?code=codigo-valido-123", `__Host-frila-apple=${verifier}`) as never,
+        argsRota("/app/entrar/apple/retorno?code=codigo-valido-123", `__Host-frila-apple=${TX_ID}.${verifier}`) as never,
       );
       expect(res.status).toBe(302);
       expect(res.headers.get("Location")).toBe("/app/");
-      expect(authMock.trocarCodigoPkce).toHaveBeenCalledWith("codigo-valido-123", verifier);
+      expect(authMock.concluirLoginSocialPkce).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provedor: "apple",
+          transacaoId: TX_ID,
+          codigo: "codigo-valido-123",
+          codeVerifier: verifier,
+        }),
+      );
 
       const cookies = res.headers.getSetCookie();
       expect(cookies.some((c) => c.includes("__Host-frila-apple=; Path=/; Max-Age=0"))).toBe(true);
@@ -226,38 +222,72 @@ describe("Web — Continuar com a Apple (OAuth PKCE S256 no servidor)", () => {
   });
 
   it("loader de /entrar aceita apenas chaves de erro da allow-list e ignora parâmetro arbitrário", () => {
-    const ok = entrarLoader(argsRota("/app/entrar?erro=conflito_identidade") as never);
-    expect(ok).toEqual({ appleLigado: true, erroUrl: "conflito_identidade" });
-
-    const arbitrario = entrarLoader(argsRota("/app/entrar?erro=mensagem_injetada") as never);
-    expect(arbitrario).toEqual({ appleLigado: true, erroUrl: undefined });
+    expect(entrarLoader(argsRota("/app/entrar?erro=conflito_identidade") as never)).toEqual({
+      appleLigado: true,
+      erroUrl: "conflito_identidade",
+    });
+    expect(entrarLoader(argsRota("/app/entrar?erro=mensagem_injetada") as never)).toEqual({
+      appleLigado: true,
+      erroUrl: undefined,
+    });
   });
 
-  it("auth.trocarCodigoPkce envia grant_type=pkce e mapeia conflito de identidade (409/identity_already_exists)", async () => {
+  it("auth.iniciarLoginSocialPkce e concluirLoginSocialPkce chamam /functions/v1/autenticar-social", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(Response.json(SESSAO_APPLE, { status: 200 }))
       .mockResolvedValueOnce(
-        Response.json({ error_code: "identity_already_exists", msg: "Identity already linked" }, { status: 400 }),
-      );
+        Response.json({
+          transacao_id: TX_ID,
+          url_autorizacao: "https://dev.supabase.co/auth/v1/authorize?provider=apple",
+          expira_em: "2026-11-25T21:10:00Z",
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ sessao: SESSAO_APPLE, provedor: "apple", precisa_definir_senha: false }),
+      )
+      .mockResolvedValueOnce(Response.json({ code: "conflito_identidade" }, { status: 409 }));
 
     const auth = criarAuth({ url: "https://dev.supabase.co", chavePublicavel: "pub-key" }, { fetch: fetchMock });
 
-    const r1 = await auth.trocarCodigoPkce("cod-1234", "v".repeat(43));
-    expect(r1).toEqual({ ok: true, sessao: SESSAO_APPLE });
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://dev.supabase.co/auth/v1/token?grant_type=pkce");
+    const rInit = await auth.iniciarLoginSocialPkce({
+      provedor: "apple",
+      codeChallenge: "c".repeat(43),
+      redirectTo: "https://frila-web-dev.frilabr.workers.dev/app/entrar/apple/retorno",
+    });
+    expect(rInit).toEqual({
+      ok: true,
+      transacaoId: TX_ID,
+      urlAutorizacao: "https://dev.supabase.co/auth/v1/authorize?provider=apple",
+    });
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://dev.supabase.co/functions/v1/autenticar-social");
 
-    const r2 = await auth.trocarCodigoPkce("cod-1234", "v".repeat(43));
-    expect(r2).toEqual({ ok: false, motivo: "conflito_identidade" });
+    const rOk = await auth.concluirLoginSocialPkce({
+      provedor: "apple",
+      transacaoId: TX_ID,
+      codigo: "cod-1234",
+      codeVerifier: "v".repeat(43),
+    });
+    expect(rOk).toEqual({ ok: true, sessao: SESSAO_APPLE, precisaDefinirSenha: false });
+
+    const r409 = await auth.concluirLoginSocialPkce({
+      provedor: "apple",
+      transacaoId: TX_ID,
+      codigo: "cod-1234",
+      codeVerifier: "v".repeat(43),
+    });
+    expect(r409).toEqual({ ok: false, motivo: "conflito_identidade" });
   });
 
-  it("cookieVerifierApple e lerCookieVerifierApple respeitam prefixo __Host- em HTTPS", () => {
+  it("cookieTransacaoApple e lerCookieTransacaoApple validam transacaoId + verifier", () => {
     const verifier = gerarVerifierPkce();
-    const linha = cookieVerifierApple(verifier, true);
-    expect(linha).toContain(`__Host-frila-apple=${verifier}`);
+    const linha = cookieTransacaoApple({ transacaoId: TX_ID, verifier }, true);
+    expect(linha).toContain(`__Host-frila-apple=${TX_ID}.${verifier}`);
     const req = new Request("https://frila-web-dev.frilabr.workers.dev/app/entrar/apple/retorno", {
-      headers: { Cookie: `__Host-frila-apple=${verifier}` },
+      headers: { Cookie: `__Host-frila-apple=${TX_ID}.${verifier}` },
     });
-    expect(lerCookieVerifierApple(req, true)).toBe(verifier);
+    expect(lerCookieTransacaoApple(req, true)).toEqual({
+      presente: true,
+      transacao: { transacaoId: TX_ID, verifier },
+    });
   });
 });

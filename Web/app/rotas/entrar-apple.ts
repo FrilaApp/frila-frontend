@@ -1,10 +1,10 @@
 import { redirect } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { cookieVerifierApple, desafioPkceS256, gerarVerifierPkce, montarUrlAutorizacaoApple } from "../servidor/apple";
-import { appleEntrarLigado, urlDoSupabaseDesteAmbiente } from "../servidor/deste-ambiente";
+import { cookieTransacaoApple, desafioPkceS256, gerarVerifierPkce } from "../servidor/apple";
+import { appleEntrarLigado, authDesteAmbiente } from "../servidor/deste-ambiente";
 import { BASE } from "../servidor/porteiro";
-import { ehPedidoSeguro } from "../servidor/sessao";
+import { ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import type { Route } from "./+types/entrar-apple";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -15,23 +15,33 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     throw redirect("/");
   }
 
-  const supabaseUrl = urlDoSupabaseDesteAmbiente();
-  if (!supabaseUrl) {
+  const auth = authDesteAmbiente();
+  if (!auth) {
     throw redirect("/entrar?erro=indisponivel");
   }
 
   const seguro = ehPedidoSeguro(request);
+  const visitante = visitanteDoPedido(request);
   const verifier = gerarVerifierPkce();
   const codeChallenge = await desafioPkceS256(verifier);
   const urlRetorno = new URL(`${BASE}/entrar/apple/retorno`, new URL(request.url).origin).toString();
-  const destino = montarUrlAutorizacaoApple({ supabaseUrl, urlRetorno, codeChallenge });
+
+  const inicio = await auth.iniciarLoginSocialPkce({
+    provedor: "apple",
+    codeChallenge,
+    redirectTo: urlRetorno,
+    visitante,
+  });
+  if (!inicio.ok) {
+    throw redirect(`/entrar?erro=${inicio.motivo}`);
+  }
 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: destino,
+      Location: inicio.urlAutorizacao,
       "Cache-Control": "no-store",
-      "Set-Cookie": cookieVerifierApple(verifier, seguro),
+      "Set-Cookie": cookieTransacaoApple({ transacaoId: inicio.transacaoId, verifier }, seguro),
     },
   });
 }
