@@ -192,4 +192,66 @@ class RoteamentoOAuthSocialIntentTest {
         assertEquals("cold@frila.test", armazenamentoSessao.obterSessao()?.email)
         assertNull(armazenamentoOAuth.obter())
     }
+
+    @Test
+    fun `App Link HTTPS aceita frilabr com autoVerify e em Release rejeita custom scheme frila-auth`() = runBlocking {
+        val appLink = Intent(Intent.ACTION_VIEW, Uri.parse("https://frilabr.com/app/auth/callback?code=abc123&tx=t1"))
+        assertEquals(
+            "https://frilabr.com/app/auth/callback?code=abc123&tx=t1",
+            extrairCallbackOAuthSocialDoIntent(appLink, permitirCustomSchemeDev = false),
+        )
+        // Em Release (permitirCustomSchemeDev = false), custom scheme frila-auth e rejeitado (P2)
+        val customDev = Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/callback?code=abc123&tx=t1"))
+        assertNull(extrairCallbackOAuthSocialDoIntent(customDev, permitirCustomSchemeDev = false))
+        // Em Debug (permitirCustomSchemeDev = true), custom scheme DEV continua aceito
+        assertNotNull(extrairCallbackOAuthSocialDoIntent(customDev, permitirCustomSchemeDev = true))
+
+        // Fluxo completo com urlCallbackOAuth = URL_CALLBACK_APP_LINK e permitirCustomSchemeDev = false
+        val engine = MockEngine { request ->
+            val corpo = (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
+            val json = Json.parseToJsonElement(corpo).jsonObject
+            if (json["fluxo"]?.jsonPrimitive?.content == "iniciar_pkce") {
+                respond(
+                    content = """{"transacao_id":"tx-applink-1","url_autorizacao":"https://accounts.google.com/o/oauth2/v2/auth?redirect_to=${json["redirect_to"]?.jsonPrimitive?.content}","expira_em":"2099-01-01T00:00:00Z"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            } else {
+                respond(
+                    content = """{"sessao":{"access_token":"${fakeJwt("applink@frila.test")}","refresh_token":"ref-al","token_type":"bearer","expires_in":3600},"provedor":"google","precisa_definir_senha":false}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val servicoAuth = ServicoAutenticacao(ClienteSupabase("https://supabase.test", "sb_publishable_teste", engine = engine))
+        val armazenamentoSessao = ArmazenamentoDeSessaoEmMemoria()
+        val vm = EntradaComSenhaViewModel(
+            servicoAutenticacao = servicoAuth,
+            armazenamentoDeSessao = armazenamentoSessao,
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+            mostrarLoginSocial = true,
+            urlCallbackOAuth = SegurancaOAuthSocial.URL_CALLBACK_APP_LINK,
+            permitirCustomSchemeDev = false,
+        )
+
+        var urlAberta: String? = null
+        vm.iniciarEntradaSocial(ProvedorSocial.GOOGLE) { urlAberta = it }?.join()
+        assertNotNull(urlAberta)
+        val redirectTo = extrairParam(urlAberta!!, "redirect_to")!!
+        assertTrue(redirectTo.startsWith("https://frilabr.com/app/auth/callback?tx="))
+        val tx = extrairParam(redirectTo, "tx")!!
+
+        // Custom scheme forjado nao e aceito quando permitirCustomSchemeDev = false
+        assertNull(vm.aoReceberCallbackOAuth("frila-auth://auth/callback?code=cod-forjado&tx=$tx"))
+
+        // App Link HTTPS valido conclui o fluxo
+        val retorno = extrairCallbackOAuthSocialDoIntent(
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://frilabr.com/app/auth/callback?code=cod-al-123&tx=$tx")),
+            permitirCustomSchemeDev = false,
+        )
+        vm.aoReceberCallbackOAuth(retorno!!)?.join()
+        assertTrue(vm.estado.value.autenticado)
+        assertEquals("applink@frila.test", armazenamentoSessao.obterSessao()?.email)
+    }
 }

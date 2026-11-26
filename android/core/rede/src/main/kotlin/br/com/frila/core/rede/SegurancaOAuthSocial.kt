@@ -36,6 +36,14 @@ object SegurancaOAuthSocial {
     const val PATH_CALLBACK = "/callback"
     const val URL_CALLBACK = "frila-auth://auth/callback"
 
+    const val ESQUEMA_APP_LINK = "https"
+    const val HOST_APP_LINK = "frilabr.com"
+    const val PATH_APP_LINK = "/app/auth/callback"
+    const val URL_CALLBACK_APP_LINK = "https://frilabr.com/app/auth/callback"
+
+    fun urlCallbackParaAmbiente(usarAppLinks: Boolean): String =
+        if (usarAppLinks) URL_CALLBACK_APP_LINK else URL_CALLBACK
+
     private val random = SecureRandom()
     private val padraoVerifier = Regex("^[A-Za-z0-9_-]{43,128}$")
     private val padraoCodigo = Regex("^[\\x21-\\x7E]{4,512}$")
@@ -63,27 +71,41 @@ object SegurancaOAuthSocial {
     fun ehCodigoValido(codigo: String?): Boolean =
         codigo != null && padraoCodigo.matches(codigo)
 
-    fun ehCallbackOAuthSocial(url: String?): Boolean {
-        if (url.isNullOrBlank()) return false
-        val uri = runCatching { URI(url) }.getOrNull() ?: return false
-        return uri.scheme.equals(ESQUEMA_CALLBACK, ignoreCase = true) &&
+    private fun ehAppLinkUri(uri: URI): Boolean =
+        uri.scheme.equals(ESQUEMA_APP_LINK, ignoreCase = true) &&
+            uri.host.equals(HOST_APP_LINK, ignoreCase = true) &&
+            uri.path == PATH_APP_LINK
+
+    private fun ehCustomSchemeDevUri(uri: URI): Boolean =
+        uri.scheme.equals(ESQUEMA_CALLBACK, ignoreCase = true) &&
             uri.host.equals(HOST_CALLBACK, ignoreCase = true) &&
             uri.path == PATH_CALLBACK
+
+    fun ehCallbackOAuthSocial(url: String?, permitirCustomSchemeDev: Boolean = true): Boolean {
+        if (url.isNullOrBlank()) return false
+        val uri = runCatching { URI(url) }.getOrNull() ?: return false
+        return ehAppLinkUri(uri) || (permitirCustomSchemeDev && ehCustomSchemeDevUri(uri))
     }
 
     fun analisarCallback(
         url: String,
-        esquemaEsperado: String = ESQUEMA_CALLBACK,
-        hostEsperado: String = HOST_CALLBACK,
-        pathEsperado: String = PATH_CALLBACK,
+        esquemaEsperado: String? = null,
+        hostEsperado: String? = null,
+        pathEsperado: String? = null,
         stateEsperado: String? = null,
+        permitirCustomSchemeDev: Boolean = true,
     ): ResultadoCallbackOAuth {
         val uri = runCatching { URI(url) }.getOrNull()
             ?: return if (stateEsperado != null) ResultadoCallbackOAuth.Ignorado else ResultadoCallbackOAuth.CallbackInvalido
-        // P2: exige scheme + host + path exatos (não apenas scheme).
-        val destinoValido = uri.scheme.equals(esquemaEsperado, ignoreCase = true) &&
-            uri.host.equals(hostEsperado, ignoreCase = true) &&
-            uri.path == pathEsperado
+        // P2: exige scheme + host + path exatos; se não houver override explícito, aceita App Link HTTPS
+        // (e custom scheme DEV apenas quando permitirCustomSchemeDev=true).
+        val destinoValido = if (esquemaEsperado != null || hostEsperado != null || pathEsperado != null) {
+            uri.scheme.equals(esquemaEsperado ?: ESQUEMA_CALLBACK, ignoreCase = true) &&
+                uri.host.equals(hostEsperado ?: HOST_CALLBACK, ignoreCase = true) &&
+                uri.path == (pathEsperado ?: PATH_CALLBACK)
+        } else {
+            ehAppLinkUri(uri) || (permitirCustomSchemeDev && ehCustomSchemeDevUri(uri))
+        }
         if (!destinoValido) {
             return if (stateEsperado != null) ResultadoCallbackOAuth.Ignorado else ResultadoCallbackOAuth.CallbackInvalido
         }

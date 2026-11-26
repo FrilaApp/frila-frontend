@@ -70,6 +70,8 @@ class EntradaComSenhaViewModel(
     emailInicial: String = "",
     mostrarLoginSocial: Boolean = false,
     private val armazenamentoOAuthPendente: ArmazenamentoOAuthPendente = ArmazenamentoOAuthPendenteEmMemoria(),
+    private val urlCallbackOAuth: String = SegurancaOAuthSocial.URL_CALLBACK,
+    private val permitirCustomSchemeDev: Boolean = true,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -124,7 +126,7 @@ class EntradaComSenhaViewModel(
         val verifier = SegurancaOAuthSocial.gerarVerifierPkce()
         val challenge = SegurancaOAuthSocial.desafioPkceS256(verifier)
         val txLocal = SegurancaOAuthSocial.gerarState()
-        val redirectTo = "${SegurancaOAuthSocial.URL_CALLBACK}?tx=$txLocal"
+        val redirectTo = "$urlCallbackOAuth?tx=$txLocal"
         _estado.update { it.copy(carregando = true, erro = null) }
 
         return escopoDeTrabalho.launch {
@@ -177,7 +179,11 @@ class EntradaComSenhaViewModel(
      */
     fun aoReceberCallbackOAuth(callbackUrl: String): Job? {
         val pendente = armazenamentoOAuthPendente.obter() ?: return null
-        val analisado = SegurancaOAuthSocial.analisarCallback(callbackUrl, stateEsperado = pendente.txLocal)
+        val analisado = SegurancaOAuthSocial.analisarCallback(
+            callbackUrl,
+            stateEsperado = pendente.txLocal,
+            permitirCustomSchemeDev = permitirCustomSchemeDev,
+        )
         if (analisado is ResultadoCallbackOAuth.Ignorado) {
             return null
         }
