@@ -148,6 +148,22 @@ describe("retorno do Entrar com Google", () => {
     expect(cookies.find((c) => c.startsWith("__Host-frila-google=;"))).toContain("Max-Age=0");
   });
 
+  it("M4: verifier válido na URL sem cookie volta com mensagem fixa, sem sessão nem troca no Supabase", async () => {
+    const verifierDaUrl = "u".repeat(43);
+    const res = await voltar(`?code=${CODIGO}&code_verifier=${verifierDaUrl}`);
+    expect(res.headers.get("Location")).toBe("/entrar?erro=google_falhou");
+    expect(res.headers.getSetCookie().filter((c) => c.includes("frila-acesso") || c.includes("frila-renovacao"))).toEqual([]);
+    expect(mundo.pedidos).toEqual([]);
+  });
+
+  it("M4: verifier divergente na URL nunca substitui o do cookie na troca", async () => {
+    const verifierDoCookie = "c".repeat(43);
+    const verifierDaUrl = "u".repeat(43);
+    const res = await voltar(`?code=${CODIGO}&code_verifier=${verifierDaUrl}`, { cookie: `__Host-frila-google=${verifierDoCookie}` });
+    expect(mundo.pedidos).toEqual([{ url: `${SUPABASE}/auth/v1/token?grant_type=pkce`, corpo: { auth_code: CODIGO, code_verifier: verifierDoCookie } }]);
+    expect(res.headers.get("Location")).toBe("/");
+  });
+
   it("erro do Google volta a /entrar com mensagem fixa, sem repetir o que veio na URL, e apaga o verifier", async () => {
     const { verifier } = await comecar();
     const res = await voltar(`?error=server_error&error_description=falha+para+${EMAIL}`, { cookie: `__Host-frila-google=${verifier}` });
