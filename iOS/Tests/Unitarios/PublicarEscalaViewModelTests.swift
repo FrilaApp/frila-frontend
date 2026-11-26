@@ -90,6 +90,43 @@ struct PublicarEscalaViewModelTests {
         )
     }
 
+    @Test("B-124: o aviso sai só fora da faixa (as bordas não avisam), só naquela vaga, e a escala é publicada com o valor digitado", arguments: [
+        ("4999", "Valor muito baixo."), ("5000", nil), ("200000", nil), ("200001", "Valor muito alto, confira."),
+    ] as [(String, String?)])
+    func valorForaDaFaixaSoAvisa(centavos: String, aviso: String?) async throws {
+        let servidor = ServidorDeEscala([.success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+        vm.atualizar(vm.vagas[0].id) { $0.valorTexto = centavos }
+
+        #expect(vm.vagas[0].avisoDoValor == aviso)
+        #expect(vm.vagas[1].avisoDoValor == nil)
+        #expect(!vm.camposBloqueados)
+        #expect(!vm.enviando, "o botão Publicar só fica desligado durante o envio")
+
+        await vm.publicar()
+
+        #expect(await servidor.recebidas.map { $0.vagas.first?.valor.centavos } == [Int(centavos)])
+        #expect(vm.erros.vazio)
+        #expect(vm.resultado != nil)
+    }
+
+    @Test("B-124: zero não ganha aviso novo; a regra do valor obrigatório continua, e nada vai ao servidor")
+    func valorZeroSemAvisoNovo() async throws {
+        let servidor = ServidorDeEscala([.success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+        vm.atualizar(vm.vagas[0].id) { $0.valorTexto = "0" }
+
+        #expect(vm.vagas[0].avisoDoValor == nil)
+
+        await vm.publicar()
+
+        #expect(await servidor.chamadas == 0)
+        #expect(vm.erros.vagas[vm.vagas[0].id]?[.valor] == TextosDaEscala.Erro.valor)
+        #expect(vm.resultado == nil)
+    }
+
     /// O formulário preenchido: duas vagas (Garçom e Bartender) de um evento.
     private func preenchido(_ vm: PublicarEscalaViewModel) {
         vm.nome = "Formatura de Direito"

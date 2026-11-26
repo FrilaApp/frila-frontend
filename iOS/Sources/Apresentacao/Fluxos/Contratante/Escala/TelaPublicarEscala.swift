@@ -244,7 +244,8 @@ public struct TelaPublicarEscala: View {
 
             modoDaVaga(vaga, indice: indice, erro: erros[.modo])
 
-            campo(rotulo: TextosDaEscala.valor, erro: erros[.valor], id: "escala-erro-valor-\(indice)") {
+            campo(rotulo: TextosDaEscala.valor, erro: erros[.valor], aviso: vaga.avisoDoValor,
+                  idDoAviso: "escala-aviso-valor-\(indice)", id: "escala-erro-valor-\(indice)") {
                 // O campo do valor é um UITextField, que não encolhe abaixo do texto: em AX3 ou mais ele passaria da largura do
                 // cartão e empurraria a tela para o lado. Ele cresce até AX2; o resto da tela segue até AX5.
                 CampoValorVaga(texto: ligacao(vaga.id, \.valorTexto))
@@ -497,7 +498,9 @@ public struct TelaPublicarEscala: View {
     }
 
     /// O rótulo visível acima do campo e, abaixo, o erro dele em tinta (D-DS-13: problema não tem cor).
-    private func campo<Conteudo: View>(rotulo: String?, erro: String?, id: String, @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
+    /// `aviso` é o texto de apoio que não trava nada (B-124); a marca e a mensagem de erro continuam sendo só do `erro`.
+    private func campo<Conteudo: View>(rotulo: String?, erro: String?, aviso: String? = nil, idDoAviso: String = "", id: String,
+                                       @ViewBuilder _ conteudo: () -> Conteudo) -> some View {
         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
             if let rotulo {
                 Text(verbatim: rotulo)
@@ -514,6 +517,13 @@ public struct TelaPublicarEscala: View {
                     .foregroundStyle(FrilaCor.texto)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier(id)
+            }
+            if let aviso {
+                Text(verbatim: aviso)
+                    .font(FrilaTipo.apoio)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(idDoAviso)
             }
         }
     }
