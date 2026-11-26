@@ -17096,6 +17096,28 @@
           }
         }
       }
+    },
+    "Valor muito baixo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor muito baixo."
+          }
+        }
+      }
+    },
+    "Valor muito alto, confira.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor muito alto, confira."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -280,6 +280,37 @@ final class EscalaDeEventoUITests: XCTestCase {
 
     // MARK: Capturas (tamanho padrão e AX5)
 
+    // MARK: B-124
+
+    /// Na vaga da escala o valor fora da faixa de referência avisa abaixo do campo e não desliga o Publicar.
+    private func avisarValorForaDaFaixaSemTravar(ax5: Bool) throws {
+        let app = abrir(ax5: ax5)
+        abrirEscala(app)
+        digitarValor(app, vaga: 0, centavos: "3000")
+        let aviso = app.staticTexts["escala-aviso-valor-0"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: Espera.aparecer), "abaixo de R$ 50 a vaga avisa")
+        XCTAssertEqual(aviso.label, "Valor muito baixo.")
+        XCTAssertTrue(app.buttons["escala-publicar"].isEnabled, "com o aviso, o Publicar segue ligado")
+
+        let campo = app.textFields.matching(identifier: "valor-vaga-campo").element(boundBy: 0)
+        trazer(campo, em: app)
+        tocar(campo)
+        XCTAssertTrue(esperarFocoDoTeclado(campo, timeout: 5))
+        campo.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "250000")
+        fecharTecladoEscala(app)
+        let alto = NSPredicate(format: "label == 'Valor muito alto, confira.'")
+        wait(for: [expectation(for: alto, evaluatedWith: aviso)], timeout: 5)
+        XCTAssertTrue(app.buttons["escala-publicar"].isEnabled, "com o aviso, o Publicar segue ligado")
+        trazer(aviso, em: app)
+        capturar("aviso-valor-alto", ax5: ax5)
+        try app.performAccessibilityAudit(for: [.dynamicType, .textClipped, .contrast]) { achado in
+            achado.element?.identifier != "escala-aviso-valor-0"
+        }
+    }
+
+    func testValorForaDaFaixaAvisaSemTravarAEscala() throws { try avisarValorForaDaFaixaSemTravar(ax5: false) }
+    func testValorForaDaFaixaAvisaSemTravarAEscalaEmAX5() throws { try avisarValorForaDaFaixaSemTravar(ax5: true) }
+
     func testCapturasDaEscala() {
         for ax5 in [false, true] {
             let app = abrir(ax5: ax5)

@@ -90,6 +90,27 @@ struct PublicarEscalaViewModelTests {
         )
     }
 
+    @Test("B-124: valor fora da faixa só avisa naquela vaga, e a escala é publicada com o valor digitado", arguments: [
+        ("4999", "Valor muito baixo."), ("200001", "Valor muito alto, confira."),
+    ])
+    func valorForaDaFaixaSoAvisa(centavos: String, aviso: String) async throws {
+        let servidor = ServidorDeEscala([.success(publicada())])
+        let vm = try modelo(servidor)
+        preenchido(vm)
+        vm.atualizar(vm.vagas[0].id) { $0.valorTexto = centavos }
+
+        #expect(vm.vagas[0].avisoDoValor == aviso)
+        #expect(vm.vagas[1].avisoDoValor == nil)
+        #expect(!vm.camposBloqueados)
+        #expect(!vm.enviando, "o botão Publicar só fica desligado durante o envio")
+
+        await vm.publicar()
+
+        #expect(await servidor.recebidas.map { $0.vagas.first?.valor.centavos } == [Int(centavos)])
+        #expect(vm.erros.vazio)
+        #expect(vm.resultado != nil)
+    }
+
     /// O formulário preenchido: duas vagas (Garçom e Bartender) de um evento.
     private func preenchido(_ vm: PublicarEscalaViewModel) {
         vm.nome = "Formatura de Direito"

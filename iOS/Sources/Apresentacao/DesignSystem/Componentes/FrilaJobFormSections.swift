@@ -808,6 +808,15 @@ struct FrilaJobFormValorSection: View {
 
                 presetRow
                 valueSlider
+
+                // B-124: fora da faixa de referência só avisa; nada fica desligado. Texto e desenho provisórios (Fabrício).
+                if let aviso = draft.avisoDoValor {
+                    Text(verbatim: aviso)
+                        .frilaType(FrilaFormType.detail, dynamic: true)
+                        .foregroundStyle(FrilaColor.dynamicTextMuted(isDark: isDark))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("aviso-valor-vaga")
+                }
             }
 
             positionsStepper
