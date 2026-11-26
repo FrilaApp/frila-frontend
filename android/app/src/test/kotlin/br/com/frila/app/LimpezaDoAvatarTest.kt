@@ -2,6 +2,7 @@ package br.com.frila.app
 
 import android.app.Application
 import android.util.Log
+import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import br.com.frila.core.seguranca.Sessao
 import br.com.frila.feature.perfil.CompressorDeFotoPerfil
@@ -17,6 +18,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLog
 
@@ -46,6 +48,8 @@ class LimpezaDoAvatarTest {
     fun restaurar() {
         // O TemporaryFolder não consegue apagar uma pasta sem permissão de escrita.
         bloqueadas.forEach { it.setWritable(true) }
+        // O filesDir do Robolectric pode ser compartilhado entre testes: não deixa avatar de um para o seguinte.
+        RuntimeEnvironment.getApplication().filesDir.listFiles()?.forEach { it.deleteRecursively() }
     }
 
     private fun sessao(conta: String) = Sessao(
@@ -58,10 +62,24 @@ class LimpezaDoAvatarTest {
         File(arquivos, nome).also { it.writeText("foto-sintetica") }
 
     /** Tira a permissão de escrita da pasta: `File.delete()` dos arquivos dentro dela passa a devolver `false`. */
-    private fun impedirExclusao() {
-        arquivos.setWritable(false)
-        bloqueadas += arquivos
-        assertFalse("o ambiente de teste não impede a exclusão (executando como administrador?)", arquivos.canWrite())
+    private fun impedirExclusao(alvo: File = arquivos) {
+        alvo.setWritable(false)
+        bloqueadas += alvo
+        assertFalse("o ambiente de teste não impede a exclusão (executando como administrador?)", alvo.canWrite())
+    }
+
+    private val filesDir: File get() = RuntimeEnvironment.getApplication().filesDir
+
+    private fun avatarNoFilesDir(nome: String = "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}1.jpg") =
+        File(filesDir, nome).also { it.writeText("foto-de-a") }
+
+    /** Pasta de cache da conta com um arquivo que não dá para apagar: `limpar()` falha na parte da sessão, não na do avatar. */
+    private fun raizComCacheImpossivelDeApagar(): File {
+        val raiz = pasta.newFolder("raiz")
+        val vagas = File(raiz, "vagas").also { it.mkdirs() }
+        File(vagas, "cache.json").writeText("[]")
+        impedirExclusao(vagas)
+        return raiz
     }
 
     private fun cache() = CacheVagasDaSessao(raiz = null, diretorioDosAvatares = arquivos)
@@ -132,5 +150,98 @@ class LimpezaDoAvatarTest {
         assertTrue("pasta com conteúdo fica", File(cheia, "dentro.txt").exists())
         assertTrue("pasta com o nome do temporário também fica", temporarioPasta.isDirectory)
         assertFalse(arquivoDoAvatar.exists())
+    }
+
+    @Test
+    fun `com o avatar impedido de apagar a troca de conta nao deixa a foto da anterior legivel`() {
+        val armazenamento = SessaoComCacheVagas(
+            ArmazenamentoDeSessaoEmMemoria(), CacheVagasDaSessao(raiz = null, diretorioDosAvatares = filesDir),
+        )
+        armazenamento.salvarSessao(sessao("a"))
+        avatarNoFilesDir()
+        impedirExclusao(filesDir)
+
+        armazenamento.salvarSessao(sessao("b"))
+
+        assertEquals("refresh-b", armazenamento.obterSessao()?.refreshToken)
+        assertNull("a foto de A não pode ser a que o Perfil de B lê", CompressorDeFotoPerfil.avatarExistente(RuntimeEnvironment.getApplication()))
+    }
+
+    @Test
+    fun `com o avatar impedido de apagar o Sair nao deixa a foto legivel`() {
+        val armazenamento = SessaoComCacheVagas(
+            ArmazenamentoDeSessaoEmMemoria(), CacheVagasDaSessao(raiz = null, diretorioDosAvatares = filesDir),
+        )
+        armazenamento.salvarSessao(sessao("a"))
+        avatarNoFilesDir()
+        impedirExclusao(filesDir)
+
+        CoordenadorDeLogout(armazenamento, RuntimeEnvironment.getApplication()).limparSessao()
+
+        assertNull(armazenamento.origem.obterSessao())
+        assertNull(CompressorDeFotoPerfil.avatarExistente(RuntimeEnvironment.getApplication()))
+    }
+
+    @Test
+    fun `a limpeza de imagens do Sair tambem nao deixa a foto legivel quando nao consegue apagar`() {
+        // Sem o cache de sessão no caminho: só o passo de imagens do CoordenadorDeLogout.
+        avatarNoFilesDir()
+        avatarNoFilesDir(CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO)
+        impedirExclusao(filesDir)
+
+        CoordenadorDeLogout(ArmazenamentoDeSessaoEmMemoria(), RuntimeEnvironment.getApplication()).limparCacheDeImagens()
+
+        assertNull(CompressorDeFotoPerfil.avatarExistente(RuntimeEnvironment.getApplication()))
+    }
+
+    @Test
+    fun `falha da sessao ainda sobe, mas so depois de apagar o avatar`() {
+        val cache = CacheVagasDaSessao(raizComCacheImpossivelDeApagar(), diretorioDosAvatares = arquivos)
+        val arquivoDoAvatar = avatar()
+
+        try {
+            cache.limpar()
+            org.junit.Assert.fail("esperava IOException do cache de vagas que não saiu")
+        } catch (esperada: java.io.IOException) {
+            assertEquals("Não foi possível apagar o cache de vagas", esperada.message)
+        }
+        assertFalse("o avatar sai antes de a falha da sessão subir", arquivoDoAvatar.exists())
+    }
+
+    @Test
+    fun `Sair com falha da sessao propaga a falha mas encerra a sessao`() {
+        val origem = ArmazenamentoDeSessaoEmMemoria().also { it.salvarSessao(sessao("a")) }
+        val armazenamento = SessaoComCacheVagas(origem, CacheVagasDaSessao(raizComCacheImpossivelDeApagar(), diretorioDosAvatares = arquivos))
+
+        try {
+            armazenamento.limparSessao()
+            org.junit.Assert.fail("esperava IOException do cache de vagas que não saiu")
+        } catch (_: java.io.IOException) {
+        }
+
+        assertNull("a sessão cai mesmo com a falha da limpeza", origem.obterSessao())
+        assertEquals(1, armazenamento.encerramentos.value)
+    }
+
+    @Test
+    fun `so os arquivos do avatar saem, nomes parecidos ficam`() {
+        val parecidos = listOf("avatar_perfil.jpg", "avatar_outro.jpg", "avatarfoto.png", "perfil_avatar_1.jpg").map { avatar(it) }
+
+        cache().limpar()
+
+        parecidos.forEach { assertTrue("${it.name} não é avatar do perfil e fica", it.exists()) }
+    }
+
+    @Test
+    fun `o registro da falha nao traz nome nem caminho do arquivo`() {
+        avatar("${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}conta-sintetica-123.jpg")
+        impedirExclusao()
+
+        cache().limpar()
+
+        val mensagem = ShadowLog.getLogsForTag("FrilaSessao").single().msg
+        assertFalse(mensagem, mensagem.contains("conta-sintetica-123"))
+        assertFalse(mensagem, mensagem.contains(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR))
+        assertFalse(mensagem, mensagem.contains(arquivos.path))
     }
 }
