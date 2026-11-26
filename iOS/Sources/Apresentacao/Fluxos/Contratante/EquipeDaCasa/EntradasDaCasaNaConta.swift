@@ -84,7 +84,7 @@ private struct DestinoDaEquipeDaCasa: View {
 
     var body: some View {
         TelaEquipeDaCasa(
-            modelo: EquipeDaCasaViewModel(api: api, estabelecimentoID: casa.id, papel: casa.papel),
+            modelo: EquipeDaCasaViewModel(api: api, estabelecimentoID: casa.id, nomeDaCasa: casa.nome, papel: casa.papel),
             aoPerderAdministracao: aoPerderAdministracao
         )
         .id(casa.id)

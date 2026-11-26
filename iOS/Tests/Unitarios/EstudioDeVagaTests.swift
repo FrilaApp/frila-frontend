@@ -15,6 +15,11 @@ private actor FilaDoEstudio: FilaDeAcoes {
     func limpar() { itens.removeAll() }
 }
 
+private actor ValoresPublicados {
+    private(set) var centavos: [Int] = []
+    func guardar(_ valor: Int) { centavos.append(valor) }
+}
+
 private struct RelogioDoEstudio: Relogio {
     let agora: Date
 }
@@ -131,6 +136,40 @@ struct EstudioDeVagaTests {
         vaga.inicio = try #require(calendario.date(bySettingHour: 23, minute: 40, second: 0, of: dia))
         #expect(formulario.rascunhoInicial.shiftDate == FrilaJobShiftFormat.dateLabel(dia, calendar: calendario))
         #expect(formulario.rascunhoInicial.startTime == "23:30")
+    }
+
+    @Test("B-124: no Estúdio, o valor por turno fora da faixa só avisa, e a vaga é publicada com ele", arguments: [
+        (49, "Valor muito baixo."), (2_001, "Valor muito alto, confira."),
+    ])
+    func valorForaDaFaixaNoEstudioSoAvisa(reais: Int, aviso: String) async throws {
+        let enviados = ValoresPublicados()
+        let formulario = try formulario { publicacao in
+            await enviados.guardar(publicacao.valor.centavos)
+            return VagaPublicada(vagaID: UUID(), posicoes: [UUID()])
+        }
+        var rascunho = rascunhoCompleto(formulario)
+        rascunho.payPerPosition = reais
+
+        #expect(rascunho.avisoDoValor == aviso)
+        #expect(FrilaJobFormSection.firstIncomplete(in: rascunho) == nil, "o aviso não deixa o formulário incompleto")
+
+        let resultado = await formulario.publicar(rascunho)
+
+        #expect(resultado == .published)
+        #expect(await enviados.centavos == [reais * 100])
+    }
+
+    @Test("B-124: dentro da faixa e no valor por hora o Estúdio não avisa nada")
+    func estudioSemAviso() throws {
+        var rascunho = rascunhoCompleto(try formulario { _ in throw ErroDaApi(codigo: .desconhecido) })
+        for reais in [0, 50, 140, 2_000] {
+            rascunho.payPerPosition = reais
+            #expect(rascunho.avisoDoValor == nil, "\(reais)")
+        }
+        rascunho.paymentMode = .hourly
+        rascunho.payPerPosition = 10
+        rascunho.rateHourly = 20
+        #expect(rascunho.avisoDoValor == nil)
     }
 
     @Test("Sem rede a publicação fica na fila: não é erro nem celebração")

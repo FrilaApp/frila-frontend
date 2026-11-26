@@ -286,15 +286,20 @@ fun ConteudoPublicarVaga(
                 erro = estado.errosDeCampo[CampoPublicacao.LOCAL] ?: estado.errosDeCampo[CampoPublicacao.ESTABELECIMENTO],
                 habilitado = estado.podeEditar,
             )
-            CampoDeTexto(
-                valor = estado.valor,
-                aoMudar = acoes.aoEditarValor,
-                rotulo = TextosPublicarVaga.VALOR,
-                apoio = TextosPublicarVaga.VALOR_AJUDA,
-                erro = estado.errosDeCampo[CampoPublicacao.VALOR],
-                habilitado = estado.podeEditar,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                CampoDeTexto(
+                    valor = estado.valor,
+                    aoMudar = acoes.aoEditarValor,
+                    rotulo = TextosPublicarVaga.VALOR,
+                    apoio = TextosPublicarVaga.VALOR_AJUDA,
+                    erro = estado.errosDeCampo[CampoPublicacao.VALOR],
+                    habilitado = estado.podeEditar,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                avisoValorDiaria(estado.valorCentavos)?.let { aviso ->
+                    Text(text = aviso, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                }
+            }
             // Os botões − e + descem até a caixa do campo (a altura do rótulo acompanha a fonte do sistema).
             val alturaDoRotulo = with(LocalDensity.current) { FrilaTipo.rotuloDeGrupo.lineHeight.toDp() }
             Row(

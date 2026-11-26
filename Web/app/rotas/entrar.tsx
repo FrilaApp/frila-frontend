@@ -1,7 +1,12 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { appleEntrarLigado, authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
+import {
+  appleEntrarLigado,
+  authDesteAmbiente,
+  emailsDeDemonstracao,
+  googleLigadoNesteAmbiente,
+} from "../servidor/deste-ambiente";
 import { BASE } from "../servidor/porteiro";
 import {
   cookieDoDispositivo,
@@ -36,7 +41,11 @@ export function loader({ request, context }: Route.LoaderArgs) {
     erroParam && Object.prototype.hasOwnProperty.call(textos.entrar.erros, erroParam)
       ? (erroParam as Erro)
       : undefined;
-  return { appleLigado: appleEntrarLigado(), erroUrl };
+  return {
+    appleLigado: appleEntrarLigado(),
+    googleLigado: googleLigadoNesteAmbiente(),
+    erroUrl,
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -152,6 +161,8 @@ export async function action({ request }: Route.ActionArgs) {
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
 const classeDoBotao = "min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60";
+const classeDoBotaoSecundario =
+  "inline-flex min-h-12 w-full items-center justify-center rounded-controle border border-borda bg-superficie px-4 text-lg font-semibold";
 const classeDoLink = "min-h-11 font-semibold underline underline-offset-4";
 
 // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
@@ -161,6 +172,7 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
   const estado: Passo = actionData ?? { passo: "email", email: "", erro: loaderData?.erroUrl };
   const erro = estado.erro ? textos.entrar.erros[estado.erro] : null;
   const appleLigado = loaderData?.appleLigado === true;
+  const googleLigado = loaderData?.googleLigado === true;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
@@ -210,11 +222,15 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
           </button>
 
           {appleLigado ? (
-            <a
-              href={`${BASE}/entrar/apple`}
-              className="flex min-h-12 w-full items-center justify-center rounded-controle border border-borda bg-superficie px-4 text-lg font-semibold text-tinta"
-            >
+            <a href={`${BASE}/entrar/apple`} className={classeDoBotaoSecundario}>
               {textos.entrar.entrarComApple}
+            </a>
+          ) : null}
+
+          {googleLigado ? (
+            // Link (GET) e não formulário: a política de conteúdo (`form-action 'self'`) barraria o redirecionamento ao Google.
+            <a href={`${BASE}/entrar/google`} className={classeDoBotaoSecundario}>
+              {textos.entrar.entrarComGoogle}
             </a>
           ) : null}
 

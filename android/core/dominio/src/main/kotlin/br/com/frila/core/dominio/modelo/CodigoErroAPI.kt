@@ -53,6 +53,7 @@ enum class CodigoErroAPI {
     @SerialName("evidencia_incompleta") EVIDENCIA_INCOMPLETA,
     @SerialName("ultimo_administrador") ULTIMO_ADMINISTRADOR,
     @SerialName("convite_invalido") CONVITE_INVALIDO,
+    @SerialName("convite_de_outro_email") CONVITE_DE_OUTRO_EMAIL,
     // Chamada direta e busca de profissionais (contrato 0.2.88).
     @SerialName("chamada_indisponivel") CHAMADA_INDISPONIVEL,
     @SerialName("chamada_ja_aberta") CHAMADA_JA_ABERTA,

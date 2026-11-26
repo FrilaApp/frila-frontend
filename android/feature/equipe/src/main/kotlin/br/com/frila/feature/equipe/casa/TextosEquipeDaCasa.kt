@@ -1,5 +1,8 @@
 package br.com.frila.feature.equipe.casa
 
+import br.com.frila.core.dominio.modelo.PapelMembro
+import java.util.Locale
+
 /** Textos da equipe da casa, do convite e da troca de casa (pedido 18-02; paridade de conteúdo com `contratante-membros.ts` da web). */
 object TextosEquipeDaCasa {
     // Entradas (Perfil)
@@ -33,8 +36,32 @@ object TextosEquipeDaCasa {
     const val LINK_DO_CONVITE = "Link do convite"
     const val COMPARTILHAR = "Compartilhar convite"
     const val COMPARTILHAR_TITULO = "Convite para a casa no Frila"
-    /** Só o link: quem recebe pode copiar a mensagem inteira e colar em "Tenho um convite" sem sobrar texto. */
-    const val COMPARTILHAR_TEXTO = "%s"
+    private const val COMPARTILHAR_POLITICA =
+        "O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade"
+    const val COMPARTILHAR_MENSAGEM_COM_PRAZO =
+        "%s convidou você para a equipe da casa no Frila, como %s. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %s. O convite vale uma vez, até %s. $COMPARTILHAR_POLITICA\n%s"
+    const val COMPARTILHAR_MENSAGEM_SEM_PRAZO =
+        "%s convidou você para a equipe da casa no Frila, como %s. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %s. O convite vale uma vez. $COMPARTILHAR_POLITICA\n%s"
+
+    /** Monta a mensagem compartilhada do convite (com ou sem prazo, papel em minúsculo, e-mail aparado e link na última linha). */
+    fun mensagemDoConvite(
+        casa: String?,
+        papel: PapelMembro,
+        email: String,
+        prazo: String?,
+        link: String,
+    ): String {
+        val nomeDaCasa = casa?.trim()?.takeIf { it.isNotEmpty() } ?: "A casa"
+        val papelTexto = papel.chave.lowercase(Locale.forLanguageTag("pt-BR"))
+        val emailAparado = email.trim()
+        val prazoAparado = prazo?.trim()?.takeIf { it.isNotEmpty() }
+        val linkAparado = link.trim()
+        return if (prazoAparado != null) {
+            COMPARTILHAR_MENSAGEM_COM_PRAZO.format(nomeDaCasa, papelTexto, emailAparado, prazoAparado, linkAparado)
+        } else {
+            COMPARTILHAR_MENSAGEM_SEM_PRAZO.format(nomeDaCasa, papelTexto, emailAparado, linkAparado)
+        }
+    }
 
     // Ações sobre a pessoa
     const val REMOVER = "Remover"
@@ -73,6 +100,7 @@ object TextosEquipeDaCasa {
     const val CONVITE_ACEITO_SEM_PAPEL = "Você agora faz parte da casa."
     const val CONVITE_ABRIR_CASA = "Abrir a casa"
     const val CONVITE_INVALIDO = "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou."
+    const val CONVITE_DE_OUTRO_EMAIL = "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite."
     const val CONVITE_PERFIL_INCOMPATIVEL = "Convites de casa são para contas de quem contrata. A sua conta é de profissional."
     const val CONVITE_INCERTO = "Não foi possível confirmar agora. Tente de novo; se o convite já tiver sido aceito, a casa aparece na sua conta."
 

@@ -56,8 +56,8 @@ enum class AcaoSobreMembro { REMOVER, TRANSFERIR }
 /** Uma ação aguardando o "Confirmar". Guarda só o id e o nome, para o diálogo. */
 data class AcaoPendente(val acao: AcaoSobreMembro, val membroId: String, val nome: String)
 
-/** Convite gerado: o link para compartilhar e até quando vale (`null` se o servidor mandou um instante ilegível). */
-data class ConviteGerado(val link: String, val email: String, val expiraEm: Instant?)
+/** Convite gerado: o link para compartilhar, o e-mail, o papel e até quando vale (`null` se o servidor mandou um instante ilegível). */
+data class ConviteGerado(val link: String, val email: String, val papel: PapelMembro, val expiraEm: Instant?)
 
 data class EstadoEquipeDaCasa(
     /** O papel de quem abriu a tela nesta casa. Só `administrador` convida, remove e transfere. */
@@ -178,6 +178,7 @@ class EquipeDaCasaViewModel(
                         convite = ConviteGerado(
                             link = montarLink(convite.token),
                             email = email,
+                            papel = papel,
                             expiraEm = runCatching { OffsetDateTime.parse(convite.expiraEm).toInstant() }.getOrNull(),
                         ),
                     )

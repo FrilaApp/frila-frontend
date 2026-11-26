@@ -1,7 +1,11 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createRoutesStub } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { action, loader } from "../app/rotas/contratante/publicar-vaga";
-import { horarioEmUtc, valorEmCentavos } from "../app/servidor/contratante/publicar-vaga";
+import { avisoDoValor } from "../app/rotas/contratante/comum";
+import PublicarVaga, { action, loader } from "../app/rotas/contratante/publicar-vaga";
+import { faixaDeAvisoDoValor, horarioEmUtc, valorEmCentavos } from "../app/servidor/contratante/publicar-vaga";
 import { textos } from "../app/textos/pt-BR";
 import { argumentos, CASA, CHAVE, GARCOM, ok, recusa, redirecionamento } from "./contratante-apoio";
 
@@ -161,5 +165,73 @@ describe("publicar vaga: conversões", () => {
     expect(horarioEmUtc("2026-11-21", "18:00", "22:00")).toEqual({ inicio_em: "2026-11-21T21:00:00.000Z", fim_em: "2026-11-22T01:00:00.000Z" });
     expect(horarioEmUtc("2026-11-21", "22:00", "02:00")?.fim_em).toBe("2026-11-22T05:00:00.000Z");
     expect(horarioEmUtc("21/11/2026", "18:00", "22:00")).toBeNull();
+  });
+
+  it("faixa de aviso do valor (B-124): só fora de R$ 50 a R$ 2.000 e nunca em zero, negativo ou inválido", () => {
+    expect(faixaDeAvisoDoValor(1)).toBe("baixo");
+    expect(faixaDeAvisoDoValor(4999)).toBe("baixo");
+    expect(faixaDeAvisoDoValor(5000)).toBeNull();
+    expect(faixaDeAvisoDoValor(200000)).toBeNull();
+    expect(faixaDeAvisoDoValor(200001)).toBe("alto");
+    expect(faixaDeAvisoDoValor(100000000)).toBe("alto");
+    expect(faixaDeAvisoDoValor(0)).toBeNull();
+    expect(faixaDeAvisoDoValor(-500)).toBeNull();
+    expect(faixaDeAvisoDoValor(null)).toBeNull();
+
+    expect(avisoDoValor("0,01")).toBe("Valor muito baixo.");
+    expect(avisoDoValor("49,99")).toBe("Valor muito baixo.");
+    expect(avisoDoValor("50")).toBeUndefined();
+    expect(avisoDoValor("2.000,00")).toBeUndefined();
+    expect(avisoDoValor("2000,01")).toBe("Valor muito alto, confira.");
+    expect(avisoDoValor("1000000")).toBe("Valor muito alto, confira.");
+    expect(avisoDoValor("")).toBeUndefined();
+    expect(avisoDoValor("0")).toBeUndefined();
+    expect(avisoDoValor("-10")).toBeUndefined();
+    expect(avisoDoValor("abc")).toBeUndefined();
+  });
+});
+
+describe("publicar vaga: aviso não bloqueante da faixa (B-124)", () => {
+  const renderizar = (valor: string) => {
+    const loaderData = {
+      casa: { id: CASA, nome: "Bar Sintético", endereco: "Rua Sintética, 1", regiao: "Plano Piloto" },
+      grupos: [],
+      funcoesIndisponiveis: false,
+      chave: CHAVE,
+    };
+    const actionData = { erros: {}, valores: { ...formulario, inclui_refeicao: true, inclui_transporte: false, exige_material_proprio: false, valor }, chave: CHAVE };
+    const Stub = createRoutesStub([{ path: "/painel/publicar", Component: () => createElement(PublicarVaga, { loaderData, actionData } as never) }]);
+    return renderToStaticMarkup(createElement(Stub, { initialEntries: ["/painel/publicar"] }));
+  };
+
+  it("aceita publicar valor positivo fora da faixa de referência e continua recusando 0 e negativo", async () => {
+    for (const valor of ["0,01", "49,99", "2000,01", "1000000"]) {
+      api.POST.mockReset();
+      servidor(casaOk);
+      expect(await redirecionamento(action(argumentos("/painel/publicar", { ...formulario, valor })))).toBe(`/painel?casa=${CASA}&publicada=1`);
+      expect(api.POST).toHaveBeenCalledTimes(1);
+    }
+    for (const valor of ["0", "-10"]) {
+      api.POST.mockReset();
+      servidor(casaOk);
+      expect((await action(argumentos("/painel/publicar", { ...formulario, valor }))).erros).toEqual({ valor: t.valor });
+      expect(api.POST).not.toHaveBeenCalled();
+    }
+  });
+
+  it("mostra o aviso exato para valor baixo/alto sem desabilitar o botão de publicar", () => {
+    const botaoDePublicar = new RegExp(`<button[^>]*>${textos.contratante.publicar.publicar}</button>`);
+    for (const [valor, esperado] of [["49,99", "Valor muito baixo."], ["2000,01", "Valor muito alto, confira."]] as const) {
+      const html = renderizar(valor);
+      expect(html).toContain(esperado);
+      const botao = html.match(botaoDePublicar)?.[0];
+      expect(botao).toBeTruthy();
+      expect(botao).not.toMatch(/\sdisabled(?=[\s=>])/);
+    }
+    for (const valor of ["50", "2000", "", "0", "-10"]) {
+      const html = renderizar(valor);
+      expect(html).not.toContain("Valor muito baixo.");
+      expect(html).not.toContain("Valor muito alto, confira.");
+    }
   });
 });

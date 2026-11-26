@@ -294,6 +294,7 @@ class ServicoMembrosTest {
         conferirRecusas(
             listOf(
                 Recusa(HttpStatusCode.UnprocessableEntity, "convite_invalido", CodigoErroAPI.CONVITE_INVALIDO),
+                Recusa(HttpStatusCode.Forbidden, "convite_de_outro_email", CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL),
                 Recusa(HttpStatusCode.UnprocessableEntity, "perfil_incompativel", CodigoErroAPI.PERFIL_INCOMPATIVEL),
                 TOKEN_VENCIDO,
             ),

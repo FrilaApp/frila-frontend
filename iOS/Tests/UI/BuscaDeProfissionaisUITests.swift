@@ -71,6 +71,80 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         wait(for: [doisEnviados], timeout: 20)
     }
 
+    // MARK: B-124
+
+    /// Na folha de chamada da busca o valor fora da faixa de referência avisa e não trava o envio.
+    private func avisarValorForaDaFaixaSemTravar(ax5: Bool) throws {
+        let app = abrir(cenario + (ax5 ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : []))
+        abrirABusca(app)
+        buscar(app)
+        let pessoa = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'selecionar-profissional-'")).firstMatch
+        XCTAssertTrue(pessoa.waitForExistence(timeout: 15) || procurar(pessoa, em: app), "a busca traz profissionais")
+        XCTAssertTrue(procurar(pessoa, em: app))
+        pessoa.tap()
+        let chamar = app.buttons["chamar-selecionados"]
+        // Em AX5 o botão fica no fim da lista, milhares de pontos abaixo: o `procurar` desiste antes e se contenta com o
+        // elemento existir, e o toque cairia fora da tela. Rola até ele ficar tocável.
+        for _ in 0..<40 where !chamar.isHittable { app.swipeUp(velocity: .fast) }
+        XCTAssertTrue(chamar.isHittable, "com uma pessoa selecionada, dá para chamar")
+        chamar.tap()
+
+        let valor = app.textFields["busca-valor-total"]
+        XCTAssertTrue(valor.waitForExistence(timeout: 10), "a folha de chamada abre")
+        XCTAssertTrue(procurar(valor, em: app))
+        valor.tap()
+        XCTAssertTrue(esperarFocoDoTeclado(valor, timeout: 5))
+        valor.typeText("30")
+        let aviso = app.staticTexts["aviso-valor-busca"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5), "abaixo de R$ 50 a folha avisa")
+        XCTAssertEqual(aviso.label, "Valor muito baixo.")
+
+        valor.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 2) + "2500")
+        let alto = NSPredicate(format: "label == 'Valor muito alto, confira.'")
+        wait(for: [expectation(for: alto, evaluatedWith: aviso)], timeout: 5)
+        // Em AX5 o teclado numérico cobre o aviso, e a auditoria mediria o contraste das teclas: sobe a folha até o aviso
+        // ficar inteiro acima dele, e cobra isso antes de auditar.
+        func limite() -> CGFloat {
+            let teclado = app.keyboards.firstMatch
+            return teclado.exists ? teclado.frame.minY : app.windows.firstMatch.frame.maxY
+        }
+        for _ in 0..<10 where !(aviso.frame.minY > 140 && aviso.frame.maxY < limite() - 8) {
+            let de = app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.45))
+            de.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.30)))
+        }
+        XCTAssertTrue(aviso.frame.minY > 140 && aviso.frame.maxY < limite() - 8, "o aviso fica inteiro à vista: \(aviso.frame)")
+        salvar(app, "busca-aviso-valor-alto-\(ax5 ? "ax5" : "padrao")")
+        try app.performAccessibilityAudit(for: [.dynamicType, .textClipped, .contrast]) { achado in
+            achado.element?.identifier != "aviso-valor-busca"
+        }
+
+        let confirmo = app.switches["busca-confirmo-total"]
+        XCTAssertTrue(procurar(confirmo, em: app))
+        confirmo.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let enviar = app.buttons["busca-enviar-chamadas"]
+        XCTAssertTrue(procurar(enviar, em: app))
+        // O `procurar` se contenta com o elemento existir: antes de tocar, o botão tem de estar mesmo tocável.
+        for _ in 0..<20 where !enviar.isHittable { app.swipeUp() }
+        XCTAssertTrue(enviar.isHittable, "o botão de enviar fica alcançável")
+        XCTAssertTrue(enviar.isEnabled, "com o aviso na tela, o envio segue ligado")
+        XCTAssertEqual(aviso.label, "Valor muito alto, confira.", "o envio acontece com o aviso na folha")
+        enviar.tap()
+
+        let fechou = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: enviar)
+        wait(for: [fechou], timeout: 10)
+        // O resultado fica no cartão de quem foi chamado, no topo da lista. Em AX5 a lista só mantém os cartões perto da
+        // tela: volta até ele aparecer.
+        let enviada = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'resultado-chamada-' AND label == 'Chamada enviada'"))
+        for _ in 0..<40 {
+            if enviada.firstMatch.waitForExistence(timeout: 1) { break }
+            app.swipeDown(velocity: .fast)
+        }
+        XCTAssertTrue(enviada.firstMatch.exists, "a chamada sai com o valor fora da faixa")
+    }
+
+    func testValorForaDaFaixaAvisaSemTravarOEnvio() throws { try avisarValorForaDaFaixaSemTravar(ax5: false) }
+    func testValorForaDaFaixaAvisaSemTravarOEnvioEmAX5() throws { try avisarValorForaDaFaixaSemTravar(ax5: true) }
+
     func testComAChaveDesligadaOBotaoNaoExiste() {
         let app = abrir(cenario + ["-FRILA_CHAMADA_DIRETA_DESLIGADA"])
         XCTAssertTrue(app.buttons["publicar-vaga-entrada"].waitForExistence(timeout: 20) || app.navigationBars["Minhas vagas"].waitForExistence(timeout: 5), "Minhas vagas abre")

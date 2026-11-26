@@ -69,6 +69,16 @@ class CancelamentosNaFilaTest {
         override fun close() { escopo.cancel(); cliente.close() }
     }
 
+    /**
+     * O coletor de `fila.versao` das telas termina fora da thread do teste (o toque foi enfileirado depois do HTTP sintético, numa
+     * thread do Dispatchers.Default): ler o estado logo depois de sincronizar às vezes vê o de antes. Espera o estado esperado e
+     * as asserções seguintes seguem iguais.
+     */
+    private suspend fun aguardar(condicao: () -> Boolean) {
+        repeat(100) { if (!condicao()) delay(50) }
+        assertTrue(condicao(), "a condição não chegou a tempo")
+    }
+
     @Test fun `casa cancela posicao com fila persistente deduplicacao telemetria recusa e reenvio`() = runBlocking {
         for (recusar in listOf(false, true)) Caso(false).use { c ->
             var leituras = 0
@@ -91,6 +101,7 @@ class CancelamentosNaFilaTest {
             assertEquals(listOf(Triple(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, "turno")), c.eventos)
             c.offline = false; c.recusar = recusar; c.sincronizar(); c.sincronizar()
             assertEquals(antes + 1, c.pedidos); assertTrue(c.fila.pendentes().isEmpty())
+            aguardar { !vm.estado.value.cancelamentoNaFila && (if (recusar) vm.estado.value.cancelamentoRecusado else leituras >= 2) }
             assertFalse(vm.estado.value.cancelamentoNaFila)
             if (recusar) {
                 assertTrue(vm.estado.value.cancelamentoRecusado); assertTrue(tela().estado.value.cancelamentoRecusado)
@@ -131,6 +142,7 @@ class CancelamentosNaFilaTest {
             val antes = c.pedidos
             c.offline = false; c.recusar = true; c.sincronizar()
             assertTrue(c.fila.pendentes().isEmpty()); assertEquals(1, c.fila.recusadas().size)
+            aguardar { !tela.naFila() && tela.erro()?.startsWith("O cancelamento não foi aceito") == true }
             assertEquals("O cancelamento não foi aceito. Atualize a tela e tente de novo.", tela.erro())
             assertEquals(tela.erro(), c.tela().erro())
             assertFalse(tela.naFila()); assertFalse(tela.concluida())
@@ -140,6 +152,7 @@ class CancelamentosNaFilaTest {
             val antesDoReenvio = c.pedidos
             c.sincronizar(); c.sincronizar()
             assertEquals(antesDoReenvio + 1, c.pedidos); assertTrue(c.pedidos > antes)
+            aguardar { tela.concluida() }
             assertTrue(c.fila.pendentes().isEmpty()); assertTrue(tela.concluida())
         }
     }
@@ -149,9 +162,11 @@ class CancelamentosNaFilaTest {
             val tela = c.tela(); tela.motivo("Imprevisto"); tela.confirmar()!!.join()
             c.conta = "outra-conta"; val antes = c.pedidos; c.sincronizar()
             assertEquals(antes, c.pedidos); assertTrue(c.fila.pendentes().isEmpty())
+            aguardar { !tela.naFila() }
             assertFalse(tela.naFila()); assertFalse(tela.concluida())
             val nova = c.tela(); nova.motivo("Imprevisto"); nova.confirmar()!!.join()
             c.conta = null; c.fila.limpar()
+            aguardar { !nova.naFila() }
             assertTrue(c.fila.pendentes().isEmpty()); assertFalse(nova.naFila()); assertFalse(nova.concluida())
         }
     }

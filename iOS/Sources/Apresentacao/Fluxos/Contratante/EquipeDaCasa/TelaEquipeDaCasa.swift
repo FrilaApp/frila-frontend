@@ -255,7 +255,7 @@ public struct TelaEquipeDaCasa: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("equipe-convite-link")
             }
-            ShareLink(item: convite.link, subject: Text(verbatim: TextosDaEquipeDaCasa.compartilharTitulo)) {
+            ShareLink(item: convite.mensagem, subject: Text(verbatim: TextosDaEquipeDaCasa.compartilharTitulo)) {
                 Text(verbatim: TextosDaEquipeDaCasa.compartilhar)
             }
             .buttonStyle(EstiloDoBotaoFrila(papel: .secundario))

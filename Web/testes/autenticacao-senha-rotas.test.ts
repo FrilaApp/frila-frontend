@@ -55,6 +55,7 @@ vi.mock("../app/servidor/deste-ambiente", () => ({
   authDesteAmbiente: () => authMock,
   appleEntrarLigado: () => false,
   emailsDeDemonstracao: () => new Set(["demo@frila.test"]),
+  googleLigadoNesteAmbiente: () => false,
   apiDoUsuario: () => ({}),
   funcoesDoUsuario: () => ({}),
 }));

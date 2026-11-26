@@ -49,7 +49,11 @@ export function appleEntrarLigado(): boolean {
   return (env as { APPLE_ENTRAR?: string }).APPLE_ENTRAR === "ligado";
 }
 
-/** URL base do Supabase configurada no Worker (`null` quando ausente). */
-export function urlDoSupabaseDesteAmbiente(): string | null {
-  return ambienteDoSupabase(env)?.url ?? null;
+/** O "Entrar com Google" está ligado neste Worker? Só o ambiente de dev tem `GOOGLE_ENTRAR = "ligado"`; no Prod a variável não existe. */
+export function googleLigadoNesteAmbiente(): boolean {
+  return (env as { GOOGLE_ENTRAR?: string }).GOOGLE_ENTRAR === "ligado";
+}
+
+export function socialEntrarLigado(provedor: "apple" | "google"): boolean {
+  return provedor === "apple" ? appleEntrarLigado() : googleLigadoNesteAmbiente();
 }

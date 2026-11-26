@@ -55,10 +55,15 @@ export type ResultadoRevogarDispositivos =
   | { ok: true }
   | { ok: false; motivo: "sessao_invalida" | "limite" | "indisponivel" };
 
-export type FalhaTrocaPkce = "conflito_identidade" | "apple_recusado" | "limite" | "indisponivel";
+export type FalhaTrocaPkce =
+  | "conflito_identidade"
+  | "apple_recusado"
+  | "google_recusado"
+  | "limite"
+  | "indisponivel";
 export type ResultadoIniciarSocialPkce =
   | { ok: true; transacaoId: string; urlAutorizacao: string }
-  | { ok: false; motivo: "limite" | "indisponivel" | "apple_recusado" };
+  | { ok: false; motivo: "limite" | "indisponivel" | "apple_recusado" | "google_recusado" };
 export type ResultadoTrocaPkce =
   | { ok: true; sessao: Sessao; precisaDefinirSenha: boolean }
   | { ok: false; motivo: FalhaTrocaPkce };
@@ -608,8 +613,8 @@ export function criarAuth(
           return { ok: true, transacaoId, urlAutorizacao };
         }
         if (resposta.status === 429) return { ok: false, motivo: "limite" };
-        if (resposta.status >= 500) return { ok: false, motivo: "indisponivel" };
-        return { ok: false, motivo: "apple_recusado" };
+        if (resposta.status === 403 || resposta.status >= 500) return { ok: false, motivo: "indisponivel" };
+        return { ok: false, motivo: `${params.provedor}_recusado` };
       } catch {
         return { ok: false, motivo: "indisponivel" };
       }
@@ -659,8 +664,11 @@ export function criarAuth(
         if (resposta.status === 409 && codigoErro === "conflito_identidade") {
           return { ok: false, motivo: "conflito_identidade" };
         }
+        if (resposta.status === 403 || resposta.status >= 500) {
+          return { ok: false, motivo: "indisponivel" };
+        }
         if (resposta.status >= 400 && resposta.status < 500) {
-          return { ok: false, motivo: "apple_recusado" };
+          return { ok: false, motivo: `${params.provedor}_recusado` };
         }
         return { ok: false, motivo: "indisponivel" };
       } catch {
