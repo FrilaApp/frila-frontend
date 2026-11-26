@@ -23,11 +23,17 @@ sealed interface ResultadoCallbackOAuth {
 }
 
 /**
- * Utilitários puros de OAuth PKCE S256 + state para login social (Google e Apple) no Android.
+ * Utilitários puros de OAuth PKCE S256 + correlação `tx` para login social (Google e Apple) no Android.
  * Nunca registra tokens, códigos OAuth ou verifiers em log.
+ *
+ * Nota de segurança pré-Prod (P2): custom scheme `frila-auth://auth/callback` é usado apenas em DEV/modo sombra
+ * e NÃO oferece exclusividade contra outro app instalado que registre o mesmo scheme. Antes de habilitar em Prod,
+ * migrar o callback para Android App Links verificados (`https://...` com `android:autoVerify="true"` e `assetlinks.json`).
  */
 object SegurancaOAuthSocial {
     const val ESQUEMA_CALLBACK = "frila-auth"
+    const val HOST_CALLBACK = "auth"
+    const val PATH_CALLBACK = "/callback"
     const val URL_CALLBACK = "frila-auth://auth/callback"
 
     private val random = SecureRandom()
@@ -74,24 +80,42 @@ object SegurancaOAuthSocial {
             "&state=${enc(state)}"
     }
 
+    fun ehCallbackOAuthSocial(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        val uri = runCatching { URI(url) }.getOrNull() ?: return false
+        return uri.scheme.equals(ESQUEMA_CALLBACK, ignoreCase = true) &&
+            uri.host.equals(HOST_CALLBACK, ignoreCase = true) &&
+            uri.path == PATH_CALLBACK
+    }
+
     fun analisarCallback(
         url: String,
         esquemaEsperado: String = ESQUEMA_CALLBACK,
+        hostEsperado: String = HOST_CALLBACK,
+        pathEsperado: String = PATH_CALLBACK,
         stateEsperado: String? = null,
     ): ResultadoCallbackOAuth {
-        val uri = runCatching { URI(url) }.getOrNull() ?: return ResultadoCallbackOAuth.CallbackInvalido
-        if (!uri.scheme.equals(esquemaEsperado, ignoreCase = true)) {
-            return ResultadoCallbackOAuth.CallbackInvalido
+        val uri = runCatching { URI(url) }.getOrNull()
+            ?: return if (stateEsperado != null) ResultadoCallbackOAuth.Ignorado else ResultadoCallbackOAuth.CallbackInvalido
+        // P2: exige scheme + host + path exatos (não apenas scheme).
+        val destinoValido = uri.scheme.equals(esquemaEsperado, ignoreCase = true) &&
+            uri.host.equals(hostEsperado, ignoreCase = true) &&
+            uri.path == pathEsperado
+        if (!destinoValido) {
+            return if (stateEsperado != null) ResultadoCallbackOAuth.Ignorado else ResultadoCallbackOAuth.CallbackInvalido
         }
         val params = parseQuery(uri.rawQuery)
         val correlacaoRecebida = params["tx"] ?: params["state"]
 
+        // P1: quando há transação pendente (`stateEsperado != null`), exige correlação presente e igual
+        // tanto para callbacks de erro quanto para callbacks com `code`. Ausente ou divergente -> Ignorado
+        // (NÃO consome nem limpa `oauthPendente`).
+        if (stateEsperado != null && (correlacaoRecebida.isNullOrBlank() || correlacaoRecebida != stateEsperado)) {
+            return ResultadoCallbackOAuth.Ignorado
+        }
+
         val erro = params["error"] ?: params["error_code"]
         if (erro != null) {
-            // P2: deep link forjado com ?error=... sem correspondência de `tx` NÃO limpa a transação ativa.
-            if (stateEsperado != null && correlacaoRecebida != stateEsperado) {
-                return ResultadoCallbackOAuth.Ignorado
-            }
             val combinado = "$erro ${params["error_description"].orEmpty()}".lowercase()
             return when {
                 combinado.contains("access_denied") || combinado.contains("cancel") ->
@@ -105,15 +129,8 @@ object SegurancaOAuthSocial {
             }
         }
 
-        if (stateEsperado != null && correlacaoRecebida != null && correlacaoRecebida != stateEsperado) {
-            return ResultadoCallbackOAuth.CallbackInvalido
-        }
-
         val codigo = params["code"]
         if (!ehCodigoValido(codigo)) {
-            if (stateEsperado != null && correlacaoRecebida != stateEsperado) {
-                return ResultadoCallbackOAuth.Ignorado
-            }
             return ResultadoCallbackOAuth.CallbackInvalido
         }
         return ResultadoCallbackOAuth.Codigo(codigo!!)

@@ -97,11 +97,33 @@ class LoginSocialViewModelTest {
             ResultadoCallbackOAuth.Codigo("cod-1234"),
             SegurancaOAuthSocial.analisarCallback("frila-auth://auth/callback?code=cod-1234&tx=s1", stateEsperado = "s1"),
         )
+        // P1: callback com code SEM tx/state ou com tx divergente é Ignorado (nunca aceito, nunca zera oauthPendente)
         assertEquals(
-            ResultadoCallbackOAuth.CallbackInvalido,
+            ResultadoCallbackOAuth.Ignorado,
+            SegurancaOAuthSocial.analisarCallback("frila-auth://auth/callback?code=cod-1234", stateEsperado = "s1"),
+        )
+        assertEquals(
+            ResultadoCallbackOAuth.Ignorado,
             SegurancaOAuthSocial.analisarCallback("frila-auth://auth/callback?code=cod-1234&tx=outro", stateEsperado = "s1"),
         )
-        // P2: callback forjado com ?error=... sem tx correspondente é Ignorado (não limpa transação ativa)
+        // P2: scheme, host ou path errados são recusados (Ignorado quando há transação ativa; CallbackInvalido sem transação)
+        assertEquals(
+            ResultadoCallbackOAuth.Ignorado,
+            SegurancaOAuthSocial.analisarCallback("frila-auth://outro/callback?code=cod-1234&tx=s1", stateEsperado = "s1"),
+        )
+        assertEquals(
+            ResultadoCallbackOAuth.Ignorado,
+            SegurancaOAuthSocial.analisarCallback("frila-auth://auth/errado?code=cod-1234&tx=s1", stateEsperado = "s1"),
+        )
+        assertEquals(
+            ResultadoCallbackOAuth.CallbackInvalido,
+            SegurancaOAuthSocial.analisarCallback("frila-auth://outro/callback?code=cod-1234"),
+        )
+        assertEquals(
+            ResultadoCallbackOAuth.CallbackInvalido,
+            SegurancaOAuthSocial.analisarCallback("https://evil.example/callback?code=cod-1234"),
+        )
+        // P1/P2: callback forjado com ?error=... sem tx correspondente é Ignorado (não limpa transação ativa)
         assertEquals(
             ResultadoCallbackOAuth.Ignorado,
             SegurancaOAuthSocial.analisarCallback("frila-auth://auth/callback?error=access_denied", stateEsperado = "s1"),
@@ -146,10 +168,16 @@ class LoginSocialViewModelTest {
         assertEquals("google", extrairParam(urlAuth!!, "provider"))
         assertEquals("s256", extrairParam(urlAuth!!, "code_challenge_method"))
 
-        // P2: deep link forjado sem tx não pode apagar oauthPendente
+        // P1/P2: callbacks forjados (sem tx, tx divergente, host errado, path errado, erro sem tx)
+        // NÃO consomem nem apagam oauthPendente
+        assertNull(vm.aoReceberCallbackOAuth("frila-auth://auth/callback?code=cod-forjado"))
+        assertNull(vm.aoReceberCallbackOAuth("frila-auth://auth/callback?code=cod-forjado&tx=divergente"))
+        assertNull(vm.aoReceberCallbackOAuth("frila-auth://outro/callback?code=cod-forjado&tx=$txLocal"))
+        assertNull(vm.aoReceberCallbackOAuth("frila-auth://auth/outro?code=cod-forjado&tx=$txLocal"))
         assertNull(vm.aoReceberCallbackOAuth("frila-auth://auth/callback?error=access_denied"))
+        assertFalse(vm.estado.value.autenticado)
 
-        // Callback legítimo com tx correspondente conclui normalmente
+        // Callback legítimo com tx correspondente conclui normalmente (prova que oauthPendente foi preservado)
         vm.aoReceberCallbackOAuth("frila-auth://auth/callback?code=cod-google-123&tx=$txLocal")?.join()
 
         assertTrue(vm.estado.value.autenticado)

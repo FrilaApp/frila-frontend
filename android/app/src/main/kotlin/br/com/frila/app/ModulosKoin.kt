@@ -361,6 +361,7 @@ val moduloFeatures = module {
             armazenamentoDeSessao = get(),
             aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
             permitirDominioDeTeste = BuildConfig.DEBUG,
+            mostrarLoginSocial = BuildConfig.DEBUG,
         )
     }
     viewModel { params ->

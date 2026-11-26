@@ -378,6 +378,9 @@ fun AppNavegacao(
      * código do turno. Desligada (padrão), a tela de turnos fica como antes.
      */
     checkinPorCodigoHabilitado: Boolean = false,
+    callbackOAuthSocial: StateFlow<String?>? = null,
+    aoConsumirCallbackOAuthSocial: () -> Unit = {},
+    aoAbrirLoginSocial: (String) -> Unit = {},
     /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
@@ -505,6 +508,13 @@ fun AppNavegacao(
                     aoPronto?.invoke()
                 }
                 if (viewModelSenha != null) {
+                    val callbackPendente = callbackOAuthSocial?.collectAsStateWithLifecycle()?.value
+                    LaunchedEffect(callbackPendente) {
+                        if (callbackPendente != null) {
+                            viewModelSenha.aoReceberCallbackOAuth(callbackPendente)
+                            aoConsumirCallbackOAuthSocial()
+                        }
+                    }
                     TelaEntradaComSenha(
                         viewModel = viewModelSenha,
                         aoAutenticar = {
@@ -532,6 +542,7 @@ fun AppNavegacao(
                                 popUpTo(Rotas.ENTRADA) { inclusive = true }
                             }
                         },
+                        aoAbrirLoginSocial = aoAbrirLoginSocial,
                     )
                 } else {
                     val viewModel: EntradaViewModel = koinViewModel()
