@@ -69,15 +69,15 @@ class RoteamentoOAuthSocialIntentTest {
         val valido = Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/callback?code=abc123&tx=t1"))
         assertEquals(
             "frila-auth://auth/callback?code=abc123&tx=t1",
-            extrairCallbackOAuthSocialDoIntent(valido),
+            extrairCallbackOAuthSocialDoIntent(valido, permitirCustomSchemeDev = true),
         )
 
         // Rejeita host errado, path errado, scheme diferente e action diferente
-        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://outro/callback?code=abc&tx=t1"))))
-        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/errado?code=abc&tx=t1"))))
-        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_VIEW, Uri.parse("frila://vagas/123"))))
-        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_MAIN, Uri.parse("frila-auth://auth/callback?code=abc&tx=t1"))))
-        assertNull(extrairCallbackOAuthSocialDoIntent(null))
+        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://outro/callback?code=abc&tx=t1")), permitirCustomSchemeDev = true))
+        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/errado?code=abc&tx=t1")), permitirCustomSchemeDev = true))
+        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_VIEW, Uri.parse("frila://vagas/123")), permitirCustomSchemeDev = true))
+        assertNull(extrairCallbackOAuthSocialDoIntent(Intent(Intent.ACTION_MAIN, Uri.parse("frila-auth://auth/callback?code=abc&tx=t1")), permitirCustomSchemeDev = true))
+        assertNull(extrairCallbackOAuthSocialDoIntent(null, permitirCustomSchemeDev = true))
     }
 
     @Test
@@ -112,7 +112,7 @@ class RoteamentoOAuthSocialIntentTest {
 
         // 1. Cold start com Intent de callback órfão (sem transação iniciada em memória): ignorado sem autenticar
         val coldIntent = Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/callback?code=orfao-123&tx=antigo"))
-        canalCallback.value = extrairCallbackOAuthSocialDoIntent(coldIntent)
+        canalCallback.value = extrairCallbackOAuthSocialDoIntent(coldIntent, permitirCustomSchemeDev = true)
         assertNotNull(canalCallback.value)
         assertNull(vm.aoReceberCallbackOAuth(canalCallback.value!!))
         canalCallback.value = null
@@ -125,7 +125,7 @@ class RoteamentoOAuthSocialIntentTest {
         val tx = extrairParam(extrairParam(urlAberta!!, "redirect_to")!!, "tx")!!
 
         val warmIntent = Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/callback?code=cod-warm-999&tx=$tx"))
-        canalCallback.value = extrairCallbackOAuthSocialDoIntent(warmIntent)
+        canalCallback.value = extrairCallbackOAuthSocialDoIntent(warmIntent, permitirCustomSchemeDev = true)
         vm.aoReceberCallbackOAuth(canalCallback.value!!)?.join()
         canalCallback.value = null
 
@@ -174,7 +174,7 @@ class RoteamentoOAuthSocialIntentTest {
         // Simula morte de processo: vmAntes é destruído da memória
         // Novo processo / Cold Start da Activity recebe o Intent
         val coldIntent = Intent(Intent.ACTION_VIEW, Uri.parse("frila-auth://auth/callback?code=cod-cold-123&tx=$tx"))
-        val callbackUrl = extrairCallbackOAuthSocialDoIntent(coldIntent)
+        val callbackUrl = extrairCallbackOAuthSocialDoIntent(coldIntent, permitirCustomSchemeDev = true)
         assertNotNull(callbackUrl)
 
         // Nova instância do ViewModel no novo processo recupera transação persistida e conclui
