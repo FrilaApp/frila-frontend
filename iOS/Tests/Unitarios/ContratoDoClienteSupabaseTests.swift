@@ -423,6 +423,13 @@ struct ContratoDoClienteSupabaseTests {
         let invalido = await #expect(throws: ErroDaApi.self) { _ = try await cliente().aceitarConviteDeMembro(token: String(repeating: "ef", count: 32)) }
         #expect(invalido?.conviteInvalido == true)
 
+        // Contrato 0.2.115: o e-mail da conta não é o do convite. 403 sem `details`, e o convite não é consumido.
+        recusa("aceitar_convite_membro", status: 403, codigo: "convite_de_outro_email")
+        let outroEmail = await #expect(throws: ErroDaApi.self) { _ = try await cliente().aceitarConviteDeMembro(token: String(repeating: "ef", count: 32)) }
+        #expect(outroEmail?.conviteDeOutroEmail == true)
+        #expect(outroEmail?.conviteInvalido == false)
+        #expect(outroEmail?.recusaDeAdministrador == false)
+
         recusa("remover_membro", status: 422, codigo: "ultimo_administrador")
         let ultimo = await #expect(throws: ErroDaApi.self) {
             try await cliente().removerMembro(estabelecimentoID: Self.casaDaEquipe, membroID: Self.membroRemovido)
