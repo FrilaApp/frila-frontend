@@ -12,6 +12,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -378,5 +380,26 @@ class TelaPublicarVagaTest {
             rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
             rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun `aviso de valor junto com erro de outro campo nao tem semantica de erro e mantem publicar habilitado`() {
+        val chamadas = montar(
+            estado {
+                copy(
+                    valor = "49,99",
+                    errosDeCampo = mapOf(CampoPublicacao.RESPONSAVEL to TextosPublicarVaga.RESPONSAVEL_CAMPO),
+                )
+            },
+        )
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.RESPONSAVEL_CAMPO).performScrollTo().assertIsDisplayed()
+        rule.onNode(hasText(TextosPublicarVaga.VALOR) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNode(hasText(TextosPublicarVaga.RESPONSAVEL) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
+        assertEquals(1, chamadas.publicacoes)
     }
 }

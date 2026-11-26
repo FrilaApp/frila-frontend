@@ -8,6 +8,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -236,5 +238,20 @@ class TelaEscalaDeEventoTest {
             rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
             rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun `aviso de valor junto com erro de outro campo nao tem semantica de erro e mantem publicar habilitado`() {
+        montar()
+        rule.onAllNodesWithText(TextosPublicarVaga.VALOR)[0].performScrollTo().performTextInput("49,99")
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled().performClick()
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosEscala.NOME_CAMPO).performScrollTo().assertIsDisplayed()
+        rule.onAllNodes(hasText(TextosPublicarVaga.VALOR) and hasSetTextAction())[0]
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNode(hasText(TextosEscala.NOME) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled()
     }
 }

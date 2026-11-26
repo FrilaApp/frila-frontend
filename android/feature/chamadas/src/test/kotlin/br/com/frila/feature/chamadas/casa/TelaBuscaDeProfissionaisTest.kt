@@ -3,6 +3,8 @@ package br.com.frila.feature.chamadas.casa
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assert
@@ -629,11 +631,26 @@ class TelaBuscaDeProfissionaisTest {
     @Test
     fun folhaDaBuscaComValorNaFaixaOuZeroNaoMostraAvisoDeFaixa() {
         abrirFolha(comResultados(selecionados = listOf("p1")))
-        for (valor in listOf("0", "50", "2000")) {
+        for (valor in listOf("", "0", "50", "2000")) {
             rule.onNodeWithTag("folha-valor").performScrollTo().performTextClearance()
-            rule.onNodeWithTag("folha-valor").performTextInput(valor)
+            if (valor.isNotEmpty()) rule.onNodeWithTag("folha-valor").performTextInput(valor)
             rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
             rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
         }
+    }
+
+    @Test
+    fun folhaDaBuscaComAvisoDeValorJuntoComErroDeOutroCampoNaoTemSemanticaDeErroEMantemBotaoHabilitado() {
+        abrirFolha(comResultados(selecionados = listOf("p1")))
+
+        rule.onNodeWithTag("folha-valor").performTextInput("49,99")
+        rule.onNodeWithTag("folha-confirmar-total").performScrollTo().performClick()
+        rule.onNodeWithTag("folha-responsavel").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("folha-enviar").performScrollTo().performClick()
+
+        rule.onNodeWithText(TextosChamadaCasa.FALTA_RESPONSAVEL).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-valor").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNodeWithTag("folha-enviar").assertIsEnabled()
     }
 }
