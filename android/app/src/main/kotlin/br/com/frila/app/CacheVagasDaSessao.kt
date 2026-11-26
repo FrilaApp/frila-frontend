@@ -52,7 +52,7 @@ internal class CacheVagasDaSessao(
             if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar o destino guardado")
         }
         diretorioDosAvatares?.listFiles { arquivo ->
-            arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO
+            arquivo.isFile && (arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO)
         }?.forEach {
             // Como a telemetria: um avatar que não saiu é registrado, não lançado. A exceção abortava o Sair (CoordenadorDeLogout) e,
             // na troca de conta, vinha antes de gravar a sessão nova e impedia o login.

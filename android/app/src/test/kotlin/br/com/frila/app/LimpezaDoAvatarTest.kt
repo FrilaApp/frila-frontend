@@ -123,12 +123,14 @@ class LimpezaDoAvatarTest {
         val vazia = File(arquivos, "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}pasta").also { it.mkdir() }
         val cheia = File(arquivos, "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}cheia").also { it.mkdir() }
         File(cheia, "dentro.txt").writeText("conteudo")
+        val temporarioPasta = File(arquivos, CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO).also { it.mkdir() }
         val arquivoDoAvatar = avatar()
 
         cache().limpar()
 
         assertTrue("pasta vazia com o prefixo fica", vazia.isDirectory)
         assertTrue("pasta com conteúdo fica", File(cheia, "dentro.txt").exists())
+        assertTrue("pasta com o nome do temporário também fica", temporarioPasta.isDirectory)
         assertFalse(arquivoDoAvatar.exists())
     }
 }
