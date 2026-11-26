@@ -30,6 +30,9 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -237,5 +240,42 @@ class ConfirmadaNavegaEPedeUmaVezTest {
             confereContagem(contagem, navegacoes = 1, consultas = 1, pedidos = 1)
             dialogosVisiveis().assertCountEquals(0)
         }
+    }
+
+    @Test
+    fun `dois consumidores ao mesmo tempo disputam o evento e so um recebe true`() {
+        // O efeito da tela e outro consumidor qualquer podem chamar o consumo em threads diferentes. Só o compare-and-set do
+        // `StateFlow.update` garante um vencedor: ler e limpar em dois passos deixa os dois lerem `true`. A barreira solta os dois
+        // consumidores juntos, a cada iteração, com o evento rearmado por uma candidatura confirmada nova.
+        val viewModel = criarViewModel()
+        val iteracoes = 3_000
+        val entrada = CyclicBarrier(3)
+        val saida = CyclicBarrier(3)
+        val resultados = Array(2) { BooleanArray(iteracoes) }
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val consumidores = (0..1).map { k ->
+                pool.submit {
+                    repeat(iteracoes) { i ->
+                        entrada.await(30, TimeUnit.SECONDS)
+                        resultados[k][i] = viewModel.consumirNavegacaoParaConfirmada()
+                        saida.await(30, TimeUnit.SECONDS)
+                    }
+                }
+            }
+            runBlocking {
+                repeat(iteracoes) {
+                    viewModel.candidatar().join()
+                    entrada.await(30, TimeUnit.SECONDS)
+                    saida.await(30, TimeUnit.SECONDS)
+                }
+            }
+            consumidores.forEach { it.get(30, TimeUnit.SECONDS) }
+        } finally {
+            pool.shutdownNow()
+        }
+
+        val sem1Vencedor = (0 until iteracoes).filter { (if (resultados[0][it]) 1 else 0) + (if (resultados[1][it]) 1 else 0) != 1 }
+        assertEquals("iterações em que o número de consumidores que receberam true não foi exatamente 1", emptyList<Int>(), sem1Vencedor)
     }
 }
