@@ -1,10 +1,19 @@
-import { RouterContextProvider } from "react-router";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  createStaticHandler,
+  createStaticRouter,
+  RouterContextProvider,
+  StaticRouterProvider,
+  useActionData,
+  useLoaderData,
+} from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { action as dadosAction } from "../app/rotas/conta/dados";
 import { action as criarContaAction, loader as criarContaLoader } from "../app/rotas/criar-conta";
 import { action as definirSenhaAction, loader as definirSenhaLoader } from "../app/rotas/definir-senha";
-import { action as entrarAction, loader as entrarLoader } from "../app/rotas/entrar";
+import Entrar, { action as entrarAction, loader as entrarLoader } from "../app/rotas/entrar";
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
 import { action as sairAction } from "../app/rotas/sair";
 import { middlewareDeSessao } from "../app/servidor/middleware-de-sessao";
@@ -481,5 +490,80 @@ describe("rotas: definir-senha, logout e trava SSR de precisa_definir_senha", ()
       async () => new Response("tela-definir-senha", { status: 200 }),
     )) as Response;
     expect(resPermitido.status).toBe(200);
+  });
+});
+
+describe("Decisão A1: CTA 'Criar ou recuperar senha' e erro codigo_apenas_demo com basename='/app' real", () => {
+  function EntrarRoteada() {
+    return createElement(Entrar, {
+      loaderData: useLoaderData(),
+      actionData: useActionData(),
+    } as never);
+  }
+
+  function criarRoteadorEntrar() {
+    return createStaticHandler(
+      [
+        {
+          id: "entrar",
+          path: "entrar",
+          loader: entrarLoader as never,
+          action: entrarAction as never,
+          Component: EntrarRoteada,
+        },
+        {
+          id: "recuperar-senha",
+          path: "recuperar-senha",
+          loader: () => null,
+        },
+        {
+          id: "criar-conta",
+          path: "criar-conta",
+          loader: () => null,
+        },
+      ],
+      { basename: "/app" },
+    );
+  }
+
+  async function renderizarViaRoteador(request: Request): Promise<string> {
+    const handler = criarRoteadorEntrar();
+    const contexto = await handler.query(request);
+    if (contexto instanceof Response) throw contexto;
+    const roteador = createStaticRouter(handler.dataRoutes, contexto);
+    return renderToStaticMarkup(
+      createElement(StaticRouterProvider, { router: roteador, context: contexto, hydrate: false }),
+    );
+  }
+
+  it("GET /app/entrar exibe CTA 'Criar ou recuperar senha' apontando para /app/recuperar-senha sem /app/app/", async () => {
+    const html = await renderizarViaRoteador(new Request("https://frilabr.com/app/entrar"));
+    expect(html).toContain('href="/app/recuperar-senha"');
+    expect(html).toContain("Criar ou recuperar senha");
+    expect(html).toContain('href="/app/criar-conta"');
+    expect(html).not.toContain("/app/app/");
+  });
+
+  it("POST /app/entrar intencao=pedir para conta real/inexistente exibe erro codigo_apenas_demo acessível com link /app/recuperar-senha sem enumerar conta", async () => {
+    const formExistente = new URLSearchParams({ email: "existente@frila.test", intencao: "pedir" });
+    const formInexistente = new URLSearchParams({ email: "naoexiste@frila.test", intencao: "pedir" });
+
+    const htmlExistente = await renderizarViaRoteador(
+      new Request("https://frilabr.com/app/entrar", { method: "POST", body: formExistente }),
+    );
+    const htmlInexistente = await renderizarViaRoteador(
+      new Request("https://frilabr.com/app/entrar", { method: "POST", body: formInexistente }),
+    );
+
+    for (const html of [htmlExistente, htmlInexistente]) {
+      expect(html).toContain('role="alert"');
+      expect(html).toContain("Contas reais entram com senha");
+      expect(html).toContain('href="/app/recuperar-senha"');
+      expect(html).toContain("Criar ou recuperar senha");
+      expect(html).not.toContain("/app/app/");
+    }
+    expect(htmlExistente.replace("existente@frila.test", "x")).toBe(
+      htmlInexistente.replace("naoexiste@frila.test", "x"),
+    );
   });
 });
