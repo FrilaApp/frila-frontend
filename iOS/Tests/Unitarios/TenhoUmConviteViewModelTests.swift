@@ -55,6 +55,9 @@ private let textosQueNaoSaoConvite: [String] = {
         "Entre: https://frilabr.com/app/convite#\(c) e também https://frilabr.com/app/convite#\(o)",
         "Entre: https://frilabr.com/app/convite#\(c) ou https://frilabr.com/app/convite#\(c)",
         "Entre: https://frilabr.com/app/convite#\(c) ou https://frila-web-dev.frilabr.workers.dev/app/convite#\(o)",
+        // O esquema e o host não diferenciam maiúsculas: o link em maiúsculas também conta, e dois links são dois.
+        "https://frilabr.com/app/convite#\(c) e https://FRILABR.COM/app/convite#\(o)",
+        "HTTPS://FRILABR.COM/app/convite#\(c) e https://frilabr.com/app/convite#\(o)",
         "Entre: https://exemplo.test/app/convite#\(c)",
         "Entre: https://frilabr.com.exemplo.org/app/convite#\(c)",
         "Entre: https://exemplofrilabr.com/app/convite#\(c)",
@@ -119,6 +122,16 @@ struct ConviteDaCasaTests {
         for texto in textos {
             #expect(ConviteDaCasa.extrairToken(de: texto, origens: Self.origens) == Self.codigo, "\(texto.prefix(14))")
         }
+    }
+
+    @Test("O esquema e o host em maiúsculas valem: sai o mesmo token", arguments: [
+        "HTTPS://FRILABR.COM/app/convite#",
+        "https://FrilaBr.com/app/convite#",
+        "Https://Frila-Web-Dev.Frilabr.Workers.Dev/app/convite#",
+    ])
+    func esquemaEHostEmMaiusculas(prefixo: String) {
+        #expect(ConviteDaCasa.extrairToken(de: prefixo + Self.codigo, origens: Self.origens) == Self.codigo)
+        #expect(ConviteDaCasa.extrairToken(de: "Entre: \(prefixo)\(Self.codigo.uppercased()) até logo", origens: Self.origens) == Self.codigo)
     }
 
     @Test("A mensagem do convite inteira, com e sem prazo, entrega o mesmo token que o link sozinho (rodada 3 do B-123)")

@@ -57,7 +57,8 @@ public enum ConviteDaCasa {
 
     /// Tira o token do que a pessoa colou. Vale **só**: (a) o código de 64 hex puro; (b) o link do convite inteiro; ou (c) um
     /// texto (a mensagem do convite inteira, por exemplo) com **exatamente um** link de convite, no formato
-    /// `<origem>/convite#<token>` com uma das `origens` do app (`https://frilabr.com/app` no Prod, a prévia de dev nos outros). O
+    /// `<origem>/convite#<token>` com uma das `origens` do app (`https://frilabr.com/app` no Prod, a prévia de dev nos outros),
+    /// procurado sem diferenciar maiúsculas. O
     /// link começa no início do texto ou depois de um espaço ou quebra de linha e termina no espaço, na quebra ou no fim, sem nada
     /// colado ao código. Outro domínio, outro caminho, `http`, parente do domínio (`frilabr.com.exemplo.org`, `exemplofrilabr.com`),
     /// dois links (iguais ou não, de um ambiente ou de dois), nenhum link, hex de outro tamanho, ou código solto no meio de um
@@ -67,7 +68,7 @@ public enum ConviteDaCasa {
         let colado = texto.trimmingCharacters(in: .whitespacesAndNewlines)
         if ehCodigo(colado) { return colado.lowercased() }
 
-        let ocorrencias = origens.flatMap { colado.ranges(of: "\($0)\(caminhoDoConvite)") }
+        let ocorrencias = origens.flatMap { trechos("\($0)\(caminhoDoConvite)", em: colado) }
         guard ocorrencias.count == 1, let link = ocorrencias.first else { return nil }
         if link.lowerBound > colado.startIndex, !colado[colado.index(before: link.lowerBound)].isWhitespace { return nil }
         let codigo = String(colado[link.upperBound...].prefix { !$0.isWhitespace })
@@ -77,6 +78,18 @@ public enum ConviteDaCasa {
 
     /// O que vem depois da origem e antes do código: `<origem>/convite#<token>`.
     private static let caminhoDoConvite = "/convite#"
+
+    /// Todas as vezes em que `trecho` aparece em `texto`, **sem diferenciar maiúsculas**: o esquema e o host não diferenciam, e
+    /// um segundo link escrito em maiúsculas também tem de contar (senão o app escolheria o primeiro em silêncio).
+    private static func trechos(_ trecho: String, em texto: String) -> [Range<String.Index>] {
+        var achados: [Range<String.Index>] = []
+        var inicio = texto.startIndex
+        while let achado = texto.range(of: trecho, options: .caseInsensitive, range: inicio..<texto.endIndex) {
+            achados.append(achado)
+            inicio = achado.upperBound
+        }
+        return achados
+    }
 
     /// O link que o administrador compartilha: `<origem>/convite#<token>`, com a origem da web do ambiente do app
     /// (`https://frilabr.com/app` no Prod). `nil` se o token não é um código de 64 hex.
