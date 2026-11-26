@@ -123,7 +123,23 @@ final class BuscaDeProfissionaisUITests: XCTestCase {
         confirmo.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
         let enviar = app.buttons["busca-enviar-chamadas"]
         XCTAssertTrue(procurar(enviar, em: app))
+        // O `procurar` se contenta com o elemento existir: antes de tocar, o botão tem de estar mesmo tocável.
+        for _ in 0..<20 where !enviar.isHittable { app.swipeUp() }
+        XCTAssertTrue(enviar.isHittable, "o botão de enviar fica alcançável")
         XCTAssertTrue(enviar.isEnabled, "com o aviso na tela, o envio segue ligado")
+        XCTAssertEqual(aviso.label, "Valor muito alto, confira.", "o envio acontece com o aviso na folha")
+        enviar.tap()
+
+        let fechou = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: enviar)
+        wait(for: [fechou], timeout: 10)
+        // O resultado fica no cartão de quem foi chamado, no topo da lista. Em AX5 a lista só mantém os cartões perto da
+        // tela: volta até ele aparecer.
+        let enviada = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'resultado-chamada-' AND label == 'Chamada enviada'"))
+        for _ in 0..<40 {
+            if enviada.firstMatch.waitForExistence(timeout: 1) { break }
+            app.swipeDown(velocity: .fast)
+        }
+        XCTAssertTrue(enviada.firstMatch.exists, "a chamada sai com o valor fora da faixa")
     }
 
     func testValorForaDaFaixaAvisaSemTravarOEnvio() throws { try avisarValorForaDaFaixaSemTravar(ax5: false) }
