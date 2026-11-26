@@ -9,6 +9,7 @@ import io.ktor.http.headersOf
 import java.io.File
 import java.io.IOException
 import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -22,7 +23,7 @@ class AvaliacaoNaFilaTest {
     private val toque = Instant.ofEpochSecond(1795132800)
     private val fila by lazy { FilaDeAcoes(File(diretorio, "fila.json")) }
     private val escopo = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
-    private val eventos = mutableListOf<EventoDeTelemetria>()
+    private val eventos = CopyOnWriteArrayList<EventoDeTelemetria>()
     private var offline = true
     private var recusaDireta = false
     private var pedidos = 0
@@ -51,7 +52,10 @@ class AvaliacaoNaFilaTest {
      * (depois do HTTP simulado): espera a reconciliação refletir no estado antes de conferir.
      */
     private suspend fun aguardar(condicao: () -> Boolean) {
-        repeat(100) { if (!condicao()) delay(50) }
+        repeat(100) {
+            if (condicao()) return
+            delay(50)
+        }
         assertTrue(condicao(), "a condição não chegou a tempo")
     }
 
