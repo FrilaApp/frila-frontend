@@ -5,11 +5,18 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ErroDaApi
+import br.com.frila.core.rede.ProvedorSocial
+import br.com.frila.core.rede.ResultadoCallbackOAuth
 import br.com.frila.core.rede.ResultadoEntradaComSenha
+import br.com.frila.core.rede.SegurancaOAuthSocial
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.SessaoDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendente
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendenteEmMemoria
+import br.com.frila.core.seguranca.ProvedorOAuthSocial
 import br.com.frila.core.seguranca.Sessao
+import br.com.frila.core.seguranca.TransacaoOAuthPendente
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +44,14 @@ data class EstadoEntradaComSenha(
     val autenticado: Boolean = false,
     val precisaDefinirSenha: Boolean = false,
     val desafioOtp: DesafioOtpPendente? = null,
+    val mostrarLoginSocial: Boolean = false,
+)
+
+private data class PedidoOAuthEmAndamento(
+    val provedor: ProvedorSocial,
+    val transacaoId: String,
+    val verifier: String,
+    val txLocal: String,
 )
 
 /**
@@ -53,10 +68,14 @@ class EntradaComSenhaViewModel(
     private val aoEntrar: suspend () -> Unit = {},
     private val permitirDominioDeTeste: Boolean = false,
     emailInicial: String = "",
+    mostrarLoginSocial: Boolean = false,
+    private val armazenamentoOAuthPendente: ArmazenamentoOAuthPendente = ArmazenamentoOAuthPendenteEmMemoria(),
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
-    private val _estado = MutableStateFlow(EstadoEntradaComSenha(email = emailInicial))
+    private val _estado = MutableStateFlow(
+        EstadoEntradaComSenha(email = emailInicial, mostrarLoginSocial = mostrarLoginSocial),
+    )
     val estado: StateFlow<EstadoEntradaComSenha> = _estado.asStateFlow()
 
     private val sequenciaDeTentativa = AtomicLong(0L)
@@ -79,11 +98,161 @@ class EntradaComSenhaViewModel(
         _estado.update { it.copy(desafioOtp = null) }
     }
 
-    fun cancelarTentativaAtual() {
+    fun cancelarTentativaAtual(limparOAuth: Boolean = true) {
         tentativaAtual = sequenciaDeTentativa.incrementAndGet()
         pedido?.cancel()
         pedido = null
+        if (limparOAuth) {
+            armazenamentoOAuthPendente.limpar()
+        }
         _estado.update { it.copy(carregando = false) }
+    }
+
+    /**
+     * Inicia o fluxo OAuth PKCE S256 (Google ou Apple) via `POST /functions/v1/autenticar-social`
+     * (`fluxo = "iniciar_pkce"`, contrato 0.2.117), guardando `transacaoId`, `verifier` e `txLocal`
+     * em armazenamento seguro isolado com TTL <= 10 min e entregando `url_autorizacao` para abertura
+     * via Custom Tabs / navegador do sistema.
+     */
+    fun iniciarEntradaSocial(
+        provedor: ProvedorSocial,
+        aoUrlPronta: (String) -> Unit,
+    ): Job? {
+        if (!_estado.value.mostrarLoginSocial || _estado.value.carregando) return null
+        val idTentativa = sequenciaDeTentativa.incrementAndGet()
+        tentativaAtual = idTentativa
+        val verifier = SegurancaOAuthSocial.gerarVerifierPkce()
+        val challenge = SegurancaOAuthSocial.desafioPkceS256(verifier)
+        val txLocal = SegurancaOAuthSocial.gerarState()
+        val redirectTo = "${SegurancaOAuthSocial.URL_CALLBACK}?tx=$txLocal"
+        _estado.update { it.copy(carregando = true, erro = null) }
+
+        return escopoDeTrabalho.launch {
+            try {
+                val inicio = servicoAutenticacao.iniciarLoginSocialPkce(
+                    provedor = provedor,
+                    codeChallenge = challenge,
+                    redirectTo = redirectTo,
+                )
+                if (tentativaAtual != idTentativa) return@launch
+                val provedorSocial = when (provedor) {
+                    ProvedorSocial.GOOGLE -> ProvedorOAuthSocial.GOOGLE
+                    ProvedorSocial.APPLE -> ProvedorOAuthSocial.APPLE
+                }
+                armazenamentoOAuthPendente.salvar(
+                    TransacaoOAuthPendente(
+                        provedor = provedorSocial,
+                        transacaoId = inicio.transacaoId,
+                        verifier = verifier,
+                        txLocal = txLocal,
+                        expiraEmMillis = System.currentTimeMillis() + TTL_OAUTH_MILLIS,
+                    ),
+                )
+                _estado.update { it.copy(carregando = false, erro = null) }
+                aoUrlPronta(inicio.urlAutorizacao)
+            } catch (cancelado: CancellationException) {
+                if (tentativaAtual == idTentativa) {
+                    _estado.update { it.copy(carregando = false) }
+                }
+                throw cancelado
+            } catch (erro: ErroDaApi) {
+                if (tentativaAtual != idTentativa) return@launch
+                val mensagem = when (erro.codigo) {
+                    CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
+                    CodigoErroAPI.LIMITE_EXCEDIDO -> "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo."
+                    else -> MENSAGEM_ERRO_SOCIAL_PADRAO
+                }
+                _estado.update { it.copy(carregando = false, erro = mensagem) }
+            } catch (_: Exception) {
+                if (tentativaAtual != idTentativa) return@launch
+                _estado.update { it.copy(carregando = false, erro = MENSAGEM_ERRO_SOCIAL_PADRAO) }
+            }
+        }.also { pedido = it }
+    }
+
+    /**
+     * Processa a URL de retorno (`frila-auth://auth/callback?...`) validando esquema, `tx` (P2) e PKCE.
+     * Callbacks forjados sem correspondência de `tx` (Ignorado) NÃO apagam `armazenamentoOAuthPendente`.
+     * Caso contrário consome o pedido de uso único e conclui via `POST /functions/v1/autenticar-social`.
+     */
+    fun aoReceberCallbackOAuth(callbackUrl: String): Job? {
+        val pendente = armazenamentoOAuthPendente.obter() ?: return null
+        val analisado = SegurancaOAuthSocial.analisarCallback(callbackUrl, stateEsperado = pendente.txLocal)
+        if (analisado is ResultadoCallbackOAuth.Ignorado) {
+            return null
+        }
+        armazenamentoOAuthPendente.limpar()
+
+        return when (analisado) {
+            ResultadoCallbackOAuth.Ignorado -> null
+            ResultadoCallbackOAuth.Cancelado -> {
+                _estado.update { it.copy(carregando = false, erro = null) }
+                null
+            }
+            ResultadoCallbackOAuth.ConflitoDeIdentidade -> {
+                _estado.update { it.copy(carregando = false, erro = MENSAGEM_CONFLITO_IDENTIDADE) }
+                null
+            }
+            ResultadoCallbackOAuth.CallbackInvalido -> {
+                _estado.update { it.copy(carregando = false, erro = MENSAGEM_ERRO_SOCIAL_PADRAO) }
+                null
+            }
+            is ResultadoCallbackOAuth.Codigo -> {
+                val idTentativa = sequenciaDeTentativa.incrementAndGet()
+                tentativaAtual = idTentativa
+                _estado.update { it.copy(carregando = true, erro = null) }
+                escopoDeTrabalho.launch {
+                    try {
+                        val provedorSocial = when (pendente.provedor) {
+                            ProvedorOAuthSocial.GOOGLE -> ProvedorSocial.GOOGLE
+                            ProvedorOAuthSocial.APPLE -> ProvedorSocial.APPLE
+                        }
+                        val resposta = servicoAutenticacao.concluirLoginSocialPkce(
+                            provedor = provedorSocial,
+                            transacaoId = pendente.transacaoId,
+                            codigo = analisado.valor,
+                            verifier = pendente.verifier,
+                        )
+                        if (tentativaAtual != idTentativa) return@launch
+                        val emailExtraido = ServicoAutenticacao.extrairEmailDoJwt(resposta.sessao.accessToken)
+                        armazenamentoDeSessao.salvarSessao(resposta.sessao.paraSessao(email = emailExtraido))
+                        _estado.update {
+                            it.copy(
+                                carregando = false,
+                                senha = "",
+                                erro = null,
+                                autenticado = true,
+                                precisaDefinirSenha = resposta.precisaDefinirSenha,
+                                desafioOtp = null,
+                            )
+                        }
+                        try {
+                            aoEntrar()
+                        } catch (cancelado: CancellationException) {
+                            throw cancelado
+                        } catch (_: Exception) {
+                        }
+                    } catch (cancelado: CancellationException) {
+                        if (tentativaAtual == idTentativa) {
+                            _estado.update { it.copy(carregando = false) }
+                        }
+                        throw cancelado
+                    } catch (erro: ErroDaApi) {
+                        if (tentativaAtual != idTentativa) return@launch
+                        val mensagem = when {
+                            SegurancaOAuthSocial.ehErroConflitoIdentidade(erro) -> MENSAGEM_CONFLITO_IDENTIDADE
+                            erro.codigo == CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
+                            erro.codigo == CodigoErroAPI.LIMITE_EXCEDIDO -> "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo."
+                            else -> MENSAGEM_ERRO_SOCIAL_PADRAO
+                        }
+                        _estado.update { it.copy(carregando = false, erro = mensagem) }
+                    } catch (_: Exception) {
+                        if (tentativaAtual != idTentativa) return@launch
+                        _estado.update { it.copy(carregando = false, erro = MENSAGEM_ERRO_SOCIAL_PADRAO) }
+                    }
+                }.also { pedido = it }
+            }
+        }
     }
 
     /** O e-mail digitado é de uma conta de demonstração (a entrada dela é pela tela de código em modo demo, nunca por senha). */
@@ -180,8 +349,13 @@ class EntradaComSenhaViewModel(
     }
 
     companion object {
+        const val TTL_OAUTH_MILLIS = 600_000L // 10 minutos
         const val MENSAGEM_CREDENCIAIS_NEUTRA =
             "E-mail ou senha incorretos. Confira os dados ou defina uma senha para sua conta."
+        const val MENSAGEM_CONFLITO_IDENTIDADE =
+            "Esta conta social não pôde ser vinculada automaticamente. Entre com seu e-mail e senha."
+        const val MENSAGEM_ERRO_SOCIAL_PADRAO =
+            "Não foi possível concluir a entrada agora. Tente de novo ou use e-mail e senha."
     }
 }
 

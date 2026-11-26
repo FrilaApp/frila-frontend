@@ -21,6 +21,48 @@ internal data class AtualizarSenhaDto(
     @SerialName("password") val password: String,
 )
 
+@Serializable
+internal data class IniciarLoginSocialPkceDto(
+    val provedor: String,
+    val fluxo: String,
+    val plataforma: String,
+    @SerialName("code_challenge") val codeChallenge: String,
+    @SerialName("redirect_to") val redirectTo: String,
+)
+
+@Serializable
+data class InicioLoginSocialPkceDto(
+    @SerialName("transacao_id") val transacaoId: String,
+    @SerialName("url_autorizacao") val urlAutorizacao: String,
+    @SerialName("expira_em") val expiraEm: String? = null,
+)
+
+@Serializable
+internal data class ConcluirLoginSocialPkceDto(
+    val provedor: String,
+    val fluxo: String,
+    val plataforma: String,
+    @SerialName("transacao_id") val transacaoId: String,
+    val codigo: String,
+    @SerialName("code_verifier") val codeVerifier: String,
+)
+
+@Serializable
+internal data class ConcluirLoginSocialIdTokenDto(
+    val provedor: String,
+    val fluxo: String,
+    val plataforma: String,
+    @SerialName("id_token") val idToken: String,
+    val nonce: String,
+)
+
+@Serializable
+data class RespostaLoginSocialDto(
+    val sessao: SessaoDto,
+    val provedor: String,
+    @SerialName("precisa_definir_senha") val precisaDefinirSenha: Boolean = false,
+)
+
 sealed interface ResultadoEntradaComSenha {
     data class Autenticado(
         val sessao: SessaoDto,
@@ -273,6 +315,107 @@ class ServicoAutenticacao(
         val resposta = cliente.http.post(cliente.urlRpc("estado_autenticacao")) {
             contentType(ContentType.Application.Json)
             setBody(RevogarDispositivosRequisicaoDto())
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * Inicia transação OAuth PKCE S256 server-side via `POST /functions/v1/autenticar-social`
+     * (`fluxo = "iniciar_pkce"`, contrato 0.2.117).
+     */
+    suspend fun iniciarLoginSocialPkce(
+        provedor: ProvedorSocial,
+        codeChallenge: String,
+        redirectTo: String = SegurancaOAuthSocial.URL_CALLBACK,
+    ): InicioLoginSocialPkceDto {
+        if (codeChallenge.length != 43) {
+            throw ErroDaApi(
+                CodigoErroAPI.CAMPO_INVALIDO,
+                "callback_invalido",
+                null,
+                "code_challenge PKCE inválido",
+            )
+        }
+        val resposta = cliente.http.post(cliente.urlCompleta("/functions/v1/autenticar-social")) {
+            contentType(ContentType.Application.Json)
+            setBody(
+                IniciarLoginSocialPkceDto(
+                    provedor = provedor.valor,
+                    fluxo = "iniciar_pkce",
+                    plataforma = "android",
+                    codeChallenge = codeChallenge,
+                    redirectTo = redirectTo,
+                ),
+            )
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /**
+     * Conclui login social PKCE via `POST /functions/v1/autenticar-social` (`fluxo = "pkce"`, contrato 0.2.117),
+     * validando `auth.flow_state`, gravando `privado.sessoes_verificadas` e renovando JWT com `dispositivo_verificado=true`.
+     * Nunca registra código, verifier ou tokens.
+     */
+    suspend fun concluirLoginSocialPkce(
+        provedor: ProvedorSocial,
+        transacaoId: String,
+        codigo: String,
+        verifier: String,
+    ): RespostaLoginSocialDto {
+        if (transacaoId.isBlank() ||
+            !SegurancaOAuthSocial.ehCodigoValido(codigo) ||
+            !SegurancaOAuthSocial.ehVerifierValido(verifier)
+        ) {
+            throw ErroDaApi(
+                CodigoErroAPI.CAMPO_INVALIDO,
+                "callback_invalido",
+                null,
+                "Transação, código ou verifier PKCE inválido",
+            )
+        }
+        val resposta = cliente.http.post(cliente.urlCompleta("/functions/v1/autenticar-social")) {
+            contentType(ContentType.Application.Json)
+            setBody(
+                ConcluirLoginSocialPkceDto(
+                    provedor = provedor.valor,
+                    fluxo = "pkce",
+                    plataforma = "android",
+                    transacaoId = transacaoId,
+                    codigo = codigo,
+                    codeVerifier = verifier,
+                ),
+            )
+        }
+        return cliente.corpoOuErro(resposta)
+    }
+
+    /** Conclui login social via `id_token` nativo + `nonce` bruto em `POST /functions/v1/autenticar-social`. */
+    suspend fun concluirLoginSocialIdToken(
+        provedor: ProvedorSocial,
+        idToken: String,
+        nonce: String,
+    ): RespostaLoginSocialDto {
+        val tokenLimpo = idToken.trim()
+        val nonceLimpo = nonce.trim()
+        if (tokenLimpo.length < 16 || tokenLimpo.any(Char::isWhitespace) || nonceLimpo.length < 16) {
+            throw ErroDaApi(
+                CodigoErroAPI.CAMPO_INVALIDO,
+                "callback_invalido",
+                null,
+                "id_token ou nonce inválido",
+            )
+        }
+        val resposta = cliente.http.post(cliente.urlCompleta("/functions/v1/autenticar-social")) {
+            contentType(ContentType.Application.Json)
+            setBody(
+                ConcluirLoginSocialIdTokenDto(
+                    provedor = provedor.valor,
+                    fluxo = "id_token",
+                    plataforma = "android",
+                    idToken = tokenLimpo,
+                    nonce = nonceLimpo,
+                ),
+            )
         }
         return cliente.corpoOuErro(resposta)
     }

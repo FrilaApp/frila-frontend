@@ -17,16 +17,40 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.abertura.AberturaAnimada
 import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.SegurancaOAuthSocial
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.koin.core.context.GlobalContext
 
+internal fun extrairCallbackOAuthSocialDoIntent(intent: Intent?): String? {
+    if (intent?.action != Intent.ACTION_VIEW) return null
+    val uri = intent.dataString ?: return null
+    return uri.takeIf { SegurancaOAuthSocial.ehCallbackOAuthSocial(it) }
+}
+
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
 class MainActivity : FragmentActivity() {
+    private val callbackOAuthSocial = MutableStateFlow<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
+    }
+
+    private fun abrirNavegadorLoginSocial(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+        }
+        runCatching { startActivity(intent) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
         // O app desenha de borda a borda em todas as versões (no Android 15+ já é obrigatório): as telas recuam para as
         // barras do sistema e o rodapé ancorado sobe com o teclado. Sem isto, no Android 14 ou menos o teclado cobria o botão.
         enableEdgeToEdge()
@@ -117,6 +141,9 @@ class MainActivity : FragmentActivity() {
                             chamadaDiretaHabilitada = estadoConfig.chamadaDireta,
                             buscaProfissionaisHabilitada = estadoConfig.buscaProfissionais,
                             checkinPorCodigoHabilitado = estadoConfig.checkinPorCodigo,
+                            callbackOAuthSocial = callbackOAuthSocial,
+                            aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
+                            aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(url) },
                             aoPronto = {
                                 MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                                 registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())
