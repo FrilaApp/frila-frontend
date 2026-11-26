@@ -171,7 +171,7 @@ class ProcessadorDePushTest {
         assertEquals(GerenciadorDeCanais.CANAL_URGENCIA, canalPara("vaga"))
         assertEquals(GerenciadorDeCanais.CANAL_URGENCIA, canalPara("vagas_agrupadas"))
 
-        // canal_turnos (10 tipos)
+        // canal_turnos (12 tipos)
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("confirmacao"))
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("lembrete_24h"))
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("lembrete_3h"))
@@ -180,6 +180,8 @@ class ProcessadorDePushTest {
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("fim_sem_checkout"))
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("checkin"))
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("checkin_manual_pendente"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("lembrete_30min_fim_turno"))
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("lembrete_fim_turno"))
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("cancelamento"))
         assertEquals(GerenciadorDeCanais.CANAL_TURNOS, canalPara("avaliacao_disponivel"))
 
@@ -239,4 +241,48 @@ class ProcessadorDePushTest {
         assertTrue(neutralizado.neutralizada)
     }
 
+    /** Payload como o contrato 0.2.77 descreve (openapi.yaml, lembretes à casa): sempre com `vaga_id`. */
+    private fun lembreteDeFimDeTurno(tipo: String, titulo: String, corpo: String) = mapOf(
+        "vinculo_id" to "vinculo-abc",
+        "tipo" to tipo,
+        "vaga_id" to "3f1c2a7e-8b4d-4e6f-9a0b-1c2d3e4f5a6b",
+        "titulo" to titulo,
+        "corpo" to corpo,
+    )
+
+    @Test
+    fun `lembrete_30min_fim_turno usa o canal de turnos e respeita a preferencia dele`() {
+        val payload = lembreteDeFimDeTurno(
+            "lembrete_30min_fim_turno",
+            "Chegada a confirmar",
+            "Ainda há chegada sem confirmar nesta vaga. O turno termina em 30 minutos.",
+        )
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        preferencias.definirAtivado(GerenciadorDeCanais.CANAL_TURNOS, false)
+
+        val resultado = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc")).processar(payload)
+        val comTurnosDesligado = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"), preferencias).processar(payload)
+
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, resultado.canal)
+        assertFalse(resultado.silenciada)
+        assertTrue(comTurnosDesligado.silenciada)
+    }
+
+    @Test
+    fun `lembrete_fim_turno usa o canal de turnos e respeita a preferencia dele`() {
+        val payload = lembreteDeFimDeTurno(
+            "lembrete_fim_turno",
+            "Turno encerrado",
+            "O turno terminou e ainda há chegada sem confirmar. Você tem até 24 horas.",
+        )
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        preferencias.definirAtivado(GerenciadorDeCanais.CANAL_TURNOS, false)
+
+        val resultado = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc")).processar(payload)
+        val comTurnosDesligado = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"), preferencias).processar(payload)
+
+        assertEquals(GerenciadorDeCanais.CANAL_TURNOS, resultado.canal)
+        assertFalse(resultado.silenciada)
+        assertTrue(comTurnosDesligado.silenciada)
+    }
 }

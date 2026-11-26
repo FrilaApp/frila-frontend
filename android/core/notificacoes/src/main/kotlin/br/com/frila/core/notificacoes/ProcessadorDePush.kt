@@ -104,10 +104,11 @@ class ProcessadorDePush(
     /**
      * Mapeamento canonico tipo -> canal conforme Contrato 0.2.46 (frila-docs #98, api/openapi.yaml:114-132).
      *
-     * 16 tipos canonicos mapeados:
+     * 18 tipos canonicos mapeados:
      * - canal_urgencia: vaga, vagas_agrupadas
      * - canal_turnos: confirmacao, lembrete_24h, lembrete_3h, inicio_sem_checkin, atraso_15min,
-     *                 fim_sem_checkout, checkin, checkin_manual_pendente, cancelamento, avaliacao_disponivel
+     *                 fim_sem_checkout, checkin, checkin_manual_pendente, lembrete_30min_fim_turno,
+     *                 lembrete_fim_turno, cancelamento, avaliacao_disponivel
      * - canal_sistema: vaga_vazia, candidatura_recusada, suspensao, reativacao
      * - fallback (demais / futuro): canal_sistema
      */
@@ -126,6 +127,8 @@ class ProcessadorDePush(
         "fim_sem_checkout",
         "checkin",
         "checkin_manual_pendente",
+        "lembrete_30min_fim_turno",
+        "lembrete_fim_turno",
         "cancelamento",
         "avaliacao_disponivel",
         "turno", "checkout", "atraso" -> GerenciadorDeCanais.CANAL_TURNOS // aliases legados de transicao
