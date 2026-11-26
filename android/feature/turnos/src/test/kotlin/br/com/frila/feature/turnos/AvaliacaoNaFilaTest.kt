@@ -46,6 +46,15 @@ class AvaliacaoNaFilaTest {
     }) = SincronizadorDeAcoes(fila, { conta ?: "outra-conta" }, mapOf(TipoAcaoPendente.AVALIACAO to envio))
     @AfterEach fun fechar() { escopo.cancel(); cliente.close() }
 
+    /**
+     * O coletor de `fila.versao` do `AvaliacaoViewModel` pode terminar numa thread do `Dispatchers.Default`
+     * (depois do HTTP simulado): espera a reconciliação refletir no estado antes de conferir.
+     */
+    private suspend fun aguardar(condicao: () -> Boolean) {
+        repeat(100) { if (!condicao()) delay(50) }
+        assertTrue(condicao(), "a condição não chegou a tempo")
+    }
+
     @Test fun `sem rede guarda resposta e instante do toque sem duplicar nem ao reabrir`() = runBlocking {
         val vm = vm()
         vm.avaliar(turno, false).join()
@@ -75,6 +84,7 @@ class AvaliacaoNaFilaTest {
         sinc.sincronizar(); sinc.sincronizar()
         assertEquals(antes + 1, pedidos)
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.status == StatusAvaliacao.SUCESSO && eventos.count { it == EventoDeTelemetria.AVALIACAO_ENVIADA } == 1 }
         assertEquals(StatusAvaliacao.SUCESSO, vm.estado.value.status)
         assertEquals(true, vm.estado.value.respostaRegistrada)
         assertEquals(1, eventos.count { it == EventoDeTelemetria.AVALIACAO_ENVIADA })
@@ -85,6 +95,7 @@ class AvaliacaoNaFilaTest {
         vm.avaliar(turno, true).join()
         sincronizador { throw ErroDaApi(CodigoErroAPI.AVALIACAO_INDISPONIVEL, "avaliacao_indisponivel", null, "sintético privado") }.sincronizar()
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.status == StatusAvaliacao.ERRO && vm.estado.value.mensagemErro == TextosDaFilaDeAvaliacao.RECUSADA }
         assertEquals(StatusAvaliacao.ERRO, vm.estado.value.status)
         assertEquals(TextosDaFilaDeAvaliacao.RECUSADA, vm.estado.value.mensagemErro)
         assertEquals(TextosDaFilaDeAvaliacao.RECUSADA, vm().estado.value.mensagemErro)
@@ -99,6 +110,7 @@ class AvaliacaoNaFilaTest {
         sincronizador { throw ErroDaApi(CodigoErroAPI.AVALIACAO_JA_REGISTRADA, "avaliacao_ja_registrada", null, "sintético") }.sincronizar()
         assertTrue(fila.pendentes().isEmpty())
         assertTrue(fila.recusadas().isEmpty())
+        aguardar { vm.estado.value.status == StatusAvaliacao.SUCESSO }
         assertEquals(StatusAvaliacao.SUCESSO, vm.estado.value.status)
         assertNull(vm.estado.value.mensagemErro)
     }
@@ -111,11 +123,13 @@ class AvaliacaoNaFilaTest {
         sincronizador { envios++ }.sincronizar()
         assertEquals(0, envios)
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.status == StatusAvaliacao.OCIOSO }
         assertEquals(StatusAvaliacao.OCIOSO, vm.estado.value.status)
         vm.avaliar(turno, false).join()
         conta = null
         fila.limpar()
         assertTrue(fila.pendentes().isEmpty())
+        aguardar { vm.estado.value.status == StatusAvaliacao.OCIOSO }
         assertEquals(StatusAvaliacao.OCIOSO, vm.estado.value.status)
     }
 
