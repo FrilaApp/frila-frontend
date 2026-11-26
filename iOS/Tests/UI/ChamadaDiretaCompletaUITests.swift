@@ -145,6 +145,63 @@ final class ChamadaDiretaCompletaUITests: XCTestCase {
         XCTAssertTrue(cancelar.waitForExistence(timeout: 10), "a chamada recém-enviada aparece aberta, com Cancelar")
     }
 
+    // MARK: B-124
+
+    /// Fora da faixa de referência a chamada avisa e não trava: o texto aparece abaixo do campo, o Enviar segue ligado e a
+    /// chamada sai. A auditoria de acessibilidade aqui cobra só o aviso novo.
+    private func avisarValorForaDaFaixaSemTravar(ax5: Bool) throws {
+        let app = abrir(["-FRILA_ABRIR_EQUIPE_CONFIANCA", "-FRILA_SCENARIO", "chamada-direta"]
+                        + (ax5 ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] : []))
+        let chamar = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'chamar-de-novo-'")).firstMatch
+        XCTAssertTrue(chamar.waitForExistence(timeout: 15))
+        rolarAte(chamar, em: app)
+        chamar.tap()
+
+        let valor = app.textFields["total-chamada-centavos"]
+        XCTAssertTrue(valor.waitForExistence(timeout: 10))
+        rolarAte(valor, em: app)
+        valor.tap()
+        XCTAssertTrue(esperarFocoDoTeclado(valor, timeout: 5))
+        valor.typeText("30")
+        let aviso = app.staticTexts["aviso-valor-chamada"]
+        XCTAssertTrue(aviso.waitForExistence(timeout: 5), "abaixo de R$ 50 a chamada avisa")
+        XCTAssertEqual(aviso.label, "Valor muito baixo.")
+
+        valor.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 2) + "2500")
+        let alto = NSPredicate(format: "label == 'Valor muito alto, confira.'")
+        wait(for: [expectation(for: alto, evaluatedWith: aviso)], timeout: 5)
+        let ok = app.buttons.matching(NSPredicate(format: "label ==[c] 'ok'")).firstMatch
+        if ok.exists { ok.tap() }
+        rolarAte(aviso, em: app)
+        anexar(app, "chamada-aviso-valor-alto-\(ax5 ? "ax5" : "padrao")")
+        try auditarSo("aviso-valor-chamada", em: app)
+
+        let total = app.switches["confirmar-total-chamada"]
+        rolarAte(total, em: app)
+        total.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let enviar = app.buttons["enviar-chamada"]
+        rolarAte(enviar, em: app)
+        XCTAssertTrue(enviar.isEnabled, "com o aviso na tela, o Enviar segue ligado")
+        enviar.tap()
+        XCTAssertTrue(app.staticTexts["prazo-chamada-enviada"].waitForExistence(timeout: 10), "a chamada sai com o valor fora da faixa")
+    }
+
+    func testValorForaDaFaixaAvisaSemTravarAChamada() throws { try avisarValorForaDaFaixaSemTravar(ax5: false) }
+    func testValorForaDaFaixaAvisaSemTravarAChamadaEmAX5() throws { try avisarValorForaDaFaixaSemTravar(ax5: true) }
+
+    private func anexar(_ app: XCUIApplication, _ nome: String) {
+        let anexo = XCTAttachment(screenshot: app.screenshot())
+        anexo.name = nome
+        anexo.lifetime = .keepAlways
+        add(anexo)
+    }
+
+    private func auditarSo(_ identificador: String, em app: XCUIApplication) throws {
+        try app.performAccessibilityAudit(for: [.dynamicType, .textClipped, .contrast]) { achado in
+            achado.element?.identifier != identificador
+        }
+    }
+
     // MARK: V2, V3 e CD-RF12
 
     func testChamadaRecebidaMostraDetalheAceitarRecusarDenunciarEBloquear() {

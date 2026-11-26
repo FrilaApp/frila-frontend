@@ -36,7 +36,7 @@ export async function convidarMembro(api: Api | null, casaId: string, email: str
   }
 }
 
-export type Aceite = { ok: true; casaId: string | null } | { ok: false; motivo: "convite_invalido" | "perfil_incompativel" | "sem_sessao" | "indisponivel" };
+export type Aceite = { ok: true; casaId: string | null } | { ok: false; motivo: "convite_invalido" | "convite_de_outro_email" | "perfil_incompativel" | "sem_sessao" | "indisponivel" };
 
 export async function aceitarConvite(api: Api | null, token: string): Promise<Aceite> {
   if (!TOKEN.test(token)) return { ok: false, motivo: "convite_invalido" };
@@ -45,6 +45,7 @@ export async function aceitarConvite(api: Api | null, token: string): Promise<Ac
     const { data, error, response } = await api.POST("/rpc/aceitar_convite_membro", { body: { token }, signal: prazo() });
     if (data) return { ok: true, casaId: data.estabelecimento_id && ehUuid(data.estabelecimento_id) ? data.estabelecimento_id : null };
     if (response.status === 401) return { ok: false, motivo: "sem_sessao" };
+    if (response.status === 403 && error?.code === "convite_de_outro_email") return { ok: false, motivo: "convite_de_outro_email" };
     if (response.status === 422 && error?.code === "perfil_incompativel") return { ok: false, motivo: "perfil_incompativel" };
     if (response.status === 422) return { ok: false, motivo: "convite_invalido" };
     return { ok: false, motivo: "indisponivel" };

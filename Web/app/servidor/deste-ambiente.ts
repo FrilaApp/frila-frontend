@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 
 import { ambienteDoSupabase, listaDeEmailsDeDemonstracao } from "./ambiente";
 import { criarAuth } from "./auth";
+import { googleLigado } from "./google";
 import { criarFuncoesDoUsuario } from "./conta/dados";
 import { fotoDoPerfil } from "./contratante/foto-do-perfil";
 import { chavesDoIp, criarApiDoUsuario } from "./saida-rest";
@@ -42,4 +43,9 @@ export async function fotoDoProfissional(sessao: SessaoAtual, profissionalId: st
 /** E-mails da conta de demonstração aceitos neste ambiente: vêm do segredo opcional EMAILS_DE_DEMONSTRACAO (sem ele, lista vazia). */
 export function emailsDeDemonstracao(): Set<string> {
   return listaDeEmailsDeDemonstracao((env as { EMAILS_DE_DEMONSTRACAO?: string }).EMAILS_DE_DEMONSTRACAO);
+}
+
+/** O "Entrar com Google" está ligado neste Worker? Só o ambiente de dev tem `GOOGLE_ENTRAR = "ligado"`; no Prod a variável não existe. */
+export function googleLigadoNesteAmbiente(): boolean {
+  return googleLigado((env as { GOOGLE_ENTRAR?: string }).GOOGLE_ENTRAR);
 }

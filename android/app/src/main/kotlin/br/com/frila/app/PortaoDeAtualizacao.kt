@@ -85,11 +85,16 @@ internal fun configuracaoDoAppDeJson(json: JsonObject): ConfiguracaoDoAppDto {
 /**
  * Portão de versão e atualização obrigatória (paridade com `PortaoDeAtualizacao` do iOS).
  *
- * Enquanto a verificação estiver pendente ([verificando] = true), não compõe o conteúdo do app,
- * impedindo que o feed ou rotas protegidas sejam expostos antes da decisão de versão mínima.
- * Se a versão atual for inferior à versão mínima exigida, bloqueia a navegação de todo o app
- * e exibe a [TelaAtualizacaoObrigatoria].
- * Caso contrário, libera a composição do [conteudo] principal.
+ * Enquanto a abertura estiver pendente ([verificando] = true), não compõe o conteúdo do app.
+ * Essa espera é curta e termina em [carregarConfiguracaoNaAbertura]: na hora, quando há
+ * configuração guardada para esta versão do app, ou em até [TEMPO_MAXIMO_ABERTURA_MS] (2 s),
+ * quando não há. Depois disso o [conteudo] pode aparecer antes da resposta do servidor, e a
+ * resposta, quando chega (até [TEMPO_MAXIMO_CONFIGURACAO_MS]), ainda vale: se a versão atual
+ * for inferior à mínima, passa a bloquear a navegação de todo o app (#795). Ou seja, o portão
+ * não garante que o feed ou rotas protegidas não apareçam antes da decisão de versão mínima
+ * do servidor; garante só a decisão da versão mínima guardada.
+ * Se a versão atual for inferior à versão mínima conhecida, exibe a [TelaAtualizacaoObrigatoria]
+ * no lugar do app. Caso contrário, compõe o [conteudo] principal.
  */
 @Composable
 fun PortaoDeAtualizacao(

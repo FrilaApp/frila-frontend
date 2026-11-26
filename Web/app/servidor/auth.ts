@@ -479,6 +479,39 @@ export function criarAuth(
       }
     },
 
+    /** Endereço do Supabase que leva ao Google (OAuth com PKCE, método S256). Só monta o texto; nada é chamado. */
+    urlDeAutorizacaoGoogle(retorno: string, desafio: string): string {
+      const url = new URL(`${ambiente.url}/auth/v1/authorize`);
+      url.searchParams.set("provider", "google");
+      url.searchParams.set("redirect_to", retorno);
+      url.searchParams.set("code_challenge", desafio);
+      url.searchParams.set("code_challenge_method", "s256");
+      return url.toString();
+    },
+
+    /**
+     * Troca o `code` devolvido pelo Google (via Supabase) pela sessão: `POST /auth/v1/token?grant_type=pkce` com o
+     * `code_verifier` guardado no cookie. O mesmo formato de sessão dos outros logins.
+     */
+    async trocarCodigoPkce(codigo: string, verifier: string): Promise<ResultadoDeEntrada> {
+      try {
+        const resposta = await buscar(`${ambiente.url}/auth/v1/token?grant_type=pkce`, {
+          method: "POST",
+          headers: { ...cabecalhos, "Content-Type": "application/json" },
+          body: JSON.stringify({ auth_code: codigo, code_verifier: verifier }),
+          signal: prazo(),
+        });
+        if (resposta.ok) {
+          const dados: unknown = await resposta.json().catch(() => null);
+          return ehSessaoValida(dados) ? { ok: true, sessao: dados } : { ok: false, motivo: "indisponivel" };
+        }
+        await resposta.body?.cancel();
+        return { ok: false, motivo: motivoDe(resposta.status) };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
+      }
+    },
+
     async confirmarCodigo(email: string, codigo: string): Promise<ResultadoDeEntrada> {
       try {
         const { data, response } = await auth.POST("/verify", {

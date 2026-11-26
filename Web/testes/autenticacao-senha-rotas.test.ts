@@ -54,6 +54,7 @@ const contaMock = vi.hoisted(() => ({
 vi.mock("../app/servidor/deste-ambiente", () => ({
   authDesteAmbiente: () => authMock,
   emailsDeDemonstracao: () => new Set(["demo@frila.test"]),
+  googleLigadoNesteAmbiente: () => false,
   apiDoUsuario: () => ({}),
   funcoesDoUsuario: () => ({}),
 }));

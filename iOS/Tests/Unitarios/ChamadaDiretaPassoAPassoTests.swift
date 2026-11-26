@@ -1,5 +1,5 @@
 import Foundation
-import FrilaApresentacao
+@testable import FrilaApresentacao
 @testable import FrilaDados
 import FrilaDominio
 import Observation
@@ -72,6 +72,32 @@ struct ChamadaDiretaPassoAPassoTests {
         criador.responsavel = "Gerente João"
         await criador.enviar()
         return (api, try #require(criador.resultado).id)
+    }
+
+    @Test("B-124: na chamada direta, o valor fora da faixa só avisa, e a chamada sai com o valor digitado", arguments: [
+        ("49,99", 4_999, "Valor muito baixo."), ("2000,01", 200_001, "Valor muito alto, confira."),
+    ])
+    func valorForaDaFaixaNaChamadaSoAvisa(texto: String, centavos: Int, aviso: String) async throws {
+        let api = ApiClienteEmMemoria(cenario: .chamadaDireta)
+        let casa = try #require(try await api.meusEstabelecimentos().first)
+        let perfil = try await api.perfilPublico(id: profissionalID)
+        let modelo = ChamadaDiretaViewModel(api: api, profissionalID: profissionalID, estabelecimentoID: casa.id)
+        await modelo.carregar()
+        modelo.funcaoID = try #require(modelo.funcoes.first { perfil.funcoes.contains($0.nome) }).id
+        modelo.responsavel = "Gerente João"
+        #expect(modelo.avisoDoValor == nil, "sem valor não há aviso novo")
+        modelo.valorTexto = texto
+        modelo.totalConfirmado = true
+
+        #expect(modelo.avisoDoValor == aviso)
+        #expect(modelo.oQueFalta == nil)
+        #expect(modelo.podeEnviar)
+
+        await modelo.enviar()
+
+        #expect(modelo.resultado != nil)
+        #expect(modelo.erro == nil)
+        #expect(modelo.valorCentavos == centavos)
     }
 
     @Test("Tocar no aviso de uma chamada nova com a anterior aberta na pilha carrega a chamada nova")

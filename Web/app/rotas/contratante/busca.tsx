@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import {
@@ -31,7 +32,7 @@ import { exigirSessao } from "../../servidor/guarda";
 import { formatarPeriodo, formatarValor } from "../../servidor/profissional/formato";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/busca";
-import { enviandoEste, preencher } from "./comum";
+import { avisoDoValor, enviandoEste, preencher } from "./comum";
 
 const t = textos.contratanteBusca;
 const tc = t.chamada;
@@ -277,6 +278,13 @@ function SituacaoDoCartao({ cartao, enviando }: { cartao: Cartao; enviando: bool
 }
 
 function TermosDaChamada({ termos, erros }: { termos: TermosDigitados; erros: Partial<Record<CampoDosTermos, true>> }) {
+  const [valorDigitado, setValorDigitado] = useState(termos.valor);
+  const [valorAnterior, setValorAnterior] = useState(termos.valor);
+  if (termos.valor !== valorAnterior) {
+    setValorAnterior(termos.valor);
+    setValorDigitado(termos.valor);
+  }
+  const avisoValor = avisoDoValor(valorDigitado);
   const sobre = (campo: CampoDosTermos, ajuda?: string) => ({
     "aria-invalid": erros[campo] ? true : undefined,
     "aria-describedby": [erros[campo] ? `erro-${campo}` : null, ajuda].filter(Boolean).join(" ") || undefined,
@@ -306,7 +314,20 @@ function TermosDaChamada({ termos, erros }: { termos: TermosDigitados; erros: Pa
         <span id="ajuda-valor-total" className="text-sm font-normal text-tinta-suave">
           {tc.ajudaDoValor}
         </span>
-        <input name="valor" type="text" inputMode="decimal" defaultValue={termos.valor} className={classeDoCampo} {...sobre("valor", "ajuda-valor-total")} />
+        <input
+          name="valor"
+          type="text"
+          inputMode="decimal"
+          defaultValue={termos.valor}
+          onChange={(evento) => setValorDigitado(evento.target.value)}
+          className={classeDoCampo}
+          {...sobre("valor", avisoValor ? "ajuda-valor-total aviso-valor" : "ajuda-valor-total")}
+        />
+        {avisoValor ? (
+          <span id="aviso-valor" role="status" className="text-sm font-normal text-tinta-suave">
+            {avisoValor}
+          </span>
+        ) : null}
         <Aviso id="erro-valor" texto={erro("valor")} />
       </label>
       <label className="flex min-h-12 items-center gap-3">

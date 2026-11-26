@@ -423,6 +423,14 @@ private struct FolhaDeChamadaDaBusca: View {
                             .focused($campoEmFoco, equals: .valor)
                             .keyboardType(.decimalPad)
                             .accessibilityIdentifier("busca-valor-total")
+                        // B-124: só avisa; o envio não depende do aviso.
+                        if let aviso = rascunho.avisoDoValor {
+                            Text(verbatim: aviso)
+                                .font(FrilaTipo.apoio)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("aviso-valor-busca")
+                        }
                     }
                     FrilaGrupoDeLinhas(linhasComIcone: false) {
                         Toggle(isOn: $rascunho.totalConfirmado) {

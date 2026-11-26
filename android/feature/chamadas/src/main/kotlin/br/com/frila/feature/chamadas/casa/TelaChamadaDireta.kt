@@ -233,6 +233,7 @@ private fun Campos(
         aoMudar = acoes.aoMudarValor,
         rotulo = TextosChamadaCasa.VALOR_TOTAL,
         dica = TextosChamadaCasa.VALOR_EXEMPLO,
+        apoio = ValorEmReais.aviso(tela.valorCentavos),
         habilitado = editavel,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         acessorio = { Text(TextosChamadaCasa.MOEDA, style = FrilaTipo.corpo, color = FrilaTema.cores.tintaSuave) },

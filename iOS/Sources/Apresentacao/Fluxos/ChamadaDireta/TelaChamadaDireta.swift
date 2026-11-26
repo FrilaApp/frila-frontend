@@ -181,6 +181,14 @@ public struct TelaChamadaDireta: View {
                     }
                 }
                 .caixaDoCampoFrila()
+                // B-124: só avisa; o Enviar não depende do aviso.
+                if let aviso = viewModel.avisoDoValor {
+                    Text(verbatim: aviso)
+                        .font(FrilaTipo.apoio)
+                        .foregroundStyle(FrilaCor.textoSecundario)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("aviso-valor-chamada")
+                }
             }
             FrilaGrupoDeLinhas(linhasComIcone: false) {
                 // O interruptor é só o controle (o quadro dele não leva o texto): o `ConferenciaVisualLote1e4UITests` lê a cor do

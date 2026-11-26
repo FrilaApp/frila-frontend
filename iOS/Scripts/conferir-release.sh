@@ -6,6 +6,11 @@
 
 set -euo pipefail
 
+# Esquemas de URL aceitos em CFBundleURLTypes (o do DEV agora; o do Prod entra depois).
+readonly -a ESQUEMAS_URL_ACEITOS=(
+  'com.googleusercontent.apps.949809644766-vhebboq8at80j8p2eti0kgslvk2d1ikh'
+)
+
 falhar() {
   echo "FALHA: $*" >&2
   exit 1
@@ -88,13 +93,60 @@ if plutil -extract NSUserTrackingUsageDescription raw -o /dev/null "$info_plist"
 fi
 
 # Auditoria de segurança (03/10/2026, A6): o app só fala HTTPS pelo ATS padrão, não expõe a pasta
-# Documents no Finder/Arquivos e não registra esquema de URL (não há deep link). Qualquer uma destas
-# chaves abriria uma superfície que o código não trata.
-for chave in NSAppTransportSecurity UIFileSharingEnabled LSSupportsOpeningDocumentsInPlace CFBundleURLTypes; do
+# Documents no Finder/Arquivos e não registra esquema de URL genérico (não há deep link), com
+# exceção exclusiva do esquema do Google iOS para login com Google (decisão do Cauê de 25/11/2026).
+# Qualquer uma destas chaves ou esquema fora da lista aceita abriria uma superfície não tratada.
+for chave in NSAppTransportSecurity UIFileSharingEnabled LSSupportsOpeningDocumentsInPlace; do
   if plutil -extract "$chave" raw -o /dev/null "$info_plist" >/dev/null 2>&1; then
     falhar "Info.plist não pode conter $chave"
   fi
 done
+
+if ! erro_url_types="$(python3 - "$info_plist" "${ESQUEMAS_URL_ACEITOS[@]}" <<'PYURLTYPES'
+import plistlib, sys
+
+info_plist = sys.argv[1]
+aceitos = set(sys.argv[2:])
+
+with open(info_plist, "rb") as arquivo:
+    info = plistlib.load(arquivo)
+
+if "CFBundleURLTypes" not in info:
+    sys.exit(0)
+
+url_types = info["CFBundleURLTypes"]
+if not isinstance(url_types, list) or not url_types:
+    print("CFBundleURLTypes deve ser uma lista não vazia")
+    sys.exit(1)
+
+chaves_permitidas = {"CFBundleURLSchemes", "CFBundleTypeRole", "CFBundleURLName"}
+for indice, item in enumerate(url_types):
+    if not isinstance(item, dict):
+        print(f"CFBundleURLTypes[{indice}] deve ser um dicionário")
+        sys.exit(1)
+    estranhas = sorted(set(item.keys()) - chaves_permitidas)
+    if estranhas:
+        print(f"CFBundleURLTypes[{indice}] contém chave não permitida: {', '.join(estranhas)}")
+        sys.exit(1)
+    for opcional in ("CFBundleTypeRole", "CFBundleURLName"):
+        if opcional in item and not (isinstance(item[opcional], str) and item[opcional].strip()):
+            print(f"CFBundleURLTypes[{indice}].{opcional} deve ser texto não vazio")
+            sys.exit(1)
+    if "CFBundleURLSchemes" not in item:
+        print(f"CFBundleURLTypes[{indice}] não define CFBundleURLSchemes")
+        sys.exit(1)
+    esquemas = item["CFBundleURLSchemes"]
+    if not isinstance(esquemas, list) or not esquemas:
+        print(f"CFBundleURLTypes[{indice}].CFBundleURLSchemes deve ser uma lista não vazia")
+        sys.exit(1)
+    for esquema in esquemas:
+        if not isinstance(esquema, str) or esquema not in aceitos:
+            print(f"CFBundleURLTypes[{indice}] contém esquema de URL não aceito: {esquema!r}")
+            sys.exit(1)
+PYURLTYPES
+)"; then
+  falhar "${erro_url_types:-Info.plist contém CFBundleURLTypes inválido}"
+fi
 
 # O app lê a localização em uso e pede a precisão temporária no check-in: sem estes dois textos o
 # sistema não mostra o pedido.

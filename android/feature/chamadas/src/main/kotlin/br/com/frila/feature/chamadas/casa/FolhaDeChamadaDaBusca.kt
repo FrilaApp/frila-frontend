@@ -141,6 +141,7 @@ internal fun FolhaDeChamadaDaBusca(
                 },
                 rotulo = "${TextosChamadaCasa.VALOR_TOTAL} (${TextosChamadaCasa.MOEDA})",
                 dica = TextosChamadaCasa.VALOR_EXEMPLO,
+                apoio = ValorEmReais.aviso(ValorEmReais.centavos(valor)),
                 habilitado = !travada,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.testTag("folha-valor"),

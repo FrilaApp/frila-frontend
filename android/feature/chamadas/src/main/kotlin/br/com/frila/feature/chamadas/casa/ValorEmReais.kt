@@ -1,5 +1,8 @@
 package br.com.frila.feature.chamadas.casa
 
+import br.com.frila.core.dominio.regra.AvisoValorDiaria
+import br.com.frila.core.dominio.regra.ReferenciaValorDiaria
+
 /**
  * O valor como a pessoa digita, em reais ("180" ou "180,50"), e o caminho até os centavos do contrato.
  * Paridade com `ChamadaDiretaViewModel.valorDigitado` e `textoEmReais` do iOS.
@@ -51,4 +54,11 @@ internal object ValorEmReais {
     /** "R$ 180" fica "180"; "R$ 180,50" fica "180,50". */
     fun texto(centavos: Long): String =
         if (centavos % 100 == 0L) "${centavos / 100}" else "${centavos / 100},${(centavos % 100).toString().padStart(2, '0')}"
+
+    /** Aviso não bloqueante para valor fora da faixa de referência (B-124); `null` dentro da faixa, vazio ou <= 0. */
+    fun aviso(centavos: Long?): String? = when (ReferenciaValorDiaria.avaliar(centavos)) {
+        AvisoValorDiaria.MUITO_BAIXO -> TextosChamadaCasa.VALOR_MUITO_BAIXO
+        AvisoValorDiaria.MUITO_ALTO -> TextosChamadaCasa.VALOR_MUITO_ALTO
+        null -> null
+    }
 }
