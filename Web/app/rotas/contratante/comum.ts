@@ -1,4 +1,13 @@
+import { faixaDeAvisoDoValor, valorEmCentavos } from "../../servidor/contratante/publicar-vaga";
 import { textos } from "../../textos/pt-BR";
+
+/** Aviso não bloqueante para o campo de valor digitado (B-124). */
+export function avisoDoValor(bruto: string): string | undefined {
+  const faixa = faixaDeAvisoDoValor(valorEmCentavos(bruto.trim()));
+  if (faixa === "baixo") return textos.contratante.publicar.avisos.valorBaixo;
+  if (faixa === "alto") return textos.contratante.publicar.avisos.valorAlto;
+  return undefined;
+}
 
 /** Troca `{chave}` pelos valores: o catálogo guarda só texto, a tela põe os números. */
 export const preencher = (modelo: string, valores: Record<string, number | string>) =>

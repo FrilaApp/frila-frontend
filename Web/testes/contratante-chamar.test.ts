@@ -1,6 +1,9 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createRoutesStub } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { action } from "../app/rotas/contratante/busca";
+import BuscaDaCasa, { action } from "../app/rotas/contratante/busca";
 import { textos } from "../app/textos/pt-BR";
 import { argumentos, CASA, GARCOM, ok, recusa, redirecionamento } from "./contratante-apoio";
 
@@ -132,5 +135,57 @@ describe("chamar da busca", () => {
     const enviada = formulario(`chamar:${MARIA}`, { cartoes: JSON.stringify([cartao(MARIA, CHAVE_MARIA, { situacao: { tipo: "enviada" } })]) });
     await lista(action(argumentos("/casa/busca", enviada)));
     expect(api.POST).not.toHaveBeenCalled();
+  });
+});
+
+describe("chamar da busca: aviso não bloqueante da faixa (B-124)", () => {
+  const renderizar = (valor: string) => {
+    const loaderData = { casa: { id: CASA, nome: "Bar Sintético" }, grupos: [], regioes: [], catalogoIndisponivel: false };
+    const actionData = {
+      estado: "ok" as const,
+      filtros: { funcao_id: GARCOM, regiao_id: "", dia: "", inicio: "", fim: "" },
+      cartoes: [cartao(MARIA, CHAVE_MARIA)],
+      proximoCursor: null,
+      termos: {
+        dia: "2026-12-12", inicio: "18:00", fim: "23:00", valor, responsavel_local: "Gerente Sintético",
+        recado: "", total: true, inclui_refeicao: false, inclui_transporte: false, exige_material_proprio: false,
+      },
+      errosDosTermos: {},
+    };
+    const Stub = createRoutesStub([{ path: "/casa/busca", Component: () => createElement(BuscaDaCasa, { loaderData, actionData } as never) }]);
+    return renderToStaticMarkup(createElement(Stub, { initialEntries: ["/casa/busca"] }));
+  };
+
+  it("chama com valor positivo fora da faixa de referência e continua recusando 0 e negativo", async () => {
+    for (const valor of ["0,01", "49,99", "2000,01", "1000000"]) {
+      api.POST.mockReset();
+      servidor();
+      const retorno = await lista(action(argumentos("/casa/busca", formulario(`chamar:${MARIA}`, { valor }))));
+      expect(retorno.cartoes.find((c) => c.id === MARIA)?.situacao).toEqual({ tipo: "enviada" });
+      expect(api.POST).toHaveBeenCalledTimes(1);
+    }
+    for (const valor of ["0", "-10"]) {
+      api.POST.mockReset();
+      servidor();
+      const retorno = await lista(action(argumentos("/casa/busca", formulario(`chamar:${MARIA}`, { valor }))));
+      expect(retorno.errosDosTermos).toEqual({ valor: true });
+      expect(api.POST).not.toHaveBeenCalled();
+    }
+  });
+
+  it("mostra o aviso exato para valor baixo/alto sem desabilitar o botão de chamar", () => {
+    const botaoDeChamar = new RegExp(`<button[^>]*value="chamar:${MARIA}"[^>]*>Chamar Pessoa S\\.</button>`);
+    for (const [valor, esperado] of [["49,99", "Valor muito baixo."], ["2000,01", "Valor muito alto, confira."]] as const) {
+      const html = renderizar(valor);
+      expect(html).toContain(esperado);
+      const botao = html.match(botaoDeChamar)?.[0];
+      expect(botao).toBeTruthy();
+      expect(botao).not.toMatch(/\sdisabled(?=[\s=>])/);
+    }
+    for (const valor of ["50", "2000", "", "0"]) {
+      const html = renderizar(valor);
+      expect(html).not.toContain("Valor muito baixo.");
+      expect(html).not.toContain("Valor muito alto, confira.");
+    }
   });
 });

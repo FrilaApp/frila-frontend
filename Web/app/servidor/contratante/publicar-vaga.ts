@@ -46,6 +46,19 @@ export function valorEmCentavos(bruto: string): number | null {
   return total >= 1 ? total : null;
 }
 
+/** Faixa de referência do B-124: só avisa na tela, nunca trava nem impede publicar. */
+export const VALOR_REFERENCIA_MINIMO_CENTAVOS = 5000;
+export const VALOR_REFERENCIA_MAXIMO_CENTAVOS = 200000;
+export type AvisoDeFaixaDoValor = "baixo" | "alto" | null;
+
+/** Classifica um valor em centavos fora da faixa de referência (B-124). */
+export function faixaDeAvisoDoValor(centavos: number | null): AvisoDeFaixaDoValor {
+  if (centavos === null || !Number.isFinite(centavos) || centavos <= 0) return null;
+  if (centavos < VALOR_REFERENCIA_MINIMO_CENTAVOS) return "baixo";
+  if (centavos > VALOR_REFERENCIA_MAXIMO_CENTAVOS) return "alto";
+  return null;
+}
+
 /** O DF fica em UTC−3 o ano todo (sem horário de verão desde 2019). */
 const FUSO_DO_DF = "-03:00";
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { escolherCasa, lerCadastroDaCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
@@ -20,7 +21,7 @@ import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/publicar-escala";
-import { enviandoEste, preencher } from "./comum";
+import { avisoDoValor, enviandoEste, preencher } from "./comum";
 
 const t = textos.contratanteEscala;
 const tv = textos.contratante.publicar;
@@ -166,6 +167,8 @@ function ItemDaEscala(props: { i: number; total: number; valores: ValoresDaVaga;
   const { i, total, valores, erros, grupos } = props;
   const nome = (campo: string) => nomeDoCampo(i, campo);
   const id = (campo: string) => `v${i}-${campo}`;
+  const [valorDigitado, setValorDigitado] = useState(valores.valor);
+  const avisoValor = avisoDoValor(valorDigitado);
   return (
     <fieldset className="flex flex-col gap-4 rounded-cartao border border-borda p-4">
       <legend className="px-1 font-titulo text-xl font-bold">{preencher(t.vaga, { n: i + 1, total })}</legend>
@@ -209,7 +212,21 @@ function ItemDaEscala(props: { i: number; total: number; valores: ValoresDaVaga;
 
       <label className={classeDoRotulo}>
         {tv.valor}
-        <input name={nome("valor")} type="text" inputMode="decimal" required defaultValue={valores.valor} className={classeDoCampo} {...sobre(id("valor"), erros.valor, "ajuda-valor")} />
+        <input
+          name={nome("valor")}
+          type="text"
+          inputMode="decimal"
+          required
+          defaultValue={valores.valor}
+          onChange={(evento) => setValorDigitado(evento.target.value)}
+          className={classeDoCampo}
+          {...sobre(id("valor"), erros.valor, avisoValor ? `ajuda-valor aviso-${id("valor")}` : "ajuda-valor")}
+        />
+        {avisoValor ? (
+          <span id={`aviso-${id("valor")}`} role="status" className="text-sm font-normal text-tinta-suave">
+            {avisoValor}
+          </span>
+        ) : null}
         <Aviso id={`erro-${id("valor")}`} texto={erros.valor} />
       </label>
 
