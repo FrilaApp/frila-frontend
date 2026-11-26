@@ -10,6 +10,19 @@ interface ArmazenamentoDeSessao {
     fun salvarSessao(sessao: Sessao)
     fun obterSessao(): Sessao?
     fun limparSessao()
+
+    /**
+     * Grava [nova] só se a sessão guardada ainda tem o refresh token [esperado]. A comparação e a gravação são uma
+     * operação só, sem outro escritor entre as duas (#794: a renovação de A não pode sobrescrever a sessão de B).
+     * Devolve `false` quando a sessão mudou ou sumiu; nada é gravado.
+     */
+    fun salvarSeRefreshTokenIgual(esperado: String, nova: Sessao): Boolean
+
+    /**
+     * Apaga a sessão só se ela ainda tem o refresh token [esperado], numa operação atômica como [salvarSeRefreshTokenIgual].
+     * Devolve `false` quando a sessão mudou ou sumiu; nada é apagado.
+     */
+    fun limparSeRefreshTokenIgual(esperado: String): Boolean
     fun estaAutenticado(): Boolean
 
     /** RN15: preferência de desbloqueio biométrico, sempre `false` sem sessão/após logout. */

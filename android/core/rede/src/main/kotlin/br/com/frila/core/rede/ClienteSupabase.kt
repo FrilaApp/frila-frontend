@@ -233,17 +233,16 @@ class ClienteSupabase(
             if (!resposta.status.isSuccess()) {
                 // Só o Auth recusando o token encerra a sessão. 5xx, 429 e afins são falha
                 // passageira: a sessão fica e a próxima chamada tenta renovar de novo.
-                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO && aSessaoAindaEh(armazenamento, sessaoAtual)) armazenamento.limparSessao()
+                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO) armazenamento.limparSeRefreshTokenIgual(sessaoAtual.refreshToken)
                 return null
             }
-            // #794: a renovação pode ter ficado em voo enquanto a pessoa saiu e outra conta entrou. A resposta só vale para
-            // a sessão que a originou; senão é descartada: não grava e não devolve o token da conta anterior.
-            if (!aSessaoAindaEh(armazenamento, sessaoAtual)) return null
-
             val renovada = resposta.body<SessaoDto>()
             val sessaoPersistida = renovada.paraSessao(vinculoId = sessaoAtual.vinculoId)
                 .copy(email = sessaoAtual.email)
-            armazenamento.salvarSessao(sessaoPersistida)
+            // #794: a renovação pode ter ficado em voo enquanto a pessoa saiu e outra conta entrou. A resposta só vale para
+            // a sessão que a originou; senão é descartada: não grava e não devolve o token da conta anterior. Comparar e
+            // gravar é uma operação só do armazenamento, sem brecha para a troca de conta entre os dois passos.
+            if (!armazenamento.salvarSeRefreshTokenIgual(sessaoAtual.refreshToken, sessaoPersistida)) return null
             sessaoPersistida.paraBearerTokens()
         } catch (erro: CancellationException) {
             throw erro
@@ -252,9 +251,6 @@ class ClienteSupabase(
             null
         }
     }
-
-    private fun aSessaoAindaEh(armazenamento: ArmazenamentoDeSessao, lida: Sessao): Boolean =
-        armazenamento.obterSessao()?.refreshToken == lida.refreshToken
 
     fun urlCompleta(caminho: String): String = "$baseUrl$caminho"
 
