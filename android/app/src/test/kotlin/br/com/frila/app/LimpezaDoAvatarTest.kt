@@ -68,6 +68,13 @@ class LimpezaDoAvatarTest {
         assertFalse("o ambiente de teste não impede a exclusão (executando como administrador?)", alvo.canWrite())
     }
 
+    /** Tira a permissão de escrita do próprio arquivo: sem ela `descartar` também não consegue esvaziá-lo. */
+    private fun impedirEsvaziar(arquivo: File) {
+        arquivo.setWritable(false)
+        bloqueadas += arquivo
+        assertFalse("o ambiente de teste não impede a escrita (executando como administrador?)", arquivo.canWrite())
+    }
+
     private val filesDir: File get() = RuntimeEnvironment.getApplication().filesDir
 
     private fun avatarNoFilesDir(nome: String = "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}1.jpg") =
@@ -85,8 +92,8 @@ class LimpezaDoAvatarTest {
     private fun cache() = CacheVagasDaSessao(raiz = null, diretorioDosAvatares = arquivos)
 
     @Test
-    fun `falha ao apagar o avatar nao faz limpar lancar e fica registrada`() {
-        avatar()
+    fun `avatar que nao da para apagar nem esvaziar nao faz limpar lancar e fica registrado`() {
+        impedirEsvaziar(avatar())
         impedirExclusao()
 
         cache().limpar()
@@ -94,6 +101,18 @@ class LimpezaDoAvatarTest {
         val registros = ShadowLog.getLogsForTag("FrilaSessao")
         assertEquals("esperava um registro da falha", 1, registros.size)
         assertEquals(Log.WARN, registros.single().type)
+    }
+
+    @Test
+    fun `avatar que nao da para apagar mas da para escrever e esvaziado sem registro de falha`() {
+        val arquivoDoAvatar = avatar()
+        impedirExclusao()
+
+        cache().limpar()
+
+        assertTrue(arquivoDoAvatar.exists())
+        assertEquals("a foto sai do arquivo", 0L, arquivoDoAvatar.length())
+        assertEquals(emptyList<Any>(), ShadowLog.getLogsForTag("FrilaSessao"))
     }
 
     @Test
@@ -234,7 +253,7 @@ class LimpezaDoAvatarTest {
 
     @Test
     fun `o registro da falha nao traz nome nem caminho do arquivo`() {
-        avatar("${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}conta-sintetica-123.jpg")
+        impedirEsvaziar(avatar("${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}conta-sintetica-123.jpg"))
         impedirExclusao()
 
         cache().limpar()

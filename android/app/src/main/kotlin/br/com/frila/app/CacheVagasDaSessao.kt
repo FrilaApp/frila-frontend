@@ -54,9 +54,10 @@ internal class CacheVagasDaSessao(
         diretorioDosAvatares?.listFiles { arquivo ->
             arquivo.isFile && (arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO)
         }?.forEach {
-            // Como a telemetria: um avatar que não saiu é registrado, não lançado. A exceção abortava o Sair (CoordenadorDeLogout) e,
-            // na troca de conta, vinha antes de gravar a sessão nova e impedia o login.
-            if (!it.delete()) Log.w(TAG, "Não foi possível apagar o avatar da conta anterior")
+            // Sem apagar, o avatar é esvaziado (descartar): senão a foto de A seguiria legível para B. Só o que resta legível é
+            // registrado, não lançado, como a telemetria: a exceção abortava o Sair (CoordenadorDeLogout) e, na troca de conta,
+            // vinha antes de gravar a sessão nova e impedia o login.
+            if (!CompressorDeFotoPerfil.descartar(it)) Log.w(TAG, "Não foi possível apagar nem esvaziar o avatar da conta anterior")
         }
         falha?.let { throw it }
     }
