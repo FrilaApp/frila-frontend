@@ -34,52 +34,80 @@ public final class AutenticadorSocialNativo: NSObject, ProvedorUIAutenticacaoSoc
     }
 
     public func solicitarApple(nonceSha256: String) async throws -> CredencialAppleNativa {
+        // Guarda contra chamadas simultâneas: nunca sobrescreve uma continuation ativa.
+        guard continuacaoApple == nil else {
+            throw ErroEntradaSocial.provedorIndisponivel
+        }
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
         request.requestedScopes = [.fullName, .email]
         request.nonce = nonceSha256
 
-        return try await withCheckedThrowingContinuation { continuacao in
-            self.continuacaoApple = continuacao
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            controller.performRequests()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuacao in
+                self.continuacaoApple = continuacao
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                controller.delegate = self
+                controller.presentationContextProvider = self
+                controller.performRequests()
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                guard let self, let pendente = self.continuacaoApple else { return }
+                self.continuacaoApple = nil
+                pendente.resume(throwing: CancellationError())
+            }
         }
     }
 
     public func abrirSessaoWebOAuth(url: URL, esquemaCallback: String) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuacao in
-            let sessao = ASWebAuthenticationSession(
-                url: url,
-                callbackURLScheme: esquemaCallback
-            ) { [weak self] callbackURL, error in
-                Task { @MainActor in
-                    self?.sessaoWebAtual = nil
-                    if let error {
-                        let nsError = error as NSError
-                        if nsError.domain == ASWebAuthenticationSessionErrorDomain,
-                           nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
-                        {
-                            continuacao.resume(throwing: ErroEntradaSocial.cancelado)
-                        } else {
-                            continuacao.resume(throwing: ErroEntradaSocial.provedorIndisponivel)
+        // Guarda contra chamadas simultâneas: impede sobreposição de sessões OAuth.
+        guard sessaoWebAtual == nil else {
+            throw ErroEntradaSocial.provedorIndisponivel
+        }
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuacao in
+                var encerrada = false
+                @MainActor func finalizar(_ resultado: Result<URL, Error>) {
+                    guard !encerrada else { return }
+                    encerrada = true
+                    self.sessaoWebAtual = nil
+                    continuacao.resume(with: resultado)
+                }
+
+                let sessao = ASWebAuthenticationSession(
+                    url: url,
+                    callbackURLScheme: esquemaCallback
+                ) { callbackURL, error in
+                    Task { @MainActor in
+                        if let error {
+                            let nsError = error as NSError
+                            if nsError.domain == ASWebAuthenticationSessionErrorDomain,
+                               nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue
+                            {
+                                finalizar(.failure(ErroEntradaSocial.cancelado))
+                            } else {
+                                finalizar(.failure(ErroEntradaSocial.provedorIndisponivel))
+                            }
+                            return
                         }
-                        return
+                        guard let callbackURL else {
+                            finalizar(.failure(ErroEntradaSocial.callbackInvalido))
+                            return
+                        }
+                        finalizar(.success(callbackURL))
                     }
-                    guard let callbackURL else {
-                        continuacao.resume(throwing: ErroEntradaSocial.callbackInvalido)
-                        return
-                    }
-                    continuacao.resume(returning: callbackURL)
+                }
+                sessao.presentationContextProvider = self
+                sessao.prefersEphemeralWebBrowserSession = false
+                self.sessaoWebAtual = sessao
+                if !sessao.start() {
+                    finalizar(.failure(ErroEntradaSocial.provedorIndisponivel))
                 }
             }
-            sessao.presentationContextProvider = self
-            sessao.prefersEphemeralWebBrowserSession = false
-            self.sessaoWebAtual = sessao
-            if !sessao.start() {
-                self.sessaoWebAtual = nil
-                continuacao.resume(throwing: ErroEntradaSocial.provedorIndisponivel)
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.sessaoWebAtual?.cancel()
             }
         }
     }

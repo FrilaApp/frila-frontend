@@ -51,19 +51,30 @@ public enum SegurancaOAuthSocial {
     public static let esquemaCallbackPadrao = "frila-auth"
     public static let urlCallbackPadrao = URL(string: "frila-auth://auth/callback")!
 
-    public static func gerarBytesAleatoriosBase64URL(quantidade: Int = 32) -> String {
-        var bytes = [UInt8](repeating: 0, count: max(16, quantidade))
+    public typealias ProvedorBytesAleatorios = @Sendable (Int) -> Data?
+
+    public static let provedorBytesSistema: ProvedorBytesAleatorios = { quantidade in
+        var bytes = [UInt8](repeating: 0, count: quantidade)
         let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        if status != errSecSuccess {
-            for i in bytes.indices {
-                bytes[i] = UInt8.random(in: 0...255)
-            }
-        }
-        return Data(bytes).base64URLEncodedString()
+        guard status == errSecSuccess else { return nil }
+        return Data(bytes)
     }
 
-    public static func gerarNonceBruto() -> String {
-        gerarBytesAleatoriosBase64URL(quantidade: 32)
+    public static func gerarBytesAleatoriosBase64URL(
+        quantidade: Int = 32,
+        provedorBytes: ProvedorBytesAleatorios = provedorBytesSistema
+    ) throws -> String {
+        let tamanho = max(16, quantidade)
+        guard let dados = provedorBytes(tamanho), dados.count == tamanho else {
+            throw ErroEntradaSocial.provedorIndisponivel
+        }
+        return dados.base64URLEncodedString()
+    }
+
+    public static func gerarNonceBruto(
+        provedorBytes: ProvedorBytesAleatorios = provedorBytesSistema
+    ) throws -> String {
+        try gerarBytesAleatoriosBase64URL(quantidade: 32, provedorBytes: provedorBytes)
     }
 
     public static func sha256Hex(_ texto: String) -> String {
@@ -71,8 +82,10 @@ public enum SegurancaOAuthSocial {
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
-    public static func gerarVerifierPKCE() -> String {
-        gerarBytesAleatoriosBase64URL(quantidade: 32)
+    public static func gerarVerifierPKCE(
+        provedorBytes: ProvedorBytesAleatorios = provedorBytesSistema
+    ) throws -> String {
+        try gerarBytesAleatoriosBase64URL(quantidade: 32, provedorBytes: provedorBytes)
     }
 
     public static func desafioPKCES256(_ verifier: String) -> String {
@@ -80,8 +93,10 @@ public enum SegurancaOAuthSocial {
         return Data(digest).base64URLEncodedString()
     }
 
-    public static func gerarState() -> String {
-        gerarBytesAleatoriosBase64URL(quantidade: 16)
+    public static func gerarState(
+        provedorBytes: ProvedorBytesAleatorios = provedorBytesSistema
+    ) throws -> String {
+        try gerarBytesAleatoriosBase64URL(quantidade: 16, provedorBytes: provedorBytes)
     }
 
     public static func ehVerifierPKCEValido(_ verifier: String) -> Bool {

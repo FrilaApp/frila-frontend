@@ -85,19 +85,27 @@ private final class ApiSocialDublê: ApiClienteEncaminhador, @unchecked Sendable
 
 @Suite("Login social iOS — Apple e Google")
 struct LoginSocialTests {
-    @Test("SegurancaOAuthSocial gera nonce SHA-256 e PKCE S256 válidos")
-    func geraNonceEPKCEValidos() {
-        let nonce = SegurancaOAuthSocial.gerarNonceBruto()
+    @Test("SegurancaOAuthSocial gera nonce SHA-256 e PKCE S256 válidos e falha fechado sem fallback RNG se CSPRNG falhar")
+    func geraNonceEPKCEValidos() throws {
+        let nonce = try SegurancaOAuthSocial.gerarNonceBruto()
         let hash = SegurancaOAuthSocial.sha256Hex(nonce)
         #expect(nonce.count == 43)
         #expect(hash.count == 64)
         #expect(hash != nonce)
 
-        let verifier = SegurancaOAuthSocial.gerarVerifierPKCE()
+        let verifier = try SegurancaOAuthSocial.gerarVerifierPKCE()
         let challenge = SegurancaOAuthSocial.desafioPKCES256(verifier)
         #expect(SegurancaOAuthSocial.ehVerifierPKCEValido(verifier))
         #expect(challenge.count == 43)
         #expect(challenge != verifier)
+
+        // Falha injetada do CSPRNG (SecRandomCopyBytes): falha fechado sem recorrer a UInt8.random
+        #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try SegurancaOAuthSocial.gerarNonceBruto(provedorBytes: { _ in nil })
+        }
+        #expect(throws: ErroEntradaSocial.provedorIndisponivel) {
+            _ = try SegurancaOAuthSocial.gerarVerifierPKCE(provedorBytes: { _ in Data([1, 2, 3]) })
+        }
     }
 
     @Test("extrairCodigoDoCallback valida esquema, state, cancelamento e conflito de identidade")
@@ -218,4 +226,167 @@ struct LoginSocialTests {
         #expect(await vm.entrarComApple() == nil)
         #expect(vm.erro?.contains("e-mail e senha") == true)
     }
+
+    @Test("Pendência explícita precisaDefinirSenha=true em conta social encaminha para .definirSenha (nunca .cadastro)")
+    @MainActor
+    func contaSocialComPendenciaDeSenhaVaiParaDefinirSenha() async {
+        // 1. Retorno imediato de autenticar-social com precisa_definir_senha = true
+        let api = ApiSocialDublê(cenario: .contratante)
+        api.resultadoApple = .success(
+            ResultadoEntradaSocial(provedor: .apple, email: "ana@frila.test", precisaDefinirSenha: true)
+        )
+        let ui = ProvedorSocialDublê()
+        let vm = EntradaComSenhaViewModel(api: api, provedorSocial: ui)
+
+        let destino = await vm.entrarComApple()
+        #expect(destino == .definirSenha(.destino(.contratante)))
+
+        // 2. Após reinício (estado_autenticacao devolvendo precisaDefinirSenha = true -> .definirSenhaObrigatoria)
+        let apiPendente = ApiSocialComEstadoPendente()
+        let vmPendente = EntradaComSenhaViewModel(api: apiPendente, provedorSocial: ui)
+        let destinoPendente = await vmPendente.entrarComApple()
+        #expect(destinoPendente == .definirSenha(.destino(.profissional)))
+    }
+
+    @Test("URLProtocol: SupabaseApiCliente serializa iniciar_pkce, pkce, id_token e mapeia 409/410/429")
+    func urlProtocolAutenticarSocial() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [UrlProtocolSocialStub.self]
+        let sessao = URLSession(configuration: config)
+        let cliente = SupabaseApiCliente(
+            url: URL(string: "https://dev.frila.test")!,
+            chavePublicavel: "anon-test-key",
+            telemetria: TelemetryNula(),
+            sessaoHTTP: sessao,
+            armazenamentoDaSessao: ArmazenamentoDeSessaoEmMemoria()
+        )
+
+        // 1. iniciar_pkce: valida payload JSON e decodificação de transacao_id + url_autorizacao
+        var corpoRecebido: [String: Any]?
+        var caminhoRecebido: String?
+        UrlProtocolSocialStub.manipulador = { req in
+            caminhoRecebido = req.url?.path
+            if let data = Self.lerBody(req) {
+                corpoRecebido = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            }
+            let json = """
+            {"transacao_id":"33333333-3333-4333-8333-333333333333","url_autorizacao":"https://dev.frila.test/auth/v1/authorize?provider=google","expira_em":"2026-11-25T21:10:00Z"}
+            """
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, Data(json.utf8))
+        }
+        let inicio = try await cliente.iniciarLoginSocialPKCE(
+            provedor: .google,
+            redirectTo: URL(string: "frila-auth://auth/callback?tx=abc")!,
+            codeChallenge: String(repeating: "c", count: 43)
+        )
+        #expect(caminhoRecebido == "/functions/v1/autenticar-social")
+        #expect(corpoRecebido?["fluxo"] as? String == "iniciar_pkce")
+        #expect(corpoRecebido?["provedor"] as? String == "google")
+        #expect(corpoRecebido?["plataforma"] as? String == "ios")
+        #expect(inicio.transacaoID == "33333333-3333-4333-8333-333333333333")
+
+        // 2. 409 conflito_identidade -> .conflitoDeIdentidade
+        UrlProtocolSocialStub.manipulador = { req in
+            if let data = Self.lerBody(req) {
+                corpoRecebido = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            }
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 409, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, Data(#"{"code":"conflito_identidade","message":"Conflito"}"#.utf8))
+        }
+        await #expect(throws: ErroEntradaSocial.conflitoDeIdentidade) {
+            _ = try await cliente.entrarComApple(idToken: "eyJhbGciOiJSUzI1NiJ9.payload.sig", nonce: "nonce-bruto-16-chars")
+        }
+        #expect(corpoRecebido?["fluxo"] as? String == "id_token")
+        #expect(corpoRecebido?["provedor"] as? String == "apple")
+        #expect(corpoRecebido?["plataforma"] as? String == "ios")
+
+        // 3. 409 token_ja_usado e 410 desafio_expirado -> .callbackInvalido; 429 -> .limiteExcedido
+        UrlProtocolSocialStub.manipulador = { req in
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 409, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, Data(#"{"code":"token_ja_usado","message":"Replay"}"#.utf8))
+        }
+        await #expect(throws: ErroEntradaSocial.callbackInvalido) {
+            _ = try await cliente.entrarComApple(idToken: "eyJhbGciOiJSUzI1NiJ9.payload.sig", nonce: "nonce-bruto-16-chars")
+        }
+
+        UrlProtocolSocialStub.manipulador = { req in
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 410, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, Data(#"{"code":"desafio_expirado","message":"Expirado"}"#.utf8))
+        }
+        await #expect(throws: ErroEntradaSocial.callbackInvalido) {
+            _ = try await cliente.concluirLoginSocialPKCE(
+                provedor: .google,
+                transacaoID: "33333333-3333-4333-8333-333333333333",
+                codigo: "cod-1234",
+                verifier: String(repeating: "v", count: 43)
+            )
+        }
+
+        UrlProtocolSocialStub.manipulador = { req in
+            let resp = HTTPURLResponse(url: req.url!, statusCode: 429, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            return (resp, Data(#"{"code":"limite_excedido"}"#.utf8))
+        }
+        await #expect(throws: ErroEntradaSocial.limiteExcedido) {
+            _ = try await cliente.iniciarLoginSocialPKCE(
+                provedor: .apple,
+                redirectTo: URL(string: "frila-auth://auth/callback?tx=abc")!,
+                codeChallenge: String(repeating: "d", count: 43)
+            )
+        }
+        UrlProtocolSocialStub.manipulador = nil
+    }
+
+    private static func lerBody(_ req: URLRequest) -> Data? {
+        if let body = req.httpBody { return body }
+        guard let stream = req.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var dados = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        while stream.hasBytesAvailable {
+            let lidos = stream.read(&buffer, maxLength: buffer.count)
+            if lidos > 0 { dados.append(buffer, count: lidos) } else { break }
+        }
+        return dados
+    }
+}
+
+private final class ApiSocialComEstadoPendente: ApiClienteEncaminhador, @unchecked Sendable {
+    override var suportaLoginSocial: Bool { true }
+    override func entrarComApple(idToken: String, nonce: String) async throws -> ResultadoEntradaSocial {
+        ResultadoEntradaSocial(provedor: .apple, email: "ana@frila.test", precisaDefinirSenha: false)
+    }
+    override func estadoAutenticacao() async throws -> EstadoAutenticacao {
+        EstadoAutenticacao(
+            autenticado: true,
+            dispositivoVerificado: true,
+            precisaDefinirSenha: true,
+            temConta: true
+        )
+    }
+}
+
+private final class UrlProtocolSocialStub: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var manipulador: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let manipulador = Self.manipulador else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        do {
+            let (resp, data) = try manipulador(request)
+            client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
 }

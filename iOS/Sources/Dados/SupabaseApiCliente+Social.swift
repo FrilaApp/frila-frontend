@@ -3,10 +3,12 @@ import FrilaDominio
 import Supabase
 
 extension SupabaseApiCliente {
-    /// Habilitado apenas em DEBUG/FRILA_BETA até concluir prova DEV e configuração de release/entitlements.
+    /// Desligado por padrão até o dono provisionar a capability `com.apple.developer.applesignin`
+    /// no App ID (`com.frila.org.app`) + provisioning profile e validar DEV/Beta.
+    /// Em `DEBUG` pode ser ligado explicitamente para prova local via `FRILA_LOGIN_SOCIAL_DEV=1`.
     public var suportaLoginSocial: Bool {
-        #if DEBUG || FRILA_BETA
-        true
+        #if DEBUG
+        ProcessInfo.processInfo.environment["FRILA_LOGIN_SOCIAL_DEV"] == "1"
         #else
         false
         #endif

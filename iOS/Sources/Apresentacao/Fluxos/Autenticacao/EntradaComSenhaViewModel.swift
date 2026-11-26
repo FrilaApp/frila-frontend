@@ -148,7 +148,7 @@ public final class EntradaComSenhaViewModel {
         }
 
         do {
-            let nonceBruto = SegurancaOAuthSocial.gerarNonceBruto()
+            let nonceBruto = try SegurancaOAuthSocial.gerarNonceBruto()
             let nonceSha256 = SegurancaOAuthSocial.sha256Hex(nonceBruto)
             let credencial = try await provedorSocial.solicitarApple(nonceSha256: nonceSha256)
             guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
@@ -157,7 +157,11 @@ public final class EntradaComSenhaViewModel {
             guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
 
             let emailResolvido = resultado.email ?? credencial.email ?? ""
-            return await resolverDestinoAposSocial(email: emailResolvido, tentativa: tentativa)
+            return await resolverDestinoAposSocial(
+                email: emailResolvido,
+                precisaDefinirSenha: resultado.precisaDefinirSenha,
+                tentativa: tentativa
+            )
         } catch is CancellationError {
             return nil
         } catch let erroSocial as ErroEntradaSocial {
@@ -185,9 +189,9 @@ public final class EntradaComSenhaViewModel {
         }
 
         do {
-            let verifier = SegurancaOAuthSocial.gerarVerifierPKCE()
+            let verifier = try SegurancaOAuthSocial.gerarVerifierPKCE()
             let challenge = SegurancaOAuthSocial.desafioPKCES256(verifier)
-            let txLocal = SegurancaOAuthSocial.gerarState()
+            let txLocal = try SegurancaOAuthSocial.gerarState()
             var redirectComps = URLComponents(url: SegurancaOAuthSocial.urlCallbackPadrao, resolvingAgainstBaseURL: false)
             redirectComps?.queryItems = [URLQueryItem(name: "tx", value: txLocal)]
             let redirectTo = redirectComps?.url ?? SegurancaOAuthSocial.urlCallbackPadrao
@@ -219,7 +223,11 @@ public final class EntradaComSenhaViewModel {
             )
             guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
 
-            return await resolverDestinoAposSocial(email: resultado.email ?? "", tentativa: tentativa)
+            return await resolverDestinoAposSocial(
+                email: resultado.email ?? "",
+                precisaDefinirSenha: resultado.precisaDefinirSenha,
+                tentativa: tentativa
+            )
         } catch is CancellationError {
             return nil
         } catch let erroSocial as ErroEntradaSocial {
@@ -233,27 +241,37 @@ public final class EntradaComSenhaViewModel {
         }
     }
 
-    private func resolverDestinoAposSocial(email: String, tentativa: UUID) async -> DestinoCodigo? {
+    private func resolverDestinoAposSocial(
+        email: String,
+        precisaDefinirSenha: Bool,
+        tentativa: UUID
+    ) async -> DestinoCodigo? {
         do {
+            let estadoAuth = try? await api.estadoAutenticacao()
+            let exigeSenha = precisaDefinirSenha || (estadoAuth?.precisaDefinirSenha ?? false)
             let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: email)
             guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
             senha = ""
             switch destino {
             case let .cadastro(emailCad):
-                return .cadastro(email: emailCad ?? email)
+                let proximo = DestinoCodigo.cadastro(email: emailCad ?? email)
+                return exigeSenha ? .definirSenha(proximo) : proximo
             case .profissional:
                 DestinoGuardado.salvar(.profissional)
-                return .destino(.profissional)
+                let proximo = DestinoCodigo.destino(.profissional)
+                return exigeSenha ? .definirSenha(proximo) : proximo
             case .funcoesEHorarios:
                 DestinoGuardado.salvar(.funcoesEHorarios)
-                return .destino(.funcoesEHorarios)
+                let proximo = DestinoCodigo.destino(.funcoesEHorarios)
+                return exigeSenha ? .definirSenha(proximo) : proximo
             case .contratante:
                 DestinoGuardado.salvar(.contratante)
-                return .destino(.contratante)
+                let proximo = DestinoCodigo.destino(.contratante)
+                return exigeSenha ? .definirSenha(proximo) : proximo
             case let .contaSuspensa(situacao):
                 return .destino(.contaSuspensa(situacao))
             case .definirSenhaObrigatoria:
-                return .cadastro(email: email)
+                return .definirSenha(.destino(.profissional))
             }
         } catch is CancellationError {
             return nil
