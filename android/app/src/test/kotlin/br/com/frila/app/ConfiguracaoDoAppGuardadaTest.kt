@@ -51,6 +51,11 @@ class ConfiguracaoDoAppGuardadaTest {
     }
 
     @Test
+    fun `o prazo da abertura sem configuracao guardada e de 2 segundos`() {
+        assertEquals(2_000L, TEMPO_MAXIMO_ABERTURA_MS)
+    }
+
+    @Test
     fun `configuracao que demora mais de 3 segundos ainda liga as chaves`() = runTest {
         val cache = CacheEmMemoria()
 
