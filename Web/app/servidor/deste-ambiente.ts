@@ -2,7 +2,6 @@ import { env } from "cloudflare:workers";
 
 import { ambienteDoSupabase, listaDeEmailsDeDemonstracao } from "./ambiente";
 import { criarAuth } from "./auth";
-import { googleLigado } from "./google";
 import { criarFuncoesDoUsuario } from "./conta/dados";
 import { fotoDoPerfil } from "./contratante/foto-do-perfil";
 import { chavesDoIp, criarApiDoUsuario } from "./saida-rest";
@@ -45,7 +44,16 @@ export function emailsDeDemonstracao(): Set<string> {
   return listaDeEmailsDeDemonstracao((env as { EMAILS_DE_DEMONSTRACAO?: string }).EMAILS_DE_DEMONSTRACAO);
 }
 
+/** "Continuar com a Apple" só fica visível/ativo quando APPLE_ENTRAR === "ligado" (DEV; ausente em produção). */
+export function appleEntrarLigado(): boolean {
+  return (env as { APPLE_ENTRAR?: string }).APPLE_ENTRAR === "ligado";
+}
+
 /** O "Entrar com Google" está ligado neste Worker? Só o ambiente de dev tem `GOOGLE_ENTRAR = "ligado"`; no Prod a variável não existe. */
 export function googleLigadoNesteAmbiente(): boolean {
-  return googleLigado((env as { GOOGLE_ENTRAR?: string }).GOOGLE_ENTRAR);
+  return (env as { GOOGLE_ENTRAR?: string }).GOOGLE_ENTRAR === "ligado";
+}
+
+export function socialEntrarLigado(provedor: "apple" | "google"): boolean {
+  return provedor === "apple" ? appleEntrarLigado() : googleLigadoNesteAmbiente();
 }

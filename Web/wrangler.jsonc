@@ -29,7 +29,9 @@
 		// não existe (vars não herdam), e sem ela o botão some e as rotas recusam (testes/entrar-google.test.ts confere).
 		"GOOGLE_ENTRAR": "ligado",
 		// Id da chave do secret IP_VISITANTE_HMAC (^[a-z0-9]{1,16}$): vai no cabeçalho de assinatura do IP do visitante.
-		"IP_VISITANTE_HMAC_ID": "a1"
+		"IP_VISITANTE_HMAC_ID": "a1",
+		// "ligado" expõe "Continuar com a Apple" na entrada e habilita /entrar/apple só no DEV (ausente em produção).
+		"APPLE_ENTRAR": "ligado"
 	},
 	// Obrigatórias, fora do repositório: `.dev.vars` no local, variáveis do Worker no painel.
 	"secrets": {
