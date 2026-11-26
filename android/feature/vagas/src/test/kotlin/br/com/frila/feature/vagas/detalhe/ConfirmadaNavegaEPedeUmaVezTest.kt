@@ -148,6 +148,13 @@ class ConfirmadaNavegaEPedeUmaVezTest {
         }
     }
 
+    private fun confereContagem(contagem: Contagem, navegacoes: Int, consultas: Int, pedidos: Int) =
+        assertEquals(
+            "navegações, consultas de permissão (cada uma abre um diálogo) e pedidos ao sistema",
+            listOf(navegacoes, consultas, pedidos),
+            listOf(contagem.navegacoes, contagem.consultasDePermissao, contagem.pedidosAoSistema),
+        )
+
     private fun dialogosVisiveis() = compose.onAllNodesWithTag("dialogo-permissao-notificacao")
 
     @Test
@@ -160,10 +167,8 @@ class ConfirmadaNavegaEPedeUmaVezTest {
             viewModel.candidatar().join()
             compose.waitForIdle()
 
-            assertEquals("navegações", 1, contagem.navegacoes)
-            assertEquals("consultas de permissão (cada uma abre um diálogo)", 1, contagem.consultasDePermissao)
+            confereContagem(contagem, navegacoes = 1, consultas = 1, pedidos = 0)
             dialogosVisiveis().assertCountEquals(1)
-            assertEquals("pedidos ao sistema antes de tocar no diálogo", 0, contagem.pedidosAoSistema)
         }
     }
 
@@ -186,8 +191,7 @@ class ConfirmadaNavegaEPedeUmaVezTest {
             compose.runOnIdle { naTela = true }
             compose.waitForIdle()
 
-            assertEquals("navegações", 1, contagem.navegacoes)
-            assertEquals("consultas de permissão", 1, contagem.consultasDePermissao)
+            confereContagem(contagem, navegacoes = 1, consultas = 1, pedidos = 0)
             dialogosVisiveis().assertCountEquals(0)
         }
     }
@@ -207,10 +211,8 @@ class ConfirmadaNavegaEPedeUmaVezTest {
             restauracao.emulateSavedInstanceStateRestore()
             compose.waitForIdle()
 
-            assertEquals("navegações", 1, contagem.navegacoes)
-            assertEquals("consultas de permissão", 1, contagem.consultasDePermissao)
+            confereContagem(contagem, navegacoes = 1, consultas = 1, pedidos = 0)
             dialogosVisiveis().assertCountEquals(1)
-            assertEquals("pedidos ao sistema", 0, contagem.pedidosAoSistema)
         }
     }
 
@@ -232,9 +234,7 @@ class ConfirmadaNavegaEPedeUmaVezTest {
             compose.runOnIdle { naTela = true }
             compose.waitForIdle()
 
-            assertEquals("navegações", 1, contagem.navegacoes)
-            assertEquals("consultas de permissão", 1, contagem.consultasDePermissao)
-            assertEquals("pedidos ao sistema", 1, contagem.pedidosAoSistema)
+            confereContagem(contagem, navegacoes = 1, consultas = 1, pedidos = 1)
             dialogosVisiveis().assertCountEquals(0)
         }
     }
