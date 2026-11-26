@@ -17096,6 +17096,66 @@
           }
         }
       }
+    },
+    "Esta conta social não pôde ser vinculada automaticamente. Entre com seu e-mail e senha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta conta social não pôde ser vinculada automaticamente. Entre com seu e-mail e senha."
+          }
+        }
+      }
+    },
+    "Muitas tentativas. Aguarde um minuto e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muitas tentativas. Aguarde um minuto e tente novamente."
+          }
+        }
+      }
+    },
+    "Sem conexão no momento. Tente novamente em instantes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão no momento. Tente novamente em instantes."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir a entrada agora. Tente novamente ou use e-mail e senha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível concluir a entrada agora. Tente novamente ou use e-mail e senha."
+          }
+        }
+      }
+    },
+    "Continuar com a Apple": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar com a Apple"
+          }
+        }
+      }
+    },
+    "Continuar com o Google": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar com o Google"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
