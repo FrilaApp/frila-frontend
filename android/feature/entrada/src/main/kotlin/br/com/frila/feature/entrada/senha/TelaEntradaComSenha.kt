@@ -39,6 +39,7 @@ import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import br.com.frila.core.rede.ProvedorSocial
 import br.com.frila.feature.entrada.entrada.IlustracaoDeBoasVindas
 import br.com.frila.feature.entrada.fraseComLinksLegais
 
@@ -63,6 +64,7 @@ fun TelaEntradaComSenha(
     modifier: Modifier = Modifier,
     aoExigirDesafioOtp: (String, String) -> Unit = { _, _ -> },
     aoExigirDefinirSenha: () -> Unit = aoAutenticar,
+    aoAbrirLoginSocial: (String) -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val cores = FrilaTema.cores
@@ -221,6 +223,25 @@ fun TelaEntradaComSenha(
                     habilitado = !estado.carregando,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                if (estado.mostrarLoginSocial) {
+                    BotaoSecundario(
+                        texto = "Continuar com o Google",
+                        aoClicar = {
+                            viewModel.iniciarEntradaSocial(ProvedorSocial.GOOGLE, aoAbrirLoginSocial)
+                        },
+                        habilitado = !estado.carregando,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    BotaoSecundario(
+                        texto = "Continuar com a Apple",
+                        aoClicar = {
+                            viewModel.iniciarEntradaSocial(ProvedorSocial.APPLE, aoAbrirLoginSocial)
+                        },
+                        habilitado = !estado.carregando,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
                 LinkFrila(
                     texto = "Entrar em modo demonstração",
