@@ -241,6 +241,11 @@ fun TelaEntradaComSenha(
                         habilitado = !estado.carregando,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Text(
+                        text = "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada.",
+                        style = FrilaTipo.legenda,
+                        color = cores.tintaSuave,
+                    )
                 }
 
                 LinkFrila(

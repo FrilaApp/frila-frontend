@@ -316,11 +316,15 @@ describe("botão na tela de entrada e auth/wrangler", () => {
     const html = await tela();
     expect(html).toContain('href="/app/entrar/google"');
     expect(html).toContain("Entrar com o Google");
+    expect(html).toContain("mesmo e-mail verificado");
+    expect(html).toContain("Private Relay");
 
     mundo.googleLigado = false;
+    mundo.appleLigado = false;
     const htmlSem = await tela();
     expect(htmlSem).not.toContain("/entrar/google");
     expect(htmlSem).not.toContain("Entrar com o Google");
+    expect(htmlSem).not.toContain("Private Relay");
   });
 
   it("mostra só as mensagens fixas do Google; o resto da URL é ignorado", async () => {
