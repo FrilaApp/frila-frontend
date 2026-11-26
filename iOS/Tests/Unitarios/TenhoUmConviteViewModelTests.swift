@@ -73,8 +73,9 @@ private let textosQueNaoSaoConvite: [String] = {
     ]
 }()
 
-/// O que vale como convite: o link inteiro ou o código de 64 hexadecimais, e nada mais. A web valida o fragmento inteiro; o
-/// app também (o Android escolhia o primeiro de dois códigos num texto, e recortava um código do miolo de um identificador).
+/// O que vale como convite: o código de 64 hexadecimais, o link inteiro do convite ou um texto com exatamente um link de
+/// convite do Frila (rodada 3 do B-123). Com dois links o app não escolhe um, e um código nunca sai do miolo de um texto ou
+/// de um identificador (o Android já fez as duas coisas).
 @Suite("Convite da casa: link e código")
 struct ConviteDaCasaTests {
     /// Montado na hora: nenhum código de convite no repositório.

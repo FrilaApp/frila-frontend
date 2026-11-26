@@ -64,8 +64,8 @@ public struct ConviteGerado: Equatable, Sendable {
 /// chega ao servidor. Uma recusa que não é 403 (a pessoa já foi removida por outro administrador, por exemplo) relê a lista:
 /// a que vale é a do servidor. Quem está na lista como "você" não tem "Remover" nem "Tornar administrador".
 ///
-/// **Convite sem deep link:** `montarLink` monta o link da web do ambiente do app (`<origem>/convite#<token>`); a tela o
-/// entrega à folha de compartilhar do sistema. O token nunca vai para log, telemetria nem mensagem de erro, e só vive aqui,
+/// **Convite sem deep link:** `montarLink` monta o link da web do ambiente do app (`<origem>/convite#<token>`); a tela mostra
+/// o link e entrega à folha de compartilhar do sistema a mensagem do convite (`ConviteGerado.mensagem`), com ele no fim. O token nunca vai para log, telemetria nem mensagem de erro, e só vive aqui,
 /// na memória deste modelo: nada é guardado no aparelho.
 ///
 /// Um modelo é de uma casa só (`estabelecimentoID`): trocar de casa cria outro, e a resposta que chega depois da troca
