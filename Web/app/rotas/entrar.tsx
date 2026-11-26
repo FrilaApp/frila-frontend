@@ -234,6 +234,10 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
             </a>
           ) : null}
 
+          {appleLigado || googleLigado ? (
+            <p className="text-xs text-tinta-suave">{textos.entrar.avisoVinculoSocial}</p>
+          ) : null}
+
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
             <Link to="/recuperar-senha" className={classeDoLink}>
               {textos.entrar.esqueciSenha}

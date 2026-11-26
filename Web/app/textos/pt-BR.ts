@@ -107,6 +107,8 @@ export const textos = {
     reenviar: "Mandar outro código",
     voltarAoLogin: "Voltar para o login com senha",
     entrarComGoogle: "Entrar com o Google",
+    avisoVinculoSocial:
+      "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada.",
     termos: "Ao entrar, você concorda com os Termos de Uso e a Política de Privacidade do Frila.",
     linkDosTermos: "Termos de Uso",
     linkDaPrivacidade: "Política de Privacidade",

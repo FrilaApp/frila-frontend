@@ -129,6 +129,15 @@ public struct TelaEntradaComSenha: View {
                                 }
                                 .disabled(viewModel.carregando)
                                 .accessibilityIdentifier("entrada-social-google")
+
+                                Text(
+                                    "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada.",
+                                    bundle: bundleApresentacao
+                                )
+                                .font(FrilaTipo.apoio)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("entrada-social-aviso-vinculo")
                             }
                         }
                     }
