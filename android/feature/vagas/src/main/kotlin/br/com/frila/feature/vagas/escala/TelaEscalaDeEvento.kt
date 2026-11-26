@@ -58,6 +58,7 @@ import br.com.frila.feature.vagas.publicacao.FUSO_DA_VAGA
 import br.com.frila.feature.vagas.publicacao.ModoDaVaga
 import br.com.frila.feature.vagas.publicacao.SeletorDeInstante
 import br.com.frila.feature.vagas.publicacao.TextosPublicarVaga
+import br.com.frila.feature.vagas.publicacao.avisoValorDiaria
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -400,15 +401,20 @@ private fun CartaoDaVaga(
                 erros[CampoDoItem.MODO]?.let { Text(text = it, style = FrilaTipo.apoio, color = cores.tinta) }
             }
 
-            CampoDeTexto(
-                valor = item.valor,
-                aoMudar = { acoes.aoEditarValor(id, it) },
-                rotulo = TextosPublicarVaga.VALOR,
-                apoio = TextosPublicarVaga.VALOR_AJUDA,
-                erro = erros[CampoDoItem.VALOR],
-                habilitado = estado.podeEditar,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                CampoDeTexto(
+                    valor = item.valor,
+                    aoMudar = { acoes.aoEditarValor(id, it) },
+                    rotulo = TextosPublicarVaga.VALOR,
+                    apoio = TextosPublicarVaga.VALOR_AJUDA,
+                    erro = erros[CampoDoItem.VALOR],
+                    habilitado = estado.podeEditar,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                avisoValorDiaria(item.valorCentavos)?.let { aviso ->
+                    Text(text = aviso, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                }
+            }
             CampoDeTexto(
                 valor = item.posicoes,
                 aoMudar = { acoes.aoEditarPosicoes(id, it) },

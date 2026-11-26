@@ -72,6 +72,7 @@ class AberturaSemEsperaDaConfiguracaoTest {
         cena?.close()
         rule.waitForIdle()
         contexto.deleteSharedPreferences("configuracao_do_app")
+        MedidorDeColdStart.resetarParaTestes()
     }
 
     private val jsonSemMinimaAlta = """{"plataforma":"android","versao_minima":"1.0.0","recursos":{}}"""

@@ -426,4 +426,20 @@ class ChamadaDiretaViewModelTest {
 
         assertEquals(listOf("meu_estabelecimento", "funcao"), rede.pedidos.map { it.nome })
     }
+
+    @Test
+    fun `valores fora da faixa de referencia nao bloqueiam o envio da chamada direta`() = runBlocking {
+        for ((texto, centavos) in listOf("49,99" to "4999", "2000,01" to "200001")) {
+            val rede = rede()
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+            vm.definirValor(texto)
+            vm.confirmarTotal(true)
+
+            assertTrue(vm.estado.value.podeEnviar)
+            vm.enviar().join()
+
+            assertEquals(centavos, vm.corpoEnviado(rede)["valor_centavos"]!!.jsonPrimitive.content)
+        }
+    }
 }

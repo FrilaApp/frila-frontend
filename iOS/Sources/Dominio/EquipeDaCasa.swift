@@ -47,34 +47,48 @@ public struct MembroAdicionado: Hashable, Sendable {
     }
 }
 
-/// O que vale como convite: o link inteiro `https://<web>/.../convite#<64 hex>` ou só o código de 64 hexadecimais.
+/// O que vale como convite: o link inteiro `<origem da web>/convite#<64 hex>`, um texto com exatamente um link assim, ou só o
+/// código de 64 hexadecimais.
 public enum ConviteDaCasa {
     /// Só o código: 64 caracteres hexadecimais, nada mais.
     public static func ehCodigo(_ texto: String) -> Bool {
         texto.utf8.count == 64 && texto.utf8.allSatisfy(ehHexadecimal)
     }
 
-    /// Tira o token do que a pessoa colou. Vale **só** (a) o link do convite inteiro, `https://<host>[/<caminho>]/convite#<token>`,
-    /// sem nada depois do código, ou (b) o código de 64 hex puro, depois de aparar os espaços das pontas. Qualquer outra
-    /// coisa devolve `nil` e não chega ao servidor: texto com mais caracteres em volta, código no miolo de um identificador
-    /// maior, hex de outro tamanho e mais de um código (o app nunca escolhe um em silêncio). O token sai em minúsculas,
-    /// como a web.
-    public static func extrairToken(de texto: String) -> String? {
+    /// Tira o token do que a pessoa colou. Vale **só**: (a) o código de 64 hex puro; (b) o link do convite inteiro; ou (c) um
+    /// texto (a mensagem do convite inteira, por exemplo) com **exatamente um** link de convite, no formato
+    /// `<origem>/convite#<token>` com uma das `origens` do app (`https://frilabr.com/app` no Prod, a prévia de dev nos outros),
+    /// procurado sem diferenciar maiúsculas. O
+    /// link começa no início do texto ou depois de um espaço ou quebra de linha e termina no espaço, na quebra ou no fim, sem nada
+    /// colado ao código. Outro domínio, outro caminho, `http`, parente do domínio (`frilabr.com.exemplo.org`, `exemplofrilabr.com`),
+    /// dois links (iguais ou não, de um ambiente ou de dois), nenhum link, hex de outro tamanho, ou código solto no meio de um
+    /// texto devolvem `nil` e não chegam ao servidor: o app nunca escolhe um em silêncio. O token sai em minúsculas, como a web;
+    /// o servidor continua conferindo token e e-mail.
+    public static func extrairToken(de texto: String, origens: [String]) -> String? {
         let colado = texto.trimmingCharacters(in: .whitespacesAndNewlines)
         if ehCodigo(colado) { return colado.lowercased() }
 
-        let esquema = "https://"
-        guard colado.hasPrefix(esquema), !colado.contains(where: { $0.isWhitespace }) else { return nil }
-        let semEsquema = colado.dropFirst(esquema.count)
-        let partes = semEsquema.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
-        guard partes.count == 2, ehCodigo(String(partes[1])) else { return nil }
+        let ocorrencias = origens.flatMap { trechos("\($0)\(caminhoDoConvite)", em: colado) }
+        guard ocorrencias.count == 1, let link = ocorrencias.first else { return nil }
+        if link.lowerBound > colado.startIndex, !colado[colado.index(before: link.lowerBound)].isWhitespace { return nil }
+        let codigo = String(colado[link.upperBound...].prefix { !$0.isWhitespace })
+        guard ehCodigo(codigo) else { return nil }
+        return codigo.lowercased()
+    }
 
-        let endereco = partes[0]
-        guard !endereco.contains("?") else { return nil }
-        let host = endereco.prefix { $0 != "/" }
-        let caminho = endereco.dropFirst(host.count)
-        guard !host.isEmpty, caminho.hasSuffix("/convite") else { return nil }
-        return String(partes[1]).lowercased()
+    /// O que vem depois da origem e antes do código: `<origem>/convite#<token>`.
+    private static let caminhoDoConvite = "/convite#"
+
+    /// Todas as vezes em que `trecho` aparece em `texto`, **sem diferenciar maiúsculas**: o esquema e o host não diferenciam, e
+    /// um segundo link escrito em maiúsculas também tem de contar (senão o app escolheria o primeiro em silêncio).
+    private static func trechos(_ trecho: String, em texto: String) -> [Range<String.Index>] {
+        var achados: [Range<String.Index>] = []
+        var inicio = texto.startIndex
+        while let achado = texto.range(of: trecho, options: .caseInsensitive, range: inicio..<texto.endIndex) {
+            achados.append(achado)
+            inicio = achado.upperBound
+        }
+        return achados
     }
 
     /// O link que o administrador compartilha: `<origem>/convite#<token>`, com a origem da web do ambiente do app
@@ -83,7 +97,7 @@ public enum ConviteDaCasa {
         guard ehCodigo(token) else { return nil }
         var base = origem
         while base.hasSuffix("/") { base.removeLast() }
-        return "\(base)/convite#\(token.lowercased())"
+        return "\(base)\(caminhoDoConvite)\(token.lowercased())"
     }
 
     private static func ehHexadecimal(_ byte: UInt8) -> Bool {
@@ -108,6 +122,10 @@ public extension ErroDaApi {
 
     /// `422 convite_invalido`: o token não existe, já foi usado ou venceu.
     var conviteInvalido: Bool { codigoOriginal == "convite_invalido" }
+
+    /// `403 convite_de_outro_email` (contrato 0.2.115): o e-mail da conta que aceita não é o do convite. Sem `details`, e o
+    /// convite não é consumido: a pessoa certa ainda aceita. O código chega solto, como `convite_invalido`.
+    var conviteDeOutroEmail: Bool { codigoOriginal == "convite_de_outro_email" }
 
     /// `422 ultimo_administrador`: tentou remover o único administrador da casa.
     var ultimoAdministrador: Bool { codigoOriginal == "ultimo_administrador" }

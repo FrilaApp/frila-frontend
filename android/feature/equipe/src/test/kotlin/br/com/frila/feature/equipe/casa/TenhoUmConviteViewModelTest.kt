@@ -66,16 +66,44 @@ class TenhoUmConviteViewModelTest {
     }
 
     @Test
-    fun `dois codigos diferentes nao escolhem um em silencio`() {
+    fun `dois links ou dois codigos nao escolhem um em silencio`() {
         val outro = "ab".repeat(32)
+        val link1 = "https://frilabr.com/app/convite#$token"
+        val link2 = "https://frilabr.com/app/convite#$outro"
         assertNull(extrairTokenDoConvite("$token $outro"))
         assertNull(extrairTokenDoConvite("$token\n$outro"))
-        assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token https://frilabr.com/app/convite#$outro"))
+        assertNull(extrairTokenDoConvite("$link1 $link2"))
+        assertNull(extrairTokenDoConvite("$link1\n$link1"))
+        assertNull(extrairTokenDoConvite("$link1 https://outro.com/app/convite#$outro"))
+        assertNull(extrairTokenDoConvite("$link1 http://frilabr.com/app/convite#$outro"))
     }
 
     @Test
-    fun `texto com mais caracteres em volta do link ou do codigo nao e convite`() {
-        assertNull(extrairTokenDoConvite("Convite: https://frilabr.com/app/convite#$token\nValido por 7 dias."))
+    fun `extrai o token da mensagem inteira do convite, com e sem prazo, e de link no meio do texto`() {
+        val linkProd = "https://frilabr.com/app/convite#$token"
+        val linkDev = "https://frila-web-dev.frilabr.workers.dev/app/convite#${token.uppercase()}"
+        val msgComPrazo = TextosEquipeDaCasa.mensagemDoConvite(
+            casa = "Bistrô Ipê",
+            papel = PapelMembro.OPERADOR,
+            email = "ana@frilabr.com",
+            prazo = "18/11/2026 12:00",
+            link = linkProd,
+        )
+        val msgSemPrazo = TextosEquipeDaCasa.mensagemDoConvite(
+            casa = "Bistrô Ipê",
+            papel = PapelMembro.ADMINISTRADOR,
+            email = "ana@frilabr.com",
+            prazo = null,
+            link = linkDev,
+        )
+        assertEquals(token, extrairTokenDoConvite(msgComPrazo))
+        assertEquals(token, extrairTokenDoConvite(msgSemPrazo))
+        assertEquals(token, extrairTokenDoConvite("Convite: $linkProd\nValido por 7 dias."))
+        assertEquals(token, extrairTokenDoConvite("Olha o convite $linkDev para entrar hoje"))
+    }
+
+    @Test
+    fun `texto invalido com caracteres colados no token ou no codigo nao e convite`() {
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#${token}zz"))
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token&x=1"))
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/convite#$token#outro"))
@@ -84,10 +112,49 @@ class TenhoUmConviteViewModelTest {
     }
 
     @Test
-    fun `link que nao e de convite nao vale mesmo com 64 hex no fim`() {
+    fun `link de outro dominio, host parecido, caminho diferente ou http sem s nao vale`() {
+        assertNull(extrairTokenDoConvite("https://outro.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com.exemplo.org/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://exemplofrilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app/outra#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/convite#$token"))
+        assertNull(extrairTokenDoConvite("http://frilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("http://frila-web-dev.frilabr.workers.dev/app/convite#$token"))
         assertNull(extrairTokenDoConvite("https://frilabr.com/app/entrar#$token"))
         assertNull(extrairTokenDoConvite("frilabr.com/app/convite#$token"))
         assertNull(extrairTokenDoConvite("javascript:alert(1)//convite#$token"))
+    }
+
+    @Test
+    fun `aceita host e hex em maiusculas, tab ou quebra de linha antes do link e link da Politica antes`() {
+        val link = "https://frilabr.com/app/convite#$token"
+        assertEquals(token, extrairTokenDoConvite("https://FRILABR.COM/app/convite#${token.uppercase()}"))
+        assertEquals(token, extrairTokenDoConvite("oi\t$link"))
+        assertEquals(token, extrairTokenDoConvite("oi\n$link"))
+        assertEquals(token, extrairTokenDoConvite("https://frilabr.com/privacidade\n$link"))
+        assertEquals(token, extrairTokenDoConvite("\u00A0$link\u00A0"))
+    }
+
+    @Test
+    fun `recusa porta, userinfo, ponto no host, IDN cirilico, barras extras, barra codificada e outro caminho com convite`() {
+        assertNull(extrairTokenDoConvite("https://frilabr.com:443/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com@evil.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com./app/convite#$token"))
+        // 'а' cirílico (U+0430) no lugar de 'a' latino: ataque homógrafo.
+        assertNull(extrairTokenDoConvite("https://fril\u0430br.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app%2Fconvite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com//app/convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/app//convite#$token"))
+        assertNull(extrairTokenDoConvite("https://frilabr.com/outro/convite#$token"))
+    }
+
+    @Test
+    fun `recusa a mais aceitavel para esquema maiusculo, pontuacao colada e NBSP no meio do texto`() {
+        val link = "https://frilabr.com/app/convite#$token"
+        assertNull(extrairTokenDoConvite("HTTPS://frilabr.com/app/convite#$token"))
+        assertNull(extrairTokenDoConvite("($link)"))
+        assertNull(extrairTokenDoConvite("$link."))
+        assertNull(extrairTokenDoConvite("oi\u00A0$link"))
     }
 
     // ---- Aceitar ----
@@ -112,7 +179,13 @@ class TenhoUmConviteViewModelTest {
     @Test
     fun `texto ambiguo ou recortado nunca chega a rede`() = runBlocking {
         val outro = "ab".repeat(32)
-        listOf("zz${token}zz", "$token $outro", "Convite: https://frilabr.com/app/convite#$token ate sexta").forEach { colado ->
+        listOf(
+            "zz${token}zz",
+            "$token $outro",
+            "https://frilabr.com/app/convite#${token}zz",
+            "https://frilabr.com/app/convite#$token https://frilabr.com/app/convite#$token",
+            "https://outro.com/app/convite#$token",
+        ).forEach { colado ->
             val tokens = mutableListOf<String>()
             val vm = viewModel(tokens)
             vm.editar(colado)
@@ -121,6 +194,25 @@ class TenhoUmConviteViewModelTest {
             assertEquals(TextosEquipeDaCasa.CONVITE_INVALIDO, vm.estado.value.erro, colado)
             assertNull(vm.estado.value.aceito)
         }
+    }
+
+    @Test
+    fun `mensagem inteira do convite colada aceita pelo ViewModel com o token certo`() = runBlocking {
+        val tokens = mutableListOf<String>()
+        val vm = viewModel(tokens)
+        val mensagem = TextosEquipeDaCasa.mensagemDoConvite(
+            casa = "Bistrô Ipê",
+            papel = PapelMembro.OPERADOR,
+            email = "ana@frilabr.com",
+            prazo = "18/11/2026 12:00",
+            link = "https://frilabr.com/app/convite#$token",
+        )
+        vm.editar(mensagem)
+
+        vm.aceitarConvite().join()
+
+        assertEquals(listOf(token), tokens)
+        assertTrue(vm.estado.value.aceito != null)
     }
 
     @Test
@@ -153,6 +245,7 @@ class TenhoUmConviteViewModelTest {
     fun `cada recusa do servidor vira a mensagem certa e libera o botao`() = runBlocking {
         val casos = listOf(
             erro(CodigoErroAPI.CONVITE_INVALIDO) to TextosEquipeDaCasa.CONVITE_INVALIDO,
+            erro(CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL) to TextosEquipeDaCasa.CONVITE_DE_OUTRO_EMAIL,
             erro(CodigoErroAPI.PERFIL_INCOMPATIVEL) to TextosEquipeDaCasa.CONVITE_PERFIL_INCOMPATIVEL,
             erro(CodigoErroAPI.NAO_AUTENTICADO) to TextosEquipeDaCasa.SESSAO,
             erro(CodigoErroAPI.SEM_REDE) to TextosEquipeDaCasa.SEM_REDE,
@@ -170,6 +263,20 @@ class TenhoUmConviteViewModelTest {
             // O que a pessoa colou fica no campo, para ela ver e tentar de novo.
             assertEquals(token, vm.estado.value.texto)
         }
+    }
+
+    @Test
+    fun `403 convite_de_outro_email mostra exatamente a mensagem do contrato 0_2_115`() = runBlocking {
+        val vm = viewModel(resposta = { throw erro(CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL) })
+        vm.editar(token)
+
+        vm.aceitarConvite().join()
+
+        assertEquals(
+            "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.",
+            vm.estado.value.erro,
+        )
+        assertNull(vm.estado.value.aceito)
     }
 
     @Test

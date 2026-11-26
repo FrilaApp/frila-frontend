@@ -12,6 +12,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -339,5 +341,65 @@ class TelaPublicarVagaTest {
 
         rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         rule.onNodeWithText(TextosPublicarVaga.REFEICAO).performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+    }
+
+    @Test
+    fun `valor abaixo de 50 reais mostra aviso nao bloqueante e mantem publicar habilitado`() {
+        val chamadas = montar(estado { copy(valor = "49,99") })
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
+        assertEquals(1, chamadas.publicacoes)
+    }
+
+    @Test
+    fun `valor acima de 2000 reais mostra aviso nao bloqueante e mantem publicar habilitado`() {
+        val chamadas = montar(estado { copy(valor = "2000,01") })
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
+        assertEquals(1, chamadas.publicacoes)
+    }
+
+    @Test
+    fun `valor dentro da faixa, vazio ou zero nao mostra aviso de faixa`() {
+        var valorEstado by mutableStateOf("")
+        rule.setContent {
+            FrilaTheme {
+                ConteudoPublicarVaga(
+                    estado = estado { copy(valor = valorEstado) },
+                    acoes = AcoesPublicarVaga(),
+                )
+            }
+        }
+        for (valor in listOf("", "0", "50", "2000")) {
+            valorEstado = valor
+            rule.waitForIdle()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `aviso de valor junto com erro de outro campo nao tem semantica de erro e mantem publicar habilitado`() {
+        val chamadas = montar(
+            estado {
+                copy(
+                    valor = "49,99",
+                    errosDeCampo = mapOf(CampoPublicacao.RESPONSAVEL to TextosPublicarVaga.RESPONSAVEL_CAMPO),
+                )
+            },
+        )
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.RESPONSAVEL_CAMPO).performScrollTo().assertIsDisplayed()
+        rule.onNode(hasText(TextosPublicarVaga.VALOR) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNode(hasText(TextosPublicarVaga.RESPONSAVEL) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+        rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
+        assertEquals(1, chamadas.publicacoes)
     }
 }

@@ -26,6 +26,8 @@ object TextosChamadaCasa {
     const val VALOR_TOTAL = "Valor total"
     const val MOEDA = "R$"
     const val VALOR_EXEMPLO = "0,00"
+    const val VALOR_MUITO_BAIXO = "Valor muito baixo."
+    const val VALOR_MUITO_ALTO = "Valor muito alto, confira."
     const val INCLUI_REFEICAO = "Inclui refeição"
     const val INCLUI_TRANSPORTE = "Inclui transporte"
     const val EXIGE_MATERIAL_PROPRIO = "Exige material próprio"

@@ -55,7 +55,7 @@ data class AcoesEquipeDaCasa(
     val aoEditarEmail: (String) -> Unit = {},
     val aoEscolherPapel: (PapelMembro) -> Unit = {},
     val aoGerarConvite: () -> Unit = {},
-    /** Entrega o link à folha de compartilhar do sistema (`ACTION_SEND`); quem monta a navegação a abre. */
+    /** Entrega a mensagem do convite à folha de compartilhar do sistema (`ACTION_SEND`); quem monta a navegação a abre. */
     val aoCompartilhar: (link: String) -> Unit = {},
     val aoPedirConfirmacao: (AcaoSobreMembro, MembroDaCasa) -> Unit = { _, _ -> },
     val aoConfirmar: () -> Unit = {},
@@ -128,7 +128,7 @@ fun ConteudoEquipeDaCasa(
             if (!estado.podeGerenciar) {
                 Text(text = TextosEquipeDaCasa.SO_ADMINISTRADOR, style = FrilaTipo.corpo, color = cores.tinta)
             } else {
-                BlocoDeConvite(estado = estado, acoes = acoes)
+                BlocoDeConvite(estado = estado, nomeDaCasa = nomeDaCasa, acoes = acoes)
                 BlocoDaLista(estado = estado, acoes = acoes)
             }
         }
@@ -139,7 +139,7 @@ fun ConteudoEquipeDaCasa(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BlocoDeConvite(estado: EstadoEquipeDaCasa, acoes: AcoesEquipeDaCasa) {
+private fun BlocoDeConvite(estado: EstadoEquipeDaCasa, nomeDaCasa: String?, acoes: AcoesEquipeDaCasa) {
     val cores = FrilaTema.cores
     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
         RotuloDeGrupo(TextosEquipeDaCasa.CONVIDAR)
@@ -184,8 +184,9 @@ private fun BlocoDeConvite(estado: EstadoEquipeDaCasa, acoes: AcoesEquipeDaCasa)
                         color = cores.tinta,
                         modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite },
                     )
+                    val prazo = convite.expiraEm?.let(::formatarPrazoDoConvite)
                     Text(
-                        text = convite.expiraEm?.let { TextosEquipeDaCasa.CONVITE_PRONTO.format(formatarPrazoDoConvite(it)) }
+                        text = prazo?.let { TextosEquipeDaCasa.CONVITE_PRONTO.format(it) }
                             ?: TextosEquipeDaCasa.CONVITE_PRONTO_SEM_PRAZO,
                         style = FrilaTipo.apoio,
                         color = cores.tintaSuave,
@@ -194,7 +195,17 @@ private fun BlocoDeConvite(estado: EstadoEquipeDaCasa, acoes: AcoesEquipeDaCasa)
                     Text(text = convite.link, style = FrilaTipo.apoio, color = cores.tinta)
                     BotaoSecundario(
                         texto = TextosEquipeDaCasa.COMPARTILHAR,
-                        aoClicar = { acoes.aoCompartilhar(convite.link) },
+                        aoClicar = {
+                            acoes.aoCompartilhar(
+                                TextosEquipeDaCasa.mensagemDoConvite(
+                                    casa = nomeDaCasa,
+                                    papel = convite.papel,
+                                    email = convite.email,
+                                    prazo = prazo,
+                                    link = convite.link,
+                                ),
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

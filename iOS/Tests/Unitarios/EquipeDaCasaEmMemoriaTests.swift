@@ -160,13 +160,13 @@ struct EquipeDaCasaEmMemoriaTests {
     @Test("De ponta a ponta: o administrador gera o convite, o link usa a origem do ambiente e volta aceito pelo \"Tenho um convite\"")
     func deSegundaAAceite() async throws {
         let api = administradora()
-        let equipe = EquipeDaCasaViewModel(api: api, estabelecimentoID: bistro, papel: .administrador, origemDaWeb: OrigemDaWeb.producao)
+        let equipe = EquipeDaCasaViewModel(api: api, estabelecimentoID: bistro, nomeDaCasa: "Bistrô", papel: .administrador, origemDaWeb: OrigemDaWeb.producao)
         await equipe.carregar()
         equipe.email = "convidada@exemplo.com"
         await equipe.gerarConvite()
         let link = try #require(equipe.convite?.link)
         #expect(link.hasPrefix("https://frilabr.com/app/convite#"))
-        #expect(ConviteDaCasa.extrairToken(de: link) != nil)
+        #expect(ConviteDaCasa.extrairToken(de: link, origens: [OrigemDaWeb.producao]) != nil)
 
         // A convidada abre o link na conta dela: o dublê tem uma conta só, que já é da casa, então o convite não vale ali. O que
         // importa é que o link inteiro chegou ao servidor como o token, em minúsculas e sem o resto.
@@ -174,7 +174,7 @@ struct EquipeDaCasaEmMemoriaTests {
         tela.texto = link
         await tela.aceitarConvite()
         let recebidos = await api.tokensRecebidosNoAceite
-        #expect(recebidos == [try #require(ConviteDaCasa.extrairToken(de: link))])
+        #expect(recebidos == [try #require(ConviteDaCasa.extrairToken(de: link, origens: [OrigemDaWeb.producao]))])
         #expect(tela.erro == TextosDaEquipeDaCasa.conviteInvalido)
     }
 
@@ -183,14 +183,14 @@ struct EquipeDaCasaEmMemoriaTests {
         let api = administradora()
         let tela = TenhoUmConviteViewModel(api: api)
 
-        for invalido in ["", "oi", "zz\(token)zz", token + token, "https://exemplo.test/app/convite#\(token) mais"] {
+        for invalido in ["", "oi", "zz\(token)zz", token + token, "https://frilabr.com/app/convite#\(token)zz", "https://exemplo.test/app/convite#\(token)"] {
             tela.texto = invalido
             await tela.aceitarConvite()
             #expect(tela.erro == TextosDaEquipeDaCasa.conviteFormatoInvalido)
         }
         #expect(await api.tokensRecebidosNoAceite.isEmpty)
 
-        tela.texto = "https://exemplo.test/app/convite#\(token.uppercased())"
+        tela.texto = "Entre pela casa: \(OrigemDaWeb.dev)/convite#\(token.uppercased()) até logo"
         await tela.aceitarConvite()
 
         #expect(tela.aceito == ConviteAceito(estabelecimentoID: ApiClienteEmMemoria.padariaDoBairroID, papel: .operador))
@@ -200,7 +200,7 @@ struct EquipeDaCasaEmMemoriaTests {
     @Test("A equipe do operador não pede a lista: o dublê vê zero leituras, e a tela só diz que é do administrador")
     func operadorNaoPedeALista() async {
         let api = ApiClienteEmMemoria(cenario: .equipeDaCasaOperador)
-        let equipe = EquipeDaCasaViewModel(api: api, estabelecimentoID: bistro, papel: .operador)
+        let equipe = EquipeDaCasaViewModel(api: api, estabelecimentoID: bistro, nomeDaCasa: "Bistrô", papel: .operador)
 
         await equipe.carregar()
 
@@ -212,7 +212,7 @@ struct EquipeDaCasaEmMemoriaTests {
     func papelVelhoNaTela() async {
         // A tela abriu com o papel de administradora, mas o servidor já a tem como operadora.
         let api = ApiClienteEmMemoria(cenario: .equipeDaCasaOperador)
-        let equipe = EquipeDaCasaViewModel(api: api, estabelecimentoID: bistro, papel: .administrador)
+        let equipe = EquipeDaCasaViewModel(api: api, estabelecimentoID: bistro, nomeDaCasa: "Bistrô", papel: .administrador)
 
         await equipe.carregar()
 

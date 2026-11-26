@@ -17097,6 +17097,39 @@
         }
       }
     },
+    "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez, até %4$@. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez, até %4$@. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade"
+          }
+        }
+      }
+    },
+    "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade"
+          }
+        }
+      }
+    },
+    "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite."
+          }
+        }
+      }
+    },
     "Valor muito baixo.": {
       "extractionState": "manual",
       "localizations": {

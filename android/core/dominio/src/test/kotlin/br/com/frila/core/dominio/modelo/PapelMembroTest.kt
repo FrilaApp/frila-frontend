@@ -44,5 +44,9 @@ class PapelMembroTest {
             CodigoErroAPI.CONVITE_INVALIDO,
             Json.decodeFromString(CodigoErroAPI.serializer(), "\"convite_invalido\""),
         )
+        assertEquals(
+            CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL,
+            Json.decodeFromString(CodigoErroAPI.serializer(), "\"convite_de_outro_email\""),
+        )
     }
 }

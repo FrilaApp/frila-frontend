@@ -54,7 +54,7 @@ internal suspend fun carregarCasaDaEquipe(servicoMembros: ServicoMembros?, estab
 /**
  * Rota da equipe da casa (RF21): lê a casa e o papel e só então cria o [EquipeDaCasaViewModel]. Quem não é administrador
  * chega à tela e vê só o aviso, sem botão (o ViewModel nem pede a lista). [aoCompartilhar] abre a folha de compartilhar
- * do sistema com o link do convite.
+ * do sistema com a mensagem do convite.
  */
 @Composable
 internal fun RotaEquipeDaCasa(
@@ -100,14 +100,14 @@ internal fun RotaEquipeDaCasa(
 }
 
 /**
- * Entrega o link do convite à folha de compartilhar do sistema (`ACTION_SEND`, texto simples). O link é a única coisa
- * que sai do app, e só por escolha de quem toca em "Compartilhar convite".
+ * Entrega a mensagem do convite à folha de compartilhar do sistema (`ACTION_SEND`, texto simples). Só sai do app por
+ * escolha de quem toca em "Compartilhar convite".
  */
 internal fun compartilharConvite(contexto: Context, link: String) {
     val envio = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, TextosEquipeDaCasa.COMPARTILHAR_TITULO)
-        putExtra(Intent.EXTRA_TEXT, TextosEquipeDaCasa.COMPARTILHAR_TEXTO.format(link))
+        putExtra(Intent.EXTRA_TEXT, link)
     }
     val folha = Intent.createChooser(envio, TextosEquipeDaCasa.COMPARTILHAR)
     if (contexto !is android.app.Activity) folha.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

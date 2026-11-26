@@ -8,6 +8,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -193,5 +195,63 @@ class TelaEscalaDeEventoTest {
         montar()
         rule.onNodeWithContentDescription(TextosEscala.ROTULO_VOLTAR).performClick()
         assertEquals(1, voltou)
+    }
+
+    @Test
+    fun `valor abaixo de 50 reais mostra aviso e permite publicar a escala`() {
+        montar()
+        rule.onNodeWithText(TextosEscala.NOME).performTextInput("Formatura")
+        rule.onAllNodesWithText(TextosEscala.FUNCAO_SELECIONAR)[0].performScrollTo().performClick()
+        rule.onNodeWithText("Garçom").performClick()
+        rule.onAllNodesWithText(TextosPublicarVaga.VALOR)[0].performScrollTo().performTextInput("49,99")
+        rule.onAllNodesWithText(TextosPublicarVaga.RESPONSAVEL)[0].performScrollTo().performTextInput("Lia")
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled().performClick()
+
+        assertEquals(4999L, enviados.single().vagas.single().valorCentavos)
+    }
+
+    @Test
+    fun `valor acima de 2000 reais mostra aviso e permite publicar a escala`() {
+        montar()
+        rule.onNodeWithText(TextosEscala.NOME).performTextInput("Formatura")
+        rule.onAllNodesWithText(TextosEscala.FUNCAO_SELECIONAR)[0].performScrollTo().performClick()
+        rule.onNodeWithText("Garçom").performClick()
+        rule.onAllNodesWithText(TextosPublicarVaga.VALOR)[0].performScrollTo().performTextInput("2000,01")
+        rule.onAllNodesWithText(TextosPublicarVaga.RESPONSAVEL)[0].performScrollTo().performTextInput("Lia")
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled().performClick()
+
+        assertEquals(200001L, enviados.single().vagas.single().valorCentavos)
+    }
+
+    @Test
+    fun `valor dentro da faixa ou zero nao mostra aviso na escala`() {
+        val vm = montar()
+        for (valor in listOf("", "0", "50", "2000")) {
+            vm.editarValor(0, valor)
+            rule.waitForIdle()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `aviso de valor junto com erro de outro campo nao tem semantica de erro e mantem publicar habilitado`() {
+        montar()
+        rule.onAllNodesWithText(TextosPublicarVaga.VALOR)[0].performScrollTo().performTextInput("49,99")
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled().performClick()
+
+        rule.onNodeWithText(TextosPublicarVaga.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosEscala.NOME_CAMPO).performScrollTo().assertIsDisplayed()
+        rule.onAllNodes(hasText(TextosPublicarVaga.VALOR) and hasSetTextAction())[0]
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNode(hasText(TextosEscala.NOME) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled()
     }
 }

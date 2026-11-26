@@ -471,4 +471,34 @@ class EscalaDeEventoViewModelTest {
         assertFalse(vm.estado.value.falhaAoCarregarFuncoes)
         assertEquals(2, vm.estado.value.funcoes.size)
     }
+
+    @Test
+    fun `valores positivos fora da faixa sao aceitos na escala e zero ou negativo seguem recusados`() = runBlocking {
+        for ((texto, centavosEsperados) in listOf("0,01" to "1", "1000000" to "100000000")) {
+            val rede = redeOk()
+            val vm = viewModelCom(rede)
+            vm.preencher()
+            val primeiro = vm.estado.value.itens.first().id
+            vm.editarValor(primeiro, texto)
+
+            vm.publicar().join()
+
+            assertEquals(
+                centavosEsperados,
+                rede.publicacoes.single().corpo!!["vagas"]!!.jsonArray[0].jsonObject["valor_centavos"]!!.jsonPrimitive.content,
+            )
+        }
+        for (invalido in listOf("0", "-10")) {
+            val rede = redeOk()
+            val vm = viewModelCom(rede)
+            vm.preencher()
+            val primeiro = vm.estado.value.itens.first().id
+            vm.editarValor(primeiro, invalido)
+
+            vm.publicar().join()
+
+            assertTrue(rede.publicacoes.isEmpty())
+            assertEquals(TextosEscala.VALOR_CAMPO, vm.estado.value.errosDosItens[primeiro]!![CampoDoItem.VALOR])
+        }
+    }
 }

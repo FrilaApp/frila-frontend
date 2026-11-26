@@ -73,4 +73,12 @@ class FolhaDeChamadaDaBuscaTest {
         assertNull(lerDataEHora("17/11/2026"))
         assertNull(lerDataEHora("32/11/2026 12:00"))
     }
+
+    @Test
+    fun `valores fora da faixa de referencia sao aceitos na validacao da folha`() {
+        val baixo = validar(valor = "49,99") as ResultadoDaFolha.Pronto
+        val alto = validar(valor = "2000,01") as ResultadoDaFolha.Pronto
+        assertEquals(4999L, baixo.trabalho.valorCentavos)
+        assertEquals(200001L, alto.trabalho.valorCentavos)
+    }
 }

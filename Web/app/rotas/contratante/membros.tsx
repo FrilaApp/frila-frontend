@@ -1,7 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { escolherCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
-import { type Convite, convidarMembro, lerMembros, type MudancaDeMembro, mudarMembro, PAPEIS } from "../../servidor/contratante/membros";
+import { type Convite, convidarMembro, lerMembros, type MudancaDeMembro, mudarMembro, PAPEIS, type Papel } from "../../servidor/contratante/membros";
 import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
@@ -34,7 +34,39 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-type Retorno = { link: string; ate: string } | { falha: Exclude<Extract<Convite | MudancaDeMembro, { ok: false }>["motivo"], "sem_sessao"> | "confirmacao"; email?: string; papel?: string };
+type Retorno =
+  | { link: string; ate: string; email: string; papel: Papel }
+  | { falha: Exclude<Extract<Convite | MudancaDeMembro, { ok: false }>["motivo"], "sem_sessao"> | "confirmacao"; email?: string; papel?: string };
+
+function formatarPrazo(expiraEm: string | null | undefined): string {
+  if (!expiraEm) return "";
+  const data = new Date(expiraEm);
+  return Number.isNaN(data.getTime()) ? "" : instante.format(data);
+}
+
+/** Monta a mensagem do convite com o aviso do ROPA e o link na última linha. */
+export function mensagemDoConvite({
+  casa,
+  papel,
+  email,
+  prazo,
+  link,
+}: {
+  casa: string;
+  papel: string;
+  email: string;
+  prazo?: string | null;
+  link: string;
+}): string {
+  const textoPrazo = prazo?.trim() ?? "";
+  return preencher(textoPrazo ? t.mensagemDoConvite : t.mensagemDoConviteSemPrazo, {
+    casa,
+    papel: papel.trim().toLowerCase(),
+    email: email.trim(),
+    prazo: textoPrazo,
+    link,
+  });
+}
 
 /** O link leva o token no fragmento (`#…`): abrir o link não manda o token a servidor nenhum. */
 export async function action({ request, context }: Route.ActionArgs): Promise<Retorno> {
@@ -60,7 +92,12 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Re
     if (convite.motivo === "sem_sessao") throw redirect("/entrar");
     return { falha: convite.motivo, email, papel };
   }
-  return { link: `${new URL(request.url).origin}/app/convite#${convite.token}`, ate: instante.format(new Date(convite.expiraEm)) };
+  return {
+    link: `${new URL(request.url).origin}/app/convite#${convite.token}`,
+    ate: formatarPrazo(convite.expiraEm),
+    email,
+    papel: papel as Papel,
+  };
 }
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
@@ -138,10 +175,21 @@ export default function MembrosDaCasa({ loaderData, actionData }: Route.Componen
       )}
       {pronto ? (
         <section role="status" className="flex flex-col gap-2 rounded-cartao border border-borda bg-superficie p-4">
-          <p className="font-semibold">{preencher(t.pronto, { quando: pronto.ate })}</p>
+          <p className="font-semibold">{pronto.ate ? preencher(t.pronto, { quando: pronto.ate }) : t.prontoSemPrazo}</p>
           <label className={classeDoRotulo}>
-            {t.rotuloDoLink}
-            <input type="text" readOnly value={pronto.link} className={`${classeDoCampo} text-base`} />
+            {t.rotuloDaMensagem}
+            <textarea
+              readOnly
+              rows={6}
+              value={mensagemDoConvite({
+                casa: casa.nome,
+                papel: pronto.papel,
+                email: pronto.email,
+                prazo: pronto.ate,
+                link: pronto.link,
+              })}
+              className={`${classeDoCampo} py-3 text-base`}
+            />
           </label>
         </section>
       ) : null}
