@@ -38,6 +38,13 @@ class ConfiguracaoDoAppGuardadaTest {
         }
     }
 
+    /** Um cache cujo guardado não pode ser lido (arquivo corrompido ou preferências indisponíveis). */
+    private class CacheComGuardadoIlegivel : CacheDeConfiguracaoDoApp {
+        override fun ler(plataforma: String, versaoApp: String?): ConfiguracaoDoAppDto? =
+            throw IllegalStateException("guardado ilegível")
+        override fun gravar(versaoApp: String?, configuracao: ConfiguracaoDoAppDto) = Unit
+    }
+
     private fun configuracao(busca: Boolean, chamada: Boolean = busca, minima: String = "1.0.0") = ConfiguracaoDoAppDto(
         plataforma = "android",
         versaoMinima = minima,
@@ -48,6 +55,11 @@ class ConfiguracaoDoAppGuardadaTest {
     @Test
     fun `o prazo da configuracao e de 10 segundos`() {
         assertEquals(10_000L, TEMPO_MAXIMO_CONFIGURACAO_MS)
+    }
+
+    @Test
+    fun `o prazo da abertura sem configuracao guardada e de 2 segundos`() {
+        assertEquals(2_000L, TEMPO_MAXIMO_ABERTURA_MS)
     }
 
     @Test
@@ -141,13 +153,26 @@ class ConfiguracaoDoAppGuardadaTest {
         assertNull(CacheDeConfiguracaoDoAppPreferencias(contexto).ler("android", "9.9.9"))
     }
 
+    @Test
+    fun `guardado ilegivel vale como sem guardado ao ler a configuracao guardada`() = runTest {
+        assertNull(lerConfiguracaoGuardada(CacheComGuardadoIlegivel(), versaoApp = "1.2.0"))
+    }
+
+    @Test
+    fun `sem rede e com guardado ilegivel devolve nulo e nao lanca`() = runTest {
+        val resultado = obterConfiguracaoDoApp(CacheComGuardadoIlegivel(), versaoApp = "1.2.0") { throw IOException("sem rede") }
+
+        assertNull(resultado)
+    }
+
     private class AberturaSimulada(
         escopo: CoroutineScope,
         scheduler: TestCoroutineScheduler,
         guardada: ConfiguracaoDoAppDto? = null,
+        cacheProprio: CacheDeConfiguracaoDoApp? = null,
         consulta: suspend () -> ConfiguracaoDoAppDto,
     ) {
-        val cache = CacheEmMemoria().apply { if (guardada != null) gravar("1.2.0", guardada) }
+        val cache: CacheDeConfiguracaoDoApp = cacheProprio ?: CacheEmMemoria().apply { if (guardada != null) gravar("1.2.0", guardada) }
         var estado = EstadoDaConfiguracaoDoApp()
         var verificando = true
         val job: Job = escopo.launch {
@@ -237,6 +262,38 @@ class ConfiguracaoDoAppGuardadaTest {
             EstadoDaConfiguracaoDoApp(
                 versaoMinima = "1.0.0",
                 mensagemBloqueio = TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO,
+                fotoDePerfil = true,
+                chamadaDireta = true,
+                perfilRico = true,
+                checkinPorCodigo = true,
+                buscaProfissionais = true,
+            ),
+            abertura.estado,
+        )
+        abertura.job.join()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `guardado ilegivel na abertura libera no prazo e a resposta do servidor vale`() = runTest {
+        val abertura = AberturaSimulada(this, testScheduler, cacheProprio = CacheComGuardadoIlegivel()) {
+            delay(TEMPO_MAXIMO_ABERTURA_MS + 1_000L)
+            ConfiguracaoDoAppDto("android", "1.0.0", mensagem = "B", recursos = todasChaves(true))
+        }
+        advanceTimeBy(TEMPO_MAXIMO_ABERTURA_MS - 1)
+        runCurrent()
+        assertTrue(abertura.verificando)
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertFalse(abertura.verificando)
+        assertEquals(EstadoDaConfiguracaoDoApp(), abertura.estado)
+
+        advanceUntilIdle()
+        assertEquals(
+            EstadoDaConfiguracaoDoApp(
+                versaoMinima = "1.0.0",
+                mensagemBloqueio = "B",
                 fotoDePerfil = true,
                 chamadaDireta = true,
                 perfilRico = true,
