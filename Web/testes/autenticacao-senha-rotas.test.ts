@@ -72,10 +72,6 @@ const aberturaMock = vi.hoisted(() => ({
   lerEsperaOtpDiretoDesteAmbiente: vi.fn<() => Promise<number | undefined>>(),
 }));
 
-vi.mock("../app/servidor/abertura", () => ({
-  lerEsperaOtpDiretoDesteAmbiente: () => aberturaMock.lerEsperaOtpDiretoDesteAmbiente(),
-}));
-
 const contaMock = vi.hoisted(() => ({
   lerMinhaConta: vi.fn(),
 }));
@@ -87,6 +83,7 @@ vi.mock("../app/servidor/deste-ambiente", () => ({
   googleLigadoNesteAmbiente: () => false,
   apiDoUsuario: () => ({}),
   funcoesDoUsuario: () => ({}),
+  lerEsperaOtpDiretoDesteAmbiente: () => aberturaMock.lerEsperaOtpDiretoDesteAmbiente(),
 }));
 
 vi.mock("../app/servidor/conta", () => ({
@@ -882,5 +879,29 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
       argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
     );
     expect(rec429).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite" });
+  });
+
+  it("entrarAction (entrada por código) propaga reenviar_otp_em_segundos válido (30) e mantém fallback 60 se ausente ou em 429", async () => {
+    aberturaMock.lerEsperaOtpDiretoDesteAmbiente
+      .mockResolvedValueOnce(30)
+      .mockResolvedValueOnce(undefined);
+
+    const inicial30 = await entrarAction(
+      argumentos("/entrar", { email: "demo@frila.test", intencao: "pedir" }, false),
+    );
+    expect(inicial30).toEqual({ passo: "codigo", email: "demo@frila.test", reenviarEmSegundos: 30 });
+
+    const reenvioAusente = await entrarAction(
+      argumentos("/entrar", { email: "demo@frila.test", intencao: "pedir" }, false),
+    );
+    expect(reenvioAusente).toEqual({ passo: "codigo", email: "demo@frila.test" });
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+
+    authMock.reenviarDispositivoOtp.mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    const limite429 = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", intencao: "reenviar_desafio" }, false),
+    );
+    expect(limite429).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "limite" });
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
   });
 });

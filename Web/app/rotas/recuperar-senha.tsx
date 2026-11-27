@@ -1,8 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { lerEsperaOtpDiretoDesteAmbiente } from "../servidor/abertura";
-import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
+import { authDesteAmbiente, emailsDeDemonstracao, lerEsperaOtpDiretoDesteAmbiente } from "../servidor/deste-ambiente";
 import { cookieDoDispositivo, cookiesDaSessao, ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
 import { PassoCodigoOtp } from "./passo-codigo-otp";

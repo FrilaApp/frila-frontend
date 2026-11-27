@@ -6,6 +6,7 @@ import {
   authDesteAmbiente,
   emailsDeDemonstracao,
   googleLigadoNesteAmbiente,
+  lerEsperaOtpDiretoDesteAmbiente,
 } from "../servidor/deste-ambiente";
 import { BASE } from "../servidor/porteiro";
 import {
@@ -22,7 +23,7 @@ import type { Route } from "./+types/entrar";
 type Erro = keyof typeof textos.entrar.erros;
 type Passo =
   | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
-  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string }
+  | { passo: "codigo"; email: string; reenviado?: boolean; reenviarEmSegundos?: number; erro?: Erro; tentativaId?: string }
   | {
       passo: "desafio";
       email: string;
@@ -83,7 +84,12 @@ export async function action({ request }: Route.ActionArgs) {
     if (!ehDemonstracao) {
       return { passo: "email", email, erro: "codigo_apenas_demo" } satisfies Passo;
     }
-    return { passo: "codigo", email } satisfies Passo;
+    const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+    return {
+      passo: "codigo",
+      email,
+      ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+    } satisfies Passo;
   }
 
   if (intencao === "confirmar") {
@@ -335,6 +341,7 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
             enviando={enviando}
             erro={erro}
             reenviado={estado.reenviado}
+            reenviarEmSegundos={estado.reenviarEmSegundos}
             acaoVoltar={
               <a href="" className={`${classeDoLink} inline-flex items-center`}>
                 {textos.entrar.trocarEmail}
