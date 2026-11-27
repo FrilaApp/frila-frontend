@@ -263,4 +263,22 @@ class LimpezaDoAvatarTest {
         assertFalse(mensagem, mensagem.contains(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR))
         assertFalse(mensagem, mensagem.contains(arquivos.path))
     }
+
+    @Test
+    fun `foto de A que nao da para apagar nem esvaziar barra a entrada de B, em vez de ficar legivel para ele`() {
+        // Revisão do time (#1087, P1): sem apagar nem esvaziar, a foto de A seguiria legível; na main esse caso falhava fechado.
+        val armazenamento = SessaoComCacheVagas(
+            ArmazenamentoDeSessaoEmMemoria(), CacheVagasDaSessao(raiz = null, diretorioDosAvatares = filesDir),
+        )
+        armazenamento.salvarSessao(sessao("a"))
+        impedirEsvaziar(avatarNoFilesDir())
+        impedirExclusao(filesDir)
+
+        val barrada = try { armazenamento.salvarSessao(sessao("b")); false } catch (_: java.io.IOException) { true }
+
+        val fotoDeALegivel = CompressorDeFotoPerfil.avatarExistente(RuntimeEnvironment.getApplication()) != null
+        assertFalse("B entrou e a foto de A segue legível para o Perfil dele", !barrada && fotoDeALegivel)
+        assertTrue("a entrada de B é barrada enquanto a foto de A não sai", barrada)
+        assertEquals("a sessão de A fica como estava", "refresh-a", armazenamento.origem.obterSessao()?.refreshToken)
+    }
 }
