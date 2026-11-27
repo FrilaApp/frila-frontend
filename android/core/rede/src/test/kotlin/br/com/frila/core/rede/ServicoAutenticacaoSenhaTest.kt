@@ -92,6 +92,30 @@ class ServicoAutenticacaoSenhaTest {
     }
 
     @Test
+    fun `entrarComSenha decodifica reenviar_em_segundos valido e ignora invalido`() = runTest {
+        var payload = """{"status":"desafio_otp","desafio_id":"des-30","reenviar_em_segundos":30}"""
+        val servico = ServicoAutenticacao(
+            ClienteSupabase(
+                "https://frila.supabase.co",
+                "chave-teste",
+                engine = MockEngine { respond(payload, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+            ArmazenamentoDeDispositivoEmMemoria(),
+        )
+
+        assertEquals(
+            ResultadoEntradaComSenha.DesafioOtp("des-30", null, 30),
+            servico.entrarComSenha("conta@exemplo.test", "SenhaSintetica#2026"),
+        )
+
+        payload = """{"status":"desafio_otp","desafio_id":"des-neg","reenviar_em_segundos":-10}"""
+        assertEquals(
+            ResultadoEntradaComSenha.DesafioOtp("des-neg", null, null),
+            servico.entrarComSenha("conta@exemplo.test", "SenhaSintetica#2026"),
+        )
+    }
+
+    @Test
     fun `confirmarDispositivoOtp com lembrar true salva device_token e reenviar mantem desafio`() = runTest {
         val dispositivo = ArmazenamentoDeDispositivoEmMemoria()
         val caminhos = mutableListOf<String>()

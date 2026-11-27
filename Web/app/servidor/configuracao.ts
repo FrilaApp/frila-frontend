@@ -56,3 +56,16 @@ export async function lerConfiguracaoComVariaveis(
     throw erro;
   }
 }
+
+/**
+ * Extrai `reenviar_otp_em_segundos` opcional de `configuracao_do_app` para os fluxos GoTrue direto.
+ * Retorna `undefined` quando ausente, não finito, `<= 0` ou leitura indisponível (preserva fallback 60s).
+ */
+export function lerEsperaOtpDiretoSegundos(leitura: LeituraDaConfiguracao): number | undefined {
+  if (leitura.estado !== "ok") return undefined;
+  const bruto = (leitura.configuracao as { reenviar_otp_em_segundos?: unknown }).reenviar_otp_em_segundos;
+  if (typeof bruto !== "number" || !Number.isFinite(bruto) || bruto <= 0) {
+    return undefined;
+  }
+  return Math.floor(bruto);
+}

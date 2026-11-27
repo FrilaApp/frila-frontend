@@ -580,4 +580,94 @@ class CodigoViewModelTest {
         assertEquals(0L, vm.segundosParaReenviar())
     }
 
+    @Test
+    fun `reenviarEmSegundosInicial 30 inicia timer em 30s e valor ausente ou invalido cai para 60s`() {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        val agora = { Instant.parse("2026-11-27T12:00:00Z") }
+        val vm30 = CodigoViewModel(
+            email = "prof@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = agora,
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-1",
+            reenviarEmSegundosInicial = 30,
+        )
+        val vmAusente = CodigoViewModel(
+            email = "prof@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = agora,
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-2",
+            reenviarEmSegundosInicial = null,
+        )
+        val vmInvalido = CodigoViewModel(
+            email = "prof@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = agora,
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-3",
+            reenviarEmSegundosInicial = -5,
+        )
+
+        assertEquals(30L, vm30.segundosParaReenviar())
+        assertEquals(60L, vmAusente.segundosParaReenviar())
+        assertEquals(60L, vmInvalido.segundosParaReenviar())
+    }
+
+    @Test
+    fun `fluxos GoTrue diretos ENTRADA CRIACAO e RECUPERACAO mantem 30s apos reenviarCodigo e fallback 60s quando ausente ou invalido`() {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        val servico = ServicoAutenticacao(cliente)
+        val modos = listOf(ModoCodigo.ENTRADA, ModoCodigo.CRIACAO, ModoCodigo.RECUPERACAO)
+
+        for (modo in modos) {
+            var instanteAtual = Instant.parse("2026-11-27T12:00:00Z")
+            val vm30 = CodigoViewModel(
+                email = "prof@exemplo.com",
+                servicoAutenticacao = servico,
+                armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+                escopo = CoroutineScope(Dispatchers.Unconfined),
+                agora = { instanteAtual },
+                modo = modo,
+                reenviarEmSegundosInicial = 30,
+            )
+            assertEquals(30L, vm30.segundosParaReenviar())
+            instanteAtual = instanteAtual.plusSeconds(30)
+            assertEquals(0L, vm30.segundosParaReenviar())
+            kotlinx.coroutines.runBlocking { vm30.reenviarCodigo()?.join() }
+            assertEquals(30L, vm30.segundosParaReenviar())
+
+            var instanteFallback = Instant.parse("2026-11-27T12:00:00Z")
+            for (valor in listOf(null, -5)) {
+                val vmFallback = CodigoViewModel(
+                    email = "prof@exemplo.com",
+                    servicoAutenticacao = servico,
+                    armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+                    escopo = CoroutineScope(Dispatchers.Unconfined),
+                    agora = { instanteFallback },
+                    modo = modo,
+                    reenviarEmSegundosInicial = valor,
+                )
+                assertEquals(60L, vmFallback.segundosParaReenviar())
+                instanteFallback = instanteFallback.plusSeconds(60)
+                kotlinx.coroutines.runBlocking { vmFallback.reenviarCodigo()?.join() }
+                assertEquals(60L, vmFallback.segundosParaReenviar())
+            }
+        }
+    }
+
 }

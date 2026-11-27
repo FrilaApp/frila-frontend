@@ -63,6 +63,7 @@ fun TelaEntradaComSenha(
     aoEntrarDemonstracao: (String) -> Unit,
     modifier: Modifier = Modifier,
     aoExigirDesafioOtp: (String, String) -> Unit = { _, _ -> },
+    aoExigirDesafioOtpComEspera: ((String, String, Int?) -> Unit)? = null,
     aoExigirDefinirSenha: () -> Unit = aoAutenticar,
     aoAbrirLoginSocial: (String) -> Unit = {},
 ) {
@@ -85,7 +86,12 @@ fun TelaEntradaComSenha(
 
     LaunchedEffect(estado.desafioOtp) {
         estado.desafioOtp?.let { desafio ->
-            aoExigirDesafioOtp(desafio.email, desafio.desafioId)
+            val comEspera = aoExigirDesafioOtpComEspera
+            if (comEspera != null) {
+                comEspera(desafio.email, desafio.desafioId, desafio.reenviarEmSegundos)
+            } else {
+                aoExigirDesafioOtp(desafio.email, desafio.desafioId)
+            }
             viewModel.aoConsumirDesafioOtp()
         }
     }

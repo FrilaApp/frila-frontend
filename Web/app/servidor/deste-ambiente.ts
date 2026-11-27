@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 
 import { ambienteDoSupabase, listaDeEmailsDeDemonstracao } from "./ambiente";
 import { criarAuth } from "./auth";
+import { lerConfiguracaoComVariaveis, lerEsperaOtpDiretoSegundos } from "./configuracao";
 import { criarFuncoesDoUsuario } from "./conta/dados";
 import { fotoDoPerfil } from "./contratante/foto-do-perfil";
 import { chavesDoIp, criarApiDoUsuario } from "./saida-rest";
@@ -56,4 +57,13 @@ export function googleLigadoNesteAmbiente(): boolean {
 
 export function socialEntrarLigado(provedor: "apple" | "google"): boolean {
   return provedor === "apple" ? appleEntrarLigado() : googleLigadoNesteAmbiente();
+}
+
+/** Lê a espera opcional de reenvio OTP para fluxos GoTrue direto, com fallback seguro (`undefined` -> 60s). */
+export async function lerEsperaOtpDiretoDesteAmbiente(): Promise<number | undefined> {
+  try {
+    return lerEsperaOtpDiretoSegundos(await lerConfiguracaoComVariaveis(env));
+  } catch {
+    return undefined;
+  }
 }

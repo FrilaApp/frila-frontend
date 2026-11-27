@@ -190,7 +190,8 @@ class CoordenadorDeLogout(
                 arquivo.name.endsWith(".tmp") ||
                 arquivo.name.startsWith("avatar_")
         }?.forEach { arquivo ->
-            if (arquivo.delete()) {
+            // Que não pôde ser apagado é esvaziado (descartar): a foto de quem saiu não pode seguir legível para a próxima conta.
+            if (CompressorDeFotoPerfil.descartar(arquivo)) {
                 removidos++
             }
         }

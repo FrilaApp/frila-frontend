@@ -25,6 +25,7 @@ data class AutenticarSenhaRespostaDto(
     @SerialName("desafio_id") val desafioId: String? = null,
     @SerialName("expira_em") val expiraEm: String? = null,
     @SerialName("descartar_device_token") val descartarDeviceToken: Boolean? = null,
+    @SerialName("reenviar_em_segundos") val reenviarEmSegundos: Int? = null,
 )
 
 /** Corpo de `POST /functions/v1/confirmar-dispositivo-otp` (contrato 0.2.112). */

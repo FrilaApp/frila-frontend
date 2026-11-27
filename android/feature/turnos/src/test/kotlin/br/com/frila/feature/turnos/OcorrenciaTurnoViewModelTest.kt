@@ -92,6 +92,59 @@ class OcorrenciaTurnoViewModelTest {
     }
 
     @Test
+    fun `depois do sucesso, enviar de novo nao abre outro chamado`() = runBlocking {
+        val chaves = mutableListOf<String>()
+        var chamadas = 0
+        val engine = MockEngine { request ->
+            chamadas++
+            val corpo = (request.body as io.ktor.http.content.TextContent).text
+            chaves += Regex("\"chave\"\\s*:\\s*\"([^\"]+)\"").find(corpo)?.groupValues?.get(1).orEmpty()
+            respond(content = protocoloJson(), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        var sequencia = 0
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val viewModel = OcorrenciaTurnoViewModel(
+            turnoId = turnoId,
+            servicoTurnos = ServicoTurnos(cliente),
+            geradorDeChave = { "chave-${++sequencia}" },
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        viewModel.selecionarMotivo(MotivoOcorrencia.entries.first())
+        viewModel.enviar()!!.join()
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+        val protocolo = viewModel.estado.value.protocolo
+
+        viewModel.enviar()?.join()
+
+        assertEquals("o segundo enviar() abriu outro chamado, com as chaves $chaves", 1, chamadas)
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+        assertEquals(protocolo, viewModel.estado.value.protocolo)
+    }
+
+    @Test
+    fun `com um envio em voo, enviar de novo nao manda um segundo pedido`() = runBlocking {
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamadas = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamadas++
+                liberar.await()
+                respond(content = protocoloJson(), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.selecionarMotivo(MotivoOcorrencia.entries.first())
+
+        val primeiro = viewModel.enviar()!!
+        val segundo = viewModel.enviar()
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo?.join()
+
+        assertEquals(1, chamadas)
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+    }
+
+    @Test
     fun `o relato e cortado no limite que o e-mail aguenta`() {
         val viewModel = viewModelComEngine(MockEngine { respond(content = protocoloJson(), status = HttpStatusCode.OK) })
 

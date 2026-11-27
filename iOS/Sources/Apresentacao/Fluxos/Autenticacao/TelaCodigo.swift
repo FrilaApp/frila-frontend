@@ -155,7 +155,7 @@ public struct TelaCodigo: View {
                 return
             }
             #endif
-            if novoCodigo.count == 6 && viewModel.codigoValido {
+            if novoCodigo.count == 6 && viewModel.codigoValido && novoCodigo != codigoComErro {
                 confirmar()
             }
         }
@@ -282,7 +282,13 @@ public struct TelaCodigo: View {
                 .font(FrilaTipo.apoio)
                 .foregroundStyle(FrilaCor.textoSecundario)
 
-            if viewModel.segundosRestantes > 0 {
+            if viewModel.atingiuLimiteReenvios {
+                Text("Limite de reenvios atingido. Tente entrar novamente mais tarde.", bundle: bundleApresentacao)
+                    .font(FrilaTipo.corpo)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(minHeight: FrilaMetrica.alvo, alignment: .leading)
+                    .accessibilityIdentifier("codigo-reenviar-limite")
+            } else if viewModel.segundosRestantes > 0 {
                 Text("Reenviar código em \(textoContagemReenvio)", bundle: bundleApresentacao)
                     .font(FrilaTipo.corpo)
                     .monospacedDigit()
@@ -340,7 +346,7 @@ public struct TelaCodigo: View {
 
     private var botaoEntrar: some View {
         BotaoPrimario("Entrar", carregando: viewModel.carregando, acao: confirmar)
-            .disabled(!viewModel.codigoValido || viewModel.carregando)
+            .disabled(!viewModel.codigoValido || viewModel.carregando || viewModel.codigo == codigoComErro)
             .accessibilityIdentifier("codigo-entrar")
     }
 
@@ -370,7 +376,7 @@ public struct TelaCodigo: View {
             return
         }
         #endif
-        guard !viewModel.carregando, viewModel.codigoValido, !concluido else { return }
+        guard !viewModel.carregando, viewModel.codigoValido, viewModel.codigo != codigoComErro, !concluido else { return }
         Task {
             if let destino = await viewModel.confirmarCodigo() {
                 guard !concluido else { return }

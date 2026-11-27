@@ -33,6 +33,7 @@ private val PADRAO_EMAIL_SENHA = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
 data class DesafioOtpPendente(
     val email: String,
     val desafioId: String,
+    val reenviarEmSegundos: Int? = null,
 )
 
 /** Estado da tela de login rotineiro por e-mail e senha. A senha existe só em memória enquanto o usuário digita. */
@@ -325,7 +326,11 @@ class EntradaComSenhaViewModel(
                                 senha = "",
                                 erro = null,
                                 autenticado = false,
-                                desafioOtp = DesafioOtpPendente(email = email, desafioId = resultado.desafioId),
+                                desafioOtp = DesafioOtpPendente(
+                                    email = email,
+                                    desafioId = resultado.desafioId,
+                                    reenviarEmSegundos = resultado.reenviarEmSegundos?.takeIf { it > 0 },
+                                ),
                             )
                         }
                     }
