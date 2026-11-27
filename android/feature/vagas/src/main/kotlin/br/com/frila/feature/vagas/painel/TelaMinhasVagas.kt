@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -210,17 +211,57 @@ fun ConteudoMinhasVagas(
                             aoTentarNovamente = if (lista.erro.podeTentarDeNovo) acoes.aoCarregar else null,
                         )
                     }
-                    is ListaMinhasVagas.Sucesso -> SecaoMinhasVagas.entries.forEach { secao ->
-                        val itens = lista.daSecao(secao)
-                        if (itens.isNotEmpty()) {
-                            item(key = "secao-${secao.name}") {
-                                RotuloDeGrupo(texto = secao.titulo, modifier = Modifier.padding(top = FrilaEspacamento.bloco))
+                    is ListaMinhasVagas.Sucesso -> {
+                        if (estado.presencasAConfirmar.isNotEmpty()) {
+                            item(key = "secao-presencas-a-confirmar") {
+                                RotuloDeGrupo(
+                                    texto = TextosMinhasVagas.PRESENCAS_A_CONFIRMAR,
+                                    modifier = Modifier.padding(top = FrilaEspacamento.bloco),
+                                )
                             }
-                            items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes) }
+                            items(estado.presencasAConfirmar, key = { "presenca-${it.turnoId}" }) { presenca ->
+                                CartaoDePresencaAConfirmar(presenca, acoes.aoAcompanharTurno)
+                            }
+                        }
+                        SecaoMinhasVagas.entries.forEach { secao ->
+                            val itens = lista.daSecao(secao)
+                            if (itens.isNotEmpty()) {
+                                item(key = "secao-${secao.name}") {
+                                    RotuloDeGrupo(texto = secao.titulo, modifier = Modifier.padding(top = FrilaEspacamento.bloco))
+                                }
+                                items(itens, key = { it.id }) { item -> CartaoDaVaga(item, acoes) }
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+/** Um check-in manual que espera a casa: quem, a função, o período, o que fazer e o caminho para o turno (como o iOS). */
+@Composable
+private fun CartaoDePresencaAConfirmar(presenca: PresencaAConfirmar, aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit) {
+    val cores = FrilaTema.cores
+    CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("presenca-a-confirmar-${presenca.turnoId}")) {
+        Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+                Text(
+                    text = presenca.nomeProfissional ?: TextosMinhasVagas.PROFISSIONAL_CONFIRMADO,
+                    style = FrilaTipo.nome,
+                    color = cores.tinta,
+                )
+                FrilaLinhaDeDado(icone = Icons.Default.Person, valor = presenca.funcao)
+                periodo(presenca.inicio, presenca.fim).takeIf { it.isNotBlank() }?.let {
+                    FrilaLinhaDeDado(icone = Icons.Default.DateRange, valor = it)
+                }
+            }
+            Text(text = TextosMinhasVagas.EXPLICACAO_DA_CONFIRMACAO, style = FrilaTipo.corpo, color = cores.tinta)
+            LinkFrila(
+                texto = TextosMinhasVagas.ACOMPANHAR_TURNO,
+                aoClicar = { aoAcompanharTurno(presenca.vagaId, presenca.posicaoId) },
+                modifier = Modifier.testTag("acompanhar-turno-${presenca.turnoId}"),
+            )
         }
     }
 }

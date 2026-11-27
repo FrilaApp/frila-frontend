@@ -13,6 +13,11 @@ object TextosMinhasVagas {
     const val PUBLICAR_VAGA = "Publicar vaga"
     const val VER_CANDIDATOS = "Ver candidatos"
     const val ACOMPANHAR_TURNO_DE = "Acompanhar turno de %s"
+    /** "Presenças a confirmar" no topo da tela, com os textos do iOS (`TextosDoAcompanhamento`, `TelaTurnoDoContratante.swift`). */
+    const val PRESENCAS_A_CONFIRMAR = "Presenças a confirmar"
+    const val EXPLICACAO_DA_CONFIRMACAO = "Confirme se a pessoa chegou. Sem a sua confirmação, o turno fica como não verificado."
+    const val ACOMPANHAR_TURNO = "Acompanhar turno"
+    const val PROFISSIONAL_CONFIRMADO = "Profissional confirmado"
     const val PROFISSIONAL_SEM_NOME = "profissional"
     const val VER_CANDIDATOS_DE = "Ver candidatos da vaga de %s"
     const val RECEM_PUBLICADA = "Recém-publicada"
