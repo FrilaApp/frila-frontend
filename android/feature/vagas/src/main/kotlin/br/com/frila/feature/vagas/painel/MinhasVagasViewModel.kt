@@ -66,6 +66,8 @@ data class ItemMinhaVaga(
     val turnos: List<TurnoDoItem> = emptyList(),
     /** A casa ainda pode cancelar a vaga inteira: nem cancelada, nem encerrada, e antes do início (RN12). */
     val podeCancelar: Boolean = false,
+    /** A vaga nasceu de uma chamada direta (`origem = chamada_direta`): é daqui que a casa acompanha as chamadas dela (CD-RF09). */
+    val chamadaDireta: Boolean = false,
     /** Vaga encerrada, cancelada ou com o fim no passado: dá para republicar com outro horário (RF05). */
     val podeRepublicar: Boolean = false,
     /** Quantas posições a seleção deixou vazias e dá para republicar em urgência (0.2.41). Zero esconde o atalho. */
@@ -216,6 +218,7 @@ class MinhasVagasViewModel(
                 .filter { it.turnoId != null && (it.estado == POSICAO_CONFIRMADA || it.estado == POSICAO_CUMPRIDA) }
                 .map { TurnoDoItem(posicaoId = it.id, nomeProfissional = it.profissional?.nome) },
             podeCancelar = estado != VAGA_CANCELADA && estado != VAGA_ENCERRADA && inicio != null && inicio.isAfter(agora),
+            chamadaDireta = vaga.origem == ORIGEM_CHAMADA_DIRETA,
             podeRepublicar = inicio != null && fim != null &&
                 (estado == VAGA_ENCERRADA || estado == VAGA_CANCELADA || !fim.isAfter(agora)),
             republicavelEmUrgencia = (republicavelEmUrgencia ?: 0).coerceAtLeast(0),
@@ -226,6 +229,7 @@ class MinhasVagasViewModel(
         val FUSO_DO_PAINEL: ZoneId = ZoneId.of("America/Sao_Paulo")
         const val JANELA_EM_DIAS = 365L
         private const val MODO_SELECAO = "selecao"
+        private const val ORIGEM_CHAMADA_DIRETA = "chamada_direta"
         private const val VAGA_PUBLICADA = "publicada"
         private const val VAGA_ENCERRADA = "encerrada"
         private const val VAGA_CANCELADA = "cancelada"
