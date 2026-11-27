@@ -3,7 +3,14 @@ package br.com.frila.feature.conta
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ExclusaoDeContaDto
+import br.com.frila.core.rede.CancelamentoDoTurnoDto
+import br.com.frila.core.rede.PerfilPublicoDto
+import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ServicoPerfil
+import br.com.frila.core.rede.TurnoDto
+import br.com.frila.core.rede.VagaResumoDto
+import java.io.IOException
+import java.time.Instant
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -177,4 +184,141 @@ class ExclusaoDeContaViewModelTest {
         vmErro.confirmarExclusao().join()
         assertEquals(TextosExclusaoDeConta.ERRO_ADMIN_UNICO, vmErro.estado.value.mensagemErro)
     }
+
+    // ---- 9NpQTfGG: lista os turnos futuros do profissional antes de confirmar ----
+
+    private val agora = Instant.parse("2026-11-20T15:00:00Z")
+
+    private fun turno(id: String, inicio: String, fim: String = "2026-12-31T23:00:00Z", funcao: String = "garçom", estado: String? = "confirmada", contraparte: String = "Bar do Zé") = TurnoDto(
+        id = id,
+        posicaoId = "pos-$id",
+        vaga = VagaResumoDto(
+            id = "vaga-$id", funcao = funcao, local = "CLS 405 Bloco $id", regiaoAdministrativa = "Plano Piloto",
+            inicioEm = inicio, fimEm = fim, valorCentavos = 16000,
+        ),
+        contraparte = PerfilPublicoDto(
+            id = "e-$id", tipo = "estabelecimento", nome = contraparte,
+            reputacao = ReputacaoDto(positivas = 1, total = 1, turnosConsiderados = 1, turnosRealizados = 1),
+        ),
+        verificacao = "pendente",
+        valorAcordadoCentavos = 16000,
+        podeAvaliar = false,
+        estado = estado,
+    )
+
+    private fun viewModelComTurnos(
+        chamadas: MutableList<Int> = mutableListOf(),
+        excluir: suspend () -> ExclusaoDeContaDto = { sucesso },
+        consultar: suspend () -> List<TurnoDto>,
+    ) = ExclusaoDeContaViewModel(
+        excluir = excluir,
+        consultarTurnos = { chamadas += 1; consultar() },
+        relogio = { agora },
+        escopo = CoroutineScope(Dispatchers.Unconfined),
+    )
+
+    private fun ExclusaoDeContaViewModel.ids(): List<String> =
+        (estado.value.turnosFuturos as TurnosFuturosDaExclusao.Lista).turnos.map { it.id }
+
+    @Test
+    fun `um turno passado e dois futuros listam exatamente os dois futuros, do mais proximo ao mais distante`() = runBlocking {
+        val vm = viewModelComTurnos {
+            listOf(
+                turno("passado", "2026-11-10T20:00:00Z", "2026-11-11T02:00:00Z"),
+                turno("distante", "2026-12-20T20:00:00Z"),
+                turno("proximo", "2026-11-25T20:00:00Z"),
+            )
+        }
+
+        vm.carregarTurnos().join()
+
+        assertEquals(listOf("proximo", "distante"), vm.ids())
+        val primeiro = (vm.estado.value.turnosFuturos as TurnosFuturosDaExclusao.Lista).turnos.first()
+        assertEquals("garçom", primeiro.funcao)
+        assertEquals("Bar do Zé", primeiro.contraparte)
+        assertEquals("CLS 405 Bloco proximo", primeiro.local)
+        assertEquals(Instant.parse("2026-11-25T20:00:00Z"), primeiro.inicio)
+    }
+
+    @Test
+    fun `turno que comeca exatamente agora ja nao e futuro, e turno ja cancelado nao entra na lista`() = runBlocking {
+        val vm = viewModelComTurnos {
+            listOf(
+                turno("agora", "2026-11-20T15:00:00Z"),
+                turno("um-segundo-depois", "2026-11-20T15:00:01Z"),
+                turno("cancelado", "2026-11-25T20:00:00Z", estado = "cancelada"),
+                turno("sem-estado", "2026-11-26T20:00:00Z", estado = null),
+            )
+        }
+
+        vm.carregarTurnos().join()
+
+        assertEquals(listOf("um-segundo-depois", "sem-estado"), vm.ids())
+    }
+
+    @Test
+    fun `sem turnos futuros a lista e vazia, e nao indisponivel`() = runBlocking {
+        val vm = viewModelComTurnos { listOf(turno("passado", "2026-11-10T20:00:00Z")) }
+
+        vm.carregarTurnos().join()
+
+        assertEquals(TurnosFuturosDaExclusao.Lista(emptyList()), vm.estado.value.turnosFuturos)
+    }
+
+    @Test
+    fun `a leitura falhando avisa que a lista esta indisponivel e a exclusao continua liberada`() = runBlocking {
+        var excluiu = 0
+        for (falha in listOf<Throwable>(erro(CodigoErroAPI.SEM_REDE), erro(CodigoErroAPI.NAO_AUTENTICADO), IOException("x"), IllegalStateException("corpo ilegível"))) {
+            val vm = viewModelComTurnos(excluir = { excluiu++; sucesso }) { throw falha }
+
+            vm.carregarTurnos().join()
+
+            assertEquals(TurnosFuturosDaExclusao.Indisponivel, vm.estado.value.turnosFuturos, falha.toString())
+            vm.alterarConfirmacao(true)
+            assertTrue(vm.estado.value.podeExcluir, "a lista indisponível não bloqueia a exclusão: $falha")
+            vm.confirmarExclusao().join()
+            assertNotNull(vm.estado.value.resultado, falha.toString())
+        }
+        assertEquals(4, excluiu)
+    }
+
+    @Test
+    fun `carregar os turnos nao exclui nada e nao mexe na confirmacao, e abrir duas vezes le uma vez so`() = runBlocking {
+        var excluiu = 0
+        val leituras = mutableListOf<Int>()
+        val vm = viewModelComTurnos(chamadas = leituras, excluir = { excluiu++; sucesso }) { listOf(turno("t", "2026-11-25T20:00:00Z")) }
+
+        vm.carregarTurnos().join()
+        vm.carregarTurnos().join()
+
+        assertEquals(0, excluiu)
+        assertFalse(vm.estado.value.confirmouConsequencias)
+        assertFalse(vm.estado.value.podeExcluir)
+        assertEquals(1, leituras.size, "a segunda abertura reaproveita a leitura")
+    }
+
+    @Test
+    fun `enquanto le, mostra carregando, sem bloquear a confirmacao`() = runBlocking {
+        val liberar = CompletableDeferred<Unit>()
+        val vm = viewModelComTurnos { liberar.await(); emptyList() }
+
+        val job = vm.carregarTurnos()
+        assertEquals(TurnosFuturosDaExclusao.Carregando, vm.estado.value.turnosFuturos)
+        vm.alterarConfirmacao(true)
+        assertTrue(vm.estado.value.podeExcluir)
+
+        liberar.complete(Unit)
+        job.join()
+        assertEquals(TurnosFuturosDaExclusao.Lista(emptyList()), vm.estado.value.turnosFuturos)
+    }
+
+    @Test
+    fun `sem consulta injetada a tela segue so com o texto geral`() = runBlocking {
+        val vm = viewModel()
+
+        vm.carregarTurnos().join()
+
+        assertEquals(TurnosFuturosDaExclusao.NaoConsultados, vm.estado.value.turnosFuturos)
+    }
 }
+
