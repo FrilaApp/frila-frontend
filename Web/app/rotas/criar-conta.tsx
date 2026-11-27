@@ -1,6 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
+import { lerEsperaOtpDiretoDesteAmbiente } from "../servidor/abertura";
 import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
 import { cookieDoDispositivo, cookiesDaSessao, ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
@@ -10,7 +11,7 @@ import type { Route } from "./+types/criar-conta";
 type Erro = keyof typeof textos.criarConta.erros;
 type Passo =
   | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
-  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string };
+  | { passo: "codigo"; email: string; reenviado?: boolean; reenviarEmSegundos?: number; erro?: Erro; tentativaId?: string };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TERMOS = "https://frilabr.com/termos";
@@ -52,7 +53,13 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
     if (!pedido.ok) {
       return comTentativa({ passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo });
     }
-    return comTentativa(ehReenvio ? { passo: "codigo", email, reenviado: true } : { passo: "codigo", email });
+    const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+    return comTentativa({
+      passo: "codigo",
+      email,
+      ...(ehReenvio ? { reenviado: true } : {}),
+      ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+    });
   }
 
   if (!/^\d{6}$/.test(codigo)) {
@@ -145,6 +152,7 @@ export default function CriarConta({ actionData }: Route.ComponentProps) {
           enviando={enviando}
           erro={erro}
           reenviado={estado.reenviado}
+          reenviarEmSegundos={estado.reenviarEmSegundos}
           tentativaId={estado.tentativaId}
           mensagemReenvio="Novo código enviado para seu e-mail."
           mostrarLembrarDispositivo

@@ -27,6 +27,7 @@ import {
 } from "../app/rotas/passo-codigo-otp";
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
 import { action as sairAction } from "../app/rotas/sair";
+import { lerEsperaOtpDiretoSegundos, type LeituraDaConfiguracao } from "../app/servidor/configuracao";
 import { middlewareDeSessao } from "../app/servidor/middleware-de-sessao";
 import { argumentos } from "./contratante-apoio";
 
@@ -65,6 +66,14 @@ const authMock = vi.hoisted(() => ({
   conferir: vi.fn(),
   renovar: vi.fn(),
   encerrar: vi.fn(),
+}));
+
+const aberturaMock = vi.hoisted(() => ({
+  lerEsperaOtpDiretoDesteAmbiente: vi.fn<() => Promise<number | undefined>>(),
+}));
+
+vi.mock("../app/servidor/abertura", () => ({
+  lerEsperaOtpDiretoDesteAmbiente: () => aberturaMock.lerEsperaOtpDiretoDesteAmbiente(),
 }));
 
 const contaMock = vi.hoisted(() => ({
@@ -787,5 +796,91 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
       desafioId: "des-sem",
     });
     expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+  });
+
+  it("lerEsperaOtpDiretoSegundos valida reenviar_otp_em_segundos opcional de configuracao_do_app e cai para undefined/60 se ausente/inválido/erro", () => {
+    const baseConfig = {
+      plataforma: "web" as const,
+      versao_minima: "1.0.0",
+      versao_recomendada: "1.0.0",
+      url_da_loja: "https://frilabr.com",
+    };
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: 30 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBe(30);
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: 60 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBe(60);
+    expect(lerEsperaOtpDiretoSegundos({ estado: "ok", configuracao: baseConfig })).toBeUndefined();
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: 0 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBeUndefined();
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: -10 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBeUndefined();
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: Number.NaN } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBeUndefined();
+    expect(lerEsperaOtpDiretoSegundos({ estado: "indisponivel" })).toBeUndefined();
+  });
+
+  it("criarContaAction e recuperarSenhaAction propagam reenviar_otp_em_segundos válido (30/60), preservam fallback 60 se ausente e em 429", async () => {
+    authMock.pedirCodigo
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    authMock.pedirCodigoRecuperacao
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, motivo: "limite" });
+
+    aberturaMock.lerEsperaOtpDiretoDesteAmbiente
+      .mockResolvedValueOnce(30)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(undefined);
+
+    const criar30 = await criarContaAction(argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir" }, false));
+    expect(criar30).toEqual({ passo: "codigo", email: "ana@frila.test", reenviarEmSegundos: 30 });
+
+    const criarSem = await criarContaAction(
+      argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(criarSem).toEqual({ passo: "codigo", email: "ana@frila.test", reenviado: true });
+
+    const criar429 = await criarContaAction(
+      argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(criar429).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite" });
+
+    const rec60 = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir" }, false),
+    );
+    expect(rec60).toEqual({ passo: "codigo", email: "ana@frila.test", reenviarEmSegundos: 60 });
+
+    const recSem = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(recSem).toEqual({ passo: "codigo", email: "ana@frila.test", reenviado: true });
+
+    const rec429 = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(rec429).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite" });
   });
 });
