@@ -250,14 +250,21 @@ fun TelaDetalheVaga(
                 }
                 Text(
                     text = if (estado.ehModoUrgencia) {
-                        "Modo urgência: confirmação na hora"
+                        TextosDaFaixaDoModo.SE_ACEITAR
                     } else if (candidaturaEnviada) {
                         TextosDaFaixaDoModo.VOCE_SE_CANDIDATOU
                     } else {
-                        "Modo seleção: contratante escolhe depois"
+                        TextosDaFaixaDoModo.CASA_ESCOLHE
                     },
                     style = FrilaTipo.fraseDoModo,
                     color = FrilaTema.cores.tinta,
+                )
+                // A nota do modo, em texto de apoio (iOS `notaUrgencia` / `notaSelecao`).
+                Text(
+                    text = if (estado.ehModoUrgencia) TextosDaFaixaDoModo.NOTA_URGENCIA else TextosDaFaixaDoModo.NOTA_SELECAO,
+                    style = FrilaTipo.corpo,
+                    color = FrilaTema.cores.tintaSuave,
+                    modifier = Modifier.testTag("nota-do-modo"),
                 )
             }
 
@@ -396,4 +403,9 @@ internal fun textoDaReputacaoDaCasa(reputacao: ReputacaoDto): String =
 internal object TextosDaFaixaDoModo {
     const val AGUARDANDO_RESPOSTA = "Aguardando resposta"
     const val VOCE_SE_CANDIDATOU = "Você se candidatou."
+    const val SE_ACEITAR = "Se aceitar, o turno é seu."
+    const val CASA_ESCOLHE = "O estabelecimento escolhe entre os interessados."
+    const val NOTA_URGENCIA =
+        "Se houver uma posição disponível e sua candidatura for válida, o turno é confirmado na hora, sem aprovação do contratante."
+    const val NOTA_SELECAO = "O estabelecimento escolhe entre os candidatos. Enviar a candidatura não confirma o turno."
 }
