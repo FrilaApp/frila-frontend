@@ -498,6 +498,12 @@ fun AppNavegacao(
         if (papel == null && abrindo && armazenamentoDeSessao.estaAutenticado()) return@LaunchedEffect
         aoConsumirAvisoDoToque()
         val rota = papel?.let { rotaDoAviso(aviso, it) } ?: return@LaunchedEffect
+        if (rota == Rotas.ABERTURA) {
+            // Suspensão ou reativação: a abertura relê a conta no servidor e leva à tela da situação dela, com a pilha
+            // de antes fora (ela é da conta como estava).
+            if (avaliadorDeDestino != null) navController.navigate(Rotas.ABERTURA) { popUpTo(0) { inclusive = true } }
+            return@LaunchedEffect
+        }
         // Por cima do que está aberto: um formulário a meio fica embaixo, e "voltar" o devolve.
         navController.navigate(rota) { launchSingleTop = true }
     }

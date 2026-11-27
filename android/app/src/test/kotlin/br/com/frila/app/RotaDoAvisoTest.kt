@@ -32,7 +32,7 @@ class RotaDoAvisoTest {
 
     private val casos = listOf(
         Caso(AvisoDoToque("vaga", vagaId = vaga), Rotas.detalhe(vaga)),
-        Caso(AvisoDoToque("vagas_agrupadas"), null),
+        Caso(AvisoDoToque("vagas_agrupadas"), Rotas.FEED),
         Caso(AvisoDoToque("vaga_sem_elegiveis", vagaId = vaga), null, candidatos),
         Caso(AvisoDoToque("confirmacao", vagaId = vaga, turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
         Caso(AvisoDoToque("lembrete_24h", turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
@@ -47,9 +47,9 @@ class RotaDoAvisoTest {
         Caso(AvisoDoToque("cancelamento", vagaId = vaga, posicaoId = posicao), Rotas.MEUS_TURNOS, candidatos),
         // O candidato de uma vaga recolhida: sem posição.
         Caso(AvisoDoToque("cancelamento", vagaId = vaga), Rotas.detalhe(vaga), candidatos),
-        Caso(AvisoDoToque("avaliacao_disponivel", turnoId = turno), Rotas.turnoAviso(turno)),
-        Caso(AvisoDoToque("suspensao"), null),
-        Caso(AvisoDoToque("reativacao"), null),
+        Caso(AvisoDoToque("avaliacao_disponivel", turnoId = turno), "avaliacao/$turno", "avaliacao_contratante/$turno"),
+        Caso(AvisoDoToque("suspensao"), Rotas.ABERTURA, Rotas.ABERTURA),
+        Caso(AvisoDoToque("reativacao"), Rotas.ABERTURA, Rotas.ABERTURA),
         Caso(AvisoDoToque("candidatura_recusada", vagaId = vaga), Rotas.detalhe(vaga)),
         Caso(AvisoDoToque("selecao_encerrada", vagaId = vaga), Rotas.detalhe(vaga)),
         Caso(AvisoDoToque("selecao_lembrete", vagaId = vaga), null, candidatos),
@@ -118,6 +118,9 @@ class RotaDoAvisoTest {
         assertEquals(null, rotaDoAviso(AvisoDoToque("vaga"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("cancelamento", posicaoId = "x"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("tipo_futuro", vagaId = vaga), PapelDaRaiz.Profissional))
+        assertEquals(null, rotaDoAviso(AvisoDoToque("avaliacao_disponivel", turnoId = "turno-1"), PapelDaRaiz.Profissional))
+        assertEquals(null, rotaDoAviso(AvisoDoToque("avaliacao_disponivel"), PapelDaRaiz.Profissional))
+        assertEquals(casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque("avaliacao_disponivel", turnoId = "turno-1"), casa))
         assertEquals(null, rotaDoAviso(AvisoDoToque("chamada_recebida", chamadaId = "chamada-9"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("chamada_recebida", chamadaId = "../vagas"), PapelDaRaiz.Profissional))
     }

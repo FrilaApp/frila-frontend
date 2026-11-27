@@ -84,6 +84,9 @@ class EntradaPorPapelTest {
 
     private val sessao = ArmazenamentoDeSessaoEmMemoria()
 
+    /** Quando não nulo, a abertura decide este destino em vez de perguntar ao servidor (a conta mudou do outro lado). */
+    @Volatile private var destinoForcado: DestinoDaConta? = null
+
     /** As vagas com que a tela de candidatos foi aberta. */
     private val vagasDosCandidatos = CopyOnWriteArrayList<String>()
 
@@ -160,7 +163,8 @@ class EntradaPorPapelTest {
                                     if (semRedeComGuardado != null) {
                                         throw br.com.frila.core.rede.ErroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_REDE, "sem_rede", null, "sem rede")
                                     }
-                                    avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
+                                    val doServidor = avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
+                                    destinoForcado ?: doServidor
                                 },
                                 guardado = DestinoGuardadoEmMemoria().apply { semRedeComGuardado?.let(::salvar) },
                                 // Este cliente não renova o token: o 401 do servidor já é a recusa (o caso da sessão vencida).
@@ -172,6 +176,16 @@ class EntradaPorPapelTest {
                             CodigoViewModel(email, ServicoAutenticacao(cliente), sessao, CoroutineScope(Dispatchers.Default))
                         }
                         viewModel { CadastroViewModel() }
+                        viewModel {
+                            mockk<br.com.frila.feature.turnos.AvaliacaoViewModel>(relaxed = true) {
+                                every { estado } returns MutableStateFlow(br.com.frila.feature.turnos.EstadoAvaliacao())
+                            }
+                        }
+                        viewModel {
+                            mockk<br.com.frila.feature.conta.ContaSuspensaViewModel>(relaxed = true) {
+                                every { estado } returns MutableStateFlow(br.com.frila.feature.conta.EstadoContaSuspensa())
+                            }
+                        }
                         viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: java.time.Instant?) ->
                             vagasDosCandidatos += vagaId
                             br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel(
@@ -352,6 +366,69 @@ class EntradaPorPapelTest {
 
         assertTrue("o check-in pendente não abriu o turno da casa (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO })
         assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+    }
+
+    @Test
+    fun `jq8xVAve - com o app aberto, a avaliacao disponivel abre a avaliacao do turno, para o profissional e para a casa`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+
+        avisoDoToque.value = AvisoDoToque("avaliacao_disponivel", turnoId = turnoDoAviso)
+
+        assertTrue("a avaliação do profissional não abriu (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.AVALIACAO })
+        assertEquals(Rotas.FEED, rotaAbaixo())
+        var turno: String? = null
+        rule.runOnIdle { turno = nav.currentBackStackEntry?.arguments?.getString("turnoId") }
+        assertEquals(turnoDoAviso, turno)
+    }
+
+    @Test
+    fun `jq8xVAve - a casa que abre o app pela avaliacao disponivel cai na avaliacao do contratante`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = AvisoDoToque("avaliacao_disponivel", turnoId = turnoDoAviso))
+
+        assertTrue("a avaliação da casa não abriu (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.AVALIACAO_DO_CONTRATANTE })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+    }
+
+    @Test
+    fun `jq8xVAve - vagas agrupadas abre o feed por cima de Meus turnos`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+        rule.onNodeWithText(TextosDasAbas.MEUS_TURNOS).performClick()
+        aguardar { rotaAtual() == Rotas.MEUS_TURNOS }
+
+        avisoDoToque.value = AvisoDoToque("vagas_agrupadas")
+
+        assertTrue("vagas agrupadas não abriu o feed (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.FEED })
+        assertEquals(Rotas.MEUS_TURNOS, rotaAbaixo())
+    }
+
+    @Test
+    fun `jq8xVAve - o aviso de suspensao rele a conta e leva a tela da suspensao, sem a pilha de antes`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+        destinoForcado = DestinoDaConta.ContaSuspensa
+
+        avisoDoToque.value = AvisoDoToque("suspensao")
+
+        assertTrue("a suspensão não levou à tela da conta suspensa (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.CONTA_SUSPENSA })
+        assertNull("a pilha da conta como estava não fica embaixo", rotaAbaixo())
+        assertNull(avisoDoToque.value)
+    }
+
+    @Test
+    fun `jq8xVAve - o aviso de reativacao rele a conta e leva a casa de volta a Minhas vagas`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+        rule.runOnIdle { nav.navigate(Rotas.publicarVaga("33333333-3333-4333-8333-333333333333")) }
+        aguardar { rotaAtual() == Rotas.PUBLICAR_VAGA }
+        val leiturasAntes = chamadas.count { it.endsWith("/rpc/minha_conta") }
+
+        avisoDoToque.value = AvisoDoToque("reativacao")
+
+        assertTrue("a reativação não releu a conta", aguardar(8_000) { chamadas.count { it.endsWith("/rpc/minha_conta") } > leiturasAntes })
+        assertTrue("a reativação não voltou a Minhas vagas (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS })
+        assertNull(rotaAbaixo())
     }
 
     @Test
