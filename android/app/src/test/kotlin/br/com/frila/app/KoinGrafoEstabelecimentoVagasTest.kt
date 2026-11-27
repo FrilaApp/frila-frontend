@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.CoordenadaDto
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoPerfil
@@ -65,7 +64,7 @@ class KoinGrafoEstabelecimentoVagasTest : KoinTest {
         val pedidos = mutableListOf<Pedido>()
     }
 
-    private fun clienteCom(rede: Rede) = ClienteSupabase(
+    private fun clienteCom(rede: Rede) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -100,6 +99,7 @@ class KoinGrafoEstabelecimentoVagasTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }

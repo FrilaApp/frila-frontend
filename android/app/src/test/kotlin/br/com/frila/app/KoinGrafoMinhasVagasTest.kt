@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.feature.vagas.painel.ListaMinhasVagas
@@ -60,7 +59,7 @@ class KoinGrafoMinhasVagasTest : KoinTest {
         ]}
     """.trimIndent()
 
-    private fun clienteCom(pedidos: MutableList<Pedido>) = ClienteSupabase(
+    private fun clienteCom(pedidos: MutableList<Pedido>) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -90,6 +89,7 @@ class KoinGrafoMinhasVagasTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
@@ -181,14 +181,14 @@ class KoinGrafoMinhasVagasTest : KoinTest {
                     module {
                         single {
                             ServicoVagas(
-                                ClienteSupabase(
+                                clienteSupabaseDeTeste(
                                     baseUrl = "https://frila.supabase.co",
                                     apiKey = "chave-teste",
                                     engine = MockEngine { respond(painelComPendente, HttpStatusCode.OK, json) },
                                 ),
                             )
                         }
-                        single { ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)) }
+                        single { ServicoTurnos(clienteSupabaseDeTeste(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)) }
                     },
             )
         }

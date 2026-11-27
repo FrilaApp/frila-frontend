@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.candidatos.FalhaDaEscolha
@@ -77,7 +76,7 @@ class KoinGrafoCandidatosDaVagaTest : KoinTest {
         }
     }
 
-    private fun clienteCom(rede: Rede) = ClienteSupabase(
+    private fun clienteCom(rede: Rede) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -108,6 +107,7 @@ class KoinGrafoCandidatosDaVagaTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
