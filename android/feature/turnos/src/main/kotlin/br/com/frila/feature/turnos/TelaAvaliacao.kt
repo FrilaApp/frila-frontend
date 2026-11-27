@@ -72,6 +72,7 @@ fun TelaAvaliacao(
             when (estado.status) {
                 StatusAvaliacao.NA_FILA -> AvaliacaoNaFila(aoVoltar)
                 StatusAvaliacao.SUCESSO -> ConfirmacaoDeAvaliacao(resposta = estado.respostaRegistrada, aoVoltar = aoVoltar)
+                StatusAvaliacao.JA_AVALIADO -> JaAvaliado(resposta = estado.respostaRegistrada, aoVoltar = aoVoltar)
                 StatusAvaliacao.ERRO -> PerguntaDeAvaliacao(
                     escolha = null,
                     aoResponder = avaliar,
@@ -118,6 +119,23 @@ private fun ConfirmacaoDeAvaliacao(resposta: Boolean?, aoVoltar: () -> Unit) {
         modifier = Modifier.semantics {
             liveRegion = LiveRegionMode.Polite
         },
+    )
+    BotaoSecundario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
+}
+
+/** 409 `avaliacao_ja_registrada`: a pergunta já foi respondida deste lado do turno; mostra a resposta gravada, se o servidor a devolveu, e nenhum botão de avaliar. */
+@Composable
+private fun JaAvaliado(resposta: Boolean?, aoVoltar: () -> Unit) {
+    TituloDaTela("Turno já avaliado")
+    Text(
+        text = when (resposta) {
+            true -> "A avaliação registrada: você recomendou este local."
+            false -> "A avaliação registrada: você não recomendou este local."
+            null -> "Este turno já tem uma avaliação registrada."
+        },
+        style = FrilaTipo.corpo,
+        color = FrilaTema.cores.tinta,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
     BotaoSecundario(texto = "Voltar", aoClicar = aoVoltar, modifier = Modifier.fillMaxWidth())
 }

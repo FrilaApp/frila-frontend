@@ -1,7 +1,8 @@
 package br.com.frila.feature.turnos
 
 /** Status do envio da avaliação binária de turno (RF15/RN07). */
-enum class StatusAvaliacao { OCIOSO, ENVIANDO, NA_FILA, SUCESSO, ERRO }
+/** `JA_AVALIADO`: o servidor respondeu `409 avaliacao_ja_registrada`. Estado final, sem botões (a pergunta já foi respondida deste lado do turno). */
+enum class StatusAvaliacao { OCIOSO, ENVIANDO, NA_FILA, SUCESSO, ERRO, JA_AVALIADO }
 
 /** Estado da tela de avaliação de um turno específico. */
 data class EstadoAvaliacao(

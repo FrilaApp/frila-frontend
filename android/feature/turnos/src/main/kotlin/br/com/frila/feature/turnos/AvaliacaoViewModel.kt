@@ -115,7 +115,7 @@ class AvaliacaoViewModel(
     fun avaliar(turnoId: String, resposta: Boolean): Job {
         observar(turnoId)
         reconciliarComAFila(turnoId)
-        if (_estado.value.status in setOf(StatusAvaliacao.NA_FILA, StatusAvaliacao.SUCESSO)) return escopoDeTrabalho.launch { }
+        if (_estado.value.status in setOf(StatusAvaliacao.NA_FILA, StatusAvaliacao.SUCESSO, StatusAvaliacao.JA_AVALIADO)) return escopoDeTrabalho.launch { }
         envio?.takeIf { it.isActive }?.let { return it }
         val toque = instanteAtual()
         val conta = contaAtual()
@@ -134,6 +134,10 @@ class AvaliacaoViewModel(
                 }
             } catch (erro: ErroDaApi) {
                 if (erro.codigo == CodigoErroAPI.SEM_REDE && guardarNaFila(turnoId, resposta, toque, conta)) return@launch
+                if (erro.codigo == CodigoErroAPI.AVALIACAO_JA_REGISTRADA) {
+                    encerrarComoJaAvaliado(turnoId)
+                    return@launch
+                }
                 _estado.update { it.copy(status = StatusAvaliacao.ERRO, mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {
                 throw erro
@@ -149,9 +153,24 @@ class AvaliacaoViewModel(
         }.also { envio = it }
     }
 
+    /**
+     * `409 avaliacao_ja_registrada`: este lado do turno já tem voto (o seu ou o de outro membro da casa), com outra
+     * resposta. Não é erro a tentar de novo: a pergunta acabou. Relê os turnos para mostrar `avaliacao.resposta`
+     * (contrato 0.2.31); se a releitura falhar, encerra do mesmo jeito, sem inventar a resposta.
+     */
+    private suspend fun encerrarComoJaAvaliado(turnoId: String) {
+        val gravada = try {
+            servicoTurnos.listarMeusTurnos().firstOrNull { it.id == turnoId }?.avaliacao?.resposta
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            null
+        }
+        _estado.update { it.copy(status = StatusAvaliacao.JA_AVALIADO, respostaRegistrada = gravada, mensagemErro = null) }
+    }
+
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.AVALIACAO_INDISPONIVEL -> "Este turno ainda não pode ser avaliado."
-        CodigoErroAPI.AVALIACAO_JA_REGISTRADA -> "Você já avaliou este turno com uma resposta diferente."
         CodigoErroAPI.SEM_PERMISSAO -> "Você não tem permissão para avaliar este turno."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
         else -> "Não foi possível registrar sua avaliação. Tente de novo."

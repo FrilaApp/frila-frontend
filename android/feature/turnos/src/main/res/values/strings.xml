@@ -9,5 +9,9 @@
     <string name="avaliacao_contratante_sucesso">Avaliação registrada</string>
     <string name="avaliacao_contratante_sucesso_sim">Você recomendou este profissional.</string>
     <string name="avaliacao_contratante_sucesso_nao">Você não recomendou este profissional.</string>
+    <string name="avaliacao_contratante_ja_avaliado">Turno já avaliado</string>
+    <string name="avaliacao_contratante_ja_avaliado_sim">A avaliação registrada: você recomendou este profissional.</string>
+    <string name="avaliacao_contratante_ja_avaliado_nao">A avaliação registrada: você não recomendou este profissional.</string>
+    <string name="avaliacao_contratante_ja_avaliado_sem_resposta">Este turno já tem uma avaliação registrada.</string>
     <string name="avaliacao_contratante_voltar">Voltar</string>
 </resources>
