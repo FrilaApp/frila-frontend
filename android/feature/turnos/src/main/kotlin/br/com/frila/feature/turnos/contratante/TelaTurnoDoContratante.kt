@@ -16,8 +16,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,9 +47,11 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 /** Tudo o que a tela pode pedir ao [AcompanhamentoContratanteViewModel] e a quem a abriu. */
 data class AcoesTurnoDoContratante(
@@ -187,7 +192,26 @@ fun ConteudoTurnoDoContratante(
 
             depoisDaChegada?.invoke()
 
-            if (acoes.aoAvaliarTurno != null && estado.presenca == PresencaDoTurno.VERIFICADA) {
+            // Com a tela aberta, espera o fim previsto e recompõe, para o aviso dar lugar ao botão sem reabrir o turno (como o iOS).
+            // O tique só força a releitura: quem decide é sempre `agora()`; se a espera acordar cedo, espera de novo.
+            val liberaEm = estado.liberacaoDaAvaliacao
+            var tique by remember { mutableIntStateOf(0) }
+            LaunchedEffect(liberaEm, tique) {
+                if (liberaEm != null) {
+                    delay(Duration.between(estado.agora(), liberaEm).toMillis().coerceAtLeast(0) + 1)
+                    tique++
+                }
+            }
+            if (acoes.aoAvaliarTurno != null && liberaEm != null) {
+                AvisoFrila(
+                    tom = TomAviso.INFORMATIVO,
+                    mensagem = TextosTurnoDoContratante.AVALIACAO_LIBERA_AS.format(hora(liberaEm)),
+                    modifier = Modifier.testTag("aviso-avaliacao-libera"),
+                )
+            }
+            if (acoes.aoAvaliarTurno != null && estado.presenca == PresencaDoTurno.VERIFICADA &&
+                (estado.jaAvaliado || estado.podeAvaliar)
+            ) {
                 CartaoFrila(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                         if (estado.jaAvaliado) {

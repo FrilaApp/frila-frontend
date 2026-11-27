@@ -151,6 +151,20 @@ data class EstadoTurnoDoContratante(
     /** O que a casa respondeu: o do servidor, e só sem ele o da fila. `null`: ainda não avaliou (ou o servidor não disse). */
     val respostaDaAvaliacao: Boolean? get() = avaliacaoDoServidor ?: avaliacaoNaFila
     val jaAvaliado: Boolean get() = respostaDaAvaliacao != null
+
+    /** Tudo o que a avaliação exige, menos o fim previsto: presença verificada e posição não cancelada (iOS `elegivelParaAvaliar`). */
+    private val elegivelParaAvaliar: Boolean
+        get() = presenca == PresencaDoTurno.VERIFICADA && contexto.estadoDaPosicao != "cancelada" && cancelamento == null
+
+    /**
+     * `avaliar` só abre depois do fim previsto (contrato: `422 avaliacao_indisponivel` com `antes_do_fim`), como o iOS
+     * (`podeAvaliar`). Sem `fim` legível, o botão fica e o servidor decide.
+     */
+    val podeAvaliar: Boolean get() = elegivelParaAvaliar && contexto.fim?.isAfter(agora()) != true
+
+    /** Quando a avaliação libera (o `fim`), enquanto ele ainda está no futuro; a tela mostra "A avaliação libera às HH:mm". */
+    val liberacaoDaAvaliacao: Instant?
+        get() = if (elegivelParaAvaliar && !jaAvaliado) contexto.fim?.takeIf { it.isAfter(agora()) } else null
     val presenca: PresencaDoTurno get() = presencaDe(contexto)
     val podeConfirmar: Boolean get() = presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && !enviando &&
         !cancelando && !cancelamentoNaFila && contexto.estadoDaPosicao != "cancelada"
