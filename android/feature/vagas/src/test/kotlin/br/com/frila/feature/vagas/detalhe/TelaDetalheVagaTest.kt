@@ -127,7 +127,7 @@ class TelaDetalheVagaTest {
 
         compose.onNodeWithText("Garçom").assertIsDisplayed()
         compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
-        compose.onNodeWithText("Modo urgência: confirmação na hora").assertIsDisplayed()
+        compose.onNodeWithText("Se aceitar, o turno é seu.").assertIsDisplayed()
         // Sem rótulo: o ícone basta na leitura (o local e a região na mesma linha, a distância logo abaixo).
         compose.onNode(hasText("SQN 108, Asa Norte", substring = true)).assertExists()
         compose.onNode(hasText("4,2 km", substring = true)).assertExists()
@@ -154,7 +154,7 @@ class TelaDetalheVagaTest {
             }
         }
 
-        compose.onNodeWithText("Modo seleção: contratante escolhe depois").assertIsDisplayed()
+        compose.onNodeWithText("O estabelecimento escolhe entre os interessados.").assertIsDisplayed()
         compose.onNodeWithText("Candidatar-se").assertExists().assertIsEnabled()
     }
 
@@ -768,7 +768,7 @@ class TelaDetalheVagaTest {
     fun `por selecao, antes de candidatar mostra Por selecao e a frase da casa`() {
         candidatarEm("selecao", respostaPendente)
         compose.onNodeWithText("Por seleção").assertIsDisplayed()
-        compose.onNodeWithText("Modo seleção: contratante escolhe depois").assertIsDisplayed()
+        compose.onNodeWithText("O estabelecimento escolhe entre os interessados.").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("Você se candidatou.").fetchSemanticsNodes().size)
     }
@@ -782,7 +782,7 @@ class TelaDetalheVagaTest {
         compose.onNodeWithText("Aguardando resposta").assertIsDisplayed()
         compose.onNodeWithText("Você se candidatou.").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("Por seleção").fetchSemanticsNodes().size)
-        assertEquals(0, compose.onAllNodesWithText("Modo seleção: contratante escolhe depois").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("O estabelecimento escolhe entre os interessados.").fetchSemanticsNodes().size)
     }
 
     @Test
@@ -804,7 +804,7 @@ class TelaDetalheVagaTest {
 
         compose.onNodeWithText("Urgência").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
-        compose.onNodeWithText("Modo urgência: confirmação na hora").assertIsDisplayed()
+        compose.onNodeWithText("Se aceitar, o turno é seu.").assertIsDisplayed()
     }
 
     @Test
@@ -815,5 +815,34 @@ class TelaDetalheVagaTest {
 
         assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
         compose.onNodeWithText("Por seleção").assertIsDisplayed()
+    }
+
+    // ── O texto do modo (DLjTVc2e, item 152) ──────────────────────────────────────────────────────────────────────────
+
+    private fun notaDoModo(modo: String): String {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga(modo = modo))) } }
+        return compose.onNodeWithTag("nota-do-modo").fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("") { it.text }
+    }
+
+    @Test
+    fun `em urgencia a frase e a nota sao as do iOS`() {
+        assertEquals(
+            "Se houver uma posição disponível e sua candidatura for válida, o turno é confirmado na hora, sem aprovação do contratante.",
+            notaDoModo("urgencia"),
+        )
+        compose.onNodeWithText("Se aceitar, o turno é seu.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `por selecao a frase e a nota sao as do iOS`() {
+        assertEquals("O estabelecimento escolhe entre os candidatos. Enviar a candidatura não confirma o turno.", notaDoModo("selecao"))
+        compose.onNodeWithText("O estabelecimento escolhe entre os interessados.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `os textos antigos do modo nao aparecem mais`() {
+        notaDoModo("selecao")
+        assertEquals(0, compose.onAllNodesWithText("Modo seleção", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Modo urgência", substring = true).fetchSemanticsNodes().size)
     }
 }
