@@ -92,11 +92,16 @@ class LimpezaDoAvatarTest {
     private fun cache() = CacheVagasDaSessao(raiz = null, diretorioDosAvatares = arquivos)
 
     @Test
-    fun `avatar que nao da para apagar nem esvaziar nao faz limpar lancar e fica registrado`() {
+    fun `avatar que nao da para apagar nem esvaziar faz limpar lancar e fica registrado`() {
         impedirEsvaziar(avatar())
         impedirExclusao()
 
-        cache().limpar()
+        try {
+            cache().limpar()
+            org.junit.Assert.fail("esperava IOException: a foto seguiria legível")
+        } catch (esperada: java.io.IOException) {
+            assertEquals("Não foi possível apagar nem esvaziar o avatar", esperada.message)
+        }
 
         val registros = ShadowLog.getLogsForTag("FrilaSessao")
         assertEquals("esperava um registro da falha", 1, registros.size)
@@ -256,7 +261,7 @@ class LimpezaDoAvatarTest {
         impedirEsvaziar(avatar("${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}conta-sintetica-123.jpg"))
         impedirExclusao()
 
-        cache().limpar()
+        try { cache().limpar() } catch (_: java.io.IOException) { }
 
         val mensagem = ShadowLog.getLogsForTag("FrilaSessao").single().msg
         assertFalse(mensagem, mensagem.contains("conta-sintetica-123"))

@@ -54,10 +54,13 @@ internal class CacheVagasDaSessao(
         diretorioDosAvatares?.listFiles { arquivo ->
             arquivo.isFile && (arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO)
         }?.forEach {
-            // Sem apagar, o avatar é esvaziado (descartar): senão a foto de A seguiria legível para B. Só o que resta legível é
-            // registrado, não lançado, como a telemetria: a exceção abortava o Sair (CoordenadorDeLogout) e, na troca de conta,
-            // vinha antes de gravar a sessão nova e impedia o login.
-            if (!CompressorDeFotoPerfil.descartar(it)) Log.w(TAG, "Não foi possível apagar nem esvaziar o avatar da conta anterior")
+            // Sem apagar, o avatar é esvaziado (descartar), e então nada trava: a falha de apagar do caso comum não aborta o Sair
+            // (CoordenadorDeLogout) nem impede o login da conta nova. Só se a foto continuar legível (nem apagar nem esvaziar
+            // funcionou) a falha sobe: sem isso a foto de A seguiria legível para B, e a troca é barrada, como antes (revisão do #1087).
+            if (!CompressorDeFotoPerfil.descartar(it)) {
+                Log.w(TAG, "Não foi possível apagar nem esvaziar o avatar da conta anterior")
+                falha = IOException("Não foi possível apagar nem esvaziar o avatar")
+            }
         }
         falha?.let { throw it }
     }
