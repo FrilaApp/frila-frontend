@@ -74,13 +74,13 @@ class RepublicarPosicoesRestantesViewModel(
     private fun mensagemDaFalha(erro: Exception): String {
         val daApi = erro as? ErroDaApi ?: return TextosRepublicarPosicoesRestantes.ERRO_GENERICO
         return when (daApi.codigo) {
-            CodigoErroAPI.REPUBLICACAO_INDISPONIVEL -> when (daApi.detalhes) {
-                "ja_republicada" -> TextosRepublicarPosicoesRestantes.JA_REPUBLICADA
-                "sem_posicoes_restantes" -> TextosRepublicarPosicoesRestantes.SEM_POSICOES_RESTANTES
-                "selecao_em_curso" -> TextosRepublicarPosicoesRestantes.SELECAO_EM_CURSO
-                "ja_comecou" -> TextosRepublicarPosicoesRestantes.JA_COMECOU
-                "vaga_cancelada" -> TextosRepublicarPosicoesRestantes.VAGA_CANCELADA
-                "nao_e_selecao" -> TextosRepublicarPosicoesRestantes.NAO_E_SELECAO
+            CodigoErroAPI.REPUBLICACAO_INDISPONIVEL -> when (daApi.detalhesComoCodigo) {
+                CodigoErroAPI.JA_REPUBLICADA -> TextosRepublicarPosicoesRestantes.JA_REPUBLICADA
+                CodigoErroAPI.SEM_POSICOES_RESTANTES -> TextosRepublicarPosicoesRestantes.SEM_POSICOES_RESTANTES
+                CodigoErroAPI.SELECAO_EM_CURSO -> TextosRepublicarPosicoesRestantes.SELECAO_EM_CURSO
+                CodigoErroAPI.JA_COMECOU -> TextosRepublicarPosicoesRestantes.JA_COMECOU
+                CodigoErroAPI.VAGA_CANCELADA -> TextosRepublicarPosicoesRestantes.VAGA_CANCELADA
+                CodigoErroAPI.NAO_E_SELECAO -> TextosRepublicarPosicoesRestantes.NAO_E_SELECAO
                 else -> TextosRepublicarPosicoesRestantes.INDISPONIVEL
             }
             CodigoErroAPI.VAGA_OCULTA -> TextosRepublicarPosicoesRestantes.VAGA_OCULTA

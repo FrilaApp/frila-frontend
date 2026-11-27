@@ -143,7 +143,7 @@ class FotoDePerfilViewModelTest {
         )
         assertEquals(
             TextosDaFotoDePerfil.ERRO_RECUSADA_PELO_SERVIDOR,
-            FotoDePerfilViewModel.mensagemDaFalha(erroDaApi(CodigoErroAPI.DESCONHECIDO, "midia_invalida", "formato")),
+            FotoDePerfilViewModel.mensagemDaFalha(erroDaApi(CodigoErroAPI.MIDIA_INVALIDA, "midia_invalida", "formato")),
         )
         assertEquals(TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA, FotoDePerfilViewModel.mensagemDaFalha(IllegalStateException("x")))
     }
