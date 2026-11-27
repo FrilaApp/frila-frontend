@@ -25,17 +25,19 @@ internal class BuscaGuardada(
  * confirmação, a chave de idempotência de cada pedido e o trabalho da busca morreriam junto: a visita seguinte mandaria outro trabalho completo
  * com chave nova, e o servidor, sem reconhecer a chave, poderia abrir uma 2ª vaga (dinheiro). Sem pendência, nada é guardado e a busca recomeça limpa.
  *
- * O logout, a troca de conta e a expiração da sessão esvaziam tudo ([limpar]). Cada [limpar] muda a [geracao]: um view model que nasceu antes
- * não consegue guardar depois, e a tela da conta que saiu, ao ser fechada, não devolve à guarda o que acabou de ser apagado.
+ * O logout, a troca de conta e a expiração da sessão esvaziam tudo ([limpar]). Cada [limpar] muda a geração: um view model que nasceu antes
+ * não consegue guardar nem remover depois. A tela da conta que saiu, ao ser fechada, não devolve à guarda o que acabou de ser apagado, nem
+ * apaga o que a conta seguinte deixou na mesma casa.
  */
 class GuardaDaBusca {
     private val porCasa = HashMap<String, BuscaGuardada>()
     private var geracaoAtual = 0
 
-    /** A geração de agora: o view model a lê ao nascer e a devolve ao guardar. */
-    internal fun geracao(): Int = synchronized(this) { geracaoAtual }
-
-    internal fun obter(casaId: String): BuscaGuardada? = synchronized(this) { porCasa[casaId] }
+    /**
+     * O que está guardado para a casa e a geração de agora, lidos juntos: o view model chama ao nascer e devolve a geração ao guardar e ao
+     * remover. Em duas leituras, um [limpar] no meio daria a pendência da conta que saiu com a geração da conta seguinte.
+     */
+    internal fun abrir(casaId: String): Pair<BuscaGuardada?, Int> = synchronized(this) { porCasa[casaId] to geracaoAtual }
 
     /** Só guarda se nenhum [limpar] aconteceu desde que o view model nasceu ([geracaoDaVisita]). */
     internal fun guardar(casaId: String, guardada: BuscaGuardada, geracaoDaVisita: Int) {
@@ -44,8 +46,11 @@ class GuardaDaBusca {
         }
     }
 
-    internal fun remover(casaId: String) {
-        synchronized(this) { porCasa.remove(casaId) }
+    /** Como [guardar], só remove se nenhum [limpar] aconteceu desde que o view model nasceu ([geracaoDaVisita]). */
+    internal fun remover(casaId: String, geracaoDaVisita: Int) {
+        synchronized(this) {
+            if (geracaoDaVisita == geracaoAtual) porCasa.remove(casaId)
+        }
     }
 
     /** Esvazia todas as casas: o envio pendente é da conta que saiu. */
