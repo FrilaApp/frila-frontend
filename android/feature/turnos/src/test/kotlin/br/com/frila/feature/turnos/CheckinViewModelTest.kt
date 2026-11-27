@@ -7,6 +7,7 @@ import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -533,5 +534,35 @@ class CheckinViewModelTest {
         val comprovante = viewModel.estado.value.comprovante
         assertNotNull(comprovante)
         assertEquals(TipoVerificacaoCheckin.NAO_VERIFICADO, comprovante!!.tipoVerificacao)
+    }
+
+
+    // ---- 422 registro_no_futuro e sem rede no check-in (cartão Gk6JX2wW, 104): só teste, o mapeamento já existe ----
+
+    @Test
+    fun `422 registro_no_futuro no check-in pede para ajustar o horario do aparelho`() = runBlocking {
+        val servico = servicoComResposta(
+            json = """{"code":"registro_no_futuro","message":"x","details":null}""",
+            status = HttpStatusCode.UnprocessableEntity,
+        )
+        val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servico)
+
+        viewModel.fazerCheckin().join()
+
+        assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status)
+        assertEquals("O horário do aparelho está incorreto. Ajuste e tente de novo.", viewModel.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `check-in sem rede mostra a mensagem de sem conexao`() = runBlocking {
+        // O cliente converte a falha de conexão em ErroDaApi(SEM_REDE) (ClienteSupabase, HttpResponseValidator).
+        val engine = MockEngine { throw ConnectTimeoutException("sem rede") }
+        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+        val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servico)
+
+        viewModel.fazerCheckin().join()
+
+        assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status)
+        assertEquals("Sem conexão. Verifique sua internet e tente de novo.", viewModel.estado.value.mensagemErro)
     }
 }

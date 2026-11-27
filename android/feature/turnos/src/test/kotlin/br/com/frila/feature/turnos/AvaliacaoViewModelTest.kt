@@ -4,6 +4,7 @@ import br.com.frila.core.rede.EventoDeTelemetria
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -406,5 +407,37 @@ class AvaliacaoViewModelTest {
         assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
         assertEquals(false, viewModel.estado.value.respostaRegistrada, "a resposta gravada, achada pela releitura com a casa")
         assertEquals(2, leituras.get())
+    }
+
+
+    // ---- 403 sem_permissao e sem rede ao avaliar (cartão Gk6JX2wW, 103): só teste, o mapeamento já existe ----
+
+    @Test
+    fun `avaliar recusado com 403 sem_permissao mostra que nao ha permissao para avaliar este turno`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = """{"code":"sem_permissao","message":"x","details":null}""",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
+        assertEquals("Você não tem permissão para avaliar este turno.", viewModel.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `avaliar sem rede mostra a mensagem de sem conexao`() = runBlocking {
+        // O cliente converte a falha de conexão em ErroDaApi(SEM_REDE) (ClienteSupabase, HttpResponseValidator).
+        val viewModel = viewModelComEngine(MockEngine { throw ConnectTimeoutException("sem rede") })
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
+        assertEquals("Sem conexão. Verifique sua internet e tente de novo.", viewModel.estado.value.mensagemErro)
     }
 }
