@@ -57,16 +57,16 @@ class CancelamentoDaPosicaoInstrumentedTest {
         montar(cancelamentos)
 
         // Sem motivo escolhido, e depois com "Outro motivo" ainda sem o detalhe, o confirmar fica travado e nada é enviado.
-        compose.onNodeWithText("Confirmar cancelamento").performScrollTo()
+        compose.onNodeWithText("Confirmar cancelamento")
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).assertIsNotEnabled()
         compose.onNodeWithText("Outro motivo").performScrollTo().performClick()
         compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").assertIsDisplayed()
-        compose.onNodeWithText("Confirmar cancelamento").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
         compose.runOnIdle { assertNull(cancelamentos.recebido) }
 
         compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").performTextInput("Imprevisto")
         closeSoftKeyboard()
-        compose.onNodeWithText("Confirmar cancelamento").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
 
         compose.runOnIdle { assertEquals("posicao" to "Imprevisto", cancelamentos.recebido) }
         compose.onNodeWithText("Posição cancelada. A vaga voltou a procurar profissional.")
@@ -78,7 +78,7 @@ class CancelamentoDaPosicaoInstrumentedTest {
         montar(cancelamentos)
 
         compose.onNodeWithText("Movimento menor que o esperado").performScrollTo().performClick()
-        compose.onNodeWithText("Confirmar cancelamento").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
 
         compose.runOnIdle { assertEquals("posicao" to "Movimento menor que o esperado", cancelamentos.recebido) }
         compose.onNodeWithText("Posição cancelada. A vaga voltou a procurar profissional.")
