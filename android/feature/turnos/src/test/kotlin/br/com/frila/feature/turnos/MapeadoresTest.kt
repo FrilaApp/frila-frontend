@@ -71,6 +71,32 @@ class MapeadoresTest {
     }
 
     @Test
+    fun `hora de check-in ilegivel e check-in feito com horario desconhecido, nunca a hora de agora`() {
+        // O servidor mandou checkin_em (não nulo): o check-in FOI feito, só a hora não lê. Antes: getOrDefault(Instant.now()) inventava a
+        // hora; "sem comprovante" (a primeira correção) inventava o estado: a tela voltava a oferecer "Fazer check-in".
+        for (ilegivel in listOf("ontem", "")) {
+            val comprovante = criarTurnoDto(checkinEm = ilegivel).paraItem().comprovante
+            assertNotNull(comprovante, "checkinEm=\"$ilegivel\"")
+            assertNull(comprovante!!.registradoEm, "sem hora inventada, checkinEm=\"$ilegivel\"")
+            assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante.tipoVerificacao)
+        }
+    }
+
+    @Test
+    fun `hora de check-in legivel vira o comprovante com essa hora, e sem check-in nao ha comprovante`() {
+        assertEquals(
+            java.time.Instant.parse("2026-11-01T21:05:00Z"),
+            criarTurnoDto(checkinEm = "2026-11-01T21:05:00Z").paraItem().comprovante?.registradoEm,
+        )
+        assertNull(criarTurnoDto(checkinEm = null).paraItem().comprovante)
+    }
+
+    @Test
+    fun `checkin_em nulo continua sendo sem check-in`() {
+        assertNull(criarTurnoDto(checkinEm = null, checkinTipo = null, verificacao = "pendente").paraItem().comprovante)
+    }
+
+    @Test
     fun `C0-9 - o item leva o id da casa, alvo de Denunciar no turno`() {
         assertEquals("contraparte-1", criarTurnoDto().paraItem().contraparteId)
     }
