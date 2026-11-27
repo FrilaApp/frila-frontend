@@ -1,6 +1,7 @@
 package br.com.frila.feature.vagas.feed
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -39,6 +41,7 @@ import br.com.frila.core.designsystem.componentes.ChipFrila
 import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.EstadoVazio
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
+import br.com.frila.core.designsystem.componentes.IndicadorCarregando
 import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
@@ -109,12 +112,20 @@ fun TelaFeedVagas(
                     StatusFeed.VAZIO -> item(key = "vazio") { VazioFeed(textoBusca = estado.textoBusca) }
                     StatusFeed.SUCESSO -> items(estado.vagas, key = { it.id }) { vaga ->
                         LaunchedEffect(vaga.id) { viewModel.registrarVagaVista(vaga.id) }
+                        // O último cartão na tela pede a página seguinte (como o `.task` do último cartão no iOS).
+                        val ultima = vaga.id == estado.vagas.last().id
+                        LaunchedEffect(vaga.id, ultima) { if (ultima) viewModel.carregarMais() }
                         CartaoDeVagaDoFeed(
                             vaga = vaga,
                             emDestaque = vaga.id == estado.vagas.first().id,
                             aoAbrir = { aoAbrirDetalhe(vaga.id) },
                             modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
                         )
+                    }
+                }
+                if (estado.haMaisPaginas && (estado.status == StatusFeed.SUCESSO || estado.status == StatusFeed.VAZIO)) {
+                    item(key = "carregar-mais") {
+                        RodapeDaPaginacao(carregando = estado.carregandoMais, aoCarregarMais = { viewModel.carregarMais() })
                     }
                 }
             }
@@ -252,15 +263,55 @@ private fun CabecalhoDaLista(estado: EstadoFeed) {
         )
         Spacer(modifier = Modifier.weight(1f))
         if (estado.status == StatusFeed.SUCESSO && estado.vagas.isNotEmpty()) {
-            val total = estado.vagas.size
             Text(
-                text = if (total == 1) "1 vaga" else "$total vagas",
+                text = textoDaContagem(estado.vagas.size, estado.haMaisPaginas),
                 style = FrilaTipo.apoio,
                 color = cores.tintaSuave,
             )
         }
     }
 }
+
+/** "30 vagas" quando é tudo; "30 vagas carregadas" quando o servidor tem mais (como `contagem(total:haMais:)` do iOS). */
+internal fun textoDaContagem(total: Int, haMais: Boolean): String = when {
+    haMais && total == 1 -> "1 vaga carregada"
+    haMais -> "$total vagas carregadas"
+    total == 1 -> "1 vaga"
+    else -> "$total vagas"
+}
+
+/**
+ * O fim da lista quando o servidor tem mais vagas: o indicador enquanto a página seguinte vem e, fora isso, "Carregar mais vagas".
+ * O botão cobre o que o último cartão não dispara sozinho: depois de uma falha, ou quando os filtros locais esvaziaram o que veio.
+ */
+@Composable
+private fun RodapeDaPaginacao(carregando: Boolean, aoCarregarMais: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.bloco),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (carregando) {
+            IndicadorCarregando(
+                modifier = Modifier
+                    .testTag(TAG_CARREGANDO_MAIS)
+                    .semantics { contentDescription = TEXTO_CARREGANDO_MAIS },
+            )
+        } else {
+            BotaoSecundario(
+                texto = TEXTO_CARREGAR_MAIS,
+                aoClicar = aoCarregarMais,
+                modifier = Modifier.fillMaxWidth().testTag(TAG_CARREGAR_MAIS),
+            )
+        }
+    }
+}
+
+internal const val TEXTO_CARREGAR_MAIS = "Carregar mais vagas"
+internal const val TEXTO_CARREGANDO_MAIS = "Carregando mais vagas"
+internal const val TAG_CARREGAR_MAIS = "feed-carregar-mais"
+internal const val TAG_CARREGANDO_MAIS = "feed-carregando-mais"
 
 /** Folha dos filtros adicionais do RF05/RF10/RN01. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
