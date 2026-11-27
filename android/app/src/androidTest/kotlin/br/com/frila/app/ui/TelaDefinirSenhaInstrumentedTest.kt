@@ -1,7 +1,9 @@
 package br.com.frila.app.ui
 
 import android.graphics.Bitmap
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -63,38 +65,51 @@ class TelaDefinirSenhaInstrumentedTest {
     @Test
     fun provaInterativaNosDoisCamposEmEmuladorReal() {
         val viewModel = criarViewModel()
+        lateinit var focusManager: FocusManager
         composeTestRule.setContent {
+            focusManager = LocalFocusManager.current
             FrilaTheme {
                 TelaDefinirSenha(viewModel = viewModel, aoConcluir = {})
             }
         }
 
+        val capturarSemCaret: (String) -> Bitmap = { rotulo ->
+            composeTestRule.runOnIdle { focusManager.clearFocus(force = true) }
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithText(rotulo).captureToImage().asAndroidBitmap()
+        }
+
         composeTestRule.onNodeWithText("Nova senha").assertIsDisplayed()
         composeTestRule.onNodeWithText("Confirmar senha").assertIsDisplayed()
-        val vazioCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
 
-        // Digitação rápida no primeiro campo: captura pixels antes (<1s) e depois (>1s) do mascaramento
-        val t0 = System.currentTimeMillis()
+        // 1) Nova senha: antes (<1s) != referência mascarada; depois (>1s) == referência mascarada; controle negativo ==
         composeTestRule.onNodeWithText("Nova senha").performTextInput("a")
         composeTestRule.onNodeWithText("Nova senha").performTextInput("b")
         composeTestRule.onNodeWithText("Nova senha").performTextInput("W")
-        val tAposInput = System.currentTimeMillis() - t0
-        Thread.sleep(150)
-        val antesCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
+        val antesCampo1 = capturarSemCaret("Nova senha")
         Thread.sleep(1_150)
         composeTestRule.mainClock.advanceTimeBy(1_200)
-        composeTestRule.waitForIdle()
-        val depoisCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
+        val depoisCampo1 = capturarSemCaret("Nova senha")
 
-        // Compara também com exclusão (abW1 -> abW) que garante mascaramento total imediato
+        // Referência totalmente mascarada via exclusão (abW1 -> abW) sem caret
         composeTestRule.onNodeWithText("Nova senha").performTextInput("1")
         composeTestRule.onNodeWithText("Nova senha").performTextReplacement("abW")
-        composeTestRule.waitForIdle()
-        val mascaradoCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
+        val mascaradoCampo1 = capturarSemCaret("Nova senha")
+        Thread.sleep(1_150)
+        composeTestRule.mainClock.advanceTimeBy(1_200)
+        val controleNegativoCampo1 = capturarSemCaret("Nova senha")
 
         org.junit.Assert.assertFalse(
-            "Os pixels renderizados em Nova senha devem mudar entre <1s (t=${tAposInput}ms, igualVazio=${antesCampo1.sameAs(vazioCampo1)}, igualMascarado=${antesCampo1.sameAs(mascaradoCampo1)}) e >1s (depoisIgualMascarado=${depoisCampo1.sameAs(mascaradoCampo1)})",
-            antesCampo1.sameAs(depoisCampo1),
+            "Antes de 1 s, Nova senha deve diferir da referência totalmente mascarada",
+            antesCampo1.sameAs(mascaradoCampo1),
+        )
+        org.junit.Assert.assertTrue(
+            "Após >1 s, Nova senha deve coincidir pixel a pixel com a referência totalmente mascarada",
+            depoisCampo1.sameAs(mascaradoCampo1),
+        )
+        org.junit.Assert.assertTrue(
+            "Controle negativo: referência mascarada não pode mudar com o tempo (zero falso positivo de cursor)",
+            mascaradoCampo1.sameAs(controleNegativoCampo1),
         )
         assertEquals("abW", viewModel.estado.value.senha)
 
@@ -107,18 +122,25 @@ class TelaDefinirSenhaInstrumentedTest {
         composeTestRule.waitForIdle()
         assertEquals("abXcolado12", viewModel.estado.value.senha)
 
-        // Segundo campo (Confirmar senha): captura pixels antes (<1s) e depois (>1s) do mascaramento
+        // 2) Confirmar senha: antes (<1s) != referência mascarada; depois (>1s) == referência mascarada
         composeTestRule.onNodeWithText("Confirmar senha").performTextInput("x")
         composeTestRule.onNodeWithText("Confirmar senha").performTextInput("K")
-        Thread.sleep(150)
-        val antesCampo2 = composeTestRule.onNodeWithText("Confirmar senha").captureToImage().asAndroidBitmap()
+        val antesCampo2 = capturarSemCaret("Confirmar senha")
         Thread.sleep(1_150)
         composeTestRule.mainClock.advanceTimeBy(1_200)
-        composeTestRule.waitForIdle()
-        val depoisCampo2 = composeTestRule.onNodeWithText("Confirmar senha").captureToImage().asAndroidBitmap()
+        val depoisCampo2 = capturarSemCaret("Confirmar senha")
+
+        composeTestRule.onNodeWithText("Confirmar senha").performTextInput("1")
+        composeTestRule.onNodeWithText("Confirmar senha").performTextReplacement("xK")
+        val mascaradoCampo2 = capturarSemCaret("Confirmar senha")
+
         org.junit.Assert.assertFalse(
-            "Os pixels renderizados em Confirmar senha devem mudar entre <1s (caractere K visível) e >1s (bolinha)",
-            antesCampo2.sameAs(depoisCampo2),
+            "Antes de 1 s, Confirmar senha deve diferir da referência totalmente mascarada",
+            antesCampo2.sameAs(mascaradoCampo2),
+        )
+        org.junit.Assert.assertTrue(
+            "Após >1 s, Confirmar senha deve coincidir pixel a pixel com a referência totalmente mascarada",
+            depoisCampo2.sameAs(mascaradoCampo2),
         )
         assertEquals("xK", viewModel.estado.value.confirmacao)
     }
