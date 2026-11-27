@@ -93,6 +93,7 @@ class AppNavegacaoPerfilRicoTest {
         every { vm.situacao } returns MutableStateFlow(SituacaoDaFoto())
         abrirRota(Rotas.FOTO_DE_PERFIL, module { viewModel { vm } })
         rule.onNodeWithText(TextosDaFotoDePerfil.ESCOLHER_FOTO).assertExists()
+        io.mockk.verify(exactly = 1) { vm.carregar() } // a tela lê minhas_midias ao abrir
     }
 
     @Test
