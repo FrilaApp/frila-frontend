@@ -565,8 +565,9 @@ class DetalheVagaViewModelTest {
             else respond("""{"code":"posicao_ja_preenchida","message":"x"}""", HttpStatusCode.Conflict, cabecalhoJson)
         }
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        // Com o detalhe já lido (aberta pelo id), a tela não faz a leitura de `detalhe_vaga`: o que se conta aqui são só as candidaturas.
         val vm = DetalheVagaViewModel(
-            vagaDe("urgencia"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default),
+            vagaDe("urgencia"), ServicoVagas(cliente), detalhe = vagaDoServidor(), escopo = CoroutineScope(Dispatchers.Default),
             registrarEvento = { evento, _, _ -> eventos += evento },
         )
 
@@ -595,8 +596,9 @@ class DetalheVagaViewModelTest {
             else respond(confirmadaJson, HttpStatusCode.OK, cabecalhoJson)
         }
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        // Com o detalhe já lido (aberta pelo id), a tela não faz a leitura de `detalhe_vaga`: o que se conta aqui são só as candidaturas.
         val vm = DetalheVagaViewModel(
-            vagaDe("urgencia"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default),
+            vagaDe("urgencia"), ServicoVagas(cliente), detalhe = vagaDoServidor(), escopo = CoroutineScope(Dispatchers.Default),
             registrarEvento = { evento, _, _ -> eventos += evento },
         )
 
@@ -620,7 +622,7 @@ class DetalheVagaViewModelTest {
                 respond(confirmadaJson, HttpStatusCode.OK, cabecalhoJson)
             }
             val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
-            val vm = DetalheVagaViewModel(vagaDe("urgencia"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+            val vm = DetalheVagaViewModel(vagaDe("urgencia"), ServicoVagas(cliente), detalhe = vagaDoServidor(), escopo = CoroutineScope(Dispatchers.Default))
             val threads = 12
             val largada = java.util.concurrent.CyclicBarrier(threads)
             val jobs = java.util.Collections.synchronizedList(mutableListOf<kotlinx.coroutines.Job>())
@@ -677,5 +679,69 @@ class DetalheVagaViewModelTest {
 
         assertTrue(viewModel.estado.value.ehConflitoHorario)
         assertFalse(viewModel.estado.value.ehFuncaoIncompativel)
+    }
+
+    // ── A leitura de detalhe_vaga ao abrir pelo feed (DLjTVc2e) ───────────────────────────────────────────────────────
+
+    private fun detalheJson(responsavel: String = "Procure a gerente no balcão", rateio: Boolean? = true) =
+        ClienteSupabase.jsonFrila.encodeToString(
+            br.com.frila.core.rede.VagaDto.serializer(),
+            vagaDoServidor().copy(responsavelLocal = responsavel, participaRateio = rateio),
+        )
+
+    @Test
+    fun `aberta pelo feed le detalhe_vaga uma vez e completa o que a lista nao traz, sem trocar o que ja estava`() = runBlocking {
+        val caminhos = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val corpos = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val engine = MockEngine { request ->
+            caminhos += request.url.encodedPath
+            corpos += (request.body as? io.ktor.http.content.TextContent)?.text.orEmpty()
+            respond(detalheJson(), HttpStatusCode.OK, cabecalhoJson)
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val vaga = vagaDe("selecao")
+        val vm = DetalheVagaViewModel(vaga, ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+
+        // Na hora, o que o feed trouxe; o detalhe chega depois.
+        assertEquals(vaga, vm.estado.value.vaga)
+        kotlinx.coroutines.withTimeout(5_000) { while (vm.estado.value.detalhe == null) kotlinx.coroutines.delay(5) }
+
+        assertEquals(vaga, vm.estado.value.vaga, "a vaga do feed não é trocada")
+        val detalhe = vm.estado.value.detalhe!!
+        assertEquals("Procure a gerente no balcão", detalhe.responsavelLocal)
+        assertEquals("Camisa preta", detalhe.traje)
+        assertEquals("Chegar 15 minutos antes", detalhe.observacoes)
+        assertEquals(true, detalhe.participaRateio)
+        assertEquals(listOf("/rest/v1/rpc/detalhe_vaga"), caminhos.toList(), "uma leitura só")
+        assertEquals(true, corpos.single().contains(vaga.id), "pede o detalhe desta vaga: ${corpos.single()}")
+    }
+
+    @Test
+    fun `se a leitura do detalhe falha, fica o que veio do feed, sem erro de tela`() = runBlocking {
+        val engine = MockEngine { respond("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound, cabecalhoJson) }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val vaga = vagaDe("selecao")
+        val vm = DetalheVagaViewModel(vaga, ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+
+        kotlinx.coroutines.delay(300)
+
+        val estado = vm.estado.value
+        assertEquals(vaga, estado.vaga)
+        assertEquals(null, estado.detalhe)
+        assertEquals(null, estado.mensagem)
+        assertEquals(StatusCandidatura.NENHUMA, estado.statusCandidatura)
+    }
+
+    @Test
+    fun `aberta pelo id, com o detalhe ja lido, nao le de novo`() = runBlocking {
+        val pedidos = java.util.concurrent.atomic.AtomicInteger(0)
+        val engine = MockEngine { pedidos.incrementAndGet(); respond(detalheJson("Outro"), HttpStatusCode.OK, cabecalhoJson) }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val vm = DetalheVagaViewModel(vagaDe("selecao"), ServicoVagas(cliente), detalhe = vagaDoServidor(), escopo = CoroutineScope(Dispatchers.Default))
+
+        kotlinx.coroutines.delay(300)
+
+        assertEquals(0, pedidos.get())
+        assertEquals("Procure a gerente no balcão", vm.estado.value.detalhe!!.responsavelLocal)
     }
 }

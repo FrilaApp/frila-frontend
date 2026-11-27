@@ -65,6 +65,8 @@ data class AcoesMinhasVagas(
     val aoAtualizar: () -> Unit = {},
     val aoVerCandidatos: (ItemMinhaVaga) -> Unit = {},
     val aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit = { _, _ -> },
+    /** "Confirmar presença" no cartão de "Presenças a confirmar", com o id do turno. `null` esconde o botão. */
+    val aoConfirmarPresenca: ((turnoId: String) -> Unit)? = null,
     val aoPublicarVaga: () -> Unit = {},
     /** RF19: "Publicar escala do evento", ao lado de "Publicar vaga". `null` esconde a entrada (a vaga avulsa não muda). */
     val aoPublicarEscala: (() -> Unit)? = null,
@@ -112,6 +114,7 @@ fun TelaMinhasVagas(
             aoAtualizar = { viewModel.atualizar() },
             aoVerCandidatos = { aoVerCandidatos(it.id, it.posicoesAbertas, it.inicio) },
             aoAcompanharTurno = aoAcompanharTurno,
+            aoConfirmarPresenca = if (viewModel.confirmaPeloCartao) ({ viewModel.confirmarPresenca(it) }) else null,
             aoPublicarVaga = { aoPublicarVaga(viewModel.estabelecimentoId) },
             aoPublicarEscala = aoPublicarEscala?.let { abrir -> { abrir(viewModel.estabelecimentoId) } },
             aoVoltar = aoVoltar,
@@ -212,6 +215,15 @@ fun ConteudoMinhasVagas(
                         )
                     }
                     is ListaMinhasVagas.Sucesso -> {
+                        estado.avisoDaPresenca?.let { aviso ->
+                            item(key = "aviso-da-presenca") {
+                                AvisoFrila(
+                                    tom = if (aviso.erro) TomAviso.ERRO else TomAviso.INFORMATIVO,
+                                    mensagem = aviso.mensagem,
+                                    modifier = Modifier.testTag("aviso-da-presenca"),
+                                )
+                            }
+                        }
                         if (estado.presencasAConfirmar.isNotEmpty()) {
                             item(key = "secao-presencas-a-confirmar") {
                                 RotuloDeGrupo(
@@ -220,7 +232,12 @@ fun ConteudoMinhasVagas(
                                 )
                             }
                             items(estado.presencasAConfirmar, key = { "presenca-${it.turnoId}" }) { presenca ->
-                                CartaoDePresencaAConfirmar(presenca, acoes.aoAcompanharTurno)
+                                CartaoDePresencaAConfirmar(
+                                    presenca = presenca,
+                                    aoAcompanharTurno = acoes.aoAcompanharTurno,
+                                    aoConfirmar = acoes.aoConfirmarPresenca?.takeIf { estado.podeConfirmar(presenca.turnoId) },
+                                    confirmando = presenca.turnoId in estado.confirmando,
+                                )
                             }
                         }
                         SecaoMinhasVagas.entries.forEach { secao ->
@@ -241,7 +258,12 @@ fun ConteudoMinhasVagas(
 
 /** Um check-in manual que espera a casa: quem, a função, o período, o que fazer e o caminho para o turno (como o iOS). */
 @Composable
-private fun CartaoDePresencaAConfirmar(presenca: PresencaAConfirmar, aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit) {
+private fun CartaoDePresencaAConfirmar(
+    presenca: PresencaAConfirmar,
+    aoAcompanharTurno: (vagaId: String, posicaoId: String) -> Unit,
+    aoConfirmar: ((turnoId: String) -> Unit)?,
+    confirmando: Boolean,
+) {
     val cores = FrilaTema.cores
     CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("presenca-a-confirmar-${presenca.turnoId}")) {
         Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
@@ -257,6 +279,14 @@ private fun CartaoDePresencaAConfirmar(presenca: PresencaAConfirmar, aoAcompanha
                 }
             }
             Text(text = TextosMinhasVagas.EXPLICACAO_DA_CONFIRMACAO, style = FrilaTipo.corpo, color = cores.tinta)
+            if (aoConfirmar != null) {
+                BotaoSecundario(
+                    texto = if (confirmando) TextosMinhasVagas.CONFIRMANDO else TextosMinhasVagas.CONFIRMAR_PRESENCA,
+                    aoClicar = { aoConfirmar(presenca.turnoId) },
+                    habilitado = !confirmando,
+                    modifier = Modifier.fillMaxWidth().testTag("confirmar-presenca-${presenca.turnoId}"),
+                )
+            }
             LinkFrila(
                 texto = TextosMinhasVagas.ACOMPANHAR_TURNO,
                 aoClicar = { aoAcompanharTurno(presenca.vagaId, presenca.posicaoId) },

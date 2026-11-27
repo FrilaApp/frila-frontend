@@ -19,8 +19,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Detalhe de uma vaga e candidatura (RF08/RF09/RN10/RN19/RN21). `vaga` chega inteira da tela de
- * feed, que já tem o DTO carregado — não refaz a chamada de rede só para mostrar o detalhe. Aberta
- * pelo id, quem a leu foi o `AberturaDeVagaViewModel`, e o `detalhe` traz o que a lista não tem.
+ * feed, que já tem o DTO carregado: a tela mostra isso na hora e, como o iOS, uma única leitura de `detalhe_vaga` por abertura
+ * (feita pela pessoa; a lista não lê nada a mais) completa o que a lista não traz (responsável, observações, traje, rateio), sem piscar.
+ * Se a leitura falhar, fica o que veio do feed, sem erro de tela. Aberta pelo id, quem a leu foi o `AberturaDeVagaViewModel`, e o
+ * `detalhe` já vem pronto: não há segunda leitura.
  *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel`.
  */
@@ -38,7 +40,24 @@ class DetalheVagaViewModel(
     private val _estado = MutableStateFlow(EstadoDetalheVaga(vaga = vaga, detalhe = detalhe))
     val estado: StateFlow<EstadoDetalheVaga> = _estado.asStateFlow()
 
-    init { registrarEvento(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null) }
+    init {
+        registrarEvento(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null)
+        if (detalhe == null) completarComODetalhe(vaga.id)
+    }
+
+    /** Uma leitura, ao abrir pelo feed. Falhar (rede, 404, conta suspensa...) não é erro da tela: ela segue com o que a lista trouxe. */
+    private fun completarComODetalhe(vagaId: String) {
+        escopoDeTrabalho.launch {
+            try {
+                val lido = servicoVagas.detalheVaga(vagaId)
+                _estado.update { if (it.detalhe == null) it.copy(detalhe = lido) else it }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Fica o que veio do feed.
+            }
+        }
+    }
 
     /**
      * Uma candidatura por vez: a trava é do estado e atômica (como `ValidacaoDoCodigoViewModel.validar`), não só do botão, que só se
