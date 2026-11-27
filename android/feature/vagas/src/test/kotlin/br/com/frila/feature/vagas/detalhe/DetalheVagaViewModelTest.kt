@@ -545,4 +545,67 @@ class DetalheVagaViewModelTest {
         assertEquals(StatusCandidatura.ERRO, viewModel.estado.value.statusCandidatura)
         assertTrue(viewModel.estado.value.mensagem != null)
     }
+
+    // ---- Toque duplo em "Candidatar-se" (cartão LJpa8DDy): uma requisição e um evento só ----
+
+    private val confirmadaJson =
+        """{"estado":"confirmada","candidatura_id":"c1","posicao_id":"p1","turno_id":"t1","contato":{"nome":"Bar do Zé","telefone":"+5561999990000"}}"""
+    private val cabecalhoJson = headersOf(HttpHeaders.ContentType, "application/json")
+
+    @Test
+    fun `dois toques seguidos em candidatar mandam uma requisicao so, um evento so e nao trocam a confirmada por erro`() = runBlocking {
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val pedidos = java.util.concurrent.atomic.AtomicInteger(0)
+        val eventos = java.util.Collections.synchronizedList(mutableListOf<EventoDeTelemetria>())
+        // Em urgência a vaga acaba na primeira: um segundo pedido (se saísse) voltaria 409 posicao_ja_preenchida.
+        val engine = MockEngine {
+            val n = pedidos.incrementAndGet()
+            liberar.await()
+            if (n == 1) respond(confirmadaJson, HttpStatusCode.OK, cabecalhoJson)
+            else respond("""{"code":"posicao_ja_preenchida","message":"x"}""", HttpStatusCode.Conflict, cabecalhoJson)
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val vm = DetalheVagaViewModel(
+            vagaDe("urgencia"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default),
+            registrarEvento = { evento, _, _ -> eventos += evento },
+        )
+
+        val primeiro = vm.candidatar()
+        val segundo = vm.candidatar() // o segundo toque chega antes de a tela redesenhar e desligar o botão
+        assertEquals(StatusCandidatura.ENVIANDO, vm.estado.value.statusCandidatura)
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo.join()
+
+        assertEquals(1, pedidos.get())
+        assertEquals(1, eventos.count { it == EventoDeTelemetria.CANDIDATURA_ENVIADA })
+        val tela = vm.estado.value
+        assertEquals(StatusCandidatura.CONFIRMADA, tela.statusCandidatura)
+        assertEquals(true, tela.navegarParaConfirmada)
+        assertEquals(false, tela.ehVagaPreenchida)
+        assertEquals("Candidatura confirmada! Confira o contato abaixo.", tela.mensagem)
+    }
+
+    @Test
+    fun `depois de uma falha o toque seguinte candidata de novo, e o evento sai so no sucesso`() = runBlocking {
+        val pedidos = java.util.concurrent.atomic.AtomicInteger(0)
+        val eventos = java.util.Collections.synchronizedList(mutableListOf<EventoDeTelemetria>())
+        val engine = MockEngine {
+            if (pedidos.incrementAndGet() == 1) respond("""{"code":"sem_rede","message":"x"}""", HttpStatusCode.InternalServerError, cabecalhoJson)
+            else respond(confirmadaJson, HttpStatusCode.OK, cabecalhoJson)
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val vm = DetalheVagaViewModel(
+            vagaDe("urgencia"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default),
+            registrarEvento = { evento, _, _ -> eventos += evento },
+        )
+
+        vm.candidatar().join()
+        assertEquals(StatusCandidatura.ERRO, vm.estado.value.statusCandidatura)
+        vm.candidatar().join()
+
+        assertEquals(2, pedidos.get())
+        assertEquals(StatusCandidatura.CONFIRMADA, vm.estado.value.statusCandidatura)
+        assertEquals(1, eventos.count { it == EventoDeTelemetria.CANDIDATURA_ENVIADA })
+    }
 }
