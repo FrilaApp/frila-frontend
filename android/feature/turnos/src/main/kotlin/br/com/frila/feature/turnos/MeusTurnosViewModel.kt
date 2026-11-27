@@ -147,16 +147,24 @@ class MeusTurnosViewModel(
             }
         }
 
+    private fun comListaNaTela(): Boolean = _estado.value.comListaNaTela()
+
+    private fun EstadoMeusTurnos.comListaNaTela() = status == StatusMeusTurnos.SUCESSO || status == StatusMeusTurnos.VAZIO
+
     /**
      * Relê os turnos sem trocar a lista pelo esqueleto de carregamento: a tela que espera o `fim` previsto para liberar a avaliação
-     * (#672) não pode piscar nem perder o que mostra. Uma falha deixa a lista como está.
+     * (#672) não pode piscar nem perder o que mostra. Uma falha deixa a lista como está. Só com a lista na tela (SUCESSO ou VAZIO), como o
+     * iOS: em CARREGANDO disputaria a carga, e em ERRO tiraria a tela do erro sem limpar a mensagem.
      */
     fun atualizarSemPiscar(): Job = escopoDeTrabalho.launch {
+        if (!comListaNaTela()) return@launch
         try {
             val turnos = servicoTurnos.listarMeusTurnos()
             val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
             val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
             _estado.update {
+                // A carga ou um erro pode ter começado durante a leitura: quem manda na tela agora não é esta releitura.
+                if (!it.comListaNaTela()) return@update it
                 it.copy(
                     status = if (turnos.isEmpty()) StatusMeusTurnos.VAZIO else StatusMeusTurnos.SUCESSO,
                     agendados = agendados,

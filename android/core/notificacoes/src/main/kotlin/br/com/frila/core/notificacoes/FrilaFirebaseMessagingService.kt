@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import org.koin.core.component.KoinComponent
@@ -26,6 +27,7 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
 
     private val registradorDeDispositivo: RegistradorDeDispositivo by inject()
     private val processadorDePush: ProcessadorDePush by inject()
+    private val atualizacaoAutomatica: AtualizacaoAutomatica by inject()
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -37,6 +39,8 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
         val notificacao = processadorDePush.processar(remoteMessage.data)
+        // As listas abertas relêem (HaRJJ0L0), mesmo com o canal silenciado ou sem a permissão de aviso: o dado mudou.
+        AvisoParaAtualizacao.sinalizar(notificacao, atualizacaoAutomatica)
         exibir(notificacao)
     }
 

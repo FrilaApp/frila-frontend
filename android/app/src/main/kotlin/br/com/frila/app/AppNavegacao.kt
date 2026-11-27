@@ -37,6 +37,8 @@ import androidx.navigation.compose.rememberNavController
 import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
 import br.com.frila.app.falhas.TelaConsentimentoCrashlytics
 import br.com.frila.app.seguranca.CoordenadorDeLogout
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
+import br.com.frila.core.dominio.regra.ListaAtualizavel
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -864,6 +866,10 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: FeedVagasViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    // HaRJJ0L0: relê ao voltar do segundo plano e com um push da conta, em silêncio (a lista não pisca). Sem o ponto central no Koin (testes de navegação que montam o próprio módulo), a rota segue sem a atualização.
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     val estadoFeed by viewModel.estado.collectAsStateWithLifecycle()
                     LaunchedEffect(estadoFeed.status) {
                         if (estadoFeed.status != StatusFeed.CARREGANDO) {
@@ -1152,6 +1158,9 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MEUS_TURNOS, atualizacao) { viewModel.atualizarSemPiscar().join() }
+                    }
                     ComConfirmacaoPorCodigo(
                         habilitada = checkinPorCodigoHabilitado,
                         aoPresencaVerificada = { viewModel.carregar() },
