@@ -45,7 +45,8 @@ import kotlin.math.roundToInt
  *
  * A6.2: sem rede (`SEM_REDE`), o toque vai para a [FilaDeAcoes] com o instante do toque e a distância medida, e o estado
  * vira `NA_FILA`; o `SincronizadorDeAcoes` envia quando a rede voltar. Um segundo toque no mesmo registro não enfileira de
- * novo. A tela reabre ou a fila muda: o estado é relido da fila (enviado, ainda na fila ou recusado de vez).
+ * novo, nem um segundo toque com o primeiro em voo. A tela reabre ou a fila muda: o estado é relido da fila (enviado, ainda
+ * na fila ou recusado de vez).
  *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel` sobre por que
  * testes injetam um escopo próprio em vez de depender de `viewModelScope`/`Dispatchers.Main`.
@@ -90,11 +91,10 @@ class CheckinViewModel(
      * tentar de novo ou seguir no modo manual pela ação [prosseguirCheckinManual].
      */
     fun fazerCheckin(): Job {
-        if (_estado.value.status == StatusCheckin.NA_FILA) return escopoDeTrabalho.launch { }
+        if (!comecarRegistro()) return escopoDeTrabalho.launch { }
         registrarEvento(EventoDeTelemetria.CHECKIN_TENTADO, null, turnoId)
         reconhecerRecusas(TipoAcaoPendente.CHECKIN)
         val toque = instanteAtual()
-        _estado.update { it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null, avisoCheckin = null) }
         return escopoDeTrabalho.launch {
             if (!provedorDeLocalizacao.temPermissaoDeLocalizacao()) {
                 _estado.update {
@@ -127,8 +127,10 @@ class CheckinViewModel(
                 val coordenadaAtual = leitura?.coordenada
                 val distanciaMetros = calcularDistanciaMetros(coordenadaAtual, coordenadaDaVaga)
                 registrarCheckin(distanciaMetros, toque)
-            } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
+                falhaDoRegistro(erro)
             }
         }
     }
@@ -228,18 +230,34 @@ class CheckinViewModel(
      * (RN06), igual ao caminho de falha silenciosa de [obterCoordenadaAtual].
      */
     fun prosseguirCheckinManual(): Job {
-        if (_estado.value.status == StatusCheckin.NA_FILA) return escopoDeTrabalho.launch { }
+        if (!comecarRegistro()) return escopoDeTrabalho.launch { }
         val toque = instanteAtual()
-        _estado.update {
-            it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null, avisoCheckin = null)
-        }
         return escopoDeTrabalho.launch {
             try {
                 registrarCheckin(distanciaMetros = null, toque = toque)
-            } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagemDeErro(erro)) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
+                falhaDoRegistro(erro)
             }
         }
+    }
+
+    /**
+     * Passa a `REGISTRANDO` e devolve `true`, ou devolve `false` sem mudar nada se o toque já está na fila ou com outro em
+     * voo: um toque duplo mandaria dois `fazer_checkin`. A conferência e a troca vão no mesmo `update`, como no [fazerCheckout].
+     */
+    private fun comecarRegistro(): Boolean {
+        var comecou = false
+        _estado.update {
+            comecou = it.status != StatusCheckin.NA_FILA && it.status != StatusCheckin.REGISTRANDO
+            if (comecou) {
+                it.copy(status = StatusCheckin.REGISTRANDO, mensagemErro = null, dialogoDefensivo = null, avisoCheckin = null)
+            } else {
+                it
+            }
+        }
+        return comecou
     }
 
     /** `onDismissRequest` do diálogo defensivo: fecha sem registrar nada. */
@@ -387,15 +405,26 @@ class CheckinViewModel(
         }
     }
 
+    /**
+     * Também a resposta que não é JSON (não é `ErroDaApi`): sem isto o status ficava em `REGISTRANDO` e, com a guarda do
+     * toque duplo, nenhum toque seguinte tentaria de novo. Como no [fazerCheckout] (R2 da A-001).
+     */
+    private fun falhaDoRegistro(erro: Exception) {
+        val mensagem = (erro as? ErroDaApi)?.let(::mensagemDeErro) ?: MENSAGEM_ERRO_CHECKIN
+        _estado.update { it.copy(status = StatusCheckin.ERRO, mensagemErro = mensagem) }
+    }
+
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.FORA_DA_JANELA -> "Fora do horário permitido para check-in deste turno."
         CodigoErroAPI.REGISTRO_NO_FUTURO -> "O horário do aparelho está incorreto. Ajuste e tente de novo."
         CodigoErroAPI.VAGA_ENCERRADA -> "Esta posição foi encerrada."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
-        else -> "Não foi possível registrar o check-in. Tente de novo."
+        else -> MENSAGEM_ERRO_CHECKIN
     }
 
     companion object {
+        private const val MENSAGEM_ERRO_CHECKIN = "Não foi possível registrar o check-in. Tente de novo."
+
         /** Distância em metros, arredondada; `null` se faltar qualquer uma das duas coordenadas. */
         fun calcularDistanciaMetros(atual: Coordenada?, daVaga: Coordenada?): Int? {
             if (atual == null || daVaga == null) return null
