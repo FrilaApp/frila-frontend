@@ -93,9 +93,9 @@ public final class EntradaComSenhaViewModel {
         guard tentativaAtual == tentativa, !Task.isCancelled else { return nil }
 
         switch resultado {
-        case let .desafioOTP(desafioID, _):
+        case let .desafioOTP(desafioID, _, reenviarEmSegundos):
             senha = ""
-            return .desafioOTP(email: limpo, desafioID: desafioID)
+            return .desafioOTP(email: limpo, desafioID: desafioID, reenviarEmSegundos: reenviarEmSegundos)
         case let .autenticado(precisaDefinirSenha):
             do {
                 let destino = try await DestinoDaConta.avaliar(api: api, emailParaCadastro: limpo)
