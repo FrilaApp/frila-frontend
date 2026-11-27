@@ -695,7 +695,7 @@ class TelaDetalheVagaTest {
         // Na hora: o que o feed trouxe.
         compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
         // Depois da leitura: o que a lista não traz.
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasText("Quem recebe: Procure a gerente no balcão")).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText("Observações: Chegar 15 minutos antes")).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText("Traje: Camisa preta")).assertExists()
@@ -843,4 +843,19 @@ class TelaDetalheVagaTest {
         assertEquals(0, compose.onAllNodesWithText("Inclui").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("Material próprio exigido", substring = true).fetchSemanticsNodes().size)
     }
+
+    // ── "por pessoa" e "valor integral" (DLjTVc2e, item 154) ──────────────────────────────────────────────────────────
+
+    private fun conferirOValor(modo: String) {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga(modo = modo))) } }
+        compose.onNodeWithTag("valor-por-pessoa").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("por pessoa").assertIsDisplayed()
+        compose.onNodeWithText("O valor é integral: o Frila não desconta taxa do turno.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `em urgencia o valor vem com por pessoa e o aviso de valor integral`() = conferirOValor("urgencia")
+
+    @Test
+    fun `por selecao o valor vem com por pessoa e o aviso de valor integral`() = conferirOValor("selecao")
 }

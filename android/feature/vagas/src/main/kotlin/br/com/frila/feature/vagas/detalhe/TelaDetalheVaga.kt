@@ -302,6 +302,9 @@ fun TelaDetalheVaga(
                         style = FrilaTipo.valorEmDestaque,
                         color = FrilaTema.cores.tinta,
                     )
+                    // O valor é por pessoa e integral, e a tela diz isso (iOS `porPessoa` e `valorIntegral`).
+                    Text(text = TextosDoValor.POR_PESSOA, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave, modifier = Modifier.testTag("valor-por-pessoa"))
+                    Text(text = TextosDoValor.VALOR_INTEGRAL, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave, modifier = Modifier.testTag("valor-integral"))
                 }
             }
 
@@ -427,4 +430,10 @@ internal fun textoDaReputacaoDaCasa(reputacao: ReputacaoDto): String =
 internal object TextosDaFaixaDoModo {
     const val AGUARDANDO_RESPOSTA = "Aguardando resposta"
     const val VOCE_SE_CANDIDATOU = "Você se candidatou."
+}
+
+/** Os textos que acompanham o valor no detalhe da vaga (paridade com `TextosDoProfissional.Detalhe` do iOS). */
+internal object TextosDoValor {
+    const val POR_PESSOA = "por pessoa"
+    const val VALOR_INTEGRAL = "O valor é integral: o Frila não desconta taxa do turno."
 }
