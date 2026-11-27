@@ -129,7 +129,9 @@ jobs:
   a:
     name: "A: portões e unitários"
     needs: escolher
-    runs-on: macos-26
+    # Na rota completa=true, C2 já compila e executa FrilaTests inteiro; A roda os portões
+    # estáticos em Linux (ubuntu-latest) e dispensa Xcode/simulador, preservando o check name A.
+    runs-on: ${{ needs.escolher.outputs.completa == 'true' && 'ubuntu-latest' || 'macos-26' }}
     timeout-minutes: 60
     defaults:
       run:
@@ -141,8 +143,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Conferir dependências dos portões estáticos
+        run: |
+          ruby --version
+          python3 --version
+          bash --version | head -n 1
+
       - name: Preparar o ambiente iOS
         id: preparo
+        if: needs.escolher.outputs.completa != 'true'
         uses: ./.github/actions/preparar-ios
         with:
           firebase-dev-b64: ${{ secrets.FRILA_FIREBASE_GOOGLE_SERVICE_INFO_DEV_B64 }}
@@ -180,7 +189,9 @@ jobs:
 
       # Compila antes de gerar o Secrets.xcconfig dos builds de Release: o Shared.xcconfig o inclui
       # quando existe, e o Frila-Local não deve levar chave de backend.
+      # Na rota completa=true, FrilaTests é executado em C2 (partes-da-ci.txt); A já validou todos os portões em Linux.
       - name: Compilar os testes do Frila-Local (sem backend)
+        if: needs.escolher.outputs.completa != 'true'
         run: |
           xcodebuild build-for-testing \
             -project Frila.xcodeproj \
@@ -193,10 +204,12 @@ jobs:
             | xcbeautify --renderer github-actions
 
       - name: Esperar o simulador terminar de ligar
+        if: needs.escolher.outputs.completa != 'true'
         run: xcrun simctl bootstatus "${{ steps.preparo.outputs.udid }}" -b
 
       - name: Testes unitários (FrilaTests inteiro, sem recompilar)
         id: testes
+        if: needs.escolher.outputs.completa != 'true'
         run: |
           xcodebuild test-without-building \
             -project Frila.xcodeproj \
@@ -213,12 +226,12 @@ jobs:
             | xcbeautify --renderer github-actions
 
       - name: Relatório de repetições e flakes no GITHUB_STEP_SUMMARY
-        if: always()
+        if: always() && needs.escolher.outputs.completa != 'true'
         run: |
           python3 Scripts/resumir-repeticoes-xcresult.py "$DERIVED_DATA_PATH/Logs/Test/Frila-Local.xcresult" "Unitários" >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publicar xcresult em caso de falha nos testes
-        if: failure() && steps.testes.outcome == 'failure'
+        if: failure() && needs.escolher.outputs.completa != 'true' && steps.testes.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: xcresult-a-unitarios
@@ -228,7 +241,7 @@ jobs:
           retention-days: 2
 
       - name: Apagar segredos e temporários
-        if: always()
+        if: always() && needs.escolher.outputs.completa != 'true'
         working-directory: ${{ github.workspace }}
         run: |
           rm -f iOS/Configurations/Secrets.xcconfig iOS/Configurations/Secrets.xcconfig.tmp.*
