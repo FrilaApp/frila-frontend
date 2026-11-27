@@ -1093,4 +1093,20 @@ struct RegraDeRevelacaoBreveDeSenhaTests {
             emColagem: false
         ) == nil)
     }
+
+    @Test("textoMascarado preserva bolinhas para todos os vizinhos e expoe no maximo o unico grafema revelado")
+    func textoMascaradoExpoeApenasUmGrafema() {
+        let noFim = TrechoReveladoDeSenha(intervaloUTF16: NSRange(location: 2, length: 1), caractere: "W")
+        #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "abW", revelando: noFim) == "\u{2022}\u{2022}W")
+
+        let noMeio = TrechoReveladoDeSenha(intervaloUTF16: NSRange(location: 1, length: 1), caractere: "Z")
+        #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "aZcd", revelando: noMeio) == "\u{2022}Z\u{2022}\u{2022}")
+
+        let emoji = "😀"
+        let comEmoji = TrechoReveladoDeSenha(
+            intervaloUTF16: NSRange(location: 1, length: (emoji as NSString).length),
+            caractere: emoji
+        )
+        #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "a\(emoji)b", revelando: comEmoji) == "\u{2022}\(emoji)\u{2022}")
+    }
 }

@@ -37,6 +37,20 @@ public enum RegraDeRevelacaoBreveDeSenha {
         )
         return TrechoReveladoDeSenha(intervaloUTF16: intervaloNovo, caractere: String(unico))
     }
+
+    /// Monta a linha inteira mascarada com `•`, mantendo em claro apenas o único grafema de `trecho`.
+    public static func textoMascarado(texto: String, revelando trecho: TrechoReveladoDeSenha) -> String {
+        let nsTexto = texto as NSString
+        guard trecho.intervaloUTF16.location >= 0,
+              NSMaxRange(trecho.intervaloUTF16) <= nsTexto.length,
+              let rangeSwift = Range(trecho.intervaloUTF16, in: texto)
+        else {
+            return String(repeating: "\u{2022}", count: texto.count)
+        }
+        let antes = String(repeating: "\u{2022}", count: texto[..<rangeSwift.lowerBound].count)
+        let depois = String(repeating: "\u{2022}", count: texto[rangeSwift.upperBound...].count)
+        return antes + trecho.caractere + depois
+    }
 }
 
 public struct TelaDefinirSenha: View {
@@ -313,7 +327,9 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
     final class Coordinator: NSObject, UITextFieldDelegate {
         var pai: CampoDeSenhaComRevelacaoBreve
         private weak var campo: CampoSeguroInternoUITextField?
+        private let conteinerRevelacao = UIView()
         private let rotuloRevelacao = UILabel()
+        private let barraCursor = UIView()
         private var trechoPendente: TrechoReveladoDeSenha?
         private var trechoAtivo: TrechoReveladoDeSenha?
         private var tarefaOcultar: Task<Void, Never>?
@@ -328,18 +344,34 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
 
         func configurarSobreposicao(em campo: CampoSeguroInternoUITextField) {
             self.campo = campo
-            rotuloRevelacao.isHidden = true
+            let corTexto = UIColor(named: "TextPrimary", in: bundleApresentacao, compatibleWith: nil) ?? .label
+            let corSuperficie = UIColor(named: "SurfaceElevated", in: bundleApresentacao, compatibleWith: nil) ?? .systemBackground
+
+            conteinerRevelacao.isHidden = true
+            conteinerRevelacao.isUserInteractionEnabled = false
+            conteinerRevelacao.isAccessibilityElement = false
+            conteinerRevelacao.accessibilityElementsHidden = true
+            conteinerRevelacao.clipsToBounds = true
+            conteinerRevelacao.backgroundColor = corSuperficie
+
             rotuloRevelacao.isUserInteractionEnabled = false
             rotuloRevelacao.isAccessibilityElement = false
             rotuloRevelacao.accessibilityElementsHidden = true
-            rotuloRevelacao.textAlignment = .center
-            rotuloRevelacao.adjustsFontSizeToFitWidth = true
-            rotuloRevelacao.minimumScaleFactor = 0.65
+            rotuloRevelacao.textAlignment = .left
+            rotuloRevelacao.lineBreakMode = .byClipping
             rotuloRevelacao.font = UIFont.preferredFont(forTextStyle: .body)
             rotuloRevelacao.adjustsFontForContentSizeCategory = true
-            rotuloRevelacao.textColor = UIColor(named: "TextPrimary", in: bundleApresentacao, compatibleWith: nil) ?? .label
-            rotuloRevelacao.backgroundColor = UIColor(named: "SurfaceElevated", in: bundleApresentacao, compatibleWith: nil) ?? .systemBackground
-            campo.addSubview(rotuloRevelacao)
+            rotuloRevelacao.textColor = corTexto
+            rotuloRevelacao.backgroundColor = .clear
+
+            barraCursor.isUserInteractionEnabled = false
+            barraCursor.isAccessibilityElement = false
+            barraCursor.accessibilityElementsHidden = true
+            barraCursor.backgroundColor = corTexto
+
+            conteinerRevelacao.addSubview(rotuloRevelacao)
+            conteinerRevelacao.addSubview(barraCursor)
+            campo.addSubview(conteinerRevelacao)
 
             campo.aoRolarHorizontalmente = { [weak self] in
                 self?.limparRevelacao()
@@ -396,7 +428,11 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
             trechoPendente = nil
             trechoAtivo = nil
             rotuloRevelacao.text = nil
-            rotuloRevelacao.isHidden = true
+            conteinerRevelacao.isHidden = true
+            if let campo {
+                let corTexto = UIColor(named: "TextPrimary", in: bundleApresentacao, compatibleWith: nil) ?? .label
+                campo.tintColor = corTexto
+            }
         }
 
         func textFieldDidBeginEditing(_ textField: UITextField) {
@@ -468,38 +504,46 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
         }
 
         private func exibirRevelacao(_ trecho: TrechoReveladoDeSenha, em textField: UITextField) {
-            guard let inicio = textField.position(from: textField.beginningOfDocument, offset: trecho.intervaloUTF16.location),
-                  let fim = textField.position(from: inicio, offset: trecho.intervaloUTF16.length),
-                  let uiRange = textField.textRange(from: inicio, to: fim)
-            else {
+            let textoAtual = textField.text ?? ""
+            guard let rangeSwift = Range(trecho.intervaloUTF16, in: textoAtual) else {
                 limparRevelacao()
                 return
             }
-            textField.layoutIfNeeded()
-            let rect = textField.firstRect(for: uiRange)
-            guard !rect.isNull, !rect.isInfinite, rect.height > 0 else {
-                limparRevelacao()
-                return
-            }
+            let textoExibido = RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: textoAtual, revelando: trecho)
+            let qtdAntes = textoAtual[..<rangeSwift.lowerBound].count
+            let prefixoAteCursor = String(repeating: "\u{2022}", count: qtdAntes) + trecho.caractere
+
             let fonteAtual = textField.font ?? UIFont.preferredFont(forTextStyle: .body)
-            rotuloRevelacao.font = fonteAtual
-            let largura = rect.width + 2
-            let altura = max(rect.height, ceil(fonteAtual.lineHeight))
             let limiteEdicao = textField.editingRect(forBounds: textField.bounds)
-            var maxXPermitido = limiteEdicao.maxX
-            if let posCursor = textField.selectedTextRange?.end {
-                let rectCursor = textField.caretRect(for: posCursor)
-                if !rectCursor.isNull, !rectCursor.isInfinite {
-                    maxXPermitido = min(maxXPermitido, rectCursor.minX - 0.5)
-                }
+            guard limiteEdicao.width > 4, limiteEdicao.height > 0 else {
+                limparRevelacao()
+                return
             }
-            let x = min(max(rect.minX - 1, limiteEdicao.minX), max(limiteEdicao.minX, maxXPermitido - largura))
-            let y = rect.midY - altura / 2
-            rotuloRevelacao.frame = CGRect(x: x, y: y, width: largura, height: altura)
-            rotuloRevelacao.text = trecho.caractere
-            rotuloRevelacao.isHidden = false
+
+            let larguraTotal = ceil((textoExibido as NSString).size(withAttributes: [.font: fonteAtual]).width)
+            let larguraAteCursor = ceil((prefixoAteCursor as NSString).size(withAttributes: [.font: fonteAtual]).width)
+            let larguraCursor: CGFloat = 2
+            let folgaCursor: CGFloat = 1
+            let larguraDisponivel = limiteEdicao.width - larguraCursor - folgaCursor
+            let deslocamentoX = larguraAteCursor > larguraDisponivel ? (larguraDisponivel - larguraAteCursor) : 0
+            let alturaLinha = ceil(fonteAtual.lineHeight)
+            let yTexto = (limiteEdicao.height - alturaLinha) / 2
+
+            conteinerRevelacao.frame = limiteEdicao
+            rotuloRevelacao.font = fonteAtual
+            rotuloRevelacao.text = textoExibido
+            rotuloRevelacao.frame = CGRect(
+                x: deslocamentoX,
+                y: yTexto,
+                width: max(larguraTotal + 4, limiteEdicao.width),
+                height: alturaLinha
+            )
+            let xCursor = min(max(0, larguraAteCursor + deslocamentoX + folgaCursor), limiteEdicao.width - larguraCursor)
+            barraCursor.frame = CGRect(x: xCursor, y: yTexto, width: larguraCursor, height: alturaLinha)
+            conteinerRevelacao.isHidden = false
             trechoAtivo = trecho
-            textField.bringSubviewToFront(rotuloRevelacao)
+            textField.tintColor = .clear
+            textField.bringSubviewToFront(conteinerRevelacao)
 
             tarefaOcultar?.cancel()
             tarefaOcultar = Task { [weak self] in
