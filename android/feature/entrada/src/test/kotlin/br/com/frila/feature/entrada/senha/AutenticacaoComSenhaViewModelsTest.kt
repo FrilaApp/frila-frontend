@@ -14,6 +14,7 @@ import br.com.frila.feature.entrada.entrada.MENSAGEM_LIMITE_DE_CODIGOS
 import br.com.frila.feature.entrada.recuperacao.RecuperacaoSenhaViewModel
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
@@ -480,6 +481,49 @@ class AutenticacaoComSenhaViewModelsTest {
         assertTrue(vmTroca.estado.value.concluido)
         assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
         assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
+    }
+
+
+    // ---- 429 e sem rede ao definir a senha (cartão N3C2942I, 122): só teste, o mapeamento já existe ----
+
+    private fun definirSenhaComSessao(engine: MockEngine): DefinirSenhaViewModel {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        armazenamento.salvarSessao(Sessao("tok-ativo", "ref-ativo", "bearer", 3600))
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave", armazenamentoDeSessao = armazenamento, engine = engine),
+        )
+        return DefinirSenhaViewModel(servico, armazenamento, escopo = escopo()).apply {
+            aoMudarSenha("SenhaForte#2026")
+            aoMudarConfirmacao("SenhaForte#2026")
+        }
+    }
+
+    @Test
+    fun `definir senha com 429 pede para aguardar alguns minutos`() = runBlocking {
+        // O GoTrue responde 429 com error_code de limite, ou só o status.
+        for (corpo in listOf("""{"code":429,"error_code":"over_request_rate_limit","msg":"x"}""", """{"code":429,"msg":"x"}""")) {
+            val vm = definirSenhaComSessao(
+                MockEngine { respond(corpo, HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.ContentType, "application/json")) },
+            )
+
+            vm.salvar()!!.join()
+
+            assertEquals(corpo, "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.", vm.estado.value.erro)
+            assertFalse(corpo, vm.estado.value.concluido)
+            assertFalse(corpo, vm.estado.value.carregando)
+        }
+    }
+
+    @Test
+    fun `definir senha sem rede mostra a mensagem de sem conexao`() = runBlocking {
+        // O cliente converte a falha de conexão em ErroDaApi(SEM_REDE) (ClienteSupabase, HttpResponseValidator).
+        val vm = definirSenhaComSessao(MockEngine { throw ConnectTimeoutException("sem rede") })
+
+        vm.salvar()!!.join()
+
+        assertEquals("Sem conexão. Verifique sua internet e tente de novo.", vm.estado.value.erro)
+        assertFalse(vm.estado.value.concluido)
+        assertFalse(vm.estado.value.carregando)
     }
 
     @Test
