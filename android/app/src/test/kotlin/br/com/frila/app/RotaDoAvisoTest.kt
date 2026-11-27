@@ -32,7 +32,7 @@ class RotaDoAvisoTest {
 
     private val casos = listOf(
         Caso(AvisoDoToque("vaga", vagaId = vaga), Rotas.detalhe(vaga)),
-        Caso(AvisoDoToque("vagas_agrupadas"), null),
+        Caso(AvisoDoToque("vagas_agrupadas"), Rotas.FEED),
         Caso(AvisoDoToque("vaga_sem_elegiveis", vagaId = vaga), null, candidatos),
         Caso(AvisoDoToque("confirmacao", vagaId = vaga, turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
         Caso(AvisoDoToque("lembrete_24h", turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
@@ -47,9 +47,9 @@ class RotaDoAvisoTest {
         Caso(AvisoDoToque("cancelamento", vagaId = vaga, posicaoId = posicao), Rotas.MEUS_TURNOS, candidatos),
         // O candidato de uma vaga recolhida: sem posição.
         Caso(AvisoDoToque("cancelamento", vagaId = vaga), Rotas.detalhe(vaga), candidatos),
-        Caso(AvisoDoToque("avaliacao_disponivel", turnoId = turno), Rotas.turnoAviso(turno)),
-        Caso(AvisoDoToque("suspensao"), null),
-        Caso(AvisoDoToque("reativacao"), null),
+        Caso(AvisoDoToque("avaliacao_disponivel", turnoId = turno), "avaliacao/$turno", turnoDaCasa),
+        Caso(AvisoDoToque("suspensao"), Rotas.ABERTURA, Rotas.ABERTURA),
+        Caso(AvisoDoToque("reativacao"), Rotas.ABERTURA, Rotas.ABERTURA),
         Caso(AvisoDoToque("candidatura_recusada", vagaId = vaga), Rotas.detalhe(vaga)),
         Caso(AvisoDoToque("selecao_encerrada", vagaId = vaga), Rotas.detalhe(vaga)),
         Caso(AvisoDoToque("selecao_lembrete", vagaId = vaga), null, candidatos),
@@ -61,7 +61,7 @@ class RotaDoAvisoTest {
         Caso(AvisoDoToque("chamada_expirada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("chamada_cancelada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("chamada_encerrada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
-        Caso(AvisoDoToque("turno_nao_verificado", turnoId = turno), Rotas.turnoAviso(turno)),
+        Caso(AvisoDoToque("turno_nao_verificado", turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
         Caso(AvisoDoToque("lembrete_30min_fim_turno", vagaId = vaga), null),
         Caso(AvisoDoToque("lembrete_fim_turno", vagaId = vaga), null),
     )
@@ -97,7 +97,7 @@ class RotaDoAvisoTest {
 
     @Test
     fun `para a casa, turno_id que nao e UUID ou ausente cai em Minhas vagas`() {
-        for (tipo in listOf("confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min")) {
+        for (tipo in listOf("confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min", "avaliacao_disponivel", "turno_nao_verificado")) {
             assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, turnoId = "turno-1", vagaId = vaga), casa))
             assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, vagaId = vaga), casa))
         }
@@ -118,6 +118,9 @@ class RotaDoAvisoTest {
         assertEquals(null, rotaDoAviso(AvisoDoToque("vaga"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("cancelamento", posicaoId = "x"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("tipo_futuro", vagaId = vaga), PapelDaRaiz.Profissional))
+        assertEquals(null, rotaDoAviso(AvisoDoToque("avaliacao_disponivel", turnoId = "turno-1"), PapelDaRaiz.Profissional))
+        assertEquals(null, rotaDoAviso(AvisoDoToque("avaliacao_disponivel"), PapelDaRaiz.Profissional))
+        assertEquals(casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque("avaliacao_disponivel", turnoId = "turno-1"), casa))
         assertEquals(null, rotaDoAviso(AvisoDoToque("chamada_recebida", chamadaId = "chamada-9"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("chamada_recebida", chamadaId = "../vagas"), PapelDaRaiz.Profissional))
     }
