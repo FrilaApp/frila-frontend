@@ -96,7 +96,15 @@ class OcorrenciaTurnoViewModel(
         }
     }
 
-    private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
+    private fun mensagemDeErro(erro: ErroDaApi): String = when {
+        // Contrato: `403 sem_permissao` com `details: conta_suspensa`; o código `conta_suspensa` no topo também vale.
+        erro.codigo == CodigoErroAPI.CONTA_SUSPENSA ||
+            (erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.CONTA_SUSPENSA) ->
+            TextosOcorrencia.CONTA_SUSPENSA
+        else -> mensagemDoCodigo(erro)
+    }
+
+    private fun mensagemDoCodigo(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.LIMITE_EXCEDIDO -> "Limite diário de chamados atingido. Tente de novo amanhã."
         CodigoErroAPI.NAO_ENCONTRADO -> "Não encontramos este turno."
         CodigoErroAPI.SEM_PERMISSAO -> "Você não tem permissão para abrir este chamado."
