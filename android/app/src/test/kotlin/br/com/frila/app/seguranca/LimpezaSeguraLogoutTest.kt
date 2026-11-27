@@ -80,6 +80,53 @@ class LimpezaSeguraLogoutTest {
     }
 
     @Test
+    fun `limpar condicional da conta esperada passa pela limpeza completa do logout`() {
+        armazenamento.salvarSessao(sessaoTeste)
+        val fotoNoCache = File(contexto.cacheDir, "ocorrencia_1.jpg").apply { writeBytes(byteArrayOf(1)) }
+        val avatar = File(contexto.filesDir, "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}1.jpg").apply { writeBytes(byteArrayOf(2)) }
+        val job = escopo.launch { delay(60_000) }
+        val clienteAntigo = gestorCliente.clienteAtual
+        val coordenador = CoordenadorDeLogout(
+            armazenamentoDeSessao = armazenamento,
+            contexto = contexto,
+            escopoDeCorrotinas = escopo,
+            gestorClienteKtor = gestorCliente,
+        )
+
+        assertTrue(coordenador.limparSeRefreshTokenIgual(sessaoTeste.refreshToken))
+
+        assertNull(armazenamento.obterSessao())
+        assertFalse(fotoNoCache.exists())
+        assertFalse(avatar.exists())
+        assertTrue(job.isCancelled)
+        assertTrue(clienteAntigo.estaFechado)
+    }
+
+    @Test
+    fun `limpar condicional de outra conta guardada nao limpa sessao, arquivos, corrotinas nem cliente`() {
+        val outraConta = sessaoTeste.copy(accessToken = "token-b", refreshToken = "refresh-b")
+        armazenamento.salvarSessao(outraConta)
+        val fotoNoCache = File(contexto.cacheDir, "ocorrencia_1.jpg").apply { writeBytes(byteArrayOf(1)) }
+        val avatar = File(contexto.filesDir, "${CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR}1.jpg").apply { writeBytes(byteArrayOf(2)) }
+        val job = escopo.launch { delay(60_000) }
+        val clienteAtual = gestorCliente.clienteAtual
+        val coordenador = CoordenadorDeLogout(
+            armazenamentoDeSessao = armazenamento,
+            contexto = contexto,
+            escopoDeCorrotinas = escopo,
+            gestorClienteKtor = gestorCliente,
+        )
+
+        assertFalse(coordenador.limparSeRefreshTokenIgual(sessaoTeste.refreshToken))
+
+        assertEquals(outraConta, armazenamento.obterSessao())
+        assertTrue(fotoNoCache.exists())
+        assertTrue(avatar.exists())
+        assertTrue(job.isActive)
+        assertFalse(clienteAtual.estaFechado)
+    }
+
+    @Test
     fun `logout completo prova os quatro criterios simultaneamente`() = runBlocking {
         // 1. Preparação da Sessão
         armazenamento.salvarSessao(sessaoTeste)

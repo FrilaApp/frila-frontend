@@ -108,4 +108,82 @@ class ArmazenamentoDeSessaoTest {
 
         assertFalse(armazenamento.isBiometriaAtivada())
     }
+
+    @Test
+    fun `salvarSeRefreshTokenIgual grava quando o refresh token e o esperado`() {
+        armazenamento.salvarSessao(sessaoDeTeste)
+        val renovada = sessaoDeTeste.copy(accessToken = "access-novo", refreshToken = "refresh-novo")
+
+        assertTrue(armazenamento.salvarSeRefreshTokenIgual(sessaoDeTeste.refreshToken, renovada))
+
+        assertEquals(renovada, armazenamento.obterSessao())
+        assertEquals(renovada, armazenamento.sessaoObservavel.value)
+    }
+
+    @Test
+    fun `salvarSeRefreshTokenIgual nao grava quando outra conta esta guardada ou nao ha sessao`() {
+        val renovada = sessaoDeTeste.copy(refreshToken = "refresh-novo")
+        assertFalse(armazenamento.salvarSeRefreshTokenIgual(sessaoDeTeste.refreshToken, renovada))
+        assertNull(armazenamento.obterSessao())
+
+        val outraConta = sessaoDeTeste.copy(accessToken = "access-b", refreshToken = "refresh-b")
+        armazenamento.salvarSessao(outraConta)
+
+        assertFalse(armazenamento.salvarSeRefreshTokenIgual(sessaoDeTeste.refreshToken, renovada))
+        assertEquals(outraConta, armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `limparSeRefreshTokenIgual apaga so quando o refresh token e o esperado`() {
+        val outraConta = sessaoDeTeste.copy(accessToken = "access-b", refreshToken = "refresh-b")
+        armazenamento.salvarSessao(outraConta)
+        armazenamento.definirBiometriaAtivada(true)
+
+        assertFalse(armazenamento.limparSeRefreshTokenIgual(sessaoDeTeste.refreshToken))
+        assertEquals(outraConta, armazenamento.obterSessao())
+        assertTrue(armazenamento.isBiometriaAtivada())
+
+        assertTrue(armazenamento.limparSeRefreshTokenIgual(outraConta.refreshToken))
+        assertNull(armazenamento.obterSessao())
+        assertNull(armazenamento.sessaoObservavel.value)
+        assertFalse(armazenamento.isBiometriaAtivada())
+        assertFalse(armazenamento.limparSeRefreshTokenIgual(outraConta.refreshToken))
+    }
+
+    @Test
+    fun `renovacao de A concorrente com a troca para B nunca termina com a sessao de A`() {
+        val sessaoA = sessaoDeTeste
+        val sessaoB = sessaoDeTeste.copy(accessToken = "access-b", refreshToken = "refresh-b")
+        val renovadaA = sessaoDeTeste.copy(accessToken = "access-a2", refreshToken = "refresh-a2")
+        val pool = Executors.newFixedThreadPool(2)
+        var sobrescritas = 0
+        try {
+            repeat(ITERACOES_CONCORRENTES) {
+                val loja = ArmazenamentoDeSessaoEmMemoria()
+                loja.salvarSessao(sessaoA)
+                val largada = CountDownLatch(1)
+                val renovacao = pool.submit {
+                    largada.await()
+                    loja.salvarSeRefreshTokenIgual(sessaoA.refreshToken, renovadaA)
+                }
+                val troca = pool.submit {
+                    largada.await()
+                    loja.limparSessao()
+                    loja.salvarSessao(sessaoB)
+                }
+                largada.countDown()
+                renovacao.get(5, TimeUnit.SECONDS)
+                troca.get(5, TimeUnit.SECONDS)
+                if (loja.obterSessao() != sessaoB) sobrescritas++
+            }
+        } finally {
+            pool.shutdownNow()
+        }
+
+        assertEquals(0, sobrescritas, "sessões de B sobrescritas em $ITERACOES_CONCORRENTES iterações")
+    }
+
+    private companion object {
+        const val ITERACOES_CONCORRENTES = 6_000
+    }
 }

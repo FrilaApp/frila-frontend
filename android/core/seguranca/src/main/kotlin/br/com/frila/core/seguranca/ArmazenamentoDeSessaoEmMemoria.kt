@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * Implementação thread-safe em memória de [ArmazenamentoDeSessao], para testes de unidade e
  * para qualquer consumidor JVM puro. O estado é mantido num [AtomicReference] (escrita e leitura
- * sempre atômicas, sem lock explícito) e espelhado num [MutableStateFlow] para quem precisa
+ * sempre atômicas) e espelhado num [MutableStateFlow] para quem precisa
  * observar mudanças de sessão reativamente (ex.: desligar a navegação ao deslogar).
  *
  * **Não** é a implementação de produção: não cifra nada e não sobrevive ao fim do processo.
@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class ArmazenamentoDeSessaoEmMemoria : ArmazenamentoDeSessao {
 
+    /** Escritas e comparações condicionais passam por aqui; a leitura continua sem lock. */
+    private val bloqueio = Any()
     private val referencia = AtomicReference<Sessao?>(null)
     private val _sessao = MutableStateFlow<Sessao?>(null)
     private val biometriaAtivada = AtomicReference(false)
@@ -25,16 +27,32 @@ class ArmazenamentoDeSessaoEmMemoria : ArmazenamentoDeSessao {
     val sessaoObservavel: StateFlow<Sessao?> = _sessao.asStateFlow()
 
     override fun salvarSessao(sessao: Sessao) {
-        referencia.set(sessao)
-        _sessao.value = sessao
+        synchronized(bloqueio) {
+            referencia.set(sessao)
+            _sessao.value = sessao
+        }
+    }
+
+    override fun salvarSeRefreshTokenIgual(esperado: String, nova: Sessao): Boolean = synchronized(bloqueio) {
+        if (referencia.get()?.refreshToken != esperado) return@synchronized false
+        salvarSessao(nova)
+        true
+    }
+
+    override fun limparSeRefreshTokenIgual(esperado: String): Boolean = synchronized(bloqueio) {
+        if (referencia.get()?.refreshToken != esperado) return@synchronized false
+        limparSessao()
+        true
     }
 
     override fun obterSessao(): Sessao? = referencia.get()
 
     override fun limparSessao() {
-        referencia.set(null)
-        _sessao.value = null
-        biometriaAtivada.set(false)
+        synchronized(bloqueio) {
+            referencia.set(null)
+            _sessao.value = null
+            biometriaAtivada.set(false)
+        }
     }
 
     override fun estaAutenticado(): Boolean = referencia.get() != null
