@@ -84,6 +84,9 @@ class EntradaPorPapelTest {
 
     private val sessao = ArmazenamentoDeSessaoEmMemoria()
 
+    /** As vagas com que a tela de candidatos foi aberta. */
+    private val vagasDosCandidatos = CopyOnWriteArrayList<String>()
+
     /** O toque num push, como a `MainActivity` o entrega. */
     private val avisoDoToque = MutableStateFlow<AvisoDoToque?>(null)
 
@@ -169,6 +172,17 @@ class EntradaPorPapelTest {
                             CodigoViewModel(email, ServicoAutenticacao(cliente), sessao, CoroutineScope(Dispatchers.Default))
                         }
                         viewModel { CadastroViewModel() }
+                        viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: java.time.Instant?) ->
+                            vagasDosCandidatos += vagaId
+                            br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel(
+                                vagaId = vagaId,
+                                buscar = { emptyList() },
+                                escolher = { error("o teste de navegação não escolhe") },
+                                posicoesAbertas = posicoesAbertas,
+                                inicioDaVaga = inicioDaVaga,
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
                         viewModel { perfil }
                         viewModel {
                             br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel(
@@ -311,6 +325,33 @@ class EntradaPorPapelTest {
         assertEquals("o formulário ficou embaixo", Rotas.PUBLICAR_VAGA, rotaAbaixo())
         rule.runOnIdle { nav.popBackStack() }
         assertTrue("voltar não devolveu o formulário (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PUBLICAR_VAGA })
+    }
+
+    @Test
+    fun `vJLRFebB - casa que abre o app pelo aviso de vaga vazia cai nos candidatos da vaga, com Minhas vagas embaixo`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = AvisoDoToque("vaga_vazia", vagaId = vagaDoAviso, posicaoId = "50000000-0000-0000-0000-000000000001"))
+
+        val chegou = aguardar(8_000) { rotaAtual() == Rotas.CANDIDATOS_DA_VAGA }
+
+        assertTrue("o aviso de vaga vazia não abriu os candidatos (rota: ${rotaAtual()})", chegou)
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+        assertEquals(listOf(vagaDoAviso), vagasDosCandidatos.toList())
+        assertNull(avisoDoToque.value)
+    }
+
+    @Test
+    fun `vJLRFebB - com o app aberto, o lembrete da selecao abre os candidatos e a selecao encerrada fica em Minhas vagas`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        avisoDoToque.value = AvisoDoToque("selecao_encerrada", vagaId = vagaDoAviso)
+        aguardar { avisoDoToque.value == null }
+        assertEquals("a seleção encerrada não sai de Minhas vagas", Rotas.MINHAS_VAGAS, rotaAtual())
+
+        avisoDoToque.value = AvisoDoToque("selecao_lembrete", vagaId = vagaDoAviso)
+
+        assertTrue("o lembrete da seleção não abriu os candidatos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.CANDIDATOS_DA_VAGA })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
     }
 
     @Test
