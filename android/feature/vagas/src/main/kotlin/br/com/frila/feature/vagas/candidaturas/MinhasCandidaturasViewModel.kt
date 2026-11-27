@@ -97,6 +97,11 @@ class MinhasCandidaturasViewModel(
      */
     fun atualizarEmSilencio(): Job {
         leitura?.takeIf { it.isActive }?.let { return it }
+        // Só com a lista na tela (como o iOS): em Carregando disputaria a carga e em Erro tiraria a tela do erro sem ser pedido. Com
+        // outra leitura em voo a de cima devolve a própria, e por isso o estado não muda entre o começo e o fim desta.
+        if (_estado.value.lista !is ListaDeCandidaturas.Carregadas && _estado.value.lista !is ListaDeCandidaturas.Vazia) {
+            return escopoDeTrabalho.launch { }
+        }
         return escopoDeTrabalho.launch {
             try {
                 aplicar(buscar())

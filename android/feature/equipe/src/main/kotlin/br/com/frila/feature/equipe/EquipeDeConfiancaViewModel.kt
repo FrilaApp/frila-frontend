@@ -96,12 +96,16 @@ class EquipeDeConfiancaViewModel(
             return escopoDeTrabalho.launch { }
         }
         carregando = true
+        val noInicio = atual.estado
         return escopoDeTrabalho.launch {
             try {
                 val membros = listar(estabelecimentoId)
-                // Uma remoção que começou durante a leitura é a dona da lista: a releitura não a atropela.
-                if (!_estado.value.ocupado) {
-                    _estado.update { it.copy(estado = if (membros.isEmpty()) EstadoEquipe.Vazio else EstadoEquipe.Conteudo(membros)) }
+                // Uma remoção que terminou durante a leitura (a equipe de agora não é a de antes) é a dona da lista: a releitura traz a
+                // equipe de antes dela e não a atropela (nem faz o removido voltar). Com a remoção ainda em voo aplicar é inofensivo: ao
+                // terminar, ela tira o removido da lista que estiver na tela.
+                _estado.update {
+                    if (it.estado != noInicio) it
+                    else it.copy(estado = if (membros.isEmpty()) EstadoEquipe.Vazio else EstadoEquipe.Conteudo(membros))
                 }
             } catch (erro: CancellationException) {
                 throw erro

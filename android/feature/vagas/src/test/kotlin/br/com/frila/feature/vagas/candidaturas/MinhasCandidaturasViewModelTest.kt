@@ -188,4 +188,23 @@ class MinhasCandidaturasViewModelTest {
         assertEquals(1, leituras)
         trava.complete(emptyList())
     }
+
+    @Test
+    fun `atualizarEmSilencio nao rele antes da carga nem com a tela em Erro, e nao mexe no estado (HaRJJ0L0)`() {
+        var falhar = true
+        val vm = viewModel { if (falhar) throw erro(CodigoErroAPI.SEM_REDE) else listOf(candidatura("c1", "pendente")) }
+
+        vm.atualizarEmSilencio()
+        assertEquals(0, leituras, "antes da carga não chama o servidor")
+        assertEquals(ListaDeCandidaturas.Carregando, vm.estado.value.lista)
+
+        vm.carregar()
+        val noErro = vm.estado.value
+        assertTrue(noErro.lista is ListaDeCandidaturas.Erro)
+        val leiturasAntes = leituras
+        falhar = false
+        vm.atualizarEmSilencio()
+        assertEquals(leiturasAntes, leituras, "em Erro não chama o servidor")
+        assertEquals(noErro, vm.estado.value, "em Erro o estado fica como estava")
+    }
 }
