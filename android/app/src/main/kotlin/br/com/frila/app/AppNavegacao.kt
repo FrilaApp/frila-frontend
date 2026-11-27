@@ -198,7 +198,7 @@ object Rotas {
     const val TURNO_AVISO = "meus_turnos/{turnoId}"
     const val EXCLUSAO_DE_CONTA = "exclusao_de_conta"
     const val CONTA_SUSPENSA = "conta_suspensa?motivo={motivo}&desde={desde}"
-    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}"
+    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}&fotoId={fotoId}"
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
@@ -277,11 +277,21 @@ object Rotas {
         return if (parametros.isEmpty()) "conta_suspensa" else "conta_suspensa?" + parametros.joinToString("&")
     }
 
-    /** `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). */
-    fun denuncia(alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String? = null, chamadaId: String? = null): String {
+    /**
+     * `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). `fotoId` é o
+     * `foto_id` do perfil, quando ele veio com foto: só com ele a tela oferece denunciar a foto (`midia_id`, 0.2.54).
+     */
+    fun denuncia(
+        alvoTipo: TipoDeAlvo,
+        alvoId: String,
+        turnoId: String? = null,
+        chamadaId: String? = null,
+        fotoId: String? = null,
+    ): String {
         val parametros = listOfNotNull(
             turnoId?.let { "turnoId=${Uri.encode(it)}" },
             chamadaId?.let { "chamadaId=${Uri.encode(it)}" },
+            fotoId?.let { "fotoId=${Uri.encode(it)}" },
         )
         val base = "denuncia/${alvoTipo.chave}/${Uri.encode(alvoId)}"
         return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
@@ -1476,6 +1486,7 @@ fun AppNavegacao(
                     navArgument("alvoId") { type = NavType.StringType },
                     navArgument("turnoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("chamadaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("fotoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
@@ -1487,8 +1498,9 @@ fun AppNavegacao(
                     } else {
                         val turnoId = entrada.arguments?.getString("turnoId")
                         val chamadaId = entrada.arguments?.getString("chamadaId")
+                        val fotoId = entrada.arguments?.getString("fotoId")
                         val viewModel: DenunciaViewModel = koinViewModel(
-                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId) },
+                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId, fotoId) },
                         )
                         TelaDenuncia(
                             viewModel = viewModel,
@@ -1525,7 +1537,7 @@ fun AppNavegacao(
                         },
                         // Denúncia sem turno associado: o alvo é o perfil público do membro da equipe.
                         aoDenunciar = { profissional ->
-                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
                     )
                 }
@@ -1835,7 +1847,7 @@ fun AppNavegacao(
                         aoVoltar = { navController.popBackStack() },
                         // Denúncia sem turno associado: a candidatura ainda não virou turno.
                         aoDenunciar = { profissional ->
-                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
                     )
                 }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -51,6 +53,7 @@ class TelaDenunciaTest {
         chamadas: Chamadas = Chamadas(),
         turno: Boolean = false,
         chamada: Boolean = false,
+        comFoto: Boolean = false,
     ): Chamadas {
         rule.setContent {
             var estado by mutableStateOf(inicial)
@@ -59,6 +62,8 @@ class TelaDenunciaTest {
                     estado = estado,
                     associadaAoTurno = turno,
                     associadaAChamada = chamada,
+                    podeDenunciarFoto = comFoto,
+                    aoMarcarSobreAFoto = { estado = estado.copy(sobreAFoto = it) },
                     aoEscolherMotivo = { estado = estado.copy(motivo = it) },
                     aoEditarRelato = { estado = estado.copy(relato = it) },
                     aoEnviar = { chamadas.envios++ },
@@ -71,6 +76,30 @@ class TelaDenunciaTest {
             }
         }
         return chamadas
+    }
+
+    @Test
+    fun comFotoNoPerfilAOpcaoDaFotoApareceComOTextoDoIosEELigaNoToque() {
+        montar(comFoto = true)
+
+        rule.onNodeWithText(TextosSuporte.SOBRE_A_FOTO_EXPLICACAO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("denuncia-sobre-a-foto")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
+            .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
+            .performClick()
+
+        rule.onNodeWithTag("denuncia-sobre-a-foto")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+        rule.onNodeWithText(TextosSuporte.SOBRE_A_FOTO).assertIsDisplayed()
+    }
+
+    @Test
+    fun semFotoNoPerfilAOpcaoDaFotoNaoAparece() {
+        montar(comFoto = false)
+
+        rule.onNodeWithTag("denuncia-sobre-a-foto").assertDoesNotExist()
+        rule.onNodeWithText(TextosSuporte.SOBRE_A_FOTO).assertDoesNotExist()
     }
 
     @Test

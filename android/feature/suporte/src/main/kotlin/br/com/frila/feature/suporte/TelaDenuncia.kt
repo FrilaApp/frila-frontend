@@ -2,17 +2,24 @@ package br.com.frila.feature.suporte
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
@@ -32,6 +39,7 @@ import br.com.frila.core.designsystem.componentes.RodapeAncorado
 import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.dominio.modelo.MotivoDenuncia
@@ -50,6 +58,8 @@ fun TelaDenuncia(
         estado = estado,
         associadaAoTurno = viewModel.associadaAoTurno,
         associadaAChamada = viewModel.associadaAChamada,
+        podeDenunciarFoto = viewModel.podeDenunciarFoto,
+        aoMarcarSobreAFoto = viewModel::marcarSobreAFoto,
         aoEscolherMotivo = viewModel::escolherMotivo,
         aoEditarRelato = viewModel::editarRelato,
         aoEnviar = { viewModel.enviarDenuncia() },
@@ -74,6 +84,9 @@ fun ConteudoDenuncia(
     estado: EstadoDenuncia,
     associadaAoTurno: Boolean,
     associadaAChamada: Boolean,
+    /** Só com o `foto_id` do perfil a tela oferece denunciar a foto (como o iOS). */
+    podeDenunciarFoto: Boolean = false,
+    aoMarcarSobreAFoto: (Boolean) -> Unit = {},
     aoEscolherMotivo: (MotivoDenuncia) -> Unit,
     aoEditarRelato: (String) -> Unit,
     aoEnviar: () -> Unit,
@@ -136,6 +149,8 @@ fun ConteudoDenuncia(
                     estado = estado,
                     associadaAoTurno = associadaAoTurno,
                     associadaAChamada = associadaAChamada,
+                    podeDenunciarFoto = podeDenunciarFoto,
+                    aoMarcarSobreAFoto = aoMarcarSobreAFoto,
                     aoEscolherMotivo = aoEscolherMotivo,
                     aoEditarRelato = aoEditarRelato,
                 )
@@ -179,6 +194,8 @@ private fun FormularioDenuncia(
     estado: EstadoDenuncia,
     associadaAoTurno: Boolean,
     associadaAChamada: Boolean,
+    podeDenunciarFoto: Boolean,
+    aoMarcarSobreAFoto: (Boolean) -> Unit,
     aoEscolherMotivo: (MotivoDenuncia) -> Unit,
     aoEditarRelato: (String) -> Unit,
 ) {
@@ -206,6 +223,10 @@ private fun FormularioDenuncia(
             apoio = if (estado.relatoValido) TextosSuporte.RELATO_VALIDO else TextosSuporte.RELATO_DICA,
         )
 
+        if (podeDenunciarFoto) {
+            InterruptorSobreAFoto(ligado = estado.sobreAFoto, editavel = !estado.enviando, aoMudar = aoMarcarSobreAFoto)
+        }
+
         if (associadaAoTurno || associadaAChamada) {
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
                 if (associadaAoTurno) {
@@ -216,6 +237,26 @@ private fun FormularioDenuncia(
                 }
             }
         }
+    }
+}
+
+/** Como o `Toggle` do iOS (`AcoesDeSeguranca.swift`): o rótulo, a explicação e o interruptor numa linha só, lida como um interruptor. */
+@Composable
+private fun InterruptorSobreAFoto(ligado: Boolean, editavel: Boolean, aoMudar: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = FrilaMetricas.alvoMinimo)
+            .toggleable(value = ligado, enabled = editavel, role = Role.Switch, onValueChange = aoMudar)
+            .testTag("denuncia-sobre-a-foto"),
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto)) {
+            Text(TextosSuporte.SOBRE_A_FOTO, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
+            Text(TextosSuporte.SOBRE_A_FOTO_EXPLICACAO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
+        }
+        Switch(checked = ligado, onCheckedChange = null, enabled = editavel)
     }
 }
 

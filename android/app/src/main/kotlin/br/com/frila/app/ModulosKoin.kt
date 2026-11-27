@@ -479,7 +479,7 @@ val moduloFeatures = module {
             aoConcluir = { coordenadorDeLogout.limparSessao() },
         )
     }
-    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
+    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
         val confianca = get<ServicoConfianca>()
         DenunciaViewModel(
             alvoTipo = alvoTipo,
@@ -488,6 +488,7 @@ val moduloFeatures = module {
             bloquear = confianca::bloquear,
             turnoId = turnoId,
             chamadaId = chamadaId,
+            fotoId = fotoId,
         )
     }
     viewModel { (estabelecimentoId: String) ->
