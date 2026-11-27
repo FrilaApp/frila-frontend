@@ -409,4 +409,43 @@ class CadastroViewModelTest {
         assertFalse(viewModel.estado.value.concluido)
         assertEquals("Informe sua data de nascimento.", viewModel.estado.value.erro)
     }
+
+
+    // ---- 401 e 422 campo_obrigatorio ao criar a conta (cartão N3C2942I, 121): só teste, o mapeamento já existe ----
+
+    @Test
+    fun `concluirCadastro com 401 avisa que a sessao expirou`() = runBlocking {
+        // PGRST301 é o JWT expirado do PostgREST; nao_autenticado é o código do domínio. Os dois chegam com 401.
+        for (codigo in listOf("PGRST301", "nao_autenticado")) {
+            val viewModel = viewModelComServidor(Envios(), resposta = erroDaApi(codigo, HttpStatusCode.Unauthorized))
+            preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+            viewModel.concluirCadastro()!!.join()
+
+            assertFalse(viewModel.estado.value.concluido, codigo)
+            assertFalse(viewModel.estado.value.enviando, codigo)
+            assertEquals("Sua sessão expirou. Entre de novo para continuar.", viewModel.estado.value.erro, codigo)
+        }
+    }
+
+    @Test
+    fun `concluirCadastro com 422 campo_obrigatorio aponta o campo, como o campo_invalido`() = runBlocking {
+        val esperadoPorCampo = mapOf(
+            "nome" to "Informe um nome válido.",
+            "telefone" to MENSAGEM_TELEFONE_INVALIDO,
+            "nascimento" to "Informe uma data de nascimento válida.",
+        )
+        for ((campo, esperado) in esperadoPorCampo) {
+            val viewModel = viewModelComServidor(
+                Envios(),
+                resposta = erroDaApi("campo_obrigatorio", HttpStatusCode.UnprocessableEntity, campo),
+            )
+            preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+            viewModel.concluirCadastro()!!.join()
+
+            assertFalse(viewModel.estado.value.concluido, campo)
+            assertEquals(esperado, viewModel.estado.value.erro, campo)
+        }
+    }
 }

@@ -217,6 +217,14 @@ class TelaAvaliacaoDoContratanteTest {
             FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}, estabelecimentoId = casaId) }
         }
         compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        // O estado do view model muda em outro thread (a leitura de abertura) e a tela o coleta no principal. Medido na suíte inteira: com o
+        // estado já em JA_AVALIADO a árvore seguia na pergunta inicial por mais de 5 s. Causa provável (hipótese, validada só pela
+        // estabilidade das rodadas): o looper principal do Robolectric não é processado enquanto o teste só consulta a árvore. Cada checagem
+        // faz `waitForIdle()` antes e a condição é a que a asserção afirma: o título visível.
+        compose.waitUntil(5000) {
+            compose.waitForIdle()
+            runCatching { compose.onNodeWithText("Turno já avaliado").assertIsDisplayed() }.isSuccess
+        }
         compose.waitForIdle()
 
         compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()

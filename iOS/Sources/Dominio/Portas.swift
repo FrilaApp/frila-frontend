@@ -351,28 +351,41 @@ public struct PedidoChamada: Equatable, Sendable {
 }
 
 public struct ConfiguracaoApp: Codable, Equatable, Sendable {
+    public static let cooldownPadraoOTPSegundos = 60
+
     public let versaoMinima: String
     public let versaoRecomendada: String
     public let mensagem: String?
     public let urlDaLoja: URL
     /// Interruptores do servidor (contrato 0.2.54). Ausente vale desligado.
     public let recursos: RecursosDoApp
+    /// Cooldown efetivo de reenvio OTP configurado no backend (contrato 0.2.120).
+    /// Ausente ou inválido (<= 0) recorre ao fallback conservador de 60s.
+    public let reenviarOTPEmSegundos: Int
+
+    public static func normalizarCooldownOTP(_ valor: Int?) -> Int {
+        guard let valor, valor > 0 else { return cooldownPadraoOTPSegundos }
+        return valor
+    }
 
     public init(
         versaoMinima: String,
         versaoRecomendada: String,
         mensagem: String?,
         urlDaLoja: URL,
-        recursos: RecursosDoApp = .desligados
+        recursos: RecursosDoApp = .desligados,
+        reenviarOTPEmSegundos: Int = cooldownPadraoOTPSegundos
     ) {
         self.versaoMinima = versaoMinima
         self.versaoRecomendada = versaoRecomendada
         self.mensagem = mensagem
         self.urlDaLoja = urlDaLoja
         self.recursos = recursos
+        self.reenviarOTPEmSegundos = Self.normalizarCooldownOTP(reenviarOTPEmSegundos)
     }
 
     /// Cópia guardada antes da 0.2.54 não tem `recursos`: vale desligado.
+    /// Cópia guardada antes da 0.2.120 não tem `reenviarOTPEmSegundos`: vale 60s.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         versaoMinima = try container.decode(String.self, forKey: .versaoMinima)
@@ -380,6 +393,8 @@ public struct ConfiguracaoApp: Codable, Equatable, Sendable {
         mensagem = try container.decodeIfPresent(String.self, forKey: .mensagem)
         urlDaLoja = try container.decode(URL.self, forKey: .urlDaLoja)
         recursos = try container.decodeIfPresent(RecursosDoApp.self, forKey: .recursos) ?? .desligados
+        let cooldownBruto = try container.decodeIfPresent(Int.self, forKey: .reenviarOTPEmSegundos)
+        reenviarOTPEmSegundos = Self.normalizarCooldownOTP(cooldownBruto)
     }
 }
 
@@ -392,7 +407,7 @@ public protocol ObservadorDeSessao: Sendable {
 
 public enum ResultadoEntradaComSenha: Equatable, Sendable {
     case autenticado(precisaDefinirSenha: Bool)
-    case desafioOTP(desafioID: String, expiraEm: Date?)
+    case desafioOTP(desafioID: String, expiraEm: Date?, reenviarEmSegundos: Int = ConfiguracaoApp.cooldownPadraoOTPSegundos)
 }
 
 public enum OrigemConfirmacaoDispositivoOTP: Equatable, Sendable {

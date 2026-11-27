@@ -257,6 +257,7 @@ def conferir_rpcs(
         "detalhe_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
         "minhas_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
         "publicar_a_partir_da_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "solicitar_upload_midia_v2": "Introduzida no contrato 0.2.119 (frila-docs#309); pendente de adoção no cliente iOS.",
     }
 
     faltando = openapi_rpcs - swift_rpcs

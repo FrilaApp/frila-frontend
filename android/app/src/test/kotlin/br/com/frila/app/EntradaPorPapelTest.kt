@@ -6,11 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PainelDto
@@ -675,6 +677,7 @@ class EntradaPorPapelTest {
         assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
 
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
         rule.waitForIdle()
         assertEquals(Rotas.ENTRADA, rotaAtual())
         rule.onNodeWithText(TextosDasAbas.CONTA).assertDoesNotExist()

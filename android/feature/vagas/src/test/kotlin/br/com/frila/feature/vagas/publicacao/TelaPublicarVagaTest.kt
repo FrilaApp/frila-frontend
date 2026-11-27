@@ -200,9 +200,9 @@ class TelaPublicarVagaTest {
     fun `o total da vaga mostra valor por pessoa vezes as posicoes`() {
         montar(estado { copy(valor = "140", posicoes = "2") })
 
-        rule.onNodeWithText("Total da vaga: R$ 280,00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Total da vaga: R$\u00A0280,00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Soma de 2 pessoas, pago direto a cada uma").assertIsDisplayed()
-        rule.onNodeWithText("Cerca de R$ 46,67 por hora").assertIsDisplayed()
+        rule.onNodeWithText("Cerca de R$\u00A046,67 por hora").assertIsDisplayed()
     }
 
     @Test
@@ -211,7 +211,7 @@ class TelaPublicarVagaTest {
 
         rule.onNodeWithText(TextosPublicarVaga.VALOR).performScrollTo().performTextInput("200")
 
-        rule.onNodeWithText("Total da vaga: R$ 200,00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Total da vaga: R$\u00A0200,00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.TOTAL_SINGULAR).assertIsDisplayed()
     }
 

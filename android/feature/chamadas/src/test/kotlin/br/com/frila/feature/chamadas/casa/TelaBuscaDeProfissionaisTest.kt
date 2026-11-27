@@ -316,7 +316,7 @@ class TelaBuscaDeProfissionaisTest {
 
         rolarAteTag("busca-cartao-p1")
         rule.onNodeWithText("Maria S.").assertIsDisplayed()
-        rule.onNode(hasTestTag("busca-cartao-p1") and hasAnyDescendant(hasText("Garçom: R$ 150,00 por diária de 8 h"))).assertExists()
+        rule.onNode(hasTestTag("busca-cartao-p1") and hasAnyDescendant(hasText("Garçom: R$\u00A0150,00 por diária de 8 h"))).assertExists()
         rule.onNode(hasTestTag("busca-cartao-p1") and hasAnyDescendant(hasText("Plano Piloto"))).assertExists()
         // O selo só aparece no cartão com disponivel_no_horario = true.
         val selo = hasAnyDescendant(hasText(TextosChamadaCasa.BUSCA_DISPONIVEL))
