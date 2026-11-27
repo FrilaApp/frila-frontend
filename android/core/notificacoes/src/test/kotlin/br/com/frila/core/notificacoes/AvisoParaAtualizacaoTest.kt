@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test
 /** O push da conta ativa sinaliza as listas; o de outra conta (neutralizado, RN15) não mexe em lista nenhuma (HaRJJ0L0). */
 class AvisoParaAtualizacaoTest {
 
-    private fun notificacao(neutralizada: Boolean) = NotificacaoParaExibir(
+    private fun notificacao(neutralizada: Boolean, vinculoConfirmado: Boolean = true) = NotificacaoParaExibir(
         canal = GerenciadorDeCanais.CANAL_SISTEMA, titulo = "Frila", corpo = "x", vagaId = null, neutralizada = neutralizada,
-        silenciada = false, chamadaId = null, turnoId = null,
+        silenciada = false, chamadaId = null, turnoId = null, vinculoConfirmado = vinculoConfirmado,
     )
 
     private fun atualizacaoComSessao() = AtualizacaoAutomatica(sessao = { "vinculo-1" })
@@ -32,6 +32,13 @@ class AvisoParaAtualizacaoTest {
     fun `sem sessao o aviso nao conta`() {
         val atualizacao = AtualizacaoAutomatica(sessao = { null })
         AvisoParaAtualizacao.sinalizar(notificacao(neutralizada = false), atualizacao)
+        assertEquals(0, atualizacao.avisos.value)
+    }
+
+    @Test
+    fun `push sem vinculo_id nao conta, mesmo nao neutralizado`() {
+        val atualizacao = atualizacaoComSessao()
+        AvisoParaAtualizacao.sinalizar(notificacao(neutralizada = false, vinculoConfirmado = false), atualizacao)
         assertEquals(0, atualizacao.avisos.value)
     }
 }

@@ -605,11 +605,15 @@ class MeusTurnosViewModelTest {
     fun `atualizarSemPiscar com uma linha ruim mantem as outras`() = runBlocking {
         val descartadas = mutableListOf<String>()
         val viewModel = viewModelComUmaLinhaRuim(descartadas)
+        // A releitura só vale com a lista na tela (HaRJJ0L0): a carga vem antes, e o registro das linhas ruins recomeça para medir só a releitura.
+        viewModel.carregar().join()
+        descartadas.clear()
 
         viewModel.atualizarSemPiscar().join()
 
         assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
         assertEquals(listOf("bom"), viewModel.estado.value.agendados.map { it.turnoId })
+        assertEquals(listOf("ruim", "antigo-ruim"), descartadas.toList(), "a releitura também descarta as linhas ruins")
     }
 
     @Test
@@ -650,5 +654,70 @@ class MeusTurnosViewModelTest {
             assertEquals("O motivo não foi aceito. Revise o texto e tente novamente.", viewModel.estado.value.cancelamento!!.mensagemErro, codigo)
             assertEquals(false, viewModel.estado.value.cancelamento!!.enviando, codigo)
         }
+    }
+
+    private val jsonDaResposta = headersOf(HttpHeaders.ContentType, "application/json")
+
+    @Test
+    fun `atualizarSemPiscar nao rele antes da carga nem com a tela em ERRO, e nao mexe no estado (HaRJJ0L0)`() = runBlocking {
+        var pedidos = 0
+        var falhar = true
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                pedidos++
+                if (falhar) {
+                    respond("""{"code": "500", "message": "erro"}""", HttpStatusCode.InternalServerError, jsonDaResposta)
+                } else {
+                    respond("[${turnoJson("a", "confirmada")}]", HttpStatusCode.OK, jsonDaResposta)
+                }
+            },
+        )
+
+        // Antes da carga (CARREGANDO): nada de pedido.
+        viewModel.atualizarSemPiscar().join()
+        assertEquals(0, pedidos)
+        assertEquals(StatusMeusTurnos.CARREGANDO, viewModel.estado.value.status)
+
+        // Em ERRO: nada de pedido, e a mensagem de erro fica onde estava.
+        viewModel.carregar().join()
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
+        val mensagem = viewModel.estado.value.mensagemErro
+        val pedidosAntes = pedidos
+        falhar = false
+        viewModel.atualizarSemPiscar().join()
+        assertEquals(pedidosAntes, pedidos)
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
+        assertEquals(mensagem, viewModel.estado.value.mensagemErro)
+
+        // Com a lista na tela, relê.
+        viewModel.carregar().join()
+        viewModel.atualizarSemPiscar().join()
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(null, viewModel.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `atualizarSemPiscar nao aplica o que leu se uma carga virou a tela para ERRO enquanto lia (HaRJJ0L0)`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                when (++chamada) {
+                    1 -> respond("[${turnoJson("a", "confirmada")}]", HttpStatusCode.OK, jsonDaResposta)
+                    2 -> { portao.await(); respond("[${turnoJson("b", "confirmada")}]", HttpStatusCode.OK, jsonDaResposta) }
+                    else -> respond("""{"code": "500", "message": "erro"}""", HttpStatusCode.InternalServerError, jsonDaResposta)
+                }
+            },
+        )
+        viewModel.carregar().join()
+        val silenciosa = viewModel.atualizarSemPiscar()
+        while (chamada < 2) kotlinx.coroutines.delay(5)
+
+        viewModel.carregar().join()
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
+        portao.complete(Unit)
+        silenciosa.join()
+
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status, "a releitura que chegou depois não desfaz o erro")
     }
 }

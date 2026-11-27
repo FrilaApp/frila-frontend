@@ -1012,4 +1012,85 @@ class FeedVagasViewModelTest {
 
         assertEquals(OpcaoOrdenacaoVagas.MAIOR_VALOR, viewModel.estado.value.opcaoOrdenacao)
     }
+
+    @Test
+    fun `atualizarEmSilencio nao rele antes da carga nem com a tela em ERRO, e nao mexe no estado (HaRJJ0L0)`() = runBlocking {
+        var pedidos = 0
+        var falhar = true
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                pedidos++
+                if (falhar) {
+                    respond("""{"code": "perfil_incompativel", "message": "x"}""", HttpStatusCode.UnprocessableEntity, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(0, pedidos, "antes da carga não chama o servidor")
+        assertEquals(StatusFeed.CARREGANDO, viewModel.estado.value.status)
+
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        val pedidosAntes = pedidos
+        val estadoAntes = viewModel.estado.value
+        falhar = false
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(pedidosAntes, pedidos, "em ERRO não chama o servidor")
+        assertEquals(estadoAntes, viewModel.estado.value, "em ERRO o estado e as marcas de erro ficam como estavam")
+
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.SUCESSO, viewModel.estado.value.status)
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(pedidosAntes + 2, pedidos, "com a lista na tela, relê")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao aplica o que leu se uma carga virou a tela para ERRO enquanto lia (HaRJJ0L0)`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamada = 0
+        val json = headersOf(HttpHeaders.ContentType, "application/json")
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                when (++chamada) {
+                    1 -> respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, json)
+                    2 -> { portao.await(); respond("[${vagaJson(id = "2", funcao = "barista")}]", HttpStatusCode.OK, json) }
+                    else -> respond("""{"code": "500", "message": "erro"}""", HttpStatusCode.InternalServerError, json)
+                }
+            },
+        )
+        viewModel.carregar().join()
+        val silenciosa = viewModel.atualizarEmSilencio()
+        while (chamada < 2) kotlinx.coroutines.delay(5)
+
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        portao.complete(Unit)
+        silenciosa.join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status, "a releitura que chegou depois não desfaz o erro")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao abre outra leitura com o puxar para atualizar em voo (HaRJJ0L0)`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamada = 0
+        val json = headersOf(HttpHeaders.ContentType, "application/json")
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                if (++chamada == 2) portao.await()
+                respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, json)
+            },
+        )
+        viewModel.carregar().join()
+        val puxar = viewModel.atualizar()
+        while (chamada < 2) kotlinx.coroutines.delay(5)
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(2, chamada, "a releitura silenciosa não abre uma terceira leitura")
+        portao.complete(Unit)
+        puxar.join()
+    }
 }

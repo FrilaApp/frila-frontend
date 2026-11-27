@@ -183,12 +183,22 @@ class FeedVagasViewModel(
     }
 
     /**
+     * Só com a lista na tela (SUCESSO ou VAZIO) e sem carga ou puxar para atualizar em voo, como o iOS: em CARREGANDO a releitura
+     * disputaria a carga e, se esta falhasse depois, trocaria a lista por erro; em ERRO ela chamaria o servidor à toa e, se a
+     * resposta virasse SUCESSO, deixaria a mensagem de erro e as marcas de `semPontoBase` e `perfilIncompativel` para trás.
+     */
+    private fun podeReler(): Boolean = _estado.value.let { (it.status == StatusFeed.SUCESSO || it.status == StatusFeed.VAZIO) && !it.atualizando }
+
+    /**
      * Releitura automática (volta do segundo plano, push): troca a lista sem indicador e sem esqueleto, e uma falha deixa a lista
      * como está, sem mensagem de erro (a tela não pode piscar nem perder o que mostra). Paridade com a releitura em silêncio do iOS.
      */
     fun atualizarEmSilencio(): Job = escopoDeTrabalho.launch {
+        if (!podeReler()) return@launch
         try {
-            aplicarResultado(buscarVagas())
+            val resultado = buscarVagas()
+            // A carga ou um erro pode ter começado durante a leitura: quem manda na tela agora não é esta releitura.
+            if (podeReler()) aplicarResultado(resultado)
         } catch (erro: CancellationException) {
             throw erro
         } catch (_: Exception) {
