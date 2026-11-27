@@ -210,7 +210,7 @@ object Rotas {
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     /** O turno da casa aberto pelo toque num push, que traz o `turno_id` e não a vaga nem a posição. */
     const val TURNO_DO_CONTRATANTE_AVISO = "turno_do_contratante_aviso/{estabelecimentoId}/{turnoId}"
-    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
+    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}&estabelecimentoId={estabelecimentoId}"
 
     // Lote 2 do Android (L2-8).
     const val CANCELAR_VAGA = "cancelar_vaga/{vagaId}?inicioDaVaga={inicioDaVaga}"
@@ -338,10 +338,11 @@ object Rotas {
      * `posicoesAbertas` e `inicioDaVaga` são opcionais: a tela de origem os informa quando conhece a vaga.
      * O início vai em ISO-8601 UTC, como o contrato o entrega.
      */
-    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null): String {
+    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null, estabelecimentoId: String? = null): String {
         val parametros = listOfNotNull(
             posicoesAbertas?.let { "posicoesAbertas=$it" },
             inicioDaVaga?.let { "inicioDaVaga=${Uri.encode(it.toString())}" },
+            estabelecimentoId?.let { "estabelecimentoId=${Uri.encode(it)}" },
         )
         val base = "candidatos_da_vaga/${Uri.encode(vagaId)}"
         return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
@@ -1674,7 +1675,7 @@ fun AppNavegacao(
                         },
                         aoRepublicarPosicoesRestantes = { item -> restantesDe = item },
                         aoVerCandidatos = { vagaId, posicoesAbertas, inicioDaVaga ->
-                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
+                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga, estabelecimentoId))
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
                         aoPublicarEscala = { id -> navController.navigate(Rotas.publicarEscala(id)) },
@@ -1831,16 +1832,19 @@ fun AppNavegacao(
                     navArgument("vagaId") { type = NavType.StringType },
                     navArgument("posicoesAbertas") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("inicioDaVaga") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("estabelecimentoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    // A casa, quando quem abriu a tela a conhece (Minhas vagas); o aviso push só traz a vaga.
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId")
                     // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
                     // só perde o aviso da última posição e o prazo, nunca recebe lixo.
                     val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
                     val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { instanteDoServidor(it) }.getOrNull() }
                     val viewModel: CandidatosDaVagaViewModel = koinViewModel(
-                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
+                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga, estabelecimentoId) },
                     )
                     TelaCandidatosDaVaga(
                         viewModel = viewModel,

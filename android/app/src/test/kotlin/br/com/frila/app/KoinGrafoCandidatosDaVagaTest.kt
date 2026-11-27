@@ -4,6 +4,7 @@ import br.com.frila.core.localizacao.ProvedorDeLocalizacao
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
+import br.com.frila.feature.vagas.candidatos.FalhaDaEscolha
 import br.com.frila.feature.vagas.candidatos.EstadoDosCandidatos
 import br.com.frila.feature.vagas.candidatos.ResultadoDaEscolha
 import io.ktor.client.engine.mock.MockEngine
@@ -187,4 +188,80 @@ class KoinGrafoCandidatosDaVagaTest : KoinTest {
         assertEquals(EstadoDosCandidatos.Vazio, viewModel.estado.value.lista)
         assertFalse(viewModel.estado.value.ultimaPosicao)
     }
+
+    // iUpi3Es4: com a casa na rota, o 409 depois de uma resposta perdida confere o painel; sem ela, segue como antes.
+
+    private fun painelComBetoConfirmado(estabelecimentoId: String = "casa-1") = """
+        {"estabelecimento_id":"$estabelecimentoId","checkins_pendentes":[],
+         "vagas":[{"vaga":{"id":"vaga-7","funcao":"garçom","local":"CLS 405","regiao_administrativa":"Plano Piloto",
+                           "inicio_em":"2026-11-12T20:00:00Z","fim_em":"2026-11-13T02:00:00Z","valor_centavos":16000},
+                   "modo":"selecao","estado":"publicada","oculta":false,"alerta_vaga_vazia":false,"candidatos_pendentes":1,
+                   "posicoes":[{"id":"pos-1","estado":"confirmada","em_atraso":false,
+                                "profissional":{"id":"p2","tipo":"profissional","nome":"Beto",
+                                  "reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}},
+                               {"id":"pos-2","estado":"aberta","em_atraso":false}]}]}
+    """.trimIndent()
+
+    private fun redeComEscolhaPerdida() = Rede { request ->
+        when {
+            request.url.encodedPath.endsWith("/escolher_candidato") ->
+                respond("""{"code":"candidatura_indisponivel","message":"x","details":null}""", HttpStatusCode.Conflict, json)
+            request.url.encodedPath.endsWith("/painel_estabelecimento") -> respond(painelComBetoConfirmado(), HttpStatusCode.OK, json)
+            else -> respond(candidatosJson, HttpStatusCode.OK, json)
+        }
+    }
+
+    @Test
+    fun `com a casa na rota, o 409 da escolha confere o painel da casa e confirma quem ja estava confirmado`() = runBlocking {
+        val rede = redeComEscolhaPerdida()
+        iniciar(rede)
+        val viewModel = get<CandidatosDaVagaViewModel> { parametersOf("vaga-7", 2, inicio, "casa-1") }
+
+        viewModel.carregar().join()
+        viewModel.pedirEscolha(viewModel.estado.value.candidatos.first { it.candidaturaId == "c2" })
+        viewModel.confirmarEscolha().join()
+
+        val painel = rede.pedidos.single { it.caminho.endsWith("/painel_estabelecimento") }
+        assertTrue(painel.corpo.orEmpty().contains("\"estabelecimento_id\":\"casa-1\""), painel.corpo)
+        assertEquals(ResultadoDaEscolha("Beto", vagaPreenchida = false), viewModel.estado.value.resultado)
+        assertNull(viewModel.estado.value.falha)
+        assertEquals(1, viewModel.estado.value.posicoesAbertas)
+    }
+
+    @Test
+    fun `sem a casa na rota (aviso push), o 409 segue como candidatura indisponivel e nenhum painel e lido`() = runBlocking {
+        val rede = redeComEscolhaPerdida()
+        iniciar(rede)
+        val viewModel = get<CandidatosDaVagaViewModel> { parametersOf("vaga-7", 2, inicio) }
+
+        viewModel.carregar().join()
+        viewModel.pedirEscolha(viewModel.estado.value.candidatos.first { it.candidaturaId == "c2" })
+        viewModel.confirmarEscolha().join()
+
+        assertTrue(rede.pedidos.none { it.caminho.endsWith("/painel_estabelecimento") })
+        assertNull(viewModel.estado.value.resultado)
+        assertEquals(FalhaDaEscolha.CandidaturaIndisponivel("Beto"), viewModel.estado.value.falha)
+    }
+
+    @Test
+    fun `painel de outra casa nao confirma ninguem`() = runBlocking {
+        val rede = Rede { request ->
+            when {
+                request.url.encodedPath.endsWith("/escolher_candidato") ->
+                    respond("""{"code":"candidatura_indisponivel","message":"x"}""", HttpStatusCode.Conflict, json)
+                request.url.encodedPath.endsWith("/painel_estabelecimento") ->
+                    respond(painelComBetoConfirmado(estabelecimentoId = "casa-OUTRA"), HttpStatusCode.OK, json)
+                else -> respond(candidatosJson, HttpStatusCode.OK, json)
+            }
+        }
+        iniciar(rede)
+        val viewModel = get<CandidatosDaVagaViewModel> { parametersOf("vaga-7", 2, inicio, "casa-1") }
+        viewModel.carregar().join()
+        viewModel.pedirEscolha(viewModel.estado.value.candidatos.first { it.candidaturaId == "c2" })
+        viewModel.confirmarEscolha().join()
+
+        assertNull(viewModel.estado.value.resultado)
+        assertEquals(FalhaDaEscolha.CandidaturaIndisponivel("Beto"), viewModel.estado.value.falha)
+    }
 }
+
