@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -672,5 +673,46 @@ class TelaDetalheVagaTest {
     @Test
     fun `uma casa com avaliacoes e nenhuma positiva ainda mostra a contagem`() {
         assertEquals("0 de 4 avaliações indicam que trabalhariam lá de novo", textoDaReputacaoNaTela(positivas = 0, total = 4))
+    }
+
+    // ── A leitura de detalhe_vaga ao abrir pelo feed (DLjTVc2e) ───────────────────────────────────────────────────────
+
+    private fun viewModelQueLeODetalhe(resposta: String, status: HttpStatusCode = HttpStatusCode.OK): DetalheVagaViewModel {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { respond(resposta, status, headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        return DetalheVagaViewModel(vaga = criarVaga(), servicoVagas = ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+    }
+
+    @Test
+    fun `aberta pelo feed, o bloco do detalhe aparece depois da leitura, sem trocar o que ja estava na tela`() {
+        val json = ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor())
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe(json)) } }
+
+        // Na hora: o que o feed trouxe.
+        compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
+        // Depois da leitura: o que a lista não traz.
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasText("Responsável no local: Procure a gerente no balcão")).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Observações: Chegar 15 minutos antes")).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Traje: Camisa preta")).assertExists()
+        compose.onNodeWithText("Bar do Zé").assertExists()
+    }
+
+    @Test
+    fun `aberta pelo feed, se a leitura do detalhe falha a tela segue com o que veio do feed e sem erro`() {
+        compose.setContent {
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound)) }
+        }
+        compose.waitForIdle()
+        Thread.sleep(300)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Não foi possível", substring = true).fetchSemanticsNodes().size)
+        compose.onNodeWithText("Candidatar-se").assertExists()
     }
 }
