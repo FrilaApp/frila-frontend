@@ -174,6 +174,25 @@ class KoinGrafoTest : KoinTest {
         assertTrue(job.isCancelled)
     }
 
+    /** #793: o aviso de recusa que o grafo dá ao cliente chega ao coordenador, que está no mesmo grafo, sem ciclo ao montar. */
+    @Test
+    fun `a recusa do refresh avisada pelo cliente passa pela limpeza do Sair`() = kotlinx.coroutines.runBlocking {
+        startKoin { modules(modulosDeTeste) }
+        val gestor = get<GestorClienteKtor>()
+        val escopo = get<kotlinx.coroutines.CoroutineScope>(org.koin.core.qualifier.named(ESCOPO_DA_SESSAO))
+        val job = escopo.launch { kotlinx.coroutines.delay(60_000) }
+        val antigo = gestor.clienteAtual
+        val aviso = ClienteSupabase::class.java.getDeclaredField("aoRecusarSessao").apply { isAccessible = true }.get(antigo)
+
+        @Suppress("UNCHECKED_CAST")
+        (aviso as () -> Unit).invoke()
+
+        assertTrue(antigo.estaFechado, "o cliente da sessão recusada continuou aberto")
+        assertTrue(gestor.clienteAtual !== antigo)
+        job.join()
+        assertTrue(job.isCancelled, "o escopo da sessão seguiu vivo")
+    }
+
     @Test
     fun `GerenciadorPreferenciasNotificacao e o mesmo singleton para PerfilViewModel e ProcessadorDePush`() {
         // MEDIDO (Shisui, PR #596, bloqueante): PerfilViewModel estava registrado com 3

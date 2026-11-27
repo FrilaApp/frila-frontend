@@ -247,6 +247,7 @@ val moduloRede = module {
     single {
         // Debug compilado sem o par DEV: o app sobe, mas diz no log por que não alcança o servidor (sem valores).
         configuracaoSupabase.problema?.let { Log.w("FRILA_CONFIG", "Supabase sem configuração que sirva: $it") }
+        val koin = getKoin()
         GestorClienteKtor {
             ClienteSupabase(
                 baseUrl = configuracaoSupabase.url,
@@ -254,6 +255,9 @@ val moduloRede = module {
                 armazenamentoDeSessao = get(),
                 monitorDeConectividade = get(),
                 registroDeErros = get<TelemetriaDeFalhas>().let { telemetria -> RegistroDeErroDaApi(telemetria::registrarErroDaApi) },
+                // #793: a recusa do refresh passa pela limpeza do Sair. O coordenador depende deste gestor, então é resolvido só
+                // na hora da recusa, nunca ao montar o cliente: sem ciclo no grafo.
+                aoRecusarSessao = { koin.get<CoordenadorDeLogout>().encerrarAposRecusa() },
             )
         }
     }
