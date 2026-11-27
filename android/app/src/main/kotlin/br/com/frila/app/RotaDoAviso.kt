@@ -35,11 +35,11 @@ private fun String?.uuid(): String? = this?.trim()?.takeIf { UUID_REGEX.matches(
 
 /**
  * A tela que o toque abre, pelo tipo e pelo papel da conta, como o `RoteadorDePush` do iOS (`DestinoDoProfissional`).
- * Nulo: não navega, e o app fica na raiz do papel. A casa vai sempre a Minhas vagas, nunca a tela do profissional;
- * o destino fino da casa (turno, vaga) ainda não tem rota por link.
+ * Nulo: não navega, e o app fica na raiz do papel. A casa nunca vai a tela do profissional: os avisos de vaga com
+ * candidatos a ver abrem os candidatos da vaga ([rotaDaCasa]); o resto, Minhas vagas.
  */
 internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
-    if (papel is PapelDaRaiz.Contratante) return papel.rotaDeMinhasVagas
+    if (papel is PapelDaRaiz.Contratante) return rotaDaCasa(aviso) ?: papel.rotaDeMinhasVagas
     return when (aviso.tipo) {
         "vaga", "candidatura_recusada", "selecao_encerrada" -> aviso.vagaId.uuid()?.let(Rotas::detalhe)
         "confirmacao", "lembrete_24h", "lembrete_3h", "inicio_sem_checkin", "fim_sem_checkout", "turno_nao_verificado" ->
@@ -56,4 +56,15 @@ internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
         // `vagas_agrupadas`, `suspensao`, `reativacao` e tipo desconhecido não abrem tela.
         else -> null
     }
+}
+
+/**
+ * O destino da casa, como o `AvisoDoContratante` do iOS (`.vaga`), onde o Android tem a tela: os candidatos da vaga
+ * (`candidatos_da_vaga` só devolve candidaturas pendentes). Vaga direta (`chamada_*`), seleção encerrada e os lembretes de
+ * fim de turno abririam a lista vazia com "Ninguém se candidatou ainda", que ali é falso: ficam em Minhas vagas, como
+ * os de turno, que ainda não têm rota pelo `turno_id`.
+ */
+private fun rotaDaCasa(aviso: AvisoDoToque): String? = when (aviso.tipo) {
+    "vaga_sem_elegiveis", "vaga_vazia", "selecao_lembrete", "cancelamento" -> aviso.vagaId.uuid()?.let { Rotas.candidatosDaVaga(it) }
+    else -> null
 }
