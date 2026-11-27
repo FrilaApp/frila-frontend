@@ -278,6 +278,8 @@ class ClienteSupabaseTest {
             .exceptionOrNull() as? ErroDaApi
 
         assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+        assertEquals("sem_rede", erro?.codigoOriginal)
+        assertEquals(false, erro?.foiTempoEsgotado)
     }
 
     @Test
@@ -289,6 +291,8 @@ class ClienteSupabaseTest {
             .exceptionOrNull() as? ErroDaApi
 
         assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+        assertEquals("tempo_esgotado", erro?.codigoOriginal)
+        assertEquals(true, erro?.foiTempoEsgotado)
     }
 
     @Test
@@ -300,6 +304,8 @@ class ClienteSupabaseTest {
             .exceptionOrNull() as? ErroDaApi
 
         assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+        assertEquals("tempo_esgotado", erro?.codigoOriginal)
+        assertEquals(true, erro?.foiTempoEsgotado)
     }
 
     @Test
@@ -311,6 +317,8 @@ class ClienteSupabaseTest {
             .exceptionOrNull() as? ErroDaApi
 
         assertEquals(CodigoErroAPI.SEM_REDE, erro?.codigo)
+        assertEquals("sem_rede", erro?.codigoOriginal)
+        assertEquals(false, erro?.foiTempoEsgotado)
     }
 
     @Test

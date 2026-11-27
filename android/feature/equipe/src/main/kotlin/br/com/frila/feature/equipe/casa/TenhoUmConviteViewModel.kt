@@ -95,7 +95,8 @@ class TenhoUmConviteViewModel(
         if (atual.enviando || atual.aceito != null) return escopoDeTrabalho.launch { }
         val token = extrairTokenDoConvite(atual.texto)
         if (token == null) {
-            _estado.update { it.copy(erro = TextosEquipeDaCasa.CONVITE_INVALIDO) }
+            // Texto sem forma de convite não chega à rede e não é "convite vencido": diz o que colar (iOS `conviteFormatoInvalido`).
+            _estado.update { it.copy(erro = TextosEquipeDaCasa.CONVITE_FORMATO_INVALIDO) }
             return escopoDeTrabalho.launch { }
         }
         _estado.update { it.copy(enviando = true, erro = null) }
@@ -120,7 +121,9 @@ class TenhoUmConviteViewModel(
         CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL -> TextosEquipeDaCasa.CONVITE_DE_OUTRO_EMAIL
         CodigoErroAPI.PERFIL_INCOMPATIVEL -> TextosEquipeDaCasa.CONVITE_PERFIL_INCOMPATIVEL
         CodigoErroAPI.NAO_AUTENTICADO -> TextosEquipeDaCasa.SESSAO
-        CodigoErroAPI.SEM_REDE -> TextosEquipeDaCasa.SEM_REDE
+        // O tempo esgotado depois de enviar não diz se o servidor aceitou: um convite é de uso único, então a mensagem avisa onde conferir
+        // (iOS: `SEM_REDE` com o código do prazo vira `conviteIncerto`). Falha antes de enviar segue "Sem conexão".
+        CodigoErroAPI.SEM_REDE -> if (erro.foiTempoEsgotado) TextosEquipeDaCasa.CONVITE_INCERTO else TextosEquipeDaCasa.SEM_REDE
         CodigoErroAPI.CONTA_SUSPENSA -> TextosEquipeDaCasa.CONTA_SUSPENSA
         CodigoErroAPI.SEM_PERMISSAO ->
             if (erro.detalhes == "conta_suspensa") TextosEquipeDaCasa.CONTA_SUSPENSA else TextosEquipeDaCasa.CONVITE_INCERTO

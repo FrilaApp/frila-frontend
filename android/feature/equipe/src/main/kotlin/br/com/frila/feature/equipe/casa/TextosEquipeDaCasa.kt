@@ -99,6 +99,7 @@ object TextosEquipeDaCasa {
     const val CONVITE_ACEITO = "Você agora faz parte da casa como %s."
     const val CONVITE_ACEITO_SEM_PAPEL = "Você agora faz parte da casa."
     const val CONVITE_ABRIR_CASA = "Abrir a casa"
+    const val CONVITE_FORMATO_INVALIDO = "Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada."
     const val CONVITE_INVALIDO = "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou."
     const val CONVITE_DE_OUTRO_EMAIL = "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite."
     const val CONVITE_PERFIL_INCOMPATIVEL = "Convites de casa são para contas de quem contrata. A sua conta é de profissional."
