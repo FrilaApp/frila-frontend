@@ -14,6 +14,7 @@ import java.io.IOException
 import java.time.Instant
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.TurnoDto
 import java.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +46,8 @@ class MeusTurnosViewModel(
     private val filaDeAcoes: FilaDeAcoes? = null,
     private val contaAtual: () -> String? = { null },
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+    /** Uma linha que não virou item (início ilegível, campo ausente) fica de fora da tela; recebe o id do turno, só para o log. */
+    private val registrarLinhaDescartada: (turnoId: String) -> Unit = {},
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -101,8 +104,8 @@ class MeusTurnosViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val turnos = servicoTurnos.listarMeusTurnos()
-                val agendados = turnos.filter { it.estado in ESTADOS_AGENDADOS }.map { it.paraItem() }
-                val historicoCompleto = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
+                val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
+                val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
 
                 _estado.update {
                     it.copy(
@@ -132,14 +135,27 @@ class MeusTurnosViewModel(
     fun tentarNovamente(): Job = carregar()
 
     /**
+     * Os itens dos turnos nos [estados]. Uma linha que não mapeia (início ilegível, campo ausente) é descartada e registrada, e as outras
+     * seguem: antes um único turno ruim lançava e derrubava a tela inteira em ERRO. Mesmo critério de `MinhasCandidaturasViewModel`.
+     */
+    private fun itensDe(turnos: List<TurnoDto>, estados: Set<String>): List<ItemTurno> =
+        turnos.filter { it.estado in estados }.mapNotNull { dto ->
+            runCatching { dto.paraItem() }.getOrElse { erro ->
+                if (erro is CancellationException) throw erro
+                registrarLinhaDescartada(dto.id)
+                null
+            }
+        }
+
+    /**
      * Relê os turnos sem trocar a lista pelo esqueleto de carregamento: a tela que espera o `fim` previsto para liberar a avaliação
      * (#672) não pode piscar nem perder o que mostra. Uma falha deixa a lista como está.
      */
     fun atualizarSemPiscar(): Job = escopoDeTrabalho.launch {
         try {
             val turnos = servicoTurnos.listarMeusTurnos()
-            val agendados = turnos.filter { it.estado in ESTADOS_AGENDADOS }.map { it.paraItem() }
-            val historicoCompleto = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
+            val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
+            val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
             _estado.update {
                 it.copy(
                     status = if (turnos.isEmpty()) StatusMeusTurnos.VAZIO else StatusMeusTurnos.SUCESSO,
@@ -180,8 +196,8 @@ class MeusTurnosViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val turnos = servicoTurnos.listarMeusTurnos()
-                val agendados = turnos.filter { it.estado in ESTADOS_AGENDADOS }.map { it.paraItem() }
-                val historicoCompleto = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
+                val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
+                val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
 
                 _estado.update {
                     it.copy(

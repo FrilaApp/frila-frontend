@@ -572,6 +572,7 @@ class MeusTurnosViewModelTest {
         return MeusTurnosViewModel(
             ServicoTurnos(cliente),
             escopo = CoroutineScope(Dispatchers.Default),
+            registrarLinhaDescartada = { descartadas += it },
         )
     }
 
