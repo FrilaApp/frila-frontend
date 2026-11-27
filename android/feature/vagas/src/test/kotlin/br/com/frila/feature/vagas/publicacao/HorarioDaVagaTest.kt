@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.publicacao
 
+import br.com.frila.core.dominio.modelo.Dinheiro
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -25,10 +26,25 @@ class HorarioDaVagaTest {
 
     @Test
     fun `formatarReais usa ponto de milhar e virgula decimal`() {
-        assertEquals("R$ 1.260,00", formatarReais(126_000))
-        assertEquals("R$ 0,05", formatarReais(5))
-        assertEquals("R$ 140,50", formatarReais(14_050))
-        assertEquals("R$ 1.234.567,89", formatarReais(123_456_789))
+        // ghos6ChH: depois do "R$" vem o espaço não separável (U+00A0) do pt-BR, o mesmo de Dinheiro.formatado().
+        assertEquals("R$\u00A01.260,00", formatarReais(126_000))
+        assertEquals("R$\u00A00,05", formatarReais(5))
+        assertEquals("R$\u00A0140,50", formatarReais(14_050))
+        assertEquals("R$\u00A01.234.567,89", formatarReais(123_456_789))
+    }
+
+    @Test
+    fun `formatarReais escreve o mesmo texto de Dinheiro formatado, negativo inclusive`() {
+        for (centavos in listOf(0L, 5L, 150_000L, 123_456L, -150L)) {
+            assertEquals(Dinheiro(centavos).formatado(), formatarReais(centavos), "$centavos")
+        }
+    }
+
+    @Test
+    fun `lerCentavos le de volta o texto de formatarReais`() {
+        for (centavos in listOf(5L, 14_050L, 150_000L, 123_456L)) {
+            assertEquals(centavos, lerCentavos(formatarReais(centavos)), "$centavos")
+        }
     }
 
     @Test

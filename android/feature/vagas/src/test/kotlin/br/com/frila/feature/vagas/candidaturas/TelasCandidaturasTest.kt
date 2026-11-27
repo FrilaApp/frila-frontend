@@ -63,7 +63,7 @@ class TelasCandidaturasTest {
         rule.onNodeWithText(TextosCandidaturas.ESTADO_PENDENTE).assertIsDisplayed()
         rule.onNodeWithText(TextosCandidaturas.ESTADO_ACEITA).assertIsDisplayed()
         assertEquals(2, contar("01/12/2026, 18:00 – 21:00"))
-        assertEquals(2, contar("R$ 160,00 pelo turno"))
+        assertEquals(2, contar("R$\u00A0160,00 pelo turno"))
         AuditoriaSemanticaAcessibilidade.assertSemanticaValida(rule.onRoot().fetchSemanticsNode())
     }
 
