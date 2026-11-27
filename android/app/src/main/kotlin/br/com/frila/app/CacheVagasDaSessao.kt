@@ -21,6 +21,8 @@ internal class CacheVagasDaSessao(
     private val limparTelemetria: () -> Unit = {},
     /** `filesDir`, onde ficam os arquivos `avatar_perfil_*`: a foto é da conta que saiu e não pode sobrar para a próxima (#793). */
     private val diretorioDosAvatares: File? = null,
+    /** Esvazia o que vive acima das telas e é da conta que saiu (a escala pendente de cada casa): nunca impede encerrar a sessão. */
+    private val limparGuardas: () -> Unit = {},
 ) {
     private val repositorios = Collections.newSetFromMap(WeakHashMap<RepositorioVagas, Boolean>())
 
@@ -35,6 +37,7 @@ internal class CacheVagasDaSessao(
         var falha: IOException? = null
         // A limpeza de telemetria também é silenciosa; nunca impede encerrar a sessão.
         try { limparTelemetria() } catch (_: IOException) { }
+        try { limparGuardas() } catch (_: Exception) { }
         repositorios.forEach { repositorio ->
             try { repositorio.invalidar() } catch (erro: IOException) { falha = erro }
         }

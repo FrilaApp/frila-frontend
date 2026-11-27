@@ -9,6 +9,7 @@ import br.com.frila.core.rede.NovaEscalaDto
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.VagaPublicadaDto
 import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
+import br.com.frila.feature.vagas.escala.GuardaDaEscala
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -19,7 +20,9 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinApplication
@@ -86,5 +89,96 @@ class KoinGuardaDaEscalaTest {
             assertEquals(2, servidor.corpos.size)
             assertEquals(servidor.corpos[0].chave, servidor.corpos[1].chave, "a chave da escala não pode mudar entre as visitas")
         }
+    }
+
+    @Test
+    fun `a segunda visita volta ao formulario pendente, sem edicao, e o reenvio e o mesmo corpo`() {
+        val servidor = Servidor(listOf(Result.failure(semRede), Result.success(publicada())))
+        comAplicacao(servidor) { koin ->
+            val primeira = visita(koin)
+            preencher(primeira)
+            primeira.publicar().join()
+
+            val segunda = visita(koin)
+
+            assertNotNull(segunda.estado.value.pendente)
+            assertEquals("Formatura de Direito", segunda.estado.value.nome)
+            assertEquals(false, segunda.estado.value.podeEditar)
+            assertEquals(false, segunda.estado.value.enviando)
+            segunda.publicar().join()
+            assertEquals(servidor.corpos[0], servidor.corpos[1], "o reenvio é exatamente o mesmo corpo")
+            assertNotNull(segunda.estado.value.publicada)
+        }
+    }
+
+    @Test
+    fun `depois do sucesso a guarda esvazia e a visita seguinte comeca limpa, com chave nova`() {
+        val servidor = Servidor(listOf(Result.failure(semRede), Result.success(publicada()), Result.success(publicada())))
+        comAplicacao(servidor) { koin ->
+            val primeira = visita(koin)
+            preencher(primeira)
+            primeira.publicar().join()
+            visita(koin).publicar().join() // o reenvio dá certo
+            assertNull(koin.get<GuardaDaEscala>().obter(casa.id))
+
+            val terceira = visita(koin)
+            assertNull(terceira.estado.value.pendente)
+            assertEquals("", terceira.estado.value.nome)
+            preencher(terceira)
+            terceira.publicar().join()
+            assertNotEquals(servidor.corpos[1].chave, servidor.corpos[2].chave, "uma escala nova nasce com chave nova")
+        }
+    }
+
+    @Test
+    fun `recusa definitiva tira a casa da guarda e a visita seguinte comeca limpa`() {
+        val recusa = ErroDaApi(CodigoErroAPI.CAMPO_INVALIDO, "campo_invalido", "nome", "x")
+        val servidor = Servidor(listOf(Result.failure(recusa)))
+        comAplicacao(servidor) { koin ->
+            val primeira = visita(koin)
+            preencher(primeira)
+            primeira.publicar().join()
+            assertNull(primeira.estado.value.pendente)
+            assertNull(koin.get<GuardaDaEscala>().obter(casa.id))
+
+            assertNull(visita(koin).estado.value.pendente)
+        }
+    }
+
+    @Test
+    fun `a guarda e por casa, a pendencia de uma nao aparece na outra`() {
+        val outraCasa = casa.copy(id = "casa-2")
+        val servidor = Servidor(listOf(Result.failure(semRede)))
+        comAplicacao(servidor) { koin ->
+            val daCasa1 = visita(koin)
+            preencher(daCasa1)
+            daCasa1.publicar().join()
+
+            val daCasa2 = koin.get<EscalaDeEventoViewModel> { parametersOf(outraCasa) }
+
+            assertNull(daCasa2.estado.value.pendente)
+            assertNotNull(koin.get<GuardaDaEscala>().obter("casa-1"))
+            assertNull(koin.get<GuardaDaEscala>().obter("casa-2"))
+        }
+    }
+
+    @Test
+    fun `o logout esvazia a guarda pelo ponto unico de limpeza da sessao`() {
+        val servidor = Servidor(listOf(Result.failure(semRede)))
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val app = koinApplication { modules(moduloSeguranca, moduloFeatures, module { single { servidor.servico } }) }
+        try {
+            runBlocking {
+                val vm = visita(app.koin)
+                preencher(vm)
+                vm.publicar().join()
+                assertNotNull(app.koin.get<GuardaDaEscala>().obter(casa.id), "a pendência foi guardada")
+
+                app.koin.get<br.com.frila.core.seguranca.ArmazenamentoDeSessao>().limparSessao()
+
+                assertNull(app.koin.get<GuardaDaEscala>().obter(casa.id), "o logout esvazia a guarda")
+                assertNull(visita(app.koin).estado.value.pendente, "a conta seguinte não herda a escala da que saiu")
+            }
+        } finally { app.close(); Dispatchers.resetMain() }
     }
 }
