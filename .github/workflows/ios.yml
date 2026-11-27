@@ -149,6 +149,14 @@ jobs:
           python3 --version
           bash --version | head -n 1
 
+      - name: Conferir que FrilaTests está coberto na suíte completa (partes-da-ci.txt)
+        if: needs.escolher.outputs.completa == 'true'
+        run: |
+          if ! grep -Eq '^[[:space:]]*FrilaTests([[:space:]]*(#.*)?)?$' Tests/partes-da-ci.txt; then
+            echo "::error::FrilaTests ausente de Tests/partes-da-ci.txt; a rota completa=true não pode dispensar unitários em A."
+            exit 1
+          fi
+
       - name: Preparar o ambiente iOS
         id: preparo
         if: needs.escolher.outputs.completa != 'true'
