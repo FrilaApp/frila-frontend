@@ -428,7 +428,9 @@ val moduloFeatures = module {
         val armazenamento = get<ArmazenamentoDeSessao>()
         MeusTurnosViewModel(get(), filaDeAcoes = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
-            registrarEvento = get<RegistradorDeTelemetria>()::disparar)
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
+            // Não há evento de telemetria para isto (o conjunto é fechado pelo contrato): só o log, com o id do turno e nada mais.
+            registrarLinhaDescartada = { Log.w("FrilaTurnos", "Turno com dados ilegíveis ficou fora de Meus turnos: $it") })
     }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
         val armazenamento = get<ArmazenamentoDeSessao>()
