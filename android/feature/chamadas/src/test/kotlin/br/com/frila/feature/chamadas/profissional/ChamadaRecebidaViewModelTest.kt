@@ -426,4 +426,49 @@ class ChamadaRecebidaViewModelTest {
         assertTrue(vm.estado.value.chamadaAceita)
         assertNull(vm.estado.value.mensagemDeConcorrencia)
     }
+
+    // ---- 409 vaga_encerrada e posicao_ja_preenchida ao responder (cartão hdzEoUd2): só teste, a linha já existe ----
+
+    private val codigosDeVagaSemLugar = listOf("vaga_encerrada", "posicao_ja_preenchida")
+
+    @Test
+    fun `409 vaga_encerrada ou posicao_ja_preenchida com a chamada ainda aberta na conferencia mostra o aviso de encerrada e trava os botoes`() = runBlocking {
+        for (codigo in codigosDeVagaSemLugar) {
+            val rede = rede() // a conferência (detalhe_chamada) devolve a chamada ainda aberta: ela não prova nada, vale o erro
+            rede.recusa("/rpc/responder_chamada", HttpStatusCode.Conflict, Fixtures.erro(codigo))
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+
+            vm.aceitar().join()
+
+            val tela = vm.estado.value
+            assertEquals(2, rede.doCaminho("/rpc/detalhe_chamada").size, codigo) // conferiu antes de mostrar o aviso
+            assertEquals(TextosChamadaProfissional.CHAMADA_ENCERRADA, tela.mensagemDeConcorrencia, codigo)
+            assertNull(tela.erro, codigo)
+            assertFalse(tela.respondendo, codigo)
+            assertFalse(tela.podeResponder, codigo)
+            assertFalse(tela.chamadaAceita, codigo)
+        }
+    }
+
+    @Test
+    fun `409 vaga_encerrada ou posicao_ja_preenchida sem conseguir conferir tambem mostra o aviso de encerrada`() = runBlocking {
+        for (codigo in codigosDeVagaSemLugar) {
+            val rede = redeComConferencia(Fixtures.detalheChamadaJson(), depois = null) // a conferência falha (500)
+            rede.recusa("/rpc/responder_chamada", HttpStatusCode.Conflict, Fixtures.erro(codigo))
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+
+            vm.aceitar().join()
+
+            val tela = vm.estado.value
+            assertEquals(TextosChamadaProfissional.CHAMADA_ENCERRADA, tela.mensagemDeConcorrencia, codigo)
+            assertNull(tela.erro, codigo)
+            assertFalse(tela.podeResponder, codigo)
+            assertTrue(rede.doCaminho("/rpc/responder_chamada").size == 1, codigo) // sem os botões, ninguém tenta de novo
+            vm.aceitar().join()
+            vm.recusar().join()
+            assertEquals(1, rede.doCaminho("/rpc/responder_chamada").size, codigo)
+        }
+    }
 }
