@@ -101,7 +101,7 @@ class ComprovanteCheckinTest {
     }
 
     @Test
-    fun `hora desconhecida: o comprovante existe, sem hora inventada, com codigo proprio`() {
+    fun `hora desconhecida, o comprovante existe, sem hora inventada, com codigo proprio`() {
         val semHora = GeradorComprovanteCheckin.gerar(turnoId, null, TipoVerificacaoCheckin.GEOLOCALIZADO)
         val comHora = GeradorComprovanteCheckin.gerar(turnoId, instante, TipoVerificacaoCheckin.GEOLOCALIZADO)
 
