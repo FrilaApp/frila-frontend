@@ -331,4 +331,65 @@ class FotoDePerfilViewModelTest {
         assertEquals(null, vm.situacao.value.midia)
         assertEquals(false, vm.situacao.value.podePedirNovaAnalise)
     }
+
+    // ---- Fatia 2: o arquivo da foto recusada já foi expurgado (cartão 1dRm7FAH) ----
+
+    private fun midiaIndisponivel(detalhes: String?) = ErroDaApi(CodigoErroAPI.MIDIA_INDISPONIVEL, "midia_indisponivel", detalhes, "x")
+
+    @Test
+    fun `409 midia_indisponivel expurgada diz que o arquivo foi apagado e some o pedir nova analise`() = runBlocking {
+        val pedidos = mutableListOf<String>()
+        // O pior caso: a releitura ainda diz que se pode pedir (o servidor ainda não refletiu o expurgo).
+        val vm = viewModelDeMidias(listar = { listOf(foto()) }, pedir = { pedidos += it; throw midiaIndisponivel("expurgada") })
+        vm.carregar().join()
+
+        vm.pedirNovaAnalise().join()
+
+        assertEquals(TextosDaFotoDePerfil.ERRO_EXPURGADA, vm.situacao.value.aviso)
+        assertTrue(vm.situacao.value.arquivoExpurgado)
+        assertEquals(false, vm.situacao.value.podePedirNovaAnalise)
+        assertEquals(false, vm.situacao.value.pedindoNovaAnalise)
+
+        vm.pedirNovaAnalise().join()
+
+        assertEquals(listOf("m1"), pedidos) // não pede de novo
+    }
+
+    @Test
+    fun `so o details expurgada do midia_indisponivel conta como arquivo apagado`() = runBlocking {
+        val casos = listOf(
+            midiaIndisponivel("estado_invalido"),
+            midiaIndisponivel(null),
+            ErroDaApi(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "expurgada", "x"),
+        )
+        for (erro in casos) {
+            val vm = viewModelDeMidias(listar = { listOf(foto()) }, pedir = { throw erro })
+            vm.carregar().join()
+
+            vm.pedirNovaAnalise().join()
+
+            val rotulo = "${erro.codigoOriginal} ${erro.detalhes}"
+            assertEquals(TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA, vm.situacao.value.aviso, rotulo)
+            assertEquals(false, vm.situacao.value.arquivoExpurgado, rotulo)
+            assertTrue(vm.situacao.value.podePedirNovaAnalise, rotulo)
+        }
+    }
+
+    @Test
+    fun `outra foto na releitura limpa o arquivo expurgado`() = runBlocking {
+        var lidas = 0
+        val vm = viewModelDeMidias(
+            listar = { if (lidas++ < 2) listOf(foto(id = "m1")) else listOf(foto(id = "m2", enviadaEm = "2026-11-27T10:00:00Z")) },
+            pedir = { throw midiaIndisponivel("expurgada") },
+        )
+        vm.carregar().join()
+        vm.pedirNovaAnalise().join()
+        assertTrue(vm.situacao.value.arquivoExpurgado)
+
+        vm.carregar().join() // chegou outra foto, recusada, que ainda tem arquivo
+
+        assertEquals("m2", vm.situacao.value.midia?.id)
+        assertEquals(false, vm.situacao.value.arquivoExpurgado)
+        assertTrue(vm.situacao.value.podePedirNovaAnalise)
+    }
 }

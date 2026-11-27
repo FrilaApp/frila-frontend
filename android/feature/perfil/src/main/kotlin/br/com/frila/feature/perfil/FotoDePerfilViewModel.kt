@@ -40,11 +40,13 @@ data class SituacaoDaFoto(
     val pedindoNovaAnalise: Boolean = false,
     /** A falha do último pedido, em texto da tela. */
     val aviso: String? = null,
+    /** `409 midia_indisponivel` com `details: expurgada`: o arquivo já foi apagado, a nova análise não existe mais e só resta enviar outra foto. */
+    val arquivoExpurgado: Boolean = false,
 ) {
     /** Uma vez por foto `recusada` ou `nao_publicada`, e só se o servidor ainda deixa (`pode_pedir_nova_analise`: o arquivo existe). */
     val podePedirNovaAnalise: Boolean
         get() = midia != null && midia.estado in ESTADOS_DE_NOVA_ANALISE && midia.podePedirNovaAnalise &&
-            !novaAnaliseJaPedida && !pedindoNovaAnalise
+            !novaAnaliseJaPedida && !pedindoNovaAnalise && !arquivoExpurgado
 
     private companion object {
         val ESTADOS_DE_NOVA_ANALISE = setOf("recusada", "nao_publicada")
@@ -82,7 +84,7 @@ class FotoDePerfilViewModel(
         } catch (_: Exception) {
             return@launch
         }
-        _situacao.update { it.copy(midia = fotoDaConta(midias)) }
+        _situacao.update { it.comMidia(fotoDaConta(midias)) }
     }
 
     /**
@@ -100,14 +102,20 @@ class FotoDePerfilViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
-                _situacao.update { it.copy(aviso = mensagemDaFalha(erro)) }
+                // O arquivo apagado (`409 midia_indisponivel`, `details: expurgada`, contrato 0.2.54): não há o que reanalisar, só enviar outra foto.
+                val expurgada = erro is ErroDaApi && erro.codigo == CodigoErroAPI.MIDIA_INDISPONIVEL && erro.detalhes == "expurgada"
+                _situacao.update { it.copy(aviso = mensagemDaFalha(erro), arquivoExpurgado = expurgada) }
                 val midias = try { listarMidias() } catch (cancelado: CancellationException) { throw cancelado } catch (_: Exception) { null }
-                if (midias != null) _situacao.update { it.copy(midia = fotoDaConta(midias)) }
+                if (midias != null) _situacao.update { it.comMidia(fotoDaConta(midias)) }
             } finally {
                 _situacao.update { it.copy(pedindoNovaAnalise = false) }
             }
         }
     }
+
+    /** Outra foto (outro id) começa sem o que valia para a anterior. */
+    private fun SituacaoDaFoto.comMidia(nova: MidiaDto?): SituacaoDaFoto =
+        copy(midia = nova, arquivoExpurgado = arquivoExpurgado && nova?.id == midia?.id)
 
     private fun fotoDaConta(midias: List<MidiaDto>): MidiaDto? = midias
         .filter { it.tipo == "foto_perfil" && it.estabelecimentoId == null && it.estado != "removida" }
@@ -191,6 +199,7 @@ class FotoDePerfilViewModel(
                 erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO -> TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO
                 erro.codigo == CodigoErroAPI.CONTA_SUSPENSA || "conta_suspensa" in chave -> TextosDaFotoDePerfil.ERRO_CONTA_SUSPENSA
                 erro.codigo == CodigoErroAPI.MIDIA_INVALIDA -> TextosDaFotoDePerfil.ERRO_RECUSADA_PELO_SERVIDOR
+                erro.codigo == CodigoErroAPI.MIDIA_INDISPONIVEL && erro.detalhes == "expurgada" -> TextosDaFotoDePerfil.ERRO_EXPURGADA
                 else -> TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA
             }
         }
