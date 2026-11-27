@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonPrimitive
+import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -26,8 +27,8 @@ class AcompanharChamadasViewModelTest {
 
     private val reputacao = """{"positivas":7,"total":7,"turnos_considerados":7,"turnos_realizados":7}"""
 
-    private fun resumo(id: String, vagaId: String, estado: String, motivo: String? = null) =
-        """{"id":"$id","vaga_id":"$vagaId","profissional_id":"22222222-2222-2222-2222-222222222222","estabelecimento_id":"$casa","estado":"$estado","motivo_recusa":${motivo?.let { "\"$it\"" } ?: "null"},"expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z","funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"22222222-2222-2222-2222-222222222222","tipo":"profissional","nome":"Maria S.","reputacao":$reputacao}}"""
+    private fun resumo(id: String, vagaId: String, estado: String, motivo: String? = null, respondidaEm: String? = null) =
+        """{"id":"$id","vaga_id":"$vagaId","profissional_id":"22222222-2222-2222-2222-222222222222","estabelecimento_id":"$casa","estado":"$estado","motivo_recusa":${motivo?.let { "\"$it\"" } ?: "null"},"expira_em":"2026-11-17T12:00:00Z","respondida_em":${respondidaEm?.let { "\"$it\"" } ?: "null"},"criada_em":"2026-11-16T15:00:00Z","funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"22222222-2222-2222-2222-222222222222","tipo":"profissional","nome":"Maria S.","reputacao":$reputacao}}"""
 
     private fun pagina(vararg itens: String, proximo: String? = null) =
         """{"itens":[${itens.joinToString(",")}],"proximo_cursor":${proximo?.let { "\"$it\"" } ?: "null"}}"""
@@ -35,7 +36,10 @@ class AcompanharChamadasViewModelTest {
     private fun chamadaCancelada(id: String) =
         """{"id":"$id","vaga_id":"$vaga","profissional_id":"22222222-2222-2222-2222-222222222222","estabelecimento_id":"$casa","estado":"cancelada","expira_em":"2026-11-17T12:00:00Z","criada_em":"2026-11-16T15:00:00Z"}"""
 
-    private fun viewModelCom(rede: RedeDeTeste, prazoMs: Long = 5_000): AcompanharChamadasViewModel {
+    /** Antes do início do turno dos fixtures (`2026-11-20T22:00:00Z`): o relógio de verdade já passou dele. */
+    private val antesDoInicio = Instant.parse("2026-11-17T10:00:00Z")
+
+    private fun viewModelCom(rede: RedeDeTeste, prazoMs: Long = 5_000, agora: Instant = antesDoInicio): AcompanharChamadasViewModel {
         var contador = 0
         return AcompanharChamadasViewModel(
             vagaId = vaga,
@@ -44,6 +48,7 @@ class AcompanharChamadasViewModelTest {
             publicarAPartirDaChamada = rede.chamadas::publicarAPartirDaChamada,
             novaChave = { "chave-${++contador}" },
             prazoMs = prazoMs,
+            relogio = { agora },
             escopo = CoroutineScope(Dispatchers.Unconfined),
         )
     }
@@ -287,7 +292,8 @@ class AcompanharChamadasViewModelTest {
     fun `recusa do servidor ao publicar solta a acao e a proxima tentativa leva chave nova`() = runBlocking {
         val rede = RedeDeTeste()
         rede.ok("minhas_chamadas", pagina(resumo(idA, vaga, "recusada")))
-        rede.recusa("publicar_a_partir_da_chamada", HttpStatusCode.Conflict, "vaga_encerrada")
+        // `403 sem_permissao`: quem toca deixou de ser membro da casa (publicar_a_partir_da_chamada, privado.eh_membro).
+        rede.recusa("publicar_a_partir_da_chamada", HttpStatusCode.Forbidden, "sem_permissao")
         val vm = viewModelCom(rede)
         vm.carregar().join()
 
@@ -298,5 +304,53 @@ class AcompanharChamadasViewModelTest {
         vm.publicarParaTodos().join()
         val chaves = rede.doNome("publicar_a_partir_da_chamada").map { it.corpo["chave"]!!.jsonPrimitive.content }
         assertEquals(listOf("chave-1", "chave-2"), chaves)
+    }
+
+    /**
+     * `publicar_a_partir_da_chamada` (frila-backend `origin/develop`, `20261117190000_residuos_ordem_de_travas.sql`)
+     * responde `409 vaga_encerrada` com a vaga direta cancelada, encerrada ou preenchida, ou fora da janela (RN35).
+     */
+    @Test
+    fun `409 vaga_encerrada ao publicar explica, esconde o botao e rele a lista`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.ok("minhas_chamadas", pagina(resumo(idA, vaga, "recusada", respondidaEm = "2026-11-16T18:00:00Z")))
+        rede.recusa("publicar_a_partir_da_chamada", HttpStatusCode.Conflict, "vaga_encerrada")
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+        assertTrue(vm.estado.value.podePublicarParaTodos)
+
+        vm.publicarParaTodos().join()
+
+        assertEquals(TextosChamadaCasa.VAGA_ENCERRADA_AO_PUBLICAR, vm.estado.value.erro)
+        assertFalse(vm.estado.value.podePublicarParaTodos)
+        assertFalse(vm.estado.value.acaoEmVoo)
+        assertEquals(2, rede.doNome("minhas_chamadas").size, "a lista é relida depois da recusa")
+        vm.publicarParaTodos().join()
+        assertEquals(1, rede.doNome("publicar_a_partir_da_chamada").size, "com a vaga encerrada não há segundo pedido")
+    }
+
+    @Test
+    fun `o botao some quando a lista ja mostra a vaga encerrada`() = runBlocking {
+        fun pode(vararg itens: String, agora: Instant = antesDoInicio): Boolean = runBlocking {
+            val rede = RedeDeTeste().apply { ok("minhas_chamadas", pagina(*itens)) }
+            val vm = viewModelCom(rede, agora = agora)
+            vm.carregar().join()
+            vm.estado.value.podePublicarParaTodos
+        }
+        // expirar_chamadas encerra a vaga direta quando a última chamada aberta expira.
+        assertFalse(
+            pode(resumo(idA, vaga, "recusada", respondidaEm = "2026-11-16T18:00:00Z"), resumo(idB, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z")),
+            "a última a fechar expirou",
+        )
+        // Recusa e cancelamento não encerram a vaga: se a última a fechar foi recusada, ainda dá para publicar.
+        assertTrue(
+            pode(resumo(idA, vaga, "expirada", respondidaEm = "2026-11-16T18:00:00Z"), resumo(idB, vaga, "recusada", respondidaEm = "2026-11-17T09:00:00Z")),
+            "a última a fechar foi recusada",
+        )
+        // O turno já começou: fora da janela de conversão.
+        assertFalse(pode(resumo(idA, vaga, "recusada", respondidaEm = "2026-11-16T18:00:00Z"), agora = Instant.parse("2026-11-20T22:00:00Z")), "o turno começou")
+        assertTrue(pode(resumo(idA, vaga, "recusada", respondidaEm = "2026-11-16T18:00:00Z"), agora = Instant.parse("2026-11-20T21:59:00Z")), "falta um minuto")
+        // Sem `respondida_em` não dá para saber quem fechou por último: o botão fica, e o 409 cuida do resto.
+        assertTrue(pode(resumo(idA, vaga, "expirada")), "sem respondida_em")
     }
 }
