@@ -567,12 +567,6 @@ def conferir_dtos(
                 "o app iOS deixou de ler e armazenar contatos em conformidade com a Fase 2 (issue #396)."
             )
         },
-        "ConfiguracaoDoApp": {
-            "reenviar_otp_em_segundos": (
-                "Campo opcional introduzido no contrato 0.2.120 (frila-docs#342); "
-                "pendente de adoção no PR #1122."
-            )
-        },
     }
 
     alias_reverso = {v: k for k, v in ALIAS_DTO.items()}

@@ -130,7 +130,8 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
                         throw ErroDaApi(codigo: .respostaInvalida)
                     }
                     let expiraEm = resposta.expiraEm.flatMap(ContratoAPI.instante)
-                    return .desafioOTP(desafioID: desafioID, expiraEm: expiraEm)
+                    let reenviarEmSegundos = ConfiguracaoApp.normalizarCooldownOTP(resposta.reenviarEmSegundos)
+                    return .desafioOTP(desafioID: desafioID, expiraEm: expiraEm, reenviarEmSegundos: reenviarEmSegundos)
                 default:
                     throw ErroDaApi(codigo: .respostaInvalida)
                 }
@@ -221,7 +222,7 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             return ResultadoReenvioDispositivoOTP(
                 desafioID: resposta.desafioID,
                 expiraEm: resposta.expiraEm.flatMap(ContratoAPI.instante),
-                reenviarEmSegundos: max(1, resposta.reenviarEmSegundos ?? 60)
+                reenviarEmSegundos: ConfiguracaoApp.normalizarCooldownOTP(resposta.reenviarEmSegundos)
             )
         } catch is CancellationError {
             throw CancellationError()
