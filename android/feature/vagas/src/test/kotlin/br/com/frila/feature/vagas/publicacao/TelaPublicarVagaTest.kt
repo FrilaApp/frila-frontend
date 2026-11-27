@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -274,6 +276,37 @@ class TelaPublicarVagaTest {
                 (if (androidx.compose.ui.semantics.SemanticsActions.OnClick in it.config) it.config[androidx.compose.ui.semantics.SemanticsActions.OnClick].label else null) == TextosPublicarVaga.MAIS_OPCOES
             },
         )
+    }
+
+    @Test
+    fun `erro anti-contato nas observacoes aparece no campo, mesmo com mais opcoes fechado, e como erro global`() {
+        montar(
+            estado {
+                copy(
+                    errosDeCampo = mapOf(CampoPublicacao.OBSERVACOES to TextosPublicarVaga.ERRO_ANTI_CONTATO),
+                    erro = ErroGlobalPublicacao.ANTI_CONTATO,
+                )
+            },
+        )
+
+        // "Mais opções" nasce fechado; o erro do campo escondido tem de abri-lo, senão a pessoa só vê o aviso global.
+        rule.onNodeWithText(TextosPublicarVaga.OBSERVACOES).performScrollTo().assertIsDisplayed()
+        rule.onAllNodesWithText(TextosPublicarVaga.ERRO_ANTI_CONTATO).assertCountEquals(2)
+    }
+
+    @Test
+    fun `erro no traje tambem abre mais opcoes`() {
+        montar(estado { copy(errosDeCampo = mapOf(CampoPublicacao.TRAJE to TextosPublicarVaga.CAMPO_INVALIDO), erro = ErroGlobalPublicacao.CONFIRA_CAMPOS) })
+
+        rule.onNodeWithText(TextosPublicarVaga.TRAJE).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `sem erro nos campos de mais opcoes a secao segue fechada`() {
+        montar(estado { copy(errosDeCampo = mapOf(CampoPublicacao.VALOR to TextosPublicarVaga.VALOR_CAMPO), erro = ErroGlobalPublicacao.CONFIRA_CAMPOS) })
+
+        rule.onNodeWithText(TextosPublicarVaga.TRAJE).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.OBSERVACOES).assertDoesNotExist()
     }
 
     @Test

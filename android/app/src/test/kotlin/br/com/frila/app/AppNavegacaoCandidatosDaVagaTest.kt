@@ -61,7 +61,7 @@ class AppNavegacaoCandidatosDaVagaTest {
 
     private lateinit var nav: NavHostController
 
-    private class ParametrosRecebidos(val vagaId: String, val posicoesAbertas: Int?, val inicioDaVaga: Instant?)
+    private class ParametrosRecebidos(val vagaId: String, val posicoesAbertas: Int?, val inicioDaVaga: Instant?, val estabelecimentoId: String?)
 
     private val criados = mutableListOf<ParametrosRecebidos>()
     private val lidos = mutableListOf<String>()
@@ -104,8 +104,12 @@ class AppNavegacaoCandidatosDaVagaTest {
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
-                        viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: Instant?) ->
-                            criados += ParametrosRecebidos(vagaId, posicoesAbertas, inicioDaVaga)
+                        viewModel { parametros ->
+                            val vagaId: String = parametros[0]
+                            val posicoesAbertas: Int? = parametros[1]
+                            val inicioDaVaga: Instant? = parametros[2]
+                            // Quarto parâmetro (iUpi3Es4): a casa, só quando a rota a traz.
+                            criados += ParametrosRecebidos(vagaId, posicoesAbertas, inicioDaVaga, parametros.values.getOrNull(3) as? String)
                             CandidatosDaVagaViewModel(
                                 vagaId = vagaId,
                                 buscar = { id -> lidos += id; listOf(candidato("c1", "Ana"), candidato("c2", "Beto")) },
@@ -283,8 +287,29 @@ class AppNavegacaoCandidatosDaVagaTest {
         )
         assertEquals("candidatos_da_vaga/a%20b", Rotas.candidatosDaVaga("a b"))
         assertEquals(
-            "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}",
+            "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}&estabelecimentoId={estabelecimentoId}",
             Rotas.CANDIDATOS_DA_VAGA,
         )
+        assertEquals("candidatos_da_vaga/vaga-1?estabelecimentoId=casa-1", Rotas.candidatosDaVaga("vaga-1", estabelecimentoId = "casa-1"))
+    }
+
+    // iUpi3Es4: a casa da rota chega ao ViewModel (e, no grafo real, vira o `relerVaga` que confere o painel).
+
+    @Test
+    fun `a casa da rota chega ao ViewModel como quarto parametro`() {
+        montar(inicio = Rotas.candidatosDaVaga("vaga-9", posicoesAbertas = 2, estabelecimentoId = "casa 1/x"))
+
+        esperarCandidatos()
+
+        rule.runOnIdle { assertEquals("casa 1/x", criados.single().estabelecimentoId) }
+    }
+
+    @Test
+    fun `rota sem a casa (aviso push) entrega o ViewModel sem a casa`() {
+        montar(inicio = Rotas.candidatosDaVaga("vaga-9", posicoesAbertas = 2))
+
+        esperarCandidatos()
+
+        rule.runOnIdle { assertEquals(null, criados.single().estabelecimentoId) }
     }
 }

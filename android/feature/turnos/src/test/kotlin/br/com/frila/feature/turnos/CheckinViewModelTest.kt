@@ -217,6 +217,42 @@ class CheckinViewModelTest {
         assertNotNull(viewModel.estado.value.mensagemErro)
     }
 
+    // ---- 409 vaga_encerrada no check-in (cartão kcQICUG0): só teste, o mapeamento já existe ----
+
+    private val textoDaPosicaoEncerrada = "Esta posição foi encerrada."
+
+    @Test
+    fun `409 vaga_encerrada no check-in com localizacao mostra que a posicao foi encerrada, e nao a mensagem generica`() = runBlocking {
+        // O contrato (fazer_checkin): posição cancelada é `409 vaga_encerrada` com `details: posicao_cancelada`.
+        for (detalhes in listOf("posicao_cancelada", null)) {
+            val servico = servicoComResposta(
+                json = """{"code":"vaga_encerrada","message":"x","details":${detalhes?.let { "\"$it\"" }}}""",
+                status = HttpStatusCode.Conflict,
+            )
+            val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servico)
+
+            viewModel.fazerCheckin().join()
+
+            assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status, "$detalhes")
+            assertEquals(textoDaPosicaoEncerrada, viewModel.estado.value.mensagemErro, "$detalhes")
+            assertEquals(null, viewModel.estado.value.comprovante, "$detalhes")
+        }
+    }
+
+    @Test
+    fun `409 vaga_encerrada no check-in manual sem GPS mostra a mesma mensagem`() = runBlocking {
+        val servico = servicoComResposta(
+            json = """{"code":"vaga_encerrada","message":"x","details":"posicao_cancelada"}""",
+            status = HttpStatusCode.Conflict,
+        )
+        val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servico)
+
+        viewModel.prosseguirCheckinManual().join()
+
+        assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status)
+        assertEquals(textoDaPosicaoEncerrada, viewModel.estado.value.mensagemErro)
+    }
+
     @Test
     fun `status comeca OCIOSO antes do toque`() {
         val provedor = mockk<ProvedorDeLocalizacao>()

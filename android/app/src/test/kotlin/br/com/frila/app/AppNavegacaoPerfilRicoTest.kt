@@ -13,6 +13,7 @@ import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.EstadoApresentacaoERegioes
 import br.com.frila.feature.perfil.EtapaDaFoto
 import br.com.frila.feature.perfil.FotoDePerfilViewModel
+import br.com.frila.feature.perfil.SituacaoDaFoto
 import br.com.frila.feature.perfil.TextosApresentacaoERegioes
 import br.com.frila.feature.perfil.TextosDaFotoDePerfil
 import br.com.frila.feature.vagas.feed.EstadoFeed
@@ -89,8 +90,10 @@ class AppNavegacaoPerfilRicoTest {
     fun `a rota Foto de perfil mostra a tela com o botao de escolher`() {
         val vm = mockk<FotoDePerfilViewModel>(relaxed = true)
         every { vm.etapa } returns MutableStateFlow(EtapaDaFoto.Parada)
+        every { vm.situacao } returns MutableStateFlow(SituacaoDaFoto())
         abrirRota(Rotas.FOTO_DE_PERFIL, module { viewModel { vm } })
         rule.onNodeWithText(TextosDaFotoDePerfil.ESCOLHER_FOTO).assertExists()
+        io.mockk.verify(exactly = 1) { vm.carregar() } // a tela lê minhas_midias ao abrir
     }
 
     @Test

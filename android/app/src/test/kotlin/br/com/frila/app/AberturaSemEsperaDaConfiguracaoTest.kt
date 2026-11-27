@@ -38,6 +38,7 @@ import org.junit.After
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -114,13 +115,16 @@ class AberturaSemEsperaDaConfiguracaoTest {
     }
 
     /**
-     * Espera [condicao] até [limiteMs] contados da chamada de configuração (ver [chamadaEm]). Antes, espera a chamada acontecer, sem
-     * contar esse tempo: se o app nunca a fizer, o teste falha aqui, por [ESPERA_DA_CHAMADA_MS].
+     * Espera [condicao] e afirma que ela ficou verdadeira em até [limiteMs] contados da chamada de configuração (ver [chamadaEm]).
+     * Antes, espera a chamada acontecer, sem contar esse tempo: se o app nunca a fizer, o teste falha aqui, por [ESPERA_DA_CHAMADA_MS].
+     * A espera do Compose ([ESPERA_DA_CONDICAO_MS]) é separada do limite afirmado: na CI carregada a falha diz quanto levou, em vez de
+     * um `ComposeTimeoutException` sem número (cartão mysEoQxG).
      */
     private fun esperarDesdeAChamada(limiteMs: Long, condicao: () -> Boolean) {
         rule.waitUntil(ESPERA_DA_CHAMADA_MS) { chamadaEm != 0L }
-        val restante = limiteMs - (System.nanoTime() - chamadaEm) / 1_000_000
-        rule.waitUntil(restante.coerceAtLeast(1), condicao)
+        rule.waitUntil(ESPERA_DA_CONDICAO_MS, condicao)
+        val levou = (System.nanoTime() - chamadaEm) / 1_000_000
+        assertTrue("levou $levou ms desde a chamada de configuração; o limite é $limiteMs ms", levou <= limiteMs)
     }
 
     private fun esperarInterfacePronta(limiteMs: Long = LIMITE_DO_TESTE_MS) =
@@ -209,11 +213,16 @@ class AberturaSemEsperaDaConfiguracaoTest {
     }
 
     companion object {
-        /** Tempo real, a partir da chamada de configuração. Sem a correção a primeira tela com a chamada travada sai em cerca de 10 s
-         * (o prazo da chamada); com ela, em 2 s mais a composição da tela. Medido da chamada até a tela, 20 rodadas (debug e
-         * release, sem carga): de 1,5 a 2,6 s, o máximo no primeiro teste da classe. 4 s deixa 1,4 s de folga sobre esse máximo e ainda
-         * reprova um [TEMPO_MAXIMO_ABERTURA_MS] a partir de cerca de 4 s. */
-        private const val LIMITE_DO_TESTE_MS = 4_000L
+        /**
+         * Tempo real, a partir da chamada de configuração. Com a correção, a primeira tela sai em 2 s ([TEMPO_MAXIMO_ABERTURA_MS]) mais a
+         * composição; sem ela, no prazo da chamada (10 s), que dá de 7,7 a 8,8 s contados da chamada (medido). Medido com a correção, da
+         * chamada até a tela: até 2,4 s sem carga e 2,6 s com a CPU toda ocupada (Mac, 10 núcleos); na CI com vários PRs, passou de 4 s
+         * (run 45984586405 do #1150, cartão mysEoQxG). 6 s dá folga para a CI e segue reprovando o prazo inteiro da chamada.
+         */
+        private const val LIMITE_DO_TESTE_MS = 6_000L
+
+        /** Quanto o Compose espera a condição: só a rede de proteção para não pendurar; o que o teste afirma é [LIMITE_DO_TESTE_MS]. */
+        private const val ESPERA_DA_CONDICAO_MS = 30_000L
 
         /** Quanto o teste espera o app fazer a chamada (a Activity abrir): não entra no limite acima. */
         private const val ESPERA_DA_CHAMADA_MS = 30_000L

@@ -5,7 +5,10 @@ import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ResultadoConfirmacaoDto
+import br.com.frila.core.rede.PosicaoNoPainelDto
 import br.com.frila.core.rede.ServicoVagas
+import br.com.frila.core.rede.VagaNoPainelDto
+import br.com.frila.core.rede.VagaResumoDto
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
@@ -61,6 +64,7 @@ class CandidatosDaVagaViewModelTest {
         posicoesAbertas: Int? = null,
         inicioDaVaga: Instant? = null,
         agora: Instant = Instant.parse("2026-11-10T15:00:00Z"),
+        relerVaga: (suspend () -> VagaNoPainelDto?)? = null,
     ): CandidatosDaVagaViewModel {
         val engine = MockEngine { request ->
             val corpo = (request.body as? TextContent)?.text?.let { ClienteSupabase.jsonFrila.parseToJsonElement(it).jsonObject }
@@ -74,6 +78,7 @@ class CandidatosDaVagaViewModelTest {
             escolher = servico::escolherCandidato,
             posicoesAbertas = posicoesAbertas,
             inicioDaVaga = inicioDaVaga,
+            relerVaga = relerVaga,
             relogio = { agora },
             escopo = CoroutineScope(Dispatchers.Unconfined),
         )
@@ -521,4 +526,165 @@ class CandidatosDaVagaViewModelTest {
         assertEquals(FalhaDaEscolha.Generica, vm.estado.value.falha)
         assertTrue(vm.estado.value.desatualizada)
     }
+
+    // ---- iUpi3Es4: a resposta da escolha se perdeu e o toque anterior já tinha confirmado a pessoa ----
+
+    private fun posicao(id: String, estado: String, profissionalId: String?) = PosicaoNoPainelDto(
+        id = id,
+        estado = estado,
+        profissional = profissionalId?.let {
+            PerfilPublicoDto(id = it, tipo = "profissional", nome = "x", reputacao = ReputacaoDto(positivas = 0, total = 0, turnosConsiderados = 0, turnosRealizados = 0))
+        },
+        emAtraso = false,
+    )
+
+    private fun vagaNoPainel(estado: String, vararg posicoes: PosicaoNoPainelDto) = VagaNoPainelDto(
+        vaga = VagaResumoDto(
+            id = "vaga-1", funcao = "garçom", local = "CLS 405", regiaoAdministrativa = "Plano Piloto",
+            inicioEm = "2026-11-12T20:00:00Z", fimEm = "2026-11-13T02:00:00Z", valorCentavos = 16000,
+        ),
+        modo = "selecao", estado = estado, oculta = false, alertaVagaVazia = false,
+        candidatosPendentes = 0, posicoes = posicoes.toList(),
+    )
+
+    /** Escolhe Ana (`p-c1`) e o servidor responde [status]/[codigo]; a lista relida já não tem a Ana. */
+    private fun escolhaComPainel(
+        status: HttpStatusCode = HttpStatusCode.Conflict,
+        codigo: String = "candidatura_indisponivel",
+        painel: suspend () -> VagaNoPainelDto?,
+        chamadasDoPainel: MutableList<Int> = mutableListOf(),
+    ): Pair<CandidatosDaVagaViewModel, Rede> = runBlocking {
+        var escolhida = false
+        val rede = Rede(
+            lista = { respond(if (escolhida) "[${candidato("c2", "Beto")},${candidato("c3", "Cris")}]" else tres, HttpStatusCode.OK, json) },
+            escolha = { escolhida = true; recusa(status, codigo) },
+        )
+        val vm = viewModelCom(rede, posicoesAbertas = 2, relerVaga = { chamadasDoPainel += 1; painel() })
+        vm.carregar().join()
+        vm.pedirEscolha(vm.candidata("c1"))
+        vm.confirmarEscolha().join()
+        vm to rede
+    }
+
+    @Test
+    fun `409 candidatura_indisponivel com a pessoa ja confirmada no painel vira confirmado, sem falha`() {
+        val (vm, _) = escolhaComPainel(painel = {
+            vagaNoPainel("publicada", posicao("pos-1", "confirmada", "p-c1"), posicao("pos-2", "aberta", null))
+        })
+
+        assertEquals(ResultadoDaEscolha("Ana", vagaPreenchida = false), vm.estado.value.resultado)
+        assertNull(vm.estado.value.falha)
+        assertEquals(1, vm.estado.value.posicoesAbertas, "as posições abertas vêm do painel")
+        assertNull(vm.estado.value.escolhendo)
+        assertEquals(listOf("c2", "c3"), vm.estado.value.candidatos.map { it.candidaturaId }, "a lista relida já não tem a Ana")
+    }
+
+    @Test
+    fun `409 com a vaga preenchida no painel diz que a vaga ficou preenchida`() {
+        val (vm, _) = escolhaComPainel(painel = {
+            vagaNoPainel("preenchida", posicao("pos-1", "confirmada", "p-c1"), posicao("pos-2", "confirmada", "p-x"))
+        })
+
+        assertEquals(ResultadoDaEscolha("Ana", vagaPreenchida = true), vm.estado.value.resultado)
+        assertNull(vm.estado.value.falha)
+    }
+
+    @Test
+    fun `posicao cumprida da pessoa tambem conta como confirmada`() {
+        val (vm, _) = escolhaComPainel(painel = { vagaNoPainel("publicada", posicao("pos-1", "cumprida", "p-c1")) })
+
+        assertEquals(ResultadoDaEscolha("Ana", vagaPreenchida = false), vm.estado.value.resultado)
+        assertNull(vm.estado.value.falha)
+    }
+
+    @Test
+    fun `409 sem a pessoa confirmada no painel segue como candidatura indisponivel`() {
+        val casos = mapOf(
+            "outro profissional confirmado" to { vagaNoPainel("publicada", posicao("pos-1", "confirmada", "p-c2")) },
+            "a pessoa em posição que não é confirmada" to {
+                vagaNoPainel("publicada", posicao("pos-1", "aberta", "p-c1"), posicao("pos-2", "cancelada", "p-c1"))
+            },
+            "posição confirmada sem profissional" to { vagaNoPainel("publicada", posicao("pos-1", "confirmada", null)) },
+            "vaga sem posições" to { vagaNoPainel("publicada") },
+        )
+        for ((nome, vaga) in casos) {
+            val (vm, _) = escolhaComPainel(painel = { vaga() })
+            assertEquals(FalhaDaEscolha.CandidaturaIndisponivel("Ana"), vm.estado.value.falha, nome)
+            assertNull(vm.estado.value.resultado, nome)
+        }
+    }
+
+    @Test
+    fun `409 com a releitura do painel falhando mantem a falha de hoje, sem inventar confirmado`() {
+        val devolvendoNulo = escolhaComPainel(painel = { null })
+        assertEquals(FalhaDaEscolha.CandidaturaIndisponivel("Ana"), devolvendoNulo.first.estado.value.falha)
+        assertNull(devolvendoNulo.first.estado.value.resultado)
+
+        val lancando = escolhaComPainel(painel = { throw java.io.IOException("sem rede sintética") })
+        assertEquals(FalhaDaEscolha.CandidaturaIndisponivel("Ana"), lancando.first.estado.value.falha)
+        assertNull(lancando.first.estado.value.resultado)
+    }
+
+    @Test
+    fun `sem relerVaga (tela que nao sabe a casa) o 409 segue como hoje`() {
+        val (vm, rede) = escolhaRecusada(HttpStatusCode.Conflict, "candidatura_indisponivel")
+
+        assertEquals(FalhaDaEscolha.CandidaturaIndisponivel("Ana"), vm.estado.value.falha)
+        assertNull(vm.estado.value.resultado)
+        assertEquals(2, rede.leituras)
+    }
+
+    @Test
+    fun `resposta que nao diz se valeu, com a pessoa confirmada no painel, vira confirmado`() {
+        // Código desconhecido (ramo default) e corpo que não é JSON (a outra saída "não sei se valeu").
+        val (comCodigo, _) = escolhaComPainel(
+            status = HttpStatusCode.InternalServerError, codigo = "erro_interno",
+            painel = { vagaNoPainel("publicada", posicao("pos-1", "confirmada", "p-c1")) },
+        )
+        assertEquals(ResultadoDaEscolha("Ana", vagaPreenchida = false), comCodigo.estado.value.resultado)
+        assertNull(comCodigo.estado.value.falha)
+
+        val rede = Rede(
+            lista = { respond(tres, HttpStatusCode.OK, json) },
+            escolha = { respond("<html>queda</html>", HttpStatusCode.OK, html) },
+        )
+        val vm = viewModelCom(rede, relerVaga = { vagaNoPainel("publicada", posicao("pos-1", "confirmada", "p-c1")) })
+        runBlocking {
+            vm.carregar().join()
+            vm.pedirEscolha(vm.candidata("c1"))
+            vm.confirmarEscolha().join()
+        }
+        assertEquals(ResultadoDaEscolha("Ana", vagaPreenchida = false), vm.estado.value.resultado)
+        assertNull(vm.estado.value.falha)
+    }
+
+    @Test
+    fun `resposta que nao diz se valeu, sem a pessoa no painel, mantem a falha de hoje`() {
+        val (vm, _) = escolhaComPainel(
+            status = HttpStatusCode.InternalServerError, codigo = "erro_interno",
+            painel = { vagaNoPainel("publicada", posicao("pos-1", "aberta", null)) },
+        )
+        assertEquals(FalhaDaEscolha.ResultadoIncerto("Ana"), vm.estado.value.falha)
+        assertNull(vm.estado.value.resultado)
+    }
+
+    @Test
+    fun `recusas que nao deixam duvida nao conferem o painel`() {
+        val codigos = listOf(
+            HttpStatusCode.Conflict to "posicao_ja_preenchida",
+            HttpStatusCode.Conflict to "vaga_encerrada",
+            HttpStatusCode.UnprocessableEntity to "inelegivel",
+            HttpStatusCode.Forbidden to "sem_permissao",
+        )
+        for ((status, codigo) in codigos) {
+            val chamadas = mutableListOf<Int>()
+            val (vm, _) = escolhaComPainel(
+                status = status, codigo = codigo, chamadasDoPainel = chamadas,
+                painel = { vagaNoPainel("publicada", posicao("pos-1", "confirmada", "p-c1")) },
+            )
+            assertTrue(chamadas.isEmpty(), "$codigo não confere o painel")
+            assertNull(vm.estado.value.resultado, codigo)
+        }
+    }
 }
+

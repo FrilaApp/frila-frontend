@@ -65,6 +65,9 @@ object TextosPublicarVaga {
 
     const val CAMPO_OBRIGATORIO = "Preencha este campo."
     const val CAMPO_INVALIDO = "Confira o valor informado."
+
+    /** `422 campo_invalido` em `observacoes`: o filtro de contato (diretriz 1.2). Paridade com `TextosPublicarVaga.erroAntiContato` do iOS. */
+    const val ERRO_ANTI_CONTATO = "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila."
     const val FUNCAO_CAMPO = "Escolha uma função."
     const val LOCAL_CAMPO = "Informe o endereço."
     const val VALOR_CAMPO = "Informe um valor maior que zero."

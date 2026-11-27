@@ -157,6 +157,31 @@ class TelaEscalaDeEventoTest {
     }
 
     @Test
+    fun `429 mostra na tela a mensagem do limite, e a edicao volta`() {
+        val vm = EscalaDeEventoViewModel(
+            estabelecimento = EstabelecimentoDaVaga("e1", "CLS 408, Bloco B, Loja 12", "Plano Piloto", CoordenadaDto(-15.7942, -47.8822)),
+            buscarFuncoes = { funcoes },
+            enviarEscala = {
+                throw br.com.frila.core.rede.ErroDaApi(
+                    codigo = br.com.frila.core.dominio.modelo.CodigoErroAPI.LIMITE_EXCEDIDO,
+                    codigoOriginal = "limite_excedido", detalhes = null, mensagemCrua = "limite_excedido",
+                )
+            },
+            relogio = { base },
+            novaChave = { "chave-1" },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        montar(vm)
+        preencherPrimeiraVaga()
+
+        rule.onNodeWithText(TextosEscala.PUBLICAR).performClick()
+
+        rule.onNodeWithText(TextosEscala.ERRO_LIMITE_EXCEDIDO).assertIsDisplayed()
+        rule.onNodeWithText(TextosEscala.ERRO_GENERICO).assertDoesNotExist()
+        rule.onNodeWithText(TextosEscala.PUBLICAR).assertIsEnabled()
+    }
+
+    @Test
     fun `sem rede a escala fica pendente e o botao vira tentar novamente`() {
         montar(viewModel(falhar = true))
         preencherPrimeiraVaga()

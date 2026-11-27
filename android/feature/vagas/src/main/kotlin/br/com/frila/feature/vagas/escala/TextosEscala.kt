@@ -64,6 +64,8 @@ object TextosEscala {
     const val ERRO_CONTA_SUSPENSA = "Sua conta está suspensa. Enquanto a suspensão durar, não é possível publicar."
     const val ERRO_SESSAO = "Sua sessão expirou. Entre de novo."
     const val ERRO_SEM_REDE = "Sem conexão. Verifique sua internet e tente novamente."
+    /** `429 limite_excedido`: o limite de escrita por minuto (paridade com `MensagemDoErroAPI` do iOS, que a escala usa). */
+    const val ERRO_LIMITE_EXCEDIDO = "Você fez muitas tentativas. Aguarde antes de tentar novamente."
     const val ERRO_GENERICO = "Não foi possível confirmar a publicação da escala. Tente novamente."
 
     // Rota (carga do estabelecimento antes do formulário).

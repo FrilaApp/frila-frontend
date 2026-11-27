@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.CandidatoDto
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ResultadoConfirmacaoDto
+import br.com.frila.core.rede.VagaNoPainelDto
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
@@ -110,6 +111,8 @@ class CandidatosDaVagaViewModel(
     private val escolher: suspend (String) -> ResultadoConfirmacaoDto,
     posicoesAbertas: Int? = null,
     inicioDaVaga: Instant? = null,
+    /** Relê a vaga no painel da casa (`null` se a leitura falhou); `null` aqui: a tela não sabe a casa e não confere o painel. */
+    private val relerVaga: (suspend () -> VagaNoPainelDto?)? = null,
     private val relogio: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
@@ -259,7 +262,12 @@ class CandidatosDaVagaViewModel(
             CodigoErroAPI.POSICAO_JA_PREENCHIDA -> FalhaDaEscolha.PosicaoJaPreenchida.also { ler() }
             CodigoErroAPI.VAGA_ENCERRADA -> FalhaDaEscolha.SelecaoEncerrada.also { ler() }
             CodigoErroAPI.VAGA_OCULTA -> FalhaDaEscolha.VagaOculta.also { ler() }
-            CodigoErroAPI.CANDIDATURA_INDISPONIVEL -> FalhaDaEscolha.CandidaturaIndisponivel(nome).also { ler() }
+            // Retirada ou expirada; ou já escolhida: por outra pessoa da casa um instante antes, ou por esta mesma tela, numa
+            // escolha cuja resposta se perdeu. O painel diz qual das duas (como o iOS).
+            CodigoErroAPI.CANDIDATURA_INDISPONIVEL -> {
+                if (confirmadoNoPainel(candidato)) return
+                FalhaDaEscolha.CandidaturaIndisponivel(nome).also { ler() }
+            }
             CodigoErroAPI.INELEGIVEL ->
                 if (erro.detalhes == "turno_sobreposto") FalhaDaEscolha.TurnoSobreposto(nome) else FalhaDaEscolha.Inelegivel(nome)
             CodigoErroAPI.CONTA_SUSPENSA -> FalhaDaEscolha.ContaSuspensa
@@ -277,6 +285,8 @@ class CandidatosDaVagaViewModel(
 
     /** A resposta não diz se a escolha valeu: relê a lista e diz só o que ela mostra. */
     private suspend fun decidirPelaLista(candidato: CandidatoDto) {
+        // Antes de dizer que falhou ou que é incerto, pergunta ao servidor pelo painel (se a tela sabe a casa).
+        if (confirmadoNoPainel(candidato)) return
         ler()
         // Leitura que falha deixa a lista anterior na tela, e nela o candidato segue: só uma leitura
         // que deu certo e o tirou de lá permite dizer que o resultado é incerto.
@@ -287,6 +297,34 @@ class CandidatosDaVagaViewModel(
             FalhaDaEscolha.Generica
         }
         _estado.update { it.copy(falha = falha) }
+    }
+
+    /**
+     * O painel mostra a pessoa em posição `confirmada` ou `cumprida` desta vaga? Então a escolha valeu (um toque anterior
+     * cuja resposta se perdeu): vira resultado, sem falha, com a vaga como o painel a vê. Sem [relerVaga], com a leitura
+     * falhando ou sem a pessoa lá: `false` e a falha de antes, nunca um "confirmado" inventado.
+     */
+    private suspend fun confirmadoNoPainel(candidato: CandidatoDto): Boolean {
+        val reler = relerVaga ?: return false
+        val vaga = try {
+            reler()
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            null
+        } ?: return false
+        val confirmada = vaga.posicoes.any {
+            (it.estado == "confirmada" || it.estado == "cumprida") && it.profissional?.id == candidato.profissional.id
+        }
+        if (!confirmada) return false
+        _estado.update {
+            it.copy(
+                resultado = ResultadoDaEscolha(candidato.profissional.nome, vagaPreenchida = vaga.estado == "preenchida"),
+                posicoesAbertas = vaga.posicoes.count { posicao -> posicao.estado == "aberta" },
+            )
+        }
+        ler()
+        return true
     }
 
     private companion object {

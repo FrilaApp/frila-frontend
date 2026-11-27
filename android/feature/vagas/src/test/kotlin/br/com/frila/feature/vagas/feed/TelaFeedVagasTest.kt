@@ -178,6 +178,28 @@ class TelaFeedVagasTest {
     }
 
     @Test
+    fun `conta de contratante ve o aviso da lista e nao ve o botao tentar novamente`() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                """{"code":"perfil_incompativel","message":"perfil_incompativel","details":null}""",
+                HttpStatusCode.UnprocessableEntity,
+            )
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme {
+                    TelaFeedVagas(viewModel = viewModel, aoAbrirDetalhe = {}, aoDefinirPontoBase = {})
+                }
+            }
+
+            compose.waitForIdle()
+            compose.onNodeWithText("Esta lista é para quem trabalha como profissional.", useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithText("Tentar novamente").assertDoesNotExist()
+            compose.onNodeWithText("Definir ponto base").assertDoesNotExist()
+        }
+    }
+
+    @Test
     fun `quando api retorna erro exibe mensagem de erro e botao tentar novamente`() {
         runBlocking {
             val erroJson = """{"code":"PGRST500","message":"erro"}"""
