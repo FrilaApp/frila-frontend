@@ -1,6 +1,12 @@
 package br.com.frila.app
 
 import android.app.Application
+import android.content.ActivityNotFoundException
+import android.content.ContextWrapper
+import android.content.Intent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -10,7 +16,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.CoordenadaDto
+import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.EstabelecimentoDaContaDto
 import br.com.frila.core.rede.FuncaoDto
 import br.com.frila.core.rede.MeuEstabelecimentoDto
@@ -23,6 +31,7 @@ import br.com.frila.feature.chamadas.casa.RascunhoDeVagaDaBusca
 import br.com.frila.feature.chamadas.casa.TextosChamadaCasa
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.EstadoEntrada
+import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
@@ -69,6 +78,8 @@ class AppNavegacaoBuscaDeProfissionaisTest {
     private val garcom = FuncaoDto("f-garcom", "Garçom", "salao")
     private val buscasCriadas = mutableListOf<String>()
     private var publicacao: PublicarVagaViewModel? = null
+    private var busca: BuscaDeProfissionaisViewModel? = null
+    private val intents = mutableListOf<Intent>()
 
     private fun membros(): ServicoMembros = mockk {
         coEvery { listarMeusEstabelecimentos() } returns listOf(EstabelecimentoDaContaDto(id = "casa-1", nome = "Casa 1", papel = "administrador"))
@@ -78,7 +89,13 @@ class AppNavegacaoBuscaDeProfissionaisTest {
         )
     }
 
-    private fun montar(busca: Boolean, servicoMembros: ServicoMembros? = membros(), inicio: String? = null) {
+    private fun montar(
+        busca: Boolean,
+        servicoMembros: ServicoMembros? = membros(),
+        inicio: String? = null,
+        termosPendentes: Boolean = false,
+        semNavegador: Boolean = false,
+    ) {
         val entrada = mockk<EntradaViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoEntrada())
         }
@@ -86,6 +103,14 @@ class AppNavegacaoBuscaDeProfissionaisTest {
             every { estado } returns MutableStateFlow(EstadoPerfil(status = StatusPerfil.SUCESSO))
         }
         rule.setContent {
+            val origem = LocalContext.current
+            val contexto = object : ContextWrapper(origem) {
+                override fun startActivity(intent: Intent) {
+                    if (semNavegador && intent.action == Intent.ACTION_VIEW) throw ActivityNotFoundException("sem navegador")
+                    intents += intent
+                }
+            }
+            CompositionLocalProvider(LocalContext provides contexto) {
             KoinApplication(application = {
                 modules(
                     module {
@@ -96,13 +121,16 @@ class AppNavegacaoBuscaDeProfissionaisTest {
                             BuscaDeProfissionaisViewModel(
                                 estabelecimentoId = estabelecimentoId,
                                 recursoHabilitado = { true },
-                                buscarProfissionais = { error("não deveria buscar") },
+                                buscarProfissionais = {
+                                    if (!termosPendentes) error("não deveria buscar")
+                                    throw ErroDaApi(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "termos_pendentes", "x")
+                                },
                                 chamarProfissional = { error("não deveria chamar") },
                                 minhasChamadas = { _, _ -> error("não deveria ler") },
                                 detalheChamada = { error("não deveria ler") },
                                 listarFuncoes = { listOf(garcom) },
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
-                            )
+                            ).also { this@AppNavegacaoBuscaDeProfissionaisTest.busca = it }
                         }
                         viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
                             PublicarVagaViewModel(
@@ -124,6 +152,7 @@ class AppNavegacaoBuscaDeProfissionaisTest {
                     servicoMembros = servicoMembros,
                 )
             }
+            }
         }
         inicio?.let { rule.runOnIdle { nav.navigate(it) } }
     }
@@ -143,6 +172,39 @@ class AppNavegacaoBuscaDeProfissionaisTest {
         }
         rule.onNodeWithTag("busca-buscar").assertExists()
         rule.onNodeWithText(TextosChamadaCasa.BUSCA_TITULO).assertExists()
+    }
+
+    /** A busca barrada por `termos_pendentes` mostra os links dos Termos e da Política. */
+    private fun abrirTermosPendentes(semNavegador: Boolean) {
+        montar(busca = true, inicio = RotasChamadaCasa.buscar("casa-1"), termosPendentes = true, semNavegador = semNavegador)
+        rule.waitUntil(5_000) { busca?.estado?.value?.funcoes?.isNotEmpty() == true }
+        rule.runOnIdle {
+            busca!!.definirFuncao(garcom.id)
+            busca!!.buscar()
+        }
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag("busca-termos-pendentes").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun termosDaBuscaSemNavegadorAvisamComOEnderecoParaCopiar() {
+        abrirTermosPendentes(semNavegador = true)
+
+        rule.onNodeWithTag("busca-termos-ler").performScrollTo().performClick()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals(EnderecosOficiais.padrao.termosDeUso)
+        rule.onNodeWithText(TextosAberturaExterna.FECHAR).performClick()
+
+        rule.onNodeWithTag("busca-termos-politica").performScrollTo().performClick()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals(EnderecosOficiais.padrao.politicaDePrivacidade)
+    }
+
+    @Test
+    fun termosDaBuscaComNavegadorAbremOEnderecoSemAviso() {
+        abrirTermosPendentes(semNavegador = false)
+
+        rule.onNodeWithTag("busca-termos-ler").performScrollTo().performClick()
+
+        rule.onAllNodesWithTag("aviso-abertura-externa").assertCountEquals(0)
+        rule.runOnIdle { assertEquals(EnderecosOficiais.padrao.termosDeUso, intents.single().data.toString()) }
     }
 
     @Test

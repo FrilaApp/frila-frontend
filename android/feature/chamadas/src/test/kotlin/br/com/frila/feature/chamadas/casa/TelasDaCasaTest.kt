@@ -1,11 +1,16 @@
 package br.com.frila.feature.chamadas.casa
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -148,6 +153,90 @@ class TelasDaCasaTest {
 
         rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
 
+        assertEquals(1, enviou)
+    }
+
+    @Test
+    fun folhaComValorAbaixoDe50ReaisMostraAvisoEMantemEnviarHabilitado() {
+        var enviou = 0
+        montarFolha(folha { copy(valorTexto = "49,99", totalConfirmado = true) }, AcoesChamadaDireta(aoEnviar = { enviou++ }))
+
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
+        assertEquals(1, enviou)
+    }
+
+    @Test
+    fun folhaComValorAcimaDe2000ReaisMostraAvisoEMantemEnviarHabilitado() {
+        var enviou = 0
+        montarFolha(folha { copy(valorTexto = "2000,01", totalConfirmado = true) }, AcoesChamadaDireta(aoEnviar = { enviou++ }))
+
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
+        assertEquals(1, enviou)
+    }
+
+    @Test
+    fun folhaComValorNaFaixaOuZeroNaoMostraAvisoDeFaixa() {
+        var valorEstado by mutableStateOf("")
+        rule.setContent {
+            FrilaTheme {
+                val tela = folha { copy(valorTexto = valorEstado) }
+                ConteudoChamadaDireta(
+                    tela = tela,
+                    acoes = AcoesChamadaDireta(),
+                    inicioMinimo = { agora.plus(Duration.ofHours(2)) },
+                    faixaDoTermino = { tela.inicio.plus(Duration.ofHours(2))..tela.inicio.plus(Duration.ofHours(16)) },
+                )
+            }
+        }
+        for (valor in listOf("", "0", "50", "2000")) {
+            valorEstado = valor
+            rule.waitForIdle()
+            rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).assertDoesNotExist()
+            rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_ALTO).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun folhaComAvisoDeValorJuntoComErroEmOutroCampoNaoTemSemanticaDeErro() {
+        var enviou = 0
+        var recadoEstado by mutableStateOf("a".repeat(301))
+        rule.setContent {
+            FrilaTheme {
+                val tela = folha {
+                    copy(
+                        valorTexto = "49,99",
+                        totalConfirmado = true,
+                        recado = recadoEstado,
+                        erro = TextosChamadaCasa.ERRO,
+                    )
+                }
+                ConteudoChamadaDireta(
+                    tela = tela,
+                    acoes = AcoesChamadaDireta(aoEnviar = { enviou++ }),
+                    inicioMinimo = { agora.plus(Duration.ofHours(2)) },
+                    faixaDoTermino = { tela.inicio.plus(Duration.ofHours(2))..tela.inicio.plus(Duration.ofHours(16)) },
+                )
+            }
+        }
+
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.RECADO_LONGO).performScrollTo().assertIsDisplayed()
+        rule.onNode(hasText(TextosChamadaCasa.VALOR_TOTAL) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNode(hasText(TextosChamadaCasa.RECADO) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+
+        recadoEstado = "Ok"
+        rule.waitForIdle()
+        rule.onNodeWithText(TextosChamadaCasa.ERRO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNode(hasText(TextosChamadaCasa.VALOR_TOTAL) and hasSetTextAction())
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
+        rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertIsEnabled().performClick()
         assertEquals(1, enviou)
     }
 

@@ -3,8 +3,10 @@ package br.com.frila.app
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -74,7 +76,12 @@ class AutenticacaoComSenhaNavegacaoTest {
     private val perfilProfissional =
         """{"id":"22222222-2222-4222-8222-222222222222","usuario_id":"11111111-1111-4111-8111-111111111111","funcoes":[],"disponibilidades":[],"reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
 
-    private fun montarApp(contaExiste: Boolean, otpDesativado: Boolean = false) {
+    private fun montarApp(
+        contaExiste: Boolean,
+        otpDesativado: Boolean = false,
+        loginSocial: Boolean = false,
+        abrirLoginSocial: (String) -> Boolean = { true },
+    ) {
         val engine = MockEngine { req ->
             val path = req.url.encodedPath
             chamadas += path
@@ -91,6 +98,8 @@ class AutenticacaoComSenhaNavegacaoTest {
                 path == "/auth/v1/otp" && otpDesativado ->
                     """{"code":422,"error_code":"otp_disabled","msg":"Signups not allowed for otp"}""" to HttpStatusCode.UnprocessableEntity
                 path == "/auth/v1/otp" -> "{}" to HttpStatusCode.OK
+                path == "/functions/v1/autenticar-social" ->
+                    """{"transacao_id":"tx-sintetica","url_autorizacao":"https://frila.supabase.co/auth/v1/authorize?provider=google"}""" to HttpStatusCode.OK
                 path == "/functions/v1/entrar-demonstracao" -> {
                     val email = Regex("\"email\":\"([^\"]+)\"").find(corposDemo.last())?.groupValues?.get(1).orEmpty()
                     """{"access_token":"tok-demo-$email","refresh_token":"ref-demo","token_type":"bearer","expires_in":3600}""" to HttpStatusCode.OK
@@ -150,7 +159,7 @@ class AutenticacaoComSenhaNavegacaoTest {
                             single { servicoPerfil }
                             single { servicoMembros }
                             single { servicoVagas }
-                            viewModel { EntradaComSenhaViewModel(servicoAuth, sessao, escopo = escopo) }
+                            viewModel { EntradaComSenhaViewModel(servicoAuth, sessao, escopo = escopo, mostrarLoginSocial = loginSocial) }
                             viewModel { params -> CriarContaViewModel(servicoAuth, escopo = escopo, emailInicial = params.getOrNull<String>().orEmpty()) }
                             viewModel { params -> RecuperacaoSenhaViewModel(servicoAuth, escopo = escopo, emailInicial = params.getOrNull<String>().orEmpty()) }
                             viewModel { params ->
@@ -183,6 +192,7 @@ class AutenticacaoComSenhaNavegacaoTest {
                     monitorDeConectividade = MonitorDeConectividadeFalso(),
                     navController = nav,
                     avaliadorDeDestino = avaliador,
+                    aoAbrirLoginSocial = abrirLoginSocial,
                 )
             }
         }
@@ -197,6 +207,34 @@ class AutenticacaoComSenhaNavegacaoTest {
         } catch (_: ComposeTimeoutException) {
             false
         }
+
+    @Test
+    fun loginSocialSemNavegadorAvisaPorQueNadaAbriuEFicaNaEntrada() {
+        val urlsPedidas = CopyOnWriteArrayList<String>()
+        montarApp(contaExiste = true, loginSocial = true, abrirLoginSocial = { url -> urlsPedidas += url; false })
+
+        rule.onNodeWithText("Continuar com o Google").performScrollTo().performClick()
+
+        assertTrue("o aviso de navegador ausente não apareceu", aguardar { urlsPedidas.isNotEmpty() })
+        rule.waitUntil(5_000) { rule.onAllNodesWithText(AvisoDeAberturaExterna.semNavegadorParaEntrar.mensagem).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText(TextosAberturaExterna.TITULO).assertIsDisplayed()
+        assertEquals(Rotas.ENTRADA, rotaAtual())
+
+        rule.onNodeWithText(TextosAberturaExterna.ENTENDI).performClick()
+        rule.onAllNodesWithText(TextosAberturaExterna.TITULO).assertCountEquals(0)
+    }
+
+    @Test
+    fun loginSocialComNavegadorNaoMostraAviso() {
+        val urlsPedidas = CopyOnWriteArrayList<String>()
+        montarApp(contaExiste = true, loginSocial = true, abrirLoginSocial = { url -> urlsPedidas += url; true })
+
+        rule.onNodeWithText("Continuar com o Google").performScrollTo().performClick()
+
+        assertTrue(aguardar { urlsPedidas.isNotEmpty() })
+        assertEquals("https://frila.supabase.co/auth/v1/authorize?provider=google", urlsPedidas.single())
+        rule.onAllNodesWithText(TextosAberturaExterna.TITULO).assertCountEquals(0)
+    }
 
     @Test
     fun loginRotineiroPorSenhaEntraNoDestinoDaContaSemPedirNovoOtp() {

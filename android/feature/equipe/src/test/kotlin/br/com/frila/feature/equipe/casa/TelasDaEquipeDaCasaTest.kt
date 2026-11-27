@@ -100,9 +100,20 @@ class TelasDaEquipeDaCasaTest {
         rule.onNodeWithText(TextosEquipeDaCasa.GERAR_CONVITE).performScrollTo().performClick()
 
         assertEquals(listOf(Triple(casa, "novo@bar.com", "administrador")), convites)
-        rule.onNodeWithText("https://frilabr.com/app/convite#$token").performScrollTo().assertIsDisplayed()
+        val link = "https://frilabr.com/app/convite#$token"
+        rule.onNodeWithText(link).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosEquipeDaCasa.COMPARTILHAR).performScrollTo().performClick()
-        assertEquals(listOf("https://frilabr.com/app/convite#$token"), compartilhados)
+        assertEquals(
+            listOf(
+                "Bar da Lia convidou você para a equipe da casa no Frila, como administrador. " +
+                    "Para aceitar, abra o link abaixo e entre no Frila com o e-mail novo@bar.com. " +
+                    "O convite vale uma vez, até 25/11 às 12:00. " +
+                    "O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. " +
+                    "Política de Privacidade: https://frilabr.com/privacidade\n" +
+                    link,
+            ),
+            compartilhados,
+        )
 
         rule.onNodeWithContentDescription(TextosEquipeDaCasa.REMOVER_DE.format("Beto Lima")).performScrollTo().performClick()
         rule.onNodeWithText(TextosEquipeDaCasa.CONFIRMAR_REMOCAO).assertIsDisplayed()
@@ -112,6 +123,46 @@ class TelasDaEquipeDaCasaTest {
         assertEquals(listOf("m-beto"), remocoes)
         rule.onNodeWithText(TextosEquipeDaCasa.REMOVIDA).performScrollTo().assertIsDisplayed()
         rule.onAllNodesWithText("Beto Lima").assertCountEquals(0)
+    }
+
+    @Test
+    fun `compartilhar convite sem prazo e como operador manda a mensagem curta com email aparado`() {
+        val compartilhadosSemPrazo = mutableListOf<String>()
+        val vm = EquipeDaCasaViewModel(
+            estabelecimentoId = casa,
+            papel = PapelMembro.ADMINISTRADOR,
+            listar = { membros.toList() },
+            convidar = { id, email, papelConvidado ->
+                ConviteMembroDto("c1", token, "", id, email, papelConvidado)
+            },
+            remover = { _, _ -> error("não deveria") },
+            transferir = { _, _ -> error("não deveria") },
+            montarLink = { "https://frilabr.com/app/convite#$it" },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme(temaEscuro = false) {
+                TelaEquipeDaCasa(viewModel = vm, nomeDaCasa = "Bar da Lia", aoVoltar = {}, aoCompartilhar = { compartilhadosSemPrazo += it })
+            }
+        }
+
+        rule.onNodeWithText(TextosEquipeDaCasa.EMAIL).performTextInput("  op@bar.com  ")
+        rule.onNodeWithText(TextosEquipeDaCasa.GERAR_CONVITE).performScrollTo().performClick()
+        rule.onNodeWithText(TextosEquipeDaCasa.CONVITE_PRONTO_SEM_PRAZO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosEquipeDaCasa.COMPARTILHAR).performScrollTo().performClick()
+
+        val link = "https://frilabr.com/app/convite#$token"
+        assertEquals(
+            listOf(
+                "Bar da Lia convidou você para a equipe da casa no Frila, como operador. " +
+                    "Para aceitar, abra o link abaixo e entre no Frila com o e-mail op@bar.com. " +
+                    "O convite vale uma vez. " +
+                    "O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. " +
+                    "Política de Privacidade: https://frilabr.com/privacidade\n" +
+                    link,
+            ),
+            compartilhadosSemPrazo,
+        )
     }
 
     @Test
@@ -240,6 +291,32 @@ class TelasDaEquipeDaCasaTest {
         rule.onNodeWithText(TextosEquipeDaCasa.CONVITE_INVALIDO).assertIsDisplayed()
         rule.onNodeWithText(TextosEquipeDaCasa.CONVITE_ACEITAR).assertIsEnabled().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
         assertEquals(1, aceitos.size)
+    }
+
+    @Test
+    fun `convite de outro e-mail (403) mostra a mensagem certa junto ao botao`() {
+        val vm = TenhoUmConviteViewModel(
+            aceitar = {
+                throw br.com.frila.core.rede.ErroDaApi(
+                    br.com.frila.core.dominio.modelo.CodigoErroAPI.CONVITE_DE_OUTRO_EMAIL,
+                    "convite_de_outro_email",
+                    null,
+                    "x",
+                )
+            },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme(temaEscuro = false) {
+                TelaTenhoUmConvite(viewModel = vm, aoVoltar = {}, aoAbrirCasa = {})
+            }
+        }
+
+        rule.onNodeWithText(TextosEquipeDaCasa.CONVITE_CAMPO).performTextInput(token)
+        rule.onNodeWithText(TextosEquipeDaCasa.CONVITE_ACEITAR).performClick()
+
+        rule.onNodeWithText("Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.").assertIsDisplayed()
+        rule.onNodeWithText(TextosEquipeDaCasa.CONVITE_ACEITAR).assertIsEnabled()
     }
 
     // ---- Trocar de casa ----

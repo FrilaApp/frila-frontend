@@ -26,6 +26,8 @@ object TextosChamadaCasa {
     const val VALOR_TOTAL = "Valor total"
     const val MOEDA = "R$"
     const val VALOR_EXEMPLO = "0,00"
+    const val VALOR_MUITO_BAIXO = "Valor muito baixo."
+    const val VALOR_MUITO_ALTO = "Valor muito alto, confira."
     const val INCLUI_REFEICAO = "Inclui refeição"
     const val INCLUI_TRANSPORTE = "Inclui transporte"
     const val EXIGE_MATERIAL_PROPRIO = "Exige material próprio"
@@ -76,6 +78,7 @@ object TextosChamadaCasa {
         "As chamadas diretas foram finalizadas sem confirmação. Você pode abrir a vaga para todos os " +
             "profissionais da região."
     const val VAGA_PUBLICADA_SUCESSO = "Vaga aberta para todos os profissionais da região."
+    const val VAGA_ENCERRADA_AO_PUBLICAR = "Esta vaga já foi encerrada e não pode mais ser aberta para todos."
     const val VER_VAGA_ABERTA = "Ver vaga aberta"
     const val MOTIVO_ROTULO = "Motivo"
 

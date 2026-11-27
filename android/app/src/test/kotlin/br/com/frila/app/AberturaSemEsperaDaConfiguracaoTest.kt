@@ -22,7 +22,10 @@ import br.com.frila.feature.vagas.feed.EstadoFeed
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.request.HttpRequestData
+import io.ktor.client.request.HttpResponseData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
@@ -63,8 +66,14 @@ class AberturaSemEsperaDaConfiguracaoTest {
 
     private var cena: ActivityScenario<MainActivity>? = null
 
-    /** Instante (tempo real) em que a Activity começou a abrir: o prazo do teste conta daqui, não de quando a espera começa. */
-    private var abertoEm = 0L
+    /**
+     * Instante (tempo real) em que o app fez a chamada de `configuracao_do_app`, que é quando o prazo da abertura começa a correr no
+     * código de produção (o `delay` de [TEMPO_MAXIMO_ABERTURA_MS] e a chamada nascem juntos no mesmo efeito). O prazo do teste conta
+     * daqui e não da abertura da Activity: no primeiro teste da classe, com a JVM e o Robolectric frios, o `ActivityScenario.launch`
+     * levou de 0,7 a 3,1 s e a primeira tela ficou pronta de 2,6 a 5,2 s depois da abertura (debug, 10 rodadas, sem carga), contra
+     * ~1,5 s nos testes seguintes. Esse custo é da partida do teste e comia o limite de 6 s contado da abertura (falha na CI do #1092).
+     */
+    @Volatile private var chamadaEm = 0L
     private val contexto: Context get() = ApplicationProvider.getApplicationContext()
 
     @After
@@ -72,6 +81,7 @@ class AberturaSemEsperaDaConfiguracaoTest {
         cena?.close()
         rule.waitForIdle()
         contexto.deleteSharedPreferences("configuracao_do_app")
+        MedidorDeColdStart.resetarParaTestes()
     }
 
     private val jsonSemMinimaAlta = """{"plataforma":"android","versao_minima":"1.0.0","recursos":{}}"""
@@ -82,13 +92,19 @@ class AberturaSemEsperaDaConfiguracaoTest {
     private fun abrirApp(motor: MockEngine) {
         motorDoMomento = motor
         MedidorDeColdStart.iniciar()
-        abertoEm = System.nanoTime()
+        chamadaEm = 0L
         cena = ActivityScenario.launch(
             Intent(contexto, MainActivity::class.java).putExtra(PoliticaDaAbertura.EXTRA_PULAR_ABERTURA, true),
         )
     }
 
-    private fun chamadaTravada() = MockEngine { awaitCancellation() }
+    /** Motor HTTP falso que anota o instante da primeira chamada (ver [chamadaEm]) antes de responder como [resposta] manda. */
+    private fun motor(resposta: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData) = MockEngine { pedido ->
+        if (chamadaEm == 0L) chamadaEm = System.nanoTime()
+        resposta(pedido)
+    }
+
+    private fun chamadaTravada() = motor { awaitCancellation() }
 
     private fun guardarConfiguracaoComMinimaAlta() {
         CacheDeConfiguracaoDoAppPreferencias(contexto).gravar(
@@ -97,19 +113,23 @@ class AberturaSemEsperaDaConfiguracaoTest {
         )
     }
 
-    /** Espera [condicao] até [limiteMs] contados da abertura da Activity (o que a pessoa vive), não de quando a espera começa. */
-    private fun esperarDesdeAAbertura(limiteMs: Long, condicao: () -> Boolean) {
-        val restante = limiteMs - (System.nanoTime() - abertoEm) / 1_000_000
+    /**
+     * Espera [condicao] até [limiteMs] contados da chamada de configuração (ver [chamadaEm]). Antes, espera a chamada acontecer, sem
+     * contar esse tempo: se o app nunca a fizer, o teste falha aqui, por [ESPERA_DA_CHAMADA_MS].
+     */
+    private fun esperarDesdeAChamada(limiteMs: Long, condicao: () -> Boolean) {
+        rule.waitUntil(ESPERA_DA_CHAMADA_MS) { chamadaEm != 0L }
+        val restante = limiteMs - (System.nanoTime() - chamadaEm) / 1_000_000
         rule.waitUntil(restante.coerceAtLeast(1), condicao)
     }
 
     private fun esperarInterfacePronta(limiteMs: Long = LIMITE_DO_TESTE_MS) =
-        esperarDesdeAAbertura(limiteMs) { MedidorDeColdStart.interfaceProntaConcluida }
+        esperarDesdeAChamada(limiteMs) { MedidorDeColdStart.interfaceProntaConcluida }
 
     private fun telaDeAtualizacaoVisivel() =
         runCatching { rule.onNodeWithText(TextosAtualizacaoObrigatoria.TITULO).assertExists() }.isSuccess
 
-    private fun esperarTelaDeAtualizacao(limiteMs: Long = LIMITE_DO_TESTE_MS) = esperarDesdeAAbertura(limiteMs, ::telaDeAtualizacaoVisivel)
+    private fun esperarTelaDeAtualizacao(limiteMs: Long = LIMITE_DO_TESTE_MS) = esperarDesdeAChamada(limiteMs, ::telaDeAtualizacaoVisivel)
 
     @Test
     fun `com a chamada de configuracao travada a primeira tela abre dentro do limite`() {
@@ -122,7 +142,7 @@ class AberturaSemEsperaDaConfiguracaoTest {
     fun `resposta que chega depois de a primeira tela abrir ainda bloqueia a versao abaixo da minima`() {
         val liberar = CompletableDeferred<Unit>()
         abrirApp(
-            MockEngine {
+            motor {
                 liberar.await()
                 respond(jsonComMinimaAlta, HttpStatusCode.OK, cabecalhoJson)
             },
@@ -146,7 +166,7 @@ class AberturaSemEsperaDaConfiguracaoTest {
 
     @Test
     fun `resposta imediata com minima alta mostra a tela de atualizacao e nunca o app`() {
-        abrirApp(MockEngine { respond(jsonComMinimaAlta, HttpStatusCode.OK, cabecalhoJson) })
+        abrirApp(motor { respond(jsonComMinimaAlta, HttpStatusCode.OK, cabecalhoJson) })
 
         esperarTelaDeAtualizacao()
         assertFalse(MedidorDeColdStart.interfaceProntaConcluida)
@@ -154,7 +174,7 @@ class AberturaSemEsperaDaConfiguracaoTest {
 
     @Test
     fun `resposta imediata sem minima alta abre a primeira tela`() {
-        abrirApp(MockEngine { respond(jsonSemMinimaAlta, HttpStatusCode.OK, cabecalhoJson) })
+        abrirApp(motor { respond(jsonSemMinimaAlta, HttpStatusCode.OK, cabecalhoJson) })
 
         esperarInterfacePronta()
     }
@@ -171,12 +191,12 @@ class AberturaSemEsperaDaConfiguracaoTest {
         )
         val liberar = CompletableDeferred<Unit>()
         abrirApp(
-            MockEngine {
+            motor {
                 liberar.await()
                 respond("""{"plataforma":"android","versao_minima":"99.0.0","mensagem":null,"recursos":{}}""", HttpStatusCode.OK, cabecalhoJson)
             },
         )
-        esperarDesdeAAbertura(LIMITE_DO_TESTE_MS) {
+        esperarDesdeAChamada(LIMITE_DO_TESTE_MS) {
             runCatching { rule.onNodeWithText("Mensagem antiga A").assertExists() }.isSuccess
         }
 
@@ -189,9 +209,14 @@ class AberturaSemEsperaDaConfiguracaoTest {
     }
 
     companion object {
-        /** Tempo real, a partir da abertura da Activity. Sem a correção a primeira tela com a chamada travada sai em cerca de 10 s
-         * (o prazo da chamada); com ela, em 2 s mais a partida da Activity. A folga cobre a partida fria do Robolectric. */
-        private const val LIMITE_DO_TESTE_MS = 6_000L
+        /** Tempo real, a partir da chamada de configuração. Sem a correção a primeira tela com a chamada travada sai em cerca de 10 s
+         * (o prazo da chamada); com ela, em 2 s mais a composição da tela. Medido da chamada até a tela, 20 rodadas (debug e
+         * release, sem carga): de 1,5 a 2,6 s, o máximo no primeiro teste da classe. 4 s deixa 1,4 s de folga sobre esse máximo e ainda
+         * reprova um [TEMPO_MAXIMO_ABERTURA_MS] a partir de cerca de 4 s. */
+        private const val LIMITE_DO_TESTE_MS = 4_000L
+
+        /** Quanto o teste espera o app fazer a chamada (a Activity abrir): não entra no limite acima. */
+        private const val ESPERA_DA_CHAMADA_MS = 30_000L
 
         @Volatile private var motorDoMomento: MockEngine = MockEngine { awaitCancellation() }
 

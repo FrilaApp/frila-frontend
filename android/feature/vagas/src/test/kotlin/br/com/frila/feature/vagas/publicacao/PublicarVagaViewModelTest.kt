@@ -633,4 +633,27 @@ class PublicarVagaViewModelTest {
         outro.publicar().join()
         assertEquals(TextosPublicarVaga.FUNCAO_CAMPO, outro.estado.value.errosDeCampo[CampoPublicacao.FUNCAO])
     }
+
+    @Test
+    fun `valores positivos fora da faixa sao aceitos na publicacao e zero ou negativo seguem recusados`() = runBlocking {
+        for ((texto, centavosEsperados) in listOf("0,01" to "1", "49,99" to "4999", "2000,01" to "200001", "1000000" to "100000000")) {
+            val rede = redeOk()
+            val vm = viewModelCom(rede)
+            vm.preencher(valor = texto)
+
+            vm.publicar().join()
+
+            assertEquals(centavosEsperados, rede.publicacoes.single().corpo!!["valor_centavos"]!!.jsonPrimitive.content)
+        }
+        for (invalido in listOf("0", "-10")) {
+            val rede = redeOk()
+            val vm = viewModelCom(rede)
+            vm.preencher(valor = invalido)
+
+            vm.publicar().join()
+
+            assertTrue(rede.publicacoes.isEmpty())
+            assertEquals(TextosPublicarVaga.VALOR_CAMPO, vm.estado.value.errosDeCampo[CampoPublicacao.VALOR])
+        }
+    }
 }

@@ -118,7 +118,7 @@ class CapturasR3Test {
     private fun validacaoQueErra(): ValidacaoDoCodigoViewModel = ValidacaoDoCodigoViewModel(
         turnoId = "t1",
         validar = { _, _, _ ->
-            Result.failure(ErroDaApi(CodigoErroAPI.DESCONHECIDO, "codigo_invalido", null, "x"))
+            Result.failure(ErroDaApi(CodigoErroAPI.CODIGO_INVALIDO, "codigo_invalido", null, "x"))
         },
         medirDistancia = { 20 },
         escopo = CoroutineScope(Dispatchers.Default),

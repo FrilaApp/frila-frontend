@@ -39,6 +39,7 @@ import br.com.frila.core.designsystem.componentes.TituloDaTela
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import br.com.frila.core.rede.ProvedorSocial
 import br.com.frila.feature.entrada.entrada.IlustracaoDeBoasVindas
 import br.com.frila.feature.entrada.fraseComLinksLegais
 
@@ -63,6 +64,7 @@ fun TelaEntradaComSenha(
     modifier: Modifier = Modifier,
     aoExigirDesafioOtp: (String, String) -> Unit = { _, _ -> },
     aoExigirDefinirSenha: () -> Unit = aoAutenticar,
+    aoAbrirLoginSocial: (String) -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val cores = FrilaTema.cores
@@ -89,7 +91,7 @@ fun TelaEntradaComSenha(
     }
 
     DisposableEffect(Unit) {
-        onDispose { viewModel.cancelarTentativaAtual() }
+        onDispose { viewModel.cancelarTentativaAtual(limparOAuth = false) }
     }
 
     // Conta de demonstração digitada (profissional ou contratante) segue para o modo demonstração, sem senha.
@@ -221,6 +223,30 @@ fun TelaEntradaComSenha(
                     habilitado = !estado.carregando,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                if (estado.mostrarLoginSocial) {
+                    BotaoSecundario(
+                        texto = "Continuar com o Google",
+                        aoClicar = {
+                            viewModel.iniciarEntradaSocial(ProvedorSocial.GOOGLE, aoAbrirLoginSocial)
+                        },
+                        habilitado = !estado.carregando,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    BotaoSecundario(
+                        texto = "Continuar com a Apple",
+                        aoClicar = {
+                            viewModel.iniciarEntradaSocial(ProvedorSocial.APPLE, aoAbrirLoginSocial)
+                        },
+                        habilitado = !estado.carregando,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada.",
+                        style = FrilaTipo.legenda,
+                        color = cores.tintaSuave,
+                    )
+                }
 
                 LinkFrila(
                     texto = "Entrar em modo demonstração",

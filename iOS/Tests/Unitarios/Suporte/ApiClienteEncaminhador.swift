@@ -39,6 +39,25 @@ class ApiClienteEncaminhador: ApiCliente, @unchecked Sendable {
     func revogarDispositivos() async throws -> Int { try await base.revogarDispositivos() }
     func estadoAutenticacao() async throws -> EstadoAutenticacao { try await base.estadoAutenticacao() }
     func entrarDemonstracao(email: String, codigo: String) async throws { try await base.entrarDemonstracao(email: email, codigo: codigo) }
+    var suportaLoginSocial: Bool { base.suportaLoginSocial }
+    func entrarComApple(idToken: String, nonce: String) async throws -> ResultadoEntradaSocial {
+        try await base.entrarComApple(idToken: idToken, nonce: nonce)
+    }
+    func iniciarLoginSocialPKCE(
+        provedor: ProvedorSocial,
+        redirectTo: URL,
+        codeChallenge: String
+    ) async throws -> InicioOAuthPKCE {
+        try await base.iniciarLoginSocialPKCE(provedor: provedor, redirectTo: redirectTo, codeChallenge: codeChallenge)
+    }
+    func concluirLoginSocialPKCE(
+        provedor: ProvedorSocial,
+        transacaoID: String,
+        codigo: String,
+        verifier: String
+    ) async throws -> ResultadoEntradaSocial {
+        try await base.concluirLoginSocialPKCE(provedor: provedor, transacaoID: transacaoID, codigo: codigo, verifier: verifier)
+    }
     func possuiSessao() async -> Bool { await base.possuiSessao() }
 
     // Conta e perfil

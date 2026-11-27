@@ -4,13 +4,16 @@ import OSLog
 import Supabase
 
 public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecked Sendable {
-    private let cliente: SupabaseClient
+    let cliente: SupabaseClient
+    let urlBase: URL
+    let chavePublicavel: String
+    let sessaoHTTP: URLSession
     private let decodificador = ContratoAPI.decodificador()
     private let telemetria: any TelemetryReporter
     /// Só a rota e a quantidade de itens descartados vão ao log; nunca o conteúdo da resposta.
     private static let log = Logger(subsystem: "com.frila.org.app", category: "contrato")
     /// Entrada, demonstração, saída e encerramento por 401 passam por aqui, um de cada vez.
-    private let filaDeSessao = FilaDeSessao()
+    let filaDeSessao = FilaDeSessao()
     private let armazenamentoDeDispositivo: any ArmazenamentoDeDeviceToken
 
     public convenience init(url: URL, chavePublicavel: String, telemetria: any TelemetryReporter = TelemetryNula()) {
@@ -41,6 +44,9 @@ public final class SupabaseApiCliente: ApiCliente, ObservadorDeSessao, @unchecke
             auth: auth,
             global: .init(session: sessaoHTTP)
         )
+        self.urlBase = url
+        self.chavePublicavel = chavePublicavel
+        self.sessaoHTTP = sessaoHTTP
         cliente = SupabaseClient(supabaseURL: url, supabaseKey: chavePublicavel, options: options)
         self.telemetria = telemetria
     }

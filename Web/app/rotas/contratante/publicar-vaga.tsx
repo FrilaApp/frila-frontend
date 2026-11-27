@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { escolherCasa, lerCadastroDaCasa, lerMinhasCasas } from "../../servidor/contratante/casa";
@@ -15,6 +16,7 @@ import { apiDoUsuario } from "../../servidor/deste-ambiente";
 import { exigirSessao } from "../../servidor/guarda";
 import { textos } from "../../textos/pt-BR";
 import type { Route } from "./+types/publicar-vaga";
+import { avisoDoValor } from "./comum";
 
 const t = textos.contratante.publicar;
 type Erros = Partial<Record<CampoDaVaga, string>> & { geral?: string };
@@ -123,6 +125,13 @@ export default function PublicarVaga({ loaderData, actionData }: Route.Component
   const erros = actionData?.erros ?? {};
   const valores = actionData?.valores ?? VAZIO;
   const { casa, grupos } = loaderData;
+  const [valorDigitado, setValorDigitado] = useState(valores.valor);
+  const [valorAnterior, setValorAnterior] = useState(valores.valor);
+  if (valores.valor !== valorAnterior) {
+    setValorAnterior(valores.valor);
+    setValorDigitado(valores.valor);
+  }
+  const avisoValor = avisoDoValor(valorDigitado);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
@@ -183,7 +192,21 @@ export default function PublicarVaga({ loaderData, actionData }: Route.Component
           <span id="ajuda-valor" className="text-sm font-normal text-tinta-suave">
             {t.ajudaDoValor}
           </span>
-          <input name="valor" type="text" inputMode="decimal" required defaultValue={valores.valor} className={classeDoCampo} {...sobre(erros, "valor", "ajuda-valor")} />
+          <input
+            name="valor"
+            type="text"
+            inputMode="decimal"
+            required
+            defaultValue={valores.valor}
+            onChange={(evento) => setValorDigitado(evento.target.value)}
+            className={classeDoCampo}
+            {...sobre(erros, "valor", avisoValor ? "ajuda-valor aviso-valor" : "ajuda-valor")}
+          />
+          {avisoValor ? (
+            <span id="aviso-valor" role="status" className="text-sm font-normal text-tinta-suave">
+              {avisoValor}
+            </span>
+          ) : null}
           <Aviso id="erro-valor" texto={erros.valor} />
         </label>
 

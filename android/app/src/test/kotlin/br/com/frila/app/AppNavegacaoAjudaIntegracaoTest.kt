@@ -6,7 +6,10 @@ import android.content.ContextWrapper
 import android.content.Intent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -18,7 +21,9 @@ import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.feature.entrada.entrada.EntradaViewModel
 import br.com.frila.feature.entrada.entrada.EstadoEntrada
+import br.com.frila.feature.perfil.EnderecosOficiais
 import br.com.frila.feature.perfil.EstadoPerfil
+import br.com.frila.feature.perfil.TextosAjudaPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.perfil.EstadoVerificacaoIdentidade
@@ -47,7 +52,7 @@ class AppNavegacaoAjudaIntegracaoTest {
 
     private lateinit var nav: NavHostController
 
-    private fun montar(semEmail: Boolean = false) {
+    private fun montar(semEmail: Boolean = false, semNavegador: Boolean = false) {
         val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
             every { estaAutenticado() } returns false
             every { isBiometriaAtivada() } returns false
@@ -68,6 +73,9 @@ class AppNavegacaoAjudaIntegracaoTest {
                 override fun startActivity(intent: Intent) {
                     if (semEmail && intent.action == Intent.ACTION_SENDTO) {
                         throw ActivityNotFoundException("Sonda: aparelho sem cliente de e-mail")
+                    }
+                    if (semNavegador && intent.action == Intent.ACTION_VIEW) {
+                        throw ActivityNotFoundException("Sonda: aparelho sem navegador")
                     }
                     super.startActivity(intent)
                 }
@@ -111,5 +119,33 @@ class AppNavegacaoAjudaIntegracaoTest {
         montar(semEmail = true)
         rule.onNodeWithText("Fale com o suporte").performClick()
         rule.runOnIdle { assertEquals(Rotas.AJUDA, nav.currentDestination?.route) }
+    }
+
+    @Test
+    fun suporteSemAplicativoDeEmailAvisaComOEnderecoParaCopiar() {
+        montar(semEmail = true)
+        rule.onNodeWithText("Fale com o suporte").performClick()
+
+        rule.onNodeWithText(AvisoDeAberturaExterna.semEmail("suporte@frilabr.com").mensagem).assertExists()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals("suporte@frilabr.com")
+    }
+
+    @Test
+    fun termosEPrivacidadeSemNavegadorAvisamComOEndereco() {
+        montar(semNavegador = true)
+        rule.onNodeWithText(TextosAjudaPerfil.TERMOS_DE_USO).performScrollTo().performClick()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals(EnderecosOficiais.padrao.termosDeUso)
+        rule.onNodeWithText(TextosAberturaExterna.FECHAR).performClick()
+        rule.onAllNodesWithTag("aviso-abertura-externa").assertCountEquals(0)
+
+        rule.onNodeWithText(TextosAjudaPerfil.POLITICA_PRIVACIDADE).performScrollTo().performClick()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals(EnderecosOficiais.padrao.politicaDePrivacidade)
+    }
+
+    @Test
+    fun termosComNavegadorNaoMostramAviso() {
+        montar()
+        rule.onNodeWithText(TextosAjudaPerfil.TERMOS_DE_USO).performScrollTo().performClick()
+        rule.onAllNodesWithTag("aviso-abertura-externa").assertCountEquals(0)
     }
 }

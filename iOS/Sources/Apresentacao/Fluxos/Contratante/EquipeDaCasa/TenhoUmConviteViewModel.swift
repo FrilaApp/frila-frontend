@@ -8,10 +8,10 @@ public struct ConviteAceito: Equatable, Sendable {
     public let papel: PapelMembro?
 }
 
-/// "Tenho um convite" (RF21; o app não abre o link sozinho, sem deep link): a pessoa cola o link ou o código e o app tira o
-/// token e chama `aceitar_convite_membro`. Só vale o link do convite inteiro ou o código de 64 hexadecimais, com os espaços
-/// das pontas aparados (`ConviteDaCasa.extrairToken`): qualquer outra coisa vira "link ou código inválido" **sem chamar o
-/// servidor**. Cada recusa do servidor (`convite_invalido`, `perfil_incompativel`, sessão, sem rede) vira texto do Frila.
+/// "Tenho um convite" (RF21; o app não abre o link sozinho, sem deep link): a pessoa cola o link, o código ou a mensagem do
+/// convite inteira e o app tira o token e chama `aceitar_convite_membro`. Só vale o código de 64 hexadecimais, o link do convite
+/// do Frila ou um texto com exatamente um link assim (`ConviteDaCasa.extrairToken`): qualquer outra coisa vira "link ou código
+/// inválido" **sem chamar o servidor**. Cada recusa do servidor (`convite_invalido`, `perfil_incompativel`, sessão, sem rede) vira texto do Frila.
 ///
 /// Um convite é de uso único: depois de uma falha incerta (prazo vencido, resposta ilegível), repetir pode dar
 /// `convite_invalido` se o primeiro já tiver sido aceito, e por isso a mensagem de falha incerta avisa onde conferir. O token
@@ -36,6 +36,9 @@ public final class TenhoUmConviteViewModel {
     public private(set) var erro: String?
     public private(set) var aceito: ConviteAceito?
 
+    /// Os links de convite que o app reconhece: os da web de produção e da de dev, as mesmas origens com que monta o link.
+    static let origens = [OrigemDaWeb.producao, OrigemDaWeb.dev]
+
     private var devolvendo = false
     private let aceitar: @Sendable (String) async throws -> MembroAdicionado
     private let prazo: Duration
@@ -50,11 +53,11 @@ public final class TenhoUmConviteViewModel {
     }
 
     /// O texto tem a forma de um convite? Só assim o botão fala com o servidor.
-    public var textoTemFormaDeConvite: Bool { ConviteDaCasa.extrairToken(de: texto) != nil }
+    public var textoTemFormaDeConvite: Bool { ConviteDaCasa.extrairToken(de: texto, origens: Self.origens) != nil }
 
     public func aceitarConvite() async {
         guard !enviando, aceito == nil else { return }
-        guard let token = ConviteDaCasa.extrairToken(de: texto) else {
+        guard let token = ConviteDaCasa.extrairToken(de: texto, origens: Self.origens) else {
             erro = TextosDaEquipeDaCasa.conviteFormatoInvalido
             return
         }
@@ -76,6 +79,8 @@ public final class TenhoUmConviteViewModel {
     private static func mensagem(_ falha: Error) -> String {
         guard let erro = falha as? ErroDaApi else { return TextosDaEquipeDaCasa.conviteIncerto }
         if erro.conviteInvalido { return TextosDaEquipeDaCasa.conviteInvalido }
+        // 403 sem `details` (contrato 0.2.115): a conta que aceita não é a do e-mail do convite. O convite segue valendo.
+        if erro.conviteDeOutroEmail { return TextosDaEquipeDaCasa.conviteDeOutroEmail }
         if erro.contaSuspensa { return TextosDaEquipeDaCasa.contaSuspensa }
         switch erro.codigo {
         case .perfilIncompativel: return TextosDaEquipeDaCasa.convitePerfilIncompativel

@@ -70,6 +70,23 @@ class TelaPontoBaseTest {
     }
 
     @Test
+    fun `ponto salvo fora do DF mostra o aviso do iOS e o salvar segue habilitado`() {
+        val toques = montar(estadoBase.copy(temPontoBaseSalvo = true, pontoSalvoForaDoDF = true))
+
+        rule.onNodeWithText(TextosPontoBase.AVISO_FORA_DO_DF).assertIsDisplayed()
+        rule.onNodeWithText(TextosPontoBase.SALVAR).performClick()
+
+        assertEquals(1, toques.salvou)
+    }
+
+    @Test
+    fun `dentro do DF nao mostra o aviso`() {
+        montar(estadoBase.copy(temPontoBaseSalvo = true, escolhida = taguatinga))
+
+        assertEquals(0, contar(TextosPontoBase.AVISO_FORA_DO_DF))
+    }
+
+    @Test
     fun `tocar numa regiao avisa a escolha, e a linha tem o alvo minimo de toque`() {
         val toques = montar()
 

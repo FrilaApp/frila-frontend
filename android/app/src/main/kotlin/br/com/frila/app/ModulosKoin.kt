@@ -13,6 +13,7 @@ import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlyticsReal
 import br.com.frila.app.falhas.TelemetriaDeFalhas
 import br.com.frila.app.seguranca.ArmazenamentoDeDispositivoKeystore
 import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
+import br.com.frila.app.seguranca.ArmazenamentoOAuthPendenteKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.modelo.Coordenada
@@ -27,6 +28,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
+import br.com.frila.core.rede.SegurancaOAuthSocial
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.FilaDeTelemetria
@@ -60,6 +62,8 @@ import br.com.frila.core.seguranca.ArmazenamentoDeDispositivo
 import br.com.frila.core.seguranca.ArmazenamentoDeDispositivoEmMemoria
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendente
+import br.com.frila.core.seguranca.ArmazenamentoOAuthPendenteEmMemoria
 import br.com.frila.core.seguranca.LeitorDeAmbiente
 import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
 import br.com.frila.feature.conta.ContaSuspensaViewModel
@@ -103,6 +107,7 @@ import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
 import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
+import br.com.frila.feature.vagas.escala.GuardaDaEscala
 import br.com.frila.feature.vagas.publicacao.PublicarVagaViewModel
 import br.com.frila.feature.perfil.ApresentacaoERegioesViewModel
 import br.com.frila.feature.perfil.EnderecosOficiais
@@ -152,7 +157,13 @@ val moduloSeguranca = module {
     single {
         val fila = get<FilaDeTelemetria>()
         val contexto = getOrNull<Context>()
-        CacheVagasDaSessao(contexto?.noBackupFilesDir, limparTelemetria = fila::limpar, diretorioDosAvatares = contexto?.filesDir)
+        CacheVagasDaSessao(
+            contexto?.noBackupFilesDir,
+            limparTelemetria = fila::limpar,
+            diretorioDosAvatares = contexto?.filesDir,
+            // A escala pendente é da conta que saiu: logout, troca e expiração a esvaziam (resolvida só na hora de limpar).
+            limparGuardas = { getOrNull<GuardaDaEscala>()?.limpar() },
+        )
     }
     single<ArmazenamentoDeSessao> {
         val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
@@ -162,6 +173,10 @@ val moduloSeguranca = module {
     single<ArmazenamentoDeDispositivo> {
         getOrNull<Context>()?.let(::ArmazenamentoDeDispositivoKeystore)
             ?: ArmazenamentoDeDispositivoEmMemoria()
+    }
+    single<ArmazenamentoOAuthPendente> {
+        getOrNull<Context>()?.let(::ArmazenamentoOAuthPendenteKeystore)
+            ?: ArmazenamentoOAuthPendenteEmMemoria()
     }
     /** RN15 (cartão Cdv0sS5w): leitura do ambiente para VerificadorDeIntegridade. */
     single<LeitorDeAmbiente> {
@@ -361,6 +376,10 @@ val moduloFeatures = module {
             armazenamentoDeSessao = get(),
             aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
             permitirDominioDeTeste = BuildConfig.DEBUG,
+            mostrarLoginSocial = BuildConfig.DEBUG,
+            armazenamentoOAuthPendente = get(),
+            urlCallbackOAuth = SegurancaOAuthSocial.urlCallbackParaAmbiente(usarAppLinks = !BuildConfig.DEBUG),
+            permitirCustomSchemeDev = BuildConfig.DEBUG,
         )
     }
     viewModel { params ->
@@ -514,6 +533,8 @@ val moduloFeatures = module {
     viewModel { TenhoUmConviteViewModel(aceitar = get<ServicoMembros>()::aceitarConviteMembro) }
     /** Trocar de casa: `meus_estabelecimentos`, sem RPC própria. */
     viewModel { TrocarDeCasaViewModel(listar = get<ServicoMembros>()::listarMeusEstabelecimentos) }
+    /** A escala pendente de cada casa, acima da tela (a pendência sobrevive a sair e voltar); o logout a esvazia pelo [CacheVagasDaSessao]. */
+    single { GuardaDaEscala() }
     /** Escala de evento (RF19, `publicar_escala`): o mesmo estabelecimento lido da publicação de vaga, com a chave única da escala. */
     viewModel { (estabelecimento: EstabelecimentoDaVaga) ->
         val vagas = get<ServicoVagas>()
@@ -521,6 +542,7 @@ val moduloFeatures = module {
             estabelecimento = estabelecimento,
             buscarFuncoes = vagas::listarFuncoes,
             enviarEscala = vagas::publicarEscala,
+            guarda = get(),
         )
     }
     /**

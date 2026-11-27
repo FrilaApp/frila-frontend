@@ -17096,6 +17096,131 @@
           }
         }
       }
+    },
+    "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez, até %4$@. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez, até %4$@. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade"
+          }
+        }
+      }
+    },
+    "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ convidou você para a equipe da casa no Frila, como %2$@. Para aceitar, abra o link abaixo e entre no Frila com o e-mail %3$@. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade"
+          }
+        }
+      }
+    },
+    "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite."
+          }
+        }
+      }
+    },
+    "Valor muito baixo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor muito baixo."
+          }
+        }
+      }
+    },
+    "Valor muito alto, confira.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor muito alto, confira."
+          }
+        }
+      }
+    },
+    "Esta conta social não pôde ser vinculada automaticamente. Entre com seu e-mail e senha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta conta social não pôde ser vinculada automaticamente. Entre com seu e-mail e senha."
+          }
+        }
+      }
+    },
+    "Muitas tentativas. Aguarde um minuto e tente novamente.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muitas tentativas. Aguarde um minuto e tente novamente."
+          }
+        }
+      }
+    },
+    "Sem conexão no momento. Tente novamente em instantes.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem conexão no momento. Tente novamente em instantes."
+          }
+        }
+      }
+    },
+    "Não foi possível concluir a entrada agora. Tente novamente ou use e-mail e senha.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível concluir a entrada agora. Tente novamente ou use e-mail e senha."
+          }
+        }
+      }
+    },
+    "Continuar com a Apple": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar com a Apple"
+          }
+        }
+      }
+    },
+    "Continuar com o Google": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar com o Google"
+          }
+        }
+      }
+    },
+    "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

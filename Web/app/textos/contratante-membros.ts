@@ -10,8 +10,13 @@ export const contratanteMembros = {
   papeis: { operador: "Operador", administrador: "Administrador" },
   convidar: "Gerar convite",
   gerando: "Gerando…",
-  pronto: "Convite pronto. Mande este link à pessoa (por mensagem ou e-mail). Ele vale uma vez, até {quando}:",
-  rotuloDoLink: "Link do convite",
+  pronto: "Convite pronto. Copie esta mensagem e mande à pessoa (por mensagem ou e-mail). O link vale uma vez, até {quando}:",
+  prontoSemPrazo: "Convite pronto. Copie esta mensagem e mande à pessoa (por mensagem ou e-mail). O link vale uma vez:",
+  rotuloDaMensagem: "Mensagem do convite",
+  mensagemDoConvite:
+    "{casa} convidou você para a equipe da casa no Frila, como {papel}. Para aceitar, abra o link abaixo e entre no Frila com o e-mail {email}. O convite vale uma vez, até {prazo}. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade\n{link}",
+  mensagemDoConviteSemPrazo:
+    "{casa} convidou você para a equipe da casa no Frila, como {papel}. Para aceitar, abra o link abaixo e entre no Frila com o e-mail {email}. O convite vale uma vez. O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. Política de Privacidade: https://frilabr.com/privacidade\n{link}",
   voltar: "Voltar ao painel",
   lista: "Quem faz parte da casa",
   vazia: "Nenhuma pessoa na lista da casa.",
@@ -50,6 +55,7 @@ export const contratanteMembros = {
     aceitando: "Aceitando…",
     erros: {
       convite_invalido: "Este convite não vale mais: já foi usado, venceu ou o código está errado. Peça um novo a quem convidou.",
+      convite_de_outro_email: "Este convite foi feito para outro e-mail. Entre com o e-mail que recebeu o convite.",
       perfil_incompativel: "Convites de casa são para contas de quem contrata. A sua conta é de profissional.",
       indisponivel: "Não foi possível aceitar agora. Tente novamente.",
     },

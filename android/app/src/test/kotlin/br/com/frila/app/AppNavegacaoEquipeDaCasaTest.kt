@@ -277,7 +277,14 @@ class AppNavegacaoEquipeDaCasaTest {
         assertEquals(Intent.ACTION_SEND, envio.action)
         assertEquals("text/plain", envio.type)
         val link = "https://frilabr.com/app/convite#$token"
-        assertTrue(envio.getStringExtra(Intent.EXTRA_TEXT)!!.contains(link))
+        val esperado =
+            "Casa casa-1 convidou você para a equipe da casa no Frila, como operador. " +
+                "Para aceitar, abra o link abaixo e entre no Frila com o e-mail novo@bar.com. " +
+                "O convite vale uma vez, até 25/11 às 12:00. " +
+                "O Frila guarda seu e-mail só para conferir este convite e o apaga em até 30 dias depois de ele vencer ou ser aceito. " +
+                "Política de Privacidade: https://frilabr.com/privacidade\n" +
+                link
+        assertEquals(esperado, envio.getStringExtra(Intent.EXTRA_TEXT))
     }
 
     // ---- Tenho um convite ----

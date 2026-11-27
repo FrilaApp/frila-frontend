@@ -11,7 +11,7 @@ import java.util.Locale
 
 /** `403 sem_permissao` com `details: recurso_desligado` (RN46): o servidor desligou o recurso. */
 internal val ErroDaApi.recursoDesligado: Boolean
-    get() = codigo == CodigoErroAPI.SEM_PERMISSAO && detalhes == "recurso_desligado"
+    get() = codigo == CodigoErroAPI.SEM_PERMISSAO && detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO
 
 internal val ErroDaApi.contaSuspensa: Boolean
     get() = codigo == CodigoErroAPI.CONTA_SUSPENSA ||

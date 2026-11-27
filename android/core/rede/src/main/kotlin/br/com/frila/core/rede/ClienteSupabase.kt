@@ -40,6 +40,7 @@ import java.io.IOException
 import java.net.UnknownHostException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CancellationException
 
@@ -49,7 +50,22 @@ class ErroDaApi(
     val codigoOriginal: String,
     val detalhes: String?,
     val mensagemCrua: String,
-) : Exception("ErroDaApi(codigo=$codigo, codigoOriginal=$codigoOriginal)")
+) : Exception("ErroDaApi(codigo=$codigo, codigoOriginal=$codigoOriginal)") {
+    /**
+     * Os `details` do servidor lidos como [CodigoErroAPI], para a tela comparar o valor do domínio e não um texto solto
+     * (`403 sem_permissao` com `details: recurso_desligado`; `422 republicacao_indisponivel` com `details: ja_republicada`).
+     * `null` sem `details` ou quando o texto não é um valor conhecido (ex.: `conta_suspensa` vale como código, `temporario` não).
+     */
+    val detalhesComoCodigo: CodigoErroAPI? by lazy {
+        val texto = detalhes ?: return@lazy null
+        try {
+            ClienteSupabase.jsonFrila.decodeFromString(CodigoErroAPI.serializer(), ClienteSupabase.jsonFrila.encodeToString(String.serializer(), texto))
+                .takeIf { it != CodigoErroAPI.DESCONHECIDO }
+        } catch (_: SerializationException) {
+            null
+        }
+    }
+}
 
 /** Fornece o token de acesso atual para cada requisição (nulo quando não há sessão). */
 fun interface ProvedorDeToken {

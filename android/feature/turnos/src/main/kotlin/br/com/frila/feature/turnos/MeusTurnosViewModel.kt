@@ -132,6 +132,29 @@ class MeusTurnosViewModel(
     fun tentarNovamente(): Job = carregar()
 
     /**
+     * Relê os turnos sem trocar a lista pelo esqueleto de carregamento: a tela que espera o `fim` previsto para liberar a avaliação
+     * (#672) não pode piscar nem perder o que mostra. Uma falha deixa a lista como está.
+     */
+    fun atualizarSemPiscar(): Job = escopoDeTrabalho.launch {
+        try {
+            val turnos = servicoTurnos.listarMeusTurnos()
+            val agendados = turnos.filter { it.estado in ESTADOS_AGENDADOS }.map { it.paraItem() }
+            val historicoCompleto = turnos.filter { it.estado in ESTADOS_HISTORICO }.map { it.paraItem() }
+            _estado.update {
+                it.copy(
+                    status = if (turnos.isEmpty()) StatusMeusTurnos.VAZIO else StatusMeusTurnos.SUCESSO,
+                    agendados = agendados,
+                    historicoCompleto = historicoCompleto,
+                )
+            }
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            // Segue com o que já está na tela.
+        }
+    }
+
+    /**
      * RF16: libera a próxima fatia de [TAMANHO_PAGINA_HISTORICO] itens do histórico já carregado
      * em memória (o backend não tem `limit`/`offset`, MEDIDO em `20260924220000_meus_turnos.sql`
      * — a paginação aqui é só sobre o que já chegou). Guard clause evita trabalho duplicado

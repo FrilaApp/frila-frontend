@@ -2,6 +2,7 @@ package br.com.frila.feature.entrada.codigo
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.DemonstracaoContas
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.OrigemConfirmacaoDispositivoOtp
@@ -252,7 +253,7 @@ class CodigoViewModel(
         }
         val recusadoPeloAuth = erro.codigoOriginal == ERRO_DO_AUTH_CODIGO_RECUSADO
         val codigoRecusado = recusadoPeloAuth ||
-            erro.codigoOriginal == "codigo_invalido" ||
+            erro.codigo == CodigoErroAPI.CODIGO_INVALIDO ||
             erro.codigo.name in setOf("NAO_AUTENTICADO", "NAO_ENCONTRADO", "CAMPO_INVALIDO")
         if (!codigoRecusado) return mensagemDeErro(erro)
         val vencido = Duration.between(codigoPedidoEm, agora()) >= VALIDADE_DO_CODIGO

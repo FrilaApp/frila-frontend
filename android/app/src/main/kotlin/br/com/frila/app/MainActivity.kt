@@ -1,5 +1,6 @@
 package br.com.frila.app
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -17,16 +18,51 @@ import br.com.frila.app.desempenho.MedidorDeColdStart
 import br.com.frila.core.designsystem.abertura.AberturaAnimada
 import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
 import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.SegurancaOAuthSocial
+import br.com.frila.core.notificacoes.CaixaDoAvisoDoToque
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.koin.core.context.GlobalContext
 
+internal fun extrairCallbackOAuthSocialDoIntent(
+    intent: Intent?,
+    permitirCustomSchemeDev: Boolean = BuildConfig.DEBUG,
+): String? {
+    if (intent?.action != Intent.ACTION_VIEW) return null
+    val uri = intent.dataString ?: return null
+    return uri.takeIf {
+        SegurancaOAuthSocial.ehCallbackOAuthSocial(it, permitirCustomSchemeDev = permitirCustomSchemeDev)
+    }
+}
+
+/** Abre o login social no navegador; `false` quando o aparelho não tem navegador (a [AppNavegacao] avisa). */
+internal fun abrirNavegadorLoginSocial(contexto: Context, url: String): Boolean {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        addCategory(Intent.CATEGORY_BROWSABLE)
+    }
+    return abrirExterno(contexto, intent)
+}
+
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
 class MainActivity : FragmentActivity() {
+    private val callbackOAuthSocial = MutableStateFlow<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
         // O app desenha de borda a borda em todas as versões (no Android 15+ já é obrigatório): as telas recuam para as
         // barras do sistema e o rodapé ancorado sobe com o teclado. Sem isto, no Android 14 ou menos o teclado cobria o botão.
         enableEdgeToEdge()
@@ -38,6 +74,7 @@ class MainActivity : FragmentActivity() {
         val aberturaCobrindo = AtomicBoolean(tocarAbertura)
         if (tocarAbertura) aquecerAberturaAnimada()
         val preferenciasAparencia = GlobalContext.getOrNull()?.getOrNull<PreferenciasAparencia>()
+        val avisosDoToque = CaixaDoAvisoDoToque.link.map(::avisoDoLink).stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         setContent {
             TemaDoAparelho(preferenciasAparencia?.temaEscuro ?: remember { flowOf(false) }) {
                 val cliente = remember {
@@ -117,6 +154,12 @@ class MainActivity : FragmentActivity() {
                             chamadaDiretaHabilitada = estadoConfig.chamadaDireta,
                             buscaProfissionaisHabilitada = estadoConfig.buscaProfissionais,
                             checkinPorCodigoHabilitado = estadoConfig.checkinPorCodigo,
+                            callbackOAuthSocial = callbackOAuthSocial,
+                            aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
+                            aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(this@MainActivity, url) },
+                            // O toque num push chega pela entrada não exportada, nunca pelo Intent desta activity.
+                            avisoDoToque = avisosDoToque,
+                            aoConsumirAvisoDoToque = CaixaDoAvisoDoToque::consumir,
                             aoPronto = {
                                 MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                                 registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())

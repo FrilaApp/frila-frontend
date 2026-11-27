@@ -104,13 +104,20 @@ class ValidacaoDoCodigoViewModelTest {
     @Test
     fun `cada recusa do servidor vira o resultado certo`() = runBlocking {
         val casos = listOf(
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_invalido"), ResultadoDaValidacao.Invalido, "codigo_invalido"),
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_bloqueado", "temporario"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.TEMPORARIO), "temporario"),
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_bloqueado", "encerrado"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.ENCERRADO), "encerrado"),
+            Triple(erro(CodigoErroAPI.CODIGO_INVALIDO, "codigo_invalido"), ResultadoDaValidacao.Invalido, "codigo_invalido"),
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "codigo_bloqueado", "temporario"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.TEMPORARIO), "temporario"),
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "codigo_bloqueado", "encerrado"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.ENCERRADO), "encerrado"),
             // Sem `details` conhecido vale o mais restritivo: o app não promete tentativa que o servidor não dá.
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "codigo_bloqueado"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.ENCERRADO), "bloqueio sem details"),
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "fora_do_raio"), ResultadoDaValidacao.ForaDoRaio, "fora_do_raio"),
-            Triple(erro(CodigoErroAPI.DESCONHECIDO, "sem_localizacao"), ResultadoDaValidacao.SemLocalizacao, "sem_localizacao"),
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "codigo_bloqueado"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.ENCERRADO), "bloqueio sem details"),
+            Triple(erro(CodigoErroAPI.FORA_DO_RAIO, "fora_do_raio"), ResultadoDaValidacao.ForaDoRaio, "fora_do_raio"),
+            Triple(erro(CodigoErroAPI.SEM_LOCALIZACAO, "sem_localizacao"), ResultadoDaValidacao.SemLocalizacao, "sem_localizacao"),
+            // O que vale é o `codigo` do domínio, não o texto cru do servidor (`codigoOriginal` qualquer): sem comparar string solta.
+            Triple(erro(CodigoErroAPI.CODIGO_INVALIDO, "qualquer"), ResultadoDaValidacao.Invalido, "so o codigo: invalido"),
+            Triple(erro(CodigoErroAPI.CODIGO_BLOQUEADO, "qualquer", "temporario"), ResultadoDaValidacao.Bloqueado(BloqueioDoCodigo.TEMPORARIO), "so o codigo: bloqueado"),
+            Triple(erro(CodigoErroAPI.FORA_DO_RAIO, "qualquer"), ResultadoDaValidacao.ForaDoRaio, "so o codigo: fora do raio"),
+            Triple(erro(CodigoErroAPI.SEM_LOCALIZACAO, "qualquer"), ResultadoDaValidacao.SemLocalizacao, "so o codigo: sem localizacao"),
+            Triple(erro(CodigoErroAPI.RECURSO_DESLIGADO, "qualquer"), ResultadoDaValidacao.RecursoDesligado, "so o codigo: recurso desligado"),
+            Triple(erro(CodigoErroAPI.DESCONHECIDO, "fora_do_raio"), ResultadoDaValidacao.Falhou, "texto cru sem o codigo nao vale"),
             Triple(erro(CodigoErroAPI.CAMPO_INVALIDO, "campo_invalido"), ResultadoDaValidacao.FormatoInvalido, "campo_invalido"),
             Triple(erro(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "recurso_desligado"), ResultadoDaValidacao.RecursoDesligado, "recurso desligado"),
             Triple(erro(CodigoErroAPI.SEM_REDE, "sem_rede"), ResultadoDaValidacao.RespostaPerdida, "sem rede"),
@@ -189,7 +196,7 @@ class ValidacaoDoCodigoViewModelTest {
             turnoId = "t1",
             validar = { _, _, _ ->
                 chamadas++
-                if (chamadas == 1) Result.failure(erro(CodigoErroAPI.DESCONHECIDO, "codigo_invalido")) else Result.success(registro)
+                if (chamadas == 1) Result.failure(erro(CodigoErroAPI.CODIGO_INVALIDO, "codigo_invalido")) else Result.success(registro)
             },
             medirDistancia = { 10 },
             escopo = CoroutineScope(Dispatchers.Default),

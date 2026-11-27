@@ -66,6 +66,24 @@ struct BuscaDeProfissionaisTelasTests {
 
     // MARK: Folha de chamada
 
+    @Test("B-124: na folha da busca, o valor fora da faixa só avisa, e o envio segue liberado com o valor digitado", arguments: [
+        ("49,99", 4_999, "Valor muito baixo."), ("2000,01", 200_001, "Valor muito alto, confira."),
+    ])
+    func valorForaDaFaixaNaFolhaSoAvisa(texto: String, centavos: Int, aviso: String) throws {
+        let fixo = agora
+        let rascunho = RascunhoDaChamadaDaBusca(horario: nil, responsavel: "Bistrô", agora: { fixo })
+        #expect(rascunho.avisoDoValor == nil, "sem valor não há aviso novo")
+        rascunho.valorTexto = texto
+        rascunho.totalConfirmado = true
+
+        #expect(rascunho.avisoDoValor == aviso)
+        #expect(rascunho.oQueFalta == nil)
+        #expect(rascunho.podeEnviar)
+        #expect(try rascunho.trabalho(casa: casa(), funcaoID: funcaoA.id)?.valor.centavos == centavos)
+        rascunho.valorTexto = "180"
+        #expect(rascunho.avisoDoValor == nil)
+    }
+
     @Test("A folha só deixa enviar com valor, confirmação do total, responsável, 2 h de antecedência e turno de 2 a 16 h")
     func regrasDaFolha() throws {
         let fixo = agora

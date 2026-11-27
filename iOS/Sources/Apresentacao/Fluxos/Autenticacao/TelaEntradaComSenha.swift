@@ -112,6 +112,33 @@ public struct TelaEntradaComSenha: View {
                             }
                             .disabled(viewModel.carregando)
                             .accessibilityIdentifier("entrada-senha-criar-conta")
+
+                            if viewModel.mostrarLoginSocial {
+                                Divider()
+                                    .padding(.vertical, FrilaEspaco.item)
+
+                                // Diretriz 4.8 da App Store: Apple e Google sempre juntos no iOS.
+                                BotaoSecundario(verbatim: String(localized: "Continuar com a Apple", bundle: bundleApresentacao)) {
+                                    executarEntradaSocial { await viewModel.entrarComApple() }
+                                }
+                                .disabled(viewModel.carregando)
+                                .accessibilityIdentifier("entrada-social-apple")
+
+                                BotaoSecundario(verbatim: String(localized: "Continuar com o Google", bundle: bundleApresentacao)) {
+                                    executarEntradaSocial { await viewModel.entrarComGoogle() }
+                                }
+                                .disabled(viewModel.carregando)
+                                .accessibilityIdentifier("entrada-social-google")
+
+                                Text(
+                                    "Se você usar o mesmo e-mail verificado da sua conta Frila, o acesso entra na mesma conta. Se escolher Ocultar Meu E-mail na Apple (Private Relay), pode criar uma conta separada.",
+                                    bundle: bundleApresentacao
+                                )
+                                .font(FrilaTipo.apoio)
+                                .foregroundStyle(FrilaCor.textoSecundario)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("entrada-social-aviso-vinculo")
+                            }
                         }
                     }
                 }
@@ -152,6 +179,17 @@ public struct TelaEntradaComSenha: View {
         tarefaDeEntrada?.cancel()
         tarefaDeEntrada = Task {
             if let destino = await viewModel.entrar(), !Task.isCancelled {
+                aoConcluir(destino)
+            }
+        }
+    }
+
+    private func executarEntradaSocial(_ acao: @escaping @MainActor () async -> DestinoCodigo?) {
+        guard !viewModel.carregando else { return }
+        campoFocado = nil
+        tarefaDeEntrada?.cancel()
+        tarefaDeEntrada = Task {
+            if let destino = await acao(), !Task.isCancelled {
                 aoConcluir(destino)
             }
         }

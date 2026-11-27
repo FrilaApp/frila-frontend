@@ -55,6 +55,19 @@ export type ResultadoRevogarDispositivos =
   | { ok: true }
   | { ok: false; motivo: "sessao_invalida" | "limite" | "indisponivel" };
 
+export type FalhaTrocaPkce =
+  | "conflito_identidade"
+  | "apple_recusado"
+  | "google_recusado"
+  | "limite"
+  | "indisponivel";
+export type ResultadoIniciarSocialPkce =
+  | { ok: true; transacaoId: string; urlAutorizacao: string }
+  | { ok: false; motivo: "limite" | "indisponivel" | "apple_recusado" | "google_recusado" };
+export type ResultadoTrocaPkce =
+  | { ok: true; sessao: Sessao; precisaDefinirSenha: boolean }
+  | { ok: false; motivo: FalhaTrocaPkce };
+
 /** Validação runtime fail-closed para qualquer resposta de sessão recebida do Supabase Auth. */
 function ehSessaoValida(valor: unknown): valor is Sessao {
   if (typeof valor !== "object" || valor === null) return false;
@@ -479,39 +492,6 @@ export function criarAuth(
       }
     },
 
-    /** Endereço do Supabase que leva ao Google (OAuth com PKCE, método S256). Só monta o texto; nada é chamado. */
-    urlDeAutorizacaoGoogle(retorno: string, desafio: string): string {
-      const url = new URL(`${ambiente.url}/auth/v1/authorize`);
-      url.searchParams.set("provider", "google");
-      url.searchParams.set("redirect_to", retorno);
-      url.searchParams.set("code_challenge", desafio);
-      url.searchParams.set("code_challenge_method", "s256");
-      return url.toString();
-    },
-
-    /**
-     * Troca o `code` devolvido pelo Google (via Supabase) pela sessão: `POST /auth/v1/token?grant_type=pkce` com o
-     * `code_verifier` guardado no cookie. O mesmo formato de sessão dos outros logins.
-     */
-    async trocarCodigoPkce(codigo: string, verifier: string): Promise<ResultadoDeEntrada> {
-      try {
-        const resposta = await buscar(`${ambiente.url}/auth/v1/token?grant_type=pkce`, {
-          method: "POST",
-          headers: { ...cabecalhos, "Content-Type": "application/json" },
-          body: JSON.stringify({ auth_code: codigo, code_verifier: verifier }),
-          signal: prazo(),
-        });
-        if (resposta.ok) {
-          const dados: unknown = await resposta.json().catch(() => null);
-          return ehSessaoValida(dados) ? { ok: true, sessao: dados } : { ok: false, motivo: "indisponivel" };
-        }
-        await resposta.body?.cancel();
-        return { ok: false, motivo: motivoDe(resposta.status) };
-      } catch {
-        return { ok: false, motivo: "indisponivel" };
-      }
-    },
-
     async confirmarCodigo(email: string, codigo: string): Promise<ResultadoDeEntrada> {
       try {
         const { data, response } = await auth.POST("/verify", {
@@ -595,6 +575,104 @@ export function criarAuth(
         return { ok: resposta.ok || resposta.status === 401 || resposta.status === 403 || resposta.status === 404 };
       } catch {
         return { ok: false };
+      }
+    },
+
+    /**
+     * Inicia transação OAuth PKCE server-side via Edge Function `POST /functions/v1/autenticar-social`
+     * (`fluxo: "iniciar_pkce"`, contrato 0.2.117), vinculando provedor + code_challenge + callback.
+     */
+    async iniciarLoginSocialPkce(params: {
+      provedor: "apple" | "google";
+      codeChallenge: string;
+      redirectTo: string;
+      visitante?: string | null;
+    }): Promise<ResultadoIniciarSocialPkce> {
+      try {
+        const headers = await cabecalhosComIp(
+          { ...cabecalhos, "Content-Type": "application/json" },
+          { visitante: params.visitante },
+        );
+        const resposta = await buscar(`${ambiente.url}/functions/v1/autenticar-social`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            provedor: params.provedor,
+            fluxo: "iniciar_pkce",
+            plataforma: "web",
+            code_challenge: params.codeChallenge,
+            redirect_to: params.redirectTo,
+          }),
+          signal: prazo(),
+        });
+        const corpo = (await resposta.json().catch(() => null)) as Record<string, unknown> | null;
+        if (resposta.ok) {
+          const transacaoId = typeof corpo?.transacao_id === "string" ? corpo.transacao_id : "";
+          const urlAutorizacao = typeof corpo?.url_autorizacao === "string" ? corpo.url_autorizacao : "";
+          if (!transacaoId || !urlAutorizacao) return { ok: false, motivo: "indisponivel" };
+          return { ok: true, transacaoId, urlAutorizacao };
+        }
+        if (resposta.status === 429) return { ok: false, motivo: "limite" };
+        if (resposta.status === 403 || resposta.status >= 500) return { ok: false, motivo: "indisponivel" };
+        return { ok: false, motivo: `${params.provedor}_recusado` };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
+      }
+    },
+
+    /**
+     * Conclui login social PKCE via Edge Function `POST /functions/v1/autenticar-social` (`fluxo: "pkce"`),
+     * garantindo verificação da transação server-side, gravação em `privado.sessoes_verificadas` e JWT renovado.
+     * Nunca registra código, verifier ou tokens.
+     */
+    async concluirLoginSocialPkce(params: {
+      provedor: "apple" | "google";
+      transacaoId: string;
+      codigo: string;
+      codeVerifier: string;
+      visitante?: string | null;
+    }): Promise<ResultadoTrocaPkce> {
+      try {
+        const headers = await cabecalhosComIp(
+          { ...cabecalhos, "Content-Type": "application/json" },
+          { visitante: params.visitante },
+        );
+        const resposta = await buscar(`${ambiente.url}/functions/v1/autenticar-social`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            provedor: params.provedor,
+            fluxo: "pkce",
+            plataforma: "web",
+            transacao_id: params.transacaoId,
+            codigo: params.codigo,
+            code_verifier: params.codeVerifier,
+          }),
+          signal: prazo(),
+        });
+        const corpo = (await resposta.json().catch(() => null)) as Record<string, unknown> | null;
+        if (resposta.ok) {
+          if (!ehSessaoValida(corpo?.sessao)) return { ok: false, motivo: "indisponivel" };
+          return {
+            ok: true,
+            sessao: corpo.sessao,
+            precisaDefinirSenha: corpo?.precisa_definir_senha === true,
+          };
+        }
+        if (resposta.status === 429) return { ok: false, motivo: "limite" };
+        const codigoErro = String(corpo?.code ?? corpo?.error_code ?? "").toLowerCase();
+        if (resposta.status === 409 && codigoErro === "conflito_identidade") {
+          return { ok: false, motivo: "conflito_identidade" };
+        }
+        if (resposta.status === 403 || resposta.status >= 500) {
+          return { ok: false, motivo: "indisponivel" };
+        }
+        if (resposta.status >= 400 && resposta.status < 500) {
+          return { ok: false, motivo: `${params.provedor}_recusado` };
+        }
+        return { ok: false, motivo: "indisponivel" };
+      } catch {
+        return { ok: false, motivo: "indisponivel" };
       }
     },
 

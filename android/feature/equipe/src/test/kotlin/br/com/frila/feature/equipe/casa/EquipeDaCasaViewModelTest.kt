@@ -176,10 +176,15 @@ class EquipeDaCasaViewModelTest {
         val convite = vm.estado.value.convite!!
         assertEquals("https://frilabr.com/app/convite#$token", convite.link)
         assertEquals("novo@bar.com", convite.email)
+        assertEquals(PapelMembro.ADMINISTRADOR, convite.papel)
         assertNotNull(convite.expiraEm)
         assertEquals("", vm.estado.value.email)
         assertFalse(vm.estado.value.gerandoConvite)
         assertNull(vm.estado.value.erroDoConvite)
+
+        // Trocar o papel no formulário depois de gerar não muda o papel do convite já pronto.
+        vm.escolherPapel(PapelMembro.OPERADOR)
+        assertEquals(PapelMembro.ADMINISTRADOR, vm.estado.value.convite?.papel)
     }
 
     @Test

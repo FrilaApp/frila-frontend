@@ -454,6 +454,20 @@ public protocol ApiCliente: TurnoRepositorio, Sendable {
     func revogarDispositivos() async throws -> Int
     func estadoAutenticacao() async throws -> EstadoAutenticacao
     func entrarDemonstracao(email: String, codigo: String) async throws
+    /// Indica se o login social (Apple + Google) está habilitado neste build (DEV/Beta; desligado em Prod até o rollout).
+    var suportaLoginSocial: Bool { get }
+    func entrarComApple(idToken: String, nonce: String) async throws -> ResultadoEntradaSocial
+    func iniciarLoginSocialPKCE(
+        provedor: ProvedorSocial,
+        redirectTo: URL,
+        codeChallenge: String
+    ) async throws -> InicioOAuthPKCE
+    func concluirLoginSocialPKCE(
+        provedor: ProvedorSocial,
+        transacaoID: String,
+        codigo: String,
+        verifier: String
+    ) async throws -> ResultadoEntradaSocial
     /// Se há sessão guardada neste aparelho (válida ou renovável), sem expor e-mail nem token.
     func possuiSessao() async -> Bool
 
@@ -720,6 +734,25 @@ public extension ApiCliente {
     func minhasMidias() async throws -> [Midia] { throw ErroDaApi(codigo: .respostaInvalida) }
     func pedirNovaAnaliseMidia(id: UUID) async throws -> Midia { throw ErroDaApi(codigo: .respostaInvalida) }
     var suportaEdicaoDeContato: Bool { false }
+    var suportaLoginSocial: Bool { false }
+    func entrarComApple(idToken: String, nonce: String) async throws -> ResultadoEntradaSocial {
+        throw ErroEntradaSocial.provedorIndisponivel
+    }
+    func iniciarLoginSocialPKCE(
+        provedor: ProvedorSocial,
+        redirectTo: URL,
+        codeChallenge: String
+    ) async throws -> InicioOAuthPKCE {
+        throw ErroEntradaSocial.provedorIndisponivel
+    }
+    func concluirLoginSocialPKCE(
+        provedor: ProvedorSocial,
+        transacaoID: String,
+        codigo: String,
+        verifier: String
+    ) async throws -> ResultadoEntradaSocial {
+        throw ErroEntradaSocial.provedorIndisponivel
+    }
     func atualizarContato(_ alteracao: AlteracaoDeContato) async throws -> Conta {
         throw ErroDaApi(codigo: .respostaInvalida)
     }
