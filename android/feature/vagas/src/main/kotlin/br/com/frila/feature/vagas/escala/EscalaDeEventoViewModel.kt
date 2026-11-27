@@ -46,6 +46,7 @@ enum class ErroGlobalEscala(val mensagem: String) {
     CONTA_SUSPENSA(TextosEscala.ERRO_CONTA_SUSPENSA),
     SESSAO_EXPIRADA(TextosEscala.ERRO_SESSAO),
     SEM_REDE(TextosEscala.ERRO_SEM_REDE),
+    LIMITE_EXCEDIDO(TextosEscala.ERRO_LIMITE_EXCEDIDO),
     GENERICO(TextosEscala.ERRO_GENERICO),
 }
 
@@ -458,6 +459,8 @@ class EscalaDeEventoViewModel(
             )
             CodigoErroAPI.NAO_AUTENTICADO -> liberado.copy(erro = ErroGlobalEscala.SESSAO_EXPIRADA)
             CodigoErroAPI.SEM_REDE -> liberado.copy(erro = ErroGlobalEscala.SEM_REDE)
+            // 429: o limite de escrita. Só a mensagem; quem solta a escala é soltaAEscala (primeira tentativa solta, reenvio mantém).
+            CodigoErroAPI.LIMITE_EXCEDIDO -> liberado.copy(erro = ErroGlobalEscala.LIMITE_EXCEDIDO)
             else -> liberado.copy(erro = ErroGlobalEscala.GENERICO)
         }
     }
