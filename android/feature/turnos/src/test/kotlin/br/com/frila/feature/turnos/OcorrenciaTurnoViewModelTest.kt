@@ -242,4 +242,65 @@ class OcorrenciaTurnoViewModelTest {
         assertTrue(corpos[0].contains("\"chave\":\"chave-1\""))
         assertTrue(corpos[1].contains("\"chave\":\"chave-1\""))
     }
+
+    // zbOnlFil: `403 sem_permissao` com `details: conta_suspensa` ganha texto próprio (paridade com `TextosDoSuporte.contaSuspensa` do iOS).
+
+    private fun mensagemDoErro(status: HttpStatusCode, corpo: String): String? = runBlocking {
+        val engine = MockEngine {
+            respond(content = corpo, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.selecionarMotivo(MotivoOcorrencia.ATRASO_OU_IMPREVISTO)
+        viewModel.enviar()?.join()
+        assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
+        viewModel.estado.value.mensagemErro
+    }
+
+    private val textoContaSuspensa = "Sua conta está suspensa. Acesse a contestação ou escreva para o suporte."
+    private val textoSemPermissao = "Você não tem permissão para abrir este chamado."
+
+    @Test
+    fun `403 sem_permissao com details conta_suspensa mostra o texto da conta suspensa`() {
+        val mensagem = mensagemDoErro(
+            HttpStatusCode.Forbidden,
+            """{"code":"sem_permissao","message":"sem_permissao","details":"conta_suspensa","hint":null}""",
+        )
+        assertEquals(textoContaSuspensa, mensagem)
+    }
+
+    @Test
+    fun `o codigo conta_suspensa no topo do erro tambem mostra o texto da conta suspensa`() {
+        val mensagem = mensagemDoErro(HttpStatusCode.Forbidden, """{"code":"conta_suspensa","message":"conta_suspensa"}""")
+        assertEquals(textoContaSuspensa, mensagem)
+    }
+
+    @Test
+    fun `403 sem_permissao sem details segue com o texto de falta de permissao`() {
+        val mensagem = mensagemDoErro(HttpStatusCode.Forbidden, """{"code":"sem_permissao","message":"sem_permissao","details":null}""")
+        assertEquals(textoSemPermissao, mensagem)
+    }
+
+    @Test
+    fun `403 sem_permissao com outro details nao vira conta suspensa`() {
+        for (detalhe in listOf("recurso_desligado", "outro_motivo", "")) {
+            val mensagem = mensagemDoErro(
+                HttpStatusCode.Forbidden,
+                """{"code":"sem_permissao","message":"sem_permissao","details":"$detalhe"}""",
+            )
+            assertEquals("details=$detalhe", textoSemPermissao, mensagem)
+        }
+    }
+
+    @Test
+    fun `limite excedido e turno nao encontrado seguem com os textos de antes`() {
+        assertEquals(
+            "Limite diário de chamados atingido. Tente de novo amanhã.",
+            mensagemDoErro(HttpStatusCode.TooManyRequests, """{"code":"limite_excedido","message":"x"}"""),
+        )
+        assertEquals(
+            "Não encontramos este turno.",
+            mensagemDoErro(HttpStatusCode.NotFound, """{"code":"nao_encontrado","message":"x"}"""),
+        )
+    }
 }
+
