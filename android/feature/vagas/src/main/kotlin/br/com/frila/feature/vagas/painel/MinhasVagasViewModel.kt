@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PainelDto
+import br.com.frila.core.rede.ResultadoRegistroDto
 import br.com.frila.core.rede.VagaNoPainelDto
 import java.time.Duration
 import java.time.Instant
@@ -88,6 +89,17 @@ data class PresencaAConfirmar(
     val fim: Instant?,
 )
 
+/** O que a última confirmação de presença no cartão deixou para a tela dizer (mesmos textos da tela do turno da casa). */
+enum class AvisoDaPresenca(val mensagem: String, val erro: Boolean) {
+    CONFIRMADA(TextosMinhasVagas.PRESENCA_CONFIRMADA, false),
+    SITUACAO_MUDOU(TextosMinhasVagas.SITUACAO_MUDOU, true),
+    NAO_ENCONTRADO(TextosMinhasVagas.ERRO_PRESENCA_NAO_ENCONTRADO, true),
+    SEM_PERMISSAO(TextosMinhasVagas.ERRO_PRESENCA_SEM_PERMISSAO, true),
+    SESSAO_EXPIRADA(TextosMinhasVagas.ERRO_SESSAO, true),
+    SEM_REDE(TextosMinhasVagas.ERRO_PRESENCA_SEM_REDE, true),
+    GENERICO(TextosMinhasVagas.ERRO_PRESENCA_GENERICO, true),
+}
+
 sealed interface ListaMinhasVagas {
     data object Carregando : ListaMinhasVagas
     data object Vazio : ListaMinhasVagas
@@ -105,7 +117,16 @@ data class EstadoMinhasVagas(
     val desatualizada: Boolean = false,
     /** Os check-ins manuais que esperam a casa, na ordem do painel; o topo da tela os mostra antes das seções. */
     val presencasAConfirmar: List<PresencaAConfirmar> = emptyList(),
-)
+    /** Turnos com a confirmação em voo: o botão deles fica desligado (trava contra o toque duplo). */
+    val confirmando: Set<String> = emptySet(),
+    /** Turnos que o servidor recusou desde a última leitura do painel: sem botão até o painel ser relido (como o iOS). */
+    val recusadas: Set<String> = emptySet(),
+    val avisoDaPresenca: AvisoDaPresenca? = null,
+) {
+    /** O botão "Confirmar presença" só existe para o pendente que o servidor não recusou desde a última leitura. */
+    fun podeConfirmar(turnoId: String): Boolean =
+        presencasAConfirmar.any { it.turnoId == turnoId } && turnoId !in recusadas
+}
 
 /**
  * Minhas vagas do contratante: o painel do estabelecimento na janela de 365 dias para trás e para a
@@ -125,6 +146,8 @@ class MinhasVagasViewModel(
     val nomeEstabelecimento: String? = null,
     private val vagaRecemPublicadaId: String? = null,
     private val buscarPainel: suspend (estabelecimentoId: String, de: Instant, ate: Instant) -> Result<PainelDto>,
+    /** `ServicoTurnos.confirmarCheckinManual`. Nulo: o cartão de "Presenças a confirmar" não oferece confirmar. */
+    private val confirmarCheckin: (suspend (turnoId: String) -> Result<ResultadoRegistroDto>)? = null,
     private val relogio: () -> Instant = Instant::now,
     private val zona: ZoneId = FUSO_DO_PAINEL,
     escopo: CoroutineScope? = null,
@@ -201,6 +224,7 @@ class MinhasVagasViewModel(
                 atualizando = false,
                 desatualizada = false,
                 presencasAConfirmar = presencasAConfirmar(painel),
+                recusadas = emptySet(),
             )
         }
     }
@@ -222,6 +246,74 @@ class MinhasVagasViewModel(
                 }
             }
         }
+
+    /** Ainda há quem confirme pelo cartão (o caminho do servidor está ligado). */
+    val confirmaPeloCartao: Boolean get() = confirmarCheckin != null
+
+    /**
+     * "Confirmar presença" no cartão de "Presenças a confirmar" (`confirmar_checkin_manual`, RN22; paridade com
+     * `confirmarPresenca` do `AcompanhamentoViewModel` do iOS). Um toque por turno: com a confirmação em voo, ou depois de
+     * uma recusa do servidor desde a última leitura, não envia. Confirmada, o cartão sai na hora e o painel é relido.
+     * `409 checkin_ja_confirmado` ou `checkin_pendente` quer dizer que o painel estava velho: o botão some e o painel é
+     * relido. Qualquer outra falha deixa o botão para tentar de novo (confirmar duas vezes só devolve o 409). Como no iOS, o
+     * `Job` só termina depois da releitura.
+     */
+    fun confirmarPresenca(turnoId: String): Job {
+        val confirmar = confirmarCheckin
+        val atual = _estado.value
+        if (confirmar == null || !atual.podeConfirmar(turnoId) || turnoId in atual.confirmando) return escopoDeTrabalho.launch { }
+        _estado.update { it.copy(confirmando = it.confirmando + turnoId, avisoDaPresenca = null) }
+        return escopoDeTrabalho.launch {
+            val resultado = try {
+                confirmar(turnoId)
+            } catch (erro: CancellationException) {
+                _estado.update { it.copy(confirmando = it.confirmando - turnoId) }
+                throw erro
+            } catch (erro: Exception) {
+                Result.failure(erro)
+            }
+            resultado
+                .onSuccess {
+                    _estado.update {
+                        it.copy(
+                            confirmando = it.confirmando - turnoId,
+                            presencasAConfirmar = it.presencasAConfirmar.filterNot { presenca -> presenca.turnoId == turnoId },
+                            avisoDaPresenca = AvisoDaPresenca.CONFIRMADA,
+                        )
+                    }
+                    relerDepoisDaConfirmacao().join()
+                }
+                .onFailure { erro ->
+                    val codigo = (erro as? ErroDaApi)?.codigo
+                    val situacaoMudou = codigo == CodigoErroAPI.CHECKIN_JA_CONFIRMADO || codigo == CodigoErroAPI.CHECKIN_PENDENTE
+                    _estado.update {
+                        it.copy(
+                            confirmando = it.confirmando - turnoId,
+                            recusadas = if (situacaoMudou) it.recusadas + turnoId else it.recusadas,
+                            avisoDaPresenca = when {
+                                situacaoMudou -> AvisoDaPresenca.SITUACAO_MUDOU
+                                codigo == CodigoErroAPI.NAO_ENCONTRADO -> AvisoDaPresenca.NAO_ENCONTRADO
+                                codigo == CodigoErroAPI.SEM_PERMISSAO -> AvisoDaPresenca.SEM_PERMISSAO
+                                codigo == CodigoErroAPI.NAO_AUTENTICADO -> AvisoDaPresenca.SESSAO_EXPIRADA
+                                codigo == CodigoErroAPI.SEM_REDE -> AvisoDaPresenca.SEM_REDE
+                                else -> AvisoDaPresenca.GENERICO
+                            },
+                        )
+                    }
+                    if (situacaoMudou) relerDepoisDaConfirmacao().join()
+                }
+        }
+    }
+
+    /**
+     * Relê o painel depois de uma confirmação (ou da recusa dela). Uma leitura que já estava em voo começou antes e traria o
+     * pendente de volta: é cancelada e dá lugar a esta (o `geracao` do iOS). Falhar aqui deixa a lista como está.
+     */
+    private fun relerDepoisDaConfirmacao(): Job {
+        leitura?.cancel()
+        _estado.update { it.copy(atualizando = false) }
+        return escopoDeTrabalho.launch { ler(silencioso = true) }.also { leitura = it }
+    }
 
     private fun falhar(erro: Throwable?, tipo: ErroMinhasVagas = tipoDoErro(erro)) {
         _estado.update {
