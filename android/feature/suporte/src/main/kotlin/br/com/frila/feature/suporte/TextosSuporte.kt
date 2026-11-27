@@ -4,6 +4,10 @@ import br.com.frila.core.dominio.modelo.MotivoDenuncia
 
 /** Textos em português brasileiro (paridade com `TextosDaSeguranca.swift`). */
 object TextosSuporte {
+    /** Iguais a `TextosDaSeguranca.sobreAFoto` e `sobreAFotoExplicacao` do iOS (CD-RF12). */
+    const val SOBRE_A_FOTO = "A denúncia é sobre a foto de perfil"
+    const val SOBRE_A_FOTO_EXPLICACAO = "Marque se o problema está na foto. A Equipe Frila analisa a foto denunciada."
+
     const val TITULO = "Denunciar"
     const val ROTULO_VOLTAR = "Voltar"
     const val EMERGENCIA = "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)"

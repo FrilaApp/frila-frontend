@@ -77,6 +77,7 @@ class AppNavegacaoCandidatosDaVagaTest {
         profissional = PerfilPublicoDto(
             id = "p-$id", tipo = "profissional", nome = nome,
             reputacao = ReputacaoDto(positivas = 1, total = 1, turnosConsiderados = 1, turnosRealizados = 1),
+            fotoId = "foto-$id",
         ),
         criadaEm = "2026-11-10T12:00:00Z",
     )
@@ -233,6 +234,7 @@ class AppNavegacaoCandidatosDaVagaTest {
             assertEquals("p-c2", argumentos?.getString("alvoId"))
             assertNull(argumentos?.getString("turnoId"))
             assertNull(argumentos?.getString("chamadaId"))
+            assertEquals("foto-c2", argumentos?.getString("fotoId"))
         }
     }
 

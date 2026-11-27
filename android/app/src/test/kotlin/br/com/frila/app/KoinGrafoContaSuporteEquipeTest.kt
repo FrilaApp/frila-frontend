@@ -105,8 +105,11 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
         assertNotNull(get<ServicoConfianca>())
         assertNotNull(get<ServicoMembros>())
         assertNotNull(get<ExclusaoDeContaViewModel>())
-        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null) })
-        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1") })
+        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null, null) })
+        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1", null) })
+        // A rota passa o `foto_id` do perfil como 5º parâmetro: só com ele a denúncia oferece a foto.
+        assertTrue(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null, "foto-1") }.podeDenunciarFoto)
+        assertFalse(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null, null) }.podeDenunciarFoto)
         assertNotNull(get<EquipeDeConfiancaViewModel> { parametersOf(casa) })
     }
 
@@ -159,7 +162,7 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
             }
         }
         iniciar(rede)
-        val viewModel = get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1") }
+        val viewModel = get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1", null) }
         viewModel.editarRelato("Relato com mais de dez caracteres.")
 
         viewModel.enviarDenuncia().join()
