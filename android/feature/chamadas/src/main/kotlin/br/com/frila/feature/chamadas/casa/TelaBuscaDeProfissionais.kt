@@ -1,6 +1,7 @@
 package br.com.frila.feature.chamadas.casa
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -49,6 +51,8 @@ import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import br.com.frila.core.designsystem.componentes.focoAcessivelFrila
+import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.rede.CartaoProfissionalDto
 import java.time.Duration
 import java.time.Instant
@@ -461,7 +465,17 @@ private fun CartaoDoProfissional(
         ) {
             FotoDoCartao(id = cartao.id, nome = cartao.nome, fotoUrl = cartao.fotoUrl, carregar = carregarFoto)
             Column(
-                modifier = Modifier.weight(1f).clickable(onClick = aoAbrirPerfil).padding(vertical = FrilaEspacamento.item),
+                // Como o `CartaoDeVagaDoFeed`: o leitor de tela anuncia um botão com a ação ("Ver perfil de …"), não só o texto.
+                modifier = Modifier
+                    .weight(1f)
+                    .focoAcessivelFrila(forma = RoundedCornerShape(FrilaRaios.interno))
+                    .clickable(
+                        onClickLabel = TextosChamadaCasa.buscaVerPerfil(cartao.nome),
+                        role = Role.Button,
+                        onClick = aoAbrirPerfil,
+                    )
+                    .testTag("busca-abrir-perfil-${cartao.id}")
+                    .padding(vertical = FrilaEspacamento.item),
                 verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto),
             ) {
                 Text(cartao.nome, style = FrilaTipo.nome, color = FrilaTema.cores.tinta)
