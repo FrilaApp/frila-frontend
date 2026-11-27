@@ -102,7 +102,7 @@ fun TelaCodigo(
                 BotaoPrimario(
                     texto = if (estado.carregando) "Confirmando…" else "Confirmar código",
                     aoClicar = viewModel::confirmarCodigo,
-                    habilitado = !estado.carregando,
+                    habilitado = !estado.carregando && estado.codigo.length == 6,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

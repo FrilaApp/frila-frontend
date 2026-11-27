@@ -304,7 +304,7 @@ class CodigoViewModelTest {
         assertEquals(0L, viewModel.segundosParaReenviar())
     }
 
-    /** Igual ao iOS: outro código só pode ser pedido 60 s depois do último pedido. */
+    /** Outro código só pode ser pedido após a espera conservadora padrão de 60 s (sem `reenviarEmSegundos` do servidor). */
     @Test
     fun `reenviar antes de 60 segundos nao chama a API`() = runBlocking {
         val chamadas = AtomicInteger(0)
@@ -342,6 +342,41 @@ class CodigoViewModelTest {
         // Logo em seguida, um segundo reenvio fica barrado.
         viewModel.reenviarCodigo()?.join()
         assertEquals(1, chamadas.get())
+    }
+
+    @Test
+    fun `teto de 3 reenvios bloqueia o quarto pedido e erro de codigo aguarda nova digitacao`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine {
+                chamadas.incrementAndGet()
+                val url = it.url.encodedPath
+                if (url.contains("verify")) {
+                    respond("""{"code":403,"error_code":"otp_expired"}""", HttpStatusCode.Forbidden, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+            agora = { relogio },
+        )
+
+        // Erro ao completar 6 digitos -> repetir a mesma string nao dispara nova chamada
+        viewModel.aoMudarCodigo("123456")?.join()
+        assertEquals(1, chamadas.get())
+        assertNotNull(viewModel.estado.value.erro)
+        assertNull(viewModel.aoMudarCodigo("123456"))
+        assertEquals(1, chamadas.get())
+
+        // Teto de 3 reenvios
+        repeat(3) {
+            relogio = relogio.plusSeconds(60)
+            viewModel.reenviarCodigo()?.join()
+        }
+        assertEquals(3, viewModel.estado.value.reenviosFeitos)
+        relogio = relogio.plusSeconds(60)
+        assertNull(viewModel.reenviarCodigo())
+        assertNotNull(viewModel.estado.value.erro)
     }
 
     /** Corpo REAL do Auth para código errado ou vencido: 403 `otp_expired`, sem o envelope `{code,message}` do PostgREST. */

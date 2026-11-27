@@ -115,19 +115,21 @@ class TelaCodigoTest {
     }
 
     @Test
-    fun aoDigitarMenosDe6DigitosExibeErroComLiveRegionAssertive() {
-        val (viewModel, _) = criarViewModel()
+    fun aoFalharConfirmacaoExibeErroComLiveRegionAssertive() {
+        val (viewModel, _) = criarViewModel(
+            statusHttp = HttpStatusCode.Unauthorized,
+            respostaJson = """{"error_code":"otp_expired","msg":"Código incorreto"}""",
+        )
         rule.setContent {
             FrilaTheme {
                 TelaCodigo(viewModel = viewModel, aoAutenticar = {})
             }
         }
 
-        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123")
-        rule.onNodeWithText("Confirmar código").performClick()
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
+        rule.waitUntil(5000) { viewModel.estado.value.erro != null }
         rule.waitForIdle()
 
-        rule.onNodeWithText("Informe os 6 dígitos do código.").assertIsDisplayed()
         rule.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Assertive),
             useUnmergedTree = true,
@@ -175,7 +177,7 @@ class TelaCodigoTest {
         assertTrue(autenticou)
     }
 
-    /** Igual ao iOS: nos primeiros 60 s o reenvio mostra a contagem e não aceita toque. */
+    /** Nos primeiros 60 s o reenvio mostra a contagem e não aceita toque; botão Confirmar fica inativo até 6 dígitos. */
     @Test
     fun reenvioMostraAContagemEFicaDesligadoNosPrimeiros60Segundos() {
         val (viewModel, _) = criarViewModel(esperaDeReenvioVencida = false)
@@ -185,6 +187,10 @@ class TelaCodigoTest {
             }
         }
         rule.waitForIdle()
+
+        rule.onNodeWithText("Confirmar código")
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
 
         rule.onNodeWithText("Reenviar código em 1:00")
             .assertIsDisplayed()
