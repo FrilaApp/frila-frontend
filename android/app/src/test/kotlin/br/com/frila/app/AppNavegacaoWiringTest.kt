@@ -2,11 +2,13 @@ package br.com.frila.app
 
 import android.app.Application
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.StatusConectividade
@@ -330,6 +332,7 @@ class AppNavegacaoWiringTest {
 
         // Clica no botão "Sair da conta"
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
         rule.waitForIdle()
 
         assertEquals(Rotas.ENTRADA, navController.currentDestination?.route)

@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.designsystem.componentes.DialogoConfirmarSaida
 import br.com.frila.core.designsystem.componentes.EscopoDoGrupoDeLinhas
 import br.com.frila.core.designsystem.componentes.EstadoCarregando
 import br.com.frila.core.designsystem.componentes.EstadoErro
@@ -1071,10 +1072,11 @@ private fun AcoesDeEncerrarConta(
     aoAbrirExclusao: () -> Unit,
     aoDeslogarTodos: (() -> Unit)? = null,
 ) {
+    var confirmarSair by remember { mutableStateOf(false) }
     var confirmarSairTodos by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        AcaoDiscreta(texto = "Sair da conta", aoClicar = aoDeslogar)
+        AcaoDiscreta(texto = "Sair da conta", aoClicar = { confirmarSair = true })
         if (aoDeslogarTodos != null) {
             AcaoDiscreta(
                 texto = "Sair de todos os dispositivos",
@@ -1083,6 +1085,16 @@ private fun AcoesDeEncerrarConta(
             )
         }
         AcaoDiscreta(texto = "Excluir conta", aoClicar = aoAbrirExclusao)
+    }
+
+    if (confirmarSair) {
+        DialogoConfirmarSaida(
+            aoCancelar = { confirmarSair = false },
+            aoConfirmar = {
+                confirmarSair = false
+                aoDeslogar()
+            },
+        )
     }
 
     if (confirmarSairTodos && aoDeslogarTodos != null) {

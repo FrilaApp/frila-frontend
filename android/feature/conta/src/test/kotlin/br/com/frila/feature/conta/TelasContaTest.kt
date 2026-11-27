@@ -12,9 +12,11 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ExclusaoDeContaDto
@@ -192,6 +194,7 @@ class TelasContaTest {
             .performScrollTo()
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo)
             .performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
         assertTrue(saiu)
     }
 
@@ -366,5 +369,40 @@ class TelasContaTest {
         rule.onNodeWithText("Bar do Zé").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("garçom").performScrollTo().assertIsDisplayed()
     }
-}
 
+    // ---- aEKuQB6w: "Sair da conta" na conta suspensa pede confirmação, como o iOS ----
+
+    @Test
+    fun contaSuspensaSoSaiDepoisDeConfirmar() {
+        var saidas = 0
+        rule.setContent {
+            FrilaTheme {
+                TelaContaSuspensa(
+                    emailSuporte = "suporte@frilabr.com",
+                    aoContatarSuporte = {},
+                    aoSair = { saidas++ },
+                )
+            }
+        }
+
+        // Tocar só abre a confirmação, com os textos do iOS.
+        rule.onNodeWithText(TextosContaSuspensa.BOTAO_SAIR).performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals(0, saidas)
+        rule.onNodeWithText(TextosConfirmarSaida.TITULO).assertIsDisplayed()
+        rule.onNodeWithText(TextosConfirmarSaida.EXPLICACAO).assertIsDisplayed()
+
+        // Cancelar fecha sem sair.
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_CANCELAR).performClick()
+        rule.waitForIdle()
+        assertEquals(0, saidas)
+        rule.onNodeWithText(TextosConfirmarSaida.TITULO).assertDoesNotExist()
+
+        // Sair sai uma vez e fecha a confirmação.
+        rule.onNodeWithText(TextosContaSuspensa.BOTAO_SAIR).performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
+        rule.waitForIdle()
+        assertEquals(1, saidas)
+        rule.onNodeWithText(TextosConfirmarSaida.TITULO).assertDoesNotExist()
+    }
+}
