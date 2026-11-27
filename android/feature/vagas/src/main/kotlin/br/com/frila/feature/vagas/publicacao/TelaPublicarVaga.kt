@@ -121,6 +121,7 @@ fun TelaPublicarVaga(
             aoEditarTraje = viewModel::editarTraje,
             aoEditarObservacoes = viewModel::editarObservacoes,
             aoAlternarRateio = viewModel::alternarRateio,
+            aoEscolherAlertaAntecedencia = viewModel::escolherAlertaAntecedencia,
             aoPublicar = { viewModel.publicar() },
             aoVoltar = aoVoltar,
         ),
@@ -438,6 +439,18 @@ fun ConteudoPublicarVaga(
                         aoClicar = { acoes.aoAlternarRateio(!estado.participaRateio) },
                         habilitado = estado.podeEditar,
                     )
+                }
+                FrilaGrupoDeLinhas(titulo = TextosPublicarVaga.ALERTA) {
+                    EstadoPublicarVaga.ALERTAS_DE_ANTECEDENCIA_MIN.forEach { minutos ->
+                        linha {
+                            FrilaLinhaDeOpcao(
+                                titulo = TextosPublicarVaga.alertaAntecedencia(minutos),
+                                marcada = estado.alertaAntecedenciaMin == minutos,
+                                aoClicar = { acoes.aoEscolherAlertaAntecedencia(minutos) },
+                                habilitada = estado.podeEditar,
+                            )
+                        }
+                    }
                 }
                 CampoDeTexto(
                     valor = estado.observacoes,
