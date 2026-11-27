@@ -48,8 +48,10 @@ fun TelaAvaliacaoDoContratante(
     viewModel: AvaliacaoViewModel,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A casa de quem avalia: a releitura do turno precisa dela (`meus_turnos` sem `estabelecimento_id` é vazio para o contratante). */
+    estabelecimentoId: String? = null,
 ) {
-    LaunchedEffect(turnoId, viewModel) { viewModel.observar(turnoId) }
+    LaunchedEffect(turnoId, estabelecimentoId, viewModel) { viewModel.observar(turnoId, estabelecimentoId) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     var emEnvio by remember { mutableStateOf<Boolean?>(null) }
     val avaliar = { resposta: Boolean ->

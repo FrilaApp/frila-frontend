@@ -224,7 +224,9 @@ class TelaAvaliacaoTest {
     }
 
     // MO7DkVA2: o 409 avaliacao_ja_registrada deixa a tela em "já avaliado": sem botões de avaliar, com a resposta gravada relida do turno.
-    private fun viewModelComConflito(gravada: Boolean?): AvaliacaoViewModel {
+    /** [avaliadoAoAbrir]: a leitura de abertura já traz a avaliação; senão ela só aparece na releitura do 409. */
+    private fun viewModelComConflito(gravada: Boolean?, avaliadoAoAbrir: Boolean = false): AvaliacaoViewModel {
+        val leituras = java.util.concurrent.atomic.AtomicInteger(0)
         val turno = """
             [{"id": "$turnoId", "posicao_id": "p1",
               "vaga": {"id": "v1", "funcao": "garçom", "local": "CLS 405", "regiao_administrativa": "Plano Piloto",
@@ -243,7 +245,8 @@ class TelaAvaliacaoTest {
                 if (request.url.encodedPath.endsWith("/avaliar")) {
                     respond("""{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, cabecalho)
                 } else {
-                    respond(turno, HttpStatusCode.OK, cabecalho)
+                    val n = leituras.incrementAndGet()
+                    respond(if (n == 1 && !avaliadoAoAbrir) "[]" else turno, HttpStatusCode.OK, cabecalho)
                 }
             },
         )
@@ -278,6 +281,20 @@ class TelaAvaliacaoTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Este turno já tem uma avaliação registrada.").assertIsDisplayed()
+        compose.onNodeWithText("Sim, trabalharia").assertDoesNotExist()
+        compose.onNodeWithText("Não trabalharia").assertDoesNotExist()
+    }
+
+    @Test
+    fun `ao abrir, turno que ja tem avaliacao mostra turno ja avaliado direto, sem a pergunta e sem tocar`() {
+        val viewModel = viewModelComConflito(gravada = false, avaliadoAoAbrir = true)
+
+        compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
+        compose.waitUntil(5000) { viewModel.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
+        compose.onNodeWithText("A avaliação registrada: você não recomendou este local.").assertIsDisplayed()
         compose.onNodeWithText("Sim, trabalharia").assertDoesNotExist()
         compose.onNodeWithText("Não trabalharia").assertDoesNotExist()
     }

@@ -10,6 +10,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -146,8 +147,9 @@ class AvaliacaoViewModelTest {
     fun `segundo toque com a avaliacao em voo nao envia de novo`() = runBlocking {
         val chamadas = java.util.concurrent.atomic.AtomicInteger(0)
         val viewModel = viewModelComEngine(
-            MockEngine {
-                chamadas.incrementAndGet()
+            MockEngine { request ->
+                // Só os envios: ao abrir, o ViewModel também lê `meus_turnos` (288rCCAg), que não é um segundo envio.
+                if (request.url.encodedPath.endsWith("/avaliar")) chamadas.incrementAndGet()
                 kotlinx.coroutines.delay(200)
                 respond(
                     content = avaliacaoJson(true),
@@ -265,5 +267,144 @@ class AvaliacaoViewModelTest {
 
         assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
     }
-}
 
+    // 288rCCAg: ao abrir, lê Turno.avaliacao; e a leitura da casa leva `estabelecimento_id` (meus_turnos sem ele é vazio para o contratante).
+
+    private val casaId = "casa-0001"
+
+    /**
+     * `meus_turnos` devolve [turnos] só quando a chamada leva (ou não leva) o `estabelecimento_id` esperado; caso contrário, lista
+     * vazia, como o servidor faz com a conta de contratante sem a casa. `avaliar` responde [aoAvaliar].
+     */
+    private fun viewModelQueAbre(
+        turnos: String,
+        estabelecimentoEsperado: String? = null,
+        pedidos: MutableList<String> = mutableListOf(),
+        atrasoDaLeitura: Long = 0,
+        aoAvaliar: () -> String = { avaliacaoJson(true) },
+    ): AvaliacaoViewModel {
+        val engine = MockEngine { request ->
+            val caminho = request.url.encodedPath
+            pedidos += caminho + (request.url.parameters["estabelecimento_id"]?.let { "?estabelecimento_id=$it" } ?: "")
+            when {
+                caminho.endsWith("/avaliar") -> respond(aoAvaliar(), HttpStatusCode.OK, jsonCabecalho)
+                caminho.endsWith("/meus_turnos") -> {
+                    if (atrasoDaLeitura > 0) kotlinx.coroutines.delay(atrasoDaLeitura)
+                    val casa = request.url.parameters["estabelecimento_id"]
+                    respond(if (casa == estabelecimentoEsperado) turnos else "[]", HttpStatusCode.OK, jsonCabecalho)
+                }
+                else -> respond("{}", HttpStatusCode.NotFound, jsonCabecalho)
+            }
+        }
+        return viewModelComEngine(engine)
+    }
+
+    private suspend fun esperar(viewModel: AvaliacaoViewModel, status: StatusAvaliacao) {
+        kotlinx.coroutines.withTimeout(5_000) { viewModel.estado.first { it.status == status } }
+    }
+
+    @Test
+    fun `ao abrir, turno que ja tem avaliacao vai direto a JA_AVALIADO com a resposta, sem enviar nada`() = runBlocking {
+        for (gravada in listOf(true, false)) {
+            val pedidos = mutableListOf<String>()
+            val viewModel = viewModelQueAbre("[${turnoComAvaliacaoJson(gravada)}]", pedidos = pedidos)
+
+            viewModel.observar(turnoId)
+            esperar(viewModel, StatusAvaliacao.JA_AVALIADO)
+
+            assertEquals(gravada, viewModel.estado.value.respostaRegistrada, "gravada=$gravada")
+            assertEquals(null, viewModel.estado.value.mensagemErro)
+            assertTrue(pedidos.none { it.endsWith("/avaliar") }, "abrir não avalia: $pedidos")
+        }
+    }
+
+    @Test
+    fun `ao abrir, turno sem avaliacao, de outro id ou com a leitura falhando segue na pergunta`() = runBlocking {
+        val casos = mapOf(
+            "sem avaliação" to "[${turnoComAvaliacaoJson(null)}]",
+            "só há outro turno, esse sim com avaliação" to "[${turnoComAvaliacaoJson(true, id = "99999999-9999-9999-9999-999999999999")}]",
+            "lista vazia" to "[]",
+        )
+        for ((nome, turnos) in casos) {
+            val pedidos = mutableListOf<String>()
+            val viewModel = viewModelQueAbre(turnos, pedidos = pedidos)
+            viewModel.observar(turnoId)
+            kotlinx.coroutines.withTimeout(5_000) { while (pedidos.none { it.endsWith("/meus_turnos") }) kotlinx.coroutines.delay(10) }
+            kotlinx.coroutines.delay(150)
+            assertEquals(StatusAvaliacao.OCIOSO, viewModel.estado.value.status, nome)
+            assertEquals(null, viewModel.estado.value.respostaRegistrada, nome)
+        }
+        // Leitura que falha (500): a pergunta segue, como antes.
+        val viewModel = viewModelComEngine(
+            MockEngine { respond("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError, jsonCabecalho) },
+        )
+        viewModel.observar(turnoId)
+        kotlinx.coroutines.delay(300)
+        assertEquals(StatusAvaliacao.OCIOSO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `a leitura de abertura que chega depois de um envio nao sobrescreve o resultado do envio`() = runBlocking {
+        // `meus_turnos` demora e traz avaliação oposta; o envio já terminou em SUCESSO com "sim".
+        val viewModel = viewModelQueAbre(
+            "[${turnoComAvaliacaoJson(false)}]", atrasoDaLeitura = 400, aoAvaliar = { avaliacaoJson(true) },
+        )
+
+        viewModel.observar(turnoId)
+        viewModel.avaliar(turnoId, true).join()
+        assertEquals(StatusAvaliacao.SUCESSO, viewModel.estado.value.status)
+        kotlinx.coroutines.delay(900)
+
+        assertEquals(StatusAvaliacao.SUCESSO, viewModel.estado.value.status)
+        assertEquals(true, viewModel.estado.value.respostaRegistrada)
+    }
+
+    @Test
+    fun `na casa a leitura leva estabelecimento_id, e sem a casa nao leva`() = runBlocking {
+        // Com a casa: o servidor só devolve os turnos se o parâmetro vier.
+        val pedidosCasa = mutableListOf<String>()
+        val daCasa = viewModelQueAbre("[${turnoComAvaliacaoJson(true)}]", estabelecimentoEsperado = casaId, pedidos = pedidosCasa)
+        daCasa.observar(turnoId, casaId)
+        esperar(daCasa, StatusAvaliacao.JA_AVALIADO)
+        assertTrue(pedidosCasa.any { it.endsWith("/meus_turnos?estabelecimento_id=$casaId") }, "$pedidosCasa")
+
+        // Sem a casa (profissional): sem o parâmetro.
+        val pedidosProf = mutableListOf<String>()
+        val doProfissional = viewModelQueAbre("[${turnoComAvaliacaoJson(true)}]", pedidos = pedidosProf)
+        doProfissional.observar(turnoId)
+        esperar(doProfissional, StatusAvaliacao.JA_AVALIADO)
+        assertTrue(pedidosProf.all { !it.contains("estabelecimento_id") }, "$pedidosProf")
+    }
+
+    @Test
+    fun `na casa, a releitura do 409 tambem leva estabelecimento_id e acha a resposta gravada`() = runBlocking {
+        // A leitura de abertura ainda não vê a avaliação (lista vazia); ela aparece depois, quando o 409 manda reler.
+        val leituras = java.util.concurrent.atomic.AtomicInteger(0)
+        val engine = MockEngine { request ->
+            val caminho = request.url.encodedPath
+            when {
+                caminho.endsWith("/avaliar") -> respond(
+                    """{"code":"avaliacao_ja_registrada","message":"x"}""", HttpStatusCode.Conflict, jsonCabecalho,
+                )
+                caminho.endsWith("/meus_turnos") -> {
+                    val n = leituras.incrementAndGet()
+                    val daCasa = request.url.parameters["estabelecimento_id"] == casaId
+                    respond(if (n > 1 && daCasa) "[${turnoComAvaliacaoJson(false)}]" else "[]", HttpStatusCode.OK, jsonCabecalho)
+                }
+                else -> respond("{}", HttpStatusCode.NotFound, jsonCabecalho)
+            }
+        }
+        val viewModel = viewModelComEngine(engine)
+
+        viewModel.observar(turnoId, casaId)
+        kotlinx.coroutines.withTimeout(5_000) { while (leituras.get() < 1) kotlinx.coroutines.delay(10) }
+        kotlinx.coroutines.delay(100)
+        assertEquals(StatusAvaliacao.OCIOSO, viewModel.estado.value.status)
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
+        assertEquals(false, viewModel.estado.value.respostaRegistrada, "a resposta gravada, achada pela releitura com a casa")
+        assertEquals(2, leituras.get())
+    }
+}

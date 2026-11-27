@@ -47,19 +47,57 @@ class AvaliacaoViewModel(
     private var envio: Job? = null
 
     private var observacao: Job? = null
+    private var leituraInicial: Job? = null
     private var turnoObservado: String? = null
+
+    /** A casa de quem avalia como contratante: sem ela, `meus_turnos` devolve lista vazia para a conta de contratante. */
+    private var estabelecimentoObservado: String? = null
     private var contaObservada: String? = null
 
-    /** Relê ao abrir e a cada mudança da fila; só considera o turno e a conta desta tela. */
-    fun observar(turnoId: String) {
+    /**
+     * Relê ao abrir e a cada mudança da fila; só considera o turno e a conta desta tela. [estabelecimentoId]: a casa, quando
+     * quem avalia é o contratante (a leitura do turno precisa dela).
+     */
+    fun observar(turnoId: String, estabelecimentoId: String? = null) {
         if (turnoObservado == turnoId) return
         observacao?.cancel()
+        leituraInicial?.cancel()
         turnoObservado = turnoId
+        estabelecimentoObservado = estabelecimentoId
         contaObservada = contaAtual()
         _estado.value = EstadoAvaliacao()
         reconciliarComAFila(turnoId)
+        lerAvaliacaoGravada(turnoId)
         val fila = filaDeAcoes ?: return
         observacao = escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila(turnoId) } }
+    }
+
+    /**
+     * Ao abrir: se o turno já traz `avaliacao` (contrato 0.2.31: a avaliação gravada deste lado, inclusive a da casa), a tela
+     * abre direto em "já avaliado" com ela, sem a pergunta. Só vale enquanto nada aconteceu na tela (OCIOSO): um envio em voo,
+     * uma avaliação na fila ou uma resposta nova não são sobrescritos. Falha de leitura: segue a pergunta, como antes.
+     */
+    private fun lerAvaliacaoGravada(turnoId: String) {
+        leituraInicial = escopoDeTrabalho.launch {
+            val gravada = lerAvaliacaoDoTurno(turnoId) ?: return@launch
+            _estado.update { e ->
+                if (e.status == StatusAvaliacao.OCIOSO && turnoObservado == turnoId) {
+                    e.copy(status = StatusAvaliacao.JA_AVALIADO, respostaRegistrada = gravada, mensagemErro = null)
+                } else {
+                    e
+                }
+            }
+        }
+    }
+
+    /** `Turno.avaliacao.resposta` do turno desta tela, ou `null` (sem avaliação, turno fora da lista ou leitura que falhou). */
+    private suspend fun lerAvaliacaoDoTurno(turnoId: String): Boolean? = try {
+        val turnos = estabelecimentoObservado?.let { servicoTurnos.listarMeusTurnosDaCasa(it) } ?: servicoTurnos.listarMeusTurnos()
+        turnos.firstOrNull { it.id == turnoId }?.avaliacao?.resposta
+    } catch (erro: CancellationException) {
+        throw erro
+    } catch (_: Exception) {
+        null
     }
 
     private fun reconciliarComAFila(turnoId: String) {
@@ -159,13 +197,7 @@ class AvaliacaoViewModel(
      * (contrato 0.2.31); se a releitura falhar, encerra do mesmo jeito, sem inventar a resposta.
      */
     private suspend fun encerrarComoJaAvaliado(turnoId: String) {
-        val gravada = try {
-            servicoTurnos.listarMeusTurnos().firstOrNull { it.id == turnoId }?.avaliacao?.resposta
-        } catch (erro: CancellationException) {
-            throw erro
-        } catch (_: Exception) {
-            null
-        }
+        val gravada = lerAvaliacaoDoTurno(turnoId)
         _estado.update { it.copy(status = StatusAvaliacao.JA_AVALIADO, respostaRegistrada = gravada, mensagemErro = null) }
     }
 
