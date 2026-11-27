@@ -90,6 +90,7 @@ import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
 import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
+import br.com.frila.feature.vagas.detalhe.TelaFuncaoIncompativel
 import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante
@@ -227,12 +228,14 @@ object Rotas {
     const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
     const val VAGA_PREENCHIDA = "vaga_preenchida/{vagaId}"
     const val VAGA_ENCERRADA = "vaga_encerrada/{vagaId}"
+    const val FUNCAO_INCOMPATIVEL = "funcao_incompativel/{vagaId}"
     const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}?estabelecimentoId={estabelecimentoId}"
 
     fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
     fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
     fun vagaPreenchida(vagaId: String) = "vaga_preenchida/$vagaId"
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
+    fun funcaoIncompativel(vagaId: String) = "funcao_incompativel/$vagaId"
     fun avaliacaoDoContratante(turnoId: String, estabelecimentoId: String? = null): String {
         val base = "avaliacao_contratante/$turnoId"
         return if (estabelecimentoId == null) base else "$base?estabelecimentoId=${Uri.encode(estabelecimentoId)}"
@@ -923,6 +926,9 @@ fun AppNavegacao(
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
                                 },
+                                aoNavegarParaFuncaoIncompativel = { vagaRecusada ->
+                                    navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
+                                },
                             )
                         }
                     } else {
@@ -954,6 +960,9 @@ fun AppNavegacao(
                                 },
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
+                                },
+                                aoNavegarParaFuncaoIncompativel = { vagaRecusada ->
+                                    navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
                                 },
                             )
                         }
@@ -1016,6 +1025,25 @@ fun AppNavegacao(
                     } else {
                         FallbackVoltarAoFeed(navController, entrada)
                     }
+                }
+            }
+
+            composable(Rotas.FUNCAO_INCOMPATIVEL) {
+                RotaProtegida(guardaBiometrico) {
+                    TelaFuncaoIncompativel(
+                        // Como o iOS (`ajustarFuncoes` reabre a vaga): o resultado sai da pilha, e salvar ou voltar das
+                        // funções devolve a pessoa ao detalhe da vaga, para tentar de novo.
+                        aoAjustarFuncoes = {
+                            navController.navigate(Rotas.FUNCOES_E_HORARIOS) {
+                                popUpTo(Rotas.FUNCAO_INCOMPATIVEL) { inclusive = true }
+                            }
+                        },
+                        aoVoltarAoFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
                 }
             }
 

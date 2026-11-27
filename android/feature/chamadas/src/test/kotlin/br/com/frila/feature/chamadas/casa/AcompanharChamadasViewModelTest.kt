@@ -1,5 +1,6 @@
 package br.com.frila.feature.chamadas.casa
 
+import br.com.frila.core.rede.ChamadaResumoDto
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.http.HttpHeaders
@@ -9,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -352,5 +354,84 @@ class AcompanharChamadasViewModelTest {
         assertTrue(pode(resumo(idA, vaga, "recusada", respondidaEm = "2026-11-16T18:00:00Z"), agora = Instant.parse("2026-11-20T21:59:00Z")), "falta um minuto")
         // Sem `respondida_em` não dá para saber quem fechou por último: o botão fica, e o 409 cuida do resto.
         assertTrue(pode(resumo(idA, vaga, "expirada")), "sem respondida_em")
+    }
+
+    @Test
+    fun `vagaJaEncerrada devolve false enquanto houver chamada aberta mesmo com outra expirada respondida`() {
+        val expirada = Json.decodeFromString<ChamadaResumoDto>(resumo(idA, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z"))
+        val aberta = Json.decodeFromString<ChamadaResumoDto>(resumo(idB, vaga, "aberta"))
+
+        assertFalse(vagaJaEncerrada(listOf(expirada, aberta), antesDoInicio))
+    }
+
+    @Test
+    fun `chamada expirada com outra aberta nao marca vaga encerrada e deixa publicar quando a aberta e recusada`() = runBlocking {
+        val rede = RedeDeTeste()
+        val leituras = ArrayDeque(
+            listOf(
+                pagina(resumo(idA, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z"), resumo(idB, vaga, "aberta")),
+                pagina(
+                    resumo(idA, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z"),
+                    resumo(idB, vaga, "recusada", motivo = "agenda", respondidaEm = "2026-11-17T12:05:00Z"),
+                ),
+            ),
+        )
+        rede.rota("minhas_chamadas") { respond(leituras.removeFirst(), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) }
+        val vm = viewModelCom(rede)
+
+        vm.carregar().join()
+        assertFalse(vm.estado.value.vagaEncerrada)
+        assertFalse(vm.estado.value.podePublicarParaTodos)
+
+        vm.carregar().join()
+        assertFalse(vm.estado.value.vagaEncerrada)
+        assertTrue(vm.estado.value.podePublicarParaTodos)
+    }
+
+    @Test
+    fun `vaga encerrada pela lista volta a aceitar publicacao quando uma leitura seguinte mostra a vaga viva`() = runBlocking {
+        val rede = RedeDeTeste()
+        val leituras = ArrayDeque(
+            listOf(
+                pagina(resumo(idA, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z")),
+                pagina(resumo(idA, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z"), resumo(idB, vaga, "aberta")),
+                pagina(
+                    resumo(idA, vaga, "expirada", respondidaEm = "2026-11-17T12:00:00Z"),
+                    resumo(idB, vaga, "recusada", respondidaEm = "2026-11-17T12:10:00Z"),
+                ),
+            ),
+        )
+        rede.rota("minhas_chamadas") { respond(leituras.removeFirst(), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) }
+        val vm = viewModelCom(rede)
+
+        vm.carregar().join()
+        assertTrue(vm.estado.value.vagaEncerrada)
+        assertFalse(vm.estado.value.podePublicarParaTodos)
+
+        vm.carregar().join()
+        assertFalse(vm.estado.value.vagaEncerrada)
+        assertFalse(vm.estado.value.podePublicarParaTodos)
+
+        vm.carregar().join()
+        assertFalse(vm.estado.value.vagaEncerrada)
+        assertTrue(vm.estado.value.podePublicarParaTodos)
+    }
+
+    @Test
+    fun `409 vaga_encerrada ao publicar segue escondendo o botao mesmo apos recarregar a lista`() = runBlocking {
+        val rede = RedeDeTeste()
+        rede.ok("minhas_chamadas", pagina(resumo(idA, vaga, "recusada", respondidaEm = "2026-11-16T18:00:00Z")))
+        rede.recusa("publicar_a_partir_da_chamada", HttpStatusCode.Conflict, "vaga_encerrada")
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+        assertTrue(vm.estado.value.podePublicarParaTodos)
+
+        vm.publicarParaTodos().join()
+        assertTrue(vm.estado.value.vagaEncerrada)
+        assertFalse(vm.estado.value.podePublicarParaTodos)
+
+        vm.carregar().join()
+        assertTrue(vm.estado.value.vagaEncerrada)
+        assertFalse(vm.estado.value.podePublicarParaTodos)
     }
 }
