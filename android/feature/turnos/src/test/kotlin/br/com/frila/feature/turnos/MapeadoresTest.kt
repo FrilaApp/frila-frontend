@@ -71,6 +71,22 @@ class MapeadoresTest {
     }
 
     @Test
+    fun `hora de check-in ilegivel nao vira comprovante com a hora de agora`() {
+        // Antes: getOrDefault(Instant.now()) mostrava um horário que ninguém registrou, e vencia o toque real do CheckinViewModel.
+        assertNull(criarTurnoDto(checkinEm = "ontem").paraItem().comprovante)
+        assertNull(criarTurnoDto(checkinEm = "").paraItem().comprovante)
+    }
+
+    @Test
+    fun `hora de check-in legivel vira o comprovante com essa hora, e sem check-in nao ha comprovante`() {
+        assertEquals(
+            java.time.Instant.parse("2026-11-01T21:05:00Z"),
+            criarTurnoDto(checkinEm = "2026-11-01T21:05:00Z").paraItem().comprovante?.registradoEm,
+        )
+        assertNull(criarTurnoDto(checkinEm = null).paraItem().comprovante)
+    }
+
+    @Test
     fun `C0-9 - o item leva o id da casa, alvo de Denunciar no turno`() {
         assertEquals("contraparte-1", criarTurnoDto().paraItem().contraparteId)
     }
