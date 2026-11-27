@@ -711,4 +711,57 @@ class TelaDetalheVagaTest {
         compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
         assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
     }
+
+    // ── O selo Aguardando resposta (DLjTVc2e, item 151) ───────────────────────────────────────────────────────────────
+
+    private val respostaPendente = """{"estado": "pendente", "candidatura_id": "c1", "posicao_id": null, "turno_id": null, "contato": null}"""
+    private val respostaConfirmada = """{"estado": "confirmada", "candidatura_id": "c1", "posicao_id": "p1", "turno_id": "t1", "contato": {"nome": "Zé", "telefone": "61988887777"}}"""
+
+    private fun candidatarEm(modo: String, resposta: String): DetalheVagaViewModel {
+        val viewModel = criarViewModel(criarVaga(modo = modo), respostaJson = resposta)
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModel) } }
+        return viewModel
+    }
+
+    @Test
+    fun `por selecao, antes de candidatar mostra Por selecao e a frase da casa`() {
+        candidatarEm("selecao", respostaPendente)
+        compose.onNodeWithText("Por seleção").assertIsDisplayed()
+        compose.onNodeWithText("Modo seleção: contratante escolhe depois").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Você se candidatou.").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `por selecao, depois de candidatar com candidatura pendente o selo diz Aguardando resposta e a frase Voce se candidatou`() {
+        val viewModel = candidatarEm("selecao", respostaPendente)
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Aguardando resposta").assertIsDisplayed()
+        compose.onNodeWithText("Você se candidatou.").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Por seleção").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Modo seleção: contratante escolhe depois").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `em urgencia o selo nunca vira Aguardando resposta`() {
+        val viewModel = candidatarEm("urgencia", respostaConfirmada)
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Urgência").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Você se candidatou.").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `por selecao, uma candidatura recusada pelo servidor nao vira Aguardando resposta`() {
+        val viewModel = candidatarEm("selecao", """{"code":"vaga_encerrada","message":"x"}""")
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Por seleção").assertIsDisplayed()
+    }
 }
