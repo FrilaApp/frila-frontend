@@ -481,4 +481,25 @@ class AutenticacaoComSenhaViewModelsTest {
         assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
         assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
     }
+
+    @Test
+    fun `criar conta com 429 mostra o limite de codigos e sem rede mostra a falta de conexao`() = runBlocking {
+        var falha: Throwable? = null
+        val engine = MockEngine {
+            falha?.let { throw it }
+            respond("""{"code":429,"error_code":"over_email_send_rate_limit"}""", HttpStatusCode.TooManyRequests,
+                headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val vm = CriarContaViewModel(ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave", engine = engine)), escopo = escopo())
+        vm.aoMudarEmail("novo@exemplo.test")
+
+        vm.solicitarCodigoDeCriacao()?.join()
+        assertEquals(MENSAGEM_LIMITE_DE_CODIGOS, vm.estado.value.erro)
+        assertFalse(vm.estado.value.otpSolicitado)
+
+        falha = java.io.IOException("sem rede")
+        vm.solicitarCodigoDeCriacao()?.join()
+        assertEquals("Sem conexão. Verifique sua internet e tente de novo.", vm.estado.value.erro)
+        assertFalse(vm.estado.value.otpSolicitado)
+    }
 }

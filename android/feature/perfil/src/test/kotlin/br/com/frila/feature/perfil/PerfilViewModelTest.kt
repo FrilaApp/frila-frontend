@@ -608,4 +608,23 @@ class PerfilViewModelTest {
         assertTrue(viewModel.estado.value.notificacaoSistemaAtivada)
         assertFalse(preferencias.estaAtivado(GerenciadorDeCanais.CANAL_URGENCIA))
     }
+
+    @Test
+    fun `confirmarExclusao com 401 pede para entrar de novo e sem rede avisa a falta de conexao, sem limpar a sessao`() = runBlocking {
+        val casos = listOf(
+            MockEngine { respond("""{"code":"nao_autenticado","message":"x"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json")) }
+                to "Sua sessão expirou. Entre de novo.",
+            MockEngine { throw java.io.IOException("sem rede") } to "Sem conexão. Verifique sua internet e tente de novo.",
+        )
+        for ((engine, texto) in casos) {
+            val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+            val viewModel = viewModelComEngine(engine, armazenamento)
+            viewModel.abrirDialogoExclusao()
+            viewModel.confirmarExclusao().join()
+
+            assertEquals(StatusExclusao.ERRO, viewModel.estado.value.statusExclusao)
+            assertEquals(texto, viewModel.estado.value.mensagemErroExclusao)
+            verify(exactly = 0) { armazenamento.limparSessao() }
+        }
+    }
 }
