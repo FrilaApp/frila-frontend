@@ -60,11 +60,11 @@ class CancelamentoDaPosicaoInstrumentedTest {
         compose.onNodeWithText("Confirmar cancelamento")
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).assertIsNotEnabled()
         compose.onNodeWithText("Outro motivo").performScrollTo().performClick()
-        compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").assertIsDisplayed()
+        compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
         compose.runOnIdle { assertNull(cancelamentos.recebido) }
 
-        compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").performTextInput("Imprevisto")
+        compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").performScrollTo().performTextInput("Imprevisto")
         closeSoftKeyboard()
         compose.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
 
