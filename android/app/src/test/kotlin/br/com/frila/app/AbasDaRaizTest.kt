@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 /** As abas das telas raiz espelham o iOS: quatro para o profissional, duas para a casa. */
 class AbasDaRaizTest {
 
-    private val casa = PapelDaRaiz.Contratante(rotaDeMinhasVagas = "minhas_vagas/casa-1?nomeEstabelecimento=Bar")
+    private val casa = PapelDaRaiz.Contratante(estabelecimentoId = "casa-1", rotaDeMinhasVagas = "minhas_vagas/casa-1?nomeEstabelecimento=Bar")
 
     @Test
     fun `profissional tem Vagas, Meus turnos, Candidaturas e Conta, nesta ordem`() {
@@ -69,5 +69,7 @@ class AbasDaRaizTest {
         assertEquals(PapelDaRaiz.Profissional, SalvadorDoPapelDaRaiz.restore(guardar(PapelDaRaiz.Profissional)!!))
         assertEquals(casa, SalvadorDoPapelDaRaiz.restore(guardar(casa)!!))
         assertNull(SalvadorDoPapelDaRaiz.restore(guardar(null)!!))
+        // O formato de antes, sem o id da casa: não vira uma casa sem id; a rota decide de novo.
+        assertNull(SalvadorDoPapelDaRaiz.restore("casa:minhas_vagas/casa-1"))
     }
 }

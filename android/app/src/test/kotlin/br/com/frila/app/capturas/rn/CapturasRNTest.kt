@@ -39,7 +39,7 @@ class CapturasRNTest {
     @get:Rule(order = 1)
     val compose = createComposeRule()
 
-    private val casa = PapelDaRaiz.Contratante(Rotas.minhasVagas("est-1", "Bar da Lia"))
+    private val casa = PapelDaRaiz.Contratante("est-1", Rotas.minhasVagas("est-1", "Bar da Lia"))
 
     private fun raiz(papel: PapelDaRaiz, padrao: String, oQueATelaMostra: String) {
         compose.setContent {

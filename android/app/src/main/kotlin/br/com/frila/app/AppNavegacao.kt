@@ -208,6 +208,8 @@ object Rotas {
     const val TROCAR_DE_CASA = "trocar_de_casa?atual={atual}"
     const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
+    /** O turno da casa aberto pelo toque num push, que traz o `turno_id` e não a vaga nem a posição. */
+    const val TURNO_DO_CONTRATANTE_AVISO = "turno_do_contratante_aviso/{estabelecimentoId}/{turnoId}"
     const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
 
     // Lote 2 do Android (L2-8).
@@ -299,6 +301,9 @@ object Rotas {
     fun trocarDeCasa(atual: String? = null) = if (atual == null) "trocar_de_casa" else "trocar_de_casa?atual=${Uri.encode(atual)}"
 
     /** O turno da posição `posicaoId` da vaga `vagaId`, lido do painel do estabelecimento. */
+    fun turnoDoContratanteAviso(estabelecimentoId: String, turnoId: String) =
+        "turno_do_contratante_aviso/${Uri.encode(estabelecimentoId)}/${Uri.encode(turnoId)}"
+
     fun turnoDoContratante(estabelecimentoId: String, vagaId: String, posicaoId: String) =
         "turno_do_contratante/${Uri.encode(estabelecimentoId)}/${Uri.encode(vagaId)}/${Uri.encode(posicaoId)}"
 
@@ -753,7 +758,7 @@ fun AppNavegacao(
                                 } else {
                                     // Profissional e casa abrem na primeira aba; a Conta (Sair, Equipe) é a última aba.
                                     if (destino == DestinoDaConta.Profissional) papelDaRaiz = PapelDaRaiz.Profissional
-                                    if (casa != null) papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(casa.id, casa.nome))
+                                    if (casa != null) papelDaRaiz = PapelDaRaiz.Contratante(casa.id, Rotas.minhasVagas(casa.id, casa.nome))
                                     navController.navigate(destino.rota()) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
@@ -1496,7 +1501,7 @@ fun AppNavegacao(
                         // publicação leva ao perfil, não de volta ao formulário já concluído.
                         aoConcluir = { criado ->
                             // A casa acabou de nascer: a partir daqui a raiz tem as abas dela.
-                            papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(criado.id, criado.nome))
+                            papelDaRaiz = PapelDaRaiz.Contratante(criado.id, Rotas.minhasVagas(criado.id, criado.nome))
                             navController.navigate(Rotas.publicarVaga(criado.id)) {
                                 popUpTo(Rotas.CADASTRO_ESTABELECIMENTO) { inclusive = true }
                             }
@@ -1718,6 +1723,43 @@ fun AppNavegacao(
                         aoPedirSuporte = pedirSuporte,
                         aoAvaliarTurno = { turnoId ->
                             navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                        },
+                    )
+                }
+            }
+
+            // O toque num push da casa: o turno é achado pelo `turno_id` no painel da casa em uso. Fora dele (aviso de outra
+            // casa), a entrada dá lugar a Minhas vagas, e o que estava embaixo fica.
+            composable(
+                route = Rotas.TURNO_DO_CONTRATANTE_AVISO,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") { type = NavType.StringType },
+                    navArgument("turnoId") { type = NavType.StringType },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    RotaTurnoDoContratante(
+                        estabelecimentoId = estabelecimentoId,
+                        vagaId = "",
+                        posicaoId = "",
+                        turnoId = entrada.arguments?.getString("turnoId").orEmpty(),
+                        buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
+                        aoVoltar = { navController.popBackStack() },
+                        checkinPorCodigoHabilitado = checkinPorCodigoHabilitado,
+                        aoDenunciarProfissional = { profissionalId, turnoId ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
+                        },
+                        aoPedirSuporte = pedirSuporte,
+                        aoAvaliarTurno = { turnoId ->
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                        },
+                        aoNaoEncontrar = {
+                            val minhasVagas = (papelDaRaiz as? PapelDaRaiz.Contratante)?.rotaDeMinhasVagas ?: Rotas.minhasVagas(estabelecimentoId)
+                            navController.navigate(minhasVagas) {
+                                popUpTo(Rotas.TURNO_DO_CONTRATANTE_AVISO) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         },
                     )
                 }

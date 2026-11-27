@@ -39,7 +39,7 @@ private fun String?.uuid(): String? = this?.trim()?.takeIf { UUID_REGEX.matches(
  * candidatos a ver abrem os candidatos da vaga ([rotaDaCasa]); o resto, Minhas vagas.
  */
 internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
-    if (papel is PapelDaRaiz.Contratante) return rotaDaCasa(aviso) ?: papel.rotaDeMinhasVagas
+    if (papel is PapelDaRaiz.Contratante) return rotaDaCasa(aviso, papel.estabelecimentoId) ?: papel.rotaDeMinhasVagas
     return when (aviso.tipo) {
         "vaga", "candidatura_recusada", "selecao_encerrada" -> aviso.vagaId.uuid()?.let(Rotas::detalhe)
         "confirmacao", "lembrete_24h", "lembrete_3h", "inicio_sem_checkin", "fim_sem_checkout", "turno_nao_verificado" ->
@@ -59,12 +59,14 @@ internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
 }
 
 /**
- * O destino da casa, como o `AvisoDoContratante` do iOS (`.vaga`), onde o Android tem a tela: os candidatos da vaga
- * (`candidatos_da_vaga` só devolve candidaturas pendentes). Vaga direta (`chamada_*`), seleção encerrada e os lembretes de
- * fim de turno abririam a lista vazia com "Ninguém se candidatou ainda", que ali é falso: ficam em Minhas vagas, como
- * os de turno, que ainda não têm rota pelo `turno_id`.
+ * O destino da casa, como o `AvisoDoContratante` do iOS (`.turno` e `.vaga`), onde o Android tem a tela: o turno da
+ * casa em uso, achado pelo `turno_id` no painel dela, e os candidatos da vaga (`candidatos_da_vaga` só devolve
+ * candidaturas pendentes). Vaga direta (`chamada_*`), seleção encerrada e os lembretes de fim de turno abririam a lista
+ * vazia com "Ninguém se candidatou ainda", que ali é falso: ficam em Minhas vagas.
  */
-private fun rotaDaCasa(aviso: AvisoDoToque): String? = when (aviso.tipo) {
+private fun rotaDaCasa(aviso: AvisoDoToque, estabelecimentoId: String): String? = when (aviso.tipo) {
+    "confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min" ->
+        aviso.turnoId.uuid()?.let { Rotas.turnoDoContratanteAviso(estabelecimentoId, it) }
     "vaga_sem_elegiveis", "vaga_vazia", "selecao_lembrete", "cancelamento" -> aviso.vagaId.uuid()?.let { Rotas.candidatosDaVaga(it) }
     else -> null
 }

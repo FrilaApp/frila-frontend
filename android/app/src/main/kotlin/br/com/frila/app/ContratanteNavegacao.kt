@@ -199,7 +199,7 @@ internal fun abrirCasa(
     definirCasaEscolhida: (String) -> Unit,
 ) {
     val rota = Rotas.minhasVagas(id, nome)
-    definirPapelDaRaiz(PapelDaRaiz.Contratante(rota))
+    definirPapelDaRaiz(PapelDaRaiz.Contratante(id, rota))
     definirCasaEscolhida(id)
     val abaNaPilha = runCatching { navController.getBackStackEntry(Rotas.MINHAS_VAGAS) }.isSuccess
     navController.navigate(rota) {
@@ -219,12 +219,14 @@ internal object TextosTurnoDoContratanteDaRota {
 internal sealed interface EstadoDoTurnoDaRota {
     data object Carregando : EstadoDoTurnoDaRota
     data class Pronto(val contexto: ContextoDoTurnoContratante) : EstadoDoTurnoDaRota
-    data class Falha(val motivo: String, val podeTentarDeNovo: Boolean) : EstadoDoTurnoDaRota
+    /** [naoEncontrado]: o painel respondeu e o turno não está nele. */
+    data class Falha(val motivo: String, val podeTentarDeNovo: Boolean, val naoEncontrado: Boolean = false) : EstadoDoTurnoDaRota
 }
 
 /**
  * Lê o painel do estabelecimento e acha a posição pedida, com o turno dela: o Android não tem leitura de
- * turno para o contratante, e o painel é a fonte (a mesma do iOS). Painel de outra casa, vaga ou posição
+ * turno para o contratante, e o painel é a fonte (a mesma do iOS). Com [turnoId] (o toque num push, que não traz a
+ * posição), a posição é a que tem aquele `turno_id`. Painel de outra casa, vaga ou posição
  * que sumiu, ou posição sem turno viram [EstadoDoTurnoDaRota.Falha] "não encontrado"; qualquer falha da
  * leitura também vira Falha, nunca derruba a tela.
  */
@@ -234,6 +236,7 @@ internal suspend fun carregarTurnoDoContratante(
     vagaId: String,
     posicaoId: String,
     agora: Instant = Instant.now(),
+    turnoId: String? = null,
 ): EstadoDoTurnoDaRota {
     if (buscarPainel == null) return EstadoDoTurnoDaRota.Falha(TextosTurnoDoContratanteDaRota.FALHA, podeTentarDeNovo = false)
     val hoje = agora.atZone(MinhasVagasViewModel.FUSO_DO_PAINEL)
@@ -255,10 +258,17 @@ internal suspend fun carregarTurnoDoContratante(
             EstadoDoTurnoDaRota.Falha(TextosTurnoDoContratanteDaRota.FALHA, podeTentarDeNovo = true)
         }
     }
-    val vaga = painel.vagas.firstOrNull { it.vaga.id == vagaId }?.takeIf { painel.estabelecimentoId == estabelecimentoId }
-    val contexto = vaga?.posicoes?.firstOrNull { it.id == posicaoId }?.let { ContextoDoTurnoContratante.dePainel(vaga.vaga, it, estabelecimentoId) }
+    val vagas = painel.vagas.takeIf { painel.estabelecimentoId == estabelecimentoId }.orEmpty()
+    val contexto = if (turnoId != null) {
+        vagas.firstNotNullOfOrNull { vaga ->
+            vaga.posicoes.firstOrNull { it.turnoId == turnoId }?.let { ContextoDoTurnoContratante.dePainel(vaga.vaga, it, estabelecimentoId) }
+        }
+    } else {
+        val vaga = vagas.firstOrNull { it.vaga.id == vagaId }
+        vaga?.posicoes?.firstOrNull { it.id == posicaoId }?.let { ContextoDoTurnoContratante.dePainel(vaga.vaga, it, estabelecimentoId) }
+    }
     return if (contexto == null) {
-        EstadoDoTurnoDaRota.Falha(TextosTurnoDoContratanteDaRota.NAO_ENCONTRADO, podeTentarDeNovo = false)
+        EstadoDoTurnoDaRota.Falha(TextosTurnoDoContratanteDaRota.NAO_ENCONTRADO, podeTentarDeNovo = false, naoEncontrado = true)
     } else {
         EstadoDoTurnoDaRota.Pronto(contexto)
     }
@@ -284,17 +294,24 @@ internal fun RotaTurnoDoContratante(
     checkinPorCodigoHabilitado: Boolean = false,
     /** Item #27 da Paridade: avaliar o profissional pela casa. */
     aoAvaliarTurno: ((turnoId: String) -> Unit)? = null,
+    /** O turno do aviso, quando a rota vem do toque num push e não sabe a vaga nem a posição. */
+    turnoId: String? = null,
+    /** Com ele, turno que não está no painel (aviso de outra casa) não mostra "não encontrado": quem chama decide. */
+    aoNaoEncontrar: (() -> Unit)? = null,
 ) {
     var tentativa by remember { mutableIntStateOf(0) }
-    var estado by remember(estabelecimentoId, vagaId, posicaoId) { mutableStateOf<EstadoDoTurnoDaRota>(EstadoDoTurnoDaRota.Carregando) }
-    LaunchedEffect(estabelecimentoId, vagaId, posicaoId, tentativa) {
+    var estado by remember(estabelecimentoId, vagaId, posicaoId, turnoId) { mutableStateOf<EstadoDoTurnoDaRota>(EstadoDoTurnoDaRota.Carregando) }
+    LaunchedEffect(estabelecimentoId, vagaId, posicaoId, turnoId, tentativa) {
         estado = EstadoDoTurnoDaRota.Carregando
-        estado = carregarTurnoDoContratante(buscarPainel, estabelecimentoId, vagaId, posicaoId)
+        estado = carregarTurnoDoContratante(buscarPainel, estabelecimentoId, vagaId, posicaoId, turnoId = turnoId)
     }
 
     when (val atual = estado) {
         EstadoDoTurnoDaRota.Carregando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { IndicadorCarregando() }
-        is EstadoDoTurnoDaRota.Falha -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        is EstadoDoTurnoDaRota.Falha -> if (atual.naoEncontrado && aoNaoEncontrar != null) {
+            LaunchedEffect(atual) { aoNaoEncontrar() }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { IndicadorCarregando() }
+        } else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EstadoErro(
                 titulo = TextosTurnoDoContratanteDaRota.TITULO_FALHA,
                 mensagem = atual.motivo,
