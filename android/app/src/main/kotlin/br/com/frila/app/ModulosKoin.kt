@@ -737,9 +737,15 @@ val moduloFeatures = module {
         PreparadorDaFotoDePerfil { referencia -> PreparadorDeJpegDoAparelho(escopo.get<Context>()).preparar(referencia) }
     }
     viewModel {
-        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), get<ServicoMidia>())
+        val midia = get<ServicoMidia>()
+        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), midia)
         val preparador = get<PreparadorDaFotoDePerfil>()
-        FotoDePerfilViewModel(prepararJpeg = preparador::preparar, enviar = fluxo::enviar)
+        FotoDePerfilViewModel(
+            prepararJpeg = preparador::preparar,
+            enviar = fluxo::enviar,
+            listarMidias = midia::minhasMidias,
+            pedirNovaAnaliseMidia = midia::pedirNovaAnaliseMidia,
+        )
     }
     /**
      * Código de chegada (L1-4b): o profissional digita o código que a casa mostra. A distância é medida no toque, até o ponto da vaga (só ela sai,

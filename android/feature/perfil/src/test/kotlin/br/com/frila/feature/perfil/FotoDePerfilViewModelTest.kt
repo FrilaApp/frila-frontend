@@ -164,4 +164,171 @@ class FotoDePerfilViewModelTest {
             FotoDePerfilViewModel.mensagemDaFalha(erroDaApi(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "recurso_desligado")),
         )
     }
+
+    // ---- Foto recusada ou não publicada: ver o estado e pedir nova análise (cartão 1dRm7FAH, fatia 1) ----
+
+    private fun foto(
+        id: String = "m1",
+        estado: String = "recusada",
+        motivo: String? = "foto_inadequada",
+        podePedir: Boolean = true,
+        enviadaEm: String = "2026-11-20T10:00:00Z",
+        tipo: String = "foto_perfil",
+        estabelecimentoId: String? = null,
+    ) = MidiaDto(
+        id = id, tipo = tipo, estado = estado, motivoRecusa = motivo, podePedirNovaAnalise = podePedir,
+        estabelecimentoId = estabelecimentoId, enviadaEm = enviadaEm,
+    )
+
+    private fun viewModelDeMidias(
+        listar: suspend () -> List<MidiaDto>,
+        pedir: suspend (String) -> MidiaDto = { throw AssertionError("não devia pedir nova análise") },
+    ) = FotoDePerfilViewModel(
+        prepararJpeg = { byteArrayOf() },
+        enviar = { _, _ -> throw AssertionError("não devia enviar") },
+        listarMidias = listar,
+        pedirNovaAnaliseMidia = pedir,
+        escopo = CoroutineScope(Dispatchers.Unconfined),
+    )
+
+    @Test
+    fun `carregar mostra a foto recusada e oferece a nova analise`() = runBlocking {
+        val vm = viewModelDeMidias(listar = { listOf(foto()) })
+
+        vm.carregar().join()
+
+        assertEquals("m1", vm.situacao.value.midia?.id)
+        assertEquals("recusada", vm.situacao.value.midia?.estado)
+        assertTrue(vm.situacao.value.podePedirNovaAnalise)
+    }
+
+    @Test
+    fun `carregar fica com a foto de perfil mais recente da conta, sem a removida nem a da casa`() = runBlocking {
+        val vm = viewModelDeMidias(
+            listar = {
+                listOf(
+                    foto(id = "velha", estado = "aprovada", enviadaEm = "2026-11-01T10:00:00Z"),
+                    foto(id = "nova", enviadaEm = "2026-11-20T10:00:00Z"),
+                    foto(id = "removida", estado = "removida", enviadaEm = "2026-11-25T10:00:00Z"),
+                    foto(id = "da-casa", estabelecimentoId = "e1", enviadaEm = "2026-11-26T10:00:00Z"),
+                    foto(id = "outro-tipo", tipo = "logo", enviadaEm = "2026-11-27T10:00:00Z"),
+                )
+            },
+        )
+
+        vm.carregar().join()
+
+        assertEquals("nova", vm.situacao.value.midia?.id)
+    }
+
+    @Test
+    fun `nova analise so vale para recusada ou nao publicada que o servidor deixa pedir`() = runBlocking {
+        val casos = listOf(
+            foto(estado = "recusada") to true,
+            foto(estado = "nao_publicada", motivo = null) to true,
+            foto(estado = "nao_publicada", motivo = null, podePedir = false) to false,
+            foto(estado = "recusada", podePedir = false) to false,
+            foto(estado = "aprovada", motivo = null) to false,
+            foto(estado = "em_analise", motivo = null) to false,
+            foto(estado = "ocultada", motivo = null) to false,
+        )
+        for ((midia, esperado) in casos) {
+            val pedidos = mutableListOf<String>()
+            val vm = viewModelDeMidias(listar = { listOf(midia) }, pedir = { pedidos += it; midia })
+            vm.carregar().join()
+            val rotulo = "${midia.estado} pode=${midia.podePedirNovaAnalise}"
+            assertEquals(esperado, vm.situacao.value.podePedirNovaAnalise, rotulo)
+
+            vm.pedirNovaAnalise().join()
+
+            assertEquals(if (esperado) listOf("m1") else emptyList<String>(), pedidos, rotulo)
+        }
+    }
+
+    @Test
+    fun `pedir a nova analise manda o id da foto e a foto vai a em analise, uma vez so`() = runBlocking {
+        val pedidos = mutableListOf<String>()
+        val vm = viewModelDeMidias(
+            listar = { listOf(foto()) },
+            pedir = { pedidos += it; foto(estado = "em_analise", motivo = null, podePedir = false) },
+        )
+        vm.carregar().join()
+
+        vm.pedirNovaAnalise().join()
+
+        assertEquals(listOf("m1"), pedidos)
+        assertEquals("em_analise", vm.situacao.value.midia?.estado)
+        assertTrue(vm.situacao.value.novaAnaliseJaPedida)
+        assertEquals(false, vm.situacao.value.podePedirNovaAnalise)
+        assertEquals(false, vm.situacao.value.pedindoNovaAnalise)
+        assertEquals(null, vm.situacao.value.aviso)
+    }
+
+    @Test
+    fun `a nova analise ja pedida continua valendo se a foto voltar recusada ao reler`() = runBlocking {
+        val vm = viewModelDeMidias(
+            listar = { listOf(foto()) },
+            pedir = { foto(estado = "em_analise", motivo = null, podePedir = false) },
+        )
+        vm.carregar().join()
+        vm.pedirNovaAnalise().join()
+
+        vm.carregar().join() // a análise recusou de novo
+
+        assertEquals("recusada", vm.situacao.value.midia?.estado)
+        assertTrue(vm.situacao.value.novaAnaliseJaPedida)
+        assertEquals(false, vm.situacao.value.podePedirNovaAnalise)
+    }
+
+    @Test
+    fun `dois toques seguidos em pedir nova analise mandam um pedido so`() = runBlocking {
+        val liberar = CompletableDeferred<Unit>()
+        val pedidos = java.util.concurrent.atomic.AtomicInteger(0)
+        val vm = FotoDePerfilViewModel(
+            prepararJpeg = { byteArrayOf() },
+            enviar = { _, _ -> throw AssertionError("não devia enviar") },
+            listarMidias = { listOf(foto()) },
+            pedirNovaAnaliseMidia = { pedidos.incrementAndGet(); liberar.await(); foto(estado = "em_analise", motivo = null, podePedir = false) },
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        vm.carregar().join()
+
+        val primeiro = vm.pedirNovaAnalise()
+        val segundo = vm.pedirNovaAnalise() // com o primeiro em voo
+        assertTrue(vm.situacao.value.pedindoNovaAnalise)
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo.join()
+
+        assertEquals(1, pedidos.get())
+        assertEquals(false, vm.situacao.value.pedindoNovaAnalise)
+    }
+
+    @Test
+    fun `falha ao pedir mostra o aviso, relê as midias e deixa pedir de novo`() = runBlocking {
+        var leituras = 0
+        val vm = viewModelDeMidias(
+            listar = { leituras++; listOf(foto()) },
+            pedir = { throw ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "x") },
+        )
+        vm.carregar().join()
+
+        vm.pedirNovaAnalise().join()
+
+        assertEquals(TextosDaFotoDePerfil.ERRO_SEM_REDE, vm.situacao.value.aviso)
+        assertEquals(2, leituras)
+        assertEquals(false, vm.situacao.value.pedindoNovaAnalise)
+        assertEquals(false, vm.situacao.value.novaAnaliseJaPedida)
+        assertTrue(vm.situacao.value.podePedirNovaAnalise)
+    }
+
+    @Test
+    fun `falha ao ler as midias nao derruba nada e deixa a tela sem foto`() = runBlocking {
+        val vm = viewModelDeMidias(listar = { throw ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "x") })
+
+        vm.carregar().join()
+
+        assertEquals(null, vm.situacao.value.midia)
+        assertEquals(false, vm.situacao.value.podePedirNovaAnalise)
+    }
 }

@@ -34,6 +34,7 @@ import br.com.frila.feature.perfil.EstadoApresentacaoERegioes
 import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.EtapaDaFoto
 import br.com.frila.feature.perfil.FotoDePerfilViewModel
+import br.com.frila.feature.perfil.SituacaoDaFoto
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
 import br.com.frila.feature.perfil.TextosApresentacaoERegioes
@@ -80,7 +81,10 @@ class AppNavegacaoFotoDePerfilChaveTest {
         val perfilVm = mockk<PerfilViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoPerfil(status = StatusPerfil.SUCESSO))
         }
-        val fotoVm = mockk<FotoDePerfilViewModel>(relaxed = true) { every { etapa } returns MutableStateFlow(EtapaDaFoto.Parada) }
+        val fotoVm = mockk<FotoDePerfilViewModel>(relaxed = true) {
+            every { etapa } returns MutableStateFlow(EtapaDaFoto.Parada)
+            every { situacao } returns MutableStateFlow(SituacaoDaFoto())
+        }
         val apresentacaoVm = mockk<ApresentacaoERegioesViewModel>(relaxed = true) {
             every { estado } returns MutableStateFlow(EstadoApresentacaoERegioes())
         }
