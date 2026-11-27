@@ -55,15 +55,21 @@ object GeradorExtratoCsv {
         return arquivo
     }
 
-    private fun escaparCsv(valor: String): String {
-        var texto = valor
-        if (texto.startsWith("=") || texto.startsWith("+") || texto.startsWith("-") || texto.startsWith("@")) {
-            texto = "'$texto"
-        }
-        return if (texto.contains(",") || texto.contains("\"") || texto.contains("\n")) {
+    /**
+     * Mesma regra do backend (`exportar-turnos/index.ts`, `neutralizarFormulaCsv` e `escaparCelulaCsv`): texto que começa
+     * com um caractere de fórmula ganha um apóstrofo na frente (OWASP CSV Injection, CWE-1236), menos os marcadores de
+     * ausência `-` e `--`; o campo vai entre aspas, com as aspas internas dobradas, quando tem vírgula, aspas, `\n` ou `\r`.
+     */
+    internal fun escaparCsv(valor: String): String {
+        if (valor.isEmpty()) return ""
+        val texto = if (valor != "-" && valor != "--" && valor.first() in CARACTERES_FORMULA_INICIO) "'$valor" else valor
+        return if (CARACTERES_QUE_PEDEM_ASPAS.any { it in texto }) {
             "\"${texto.replace("\"", "\"\"")}\""
         } else {
             texto
         }
     }
+
+    private val CARACTERES_FORMULA_INICIO = setOf('=', '+', '-', '@', '\t', '\r')
+    private val CARACTERES_QUE_PEDEM_ASPAS = listOf(',', '"', '\n', '\r')
 }
