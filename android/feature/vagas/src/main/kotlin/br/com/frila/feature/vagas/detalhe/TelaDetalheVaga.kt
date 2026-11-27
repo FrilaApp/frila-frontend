@@ -232,8 +232,9 @@ fun TelaDetalheVaga(
             )
 
             // A faixa do modo, sobre o fundo, sem cartão: o que o toque no botão vai fazer.
-            // Depois de enviada a candidatura numa vaga por seleção, o selo diz que a casa ainda não respondeu (iOS `faixaDoModo`).
-            val candidaturaEnviada = !estado.ehModoUrgencia && estado.statusCandidatura == StatusCandidatura.PENDENTE
+            // Depois de enviada a candidatura numa vaga por seleção, o selo diz que a casa ainda não respondeu (iOS `faixaDoModo`). A urgência
+            // vem primeiro nas duas cadeias abaixo, então ela nunca vira "Aguardando resposta".
+            val candidaturaEnviada = estado.statusCandidatura == StatusCandidatura.PENDENTE
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                 if (estado.ehModoUrgencia) {
                     SeloDeStatus(texto = "Urgência", estilo = EstiloDoSelo.URGENCIA)

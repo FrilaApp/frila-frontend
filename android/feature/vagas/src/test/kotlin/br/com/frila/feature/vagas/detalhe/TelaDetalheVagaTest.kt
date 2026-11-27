@@ -756,6 +756,17 @@ class TelaDetalheVagaTest {
     }
 
     @Test
+    fun `em urgencia, mesmo com uma resposta pendente, o selo segue Urgencia (o Aguardando resposta e so do modo selecao)`() {
+        val viewModel = candidatarEm("urgencia", respostaPendente)
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Urgência").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Modo urgência: confirmação na hora").assertIsDisplayed()
+    }
+
+    @Test
     fun `por selecao, uma candidatura recusada pelo servidor nao vira Aguardando resposta`() {
         val viewModel = candidatarEm("selecao", """{"code":"vaga_encerrada","message":"x"}""")
         runBlocking { viewModel.candidatar().join() }
