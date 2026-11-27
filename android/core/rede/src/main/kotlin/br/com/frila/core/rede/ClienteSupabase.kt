@@ -244,6 +244,10 @@ class ClienteSupabase(
     private suspend fun renovarTokens(parametros: RefreshTokensParams): BearerTokens? {
         val armazenamento = armazenamentoDeSessao ?: return null
         val sessaoAtual = armazenamento.obterSessao() ?: return null
+        // A renovação é da conta cuja chamada tomou 401 (`oldTokens`), não de quem estiver guardado agora. Se outra conta entrou
+        // no meio, não há o que renovar: a chamada antiga volta 401 para quem a fez, sem usar nem girar o token da conta nova.
+        val refreshDaChamada = parametros.oldTokens?.refreshToken
+        if (refreshDaChamada != null && refreshDaChamada != sessaoAtual.refreshToken) return null
 
         return try {
             val resposta = parametros.client.post(urlCompleta(CAMINHO_RENOVACAO)) {
