@@ -15,6 +15,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
@@ -265,5 +266,21 @@ class QuemRecebeNosAgendadosTest {
         leitura.await()
 
         assertNull(cache.noCache("v1"), "o resultado de antes do logout não pode ficar guardado para a próxima conta")
+    }
+
+    @Test
+    fun `a releitura nao faz o responsavel piscar, nenhuma emissao do estado volta a ter o agendado sem ele`() = runBlocking {
+        val c = cenarioTipico()
+        val (vm, _) = viewModel(c)
+        vm.carregar().join()
+        val vistos = Collections.synchronizedList(mutableListOf<List<String?>>())
+        val coleta = launch(Dispatchers.Unconfined) { vm.estado.collect { vistos += it.agendados.map { item -> item.quemRecebe } } }
+
+        repeat(3) { vm.atualizarSemPiscar().join() }
+        vm.atualizar().join()
+        coleta.cancel()
+
+        assertTrue(vistos.isNotEmpty())
+        assertTrue(vistos.all { linha -> linha.all { it != null } }, "o responsavel ja conhecido nao some entre uma leitura e outra: $vistos")
     }
 }
