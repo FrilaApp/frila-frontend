@@ -189,8 +189,68 @@ class TelaMeusTurnosTest {
             }
 
             compose.waitForIdle()
-            compose.onNodeWithText("Você ainda não tem turnos nesta aba.").assertIsDisplayed()
+            // Texto do iOS (TextosDoProfissional.vazioTitulo e vazioMensagem), na aba Agendados.
+            compose.onNodeWithText("Nenhum turno confirmado").assertIsDisplayed()
+            compose.onNodeWithText("Quando você tiver turnos confirmados, eles aparecerão aqui.").assertIsDisplayed()
+            compose.onNodeWithText("Você ainda não tem turnos nesta aba.").assertDoesNotExist()
         }
+    }
+
+    // ---- Estado vazio das duas abas (cartão FI3gB4Zw) ----
+
+    private val tituloVazioAgendados = "Nenhum turno confirmado"
+    private val mensagemVazioAgendados = "Quando você tiver turnos confirmados, eles aparecerão aqui."
+    private val tituloVazioHistorico = "Nenhum turno no histórico"
+    private val mensagemVazioHistorico = "Turnos concluídos e cancelados aparecerão aqui."
+
+    /** Carrega [json] e mostra a tela; [aba] é a aba em que o teste olha (a tela abre em Agendados). */
+    private fun abrirNaAba(json: String, aba: AbaDeTurnos) {
+        runBlocking {
+            val viewModel = criarViewModel(json)
+            viewModel.carregar().join()
+            compose.setContent {
+                FrilaTheme {
+                    TelaMeusTurnos(viewModel = viewModel, criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) })
+                }
+            }
+            compose.waitForIdle()
+            if (aba == AbaDeTurnos.HISTORICO) {
+                compose.onNodeWithText("Histórico").performClick()
+                compose.waitForIdle()
+            }
+        }
+    }
+
+    private fun verificarVazioAgendados() {
+        compose.onNodeWithText(tituloVazioAgendados).assertIsDisplayed()
+        compose.onNodeWithText(mensagemVazioAgendados).assertIsDisplayed()
+        compose.onNodeWithText(tituloVazioHistorico).assertDoesNotExist()
+        compose.onNodeWithText("Você ainda não tem turnos nesta aba.").assertDoesNotExist()
+    }
+
+    private fun verificarVazioHistorico() {
+        compose.onNodeWithText(tituloVazioHistorico).assertIsDisplayed()
+        compose.onNodeWithText(mensagemVazioHistorico).assertIsDisplayed()
+        compose.onNodeWithText(tituloVazioAgendados).assertDoesNotExist()
+        compose.onNodeWithText("Você ainda não tem turnos nesta aba.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `sem nenhum turno a aba Historico mostra o texto proprio do historico`() {
+        abrirNaAba("[]", AbaDeTurnos.HISTORICO)
+        verificarVazioHistorico()
+    }
+
+    @Test
+    fun `so com turno do historico a aba Agendados esta vazia e mostra o texto do ios`() {
+        abrirNaAba("[${turnoJson("t1", "cumprida", "Garçom", "Bar do Zé")}]", AbaDeTurnos.AGENDADOS)
+        verificarVazioAgendados()
+    }
+
+    @Test
+    fun `so com turno agendado a aba Historico esta vazia e mostra o texto do historico`() {
+        abrirNaAba("[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]", AbaDeTurnos.HISTORICO)
+        verificarVazioHistorico()
     }
 
     @Test
