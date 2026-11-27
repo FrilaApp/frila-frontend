@@ -127,6 +127,20 @@ class MinhasVagasViewModel(
     /** Puxar para atualizar: mantém as vagas na tela e mostra o indicador. */
     fun atualizar(): Job = iniciarLeitura()
 
+    /**
+     * Releitura automática (volta do segundo plano, push): troca as vagas sem indicador, e uma falha deixa a lista como está, sem
+     * erro e sem marcá-la como desatualizada. Sem efeito com outra leitura em voo.
+     */
+    fun atualizarEmSilencio(): Job {
+        leitura?.takeIf { it.isActive }?.let { return it }
+        // Só com a lista na tela (como o iOS): em Carregando disputaria a carga e em Erro tiraria a tela do erro sem ser pedido. Com
+        // outra leitura em voo a de cima devolve a própria, e por isso o estado não muda entre o começo e o fim desta.
+        if (_estado.value.lista !is ListaMinhasVagas.Sucesso && _estado.value.lista != ListaMinhasVagas.Vazio) {
+            return escopoDeTrabalho.launch { }
+        }
+        return escopoDeTrabalho.launch { ler(silencioso = true) }.also { leitura = it }
+    }
+
     private fun iniciarLeitura(): Job {
         leitura?.takeIf { it.isActive }?.let { return it }
         _estado.update {
@@ -138,7 +152,7 @@ class MinhasVagasViewModel(
         return escopoDeTrabalho.launch { ler() }.also { leitura = it }
     }
 
-    private suspend fun ler() {
+    private suspend fun ler(silencioso: Boolean = false) {
         val agora = relogio()
         val resultado = try {
             val hoje = agora.atZone(zona)
@@ -151,7 +165,7 @@ class MinhasVagasViewModel(
         }
         resultado
             .onSuccess { painel -> aplicar(painel, agora) }
-            .onFailure { erro -> falhar(erro) }
+            .onFailure { erro -> if (!silencioso) falhar(erro) }
     }
 
     private fun aplicar(painel: PainelDto, agora: Instant) {
