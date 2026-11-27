@@ -209,7 +209,7 @@ class RepublicarVagaViewModel(
                     camposBloqueados = false,
                     erroInicio = noInicio,
                     erroFim = if (codigo == CodigoErroAPI.HORARIO_INVALIDO) TextosRepublicarVaga.HORARIO_INVALIDO else null,
-                    mensagemErro = mensagemDaRecusa(codigo),
+                    mensagemErro = mensagemDaRecusa(codigo, (erro as? ErroDaApi)?.detalhes),
                 )
             }
             return
@@ -222,9 +222,12 @@ class RepublicarVagaViewModel(
         _estado.update { it.copy(enviando = false, camposBloqueados = true, mensagemErro = mensagem) }
     }
 
-    private fun mensagemDaRecusa(codigo: CodigoErroAPI?): String = when (codigo) {
+    /** Como a tela irmã ([RepublicarPosicoesRestantesViewModel]): a conta suspensa tem o texto dela, em código ou em `details`. */
+    private fun mensagemDaRecusa(codigo: CodigoErroAPI?, detalhes: String?): String = when (codigo) {
         CodigoErroAPI.NAO_ENCONTRADO -> TextosRepublicarVaga.NAO_ENCONTRADO
-        CodigoErroAPI.SEM_PERMISSAO, CodigoErroAPI.CONTA_SUSPENSA -> TextosRepublicarVaga.SEM_PERMISSAO
+        CodigoErroAPI.SEM_PERMISSAO ->
+            if (detalhes == "conta_suspensa") TextosRepublicarVaga.CONTA_SUSPENSA else TextosRepublicarVaga.SEM_PERMISSAO
+        CodigoErroAPI.CONTA_SUSPENSA -> TextosRepublicarVaga.CONTA_SUSPENSA
         CodigoErroAPI.VAGA_OCULTA -> TextosRepublicarVaga.VAGA_OCULTA
         CodigoErroAPI.PERFIL_INCOMPATIVEL -> TextosRepublicarVaga.PERFIL_INCOMPATIVEL
         CodigoErroAPI.SELECAO_SEM_ANTECEDENCIA -> TextosRepublicarVaga.SELECAO_SEM_ANTECEDENCIA
