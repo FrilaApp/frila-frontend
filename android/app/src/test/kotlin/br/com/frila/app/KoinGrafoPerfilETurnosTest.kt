@@ -35,6 +35,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -75,6 +77,16 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
                     request.url.encodedPath.endsWith("/atualizar_perfil_profissional") -> respond(
                     """{"id":"p1","usuario_id":"u1","funcoes":[],"ponto_base":null,"disponibilidades":[],""" +
                         """"reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+                request.url.encodedPath.endsWith("/minhas_midias") -> respond(
+                    """[{"id":"$idDaMidia","tipo":"foto_perfil","estado":"recusada","motivo_recusa":"foto_inadequada","pode_pedir_nova_analise":true,"enviada_em":"2026-11-20T10:00:00Z"}]""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+                request.url.encodedPath.endsWith("/pedir_nova_analise_midia") -> respond(
+                    """{"id":"$idDaMidia","tipo":"foto_perfil","estado":"em_analise","pode_pedir_nova_analise":false}""",
                     HttpStatusCode.OK,
                     json,
                 )
@@ -199,5 +211,20 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
         vm.carregar()
         val pedido = pedidos.single { it.second == "/rest/v1/rpc/gerar_codigo_checkin" }
         assertTrue(pedido.third!!.contains(turnoId))
+    }
+
+    @Test
+    fun `o grafo liga minhas_midias e pedir_nova_analise_midia na foto de perfil`() = runBlocking {
+        iniciar()
+        val vm = get<FotoDePerfilViewModel>()
+
+        vm.carregar().join()
+        assertEquals("recusada", vm.situacao.value.midia?.estado)
+        vm.pedirNovaAnalise().join()
+
+        assertEquals("em_analise", vm.situacao.value.midia?.estado)
+        val rpcs = pedidos.map { it.second }
+        assertEquals(listOf("/rest/v1/rpc/minhas_midias", "/rest/v1/rpc/pedir_nova_analise_midia"), rpcs.filter { it.endsWith("minhas_midias") || it.endsWith("pedir_nova_analise_midia") })
+        assertEquals(idDaMidia, ClienteSupabase.jsonFrila.parseToJsonElement(pedidos.last { it.second.endsWith("/pedir_nova_analise_midia") }.third!!).jsonObject["midia_id"]!!.jsonPrimitive.content)
     }
 }

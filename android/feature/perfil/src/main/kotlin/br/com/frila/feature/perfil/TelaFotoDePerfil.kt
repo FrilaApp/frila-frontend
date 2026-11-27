@@ -43,6 +43,8 @@ fun TelaFotoDePerfil(
     aoEscolherOutra: () -> Unit,
     aoTentarDeNovo: () -> Unit,
     aoVoltar: (() -> Unit)? = null,
+    situacao: SituacaoDaFoto = SituacaoDaFoto(),
+    aoPedirNovaAnalise: () -> Unit = {},
 ) {
     val cores = FrilaTema.cores
     Scaffold(

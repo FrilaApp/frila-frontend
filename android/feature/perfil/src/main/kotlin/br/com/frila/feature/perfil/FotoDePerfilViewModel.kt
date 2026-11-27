@@ -7,6 +7,7 @@ import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.MidiaDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +27,20 @@ sealed interface EtapaDaFoto {
 }
 
 /**
+ * O que `minhas_midias` diz da foto de perfil da conta (a mais recente que não foi removida) e o pedido de nova análise (cartão 1dRm7FAH).
+ */
+data class SituacaoDaFoto(
+    val midia: MidiaDto? = null,
+    /** Já se pediu a nova análise desta foto: o pedido vale uma vez, e o texto passa a dizer isso. */
+    val novaAnaliseJaPedida: Boolean = false,
+    val pedindoNovaAnalise: Boolean = false,
+    /** A falha do último pedido, em texto da tela. */
+    val aviso: String? = null,
+) {
+    val podePedirNovaAnalise: Boolean get() = false
+}
+
+/**
  * Escolher a foto, prepará-la, conferir no aparelho e enviar (L1-3b). Só o envio: ver a foto atual, remover e pedir nova análise são do passo seguinte.
  * As duas operações chegam por função (a ligação é do L1-7): [prepararJpeg] lê a foto escolhida (uma referência em texto) e devolve o JPEG pronto,
  * e [enviar] é o `FluxoDaFotoDePerfil.enviar`.
@@ -33,10 +48,21 @@ sealed interface EtapaDaFoto {
 class FotoDePerfilViewModel(
     private val prepararJpeg: suspend (String) -> ByteArray,
     private val enviar: suspend (jpeg: ByteArray, enviarMesmoAssim: Boolean) -> SaidaDoEnvioDaFoto,
+    /** `ServicoMidia.minhasMidias`. */
+    private val listarMidias: suspend () -> List<MidiaDto> = { emptyList() },
+    /** `ServicoMidia.pedirNovaAnaliseMidia`. */
+    private val pedirNovaAnaliseMidia: suspend (midiaId: String) -> MidiaDto = { throw IllegalStateException("não ligado") },
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
+    private val _situacao = MutableStateFlow(SituacaoDaFoto())
+    val situacao: StateFlow<SituacaoDaFoto> = _situacao.asStateFlow()
+
+    fun carregar(): Job = escopoDeTrabalho.launch { }
+
+    fun pedirNovaAnalise(): Job = escopoDeTrabalho.launch { }
+
     private val _etapa = MutableStateFlow<EtapaDaFoto>(EtapaDaFoto.Parada)
     val etapa: StateFlow<EtapaDaFoto> = _etapa.asStateFlow()
 
