@@ -418,6 +418,7 @@ val moduloFeatures = module {
             permitirDominioDeTeste = BuildConfig.DEBUG,
             modo = params.getOrNull<ModoCodigo>() ?: ModoCodigo.ENTRADA,
             desafioIdInicial = params.getOrNull<String>(),
+            reenviarEmSegundosInicial = params.getOrNull<Int>(),
         )
     }
     viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }

@@ -72,6 +72,7 @@ sealed interface ResultadoEntradaComSenha {
     data class DesafioOtp(
         val desafioId: String,
         val expiraEm: String?,
+        val reenviarEmSegundos: Int? = null,
     ) : ResultadoEntradaComSenha
 }
 
@@ -178,6 +179,7 @@ class ServicoAutenticacao(
                 ResultadoEntradaComSenha.DesafioOtp(
                     desafioId = desafioId,
                     expiraEm = dto.expiraEm,
+                    reenviarEmSegundos = dto.reenviarEmSegundos?.takeIf { it > 0 },
                 )
             }
             else -> throw ErroDaApi(CodigoErroAPI.RESPOSTA_INVALIDA, "resposta_invalida", null, "Status inválido")
