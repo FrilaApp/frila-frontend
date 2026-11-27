@@ -806,4 +806,78 @@ class DetalheVagaViewModelTest {
         runBlocking { kotlinx.coroutines.delay(300) }
         assertEquals(false, vm.estado.value.indisponivel)
     }
+
+    // ── A candidatura que confirma antes de detalhe_vaga voltar (item 174) ──────────────────────────────────────────
+
+    /** O `detalhe_vaga` só responde quando o teste soltar; a candidatura responde na hora com [confirmadaJson]. */
+    private fun viewModelComDetalheSegurado(
+        portao: kotlinx.coroutines.CompletableDeferred<Unit>,
+        modo: String = "urgencia",
+        respostaDaCandidatura: String = confirmadaJson,
+        detalhe: () -> Pair<String, HttpStatusCode>,
+    ): DetalheVagaViewModel {
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("/detalhe_vaga")) {
+                portao.await()
+                val (corpo, status) = detalhe()
+                respond(corpo, status, cabecalhoJson)
+            } else {
+                respond(respostaDaCandidatura, HttpStatusCode.OK, cabecalhoJson)
+            }
+        }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        return DetalheVagaViewModel(vagaDe(modo), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+    }
+
+    @Test
+    fun `a candidatura que confirma antes da leitura voltar com a vaga sem posicao aberta nao marca indisponivel`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val vm = viewModelComDetalheSegurado(portao) { vagaJson("publicada", 0) to HttpStatusCode.OK }
+
+        vm.candidatar().join()
+        assertEquals(StatusCandidatura.CONFIRMADA, vm.estado.value.statusCandidatura)
+        portao.complete(Unit)
+        esperarALeitura(vm) { it.detalhe != null }
+
+        assertEquals(false, vm.estado.value.indisponivel, "quem acabou de conseguir o turno não vê 'não está mais disponível'")
+        assertEquals(StatusCandidatura.CONFIRMADA, vm.estado.value.statusCandidatura)
+    }
+
+    @Test
+    fun `a candidatura que confirma antes de um 404 do detalhe tambem nao marca indisponivel`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val vm = viewModelComDetalheSegurado(portao) { """{"code":"nao_encontrado","message":"x"}""" to HttpStatusCode.NotFound }
+
+        vm.candidatar().join()
+        portao.complete(Unit)
+        kotlinx.coroutines.delay(300)
+
+        assertEquals(false, vm.estado.value.indisponivel)
+        assertEquals(StatusCandidatura.CONFIRMADA, vm.estado.value.statusCandidatura)
+    }
+
+    @Test
+    fun `sem candidatura, a mesma leitura (sem posicao aberta) marca indisponivel`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val vm = viewModelComDetalheSegurado(portao) { vagaJson("publicada", 0) to HttpStatusCode.OK }
+
+        portao.complete(Unit)
+        esperarALeitura(vm) { it.detalhe != null }
+
+        assertEquals(true, vm.estado.value.indisponivel)
+    }
+
+    @Test
+    fun `a candidatura pendente por selecao antes da leitura voltar sem posicao aberta tambem nao marca indisponivel`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val pendente = """{"estado": "pendente", "candidatura_id": "c1", "posicao_id": null, "turno_id": null, "contato": null}"""
+        val vm = viewModelComDetalheSegurado(portao, modo = "selecao", respostaDaCandidatura = pendente) { vagaJson("publicada", 0) to HttpStatusCode.OK }
+
+        vm.candidatar().join()
+        assertEquals(StatusCandidatura.PENDENTE, vm.estado.value.statusCandidatura)
+        portao.complete(Unit)
+        esperarALeitura(vm) { it.detalhe != null }
+
+        assertEquals(false, vm.estado.value.indisponivel)
+    }
 }
