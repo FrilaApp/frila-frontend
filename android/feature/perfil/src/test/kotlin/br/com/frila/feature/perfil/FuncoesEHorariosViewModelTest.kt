@@ -308,7 +308,8 @@ class FuncoesEHorariosViewModelTest {
 
         vm.carregar().join()
         assertFalse(vm.estado.value.carregando)
-        assertEquals("Sem conexão", vm.estado.value.erro)
+        // Antes o teste esperava o texto cru do fixture ("Sem conexão" em `details`); o servidor manda ali o campo do contrato.
+        assertEquals(TextosFuncoesEHorarios.ERRO_SEM_REDE, vm.estado.value.erro)
     }
 
     @Test
@@ -319,6 +320,44 @@ class FuncoesEHorariosViewModelTest {
 
         vm.salvar().join()
         assertFalse(vm.estado.value.salvo)
-        assertEquals("Não autorizado", vm.estado.value.erro)
+        // Antes o teste esperava o texto cru do fixture ("Não autorizado" em `details`).
+        assertEquals(TextosFuncoesEHorarios.ERRO_SEM_PERMISSAO, vm.estado.value.erro)
+    }
+
+    // ── Erro do servidor vira texto fixo, como o iOS (MensagemDoErroAPI.texto), cartão fZPgZzWu ─────────────────
+
+    /** Como o servidor manda: o campo do contrato em `details` e a mensagem técnica em `message`, nunca texto de tela. */
+    private fun erroDoServidor(codigo: CodigoErroAPI, detalhes: String? = "funcoes") =
+        ErroDaApi(codigo = codigo, codigoOriginal = codigo.name.lowercase(), detalhes = detalhes, mensagemCrua = "violates check constraint")
+
+    @Test
+    fun `salvar recusado mostra o texto fixo do iOS, nunca o campo nem a mensagem crua do servidor`() = runBlocking {
+        val casos = listOf(
+            erroDoServidor(CodigoErroAPI.CAMPO_INVALIDO) to TextosFuncoesEHorarios.ERRO_GENERICO,
+            erroDoServidor(CodigoErroAPI.CAMPO_OBRIGATORIO, detalhes = null) to TextosFuncoesEHorarios.ERRO_GENERICO,
+            erroDoServidor(CodigoErroAPI.SEM_REDE, detalhes = null) to TextosFuncoesEHorarios.ERRO_SEM_REDE,
+            erroDoServidor(CodigoErroAPI.NAO_AUTENTICADO, detalhes = null) to TextosFuncoesEHorarios.ERRO_SESSAO,
+            erroDoServidor(CodigoErroAPI.SEM_PERMISSAO) to TextosFuncoesEHorarios.ERRO_SEM_PERMISSAO,
+            erroDoServidor(CodigoErroAPI.PERFIL_INCOMPATIVEL) to TextosFuncoesEHorarios.ERRO_SEM_PERMISSAO,
+            erroDoServidor(CodigoErroAPI.LIMITE_EXCEDIDO) to TextosFuncoesEHorarios.ERRO_LIMITE,
+        )
+        for ((erro, esperado) in casos) {
+            val vm = ServidorFalso(falhaAtualizar = erro).viewModel()
+            vm.carregar().join()
+            vm.salvar().join()
+            assertEquals(erro.codigo.name, esperado, vm.estado.value.erro)
+            assertFalse(vm.estado.value.salvando)
+        }
+    }
+
+    @Test
+    fun `carregar recusado mostra o texto fixo do iOS, nunca o campo nem a mensagem crua do servidor`() = runBlocking {
+        val vm = ServidorFalso(falhaCarregarPerfil = erroDoServidor(CodigoErroAPI.CAMPO_INVALIDO)).viewModel()
+        vm.carregar().join()
+        assertEquals(TextosFuncoesEHorarios.ERRO_GENERICO, vm.estado.value.erro)
+
+        val semRede = ServidorFalso(falhaCarregarFuncoes = erroDoServidor(CodigoErroAPI.SEM_REDE, detalhes = null)).viewModel()
+        semRede.carregar().join()
+        assertEquals(TextosFuncoesEHorarios.ERRO_SEM_REDE, semRede.estado.value.erro)
     }
 }
