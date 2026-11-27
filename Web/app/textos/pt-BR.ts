@@ -202,6 +202,8 @@ export const textos = {
     rotuloDaSenha: "Nova senha",
     ajudaDaSenha: "Use pelo menos 8 caracteres.",
     rotuloDaConfirmacao: "Confirmar nova senha",
+    mostrarSenha: "Mostrar senha",
+    ocultarSenha: "Ocultar senha",
     salvar: "Salvar senha",
     salvando: "Salvando…",
     alterarSenha: "Alterar minha senha",
