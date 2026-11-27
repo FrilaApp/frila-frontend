@@ -580,4 +580,48 @@ class CodigoViewModelTest {
         assertEquals(0L, vm.segundosParaReenviar())
     }
 
+    @Test
+    fun `reenviarEmSegundosInicial 30 inicia timer em 30s e valor ausente ou invalido cai para 60s`() {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        val agora = { Instant.parse("2026-11-27T12:00:00Z") }
+        val vm30 = CodigoViewModel(
+            email = "prof@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = agora,
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-1",
+            reenviarEmSegundosInicial = 30,
+        )
+        val vmAusente = CodigoViewModel(
+            email = "prof@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = agora,
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-2",
+            reenviarEmSegundosInicial = null,
+        )
+        val vmInvalido = CodigoViewModel(
+            email = "prof@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = agora,
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-3",
+            reenviarEmSegundosInicial = -5,
+        )
+
+        assertEquals(30L, vm30.segundosParaReenviar())
+        assertEquals(60L, vmAusente.segundosParaReenviar())
+        assertEquals(60L, vmInvalido.segundosParaReenviar())
+    }
+
 }

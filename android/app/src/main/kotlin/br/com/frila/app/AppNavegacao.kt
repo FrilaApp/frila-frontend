@@ -170,7 +170,7 @@ object Rotas {
     const val ENTRADA = "entrada"
     const val CRIAR_CONTA = "criar_conta?email={email}"
     const val RECUPERAR_SENHA = "recuperar_senha?email={email}"
-    const val CODIGO = "codigo/{email}?modo={modo}&desafioId={desafioId}"
+    const val CODIGO = "codigo/{email}?modo={modo}&desafioId={desafioId}&reenviarEmSegundos={reenviarEmSegundos}"
     const val DEFINIR_SENHA = "definir_senha?origem={origem}&manterDispositivo={manterDispositivo}&email={email}"
     const val CADASTRO = "cadastro"
     /** Pergunta ao servidor quem é a conta e segue para a tela do papel (#782, #783). */
@@ -231,13 +231,20 @@ object Rotas {
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
     fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
 
-    fun codigo(email: String, modo: ModoCodigo = ModoCodigo.ENTRADA, desafioId: String? = null): String {
-        val base = if (modo == ModoCodigo.ENTRADA && desafioId.isNullOrBlank()) {
+    fun codigo(
+        email: String,
+        modo: ModoCodigo = ModoCodigo.ENTRADA,
+        desafioId: String? = null,
+        reenviarEmSegundos: Int? = null,
+    ): String {
+        val esperaValida = reenviarEmSegundos?.takeIf { it > 0 }
+        val base = if (modo == ModoCodigo.ENTRADA && desafioId.isNullOrBlank() && esperaValida == null) {
             "codigo/$email"
         } else {
             val params = buildList {
                 if (modo != ModoCodigo.ENTRADA) add("modo=${modo.chave}")
                 if (!desafioId.isNullOrBlank()) add("desafioId=${Uri.encode(desafioId)}")
+                if (esperaValida != null) add("reenviarEmSegundos=$esperaValida")
             }
             "codigo/$email?${params.joinToString("&")}"
         }
@@ -581,8 +588,10 @@ fun AppNavegacao(
                         aoEntrarDemonstracao = { email ->
                             navController.navigate(Rotas.codigo(email, ModoCodigo.DEMO))
                         },
-                        aoExigirDesafioOtp = { email, desafioId ->
-                            navController.navigate(Rotas.codigo(email, ModoCodigo.LOGIN_DISPOSITIVO, desafioId))
+                        aoExigirDesafioOtpComEspera = { email, desafioId, reenviarEmSegundos ->
+                            navController.navigate(
+                                Rotas.codigo(email, ModoCodigo.LOGIN_DISPOSITIVO, desafioId, reenviarEmSegundos),
+                            )
                         },
                         aoExigirDefinirSenha = {
                             navController.navigate(Rotas.definirSenha(origem = "pendente", manterDispositivoAtual = true)) {
@@ -636,12 +645,16 @@ fun AppNavegacao(
                     navArgument("email") { type = NavType.StringType },
                     navArgument("modo") { type = NavType.StringType; defaultValue = ModoCodigo.ENTRADA.chave },
                     navArgument("desafioId") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("reenviarEmSegundos") { type = NavType.IntType; defaultValue = 0 },
                 ),
             ) { entrada ->
                 val email = entrada.arguments?.getString("email").orEmpty()
                 val modo = ModoCodigo.deChave(entrada.arguments?.getString("modo"))
                 val desafioId = entrada.arguments?.getString("desafioId")?.takeIf { it.isNotBlank() }
-                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email, modo, desafioId) })
+                val reenviarEmSegundos = entrada.arguments?.getInt("reenviarEmSegundos")?.takeIf { it > 0 }
+                val viewModel: CodigoViewModel = koinViewModel(
+                    parameters = { parametersOf(email, modo, desafioId, reenviarEmSegundos) },
+                )
                 TelaCodigo(
                     viewModel = viewModel,
                     aoAutenticar = {
