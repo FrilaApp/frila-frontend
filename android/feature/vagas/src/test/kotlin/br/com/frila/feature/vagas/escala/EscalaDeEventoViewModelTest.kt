@@ -508,7 +508,7 @@ class EscalaDeEventoViewModelTest {
     private class Recusa(val status: HttpStatusCode, val codigo: String, val detalhes: String? = null, val erro: ErroGlobalEscala)
 
     private val sessaoExpirada = Recusa(HttpStatusCode.Unauthorized, "nao_autenticado", null, ErroGlobalEscala.SESSAO_EXPIRADA)
-    private val limiteExcedido = Recusa(HttpStatusCode.TooManyRequests, "limite_excedido", null, ErroGlobalEscala.GENERICO)
+    private val limiteExcedido = Recusa(HttpStatusCode.TooManyRequests, "limite_excedido", null, ErroGlobalEscala.LIMITE_EXCEDIDO)
 
     /** O servidor confere quem pode ANTES da `chave`: estas recusas não provam que a tentativa anterior não gravou. */
     private val recusasDeQuemPode = listOf(
@@ -591,6 +591,38 @@ class EscalaDeEventoViewModelTest {
             assertEquals(List(3) { "chave-1" }, List(3) { chaveDe(rede, it) }, recusa.codigo)
             assertEquals(1, chaves, recusa.codigo)
             assertEquals("ev1", vm.estado.value.publicada?.eventoId, recusa.codigo)
+        }
+    }
+
+    @Test
+    fun `429 mostra a mensagem do limite, e nao a generica, na primeira tentativa e no reenvio`() = runBlocking {
+        val texto = "Você fez muitas tentativas. Aguarde antes de tentar novamente."
+
+        // Primeira tentativa: o corpo é solto, a edição volta.
+        val primeira = viewModelCom(redeEmTres(limiteExcedido, null))
+        primeira.preencher()
+        primeira.publicar().join()
+        assertEquals(ErroGlobalEscala.LIMITE_EXCEDIDO, primeira.estado.value.erro)
+        assertEquals(texto, primeira.estado.value.erro?.mensagem)
+        assertNull(primeira.estado.value.pendente)
+
+        // Reenvio de uma tentativa incerta: o corpo e a chave ficam.
+        val reenvio = viewModelCom(redeEmTres(primeira = null, segunda = limiteExcedido))
+        reenvio.preencher()
+        reenvio.publicar().join()
+        reenvio.publicar().join()
+        assertEquals(ErroGlobalEscala.LIMITE_EXCEDIDO, reenvio.estado.value.erro)
+        assertEquals(texto, reenvio.estado.value.erro?.mensagem)
+        assertNotNull(reenvio.estado.value.pendente)
+    }
+
+    @Test
+    fun `a mensagem do limite e so do 429, e os outros erros nao a usam`() = runBlocking {
+        for (recusa in recusasDeQuemPode + sessaoExpirada) {
+            val vm = viewModelCom(redeEmTres(recusa, null))
+            vm.preencher()
+            vm.publicar().join()
+            assertTrue(vm.estado.value.erro != ErroGlobalEscala.LIMITE_EXCEDIDO, recusa.codigo)
         }
     }
 
