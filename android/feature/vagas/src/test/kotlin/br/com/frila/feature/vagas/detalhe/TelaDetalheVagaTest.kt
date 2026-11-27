@@ -110,7 +110,7 @@ class TelaDetalheVagaTest {
         return DetalheVagaViewModel(
             vaga = vaga,
             servicoVagas = ServicoVagas(cliente),
-            escopo = CoroutineScope(Dispatchers.Default),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
         )
     }
 
@@ -684,7 +684,7 @@ class TelaDetalheVagaTest {
             apiKey = "chave-teste",
             engine = MockEngine { respond(resposta, status, headersOf(HttpHeaders.ContentType, "application/json")) },
         )
-        return DetalheVagaViewModel(vaga = criarVaga(), servicoVagas = ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return DetalheVagaViewModel(vaga = criarVaga(), servicoVagas = ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Unconfined))
     }
 
     @Test
@@ -724,7 +724,7 @@ class TelaDetalheVagaTest {
             vaga = criarVaga(),
             servicoVagas = ServicoVagas(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = MockEngine { respond("") })),
             detalhe = vagaDoServidor(participaRateio = participaRateio),
-            escopo = CoroutineScope(Dispatchers.Default),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
         )
         compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = vm) } }
     }
@@ -843,4 +843,19 @@ class TelaDetalheVagaTest {
         assertEquals(0, compose.onAllNodesWithText("Inclui").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("Material próprio exigido", substring = true).fetchSemanticsNodes().size)
     }
+
+    // ── "por pessoa" e "valor integral" (DLjTVc2e, item 154) ──────────────────────────────────────────────────────────
+
+    private fun conferirOValor(modo: String) {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga(modo = modo))) } }
+        compose.onNodeWithTag("valor-por-pessoa").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("por pessoa").assertIsDisplayed()
+        compose.onNodeWithText("O valor é integral: o Frila não desconta taxa do turno.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `em urgencia o valor vem com por pessoa e o aviso de valor integral`() = conferirOValor("urgencia")
+
+    @Test
+    fun `por selecao o valor vem com por pessoa e o aviso de valor integral`() = conferirOValor("selecao")
 }
