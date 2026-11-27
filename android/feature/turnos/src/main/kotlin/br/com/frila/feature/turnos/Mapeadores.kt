@@ -48,7 +48,9 @@ fun mapearTipoVerificacaoCheckin(
 
 fun TurnoDto.paraItem(): ItemTurno {
     val comprovanteMapeado: ComprovanteCheckin? = checkinEm?.let { feitoEm ->
-        val instanteCheckin = runCatching { instanteDoServidor(feitoEm) }.getOrDefault(Instant.now())
+        // Hora ilegível: sem comprovante, como `checkoutEm`. Inventar "agora" mostraria um horário que ninguém registrou e venceria o
+        // toque real que o `CheckinViewModel` guarda (`confirmarEntradaEnviada` cai nele quando o servidor não traz comprovante).
+        val instanteCheckin = runCatching { instanteDoServidor(feitoEm) }.getOrNull() ?: return@let null
         val tipoVerificacao = mapearTipoVerificacaoCheckin(
             verificacao = verificacao,
             checkinTipo = checkinTipo,
