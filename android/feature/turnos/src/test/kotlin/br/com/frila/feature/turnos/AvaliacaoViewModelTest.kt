@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -97,7 +98,7 @@ class AvaliacaoViewModelTest {
     }
 
     @Test
-    fun `avaliar recusado com avaliacao_ja_registrada resulta em ERRO com mensagem`() = runBlocking {
+    fun `avaliar recusado com avaliacao_ja_registrada encerra em JA_AVALIADO, mesmo sem conseguir reler o turno`() = runBlocking {
         val viewModel = viewModelComEngine(
             MockEngine {
                 respond(
@@ -110,8 +111,9 @@ class AvaliacaoViewModelTest {
 
         viewModel.avaliar(turnoId, false).join()
 
-        assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
-        assertNotNull(viewModel.estado.value.mensagemErro)
+        // Era ERRO com "você já avaliou com uma resposta diferente" e os botões de volta (MO7DkVA2): agora é estado final.
+        assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
+        assertEquals(null, viewModel.estado.value.mensagemErro)
     }
 
     @Test
@@ -164,4 +166,104 @@ class AvaliacaoViewModelTest {
         assertEquals(StatusAvaliacao.SUCESSO, viewModel.estado.value.status)
         assertEquals(true, viewModel.estado.value.respostaRegistrada)
     }
+
+    // MO7DkVA2: 409 `avaliacao_ja_registrada` encerra a pergunta (como o iOS: `jaAvaliado`), relê o turno e mostra `avaliacao.resposta`.
+
+    private fun turnoComAvaliacaoJson(resposta: Boolean?, id: String = turnoId) = """
+        {
+          "id": "$id", "posicao_id": "posicao-1",
+          "vaga": {"id": "vaga-1", "funcao": "garçom", "local": "CLS 405 Bloco C", "regiao_administrativa": "Plano Piloto",
+                   "inicio_em": "2026-11-01T21:00:00Z", "fim_em": "2026-11-02T03:00:00Z", "valor_centavos": 16000},
+          "contraparte": {"id": "e1", "tipo": "estabelecimento", "nome": "Bar do Zé",
+                          "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}},
+          "verificacao": "verificado", "valor_acordado_centavos": 16000, "pode_avaliar": false, "estado": "cumprida",
+          "avaliacao": ${resposta?.let { """{"turno_id": "$id", "resposta": $it, "criada_em": "2026-11-02T04:00:00Z"}""" } ?: "null"},
+          "cancelamento": null
+        }
+    """.trimIndent()
+
+    private val jsonCabecalho = headersOf(HttpHeaders.ContentType, "application/json")
+
+    /** `avaliar` responde 409 e `meus_turnos` devolve `turnos`; guarda os caminhos chamados. */
+    private fun viewModelComConflito(turnos: String?, caminhos: MutableList<String>): AvaliacaoViewModel {
+        val engine = MockEngine { request ->
+            val caminho = request.url.encodedPath
+            caminhos += caminho
+            when {
+                caminho.endsWith("/avaliar") -> respond(
+                    """{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, jsonCabecalho,
+                )
+                caminho.endsWith("/meus_turnos") && turnos != null -> respond(turnos, HttpStatusCode.OK, jsonCabecalho)
+                else -> respond("""{"code":"erro_interno","message":"sintetico"}""", HttpStatusCode.InternalServerError, jsonCabecalho)
+            }
+        }
+        return viewModelComEngine(engine)
+    }
+
+    @Test
+    fun `409 avaliacao_ja_registrada vai a JA_AVALIADO, sem erro, e mostra a resposta gravada relida do turno`() = runBlocking {
+        for (gravada in listOf(true, false)) {
+            val caminhos = mutableListOf<String>()
+            // Um turno de outro id, com a resposta oposta, vem antes: a releitura tem de achar o turno desta tela.
+            val outro = turnoComAvaliacaoJson(!gravada, id = "99999999-9999-9999-9999-999999999999")
+            val viewModel = viewModelComConflito("[$outro,${turnoComAvaliacaoJson(gravada)}]", caminhos)
+
+            // Pede o contrário do que está gravado: é o caso do 409 (resposta diferente).
+            viewModel.avaliar(turnoId, !gravada).join()
+
+            assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status, "gravada=$gravada")
+            assertEquals(gravada, viewModel.estado.value.respostaRegistrada, "mostra a resposta do servidor, não a tentativa")
+            assertEquals(null, viewModel.estado.value.mensagemErro)
+            assertTrue(caminhos.any { it.endsWith("/meus_turnos") }, "relê o turno: $caminhos")
+        }
+    }
+
+    @Test
+    fun `409 com a releitura do turno falhando ainda encerra em JA_AVALIADO, sem inventar a resposta`() = runBlocking {
+        val viewModel = viewModelComConflito(turnos = null, caminhos = mutableListOf())
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
+        assertEquals(null, viewModel.estado.value.respostaRegistrada)
+        assertEquals(null, viewModel.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `409 com o turno sem avaliacao na lista encerra em JA_AVALIADO sem resposta`() = runBlocking {
+        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(null)}]", mutableListOf())
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
+        assertEquals(null, viewModel.estado.value.respostaRegistrada)
+    }
+
+    @Test
+    fun `depois do 409 um novo toque nao envia de novo`() = runBlocking {
+        val caminhos = mutableListOf<String>()
+        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(true)}]", caminhos)
+
+        viewModel.avaliar(turnoId, false).join()
+        val enviosAntes = caminhos.count { it.endsWith("/avaliar") }
+        viewModel.avaliar(turnoId, false).join()
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(1, enviosAntes)
+        assertEquals(1, caminhos.count { it.endsWith("/avaliar") }, "estado final: nenhum envio novo")
+        assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `outros erros continuam em ERRO com os botoes (so o 409 encerra)`() = runBlocking {
+        val engine = MockEngine {
+            respond("""{"code":"avaliacao_indisponivel","message":"sintetico"}""", HttpStatusCode.UnprocessableEntity, jsonCabecalho)
+        }
+        val viewModel = viewModelComEngine(engine)
+
+        viewModel.avaliar(turnoId, true).join()
+
+        assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
+    }
 }
+

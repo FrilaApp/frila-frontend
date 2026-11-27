@@ -77,6 +77,10 @@ fun TelaAvaliacaoDoContratante(
                     resposta = estado.respostaRegistrada,
                     aoVoltar = aoVoltar,
                 )
+                StatusAvaliacao.JA_AVALIADO -> JaAvaliadoContratante(
+                    resposta = estado.respostaRegistrada,
+                    aoVoltar = aoVoltar,
+                )
                 StatusAvaliacao.ERRO -> PerguntaAvaliacaoContratante(
                     escolha = null,
                     aoResponder = avaliar,
@@ -122,6 +126,37 @@ private fun PerguntaAvaliacaoContratante(
         habilitada = habilitada,
     )
     mensagemErro?.let { MensagemDeAcao(texto = it) }
+}
+
+/** 409 `avaliacao_ja_registrada` (a casa ou outro membro já avaliou este lado do turno): sem botões, com a resposta gravada se o servidor a devolveu. */
+@Composable
+private fun JaAvaliadoContratante(
+    resposta: Boolean?,
+    aoVoltar: () -> Unit,
+) {
+    TituloDaTela(
+        texto = stringResource(R.string.avaliacao_contratante_ja_avaliado),
+        modifier = Modifier.semantics { heading() },
+    )
+    Text(
+        text = when (resposta) {
+            true -> stringResource(R.string.avaliacao_contratante_ja_avaliado_sim)
+            false -> stringResource(R.string.avaliacao_contratante_ja_avaliado_nao)
+            null -> stringResource(R.string.avaliacao_contratante_ja_avaliado_sem_resposta)
+        },
+        style = FrilaTipo.corpo,
+        color = FrilaTema.cores.tinta,
+        modifier = Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
+    BotaoSecundario(
+        texto = stringResource(R.string.avaliacao_contratante_voltar),
+        aoClicar = aoVoltar,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("voltar-avaliacao-contratante"),
+    )
 }
 
 @Composable
