@@ -40,18 +40,31 @@ class DetalheVagaViewModel(
 
     init { registrarEvento(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null) }
 
+    /**
+     * Uma candidatura por vez: a trava é do estado e atômica (como `ValidacaoDoCodigoViewModel.validar`), não só do botão, que só se
+     * desliga depois de a tela redesenhar. O segundo toque com a primeira em voo não manda outra requisição, não repete o evento
+     * `CANDIDATURA_ENVIADA` e não deixa o 409 `posicao_ja_preenchida` de um segundo pedido trocar a confirmada por erro. Depois de uma
+     * falha o toque seguinte candidata de novo.
+     */
     fun candidatar(): Job {
+        var iniciou = false
         _estado.update {
-            it.copy(
-                statusCandidatura = StatusCandidatura.ENVIANDO,
-                mensagem = null,
-                navegarParaConfirmada = false,
-                ehConflitoHorario = false,
-                ehVagaPreenchida = false,
-                ehVagaEncerrada = false,
-                ehContaSuspensa = false,
-            )
+            iniciou = it.statusCandidatura != StatusCandidatura.ENVIANDO
+            if (!iniciou) {
+                it
+            } else {
+                it.copy(
+                    statusCandidatura = StatusCandidatura.ENVIANDO,
+                    mensagem = null,
+                    navegarParaConfirmada = false,
+                    ehConflitoHorario = false,
+                    ehVagaPreenchida = false,
+                    ehVagaEncerrada = false,
+                    ehContaSuspensa = false,
+                )
+            }
         }
+        if (!iniciou) return escopoDeTrabalho.launch { }
 
         return escopoDeTrabalho.launch {
             try {
