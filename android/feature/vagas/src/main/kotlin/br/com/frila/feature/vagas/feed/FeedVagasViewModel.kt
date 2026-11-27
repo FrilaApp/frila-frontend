@@ -106,7 +106,7 @@ class FeedVagasViewModel(
     }
 
     fun carregar(): Job {
-        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null, semPontoBase = false) }
+        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null, semPontoBase = false, perfilIncompativel = false) }
         return escopoDeTrabalho.launch {
             try {
                 restaurarPreferencias()
@@ -117,11 +117,20 @@ class FeedVagasViewModel(
                 throw erro
             } catch (erro: Exception) {
                 _estado.update {
-                    it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro), semPontoBase = faltaPontoBase(erro))
+                    it.copy(
+                        status = StatusFeed.ERRO,
+                        mensagemErro = mensagemDeErro(erro),
+                        semPontoBase = faltaPontoBase(erro),
+                        perfilIncompativel = ehPerfilIncompativel(erro),
+                    )
                 }
             }
         }
     }
+
+    /** Como no iOS (`FalhaDaLista.perfilIncompativel`): a lista é de quem procura turno; conta de contratante recebe `422 perfil_incompativel`. */
+    private fun ehPerfilIncompativel(erro: Exception): Boolean =
+        erro is ErroDaApi && erro.codigo == CodigoErroAPI.PERFIL_INCOMPATIVEL
 
     /** Como no iOS (`FalhaDoFeed.semPontoDeReferencia`): sem ponto base, o servidor não tem de onde medir. */
     private fun faltaPontoBase(erro: Exception): Boolean =
@@ -316,6 +325,7 @@ class FeedVagasViewModel(
 
     private fun mensagemDeErro(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo?.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
+        "PERFIL_INCOMPATIVEL" -> TEXTO_PERFIL_INCOMPATIVEL
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
     }
 }
