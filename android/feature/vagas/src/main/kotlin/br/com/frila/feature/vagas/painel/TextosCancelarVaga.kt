@@ -1,5 +1,7 @@
 package br.com.frila.feature.vagas.painel
 
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
+
 /** Textos de cancelar a vaga inteira (paridade com `TextosDoCancelamento` do iOS, lado do contratante). */
 object TextosCancelarVaga {
     const val NA_FILA = "O cancelamento será enviado quando a conexão voltar."
@@ -27,9 +29,10 @@ object TextosCancelarVaga {
     const val MOTIVO_RECUSADO = "O motivo tem termos que o Frila não aceita. Reescreva com outras palavras e confirme de novo."
     const val SESSAO_EXPIRADA = "Sua sessão expirou. Entre novamente para continuar."
     const val CONTA_NAO_PODE = "Sua conta não pode realizar esta ação."
-    const val MOTIVO_MOVIMENTO_MENOR = "Movimento menor que o esperado"
-    const val MOTIVO_PREENCHIDA_FORA = "A posição foi preenchida de outra forma"
-    const val MOTIVO_MUDANCA_DE_PLANOS = "O evento ou o turno mudou"
-    const val MOTIVO_PROBLEMA_NO_LOCAL = "Problema no estabelecimento"
-    const val MOTIVO_OUTRO = "Outro motivo"
+    // Os motivos vivem em `:core:dominio` (a posição usa os mesmos); aqui só os nomes que as telas e os testes da vaga já usam.
+    const val MOTIVO_MOVIMENTO_MENOR = MotivoDeCancelamentoDaCasa.Textos.MOVIMENTO_MENOR
+    const val MOTIVO_PREENCHIDA_FORA = MotivoDeCancelamentoDaCasa.Textos.PREENCHIDA_FORA
+    const val MOTIVO_MUDANCA_DE_PLANOS = MotivoDeCancelamentoDaCasa.Textos.MUDANCA_DE_PLANOS
+    const val MOTIVO_PROBLEMA_NO_LOCAL = MotivoDeCancelamentoDaCasa.Textos.PROBLEMA_NO_LOCAL
+    const val MOTIVO_OUTRO = MotivoDeCancelamentoDaCasa.Textos.OUTRO
 }

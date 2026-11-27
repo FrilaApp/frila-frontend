@@ -153,7 +153,7 @@ class MeusTurnosViewModelTest {
     }
 
     @Test
-    fun `carregar com falha de rede resulta em status ERRO com mensagem`() = runBlocking {
+    fun `carregar com 403 sem_permissao resulta em ERRO com o texto generico`() = runBlocking {
         val viewModel = viewModelComEngine(
             MockEngine {
                 respond(
@@ -167,7 +167,18 @@ class MeusTurnosViewModelTest {
         viewModel.carregar().join()
 
         assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
-        assertTrue(viewModel.estado.value.mensagemErro != null)
+        assertEquals("Não foi possível carregar seus turnos. Tente de novo em instantes.", viewModel.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `carregar com falha de rede resulta em ERRO com o texto de sem conexao`() = runBlocking {
+        // Falha de rede de verdade: o engine lança IOException, que o ClienteSupabase traduz em SEM_REDE.
+        val viewModel = viewModelComEngine(MockEngine { throw java.io.IOException("sem rede") })
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
+        assertEquals("Sem conexão. Verifique sua internet e tente de novo.", viewModel.estado.value.mensagemErro)
     }
 
     @Test

@@ -8,11 +8,13 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.runtime.mutableStateOf
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import java.time.Instant
@@ -270,6 +272,109 @@ class TelaTurnoDoContratanteTest {
         assertEquals(1, voltou)
     }
 
+    // ── A folha de motivos da casa (Vmfnk4gQ) ─────────────────────────────────────────────────────────────────────────
+
+    private fun estadoComFolha(motivo: MotivoDeCancelamentoDaCasa? = null, detalhes: String = "") = estado().let {
+        it.copy(
+            contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            cancelamentoDisponivel = true, agora = { Instant.EPOCH },
+            pedindoCancelamento = true, motivoDoCancelamento = motivo, detalhesDoCancelamento = detalhes,
+        )
+    }
+
+    private class Escolhas {
+        val motivos = mutableListOf<MotivoDeCancelamentoDaCasa>()
+        var confirmou = 0
+        var desistiu = 0
+    }
+
+    private fun montarFolha(estado: EstadoTurnoDoContratante): Escolhas {
+        val escolhas = Escolhas()
+        rule.setContent { FrilaTheme {
+            ConteudoTurnoDoContratante(estado, AcoesTurnoDoContratante(
+                aoEscolherMotivoDoCancelamento = { escolhas.motivos += it },
+                aoConfirmarCancelamento = { escolhas.confirmou++ },
+                aoDesistir = { escolhas.desistiu++ },
+            ))
+        } }
+        return escolhas
+    }
+
+    @Test
+    fun `a folha lista os motivos da casa e escolher um chama a acao com ele`() {
+        val escolhas = montarFolha(estadoComFolha())
+
+        MotivoDeCancelamentoDaCasa.entries.forEach { rule.onNodeWithText(it.texto).assertIsDisplayed() }
+        rule.onNodeWithText("Movimento menor que o esperado").performClick()
+
+        rule.runOnIdle { assertEquals(listOf(MotivoDeCancelamentoDaCasa.MOVIMENTO_MENOR), escolhas.motivos) }
+    }
+
+    @Test
+    fun `sem motivo escolhido o confirmar fica desabilitado, com motivo fica habilitado e confirma`() {
+        val sem = montarFolha(estadoComFolha())
+        rule.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(0, sem.confirmou) }
+    }
+
+    @Test
+    fun `com um motivo o confirmar habilita e chama a acao`() {
+        val escolhas = montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.MOVIMENTO_MENOR))
+        rule.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(1, escolhas.confirmou) }
+    }
+
+    @Test
+    fun `Outro motivo pede o detalhe e fica travado sem ele`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO))
+
+        rule.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").assertExists()
+        rule.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `Outro motivo com o detalhe habilita o confirmar`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO, detalhes = "Fechamos mais cedo"))
+        rule.onNodeWithText("Confirmar cancelamento").assertIsEnabled()
+    }
+
+    @Test
+    fun `os outros motivos tem o detalhe opcional`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.PROBLEMA_NO_LOCAL))
+        rule.onNodeWithText("Quer explicar melhor? (opcional)").assertExists()
+    }
+
+    @Test
+    fun `Voltar desiste da folha`() {
+        val escolhas = montarFolha(estadoComFolha())
+        rule.onNodeWithText("Voltar").performClick()
+        rule.runOnIdle { assertEquals(1, escolhas.desistiu) }
+    }
+
+    @Test
+    fun `de ponta a ponta com o ViewModel real - escolher o motivo na folha e confirmar manda o texto do motivo`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val viewModel = AcompanhamentoContratanteViewModel(
+            contexto = estado().contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            confirmar = { error("não confirma") },
+            escopo = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+            cancelar = { posicao, motivo ->
+                enviados += posicao to motivo
+                br.com.frila.core.dominio.modelo.ResultadoCancelamento("posicao", true, false)
+            },
+            relogio = { Instant.EPOCH },
+        )
+        rule.setContent { FrilaTheme { TelaTurnoDoContratante(viewModel = viewModel, aoVoltar = {}) } }
+
+        rule.onNodeWithText("Cancelar posição").performClick()
+        rule.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+        rule.onNodeWithText("Movimento menor que o esperado").performClick()
+        rule.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("posicao" to "Movimento menor que o esperado"), enviados)
+    }
+
     // ── Turno já avaliado pela casa (QBAAgKth) ────────────────────────────────────────────────────────────────────────
 
     private fun montarAvaliacao(estado: EstadoTurnoDoContratante, avaliou: MutableList<String> = mutableListOf()): MutableList<String> {
@@ -316,6 +421,37 @@ class TelaTurnoDoContratanteTest {
         montarAvaliacao(estado(verificacao = "pendente", checkinTipo = "manual").copy(avaliacaoDoServidor = true))
         assertEquals(0, contar("Ver avaliação"))
         assertEquals(0, contar("Avaliar turno"))
+    }
+
+    // ── O efeito do cancelamento (Vmfnk4gQ, fatia 2) ──────────────────────────────────────────────────────────────────
+
+    private fun efeitoNaFolha(agoraDoTurno: Instant, inicio: Instant?): String {
+        val base = estadoComFolha()
+        montarFolha(base.copy(contexto = base.contexto.copy(inicio = inicio), agora = { agoraDoTurno }))
+        return rule.onNodeWithTag("efeito-do-cancelamento").fetchSemanticsNode().config
+            .let { androidx.compose.ui.semantics.SemanticsProperties.Text.let { chave -> it[chave].joinToString("") { t -> t.text } } }
+    }
+
+    @Test
+    fun `a folha antes do inicio diz que a posicao volta a ser oferecida`() {
+        val agora = Instant.parse("2026-11-12T16:00:00Z")
+        val texto = efeitoNaFolha(agora, inicio = Instant.parse("2026-11-12T21:00:00Z"))
+        assertEquals(
+            "Faltam 5 h para o início. A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado. " +
+                "Não conta como falta para o profissional.",
+            texto,
+        )
+    }
+
+    @Test
+    fun `a folha depois do inicio diz que nao reabre e o turno fica descoberto`() {
+        val agora = Instant.parse("2026-11-12T22:00:00Z")
+        val texto = efeitoNaFolha(agora, inicio = Instant.parse("2026-11-12T21:00:00Z"))
+        assertEquals(
+            "O turno já começou. A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado. " +
+                "Não conta como falta para o profissional.",
+            texto,
+        )
     }
 
     // ── A avaliação só libera depois do fim previsto (rWpiTL8g) ───────────────────────────────────────────────────────

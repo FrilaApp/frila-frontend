@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import br.com.frila.core.rede.ReputacaoDto
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -221,6 +223,14 @@ fun TelaDetalheVaga(
                 },
             )
 
+            // A reputação da casa, logo abaixo do nome (iOS `reputacaoDaCasa`): quantas avaliações indicam que trabalhariam lá de novo.
+            Text(
+                text = textoDaReputacaoDaCasa(vaga.estabelecimento.reputacao),
+                style = FrilaTipo.apoio,
+                color = FrilaTema.cores.tintaSuave,
+                modifier = Modifier.fillMaxWidth().testTag("detalhe-reputacao"),
+            )
+
             // A faixa do modo, sobre o fundo, sem cartão: o que o toque no botão vai fazer.
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                 if (estado.ehModoUrgencia) {
@@ -346,3 +356,18 @@ private fun periodoDoRodape(duracao: Duration, horaDeInicio: Int): String {
     }
     return "${duracaoCurta(duracao)} $parteDoDia"
 }
+
+/** Os textos da reputação da casa no detalhe da vaga (paridade com `TextosDoProfissional.Detalhe` do iOS). */
+internal object TextosDaReputacaoDaCasa {
+    const val SEM_AVALIACOES = "Ainda sem avaliações."
+    const val AVALIACOES_TRABALHARIAM_LA_DE_NOVO = "avaliações indicam que trabalhariam lá de novo"
+    fun contagem(positivas: Int, total: Int) = "$positivas de $total"
+}
+
+/** "7 de 8 avaliações indicam que trabalhariam lá de novo"; sem nenhuma avaliação (`total == 0`, o `semHistorico` do iOS), "Ainda sem avaliações.". */
+internal fun textoDaReputacaoDaCasa(reputacao: ReputacaoDto): String =
+    if (reputacao.total == 0) {
+        TextosDaReputacaoDaCasa.SEM_AVALIACOES
+    } else {
+        "${TextosDaReputacaoDaCasa.contagem(reputacao.positivas, reputacao.total)} ${TextosDaReputacaoDaCasa.AVALIACOES_TRABALHARIAM_LA_DE_NOVO}"
+    }

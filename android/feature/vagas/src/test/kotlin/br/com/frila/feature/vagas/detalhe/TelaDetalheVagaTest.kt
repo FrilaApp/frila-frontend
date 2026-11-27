@@ -64,6 +64,8 @@ class TelaDetalheVagaTest {
         incluiRefeicao: Boolean = true,
         incluiTransporte: Boolean = false,
         exigeMaterial: Boolean = false,
+        positivas: Int = 7,
+        total: Int = 7,
     ) = VagaAbertaDto(
         id = "11111111-1111-1111-1111-111111111111",
         funcao = FuncaoDto(id = "f1", nome = funcaoNome, categoria = "Salão"),
@@ -71,7 +73,7 @@ class TelaDetalheVagaTest {
             id = "e1",
             tipo = "estabelecimento",
             nome = estabelecimentoNome,
-            reputacao = ReputacaoDto(positivas = 7, total = 7, taxaComparecimento = 1.0, turnosConsiderados = 7, turnosRealizados = 7),
+            reputacao = ReputacaoDto(positivas = positivas, total = total, taxaComparecimento = 1.0, turnosConsiderados = total, turnosRealizados = total),
         ),
         inicioEm = "2026-11-01T21:00:00Z",
         fimEm = "2026-11-02T03:00:00Z",
@@ -648,5 +650,27 @@ class TelaDetalheVagaTest {
         val aberto = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, aberto.action)
         assertEquals("geo:0,0?q=Bar%20do%20Z%C3%A9%2C%20SQN%20108", aberto.dataString)
+    }
+
+    // ── A reputação da casa (DLjTVc2e, item 149) ──────────────────────────────────────────────────────────────────────
+
+    private fun textoDaReputacaoNaTela(positivas: Int, total: Int): String {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga(positivas = positivas, total = total))) } }
+        return compose.onNodeWithTag("detalhe-reputacao").fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("") { it.text }
+    }
+
+    @Test
+    fun `a reputacao da casa diz quantas avaliacoes indicam que trabalhariam la de novo`() {
+        assertEquals("3 de 5 avaliações indicam que trabalhariam lá de novo", textoDaReputacaoNaTela(positivas = 3, total = 5))
+    }
+
+    @Test
+    fun `uma casa sem avaliacoes diz Ainda sem avaliacoes`() {
+        assertEquals("Ainda sem avaliações.", textoDaReputacaoNaTela(positivas = 0, total = 0))
+    }
+
+    @Test
+    fun `uma casa com avaliacoes e nenhuma positiva ainda mostra a contagem`() {
+        assertEquals("0 de 4 avaliações indicam que trabalhariam lá de novo", textoDaReputacaoNaTela(positivas = 0, total = 4))
     }
 }
