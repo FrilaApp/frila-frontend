@@ -40,12 +40,14 @@ class KoinGuardaDaEscalaTest {
     private val semRede = ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "sintético")
 
     /** O servidor falso: as [respostas] em ordem (erro ou publicada); guarda cada corpo recebido. */
-    private class Servidor(private val respostas: List<Result<EscalaPublicadaDto>>) {
+    private class Servidor(private val respostas: List<Result<EscalaPublicadaDto>>, private val travarAPrimeira: Boolean = false) {
         val corpos = mutableListOf<NovaEscalaDto>()
         val servico: ServicoVagas = mockk {
             coEvery { listarFuncoes() } returns listOf(FuncaoDto("f1", "Garçom", "Salão"))
-            coEvery { publicarEscala(any()) } answers {
+            coEvery { publicarEscala(any()) } coAnswers {
                 corpos += firstArg<NovaEscalaDto>()
+                // A primeira chamada nunca responde: a pessoa sai da tela com o envio em voo.
+                if (travarAPrimeira && corpos.size == 1) kotlinx.coroutines.awaitCancellation()
                 respostas[corpos.size - 1].getOrThrow()
             }
         }
@@ -180,5 +182,25 @@ class KoinGuardaDaEscalaTest {
                 assertNull(visita(app.koin).estado.value.pendente, "a conta seguinte não herda a escala da que saiu")
             }
         } finally { app.close(); Dispatchers.resetMain() }
+    }
+
+    @Test
+    fun `sair com o envio em voo volta ao pendente sem envio em curso e reenvia o mesmo corpo`() {
+        val servidor = Servidor(listOf(Result.success(publicada()), Result.success(publicada())), travarAPrimeira = true)
+        comAplicacao(servidor) { koin ->
+            val primeira = visita(koin)
+            preencher(primeira)
+            primeira.publicar() // não termina: o servidor não responde
+            assertEquals(true, primeira.estado.value.enviando)
+            assertNotNull(koin.get<GuardaDaEscala>().obter(casa.id), "a pendência já está guardada enquanto o envio está em voo")
+
+            val segunda = visita(koin)
+
+            assertEquals(false, segunda.estado.value.enviando, "o envio interrompido não volta como 'enviando'")
+            segunda.publicar().join()
+            assertEquals(2, servidor.corpos.size)
+            assertEquals(servidor.corpos[0], servidor.corpos[1])
+            assertNotNull(segunda.estado.value.publicada)
+        }
     }
 }
