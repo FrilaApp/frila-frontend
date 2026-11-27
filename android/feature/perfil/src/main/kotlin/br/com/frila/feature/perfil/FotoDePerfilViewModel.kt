@@ -40,6 +40,8 @@ data class SituacaoDaFoto(
     val pedindoNovaAnalise: Boolean = false,
     /** A falha do último pedido, em texto da tela. */
     val aviso: String? = null,
+    /** `409 midia_indisponivel` com `details: expurgada`: o arquivo já foi apagado, a nova análise não existe mais e só resta enviar outra foto. */
+    val arquivoExpurgado: Boolean = false,
 ) {
     /** Uma vez por foto `recusada` ou `nao_publicada`, e só se o servidor ainda deixa (`pode_pedir_nova_analise`: o arquivo existe). */
     val podePedirNovaAnalise: Boolean

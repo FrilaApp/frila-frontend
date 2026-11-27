@@ -24,6 +24,7 @@ object TextosDaFotoDePerfil {
     const val TITULO_NAO_PUBLICADA = "Foto não publicada"
     const val TEXTO_NAO_PUBLICADA = "Não conseguimos analisar sua foto agora. Peça uma nova análise ou tente outra foto."
     const val TEXTO_NOVA_ANALISE_JA_PEDIDA = "A nova análise já foi pedida. Se a foto continuar sem aparecer, tente outra foto."
+    const val ERRO_EXPURGADA = "O arquivo dessa foto já foi apagado. Envie outra foto."
     const val ERRO_IMAGEM_INVALIDA = "Não conseguimos abrir essa foto. Tente outra."
     const val ERRO_SEM_REDE = "Sem conexão. Verifique sua internet e tente novamente."
     const val ERRO_RECUSADA_PELO_SERVIDOR = "Essa foto não pôde ser enviada. Tente outra foto."

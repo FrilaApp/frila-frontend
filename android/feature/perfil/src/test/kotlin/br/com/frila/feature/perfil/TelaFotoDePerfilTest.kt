@@ -167,4 +167,17 @@ class TelaFotoDePerfilTest {
         rule.onNodeWithText("Escolher foto").assertIsDisplayed()
         rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
     }
+
+    @Test
+    fun arquivoExpurgadoDizQueFoiApagadoESoOferecePedirOutraFoto() {
+        mostrar(
+            EtapaDaFoto.Parada,
+            SituacaoDaFoto(midia = midia("recusada"), aviso = TextosDaFotoDePerfil.ERRO_EXPURGADA, arquivoExpurgado = true),
+        )
+
+        rule.onNodeWithText("O arquivo dessa foto já foi apagado. Envie outra foto.").assertIsDisplayed()
+        rule.onNodeWithText("Tentar outra foto").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
+        assertEquals(listOf("escolher"), toques)
+    }
 }
