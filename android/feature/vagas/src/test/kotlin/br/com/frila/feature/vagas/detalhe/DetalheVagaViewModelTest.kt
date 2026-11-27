@@ -608,4 +608,30 @@ class DetalheVagaViewModelTest {
         assertEquals(StatusCandidatura.CONFIRMADA, vm.estado.value.statusCandidatura)
         assertEquals(1, eventos.count { it == EventoDeTelemetria.CANDIDATURA_ENVIADA })
     }
+
+    @Test
+    fun `toques simultaneos de varios threads mandam uma requisicao so (a trava e atomica)`() = runBlocking {
+        repeat(60) { rodada ->
+            val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val pedidos = java.util.concurrent.atomic.AtomicInteger(0)
+            val engine = MockEngine {
+                pedidos.incrementAndGet()
+                liberar.await()
+                respond(confirmadaJson, HttpStatusCode.OK, cabecalhoJson)
+            }
+            val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+            val vm = DetalheVagaViewModel(vagaDe("urgencia"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+            val threads = 12
+            val largada = java.util.concurrent.CyclicBarrier(threads)
+            val jobs = java.util.Collections.synchronizedList(mutableListOf<kotlinx.coroutines.Job>())
+            val pool = List(threads) { Thread { largada.await(); jobs += vm.candidatar() } }
+
+            pool.forEach { it.start() }
+            pool.forEach { it.join() }
+            liberar.complete(Unit)
+            jobs.toList().forEach { it.join() }
+
+            assertEquals(1, pedidos.get(), "rodada $rodada")
+        }
+    }
 }
