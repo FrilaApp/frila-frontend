@@ -270,6 +270,19 @@ class CadastroViewModelTest {
     }
 
     @Test
+    fun `concluirCadastro com 409 perfil_ja_existe cai no mesmo texto de conta existente`() = runBlocking {
+        val viewModel = viewModelComServidor(Envios(), resposta = erroDaApi("perfil_ja_existe", HttpStatusCode.Conflict))
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertFalse(viewModel.estado.value.concluido)
+        assertFalse(viewModel.estado.value.enviando)
+        // O texto exato da conta existente (e não o genérico de cadastro indisponível): o 409 de perfil tem de chegar a esse ramo.
+        assertEquals("Já existe uma conta com este e-mail. Entre com o código para continuar.", viewModel.estado.value.erro)
+    }
+
+    @Test
     fun `concluirCadastro com erro de rede mostra a mensagem de conexao e nao conclui`() = runBlocking {
         val viewModel = viewModelComServidor(Envios()) { throw UnknownHostException("sem rede") }
         preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
