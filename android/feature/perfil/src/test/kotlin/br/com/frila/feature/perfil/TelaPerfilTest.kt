@@ -1594,4 +1594,38 @@ class TelaPerfilTest {
     @Test
     fun sairDeTodosQueFalhaMostraOErroNoPerfilDaCasaETravaEnquantoEmVoo() =
         sairDeTodosComErroVisivelEAcaoLivre(contaJson("contratante"))
+
+    @Test
+    fun sairDeTodosQueFalhaNoEstadoDeErroMostraOErroJuntoDaAcaoSemTrocarOTextoDoCarregamento() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+                revogarDispositivos = { throw br.com.frila.core.rede.ErroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_REDE, "sem_rede", null, "x") },
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.ERRO, viewModel.estado.value.status)
+            val erroDoCarregamento = viewModel.estado.value.mensagemErro
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            pedirSairDeTodos()
+            esperarErroDeSairDeTodos()
+
+            rule.onNodeWithTag("perfil-sair-todos-erro").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText(textoSemRede).assertIsDisplayed()
+            assertEquals(erroDoCarregamento, viewModel.estado.value.mensagemErro)
+            rule.onNodeWithTag("perfil-sair-todos-dispositivos").performScrollTo().assertIsEnabled()
+        }
+    }
 }
