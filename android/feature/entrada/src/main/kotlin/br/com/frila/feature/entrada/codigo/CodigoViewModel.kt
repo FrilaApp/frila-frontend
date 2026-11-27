@@ -66,8 +66,9 @@ class CodigoViewModel(
 
     /** Quando o último código foi pedido (primeiro envio ou reenvio): separa "incorreto" de "expirado". */
     private var codigoPedidoEm: Instant = agora()
-    private var esperaParaReenviarAtual: Duration =
+    private val esperaPoliticaDireta: Duration =
         reenviarEmSegundosInicial?.takeIf { it > 0 }?.let { Duration.ofSeconds(it.toLong()) } ?: ESPERA_PARA_REENVIAR
+    private var esperaParaReenviarAtual: Duration = esperaPoliticaDireta
     private var desafioIdAtual: String? = desafioIdInicial?.takeIf { it.isNotBlank() }
 
     /**
@@ -220,7 +221,7 @@ class CodigoViewModel(
                 when (modo) {
                     ModoCodigo.RECUPERACAO -> {
                         servicoAutenticacao.solicitarOtpRecuperacao(email)
-                        esperaParaReenviarAtual = ESPERA_PARA_REENVIAR
+                        esperaParaReenviarAtual = esperaPoliticaDireta
                         concluirReenvio(MENSAGEM_REENVIO_NEUTRA_RECUPERACAO)
                     }
                     ModoCodigo.LOGIN_DISPOSITIVO -> {
@@ -236,7 +237,7 @@ class CodigoViewModel(
                     }
                     else -> {
                         servicoAutenticacao.solicitarOtp(email)
-                        esperaParaReenviarAtual = ESPERA_PARA_REENVIAR
+                        esperaParaReenviarAtual = esperaPoliticaDireta
                         concluirReenvio(MENSAGEM_REENVIO_PADRAO)
                     }
                 }
