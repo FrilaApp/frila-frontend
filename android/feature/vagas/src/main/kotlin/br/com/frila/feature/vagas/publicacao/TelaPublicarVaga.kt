@@ -83,6 +83,7 @@ data class AcoesPublicarVaga(
     val aoEditarTraje: (String) -> Unit = {},
     val aoEditarObservacoes: (String) -> Unit = {},
     val aoAlternarRateio: (Boolean) -> Unit = {},
+    val aoEscolherAlertaAntecedencia: (Int) -> Unit = {},
     val aoPublicar: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
 )

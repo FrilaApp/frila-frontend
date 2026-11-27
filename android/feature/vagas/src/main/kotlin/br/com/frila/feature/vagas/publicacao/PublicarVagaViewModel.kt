@@ -77,6 +77,8 @@ data class EstadoPublicarVaga(
     val traje: String = "",
     val observacoes: String = "",
     val participaRateio: Boolean = false,
+    /** Quando avisar a casa se a vaga seguir vazia (`alerta_antecedencia_min`, contrato 0.2.x): 120, 180 (padrão) ou 360 minutos antes do início. */
+    val alertaAntecedenciaMin: Int = 180,
     val naFila: Boolean = false,
     val enviadaPelaFila: Boolean = false,
     val enviando: Boolean = false,
@@ -296,6 +298,8 @@ class PublicarVagaViewModel(
     fun editarObservacoes(texto: String) = editar(CampoPublicacao.OBSERVACOES) { copy(observacoes = texto) }
 
     fun alternarRateio(participa: Boolean) = editar { copy(participaRateio = participa) }
+
+    fun escolherAlertaAntecedencia(minutos: Int) {}
 
     /**
      * Valida e publica. Sem efeito durante o envio ou depois de publicada: o segundo toque não cria duas

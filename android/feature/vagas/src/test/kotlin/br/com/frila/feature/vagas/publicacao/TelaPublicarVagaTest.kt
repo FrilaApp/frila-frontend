@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -54,6 +55,7 @@ class TelaPublicarVagaTest {
         var refeicao: Boolean? = null
         var maisUma = 0
         var menosUma = 0
+        var alerta: Int? = null
     }
 
     private fun estado(
@@ -84,6 +86,7 @@ class TelaPublicarVagaTest {
                         aoMaisUmaPosicao = { chamadas.maisUma++ },
                         aoMenosUmaPosicao = { chamadas.menosUma++ },
                         aoAlternarRefeicao = { chamadas.refeicao = it; estado = estado.copy(incluiRefeicao = it) },
+                        aoEscolherAlertaAntecedencia = { chamadas.alerta = it; estado = estado.copy(alertaAntecedenciaMin = it) },
                         aoPublicar = { chamadas.publicacoes++ },
                         aoVoltar = { chamadas.voltou++ },
                     ),
@@ -462,5 +465,41 @@ class TelaPublicarVagaTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
         rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
         assertEquals(1, chamadas.publicacoes)
+    }
+
+    // ---- Quando avisar se a vaga seguir vazia (cartão 0Nm8bS1q) ----
+
+    @Test
+    fun `mais opcoes mostra avisar se a vaga seguir vazia com 2, 3 e 6 horas, e 3 horas marcada`() {
+        montar()
+        rule.onNodeWithText(TextosPublicarVaga.ALERTA).assertDoesNotExist()
+
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+
+        rule.onNodeWithText(TextosPublicarVaga.ALERTA).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("2 horas antes").performScrollTo().assertIsDisplayed().assertIsNotSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        rule.onNodeWithText("3 horas antes").performScrollTo().assertIsDisplayed().assertIsSelected()
+        rule.onNodeWithText("6 horas antes").performScrollTo().assertIsDisplayed().assertIsNotSelected()
+    }
+
+    @Test
+    fun `escolher 6 horas chama o ViewModel com 360 e marca so a de 6 horas`() {
+        val chamadas = montar()
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+
+        rule.onNodeWithText("6 horas antes").performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+
+        assertEquals(360, chamadas.alerta)
+        rule.onNodeWithText("6 horas antes").assertIsSelected()
+        rule.onNodeWithText("3 horas antes").assertIsNotSelected()
+    }
+
+    @Test
+    fun `com a publicacao em curso as opcoes do aviso ficam desabilitadas`() {
+        montar(estado { copy(enviando = true) })
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+
+        rule.onNodeWithText("6 horas antes").performScrollTo().assertIsNotEnabled()
     }
 }
