@@ -376,7 +376,7 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
         campo.returnKeyType = returnKeyType
         campo.font = UIFont.preferredFont(forTextStyle: .body)
         campo.adjustsFontForContentSizeCategory = true
-        campo.textColor = UIColor(named: "TextPrimary", in: bundleApresentacao, compatibleWith: nil) ?? .label
+        campo.textColor = FrilaCor.textoUIKit
         campo.tintColor = campo.textColor
         campo.backgroundColor = .clear
         campo.borderStyle = .none
@@ -404,16 +404,26 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
         if ocultarRevelacao || context.coordinator.capturaAtiva(para: uiView) {
             context.coordinator.limparRevelacao()
         }
-        if estaFocado, !uiView.isFirstResponder, habilitado, uiView.window != nil {
-            uiView.becomeFirstResponder()
-        } else if !estaFocado, uiView.isFirstResponder {
-            uiView.resignFirstResponder()
+        if estaFocado != context.coordinator.ultimoEstaFocadoAplicado {
+            context.coordinator.ultimoEstaFocadoAplicado = estaFocado
+            if estaFocado, !uiView.isFirstResponder, habilitado, uiView.window != nil {
+                uiView.becomeFirstResponder()
+            } else if !estaFocado, uiView.isFirstResponder {
+                uiView.resignFirstResponder()
+            }
         }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: CampoSeguroInternoUITextField, context: Context) -> CGSize? {
+        let largura = proposal.width ?? uiView.intrinsicContentSize.width
+        let altura = max(FrilaMetrica.alturaDoCampo, ceil(uiView.intrinsicContentSize.height))
+        return CGSize(width: largura, height: altura)
     }
 
     @MainActor
     final class Coordinator: NSObject, UITextFieldDelegate {
         var pai: CampoDeSenhaComRevelacaoBreve
+        var ultimoEstaFocadoAplicado: Bool = false
         private weak var campo: CampoSeguroInternoUITextField?
         private let camadaRevelacao = CamadaLinhaMascaradaView(frame: .zero)
         private var trechoPendente: TrechoReveladoDeSenha?
@@ -489,12 +499,12 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
             trechoAtivo = nil
             camadaRevelacao.isHidden = true
             if let campo {
-                let corTexto = UIColor(named: "TextPrimary", in: bundleApresentacao, compatibleWith: nil) ?? .label
-                campo.tintColor = corTexto
+                campo.tintColor = FrilaCor.textoUIKit
             }
         }
 
         func textFieldDidBeginEditing(_ textField: UITextField) {
+            ultimoEstaFocadoAplicado = true
             if !pai.estaFocado {
                 pai.estaFocado = true
             }
@@ -502,6 +512,7 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
 
         func textFieldDidEndEditing(_ textField: UITextField) {
             limparRevelacao()
+            ultimoEstaFocadoAplicado = false
             if pai.estaFocado {
                 pai.estaFocado = false
             }
@@ -591,8 +602,8 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
                 }
             }
 
-            let corTexto = UIColor(named: "TextPrimary", in: bundleApresentacao, compatibleWith: nil) ?? .label
-            let corSuperficie = UIColor(named: "SurfaceElevated", in: bundleApresentacao, compatibleWith: nil) ?? .systemBackground
+            let corTexto = FrilaCor.textoUIKit
+            let corSuperficie = FrilaCor.superficieUIKit
 
             camadaRevelacao.frame = limiteEdicao
             camadaRevelacao.atualizar(
